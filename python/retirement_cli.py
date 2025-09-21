@@ -2,158 +2,114 @@
 """
 Australian Retirement Calculator - Main CLI
 
-Command-line interface for the Australian Retirement Calculator.
-Provides options for basic calculations, interactive mode, and utilities.
+Command-line interface for the Enhanced Australian Retirement Calculator.
 """
 
 import sys
 import argparse
-from retirement_calculator import AustralianRetirementCalculator
-from retirement_utils import RetirementPlanningUtils
-import interactive_calculator
-
+from retirement_calculator import EnhancedRetirementSimulator, get_default_inputs
 
 def run_example():
     """Run the built-in example calculation."""
     print("Running example calculation...")
-    print()
     from retirement_calculator import main
     main()
 
+def run_projection(args):
+    """Run a simulation and display the year-by-year projection."""
+    inputs = get_default_inputs()
+    # Update inputs with any provided arguments
+    for key, value in vars(args).items():
+        if value is not None:
+            inputs[key] = value
 
-def run_tests():
-    """Run the test suite."""
-    print("Running test suite...")
-    print()
-    import test_calculator
-    test_calculator.main()
+    simulator = EnhancedRetirementSimulator(inputs)
+    results = simulator.run_simulation()
 
-
-def run_interactive():
-    """Run the interactive calculator."""
-    interactive_calculator.run_interactive_calculator()
-
-
-def run_utilities():
-    """Run the utilities demonstration."""
-    print("Running utilities demonstration...")
-    print()
-    from retirement_utils import demo_utilities
-    demo_utilities()
-
+    print("\n--- Year-by-Year Projection ---")
+    print("=" * 40)
+    print(f"{'Year':<5} {'Age':<4} {'End Balance':<15}")
+    print("-" * 40)
+    
+    for i, data in enumerate(results['yearlyData']):
+        year = data['year']
+        end_balance = data['endBalance']
+        age = inputs['retirementAge'] + i
+        print(f"{year:<5} {age:<4} ${end_balance:,.0f}")
+        if data['depleted']:
+            print("-" * 40)
+            print(f"Funds depleted in year {year}.")
+            break
 
 def quick_calculation(args):
     """Run a quick calculation with command-line arguments."""
-    calculator = AustralianRetirementCalculator()
-    
-    years_to_retirement = args.retirement_age - args.current_age
-    
-    print(f"Quick Retirement Calculation")
-    print("=" * 40)
-    print(f"Current age: {args.current_age}")
-    print(f"Retirement age: {args.retirement_age}")
-    print(f"Years to retirement: {years_to_retirement}")
-    print(f"Current super: ${args.super_balance:,.0f}")
-    print(f"Annual contributions: ${args.annual_contributions:,.0f}")
-    print(f"Lifestyle: {args.lifestyle}")
-    print()
-    
-    # Calculate super at retirement (assuming equal split if only one value provided)
-    super1, super2 = calculator.calculate_superannuation_at_retirement(
-        args.super_balance / 2, args.super_balance / 2,
-        args.annual_contributions / 2, args.annual_contributions / 2,
-        years_to_retirement
-    )
-    total_super = super1 + super2
-    
-    print(f"Super at retirement: ${total_super:,.0f}")
-    
-    # Calculate pension
-    pension = calculator.calculate_age_pension_eligibility(total_super, True)
-    print(f"Annual Age Pension: ${pension['annual_pension']:,.0f}")
-    
-    # Calculate capital needs
-    capital_needs = calculator.calculate_total_retirement_capital_needed(
-        args.retirement_age, args.lifestyle, pension['annual_pension']
-    )
-    
-    surplus_deficit = total_super - capital_needs['total_capital_needed']
-    
-    print(f"Capital needed: ${capital_needs['total_capital_needed']:,.0f}")
-    print(f"Available capital: ${total_super:,.0f}")
-    
-    if surplus_deficit >= 0:
-        print(f"Status: SURPLUS ${surplus_deficit:,.0f} ✓")
-    else:
-        print(f"Status: DEFICIT ${abs(surplus_deficit):,.0f} ✗")
+    inputs = get_default_inputs()
+    # Update inputs with any provided arguments
+    for key, value in vars(args).items():
+        if value is not None and key in inputs:
+            inputs[key] = value
 
+    simulator = EnhancedRetirementSimulator(inputs)
+    results = simulator.run_simulation()
+    
+    print("\n--- Quick Simulation Results ---")
+    print(f"Final Balance: ${results['finalBalance']:,.0f}")
+    
+    mc_results = simulator.run_monte_carlo_simulation(runs=args.runs)
+    print("\n--- Monte Carlo Simulation ---")
+    print(f"Success Rate: {mc_results['success_rate']:.1%}")
+    print(f"Median Outcome: ${mc_results['median']:,.0f}")
 
 def main():
     """Main CLI function."""
     parser = argparse.ArgumentParser(
-        description='Australian Retirement Calculator for Couples',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  %(prog)s example              # Run built-in example
-  %(prog)s interactive          # Run interactive calculator
-  %(prog)s test                 # Run test suite
-  %(prog)s utilities            # Run utilities demo
-  
-  # Quick calculation
-  %(prog)s quick --current-age 50 --retirement-age 67 \\
-                 --super-balance 400000 --annual-contributions 40000
-        """
+        description='Enhanced Australian Retirement Calculator',
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
     
     # Example command
-    subparsers.add_parser('example', help='Run built-in example calculation')
-    
-    # Interactive command
-    subparsers.add_parser('interactive', help='Run interactive calculator')
-    
-    # Test command
-    subparsers.add_parser('test', help='Run test suite')
-    
-    # Utilities command
-    subparsers.add_parser('utilities', help='Run utilities demonstration')
-    
-    # Quick calculation command
-    quick_parser = subparsers.add_parser('quick', help='Quick calculation with command-line args')
-    quick_parser.add_argument('--current-age', type=int, required=True,
-                            help='Current age of older partner')
-    quick_parser.add_argument('--retirement-age', type=int, default=67,
-                            help='Planned retirement age (default: 67)')
-    quick_parser.add_argument('--super-balance', type=float, required=True,
-                            help='Combined current superannuation balance')
-    quick_parser.add_argument('--annual-contributions', type=float, default=0,
-                            help='Combined annual super contributions (default: 0)')
-    quick_parser.add_argument('--lifestyle', choices=['comfortable', 'modest'], 
-                            default='comfortable',
-                            help='Retirement lifestyle (default: comfortable)')
-    
-    # Parse arguments
+    subparsers.add_parser('example', help='Run built-in example calculation from retirement_calculator.py')
+
+    # Default inputs for help text
+    defaults = get_default_inputs()
+
+    # Quick command
+    quick_parser = subparsers.add_parser('quick', help='Run a quick simulation with Monte Carlo.')
+    quick_parser.add_argument('--runs', type=int, default=1000, help='Number of Monte Carlo runs.')
+    for key, value in defaults.items():
+        arg_name = '--' + key
+        _type = type(value) if value is not None else str
+        if _type == bool:
+            quick_parser.add_argument(arg_name, action=argparse.BooleanOptionalAction, default=value)
+        else:
+            quick_parser.add_argument(arg_name, type=_type, default=value, help=f"Default: {value}")
+
+    # Projection command
+    proj_parser = subparsers.add_parser('projection', help='Get a year-by-year projection.')
+    for key, value in defaults.items():
+        arg_name = '--' + key
+        _type = type(value) if value is not None else str
+        if _type == bool:
+            proj_parser.add_argument(arg_name, action=argparse.BooleanOptionalAction, default=value)
+        else:
+            proj_parser.add_argument(arg_name, type=_type, default=value, help=f"Default: {value}")
+
+
     args = parser.parse_args()
     
-    # If no command specified, show help
     if not args.command:
         parser.print_help()
         return
     
-    # Execute the appropriate command
     try:
         if args.command == 'example':
             run_example()
-        elif args.command == 'interactive':
-            run_interactive()
-        elif args.command == 'test':
-            run_tests()
-        elif args.command == 'utilities':
-            run_utilities()
         elif args.command == 'quick':
             quick_calculation(args)
+        elif args.command == 'projection':
+            run_projection(args)
     except KeyboardInterrupt:
         print("\n\nCalculation interrupted by user.")
     except Exception as e:

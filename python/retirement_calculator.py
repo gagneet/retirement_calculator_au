@@ -9,292 +9,399 @@ considering various factors including:
 - Property ownership and value growth
 - ASFA retirement standards
 - Living to age 95
+
+---
+
+Enhanced Australian Retirement Calculator for Couples
+
+This calculator provides a comprehensive retirement projection based on a wide
+range of financial and lifestyle factors, including advanced modeling for
+investment properties, healthcare, aged care, and market dynamics.
 """
 
 import math
-from datetime import datetime, date
-from typing import Dict, Tuple, Optional
+import random
+from typing import Dict, Any, List
+import numpy as np
+
+from config import ENHANCED_CONFIG
+from utils import (
+    calculate_post_tax_income, 
+    calculate_loan_balance,
+    calculate_cgt,
+    calculate_age_pension,
+    random_normal,
+    clamp
+)
 
 
-class AustralianRetirementCalculator:
+class EnhancedRetirementSimulator:
     """
-    Main calculator class for Australian retirement planning for couples.
+    Main simulation engine for the enhanced Australian retirement calculator.
+    This class takes a dictionary of inputs and runs a detailed year-by-year
+    simulation of a couple's financial future.
     """
     
-    def __init__(self):
-        # Current rates as of 2024 (these should be updated regularly)
-        self.PENSION_AGE = 67  # Current pension age in Australia
-        self.MAX_AGE = 95  # Life expectancy target
-        
-        # Age Pension rates (per fortnight) as of March 2024
-        self.AGE_PENSION_COUPLE_COMBINED = 1725.70  # Combined for couple
-        self.AGE_PENSION_COUPLE_EACH = 1158.40  # Each person in couple
-        
-        # Age Pension asset test thresholds (as of 2024)
-        self.ASSET_TEST_HOMEOWNER_COUPLE = 451000  # Threshold for couple with home
-        self.ASSET_TEST_NON_HOMEOWNER_COUPLE = 667000  # Threshold for couple without home
-        
-        # Age Pension income test thresholds (per fortnight)
-        self.INCOME_TEST_COUPLE_COMBINED = 372  # Combined free area
-        self.INCOME_TEST_REDUCTION_RATE = 0.25  # 25% reduction rate
-        
-        # ASFA retirement standards (per quarter) as of December 2023
-        self.ASFA_COMFORTABLE_COUPLE = 17729  # Quarterly
-        self.ASFA_MODEST_COUPLE = 12715  # Quarterly
-        
-        # Inflation and growth rates
-        self.INFLATION_RATE = 0.035  # 3.5% annual inflation
-        self.SUPER_GROWTH_RATE = 0.07  # 7% annual super growth
-        
-    def calculate_property_value_at_retirement(self, 
-                                             current_value: float, 
-                                             years_to_retirement: int) -> float:
+    def __init__(self, inputs: Dict[str, Any]):
         """
-        Calculate property value at retirement assuming inflation-only growth.
-        
-        Args:
-            current_value: Current property value
-            years_to_retirement: Number of years until retirement
-            
-        Returns:
-            Property value at retirement
+        Initializes the simulator with all required inputs.
         """
-        return current_value * (1 + self.INFLATION_RATE) ** years_to_retirement
+        self.inputs = inputs
+        self.config = ENHANCED_CONFIG
+        self.calc_consts = self.config['CALCULATION_CONSTANTS']
+
+    def run_simulation(self, use_random_returns=False, stress_scenario=None) -> Dict[str, Any]:
+        """
+        Public method to run a single simulation.
+        """
+        return self._simulate_retirement(use_random_returns, stress_scenario)
+
+    def run_monte_carlo_simulation(self, runs: int = 1000) -> Dict[str, Any]:
+        """
+        Runs the Monte Carlo simulation by performing many randomized runs.
+        """
+        outcomes = [self._simulate_retirement(use_random_returns=True)['finalBalance'] for _ in range(runs)]
+        outcomes.sort()
+        
+        return {
+            "runs": runs,
+            "success_rate": len([o for o in outcomes if o > 0]) / runs,
+            "median": np.median(outcomes),
+            "percentile_10": np.percentile(outcomes, 10),
+            "percentile_90": np.percentile(outcomes, 90),
+        }
+
+    def run_stress_tests(self) -> List[Dict[str, Any]]:
+        """
+        Runs a series of stress tests based on predefined scenarios.
+        """
+        results = []
+        for scenario in self.config['STRESS_SCENARIOS']:
+            result = self._simulate_retirement(stress_scenario=scenario)
+            results.append({
+                "scenario": scenario['name'],
+                "finalBalance": result['finalBalance'],
+                "success": result['finalBalance'] > 0
+            })
+        return results
+
+    def _calculate_risk_capacity(self) -> int:
+        """Calculates risk capacity based on age, income, and financial stability."""
+        score = 50
+        age = self.inputs['yourCurrentAge']
+        if age < 35: score += 25
+        elif age < 50: score += 15
+        elif age < 65: score += 5
+        else: score -= 10
+        
+        total_income = self.inputs['yourSalary'] + self.inputs['partnerSalary']
+        if total_income > 200000: score += 20
+        elif total_income > 100000: score += 10
+        
+        emergency_fund = self.inputs.get('hasEmergencyFund', 'none')
+        if emergency_fund == 'full': score += 15
+        elif emergency_fund == 'partial': score += 10
+        
+        debt_level = self.inputs.get('hasDebt', 'none')
+        if debt_level == 'none': score += 15
+        elif debt_level == 'minimal': score += 5
+        
+        score -= self.inputs.get('dependents', 0) * 5
+        return clamp(score, 0, 100)
+
+    def _calculate_risk_requirement(self) -> int:
+        """Calculates the investment risk required to meet retirement goals."""
+        years_to_retirement = self.inputs['retirementAge'] - self.inputs['yourCurrentAge']
+        if years_to_retirement <= 0: return 100
+        
+        target_assets = self.inputs['asfaComfortable'] * self.calc_consts['RISK_REQUIREMENT_ASSET_TARGET_MULTIPLIER']
+        current_assets = self.inputs['currentSuper'] + self.inputs['currentSavings'] + self.inputs['currentStocks']
+        if current_assets == 0: return 100
+        
+        required_growth = (target_assets / current_assets)**(1/years_to_retirement) - 1
+        risk_free_rate = self.calc_consts['RISK_REQUIREMENT_RISK_FREE_RATE']
+        sensitivity = self.calc_consts['RISK_REQUIREMENT_SENSITIVITY_FACTOR']
+        
+        return clamp((required_growth - risk_free_rate) * 100 * sensitivity, 0, 100)
+
+    def _calculate_dynamic_allocation(self, age: int) -> Dict[str, float]:
+        """Calculates the recommended asset allocation based on a glide path rule."""
+        rule = self.inputs['glidePathRule']
+        equity_percent = self.config['GLIDE_PATH_RULES'][rule](age)
+        return {
+            "equity": equity_percent,
+            "bonds": max(10, (100 - equity_percent) * 0.7),
+            "cash": max(5, (100 - equity_percent) * 0.3)
+        }
+
+    def _calculate_enhanced_return(self, allocation: Dict[str, float], base_return: float) -> float:
+        """Calculates the total return, including franking credit benefits."""
+        franking_bonus = (allocation['equity'] / 100) * \
+                         (self.inputs['australianEquityAllocation'] / 100) * \
+                         (self.inputs['frankingCreditBenefit'] / 100)
+        return base_return + franking_bonus
+
+    def _project_healthcare_costs(self, years: int) -> float:
+        """Projects future healthcare costs based on a specific inflation rate."""
+        return self.inputs['currentHealthcareCosts'] * \
+               ((1 + self.inputs['healthcareInflation'] / 100) ** years)
+
+    def _calculate_aged_care_costs(self) -> Dict[str, float]:
+        """Calculates the inflated costs of future aged care."""
+        years_to_aged_care = self.inputs['agedCareStartAge'] - self.inputs['yourCurrentAge']
+        inflated_cost = self.inputs['agedCareAnnualCost'] * \
+                        ((1 + self.inputs['healthcareInflation'] / 100) ** years_to_aged_care)
+        total_cost = inflated_cost * self.inputs['agedCareDuration']
+        probability = self.inputs['agedCareProbability'] / 100
+        return {
+            "annual_cost": inflated_cost,
+            "total_cost": total_cost,
+            "expected_cost": total_cost * probability
+        }
+
+    def _calculate_property_value(self, year: int) -> float:
+        """Calculates the future value of the investment property."""
+        return self.inputs['investmentPropertyValue'] * \
+               ((1 + self.inputs['propertyGrowthRate'] / 100) ** year)
+
+    def _calculate_property_loan_balance(self, year: int) -> float:
+        """Calculates the remaining loan balance on the investment property."""
+        # This is a simplified calculation. A more accurate model would use the actual monthly payments.
+        return calculate_loan_balance(
+            self.inputs['investmentPropertyRate'],
+            year,
+            self.inputs['investmentPropertyLoan'] * self.inputs['investmentPropertyRate'] * 1.5, # Simplified payment
+            self.inputs['investmentPropertyLoan']
+        )
     
-    def calculate_superannuation_at_retirement(self, 
-                                             current_balance_person1: float,
-                                             current_balance_person2: float,
-                                             annual_contribution_person1: float,
-                                             annual_contribution_person2: float,
-                                             years_to_retirement: int) -> Tuple[float, float]:
-        """
-        Calculate superannuation balances at retirement.
+    def _calculate_property_cash_flow(self, year: int) -> Dict[str, float]:
+        """Calculates the net cash flow from the investment property for a given year."""
+        if not self.inputs.get('hasInvestmentProperty'):
+            return None
         
-        Args:
-            current_balance_person1: Current super balance for person 1
-            current_balance_person2: Current super balance for person 2
-            annual_contribution_person1: Annual super contributions for person 1
-            annual_contribution_person2: Annual super contributions for person 2
-            years_to_retirement: Number of years until retirement
+        inflation = self.inputs['inflation']
+        current_rental = (self.inputs['weeklyRentalIncome'] * 52) * ((1 + inflation) ** year)
+        current_expenses = self.inputs['annualPropertyExpenses'] * ((1 + inflation) ** year)
+        
+        current_loan_balance = self._calculate_property_loan_balance(year)
+        annual_interest = current_loan_balance * self.inputs['investmentPropertyRate']
+        
+        building_value = self.inputs['investmentPropertyValue'] * 0.8
+        depreciation = building_value * self.config['PROPERTY_COSTS']['DEPRECIATION_RATE']
+        
+        return {
+            "grossRental": current_rental,
+            "expenses": current_expenses,
+            "interestCost": annual_interest,
+            "depreciation": depreciation,
+            "netCashFlow": current_rental - current_expenses - annual_interest + depreciation,
+            "loanBalance": current_loan_balance
+        }
+
+    def _calculate_property_sale(self, sale_year: int) -> Dict[str, float]:
+        """Calculates the net proceeds from selling the investment property."""
+        if not self.inputs.get('hasInvestmentProperty'):
+            return None
             
-        Returns:
-            Tuple of (person1_balance, person2_balance) at retirement
-        """
-        def future_value_with_contributions(current_balance, annual_contribution, years):
-            # Future value of current balance
-            fv_current = current_balance * (1 + self.SUPER_GROWTH_RATE) ** years
+        sale_value = self._calculate_property_value(sale_year)
+        remaining_loan = self._calculate_property_loan_balance(sale_year)
+        selling_costs = sale_value * self.config['PROPERTY_COSTS']['SELLING_COSTS_PERCENT']
+        
+        cgt = calculate_cgt(
+            sale_value,
+            self.inputs['investmentPropertyValue'],
+            True,
+            sale_year,
+            self.inputs['capitalGainsTaxRate'] / 100
+        )
+        
+        net_proceeds = sale_value - remaining_loan - selling_costs - cgt
+        
+        return {
+            "saleValue": sale_value,
+            "netProceeds": net_proceeds,
+        }
+
+    def _get_salary_for_year(self, base_salary: float, year: int) -> float:
+        """Calculates the projected salary for a given year, including lean years."""
+        years_to_retirement = self.inputs['retirementAge'] - self.inputs['yourCurrentAge']
+        real_growth = self.inputs['salaryGrowthRate'] / 100
+        inflation = self.inputs['inflation']
+        
+        salary = base_salary * ((1 + real_growth + inflation) ** year)
+        
+        lean_years_start_year = years_to_retirement - self.inputs['leanYearsStart']
+        if year >= lean_years_start_year:
+            salary *= (1 - self.inputs['leanYearsReduction'] / 100)
             
-            # Future value of annual contributions (annuity)
-            if self.SUPER_GROWTH_RATE > 0:
-                fv_contributions = annual_contribution * (
-                    ((1 + self.SUPER_GROWTH_RATE) ** years - 1) / self.SUPER_GROWTH_RATE
-                )
-            else:
-                fv_contributions = annual_contribution * years
+        return salary
+        
+    def _simulate_retirement(self, use_random_returns=False, stress_scenario=None) -> Dict[str, Any]:
+        """The core simulation engine. Runs a single projection from start to finish."""
+        # --- Accumulation Phase ---
+        years_to_retirement = self.inputs['retirementAge'] - self.inputs['yourCurrentAge']
+        
+        future_super = self.inputs['currentSuper']
+        future_savings = self.inputs['currentSavings']
+        future_stocks = self.inputs['currentStocks']
+        
+        property_was_sold = False
+        property_equity = 0
+        
+        for year in range(1, years_to_retirement + 1):
+            current_age = self.inputs['yourCurrentAge'] + year
+            
+            allocation = self._calculate_dynamic_allocation(current_age) if self.inputs['useGlidePath'] else {"equity": 60, "bonds": 30, "cash": 10}
+            
+            base_return = self._calculate_enhanced_return(allocation, self.inputs['investmentReturn'])
+            return_rate = random_normal(base_return, self.inputs['returnVolatility']) if use_random_returns else base_return
+
+            if stress_scenario and year <= stress_scenario.get('duration', 0):
+                return_rate = stress_scenario.get('equityReturn', return_rate)
+
+            future_super *= (1 + self.inputs['superReturn'])
+            future_savings *= (1 + self.inputs['savingsReturn'])
+            future_stocks *= (1 + return_rate)
+            
+            your_salary = self._get_salary_for_year(self.inputs['yourSalary'], year)
+            partner_salary = self._get_salary_for_year(self.inputs['partnerSalary'], year)
+            
+            post_tax_income = calculate_post_tax_income(your_salary, self.config['TAX_BRACKETS']) + \
+                              calculate_post_tax_income(partner_salary, self.config['TAX_BRACKETS'])
+            
+            future_super += (your_salary + partner_salary) * self.config['SUPER_GUARANTEE_RATE']
+            future_savings += post_tax_income * self.inputs['percentIncomeSaved']
+            future_stocks += self.inputs['monthlyStockContribution'] * 12
+            
+            if self.inputs['hasInvestmentProperty'] and not property_was_sold:
+                cash_flow = self._calculate_property_cash_flow(year)
+                if cash_flow:
+                    future_savings += cash_flow['netCashFlow']
+                    if self.inputs['sellPropertyYears'] > 0 and year == self.inputs['sellPropertyYears']:
+                        sale_result = self._calculate_property_sale(year)
+                        if sale_result:
+                            future_stocks += sale_result['netProceeds']
+                            property_was_sold = True
+                            property_equity = 0
+                    else:
+                        prop_val = self._calculate_property_value(year)
+                        prop_loan = self._calculate_property_loan_balance(year)
+                        property_equity = prop_val - prop_loan
+
+        # --- Retirement Phase ---
+        total_financial_assets = future_super + future_savings + future_stocks
+        home_equity = self.inputs['homeValue'] * ((1 + self.inputs['inflation']) ** years_to_retirement) - \
+                      calculate_loan_balance(self.inputs['mortgageRate'], years_to_retirement, self.inputs['monthlyMortgagePayment']*12, self.inputs['mortgageBalance'])
+        accessible_home_equity = home_equity * self.config['HOME_EQUITY_ACCESS_RATE'] if self.inputs['planToDownsize'] else 0
+
+        current_balance = total_financial_assets + accessible_home_equity
+        yearly_data = []
+        
+        for i in range(self.inputs['partnerLifespan'] - self.inputs['retirementAge']):
+            current_age = self.inputs['retirementAge'] + i
+            retirement_year = years_to_retirement + i
+            
+            healthcare_cost = self._project_healthcare_costs(retirement_year)
+            if stress_scenario and 'healthcareCostMultiplier' in stress_scenario:
+                healthcare_cost *= stress_scenario['healthcareCostMultiplier']
+
+            aged_care_costs_info = self._calculate_aged_care_costs()
+            aged_care_cost = 0
+            if current_age >= self.inputs['agedCareStartAge'] and current_age < self.inputs['agedCareStartAge'] + self.inputs['agedCareDuration']:
+                aged_care_cost = aged_care_costs_info['annual_cost']
+
+            income_needed = self.inputs['asfaComfortable'] * ((1 + self.inputs['inflation']) ** retirement_year)
+            total_withdrawal = income_needed + healthcare_cost + aged_care_cost
+            
+            pension = calculate_age_pension(current_balance + property_equity, 0, True, self.inputs['agePensionMax'], self.inputs['pensionAssetThreshold'], self.inputs['pensionAssetLimit'], self.inputs['pensionIncomeThreshold'])
+            
+            net_withdrawal = max(0, total_withdrawal - pension)
+            
+            allocation = self._calculate_dynamic_allocation(current_age)
+            base_return = self._calculate_enhanced_return(allocation, self.inputs['investmentReturn'])
+            return_rate = random_normal(base_return, self.inputs['returnVolatility']) if use_random_returns else base_return
+            
+            if self.inputs['enableShocks'] and use_random_returns and random.random() < self.inputs['shockProbability']:
+                return_rate += self.inputs['shockMagnitude']
+
+            growth = current_balance * return_rate
+            current_balance += growth - net_withdrawal
+            
+            if current_balance <= 0:
+                current_balance = 0
+                yearly_data.append({"year": retirement_year + 1, "endBalance": 0, "depleted": True})
+                break
                 
-            return fv_current + fv_contributions
-        
-        balance1 = future_value_with_contributions(current_balance_person1, 
-                                                 annual_contribution_person1, 
-                                                 years_to_retirement)
-        balance2 = future_value_with_contributions(current_balance_person2, 
-                                                 annual_contribution_person2, 
-                                                 years_to_retirement)
-        
-        return balance1, balance2
-    
-    def calculate_age_pension_eligibility(self, 
-                                        combined_assets: float,
-                                        own_home: bool,
-                                        annual_income: float = 0) -> Dict[str, float]:
-        """
-        Calculate Age Pension eligibility and payment amount.
-        
-        Args:
-            combined_assets: Total assessable assets for the couple
-            own_home: Whether the couple owns their home
-            annual_income: Annual assessable income
-            
-        Returns:
-            Dictionary with pension details
-        """
-        # Determine asset test threshold
-        asset_threshold = (self.ASSET_TEST_HOMEOWNER_COUPLE if own_home 
-                          else self.ASSET_TEST_NON_HOMEOWNER_COUPLE)
-        
-        # Asset test calculation
-        if combined_assets <= asset_threshold:
-            asset_test_reduction = 0
-        else:
-            # Reduction is $3 per fortnight for every $1000 over threshold
-            excess_assets = combined_assets - asset_threshold
-            asset_test_reduction = (excess_assets / 1000) * 3
-        
-        # Income test calculation
-        fortnightly_income = annual_income / 26
-        if fortnightly_income <= self.INCOME_TEST_COUPLE_COMBINED:
-            income_test_reduction = 0
-        else:
-            excess_income = fortnightly_income - self.INCOME_TEST_COUPLE_COMBINED
-            income_test_reduction = excess_income * self.INCOME_TEST_REDUCTION_RATE
-        
-        # Take the higher reduction (more restrictive test)
-        total_reduction = max(asset_test_reduction, income_test_reduction)
-        
-        # Calculate final pension amount
-        max_pension = self.AGE_PENSION_COUPLE_COMBINED
-        pension_fortnightly = max(0, max_pension - total_reduction)
-        pension_annual = pension_fortnightly * 26
-        
+            yearly_data.append({"year": retirement_year + 1, "endBalance": current_balance, "depleted": False})
+
         return {
-            'eligible': pension_annual > 0,
-            'annual_pension': pension_annual,
-            'fortnightly_pension': pension_fortnightly,
-            'asset_test_reduction': asset_test_reduction,
-            'income_test_reduction': income_test_reduction,
-            'limiting_test': 'asset' if asset_test_reduction >= income_test_reduction else 'income'
+            "finalBalance": current_balance,
+            "totalFinancialAssets": total_financial_assets,
+            "accessibleHomeEquity": accessible_home_equity,
+            "yearlyData": yearly_data,
+            "riskCapacity": self._calculate_risk_capacity(),
+            "riskRequirement": self._calculate_risk_requirement(),
         }
-    
-    def calculate_retirement_needs(self, lifestyle: str = 'comfortable') -> Dict[str, float]:
-        """
-        Calculate retirement income needs based on ASFA standards.
-        
-        Args:
-            lifestyle: 'comfortable' or 'modest' retirement lifestyle
-            
-        Returns:
-            Dictionary with annual and quarterly income needs
-        """
-        if lifestyle.lower() == 'comfortable':
-            quarterly_need = self.ASFA_COMFORTABLE_COUPLE
-        else:
-            quarterly_need = self.ASFA_MODEST_COUPLE
-            
-        annual_need = quarterly_need * 4
-        
-        return {
-            'annual_need': annual_need,
-            'quarterly_need': quarterly_need,
-            'monthly_need': quarterly_need / 3,
-            'lifestyle': lifestyle
-        }
-    
-    def calculate_total_retirement_capital_needed(self,
-                                                retirement_age: int,
-                                                lifestyle: str = 'comfortable',
-                                                annual_pension: float = 0) -> Dict[str, float]:
-        """
-        Calculate total capital needed for retirement from retirement age to 95.
-        
-        Args:
-            retirement_age: Age when retiring
-            lifestyle: 'comfortable' or 'modest' retirement lifestyle
-            annual_pension: Expected annual Age Pension amount
-            
-        Returns:
-            Dictionary with capital requirements
-        """
-        years_in_retirement = self.MAX_AGE - retirement_age
-        retirement_needs = self.calculate_retirement_needs(lifestyle)
-        annual_expenses = retirement_needs['annual_need']
-        
-        # Calculate net capital needed (after pension)
-        net_annual_need = max(0, annual_expenses - annual_pension)
-        
-        # Calculate present value of retirement needs
-        # Using inflation rate as discount rate to maintain purchasing power
-        if self.INFLATION_RATE > 0:
-            total_capital_needed = net_annual_need * (
-                (1 - (1 + self.INFLATION_RATE) ** (-years_in_retirement)) / self.INFLATION_RATE
-            )
-        else:
-            total_capital_needed = net_annual_need * years_in_retirement
-        
-        return {
-            'total_capital_needed': total_capital_needed,
-            'annual_shortfall': net_annual_need,
-            'years_in_retirement': years_in_retirement,
-            'total_expenses': annual_expenses * years_in_retirement,
-            'total_pension_received': annual_pension * years_in_retirement
-        }
+
+
+def get_default_inputs() -> Dict[str, Any]:
+    """
+    Returns a dictionary of default inputs, mimicking the frontend's initial state.
+    This is useful for testing and for the CLI.
+    """
+    defaults = {}
+    for category in ENHANCED_CONFIG['DEFAULTS'].values():
+        defaults.update(category)
+    # JS values are in %, python expects decimals for rates
+    defaults['percentIncomeSaved'] /= 100 if defaults.get('percentIncomeSaved', 0) > 1 else 1
+    defaults['mortgageRate'] /= 100 if defaults.get('mortgageRate', 0) > 1 else 1
+    defaults['investmentPropertyRate'] /= 100 if defaults.get('investmentPropertyRate', 0) > 1 else 1
+    defaults['inflation'] /= 100 if defaults.get('inflation', 0) > 1 else 1
+    defaults['investmentReturn'] /= 100 if defaults.get('investmentReturn', 0) > 1 else 1
+    defaults['savingsReturn'] /= 100 if defaults.get('savingsReturn', 0) > 1 else 1
+    defaults['superReturn'] /= 100 if defaults.get('superReturn', 0) > 1 else 1
+    defaults['returnVolatility'] /= 100 if defaults.get('returnVolatility', 0) > 1 else 1
+    defaults['shockProbability'] /= 100 if defaults.get('shockProbability', 0) > 1 else 1
+    defaults['shockMagnitude'] /= 100 if defaults.get('shockMagnitude', 0) > 1 else 1
+    return defaults
 
 
 def main():
     """
-    Example usage of the Australian Retirement Calculator
+    Example usage of the new EnhancedRetirementSimulator.
+    This demonstrates how to initialize the class and run a simulation.
     """
-    calculator = AustralianRetirementCalculator()
+    print("=" * 60)
+    print("   ENHANCED AUSTRALIAN RETIREMENT CALCULATOR (PYTHON)")
+    print("=" * 60)
     
-    print("=== Australian Retirement Calculator for Couples ===\n")
+    user_inputs = get_default_inputs()
     
-    # Example couple scenario
-    print("Example Scenario:")
-    print("- Couple, both aged 55, planning to retire at 67")
-    print("- Current super balances: $200,000 and $150,000")
-    print("- Annual super contributions: $25,000 and $20,000")
-    print("- Own home worth $800,000")
-    print("- Target: Comfortable retirement to age 95\n")
+    simulator = EnhancedRetirementSimulator(user_inputs)
     
-    # Calculate property value at retirement
-    years_to_retirement = 67 - 55
-    current_home_value = 800000
-    home_value_at_retirement = calculator.calculate_property_value_at_retirement(
-        current_home_value, years_to_retirement
-    )
-    
-    print(f"Home value at retirement (inflation growth): ${home_value_at_retirement:,.0f}")
-    
-    # Calculate super balances at retirement
-    super1, super2 = calculator.calculate_superannuation_at_retirement(
-        200000, 150000, 25000, 20000, years_to_retirement
-    )
-    total_super = super1 + super2
-    
-    print(f"Total superannuation at retirement: ${total_super:,.0f}")
-    print(f"  - Person 1: ${super1:,.0f}")
-    print(f"  - Person 2: ${super2:,.0f}")
-    
-    # Calculate Age Pension eligibility
-    # Note: Home is not counted in asset test if it's the principal residence
-    assessable_assets = total_super  # Assuming no other significant assets
-    pension_details = calculator.calculate_age_pension_eligibility(
-        assessable_assets, own_home=True
-    )
-    
-    print(f"\nAge Pension Assessment:")
-    print(f"  - Eligible: {'Yes' if pension_details['eligible'] else 'No'}")
-    print(f"  - Annual pension: ${pension_details['annual_pension']:,.0f}")
-    print(f"  - Limiting test: {pension_details['limiting_test'].title()}")
-    
-    # Calculate retirement capital needs
-    capital_needs = calculator.calculate_total_retirement_capital_needed(
-        retirement_age=67,
-        lifestyle='comfortable',
-        annual_pension=pension_details['annual_pension']
-    )
-    
-    print(f"\nRetirement Capital Requirements:")
-    print(f"  - Years in retirement: {capital_needs['years_in_retirement']}")
-    print(f"  - Total capital needed: ${capital_needs['total_capital_needed']:,.0f}")
-    print(f"  - Annual shortfall: ${capital_needs['annual_shortfall']:,.0f}")
-    
-    # Calculate surplus/deficit
-    available_capital = total_super
-    surplus_deficit = available_capital - capital_needs['total_capital_needed']
-    
-    print(f"\nRetirement Readiness:")
-    print(f"  - Available capital: ${available_capital:,.0f}")
-    print(f"  - Capital needed: ${capital_needs['total_capital_needed']:,.0f}")
-    if surplus_deficit >= 0:
-        print(f"  - Surplus: ${surplus_deficit:,.0f} ✓")
-    else:
-        print(f"  - Deficit: ${abs(surplus_deficit):,.0f} ✗")
-        
-    # ASFA standards
-    retirement_needs = calculator.calculate_retirement_needs('comfortable')
-    print(f"\nASFA Comfortable Retirement Standard:")
-    print(f"  - Annual income needed: ${retirement_needs['annual_need']:,.0f}")
-    print(f"  - Monthly income needed: ${retirement_needs['monthly_need']:,.0f}")
+    # Run deterministic simulation
+    deterministic_results = simulator.run_simulation()
+    print("\n--- Deterministic Simulation Results ---")
+    print(f"Final Balance at Lifespan End: ${deterministic_results['finalBalance']:,.0f}")
+    if deterministic_results['yearlyData'] and deterministic_results['yearlyData'][-1]['depleted']:
+        print(f"!!! FUNDS DEPLETED IN YEAR {deterministic_results['yearlyData'][-1]['year']} !!!")
+
+    # Run Monte Carlo simulation
+    print("\n--- Monte Carlo Simulation ---")
+    mc_results = simulator.run_monte_carlo_simulation(runs=1000)
+    print(f"Success Rate: {mc_results['success_rate']:.1%}")
+    print(f"Median Outcome: ${mc_results['median']:,.0f}")
+    print(f"10th Percentile: ${mc_results['percentile_10']:,.0f}")
+    print(f"90th Percentile: ${mc_results['percentile_90']:,.0f}")
+
+    # Run Stress Tests
+    print("\n--- Stress Test Results ---")
+    stress_results = simulator.run_stress_tests()
+    for res in stress_results:
+        status = "✓ Survives" if res['success'] else "✗ Fails"
+        print(f"{res['scenario']:<25} | Final Balance: ${res['finalBalance']:<15,.0f} | {status}")
+
+    print("\n" + "=" * 60)
 
 
 if __name__ == "__main__":
