@@ -1,28 +1,6 @@
 
-/**
- * Enhanced Australian Retirement Calculator - Utility Functions Module
- * Contains reusable utility functions for formatting, math, DOM manipulation, and file operations
- */
+declare interface errorsType {}
 
-// DOM Utilities
-declare interface DOMType {}
-
-declare interface FormatType {}
-
-declare interface MathType {}
-
-declare interface DateTimeType {}
-
-declare interface ValidateType {}
-
-declare interface ArrayType {}
-
-declare interface FileType {}
-
-declare interface ProgressType {}
-
-declare interface TabsType {}
-
-declare interface DebugType {}
-
-declare interface UtilsType {}
+declare interface colorsType {
+	setTimeout(if: any, notification: any, parentNode: any): void;
+}

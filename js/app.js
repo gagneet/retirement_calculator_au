@@ -1,710 +1,933 @@
-/**
- * Enhanced Australian Retirement Calculator - Main Application Controller
- * Orchestrates all modules and handles user interactions, calculations, and results display
- */
+// js/app.js - Main Application Controller
 
-import { CONFIG } from './config.js';
-import { Utils } from './utils.js';
-import RetirementSimulator, { TaxCalculator, PensionCalculator, HealthcareCalculator, PortfolioCalculator } from './simulator.js';
-import { chartManager } from './charts.js';
+import { ENHANCED_CONFIG } from './config.js';
+import RetirementSimulator from './simulator.js';
+import ChartManager from './charts.js';
+import { 
+    $, 
+    safeGetValue, 
+    safeGetChecked, 
+    safeGetSelectValue,
+    safeSetValue,
+    safeSetText,
+    safeSetHTML,
+    formatCurrency,
+    formatPercent,
+    updateProgress,
+    exportToCSV,
+    showTab,
+    debounce,
+    showNotification
+} from './utils.js';
 
-// Main Application Class
 class RetirementCalculatorApp {
     constructor() {
+        this.simulator = new RetirementSimulator();
+        this.chartManager = new ChartManager();
         this.currentResults = null;
-        this.monteCarloResults = null;
-        this.simulator = null;
+        this.isCalculating = false;
         
-        // Initialize the application
-        this.init();
+        this.initializeApp();
     }
 
-    /**
-     * Initialize the application
-     */
-    async init() {
-        console.log('Initializing Enhanced Australian Retirement Calculator...');
-        
-        // Load saved inputs
-        this.loadSavedInputs();
-        
-        // Set up event listeners
+    initializeApp() {
         this.setupEventListeners();
-        
-        // Update risk assessment
-        this.updateRiskAssessment();
-        
-        // Run initial calculation
-        await this.calculateRetirement();
-        
-        console.log('Application initialized successfully');
+        this.updateUIElements();
+        this.performInitialCalculation();
     }
 
-    /**
-     * Set up all event listeners
-     */
-    setupEventListeners() {
-        // Main calculation buttons
-        Utils.DOM.addListener('btnCalculate', 'click', () => this.calculateRetirement());
-        Utils.DOM.addListener('btnAdvancedMonteCarlo', 'click', () => this.runMonteCarloSimulation());
-        Utils.DOM.addListener('btnStressTest', 'click', () => this.runStressTest());
-        Utils.DOM.addListener('btnExportCSV', 'click', () => this.exportResults());
-
-        // Input change handlers for auto-calculation
-        const inputIds = [
-            'yourCurrentAge', 'partnerCurrentAge', 'retirementAge', 'partnerRetirementAge',
-            'yourLifespan', 'partnerLifespan', 'yourSalary', 'partnerSalary', 'currentSuper',
-            'currentSavings', 'currentStocks', 'monthlyStockContribution', 'percentIncomeSaved',
-            'homeValue', 'mortgageBalance', 'mortgageRate', 'planToDownsize',
-            'currentHealthExpenses', 'healthInflationRate', 'agedCareProbability', 'agedCareCost',
-            'privateHealthInsurance', 'investmentPropertyValue', 'investmentPropertyLoan',
-            'weeklyRentalIncome', 'annualPropertyExpenses', 'sellPropertyYears',
-            'allocEquities', 'allocBonds', 'allocCash', 'frankingCredits', 'dynamicAllocation',
-            'inflation', 'investmentReturn', 'superReturn', 'returnVolatility',
-            'asfaComfortable', 'agePensionMax', 'pensionAssetThreshold', 'pensionAssetLimit'
-        ];
-
-        inputIds.forEach(id => {
-            Utils.DOM.addListener(id, 'change', () => {
-                this.saveInputs();
-                this.updateRiskAssessment();
-                // Debounced auto-calculation
-                clearTimeout(this.autoCalcTimeout);
-                this.autoCalcTimeout = setTimeout(() => this.calculateRetirement(), 1000);
-            });
-        });
-
-        // Risk tolerance change handler
-        Utils.DOM.addListener('riskTolerance', 'change', () => {
-            this.updateRiskAssessment();
-            this.updateAllocationFromRisk();
-        });
-
-        // Preset allocation handler
-        Utils.DOM.addListener('presetAllocation', 'change', () => {
-            this.updateAllocationFromPreset();
-        });
-
-        // Market shocks toggle
-        Utils.DOM.addListener('enableMarketShocks', 'change', (e) => {
-            Utils.DOM.toggle('shockControls', e.target.checked);
-        });
-
-        // Window resize handler for charts
-        window.addEventListener('resize', () => {
-            chartManager.resizeAllCharts();
-        });
-    }
-
-    /**
-     * Collect all input values
-     */
+    // Input collection with complete property support
     collectInputs() {
         return {
             // Personal details
-            yourCurrentAge: Utils.DOM.getNumericValue('yourCurrentAge', CONFIG.DEFAULTS.yourCurrentAge),
-            partnerCurrentAge: Utils.DOM.getNumericValue('partnerCurrentAge', CONFIG.DEFAULTS.partnerCurrentAge),
-            retirementAge: Utils.DOM.getNumericValue('retirementAge', CONFIG.DEFAULTS.retirementAge),
-            partnerRetirementAge: Utils.DOM.getNumericValue('partnerRetirementAge', CONFIG.DEFAULTS.partnerRetirementAge),
-            yourLifespan: Utils.DOM.getNumericValue('yourLifespan', CONFIG.DEFAULTS.yourLifespan),
-            partnerLifespan: Utils.DOM.getNumericValue('partnerLifespan', CONFIG.DEFAULTS.partnerLifespan),
-
+            yourCurrentAge: safeGetValue('yourCurrentAge', 49),
+            partnerCurrentAge: safeGetValue('partnerCurrentAge', 47),
+            retirementAge: safeGetValue('retirementAge', 72),
+            partnerRetirementAge: safeGetValue('partnerRetirementAge', 62),
+            yourLifespan: safeGetValue('yourLifespan', 95),
+            partnerLifespan: safeGetValue('partnerLifespan', 99),
+            
+            // Risk profile
+            riskTolerance: safeGetValue('riskTolerance', 6),
+            hasEmergencyFund: safeGetSelectValue('hasEmergencyFund', 'partial'),
+            hasDebt: safeGetSelectValue('hasDebt', 'minimal'),
+            dependents: safeGetValue('dependents', 0),
+            
             // Financial details
-            yourSalary: Utils.DOM.getNumericValue('yourSalary', CONFIG.DEFAULTS.yourSalary),
-            partnerSalary: Utils.DOM.getNumericValue('partnerSalary', CONFIG.DEFAULTS.partnerSalary),
-            currentSuper: Utils.DOM.getNumericValue('currentSuper', CONFIG.DEFAULTS.currentSuper),
-            currentSavings: Utils.DOM.getNumericValue('currentSavings', CONFIG.DEFAULTS.currentSavings),
-            currentStocks: Utils.DOM.getNumericValue('currentStocks', CONFIG.DEFAULTS.currentStocks),
-            monthlyStockContribution: Utils.DOM.getNumericValue('monthlyStockContribution', CONFIG.DEFAULTS.monthlyStockContribution),
-            percentIncomeSaved: Utils.DOM.getNumericValue('percentIncomeSaved', CONFIG.DEFAULTS.percentIncomeSaved),
-
-            // Property
-            homeValue: Utils.DOM.getNumericValue('homeValue', CONFIG.DEFAULTS.homeValue),
-            mortgageBalance: Utils.DOM.getNumericValue('mortgageBalance', CONFIG.DEFAULTS.mortgageBalance),
-            mortgageRate: Utils.DOM.getNumericValue('mortgageRate', CONFIG.DEFAULTS.mortgageRate),
-            planToDownsize: Utils.DOM.getBooleanValue('planToDownsize', CONFIG.DEFAULTS.planToDownsize),
-
-            // Healthcare (Enhanced)
-            currentHealthExpenses: Utils.DOM.getNumericValue('currentHealthExpenses', CONFIG.DEFAULTS.currentHealthExpenses),
-            healthInflationRate: Utils.DOM.getNumericValue('healthInflationRate', CONFIG.DEFAULTS.healthInflationRate),
-            agedCareProbability: Utils.DOM.getNumericValue('agedCareProbability', CONFIG.DEFAULTS.agedCareProbability),
-            agedCareCost: Utils.DOM.getNumericValue('agedCareCost', CONFIG.DEFAULTS.agedCareCost),
-            privateHealthInsurance: Utils.DOM.getBooleanValue('privateHealthInsurance', CONFIG.DEFAULTS.privateHealthInsurance),
-
+            yourSalary: safeGetValue('yourSalary', 214000),
+            partnerSalary: safeGetValue('partnerSalary', 34500),
+            currentSuper: safeGetValue('currentSuper', 312000),
+            currentSavings: safeGetValue('currentSavings', 55000),
+            currentStocks: safeGetValue('currentStocks', 62000),
+            monthlyStockContribution: safeGetValue('monthlyStockContribution', 800),
+            percentIncomeSaved: safeGetValue('percentIncomeSaved', 9) / 100,
+            
+            // Property details
+            homeValue: safeGetValue('homeValue', 810000),
+            mortgageBalance: safeGetValue('mortgageBalance', 594000),
+            mortgageRate: safeGetValue('mortgageRate', 5.37) / 100,
+            monthlyMortgagePayment: safeGetValue('monthlyMortgagePayment', 3584),
+            planToDownsize: safeGetSelectValue('planToDownsize', 'false') === 'true',
+            
             // Investment property
-            investmentPropertyValue: Utils.DOM.getNumericValue('investmentPropertyValue', 0),
-            investmentPropertyLoan: Utils.DOM.getNumericValue('investmentPropertyLoan', 0),
-            weeklyRentalIncome: Utils.DOM.getNumericValue('weeklyRentalIncome', 0),
-            annualPropertyExpenses: Utils.DOM.getNumericValue('annualPropertyExpenses', 0),
-            sellPropertyYears: Utils.DOM.getNumericValue('sellPropertyYears', 0),
-
-            // Risk and allocation
-            riskTolerance: Utils.DOM.get('riskTolerance')?.value || 'growth',
-            dynamicAllocation: Utils.DOM.getBooleanValue('dynamicAllocation', CONFIG.DEFAULTS.dynamicAllocation),
-            allocEquities: Utils.DOM.getNumericValue('allocEquities', CONFIG.DEFAULTS.allocEquities),
-            allocBonds: Utils.DOM.getNumericValue('allocBonds', CONFIG.DEFAULTS.allocBonds),
-            allocCash: Utils.DOM.getNumericValue('allocCash', CONFIG.DEFAULTS.allocCash),
-            frankingCredits: Utils.DOM.getBooleanValue('frankingCredits', CONFIG.DEFAULTS.frankingCredits),
-
+            hasInvestmentProperty: safeGetChecked('hasInvestmentProperty', false),
+            investmentPropertyValue: safeGetValue('investmentPropertyValue', 550000),
+            investmentPropertyLoan: safeGetValue('investmentPropertyLoan', 574000),
+            investmentPropertyRate: safeGetValue('investmentPropertyRate', 6.2) / 100,
+            weeklyRentalIncome: safeGetValue('weeklyRentalIncome', 554),
+            annualPropertyExpenses: safeGetValue('annualPropertyExpenses', 9675),
+            propertyGrowthRate: safeGetValue('propertyGrowthRate', 4.5),
+            sellPropertyYears: safeGetValue('sellPropertyYears', 15),
+            capitalGainsTaxRate: safeGetValue('capitalGainsTaxRate', 22.5),
+            
+            // Healthcare & aged care
+            currentHealthcareCosts: safeGetValue('currentHealthcareCosts', 3500),
+            healthcareInflation: safeGetValue('healthcareInflation', 6.5),
+            agedCareProbability: safeGetValue('agedCareProbability', 65),
+            agedCareStartAge: safeGetValue('agedCareStartAge', 85),
+            agedCareDuration: safeGetValue('agedCareDuration', 3.5),
+            agedCareAnnualCost: safeGetValue('agedCareAnnualCost', 75000),
+            
             // Economic assumptions
-            inflation: Utils.DOM.getNumericValue('inflation', CONFIG.DEFAULTS.inflation),
-            investmentReturn: Utils.DOM.getNumericValue('investmentReturn', CONFIG.DEFAULTS.investmentReturn),
-            superReturn: Utils.DOM.getNumericValue('superReturn', CONFIG.DEFAULTS.superReturn),
-            returnVolatility: Utils.DOM.getNumericValue('returnVolatility', CONFIG.DEFAULTS.returnVolatility),
-
-            // Australian pension system
-            asfaComfortable: Utils.DOM.getNumericValue('asfaComfortable', CONFIG.DEFAULTS.asfaComfortable),
-            agePensionMax: Utils.DOM.getNumericValue('agePensionMax', CONFIG.DEFAULTS.agePensionMax),
-            pensionAssetThreshold: Utils.DOM.getNumericValue('pensionAssetThreshold', CONFIG.DEFAULTS.pensionAssetThreshold),
-            pensionAssetLimit: Utils.DOM.getNumericValue('pensionAssetLimit', CONFIG.DEFAULTS.pensionAssetLimit),
-
-            // Simulation settings
-            numRuns: parseInt(Utils.DOM.get('numRuns')?.value || CONFIG.DEFAULTS.numRuns),
-            enableSequenceRisk: Utils.DOM.getBooleanValue('enableSequenceRisk', CONFIG.DEFAULTS.enableSequenceRisk),
-            enableMarketShocks: Utils.DOM.getBooleanValue('enableMarketShocks', CONFIG.DEFAULTS.enableMarketShocks),
-            shockProbability: Utils.DOM.getNumericValue('shockProbability', CONFIG.DEFAULTS.shockProbability),
-            shockMagnitude: Utils.DOM.getNumericValue('shockMagnitude', CONFIG.DEFAULTS.shockMagnitude)
+            inflation: safeGetValue('inflation', 2.87) / 100,
+            investmentReturn: safeGetValue('investmentReturn', 5.61) / 100,
+            returnDeclineRate: safeGetValue('returnDeclineRate', 0.03),
+            savingsReturn: safeGetValue('savingsReturn', 1.40) / 100,
+            superReturn: safeGetValue('superReturn', 8.75) / 100,
+            superContributionRate: ENHANCED_CONFIG.SUPER_GUARANTEE_RATE,
+            salaryGrowthRate: safeGetValue('salaryGrowthRate', 1.5),
+            leanYearsStart: safeGetValue('leanYearsStart', 5),
+            leanYearsReduction: safeGetValue('leanYearsReduction', 25),
+            
+            // Dynamic allocation
+            useGlidePath: safeGetChecked('useGlidePath', true),
+            glidePathRule: safeGetSelectValue('glidePathRule', '110minus'),
+            frankingCreditBenefit: safeGetValue('frankingCreditBenefit', 1.2),
+            australianEquityAllocation: safeGetValue('australianEquityAllocation', 40),
+            allocEquities: safeGetValue('allocEquities', 60),
+            allocBonds: safeGetValue('allocBonds', 30),
+            allocCash: safeGetValue('allocCash', 10),
+            
+            // Pension system
+            asfaComfortable: safeGetValue('asfaComfortable', 73875),
+            agePensionMax: safeGetValue('agePensionMax', 45037),
+            pensionAssetThreshold: safeGetValue('pensionAssetThreshold', 470000),
+            pensionAssetLimit: safeGetValue('pensionAssetLimit', 1031000),
+            pensionIncomeThreshold: safeGetValue('pensionIncomeThreshold', 372),
+            
+            // Simulation controls
+            returnVolatility: safeGetValue('returnVolatility', 12) / 100,
+            enableShocks: safeGetChecked('enableShocks', false),
+            shockProbability: safeGetValue('shockProbability', 5) / 100,
+            shockMagnitude: safeGetValue('shockMagnitude', -25) / 100,
+            numRuns: safeGetValue('numRuns', 5000)
         };
     }
 
-    /**
-     * Main retirement calculation
-     */
+    // Update risk profile display
+    updateRiskProfile(inputs) {
+        const capacity = this.simulator.calculateRiskCapacity(inputs);
+        const tolerance = inputs.riskTolerance * 10;
+        const requirement = this.simulator.calculateRiskRequirement(inputs);
+
+        // Update risk bars
+        const riskCapacityBar = $('riskCapacityBar');
+        const riskToleranceBar = $('riskToleranceBar');
+        const riskRequirementBar = $('riskRequirementBar');
+
+        if (riskCapacityBar) riskCapacityBar.style.width = `${capacity}%`;
+        if (riskToleranceBar) riskToleranceBar.style.width = `${tolerance}%`;
+        if (riskRequirementBar) riskRequirementBar.style.width = `${requirement}%`;
+
+        // Update risk text
+        safeSetText('riskCapacityText', `${capacity.toFixed(0)}% (${capacity > 70 ? 'High' : capacity > 40 ? 'Moderate' : 'Low'})`);
+        safeSetText('riskToleranceText', `${tolerance.toFixed(0)}% (${tolerance > 70 ? 'Aggressive' : tolerance > 40 ? 'Balanced' : 'Conservative'})`);
+        safeSetText('riskRequirementText', `${requirement.toFixed(0)}% (${requirement > 70 ? 'High' : requirement > 40 ? 'Moderate' : 'Low'})`);
+    }
+
+    // Update recommended allocation display
+    updateRecommendedAllocation(inputs) {
+        if (inputs.useGlidePath) {
+            const allocation = this.simulator.calculateDynamicAllocation(inputs.yourCurrentAge, inputs.glidePathRule);
+            safeSetHTML('recommendedAllocation', 
+                `Equity: ${allocation.equity}% | Bonds: ${allocation.bonds.toFixed(0)}% | Cash: ${allocation.cash.toFixed(0)}%`
+            );
+        } else {
+            safeSetText('recommendedAllocation', 'Using custom allocation');
+        }
+    }
+
+    // Main calculation function
     async calculateRetirement() {
+        if (this.isCalculating) return;
+        
+        this.isCalculating = true;
+        
         try {
-            Utils.Debug.time('Main Calculation');
-
             const inputs = this.collectInputs();
+            const result = this.simulator.simulateRetirement(inputs, false);
+            this.currentResults = result;
             
-            // Validate inputs
-            const validation = this.validateInputs(inputs);
-            if (!validation.valid) {
-                this.displayError(validation.message);
-                return;
-            }
-
-            // Create simulator and run calculation
-            this.simulator = new RetirementSimulator(inputs);
-            this.currentResults = this.simulator.simulate();
-
-            // Display results
-            this.displaySummaryResults(inputs, this.currentResults);
-            this.displayProjectionTable(this.currentResults);
-            this.displayHealthcareAnalysis(inputs, this.currentResults);
-            this.displayOptimizationRecommendations(inputs, this.currentResults);
-
-            // Create basic charts
-            chartManager.renderHistogram('histChart', [this.currentResults.finalBalance], 'Deterministic Result');
-            chartManager.renderHealthcareChart('healthcareChart', this.currentResults.healthcareCosts, inputs);
-
-            Utils.Debug.timeEnd('Main Calculation');
-            console.log('Calculation completed successfully');
-
+            // Update UI
+            this.updateRiskProfile(inputs);
+            this.updateRecommendedAllocation(inputs);
+            this.displaySummaryResults(result, inputs);
+            this.displayYearByYearProjection(result);
+            this.displayPropertyAnalysis(result, inputs);
+            this.displayRiskAnalysis(result, inputs);
+            this.displayOptimizationStrategies(result, inputs);
+            
+            // Render charts
+            this.chartManager.renderCompleteAnalysis(result, inputs);
+            
+            showNotification('Calculation completed successfully', 'success');
+            
         } catch (error) {
             console.error('Calculation error:', error);
-            this.displayError('An error occurred during calculation. Please check your inputs and try again.');
+            showNotification('Error in calculation: ' + error.message, 'error');
+        } finally {
+            this.isCalculating = false;
         }
     }
 
-    /**
-     * Run Monte Carlo simulation
-     */
-    async runMonteCarloSimulation() {
-        if (!this.simulator) {
-            await this.calculateRetirement();
-        }
-
-        const inputs = this.collectInputs();
-        const numRuns = inputs.numRuns;
-
-        try {
-            Utils.Progress.show();
-            
-            // Run Monte Carlo simulation with progress updates
-            this.monteCarloResults = await this.simulator.runMonteCarlo(numRuns, (progress, text) => {
-                Utils.Progress.update(progress, text);
-            });
-
-            Utils.Progress.hide();
-
-            // Display Monte Carlo results
-            this.displayMonteCarloResults(this.monteCarloResults);
-            
-            // Create advanced charts
-            chartManager.renderHistogram('histChart', this.monteCarloResults.outcomes, 'Monte Carlo Results');
-            chartManager.renderFanChart('fanChart', this.monteCarloResults.paths, this.currentResults.balances, inputs);
-
-            // Switch to charts tab
-            Utils.Tabs.show('charts');
-
-            console.log('Monte Carlo simulation completed');
-
-        } catch (error) {
-            Utils.Progress.hide();
-            console.error('Monte Carlo simulation error:', error);
-            this.displayError('An error occurred during Monte Carlo simulation.');
-        }
-    }
-
-    /**
-     * Run stress testing scenarios
-     */
-    async runStressTest() {
-        const inputs = this.collectInputs();
-        
-        const stressScenarios = [
-            { name: 'Market Crash (-40%)', returnAdjustment: -40 },
-            { name: 'High Inflation (+3%)', inflationAdjustment: 3 },
-            { name: 'Low Returns (-2%)', returnAdjustment: -2 },
-            { name: 'Healthcare Crisis (+100%)', healthcareAdjustment: 100 },
-            { name: 'Combined Stress', returnAdjustment: -20, inflationAdjustment: 2, healthcareAdjustment: 50 }
-        ];
-
-        const stressResults = [];
-
-        for (const scenario of stressScenarios) {
-            const stressInputs = { ...inputs };
-            
-            if (scenario.returnAdjustment) {
-                stressInputs.investmentReturn += scenario.returnAdjustment;
-                stressInputs.superReturn += scenario.returnAdjustment;
-            }
-            
-            if (scenario.inflationAdjustment) {
-                stressInputs.inflation += scenario.inflationAdjustment;
-            }
-            
-            if (scenario.healthcareAdjustment) {
-                stressInputs.currentHealthExpenses *= (1 + scenario.healthcareAdjustment / 100);
-            }
-
-            const stressSimulator = new RetirementSimulator(stressInputs);
-            const result = stressSimulator.simulate();
-            
-            stressResults.push({
-                scenario: scenario.name,
-                finalBalance: result.finalBalance,
-                success: result.success
-            });
-        }
-
-        this.displayStressTestResults(stressResults);
-        Utils.Tabs.show('optimization');
-    }
-
-    /**
-     * Display summary results
-     */
-    displaySummaryResults(inputs, results) {
+    // Display enhanced summary results
+    displaySummaryResults(result, inputs) {
         const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
-        const requiredIncome = inputs.asfaComfortable * Math.pow(1 + inputs.inflation / 100, yearsToRetirement);
+        const requiredAnnualIncomeInRetirement = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, yearsToRetirement);
 
-        const summaryHTML = `
-            <div class="p-3 bg-gray-50 rounded flex justify-between">
-                <strong>Years to Retirement:</strong>
+        safeSetHTML('summaryResults', `
+            <div class="p-3 bg-blue-50 rounded flex justify-between">
+                <strong>Years to Retirement:</strong> 
                 <span>${yearsToRetirement}</span>
             </div>
             <div class="p-3 bg-blue-50 rounded flex justify-between">
-                <strong>Future Superannuation:</strong>
-                <span class="font-semibold">${Utils.Format.currency(results.futureSuper)}</span>
+                <strong>Future Super:</strong> 
+                <span class="font-semibold">${formatCurrency(result.futureSuper)}</span>
             </div>
             <div class="p-3 bg-blue-50 rounded flex justify-between">
-                <strong>Future Savings:</strong>
-                <span class="font-semibold">${Utils.Format.currency(results.futureSavings)}</span>
+                <strong>Future Savings:</strong> 
+                <span class="font-semibold">${formatCurrency(result.futureSavings)}</span>
             </div>
             <div class="p-3 bg-blue-50 rounded flex justify-between">
-                <strong>Future Investments:</strong>
-                <span class="font-semibold">${Utils.Format.currency(results.futureStocks)}</span>
+                <strong>Future Investments:</strong> 
+                <span class="font-semibold">${formatCurrency(result.futureStocks)}</span>
             </div>
             <div class="p-3 bg-green-50 rounded flex justify-between">
-                <strong>Home Equity Available:</strong>
-                <span class="font-semibold">${Utils.Format.currency(results.accessibleHomeEquity)}</span>
+                <strong>Accessible Home Equity:</strong> 
+                <span class="font-semibold">${formatCurrency(result.accessibleHomeEquity)}</span>
             </div>
+            ${inputs.hasInvestmentProperty ? `
+            <div class="p-3 bg-yellow-50 rounded flex justify-between">
+                <strong>Property Equity:</strong> 
+                <span class="font-semibold">${formatCurrency(result.propertyEquity)}</span>
+            </div>
+            ` : ''}
             <div class="p-3 bg-green-50 rounded flex justify-between">
-                <strong>Total Accessible Assets:</strong>
-                <span class="font-bold text-lg">${Utils.Format.currency(results.totalAccessibleAssets)}</span>
+                <strong>Total Assets at Retirement:</strong> 
+                <span class="font-bold text-lg">${formatCurrency(result.totalFinancialAssets + result.accessibleHomeEquity)}</span>
             </div>
             <div class="p-3 bg-red-50 rounded flex justify-between">
-                <strong>Income Needed (ASFA):</strong>
-                <span class="font-bold text-lg">${Utils.Format.currency(requiredIncome)}</span>
+                <strong>Income Needed (ASFA):</strong> 
+                <span class="font-bold text-lg">${formatCurrency(requiredAnnualIncomeInRetirement)}</span>
             </div>
             <div class="p-3 bg-purple-50 rounded flex justify-between">
-                <strong>Healthcare Costs (Total):</strong>
-                <span class="font-semibold">${Utils.Format.currency(results.healthcareCosts?.combinedCosts || 0)}</span>
+                <strong>Expected Aged Care Costs:</strong> 
+                <span class="font-semibold">${formatCurrency(result.agedCareCosts.expectedCost)}</span>
             </div>
-        `;
+        `);
 
-        Utils.DOM.setHTML('summaryResults', summaryHTML);
-
-        // Display final result
-        const finalResultContainer = Utils.DOM.get('finalResult');
-        if (results.success && results.finalBalance > 0) {
-            finalResultContainer.className = 'result-card bg-green-100 text-green-800';
-            finalResultContainer.innerHTML = `
-                <div class="font-bold text-xl">✅ Retirement Goal Achieved</div>
-                <div class="mt-1">Projected remaining assets: <strong>${Utils.Format.currency(results.finalBalance)}</strong></div>
-                <div class="text-sm mt-2">Your retirement plan appears sustainable with current assumptions.</div>
-            `;
-        } else {
-            finalResultContainer.className = 'result-card bg-red-100 text-red-800';
-            finalResultContainer.innerHTML = `
-                <div class="font-bold text-xl">⚠️ Retirement Shortfall Identified</div>
-                <div class="mt-1">Assets may be depleted before end of lifespan</div>
-                <div class="text-sm mt-2">Consider the optimization recommendations below.</div>
-            `;
+        // Final result
+        const finalResultContainer = $('finalResult');
+        if (finalResultContainer) {
+            if (result.finalBalance > 0) {
+                finalResultContainer.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
+                finalResultContainer.innerHTML = `
+                    <div class="font-bold text-xl">Retirement Goal Met ✓</div>
+                    <div class="mt-1">Projected remaining assets at age ${inputs.partnerLifespan}: <strong>${formatCurrency(result.finalBalance)}</strong></div>
+                `;
+            } else {
+                finalResultContainer.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
+                finalResultContainer.innerHTML = `
+                    <div class="font-bold text-xl">Retirement Shortfall ⚠️</div>
+                    <div class="mt-1">Assets projected to be depleted before end of lifespan</div>
+                `;
+            }
         }
 
-        // Display risk analysis
-        this.displayRiskAnalysis(inputs, results);
+        // Enhanced recommendations
+        const recommendations = this.generateEnhancedRecommendations(inputs, result);
+        safeSetHTML('enhancedRecommendationsList', recommendations.map(r => `<li>${r}</li>`).join(''));
     }
 
-    /**
-     * Display risk analysis
-     */
-    displayRiskAnalysis(inputs, results) {
-        const allocation = {
-            equity: inputs.allocEquities,
-            bonds: inputs.allocBonds,
-            cash: inputs.allocCash
-        };
-        
-        const expectedReturn = PortfolioCalculator.calculatePortfolioReturn(allocation);
-        const portfolioVolatility = PortfolioCalculator.calculatePortfolioVolatility(allocation);
-        
-        const riskLevel = portfolioVolatility > 0.15 ? 'high' : portfolioVolatility > 0.10 ? 'medium' : 'low';
-        
-        const riskAnalysisHTML = `
-            <div class="risk-indicator risk-${riskLevel} p-4 rounded">
-                <h4 class="font-semibold">Portfolio Risk Assessment</h4>
-                <div class="mt-2 text-sm">
-                    <div>Expected Return: ${Utils.Format.percentage(expectedReturn)}</div>
-                    <div>Portfolio Volatility: ${Utils.Format.percentage(portfolioVolatility)}</div>
-                    <div>Risk Level: <span class="font-semibold capitalize">${riskLevel}</span></div>
-                </div>
-            </div>
-            <div class="p-4 bg-gray-50 rounded">
-                <h4 class="font-semibold">Success Probability</h4>
-                <div class="mt-2 text-sm">
-                    <div>Based on deterministic analysis: ${results.success ? '✅ Success' : '❌ Shortfall'}</div>
-                    <div class="text-xs text-gray-600 mt-1">Run Monte Carlo simulation for probability assessment</div>
-                </div>
-            </div>
-        `;
-        
-        Utils.DOM.setHTML('riskAnalysis', riskAnalysisHTML);
-    }
+    // Display year-by-year projection table
+    displayYearByYearProjection(result) {
+        const projectionTable = $('projectionTable');
+        if (!projectionTable) return;
 
-    /**
-     * Display Monte Carlo results
-     */
-    displayMonteCarloResults(mcResults) {
-        Utils.DOM.toggle('monteCarloResults', true);
+        projectionTable.innerHTML = '';
         
-        Utils.DOM.setText('mcRuns', mcResults.statistics.runs.toLocaleString());
-        Utils.DOM.setText('mcSuccessRate', Utils.Format.percentage(mcResults.statistics.successRate));
-        Utils.DOM.setText('mcMedian', Utils.Format.currency(mcResults.statistics.median));
-        Utils.DOM.setText('mc10th', Utils.Format.currency(mcResults.statistics.p10));
-    }
-
-    /**
-     * Display projection table
-     */
-    displayProjectionTable(results) {
-        const tbody = Utils.DOM.get('projectionTable');
-        if (!tbody || !results.yearlyData) return;
-
-        let tableHTML = '';
-        
-        results.yearlyData.slice(0, 30).forEach(data => {
+        result.yearlyData.slice(0, 30).forEach(data => {
             if (data.depleted) {
-                tableHTML += `
+                projectionTable.innerHTML += `
                     <tr class="bg-red-100">
-                        <td colspan="9" class="px-4 py-2 text-center font-bold text-red-800">
-                            Financial assets depleted in ${data.year} (Age ${data.age})
+                        <td colspan="7" class="px-4 py-2 text-center font-bold">
+                            Financial assets depleted in ${data.year}
                         </td>
                     </tr>
                 `;
                 return;
             }
 
-            tableHTML += `
-                <tr class="hover:bg-gray-50">
+            projectionTable.innerHTML += `
+                <tr>
                     <td class="px-4 py-2">${data.year}</td>
                     <td class="px-4 py-2">${data.age}</td>
-                    <td class="px-4 py-2">${Utils.Format.currency(data.startBalance || data.balance)}</td>
-                    <td class="px-4 py-2">-</td>
-                    <td class="px-4 py-2 text-green-600">+${Utils.Format.currency(data.growth || 0)}</td>
-                    <td class="px-4 py-2 text-red-600">-${Utils.Format.currency(data.withdrawal || 0)}</td>
-                    <td class="px-4 py-2 text-orange-600">-${Utils.Format.currency(data.healthcareCost || 0)}</td>
-                    <td class="px-4 py-2 text-blue-600">+${Utils.Format.currency(data.pension || 0)}</td>
-                    <td class="px-4 py-2 font-semibold">${Utils.Format.currency(data.balance)}</td>
+                    <td class="px-4 py-2">${formatCurrency(data.startBalance)}</td>
+                    <td class="px-4 py-2 text-blue-600">+${formatCurrency(data.propertyIncome || 0)}</td>
+                    <td class="px-4 py-2 text-red-600">-${formatCurrency(data.healthcareCost)}</td>
+                    <td class="px-4 py-2 text-red-600">-${formatCurrency(data.agedCareCost)}</td>
+                    <td class="px-4 py-2 font-semibold">${formatCurrency(data.endBalance)}</td>
                 </tr>
             `;
         });
-
-        tbody.innerHTML = tableHTML;
     }
 
-    /**
-     * Display healthcare analysis
-     */
-    displayHealthcareAnalysis(inputs, results) {
-        const healthcareCosts = results.healthcareCosts || {};
-        
-        const analysisHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="p-4 bg-blue-50 rounded">
-                    <h4 class="font-semibold text-blue-900">Total Healthcare Costs</h4>
-                    <div class="text-2xl font-bold text-blue-800">${Utils.Format.currency(healthcareCosts.totalHealthcareCosts || 0)}</div>
-                    <div class="text-sm text-blue-600">Over retirement period</div>
+    // Display property analysis
+    displayPropertyAnalysis(result, inputs) {
+        const propertyAnalysis = $('propertyAnalysis');
+        if (!propertyAnalysis) return;
+
+        if (!inputs.hasInvestmentProperty) {
+            propertyAnalysis.innerHTML = `
+                <div class="col-span-2 p-4 bg-gray-50 rounded text-center">
+                    <p class="text-gray-600">No investment property included in analysis</p>
                 </div>
-                <div class="p-4 bg-orange-50 rounded">
-                    <h4 class="font-semibold text-orange-900">Expected Aged Care</h4>
-                    <div class="text-2xl font-bold text-orange-800">${Utils.Format.currency(healthcareCosts.agedCareCosts || 0)}</div>
-                    <div class="text-sm text-orange-600">${inputs.agedCareProbability}% probability</div>
-                </div>
-                <div class="p-4 bg-red-50 rounded">
-                    <h4 class="font-semibold text-red-900">Combined Health Costs</h4>
-                    <div class="text-2xl font-bold text-red-800">${Utils.Format.currency(healthcareCosts.combinedCosts || 0)}</div>
-                    <div class="text-sm text-red-600">Healthcare + aged care</div>
+            `;
+            return;
+        }
+
+        const currentCashFlow = result.propertyHistory[0] || {};
+        const keepVsSellAnalysis = this.analyzeKeepVsSell(inputs);
+
+        propertyAnalysis.innerHTML = `
+            <div class="property-card property-${currentCashFlow.netCashFlow > 0 ? 'positive' : 'negative'}">
+                <h3 class="font-semibold mb-3">Current Property Performance</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span>Annual Rental Income:</span>
+                        <span class="font-medium">${formatCurrency(currentCashFlow.grossRental || 0)}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Annual Expenses:</span>
+                        <span class="font-medium">-${formatCurrency(currentCashFlow.expenses || 0)}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Interest Cost:</span>
+                        <span class="font-medium">-${formatCurrency(currentCashFlow.interestCost || 0)}</span>
+                    </div>
+                    <div class="flex justify-between border-t pt-2">
+                        <span class="font-semibold">Net Cash Flow:</span>
+                        <span class="font-semibold ${currentCashFlow.netCashFlow > 0 ? 'text-green-600' : 'text-red-600'}">
+                            ${formatCurrency(currentCashFlow.netCashFlow || 0)}
+                        </span>
+                    </div>
                 </div>
             </div>
-            <div class="p-4 bg-yellow-50 rounded">
-                <h4 class="font-semibold text-yellow-900">Healthcare Recommendations</h4>
-                <ul class="list-disc ml-5 mt-2 text-sm text-yellow-800">
-                    <li>Healthcare costs grow at ${inputs.healthInflationRate}% annually (above general inflation)</li>
-                    <li>Consider maintaining private health insurance to reduce out-of-pocket costs</li>
-                    <li>Budget for potential aged care needs (${inputs.agedCareProbability}% probability)</li>
-                    <li>Health expenses increase significantly with age - plan accordingly</li>
-                </ul>
+            
+            <div class="property-card">
+                <h3 class="font-semibold mb-3">Keep vs Sell Analysis</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="p-3 bg-white rounded">
+                        <div class="font-medium">Keep Property Strategy:</div>
+                        <div class="mt-1">Total return: ${formatPercent(keepVsSellAnalysis.keepTotalReturn)}</div>
+                        <div>Net income contribution: ${formatCurrency(keepVsSellAnalysis.keepNetIncome)}</div>
+                    </div>
+                    <div class="p-3 bg-white rounded">
+                        <div class="font-medium">Sell in ${inputs.sellPropertyYears} years:</div>
+                        <div class="mt-1">Net proceeds: ${formatCurrency(keepVsSellAnalysis.sellNetProceeds)}</div>
+                        <div>Portfolio investment return: ${formatPercent(keepVsSellAnalysis.sellInvestmentReturn)}</div>
+                    </div>
+                    <div class="p-2 bg-gray-100 rounded font-medium text-center">
+                        ${keepVsSellAnalysis.recommendation}
+                    </div>
+                </div>
             </div>
         `;
-
-        Utils.DOM.setHTML('healthcareResults', analysisHTML);
     }
 
-    /**
-     * Display optimization recommendations
-     */
-    displayOptimizationRecommendations(inputs, results) {
-        const recommendations = [];
+    // Display risk analysis
+    displayRiskAnalysis(result, inputs) {
+        const riskAnalysisContent = $('riskAnalysisContent');
+        if (!riskAnalysisContent) return;
 
-        // Generate personalized recommendations
-        if (!results.success) {
-            recommendations.push('Consider increasing your savings rate or working longer');
-            recommendations.push('Review your asset allocation - more growth assets may be needed');
-            recommendations.push('Consider part-time work in early retirement');
-        }
+        const capacity = this.simulator.calculateRiskCapacity(inputs);
+        const tolerance = inputs.riskTolerance * 10;
+        const requirement = this.simulator.calculateRiskRequirement(inputs);
 
-        if (inputs.dynamicAllocation) {
-            recommendations.push('Using dynamic allocation strategy - good for age-appropriate risk management');
-        } else {
-            recommendations.push('Consider enabling dynamic allocation for age-appropriate risk adjustment');
-        }
-
-        if (inputs.frankingCredits) {
-            recommendations.push('Franking credits included - maximizing Australian tax advantages');
-        } else {
-            recommendations.push('Consider Australian dividend-paying stocks for franking credit benefits');
-        }
-
-        if (inputs.planToDownsize) {
-            recommendations.push('Downsizing planned - ensure property market timing is considered');
-        } else {
-            recommendations.push('Consider downsizing to access home equity tax-free');
-        }
-
-        // Healthcare recommendations
-        if (inputs.currentHealthExpenses < 3000) {
-            recommendations.push('Consider increasing healthcare budget - current expenses seem low');
-        }
-
-        if (!inputs.privateHealthInsurance) {
-            recommendations.push('Consider private health insurance to manage healthcare costs');
-        }
-
-        // Tax optimization
-        const marginalRate = TaxCalculator.getMarginalTaxRate(inputs.yourSalary);
-        if (marginalRate > 0.37) {
-            recommendations.push('High marginal tax rate - maximize super contributions and tax-effective investments');
-        }
-
-        recommendations.push('Regularly review and update your retirement plan');
-        recommendations.push('Consider professional financial advice for complex strategies');
-
-        // Display recommendations
-        const recommendationsHTML = recommendations.map(rec => `<li>${rec}</li>`).join('');
-        Utils.DOM.setHTML('recommendationsList', recommendationsHTML);
-    }
-
-    /**
-     * Display stress test results
-     */
-    displayStressTestResults(stressResults) {
-        const stressHTML = `
+        riskAnalysisContent.innerHTML = `
             <div class="space-y-4">
-                <h3 class="text-lg font-semibold">Stress Test Results</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    ${stressResults.map(result => `
-                        <div class="p-4 rounded ${result.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'} border">
-                            <h4 class="font-semibold ${result.success ? 'text-green-900' : 'text-red-900'}">${result.scenario}</h4>
-                            <div class="mt-2">
-                                <div class="text-sm">Final Balance: ${Utils.Format.currency(result.finalBalance)}</div>
-                                <div class="text-sm ${result.success ? 'text-green-600' : 'text-red-600'}">
-                                    ${result.success ? '✅ Success' : '❌ Shortfall'}
-                                </div>
+                <div class="p-4 bg-blue-50 rounded">
+                    <h3 class="font-semibold mb-3">Risk Profile Summary</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm">Risk Capacity</span>
+                                <span class="text-sm font-medium">${capacity}%</span>
+                            </div>
+                            <div class="risk-meter">
+                                <div class="risk-indicator" style="left: ${capacity}%"></div>
                             </div>
                         </div>
-                    `).join('')}
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm">Risk Tolerance</span>
+                                <span class="text-sm font-medium">${tolerance}%</span>
+                            </div>
+                            <div class="risk-meter">
+                                <div class="risk-indicator" style="left: ${tolerance}%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm">Risk Requirement</span>
+                                <span class="text-sm font-medium">${requirement}%</span>
+                            </div>
+                            <div class="risk-meter">
+                                <div class="risk-indicator" style="left: ${requirement}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="p-4 bg-yellow-50 rounded">
+                    <h3 class="font-semibold mb-3">Key Risk Factors</h3>
+                    <ul class="text-sm space-y-2">
+                        <li>• <strong>Sequence of Returns Risk:</strong> ${result.finalBalance > 0 ? 'Low impact expected' : 'High impact - early losses could deplete portfolio'}</li>
+                        <li>• <strong>Longevity Risk:</strong> ${inputs.partnerLifespan > 95 ? 'High - planning for extended lifespan' : 'Moderate - standard life expectancy'}</li>
+                        <li>• <strong>Healthcare Cost Risk:</strong> ${inputs.healthcareInflation > 6 ? 'High - above-average inflation assumed' : 'Moderate - standard healthcare inflation'}</li>
+                        <li>• <strong>Property Concentration Risk:</strong> ${inputs.hasInvestmentProperty ? 'Present - significant property exposure' : 'Low - diversified portfolio'}</li>
+                    </ul>
                 </div>
             </div>
         `;
-
-        Utils.DOM.setHTML('optimizationResults', stressHTML);
     }
 
-    /**
-     * Update risk assessment display
-     */
-    updateRiskAssessment() {
-        const riskTolerance = Utils.DOM.get('riskTolerance')?.value || 'growth';
-        const profile = CONFIG.RISK_PROFILES[riskTolerance];
+    // Display optimization strategies
+    displayOptimizationStrategies(result, inputs) {
+        const optimizationContent = $('optimizationContent');
+        if (!optimizationContent) return;
+
+        const pensionOptimization = this.analyzePensionOptimization(result, inputs);
+        const taxOptimization = this.analyzeTaxOptimization(inputs);
+        const contributionOptimization = this.analyzeContributionOptimization(inputs);
+        const allocationOptimization = this.analyzeAllocationOptimization(inputs);
+
+        optimizationContent.innerHTML = `
+            <div class="enhancement-highlight p-4 rounded-lg">
+                <h3 class="text-lg font-semibold mb-3">Age Pension Optimization</h3>
+                <div class="space-y-3 text-sm">
+                    ${pensionOptimization.map(strategy => `<div>• ${strategy}</div>`).join('')}
+                </div>
+            </div>
+            
+            <div class="enhancement-highlight p-4 rounded-lg">
+                <h3 class="text-lg font-semibold mb-3">Tax Optimization</h3>
+                <div class="space-y-3 text-sm">
+                    ${taxOptimization.map(strategy => `<div>• ${strategy}</div>`).join('')}
+                </div>
+            </div>
+            
+            <div class="enhancement-highlight p-4 rounded-lg">
+                <h3 class="text-lg font-semibold mb-3">Contribution Strategies</h3>
+                <div class="space-y-3 text-sm">
+                    ${contributionOptimization.map(strategy => `<div>• ${strategy}</div>`).join('')}
+                </div>
+            </div>
+            
+            <div class="enhancement-highlight p-4 rounded-lg">
+                <h3 class="text-lg font-semibold mb-3">Asset Allocation Optimization</h3>
+                <div class="space-y-3 text-sm">
+                    ${allocationOptimization.map(strategy => `<div>• ${strategy}</div>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    // Analysis functions
+    analyzeKeepVsSell(inputs) {
+        if (!inputs.hasInvestmentProperty) return null;
+
+        // Simplified analysis
+        const yearsToSell = inputs.sellPropertyYears;
+        const currentValue = inputs.investmentPropertyValue;
+        const futureValue = currentValue * Math.pow(1 + inputs.propertyGrowthRate / 100, yearsToSell);
+        const remainingLoan = this.simulator.calculatePropertyLoanBalance(
+            inputs.investmentPropertyLoan, 
+            inputs.investmentPropertyRate, 
+            yearsToSell
+        );
         
-        if (!profile) return;
-
-        const assessmentHTML = `
-            <div class="risk-indicator risk-${riskTolerance === 'aggressive' ? 'high' : riskTolerance === 'conservative' ? 'low' : 'medium'}">
-                <h4 class="font-semibold">${profile.name} Investor</h4>
-                <div class="text-sm mt-1">
-                    <div>${profile.description}</div>
-                    <div class="mt-1">Time Horizon: ${profile.timeHorizon}</div>
-                    <div>Risk Score: ${profile.riskScore}/10</div>
-                </div>
-            </div>
-        `;
-
-        Utils.DOM.setHTML('riskAssessment', assessmentHTML);
+        const sellingCosts = futureValue * 0.06;
+        const capitalGain = futureValue - currentValue;
+        const cgtPayable = capitalGain * 0.5 * (inputs.capitalGainsTaxRate / 100);
+        const sellNetProceeds = futureValue - remainingLoan - sellingCosts - cgtPayable;
+        
+        const annualRental = inputs.weeklyRentalIncome * 52;
+        const keepNetIncome = (annualRental - inputs.annualPropertyExpenses) * yearsToSell;
+        
+        return {
+            keepTotalReturn: (keepNetIncome + (futureValue - currentValue)) / currentValue,
+            keepNetIncome,
+            sellNetProceeds,
+            sellInvestmentReturn: 0.07,
+            recommendation: sellNetProceeds > (keepNetIncome + currentValue) ? 
+                'Consider selling - higher returns from portfolio investment' : 
+                'Consider keeping - property provides better total return'
+        };
     }
 
-    /**
-     * Update allocation based on risk tolerance
-     */
-    updateAllocationFromRisk() {
-        const riskTolerance = Utils.DOM.get('riskTolerance')?.value;
-        if (!riskTolerance) return;
+    analyzePensionOptimization(result, inputs) {
+        const strategies = [];
+        const totalAssets = result.totalFinancialAssets + result.accessibleHomeEquity;
+        
+        if (totalAssets > inputs.pensionAssetThreshold) {
+            strategies.push('Consider gifting strategies: $10K annually or $30K over 5 years');
+            strategies.push('Funeral bonds up to $15,750 per person are exempt from asset test');
+        }
+        
+        if (inputs.planToDownsize) {
+            strategies.push('Downsizing can free up to $300K per person (exempt from asset test for 2 years)');
+        }
+        
+        if (inputs.hasInvestmentProperty) {
+            strategies.push('Investment property equity affects pension - consider timing of sale');
+        }
+        
+        strategies.push('Account-based pensions vs annuities: Compare asset test treatment');
+        
+        return strategies;
+    }
 
-        const profile = CONFIG.RISK_PROFILES[riskTolerance];
-        if (profile && profile.recommendedAllocation) {
-            const allocation = CONFIG.ALLOCATIONS[profile.recommendedAllocation];
-            if (allocation) {
-                Utils.DOM.setValue('allocEquities', allocation.equity);
-                Utils.DOM.setValue('allocBonds', allocation.bonds);
-                Utils.DOM.setValue('allocCash', allocation.cash);
-                Utils.DOM.setValue('presetAllocation', profile.recommendedAllocation);
+    analyzeTaxOptimization(inputs) {
+        const strategies = [];
+        const totalSalary = inputs.yourSalary + inputs.partnerSalary;
+        
+        if (totalSalary > 100000) {
+            strategies.push('Maximize salary sacrifice to super ($30K cap including carry-forward)');
+        }
+        
+        if (inputs.hasInvestmentProperty) {
+            strategies.push('Maximize negative gearing benefits and depreciation claims');
+            strategies.push('Consider timing property sale for optimal CGT treatment');
+        }
+        
+        strategies.push('Focus on franking credit eligible Australian shares in retirement');
+        strategies.push('Use spouse super contributions if income disparity exists');
+        
+        return strategies;
+    }
+
+    analyzeContributionOptimization(inputs) {
+        const strategies = [];
+        
+        strategies.push(`Current super guarantee: ${formatPercent(inputs.superContributionRate)} - increases to 12% by 2025`);
+        
+        if (inputs.yourSalary > 50000) {
+            strategies.push('Consider additional voluntary super contributions for tax benefits');
+        }
+        
+        if (!inputs.useGlidePath) {
+            strategies.push('Enable dynamic allocation for age-appropriate risk management');
+        }
+        
+        strategies.push('Dollar-cost averaging through regular contributions reduces market timing risk');
+        
+        return strategies;
+    }
+
+    analyzeAllocationOptimization(inputs) {
+        const strategies = [];
+        const capacity = this.simulator.calculateRiskCapacity(inputs);
+        const tolerance = inputs.riskTolerance * 10;
+        
+        if (capacity > tolerance + 20) {
+            strategies.push('You have capacity for higher risk allocation to potentially improve returns');
+        }
+        
+        if (inputs.australianEquityAllocation < 30) {
+            strategies.push('Consider increasing Australian equity allocation for franking credit benefits');
+        }
+        
+        if (!inputs.useGlidePath) {
+            strategies.push('Dynamic allocation glide paths automatically reduce risk as you age');
+        }
+        
+        strategies.push('Regular rebalancing maintains target allocations and harvests gains');
+        
+        return strategies;
+    }
+
+    generateEnhancedRecommendations(inputs, result) {
+        const recommendations = [];
+        
+        // Risk-based recommendations
+        const capacity = this.simulator.calculateRiskCapacity(inputs);
+        const tolerance = inputs.riskTolerance * 10;
+        const requirement = this.simulator.calculateRiskRequirement(inputs);
+        
+        if (requirement > tolerance) {
+            recommendations.push('Consider increasing risk tolerance or extending retirement timeline to meet goals');
+        }
+        
+        if (capacity > tolerance + 20) {
+            recommendations.push('You have capacity for higher risk to potentially improve returns');
+        }
+        
+        // Healthcare recommendations
+        if (inputs.currentHealthcareCosts < 2000) {
+            recommendations.push('Consider budgeting more for healthcare costs - average is $3,500+ annually');
+        }
+        
+        // Property recommendations
+        if (inputs.hasInvestmentProperty) {
+            const cashFlow = result.propertyHistory[0];
+            if (cashFlow && cashFlow.netCashFlow < 0) {
+                recommendations.push('Investment property has negative cash flow - review holding strategy');
             }
         }
+        
+        // Allocation recommendations
+        if (!inputs.useGlidePath) {
+            recommendations.push('Consider enabling dynamic allocation for age-appropriate risk management');
+        }
+        
+        // Aged care preparation
+        if (result.agedCareCosts.expectedCost > result.finalBalance * 0.3) {
+            recommendations.push('Aged care costs represent significant portion of assets - consider insurance options');
+        }
+        
+        return recommendations;
     }
 
-    /**
-     * Update allocation from preset selection
-     */
-    updateAllocationFromPreset() {
-        const preset = Utils.DOM.get('presetAllocation')?.value;
-        if (!preset) return;
-
-        const allocation = CONFIG.ALLOCATIONS[preset];
-        if (allocation) {
-            Utils.DOM.setValue('allocEquities', allocation.equity);
-            Utils.DOM.setValue('allocBonds', allocation.bonds);
-            Utils.DOM.setValue('allocCash', allocation.cash);
+    // Monte Carlo simulation
+    async runMonteCarloSimulation() {
+        if (this.isCalculating) return;
+        
+        this.isCalculating = true;
+        
+        try {
+            const inputs = this.collectInputs();
+            const runs = inputs.numRuns;
+            
+            const progressCallback = async (completed, total) => {
+                const percentage = (completed / total) * 100;
+                updateProgress(percentage, `Running simulation... ${completed}/${total}`);
+                await new Promise(resolve => setTimeout(resolve, 0));
+            };
+            
+            const results = await this.simulator.runMonteCarloSimulation(inputs, runs, progressCallback);
+            
+            // Update Monte Carlo results display
+            const mcResults = $('monteCarloResults');
+            if (mcResults) {
+                mcResults.classList.remove('hidden');
+                safeSetText('mcRuns', runs.toLocaleString());
+                safeSetText('mcSuccessRate', formatPercent(results.successRate));
+                safeSetText('mcMedian', formatCurrency(results.median));
+                safeSetText('mc10th', formatCurrency(results.percentile10));
+                safeSetText('mcConfidence', `${(results.successRate * 100).toFixed(0)}%`);
+            }
+            
+            // Render Monte Carlo charts
+            this.chartManager.renderMonteCarloFanChart(inputs, results.paths);
+            this.chartManager.renderHistogram(results.outcomes);
+            
+            // Switch to charts tab
+            showTab('charts');
+            
+            updateProgress(0);
+            showNotification('Monte Carlo simulation completed', 'success');
+            
+        } catch (error) {
+            console.error('Monte Carlo simulation error:', error);
+            showNotification('Error in Monte Carlo simulation: ' + error.message, 'error');
+        } finally {
+            this.isCalculating = false;
+            updateProgress(0);
         }
     }
 
-    /**
-     * Validate inputs
-     */
-    validateInputs(inputs) {
-        // Age validations
-        const ageValidation = Utils.Validate.age(inputs.yourCurrentAge);
-        if (!ageValidation.valid) return ageValidation;
-
-        const retirementValidation = Utils.Validate.retirementAge(inputs.yourCurrentAge, inputs.retirementAge);
-        if (!retirementValidation.valid) return retirementValidation;
-
-        // Salary validations
-        const salaryValidation = Utils.Validate.salary(inputs.yourSalary);
-        if (!salaryValidation.valid) return salaryValidation;
-
-        // Allocation validation
-        const allocationValidation = Utils.Validate.allocation(inputs.allocEquities, inputs.allocBonds, inputs.allocCash);
-        if (!allocationValidation.valid) return allocationValidation;
-
-        return { valid: true };
-    }
-
-    /**
-     * Save inputs to localStorage
-     */
-    saveInputs() {
-        const inputs = this.collectInputs();
-        Utils.File.saveToLocal('retirementCalculatorInputs', inputs);
-    }
-
-    /**
-     * Load saved inputs from localStorage
-     */
-    loadSavedInputs() {
-        const savedInputs = Utils.File.loadFromLocal('retirementCalculatorInputs');
-        if (savedInputs) {
-            Object.keys(savedInputs).forEach(key => {
-                Utils.DOM.setValue(key, savedInputs[key]);
-            });
+    // Stress testing
+    async runStressTest() {
+        if (this.isCalculating) return;
+        
+        this.isCalculating = true;
+        
+        try {
+            const inputs = this.collectInputs();
+            const scenarios = ENHANCED_CONFIG.STRESS_SCENARIOS;
+            const results = [];
+            
+            for (let i = 0; i < scenarios.length; i++) {
+                updateProgress((i / scenarios.length) * 100, `Testing scenario: ${scenarios[i].name}`);
+                const result = this.simulator.runStressTest(inputs, scenarios[i]);
+                results.push({
+                    scenario: scenarios[i].name,
+                    finalBalance: result.finalBalance,
+                    success: result.finalBalance > 0
+                });
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // Display stress test results
+            this.displayStressTestResults(results);
+            showTab('riskAnalysis');
+            
+            updateProgress(0);
+            showNotification('Stress testing completed', 'success');
+            
+        } catch (error) {
+            console.error('Stress test error:', error);
+            showNotification('Error in stress testing: ' + error.message, 'error');
+        } finally {
+            this.isCalculating = false;
+            updateProgress(0);
         }
     }
 
-    /**
-     * Export results to CSV
-     */
+    displayStressTestResults(results) {
+        const stressTestResults = $('stressTestResults');
+        if (!stressTestResults) return;
+        
+        stressTestResults.innerHTML = results.map(result => `
+            <div class="p-3 rounded ${result.success ? 'bg-green-50' : 'bg-red-50'}">
+                <div class="font-medium">${result.scenario}</div>
+                <div class="text-sm mt-1">
+                    Final Balance: ${formatCurrency(result.finalBalance)}
+                    <span class="ml-2 ${result.success ? 'text-green-600' : 'text-red-600'}">
+                        ${result.success ? '✓ Survives' : '✗ Depleted'}
+                    </span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Export functionality
     exportResults() {
-        if (!this.currentResults || !this.currentResults.yearlyData) {
-            alert('No results to export. Please run a calculation first.');
+        if (!this.currentResults) {
+            showNotification('No results to export. Please run a calculation first.', 'warning');
             return;
         }
 
         const exportData = this.currentResults.yearlyData.map(data => ({
             Year: data.year,
             Age: data.age,
-            Start_Balance: data.startBalance || data.balance,
-            Income_Needed: data.incomeNeeded || 0,
-            Pension_Received: data.pension || 0,
-            Withdrawal_Amount: data.withdrawal || 0,
-            Healthcare_Cost: data.healthcareCost || 0,
-            Portfolio_Growth: data.growth || 0,
-            End_Balance: data.balance
+            Start_Balance: data.startBalance,
+            Return_Rate: data.returnRate,
+            Growth: data.growth,
+            Withdrawal: data.withdrawal,
+            Healthcare_Cost: data.healthcareCost,
+            Aged_Care_Cost: data.agedCareCost,
+            Property_Income: data.propertyIncome || 0,
+            Pension_Income: data.pensionIncome || 0,
+            End_Balance: data.endBalance
         }));
 
-        Utils.File.exportCSV(exportData, `retirement_projection_${Utils.DateTime.currentYear()}.csv`);
+        exportToCSV(exportData, 'enhanced-retirement-projection.csv');
+        showNotification('Results exported successfully', 'success');
     }
 
-    /**
-     * Display error message
-     */
-    displayError(message) {
-        const errorHTML = `
-            <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-                <strong>Error:</strong> ${message}
-            </div>
-        `;
+    // UI update functions
+    updateUIElements() {
+        // Investment property section toggle
+        const hasInvestmentProperty = $('hasInvestmentProperty');
+        const investmentPropertySection = $('investmentPropertySection');
         
-        // Show error in summary results area
-        Utils.DOM.setHTML('summaryResults', errorHTML);
+        if (hasInvestmentProperty && investmentPropertySection) {
+            const togglePropertySection = () => {
+                if (hasInvestmentProperty.checked) {
+                    investmentPropertySection.classList.remove('hidden');
+                } else {
+                    investmentPropertySection.classList.add('hidden');
+                }
+            };
+            
+            hasInvestmentProperty.addEventListener('change', togglePropertySection);
+            togglePropertySection(); // Initial state
+        }
+
+        // Update CGT rate based on marginal tax rate
+        const updateCGTRate = () => {
+            const totalSalary = safeGetValue('yourSalary', 0) + safeGetValue('partnerSalary', 0);
+            let marginalRate = 0;
+            
+            if (totalSalary > 180000) marginalRate = 45;
+            else if (totalSalary > 120000) marginalRate = 37;
+            else if (totalSalary > 45000) marginalRate = 32.5;
+            else if (totalSalary > 18200) marginalRate = 19;
+            
+            const cgtRate = marginalRate * 0.5; // 50% discount
+            safeSetValue('capitalGainsTaxRate', cgtRate);
+        };
+
+        // Salary change listeners for CGT calculation
+        const yourSalary = $('yourSalary');
+        const partnerSalary = $('partnerSalary');
+        if (yourSalary) yourSalary.addEventListener('blur', updateCGTRate);
+        if (partnerSalary) partnerSalary.addEventListener('blur', updateCGTRate);
+    }
+
+    // Event listeners
+    setupEventListeners() {
+        // Main calculation button
+        const btnCalculate = $('btnCalculate');
+        if (btnCalculate) {
+            btnCalculate.addEventListener('click', () => this.calculateRetirement());
+        }
+
+        // Monte Carlo button
+        const btnMonteCarlo = $('btnMonteCarlo');
+        if (btnMonteCarlo) {
+            btnMonteCarlo.addEventListener('click', () => this.runMonteCarloSimulation());
+        }
+
+        // Stress test button
+        const btnStressTest = $('btnStressTest');
+        if (btnStressTest) {
+            btnStressTest.addEventListener('click', () => this.runStressTest());
+        }
+
+        // Export button
+        const btnExportEnhanced = $('btnExportEnhanced');
+        if (btnExportEnhanced) {
+            btnExportEnhanced.addEventListener('click', () => this.exportResults());
+        }
+
+        // Auto-update on risk tolerance change
+        const riskTolerance = $('riskTolerance');
+        if (riskTolerance) {
+            riskTolerance.addEventListener('input', debounce(() => {
+                const inputs = this.collectInputs();
+                this.updateRiskProfile(inputs);
+            }, 300));
+        }
+
+        // Auto-update on glide path change
+        const glidePathRule = $('glidePathRule');
+        if (glidePathRule) {
+            glidePathRule.addEventListener('change', () => {
+                const inputs = this.collectInputs();
+                this.updateRecommendedAllocation(inputs);
+            });
+        }
+
+        // Enable/disable shock controls
+        const enableShocks = $('enableShocks');
+        const shockControls = $('shockControls');
+        if (enableShocks && shockControls) {
+            enableShocks.addEventListener('change', () => {
+                if (enableShocks.checked) {
+                    shockControls.classList.remove('hidden');
+                } else {
+                    shockControls.classList.add('hidden');
+                }
+            });
+        }
+
+        // Tab management - make showTab globally available
+        window.showTab = showTab;
+
+        // Property analysis chart toggle
+        const hasInvestmentProperty = $('hasInvestmentProperty');
+        if (hasInvestmentProperty) {
+            hasInvestmentProperty.addEventListener('change', () => {
+                // Recalculate when property status changes
+                setTimeout(() => this.calculateRetirement(), 100);
+            });
+        }
+
+        // Auto-calculate on significant input changes (debounced)
+        const autoCalculateInputs = [
+            'yourCurrentAge', 'retirementAge', 'yourSalary', 'currentSuper', 
+            'hasInvestmentProperty', 'investmentPropertyValue', 'useGlidePath',
+            'weeklyRentalIncome', 'sellPropertyYears', 'agedCareStartAge'
+        ];
+
+        autoCalculateInputs.forEach(inputId => {
+            const input = $(inputId);
+            if (input) {
+                const eventType = input.type === 'checkbox' ? 'change' : 'blur';
+                input.addEventListener(eventType, debounce(() => {
+                    this.calculateRetirement();
+                }, 1000));
+            }
+        });
+
+        // Real-time updates for immediate feedback
+        const immediateUpdateInputs = ['riskTolerance', 'glidePathRule', 'useGlidePath'];
+        immediateUpdateInputs.forEach(inputId => {
+            const input = $(inputId);
+            if (input) {
+                input.addEventListener('input', debounce(() => {
+                    const inputs = this.collectInputs();
+                    this.updateRiskProfile(inputs);
+                    this.updateRecommendedAllocation(inputs);
+                }, 100));
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 'Enter':
+                        e.preventDefault();
+                        this.calculateRetirement();
+                        break;
+                    case 'm':
+                        e.preventDefault();
+                        this.runMonteCarloSimulation();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        this.exportResults();
+                        break;
+                }
+            }
+        });
+    }
+
+    // Initial calculation
+    performInitialCalculation() {
+        // Delay initial calculation to ensure DOM is ready
+        setTimeout(() => {
+            this.calculateRetirement();
+        }, 100);
     }
 }
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.retirementApp = new RetirementCalculatorApp();
+    try {
+        new RetirementCalculatorApp();
+        console.log('Enhanced Australian Retirement Calculator initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize calculator:', error);
+        document.body.innerHTML = `
+            <div class="min-h-screen bg-red-50 flex items-center justify-center">
+                <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
+                    <h1 class="text-xl font-bold text-red-600 mb-4">Initialization Error</h1>
+                    <p class="text-gray-600 mb-4">The retirement calculator failed to load properly.</p>
+                    <p class="text-sm text-gray-500">Please check the browser console for details and ensure all files are properly loaded.</p>
+                    <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Reload Page
+                    </button>
+                </div>
+            </div>
+        `;
+    }
 });
 
-// Export for global access
 export default RetirementCalculatorApp;

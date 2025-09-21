@@ -1,324 +1,310 @@
 # Enhanced Australian Retirement Calculator
 
-A comprehensive, professional-grade retirement planning tool specifically designed for the Australian financial system. This modular calculator implements advanced features including Monte Carlo simulation, healthcare cost modeling, aged care projections, and dynamic asset allocation strategies.
+A comprehensive, modular retirement planning calculator specifically designed for the Australian financial system, featuring advanced modeling capabilities including investment property analysis, healthcare cost projections, aged care planning, and Monte Carlo simulation.
 
-## 🚀 Key Features
+## Features
 
-### ✅ **Currently Implemented Enhancements**
+### Core Functionality
+- **Investment Property Modeling**: Complete buy-and-hold vs sell analysis with cash flow projections
+- **Healthcare Cost Inflation**: 6.5% healthcare-specific inflation modeling vs general 2.9%
+- **Aged Care Planning**: Probability-based aged care cost projections ($350K-550K lifetime)
+- **Dynamic Asset Allocation**: Age-based glide paths (Rule of 110/120 minus age)
+- **Advanced Risk Profiling**: Three-dimensional risk assessment (capacity/tolerance/requirement)
+- **Franking Credit Benefits**: Australian dividend advantage modeling (+1.2% typical benefit)
+- **Monte Carlo Simulation**: 5,000+ runs with confidence scoring and percentile analysis
+- **Stress Testing**: Multiple economic scenarios including GFC-style crashes
 
-- **Healthcare Cost Escalation Modeling** - 6.5% annual inflation for healthcare vs general inflation
-- **Aged Care Cost Projections** - Probability-based aged care cost estimation with 65%+ likelihood
-- **Advanced Monte Carlo Simulation** - 5,000+ iterations with market shocks and volatility modeling
-- **Dynamic Asset Allocation** - Age-based glide paths with automatic risk adjustment
-- **Sequence of Returns Risk** - Monthly withdrawal simulation for realistic retirement modeling
-- **Enhanced Stress Testing** - Multiple scenario analysis including market crashes and healthcare crises
-- **Professional Risk Profiling** - Three-dimensional risk assessment (capacity, tolerance, requirement)
-- **Australian Tax System Integration** - Full 2024-25 tax brackets, Medicare levy, and franking credits
-- **Age Pension Optimization** - Complete Australian pension system modeling with asset/income tests
+### Australian-Specific Features
+- **Super Guarantee**: 12% contribution rate modeling
+- **Age Pension Integration**: Complete asset/income test calculations
+- **Tax System**: Full Australian tax bracket integration (2024-25)
+- **Property Market**: Australian property growth and CGT modeling
+- **ASFA Standards**: Comfortable retirement income benchmarks
 
-### 🎯 **Professional-Grade Capabilities**
+### Advanced Analysis
+- **Year-by-Year Projections**: Detailed annual breakdown including healthcare and aged care costs
+- **Property vs Portfolio**: Comparative analysis of property investment vs diversified portfolio
+- **Risk Analysis**: Sequence of returns risk and longevity risk assessment
+- **Optimization Strategies**: Pension maximization, tax optimization, contribution strategies
 
-- **Monte Carlo Analysis** with up to 10,000 iterations
-- **Correlation-adjusted returns** for realistic portfolio modeling
-- **Market shock simulation** with configurable crash probability and magnitude
-- **Healthcare inflation modeling** separate from general inflation
-- **Dynamic asset allocation** based on age and risk tolerance
-- **Comprehensive Australian pension modeling** including deeming rules
-- **Property investment analysis** with negative gearing and capital gains
-- **Export functionality** for detailed projection data
+## File Structure
 
-## 📁 Project Structure
-
-```text
+```
 retirement-calculator/
-├── index.html              # Main HTML structure with 4-column responsive layout
+├── index.html              # Main HTML structure
 ├── css/
-│   └── styles.css          # Comprehensive styling with responsive design
+│   └── styles.css          # Comprehensive stylesheet with responsive design
 ├── js/
-│   ├── config.js           # Australian-specific constants and configuration
-│   ├── utils.js            # Reusable utility functions and helpers
+│   ├── config.js           # Australian system constants and configuration
+│   ├── utils.js            # Utility functions and helpers
 │   ├── simulator.js        # Core financial simulation engine
-│   ├── charts.js           # Professional chart rendering with Chart.js
-│   └── app.js              # Main application controller and orchestration
-└── README.md               # This documentation file
+│   ├── charts.js           # Chart rendering with Chart.js
+│   └── app.js              # Main application controller
+└── README.md              # This documentation
 ```
 
-### 🏗️ **Modular Architecture Benefits**
+## Module Responsibilities
 
-- **Maintainable**: Each file has single responsibility
-- **Extensible**: Easy to add new features without touching core logic
-- **Debuggable**: Issues can be isolated to specific modules
-- **Team-friendly**: Multiple developers can work on different modules
-- **Testable**: Individual components can be unit tested
+### `config.js`
+- Australian pension system constants
+- Tax brackets and rates
+- Healthcare and aged care cost parameters
+- Stress test scenarios
+- Default values and validation rules
 
-## 🛠️ Installation & Setup
+### `utils.js`
+- DOM manipulation utilities
+- Financial calculation functions
+- Tax calculation utilities
+- Investment property utilities
+- Pension calculation utilities
+- Export/import functionality
 
-### **Option 1: Simple Local Setup**
+### `simulator.js`
+- Risk profiling calculations
+- Dynamic asset allocation
+- Healthcare and aged care cost projections
+- Investment property modeling
+- Main retirement simulation engine
+- Monte Carlo simulation
+- Stress testing scenarios
 
-1. Download all files maintaining the folder structure
-2. Open `index.html` in a modern web browser
-3. No server required - works completely offline
+### `charts.js`
+- Portfolio balance projections (fan charts)
+- Monte Carlo result visualization
+- Asset allocation over time
+- Property vs portfolio comparison
+- Healthcare cost growth charts
+- Risk analysis visualizations
 
-### **Option 2: Web Server Setup** (Recommended)
-
-```bash
-# Using Python's built-in server
-python -m http.server 8000
-
-# Using Node.js live-server
-npm install -g live-server
-live-server
-
-# Using PHP
-php -S localhost:8000
-```
-
-### **External Dependencies** (Auto-loaded from CDN)
-
-- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
-- [Chart.js](https://www.chartjs.org/) - Professional charting library
-- [Inter Font](https://fonts.google.com/specimen/Inter) - Clean, readable typography
-
-## 📊 Usage Guide
-
-### **Basic Workflow**
-
-1. **Enter Personal Details**: Ages, retirement plans, life expectancy
-2. **Input Financial Information**: Salaries, super, savings, investments
-3. **Configure Healthcare Planning**: Current expenses, aged care probability
-4. **Set Asset Allocation**: Risk tolerance and investment mix
-5. **Run Calculations**: Deterministic analysis or Monte Carlo simulation
-6. **Review Results**: Summary, projections, and optimization recommendations
-
-### **Advanced Features**
-
-#### **Monte Carlo Simulation**
-
-- Run 1,000-10,000 simulations with random market conditions
-- View probability distributions and confidence intervals
-- Stress test against market crashes and economic downturns
-
-#### **Healthcare Modeling**
-
-- Separate inflation rates for healthcare (typically 6.5% vs 2.9% general)
-- Age-based cost multipliers (3.8x higher costs after age 85)
-- Aged care probability modeling with expected costs
-
-#### **Dynamic Asset Allocation**
-
-- Automatic age-based glide paths (90% equities at 30 → 40% at 80)
-- Risk tolerance adjustments (Conservative, Moderate, Growth, Aggressive)
-- Australian-specific considerations (franking credits, super rules)
-
-## 🏦 Australian Financial System Integration
-
-### **Tax System (2024-25)**
-
-- Complete income tax brackets (19%, 32.5%, 37%, 45%)
-- Medicare levy and surcharge calculations
-- Capital gains tax with 50% discount for 12+ month holdings
-- Superannuation tax rates (15% contributions, 0% after 60)
-
-### **Age Pension System**
-
-- Asset test thresholds and limits for couples/singles
-- Income test with deeming rates (0.25% up to threshold, 2.25% above)
-- Automatic pension entitlement calculations
-- Integration with other retirement income sources
-
-### **Healthcare & Aged Care**
-
-- Medicare safety nets and private health insurance benefits
-- Aged care probability tables based on Australian demographic data
-- Healthcare cost escalation modeling (6.5% annually)
-- Expected aged care costs ($350K-$650K depending on care level)
-
-## ⚙️ Configuration & Customization
-
-### **Key Configuration Files**
-
-#### **config.js - Australian Constants**
-
-```javascript
-// Update tax brackets, pension rates, inflation assumptions
-export const TAX_CONFIG = {
-    TAX_BRACKETS: [
-        { min: 0, max: 18200, rate: 0 },
-        { min: 18200, max: 45000, rate: 0.19 },
-        // ... more brackets
-    ]
-};
-```
-
-#### **Economic Assumptions**
-
-```javascript
-// Customize return expectations, volatility, correlations
-export const ECONOMIC_CONFIG = {
-    HISTORICAL_RETURNS: {
-        ASX_EQUITY: 0.095,      // 9.5% nominal historical
-        BONDS: 0.055,           // 5.5% nominal
-        // ... more asset classes
-    }
-};
-```
-
-### **Extending Functionality**
-
-#### **Adding New Asset Classes**
-
-1. Update `ECONOMIC_CONFIG` in `config.js`
-2. Extend `PortfolioCalculator` in `simulator.js`
-3. Add UI controls in `index.html`
-4. Update chart rendering in `charts.js`
-
-#### **Custom Risk Profiles**
-
-```javascript
-// Add to config.js
-export const RISK_PROFILES = {
-    custom: {
-        name: "Custom Profile",
-        riskScore: 7,
-        maxEquity: 90,
-        recommendedAllocation: "aggressive"
-    }
-};
-```
-
-## 📈 Implementation Status
-
-### **✅ Fully Implemented**
-
-- Healthcare cost escalation modeling (6.5% inflation)
-- Aged care probability and cost projections
-- Monte Carlo simulation (5,000+ iterations)
-- Dynamic asset allocation with age-based glide paths
-- Sequence of returns risk modeling
-- Market shock simulation
-- Professional risk profiling
-- Australian tax and pension system integration
-- Stress testing capabilities
+### `app.js`
+- Input collection and validation
+- UI updates and event handling
+- Results display and formatting
+- Analysis and recommendations
 - Export functionality
+- Application initialization
 
-### **🔄 Enhanced from Original**
+## Setup Instructions
 
-- **Monthly withdrawal simulation** (vs annual) for better accuracy
-- **Correlation-adjusted returns** instead of independent random draws
-- **Healthcare-specific inflation** separate from general inflation
-- **Franking credit benefits** for Australian equities
-- **Property investment modeling** with negative gearing
-- **Professional chart visualizations** with percentile bands
+1. **Basic Setup**:
+   ```bash
+   # Clone or download the files
+   # Ensure all files are in the correct directory structure
+   # Open index.html in a modern web browser
+   ```
 
-### **🎯 Future Enhancement Opportunities**
+2. **Development Setup**:
+   ```bash
+   # For development, serve files from a local server
+   # Python 3:
+   python -m http.server 8000
+   
+   # Node.js:
+   npx serve .
+   
+   # Then open http://localhost:8000
+   ```
 
-- Real-time market data integration via APIs
-- Machine learning for return predictions
-- Advanced tax optimization strategies
-- International retirement considerations
-- Estate planning integration
-- Insurance needs analysis
+3. **Dependencies**:
+   - External CDN dependencies are loaded automatically:
+     - Tailwind CSS (styling)
+     - Chart.js (visualization)
+     - Inter font (typography)
 
-## 🧮 Technical Details
+## Usage Guide
 
-### **Simulation Engine**
+### Basic Usage
+1. **Personal Details**: Enter ages, retirement dates, and life expectancy
+2. **Risk Profile**: Set risk tolerance and financial situation
+3. **Financial Information**: Current assets, salaries, and savings rates
+4. **Property Portfolio**: Primary residence and investment property details
+5. **Healthcare Planning**: Current costs and aged care expectations
+6. **Economic Assumptions**: Inflation, returns, and allocation preferences
 
-- **Monte Carlo Method**: Box-Muller transform for normal distributions
-- **Correlation Modeling**: Asset class correlations for realistic diversification
-- **Sequence Risk**: Amplified impact during early retirement years
-- **Market Shocks**: Configurable probability and magnitude
-- **Healthcare Costs**: Age-adjusted escalation with probability weighting
+### Advanced Features
+1. **Monte Carlo Simulation**: Run 5,000+ scenarios for probability analysis
+2. **Stress Testing**: Test portfolio resilience against economic shocks
+3. **Property Analysis**: Compare keeping vs selling investment properties
+4. **Optimization**: Review pension maximization and tax strategies
 
-### **Performance Optimizations**
+### Key Inputs
 
-- **Chunked Processing**: Progress updates every 100 simulations
-- **Efficient Calculations**: Vectorized operations where possible
-- **Memory Management**: Cleanup of large arrays after use
+#### Investment Property Modeling
+- Current property value and loan balance
+- Weekly rental income and annual expenses
+- Property growth rate assumptions
+- Sell vs hold timeline decisions
+- Capital gains tax implications
+
+#### Healthcare & Aged Care
+- Current annual healthcare costs
+- Healthcare inflation rate (typically 6-7%)
+- Aged care probability (65% Australian average)
+- Expected care duration and costs
+- Care type preferences (home vs residential)
+
+#### Dynamic Asset Allocation
+- Age-based glide path rules
+- Current allocation preferences
+- Franking credit benefits for Australian equities
+- Rebalancing frequency and thresholds
+
+## Australian Financial System Integration
+
+### Superannuation
+- 12% Super Guarantee modeling
+- Contribution caps and carry-forward rules
+- Tax treatment in accumulation vs pension phase
+- Preservation age and access rules
+
+### Age Pension
+- Asset test thresholds and tapers
+- Income test calculations
+- Deeming rate applications
+- Pension maximization strategies
+
+### Taxation
+- Progressive tax brackets (2024-25)
+- Capital gains tax with 50% discount
+- Franking credit refunds
+- Investment property tax benefits
+
+### Property Investment
+- Negative gearing benefits
+- Depreciation allowances
+- CGT implications of sale timing
+- Rent vs own analysis
+
+## Key Calculations
+
+### Property Cash Flow
+```javascript
+Net Cash Flow = (Weekly Rent × 52) - Annual Expenses - Interest Cost + Depreciation
+```
+
+### Age Pension Asset Test
+```javascript
+Pension = Max Pension - ((Assets - Threshold) / 1000) × $3 × 26 fortnights
+```
+
+### Healthcare Cost Projection
+```javascript
+Future Cost = Current Cost × (1 + Healthcare Inflation Rate)^Years
+```
+
+### Dynamic Allocation
+```javascript
+Equity % = Rule Number - Current Age
+// e.g., Rule of 110: 110 - 55 years old = 55% equities
+```
+
+## Validation and Assumptions
+
+### Key Assumptions
+- Healthcare inflation: 6.5% annually (vs 2.9% general inflation)
+- Property growth: 4.5% annually (long-term average)
+- Super return: 8.75% annually (long-term balanced fund average)
+- Aged care probability: 65% (Australian Institute of Health and Welfare)
+- Investment return decline: 0.03% annually (sequencing risk)
+
+### Data Sources
+- ASFA Retirement Standard (comfortable living costs)
+- Australian Bureau of Statistics (life expectancy, healthcare costs)
+- Department of Social Services (pension rates and thresholds)
+- Reserve Bank of Australia (economic assumptions)
+- Australian Institute of Health and Welfare (aged care statistics)
+
+## Customization Options
+
+### Economic Scenarios
+- Adjust inflation assumptions
+- Modify return expectations
+- Enable market shock testing
+- Customize stress test scenarios
+
+### Personal Circumstances
+- Multiple retirement ages for couples
+- Flexible aged care planning
+- Variable healthcare needs
+- Different property strategies
+
+### Risk Management
+- Conservative to aggressive profiles
+- Sequence of returns protection
+- Longevity risk management
+- Healthcare cost escalation planning
+
+## Export and Reporting
+
+### Available Exports
+- **CSV Export**: Year-by-year projections with all key metrics
+- **Chart Export**: Save visualizations as PNG images
+- **Summary Reports**: Comprehensive analysis with recommendations
+
+### Report Contents
+- Executive summary with key findings
+- Detailed year-by-year projections
+- Property analysis and recommendations
+- Risk assessment and mitigation strategies
+- Optimization opportunities
+
+## Browser Compatibility
+
+**Supported Browsers**:
+- Chrome 80+
+- Firefox 75+
+- Safari 13+
+- Edge 80+
+
+**Required Features**:
+- ES6 modules support
+- Canvas API (for charts)
+- CSS Grid and Flexbox
+- Local storage (for data persistence)
+
+## Performance Considerations
+
+- **Monte Carlo Simulations**: Chunked processing prevents browser freezing
 - **Chart Rendering**: Optimized datasets for smooth visualization
+- **Memory Management**: Automatic cleanup of chart instances
+- **Progressive Loading**: Core functionality loads first, enhancements follow
 
-### **Browser Compatibility**
+## Future Enhancements
 
-- **Modern Browsers**: Chrome 80+, Firefox 75+, Safari 13+
-- **ES6 Modules**: Native module support required
-- **Chart.js**: Hardware-accelerated canvas rendering
-- **Local Storage**: Automatic input persistence
+### Planned Features
+- **Investment Diversification**: Multi-property portfolio modeling
+- **Expense Modeling**: Detailed retirement expense categories
+- **Social Security**: International pension portability
+- **Estate Planning**: Inheritance and beneficiary modeling
+- **Insurance Integration**: Life and disability insurance modeling
 
-## 📝 Data Sources & Assumptions
+### Technical Improvements
+- **Web Workers**: Background Monte Carlo processing
+- **PWA Support**: Offline functionality
+- **Data Persistence**: Cloud backup and sync
+- **Mobile Optimization**: Touch-friendly interface
 
-### **Australian Economic Data**
+## Contributing
 
-- **Historical Returns**: 1900-2024 ASX data, RBA statistics
-- **Inflation Rates**: ABS historical data and RBA targets
-- **Healthcare Costs**: AIHW health expenditure reports
-- **Aged Care**: Department of Health actuarial studies
+To contribute to this project:
 
-### **Default Assumptions**
+1. **Code Style**: Follow the established modular pattern
+2. **Testing**: Verify calculations against known benchmarks
+3. **Documentation**: Update README for any new features
+4. **Validation**: Test with various Australian financial scenarios
 
-- **General Inflation**: 2.87% (recent RBA target range)
-- **Healthcare Inflation**: 6.5% (historical average above CPI)
-- **ASX Equity Returns**: 7.2% real (post-inflation)
-- **Market Volatility**: 15% (historical standard deviation)
-- **Aged Care Probability**: 65% by age 85
+## License
 
-## 🔧 Troubleshooting
+This project is designed for educational and personal use. Financial calculations should be verified with qualified professionals before making investment decisions.
 
-### **Common Issues**
+## Disclaimer
 
-#### **Charts Not Displaying**
-
-- Ensure Chart.js CDN is accessible
-- Check browser console for JavaScript errors
-- Verify canvas elements exist in DOM
-
-#### **Calculation Errors**
-
-- Validate all input fields are numeric
-- Check allocation percentages sum to 100%
-- Ensure retirement age > current age
-
-#### **Performance Issues**
-
-- Reduce Monte Carlo runs for older devices
-- Close other browser tabs during simulation
-- Use recent browser version for optimal performance
-
-### **Browser Storage Issues**
-
-- Calculator saves inputs to localStorage automatically
-- Clear browser data if experiencing persistence issues
-- No server-side storage required
-
-## 📞 Support & Contributions
-
-### **Getting Help**
-
-- Check browser console for error messages
-- Verify all input values are reasonable
-- Ensure stable internet for CDN dependencies
-
-### **Contributing**
-
-The modular structure makes contributions straightforward:
-
-- **Bug fixes**: Locate relevant module and submit fix
-- **New features**: Extend appropriate module or create new one
-- **Documentation**: Update this README or add inline comments
-
-## ⚖️ Legal Disclaimer
-
-This calculator is for educational and planning purposes only. It is not professional financial advice. Results are projections based on assumptions and should not be considered guaranteed outcomes.
-
-**Important Considerations:**
-
-- Consult qualified financial advisors for personalized advice
-- Government policies and tax rules may change
-- Historical returns do not guarantee future performance
-- Healthcare and aged care costs are estimates only
-
-### Australian Regulatory Note
-
-This tool is not a licensed financial product and does not provide financial product advice as defined by the Corporations Act 2001.
+This calculator provides estimates based on assumptions and should not be considered financial advice. Actual results may vary significantly due to market volatility, regulatory changes, and personal circumstances. Consult qualified financial advisors for personalized retirement planning.
 
 ---
 
-**Built with modern web technologies for professional Australian retirement planning. Last updated: 2024*
+*Last updated: September 2024*
+*Compatible with Australian financial regulations as of 2024-25 financial year*
+
+---

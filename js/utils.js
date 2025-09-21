@@ -1,624 +1,506 @@
-/**
- * Enhanced Australian Retirement Calculator - Utility Functions Module
- * Contains reusable utility functions for formatting, math, DOM manipulation, and file operations
- */
+// js/utils.js - Utility Functions for Enhanced Retirement Calculator
 
-// DOM Utilities
-export const DOM = {
-    /**
-     * Get element by ID with error handling
-     */
-    get: (id) => {
-        const element = document.getElementById(id);
-        if (!element) {
-            console.warn(`Element with ID '${id}' not found`);
+// DOM manipulation utilities
+export const $ = (id) => document.getElementById(id);
+
+export const safeGetValue = (id, defaultVal = 0) => {
+    const elem = $(id);
+    return elem ? (parseFloat(elem.value) || defaultVal) : defaultVal;
+};
+
+export const safeGetChecked = (id, defaultVal = false) => {
+    const elem = $(id);
+    return elem ? elem.checked : defaultVal;
+};
+
+export const safeGetSelectValue = (id, defaultVal = '') => {
+    const elem = $(id);
+    return elem ? elem.value : defaultVal;
+};
+
+export const safeSetValue = (id, value) => {
+    const elem = $(id);
+    if (elem) elem.value = value;
+};
+
+export const safeSetText = (id, text) => {
+    const elem = $(id);
+    if (elem) elem.textContent = text;
+};
+
+export const safeSetHTML = (id, html) => {
+    const elem = $(id);
+    if (elem) elem.innerHTML = html;
+};
+
+// Formatting utilities
+export const formatCurrency = (num) => {
+    if (typeof num !== 'number' || isNaN(num)) return '$0';
+    return num.toLocaleString('en-AU', { 
+        style: 'currency', 
+        currency: 'AUD', 
+        maximumFractionDigits: 0 
+    });
+};
+
+export const formatPercent = (num, decimals = 1) => {
+    if (typeof num !== 'number' || isNaN(num)) return '0%';
+    return (num * 100).toFixed(decimals) + '%';
+};
+
+export const formatNumber = (num, decimals = 0) => {
+    if (typeof num !== 'number' || isNaN(num)) return '0';
+    return num.toLocaleString('en-AU', { 
+        maximumFractionDigits: decimals 
+    });
+};
+
+export const formatCompact = (num) => {
+    if (typeof num !== 'number' || isNaN(num)) return '0';
+    
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(0) + 'K';
+    }
+    return num.toFixed(0);
+};
+
+// Mathematical utilities
+export const randomNormal = (mean, stdDev) => {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    return mean + z * stdDev;
+};
+
+export const percentile = (arr, p) => {
+    if (arr.length === 0) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const idx = Math.floor(p * sorted.length);
+    return sorted[idx] || 0;
+};
+
+export const clamp = (value, min, max) => {
+    return Math.min(Math.max(value, min), max);
+};
+
+export const interpolate = (x, x1, y1, x2, y2) => {
+    return y1 + (x - x1) * (y2 - y1) / (x2 - x1);
+};
+
+// Financial calculation utilities
+export const calculateCompoundGrowth = (principal, rate, years) => {
+    return principal * Math.pow(1 + rate, years);
+};
+
+export const calculatePMT = (rate, nper, pv) => {
+    if (rate === 0) return -pv / nper;
+    return -pv * (rate * Math.pow(1 + rate, nper)) / (Math.pow(1 + rate, nper) - 1);
+};
+
+export const calculateLoanBalance = (rate, nperYears, monthlyPayment, principal) => {
+    if (rate === 0) return Math.max(0, principal - (monthlyPayment * nperYears * 12));
+    const monthlyRate = rate / 12;
+    const totalPayments = nperYears * 12;
+    return Math.max(0, 
+        principal * Math.pow(1 + monthlyRate, totalPayments) - 
+        monthlyPayment * (Math.pow(1 + monthlyRate, totalPayments) - 1) / monthlyRate
+    );
+};
+
+export const calculateNPV = (cashFlows, discountRate) => {
+    return cashFlows.reduce((npv, cashFlow, year) => {
+        return npv + cashFlow / Math.pow(1 + discountRate, year);
+    }, 0);
+};
+
+// Tax calculation utilities
+export const calculateAustralianTax = (income, taxBrackets) => {
+    let tax = 0;
+    let remainingIncome = income;
+    
+    for (const bracket of taxBrackets) {
+        if (remainingIncome <= 0) break;
+        
+        const taxableInThisBracket = Math.min(
+            remainingIncome, 
+            bracket.max - bracket.min
+        );
+        
+        if (taxableInThisBracket > 0) {
+            tax += taxableInThisBracket * bracket.rate;
+            remainingIncome -= taxableInThisBracket;
         }
-        return element;
-    },
+    }
+    
+    return tax;
+};
 
-    /**
-     * Get numeric value from input element
-     */
-    getNumericValue: (id, defaultValue = 0) => {
-        const element = DOM.get(id);
-        if (!element) return defaultValue;
-        const value = parseFloat(element.value);
-        return isNaN(value) ? defaultValue : value;
-    },
+export const calculatePostTaxIncome = (preTaxSalary, taxBrackets) => {
+    const tax = calculateAustralianTax(preTaxSalary, taxBrackets);
+    return preTaxSalary - tax;
+};
 
-    /**
-     * Get boolean value from checkbox or select
-     */
-    getBooleanValue: (id, defaultValue = false) => {
-        const element = DOM.get(id);
-        if (!element) return defaultValue;
-        if (element.type === 'checkbox') {
-            return element.checked;
+// Investment property utilities
+export const calculatePropertyCashFlow = (rental, expenses, interestCost, depreciation) => {
+    return (rental * 52) - expenses - interestCost + (depreciation || 0);
+};
+
+export const calculatePropertyTotalReturn = (currentValue, purchaseValue, rental, expenses, years) => {
+    const capitalGrowth = currentValue - purchaseValue;
+    const totalRental = (rental * 52 - expenses) * years;
+    return (capitalGrowth + totalRental) / purchaseValue;
+};
+
+export const calculateCGT = (salePrice, purchasePrice, isResident, holdingPeriod, marginalTaxRate) => {
+    const capitalGain = salePrice - purchasePrice;
+    if (capitalGain <= 0) return 0;
+    
+    const discountApplies = isResident && holdingPeriod >= 1;
+    const taxableGain = discountApplies ? capitalGain * 0.5 : capitalGain;
+    
+    return taxableGain * marginalTaxRate;
+};
+
+// Pension calculation utilities
+export const calculateAgePension = (assets, income, isCouple, maxPension, assetThreshold, assetLimit, incomeThreshold) => {
+    // Asset test
+    let pensionFromAssets = 0;
+    if (assets <= assetThreshold) {
+        pensionFromAssets = maxPension;
+    } else if (assets < assetLimit) {
+        const excessAssets = assets - assetThreshold;
+        const reduction = (excessAssets / 1000) * 3 * 26; // $3 per fortnight per $1000
+        pensionFromAssets = Math.max(0, maxPension - reduction);
+    }
+    
+    // Income test
+    let pensionFromIncome = maxPension;
+    const fortnightlyIncome = income / 26;
+    if (fortnightlyIncome > incomeThreshold) {
+        const excessIncome = fortnightlyIncome - incomeThreshold;
+        const reduction = excessIncome * 0.5 * 26; // 50 cents per dollar
+        pensionFromIncome = Math.max(0, maxPension - reduction);
+    }
+    
+    return Math.min(pensionFromAssets, pensionFromIncome);
+};
+
+// Date and time utilities
+export const addYears = (date, years) => {
+    const result = new Date(date);
+    result.setFullYear(result.getFullYear() + years);
+    return result;
+};
+
+export const yearsBetween = (date1, date2) => {
+    return Math.abs(date2.getFullYear() - date1.getFullYear());
+};
+
+export const getCurrentYear = () => new Date().getFullYear();
+
+// Array utilities
+export const groupBy = (array, key) => {
+    return array.reduce((groups, item) => {
+        const group = item[key];
+        groups[group] = groups[group] || [];
+        groups[group].push(item);
+        return groups;
+    }, {});
+};
+
+export const sortBy = (array, key, ascending = true) => {
+    return [...array].sort((a, b) => {
+        const aVal = typeof key === 'function' ? key(a) : a[key];
+        const bVal = typeof key === 'function' ? key(b) : b[key];
+        return ascending ? aVal - bVal : bVal - aVal;
+    });
+};
+
+export const sum = (array, key) => {
+    return array.reduce((total, item) => {
+        const value = typeof key === 'function' ? key(item) : 
+                     key ? item[key] : item;
+        return total + (value || 0);
+    }, 0);
+};
+
+export const average = (array, key) => {
+    if (array.length === 0) return 0;
+    return sum(array, key) / array.length;
+};
+
+// Validation utilities
+export const validateInput = (value, rules) => {
+    const errors = [];
+    
+    if (rules.required && (!value || value === '')) {
+        errors.push('This field is required');
+    }
+    
+    if (rules.min !== undefined && value < rules.min) {
+        errors.push(`Value must be at least ${rules.min}`);
+    }
+    
+    if (rules.max !== undefined && value > rules.max) {
+        errors.push(`Value must be no more than ${rules.max}`);
+    }
+    
+    if (rules.integer && !Number.isInteger(value)) {
+        errors.push('Value must be a whole number');
+    }
+    
+    return errors;
+};
+
+export const validateForm = (inputs, validationRules) => {
+    const errors = {};
+    
+    for (const [field, rules] of Object.entries(validationRules)) {
+        const fieldErrors = validateInput(inputs[field], rules);
+        if (fieldErrors.length > 0) {
+            errors[field] = fieldErrors;
         }
-        return element.value === 'true';
-    },
+    }
+    
+    return errors;
+};
 
-    /**
-     * Set value of an element
-     */
-    setValue: (id, value) => {
-        const element = DOM.get(id);
-        if (element) {
-            if (element.type === 'checkbox') {
-                element.checked = value;
-            } else {
-                element.value = value;
-            }
-        }
-    },
+// Export/Import utilities
+export const exportToCSV = (data, filename = 'retirement-projection.csv') => {
+    if (!data || data.length === 0) {
+        console.warn('No data to export');
+        return;
+    }
+    
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+        headers.join(','),
+        ...data.map(row => 
+            headers.map(header => {
+                const value = row[header];
+                // Escape commas and quotes in CSV
+                if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                    return `"${value.replace(/"/g, '""')}"`;
+                }
+                return value;
+            }).join(',')
+        )
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+};
 
-    /**
-     * Show/hide element
-     */
-    toggle: (id, show) => {
-        const element = DOM.get(id);
-        if (element) {
-            element.classList.toggle('hidden', !show);
-        }
-    },
+export const exportToJSON = (data, filename = 'retirement-data.json') => {
+    const jsonContent = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+};
 
-    /**
-     * Add event listener with error handling
-     */
-    addListener: (id, event, callback) => {
-        const element = DOM.get(id);
-        if (element) {
-            element.addEventListener(event, callback);
-        }
-    },
-
-    /**
-     * Update inner HTML safely
-     */
-    setHTML: (id, html) => {
-        const element = DOM.get(id);
-        if (element) {
-            element.innerHTML = html;
-        }
-    },
-
-    /**
-     * Update text content safely
-     */
-    setText: (id, text) => {
-        const element = DOM.get(id);
-        if (element) {
-            element.textContent = text;
-        }
+// Tab management utilities
+export const showTab = (tabName) => {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab content
+    const targetTab = document.getElementById(tabName + '-tab');
+    if (targetTab) {
+        targetTab.classList.add('active');
+    }
+    
+    // Add active class to clicked button (if event is available)
+    if (window.event && window.event.target) {
+        window.event.target.classList.add('active');
     }
 };
 
-// Formatting Utilities
-export const Format = {
-    /**
-     * Format number as Australian currency
-     */
-    currency: (num, options = {}) => {
-        if (typeof num !== 'number' || isNaN(num)) return '$0';
-        
-        const defaults = {
-            style: 'currency',
-            currency: 'AUD',
-            maximumFractionDigits: 0,
-            minimumFractionDigits: 0
+// Progress bar utilities
+export const updateProgress = (percentage, text = '') => {
+    const progressBar = $('progressBar');
+    const progressText = $('progressText');
+    const progressContainer = $('progressContainer');
+    
+    if (progressContainer) {
+        if (percentage > 0) {
+            progressContainer.classList.remove('hidden');
+        } else {
+            progressContainer.classList.add('hidden');
+        }
+    }
+    
+    if (progressBar) {
+        progressBar.style.width = `${Math.min(100, Math.max(0, percentage))}%`;
+    }
+    
+    if (progressText) {
+        progressText.textContent = text;
+    }
+};
+
+// Local storage utilities
+export const saveToLocalStorage = (key, data) => {
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+        return true;
+    } catch (error) {
+        console.warn('Failed to save to localStorage:', error);
+        return false;
+    }
+};
+
+export const loadFromLocalStorage = (key, defaultValue = null) => {
+    try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : defaultValue;
+    } catch (error) {
+        console.warn('Failed to load from localStorage:', error);
+        return defaultValue;
+    }
+};
+
+// Error handling utilities
+export const handleError = (error, context = '') => {
+    console.error(`Error in ${context}:`, error);
+    
+    // Show user-friendly error message
+    const errorMsg = error.message || 'An unexpected error occurred';
+    showNotification(`Error: ${errorMsg}`, 'error');
+};
+
+export const showNotification = (message, type = 'info', duration = 5000) => {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    
+    // Style the notification
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        color: white;
+        z-index: 1000;
+        max-width: 300px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    
+    // Set background color based on type
+    const colors = {
+        info: '#3b82f6',
+        success: '#10b981',
+        warning: '#f59e0b',
+        error: '#ef4444'
+    };
+    notification.style.backgroundColor = colors[type] || colors.info;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Remove after duration
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, duration);
+};
+
+// Debounce utility for performance
+export const debounce = (func, wait) => {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
         };
-        
-        const settings = { ...defaults, ...options };
-        
-        try {
-            return num.toLocaleString('en-AU', settings);
-        } catch (error) {
-            // Fallback for older browsers
-            return '$' + num.toFixed(settings.maximumFractionDigits).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        }
-    },
-
-    /**
-     * Format percentage with specified decimal places
-     */
-    percentage: (num, decimals = 1) => {
-        if (typeof num !== 'number' || isNaN(num)) return '0%';
-        return (num * 100).toFixed(decimals) + '%';
-    },
-
-    /**
-     * Format large numbers with appropriate suffixes
-     */
-    largeNumber: (num) => {
-        if (typeof num !== 'number' || isNaN(num)) return '0';
-        
-        const absNum = Math.abs(num);
-        const sign = num < 0 ? '-' : '';
-        
-        if (absNum >= 1e9) {
-            return sign + (absNum / 1e9).toFixed(1) + 'B';
-        } else if (absNum >= 1e6) {
-            return sign + (absNum / 1e6).toFixed(1) + 'M';
-        } else if (absNum >= 1e3) {
-            return sign + (absNum / 1e3).toFixed(1) + 'K';
-        }
-        return num.toString();
-    },
-
-    /**
-     * Format age display
-     */
-    age: (age) => {
-        return Math.floor(age) + ' years';
-    },
-
-    /**
-     * Format years remaining
-     */
-    yearsRemaining: (years) => {
-        if (years <= 0) return 'Complete';
-        return Math.ceil(years) + ' years remaining';
-    }
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 };
 
-// Mathematical Utilities
-export const Math = {
-    /**
-     * Generate random number with normal distribution (Box-Muller transform)
-     */
-    randomNormal: (mean = 0, stdDev = 1) => {
-        let u = 0, v = 0;
-        while (u === 0) u = window.Math.random(); // Converting [0,1) to (0,1)
-        while (v === 0) v = window.Math.random();
+// Animation utilities
+export const animateValue = (element, start, end, duration = 1000) => {
+    const startTime = performance.now();
+    
+    const animate = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
         
-        const z = window.Math.sqrt(-2.0 * window.Math.log(u)) * window.Math.cos(2.0 * window.Math.PI * v);
-        return mean + z * stdDev;
-    },
-
-    /**
-     * Calculate percentile of array
-     */
-    percentile: (arr, p) => {
-        if (arr.length === 0) return 0;
-        const sorted = [...arr].sort((a, b) => a - b);
-        const index = p * (sorted.length - 1);
-        const lower = window.Math.floor(index);
-        const upper = window.Math.ceil(index);
-        const weight = index % 1;
+        // Easing function (ease-out)
+        const easedProgress = 1 - Math.pow(1 - progress, 3);
         
-        if (upper >= sorted.length) return sorted[sorted.length - 1];
-        return sorted[lower] * (1 - weight) + sorted[upper] * weight;
-    },
-
-    /**
-     * Calculate compound interest
-     */
-    compound: (principal, rate, periods) => {
-        return principal * window.Math.pow(1 + rate, periods);
-    },
-
-    /**
-     * Calculate present value
-     */
-    presentValue: (futureValue, rate, periods) => {
-        return futureValue / window.Math.pow(1 + rate, periods);
-    },
-
-    /**
-     * Calculate annuity payment (PMT)
-     */
-    pmt: (rate, nper, pv, fv = 0, type = 0) => {
-        if (rate === 0) {
-            return -(pv + fv) / nper;
+        const current = start + (end - start) * easedProgress;
+        
+        if (typeof element === 'string') {
+            const elem = $(element);
+            if (elem) elem.textContent = formatCurrency(current);
+        } else if (element) {
+            element.textContent = formatCurrency(current);
         }
         
-        const pvif = window.Math.pow(1 + rate, nper);
-        const pmt = -(rate * (pv * pvif + fv)) / ((pvif - 1) * (1 + rate * type));
-        return pmt;
-    },
-
-    /**
-     * Calculate future value of annuity
-     */
-    fv: (rate, nper, pmt, pv = 0, type = 0) => {
-        if (rate === 0) {
-            return -(pv + pmt * nper);
+        if (progress < 1) {
+            requestAnimationFrame(animate);
         }
-        
-        const pvif = window.Math.pow(1 + rate, nper);
-        const fvifa = (pvif - 1) / rate;
-        return -(pv * pvif + pmt * (1 + rate * type) * fvifa);
-    },
-
-    /**
-     * Calculate loan balance after payments
-     */
-    loanBalance: (principal, rate, totalPayments, paymentsMade, monthlyPayment) => {
-        if (rate === 0) {
-            return principal - (monthlyPayment * paymentsMade);
-        }
-        
-        const monthlyRate = rate / 12;
-        const balance = principal * window.Math.pow(1 + monthlyRate, paymentsMade) - 
-                       monthlyPayment * ((window.Math.pow(1 + monthlyRate, paymentsMade) - 1) / monthlyRate);
-        
-        return window.Math.max(0, balance);
-    },
-
-    /**
-     * Calculate correlation coefficient between two arrays
-     */
-    correlation: (x, y) => {
-        if (x.length !== y.length || x.length === 0) return 0;
-        
-        const n = x.length;
-        const sumX = x.reduce((a, b) => a + b);
-        const sumY = y.reduce((a, b) => a + b);
-        const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
-        const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
-        const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
-        
-        const numerator = n * sumXY - sumX * sumY;
-        const denominator = window.Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
-        
-        return denominator === 0 ? 0 : numerator / denominator;
-    },
-
-    /**
-     * Clamp value between min and max
-     */
-    clamp: (value, min, max) => {
-        return window.Math.min(window.Math.max(value, min), max);
-    },
-
-    /**
-     * Linear interpolation
-     */
-    lerp: (start, end, factor) => {
-        return start + (end - start) * factor;
-    }
+    };
+    
+    requestAnimationFrame(animate);
 };
 
-// Date and Time Utilities
-export const DateTime = {
-    /**
-     * Get current year
-     */
-    currentYear: () => new Date().getFullYear(),
-
-    /**
-     * Calculate age from birth year
-     */
-    calculateAge: (birthYear) => {
-        return DateTime.currentYear() - birthYear;
-    },
-
-    /**
-     * Add years to current date
-     */
-    addYears: (years) => {
-        const date = new Date();
-        date.setFullYear(date.getFullYear() + years);
-        return date;
-    },
-
-    /**
-     * Format date for display
-     */
-    formatDate: (date) => {
-        return date.toLocaleDateString('en-AU', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    }
-};
-
-// Validation Utilities
-export const Validate = {
-    /**
-     * Validate age input
-     */
-    age: (age, min = 18, max = 100) => {
-        const numAge = parseFloat(age);
-        if (isNaN(numAge)) return { valid: false, message: 'Age must be a number' };
-        if (numAge < min) return { valid: false, message: `Age must be at least ${min}` };
-        if (numAge > max) return { valid: false, message: `Age must be less than ${max}` };
-        return { valid: true };
-    },
-
-    /**
-     * Validate salary input
-     */
-    salary: (salary, max = 5000000) => {
-        const numSalary = parseFloat(salary);
-        if (isNaN(numSalary)) return { valid: false, message: 'Salary must be a number' };
-        if (numSalary < 0) return { valid: false, message: 'Salary cannot be negative' };
-        if (numSalary > max) return { valid: false, message: `Salary seems unreasonably high (>${Format.currency(max)})` };
-        return { valid: true };
-    },
-
-    /**
-     * Validate percentage input
-     */
-    percentage: (percent, min = 0, max = 100) => {
-        const numPercent = parseFloat(percent);
-        if (isNaN(numPercent)) return { valid: false, message: 'Percentage must be a number' };
-        if (numPercent < min) return { valid: false, message: `Percentage must be at least ${min}%` };
-        if (numPercent > max) return { valid: false, message: `Percentage must be at most ${max}%` };
-        return { valid: true };
-    },
-
-    /**
-     * Validate asset allocation totals to 100%
-     */
-    allocation: (equity, bonds, cash, tolerance = 1) => {
-        const total = equity + bonds + cash;
-        const diff = window.Math.abs(total - 100);
-        
-        if (diff > tolerance) {
-            return { 
-                valid: false, 
-                message: `Asset allocation must total 100% (currently ${total.toFixed(1)}%)` 
-            };
-        }
-        return { valid: true };
-    },
-
-    /**
-     * Validate retirement age is greater than current age
-     */
-    retirementAge: (currentAge, retirementAge) => {
-        if (retirementAge <= currentAge) {
-            return { valid: false, message: 'Retirement age must be greater than current age' };
-        }
-        if (retirementAge < 55) {
-            return { valid: false, message: 'Retirement age should be at least 55 for super access' };
-        }
-        if (retirementAge > 75) {
-            return { valid: false, message: 'Retirement age seems unreasonably high' };
-        }
-        return { valid: true };
-    }
-};
-
-// Array Utilities
-export const Array = {
-    /**
-     * Create array of specified length with initial value
-     */
-    create: (length, initialValue = 0) => {
-        return new window.Array(length).fill(initialValue);
-    },
-
-    /**
-     * Create range array (e.g., [1, 2, 3, 4, 5])
-     */
-    range: (start, end, step = 1) => {
-        const result = [];
-        for (let i = start; i <= end; i += step) {
-            result.push(i);
-        }
-        return result;
-    },
-
-    /**
-     * Calculate sum of array
-     */
-    sum: (arr) => {
-        return arr.reduce((sum, val) => sum + val, 0);
-    },
-
-    /**
-     * Calculate average of array
-     */
-    average: (arr) => {
-        return arr.length === 0 ? 0 : Array.sum(arr) / arr.length;
-    },
-
-    /**
-     * Get last element of array
-     */
-    last: (arr) => {
-        return arr.length === 0 ? undefined : arr[arr.length - 1];
-    },
-
-    /**
-     * Chunk array into smaller arrays
-     */
-    chunk: (arr, size) => {
-        const chunks = [];
-        for (let i = 0; i < arr.length; i += size) {
-            chunks.push(arr.slice(i, i + size));
-        }
-        return chunks;
-    }
-};
-
-// File Utilities
-export const File = {
-    /**
-     * Export data to CSV file
-     */
-    exportCSV: (data, filename = 'retirement_projection.csv') => {
-        if (!data || data.length === 0) {
-            alert('No data to export');
-            return;
-        }
-
-        // Get headers from first object keys
-        const headers = Object.keys(data[0]);
-        
-        // Create CSV content
-        const csvContent = [
-            headers.join(','),
-            ...data.map(row => 
-                headers.map(header => {
-                    const value = row[header];
-                    // Handle values that might contain commas
-                    if (typeof value === 'string' && value.includes(',')) {
-                        return `"${value}"`;
-                    }
-                    return value;
-                }).join(',')
-            )
-        ].join('\n');
-
-        // Create and download file
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        
-        link.setAttribute('href', url);
-        link.setAttribute('download', filename);
-        link.style.visibility = 'hidden';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        URL.revokeObjectURL(url);
-    },
-
-    /**
-     * Save data to localStorage
-     */
-    saveToLocal: (key, data) => {
-        try {
-            localStorage.setItem(key, JSON.stringify(data));
-            return true;
-        } catch (error) {
-            console.warn('Failed to save to localStorage:', error);
-            return false;
-        }
-    },
-
-    /**
-     * Load data from localStorage
-     */
-    loadFromLocal: (key, defaultValue = null) => {
-        try {
-            const stored = localStorage.getItem(key);
-            return stored ? JSON.parse(stored) : defaultValue;
-        } catch (error) {
-            console.warn('Failed to load from localStorage:', error);
-            return defaultValue;
-        }
-    }
-};
-
-// Progress Tracking
-export const Progress = {
-    /**
-     * Show progress bar
-     */
-    show: (containerId = 'progressContainer') => {
-        DOM.toggle(containerId, true);
-    },
-
-    /**
-     * Hide progress bar
-     */
-    hide: (containerId = 'progressContainer') => {
-        DOM.toggle(containerId, false);
-    },
-
-    /**
-     * Update progress bar
-     */
-    update: (percent, text = '', barId = 'progressBar', textId = 'progressText') => {
-        const clampedPercent = Math.clamp(percent, 0, 100);
-        
-        const progressBar = DOM.get(barId);
-        if (progressBar) {
-            progressBar.style.width = `${clampedPercent}%`;
-        }
-        
-        if (text) {
-            DOM.setText(textId, text);
-        }
-    }
-};
-
-// Tab Management
-export const Tabs = {
-    /**
-     * Show specific tab and hide others
-     */
-    show: (tabName) => {
-        // Hide all tab contents
-        document.querySelectorAll('.tab-content').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        
-        // Remove active class from all tab buttons
-        document.querySelectorAll('.tab-button').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        
-        // Show selected tab content
-        const tabContent = DOM.get(`${tabName}-tab`);
-        if (tabContent) {
-            tabContent.classList.add('active');
-        }
-        
-        // Activate corresponding button (find by onclick attribute or data)
-        const activeButton = document.querySelector(`[onclick="showTab('${tabName}')"]`);
-        if (activeButton) {
-            activeButton.classList.add('active');
-        }
-    }
-};
-
-// Debug Utilities
-export const Debug = {
-    /**
-     * Log object with formatting
-     */
-    log: (label, data) => {
-        console.group(label);
-        console.log(data);
-        console.groupEnd();
-    },
-
-    /**
-     * Performance timing
-     */
-    time: (label) => {
-        console.time(label);
-    },
-
-    /**
-     * End performance timing
-     */
-    timeEnd: (label) => {
-        console.timeEnd(label);
-    },
-
-    /**
-     * Log calculation results for debugging
-     */
-    logCalculation: (inputs, results) => {
-        console.group('Calculation Debug');
-        console.log('Inputs:', inputs);
-        console.log('Results:', results);
-        console.groupEnd();
-    }
-};
-
-// Make showTab available globally for HTML onclick handlers
-window.showTab = Tabs.show;
-
-// Export utility collections
-export const Utils = {
-    DOM,
-    Format,
-    Math,
-    DateTime,
-    Validate,
-    Array,
-    File,
-    Progress,
-    Tabs,
-    Debug
+export default {
+    $,
+    safeGetValue,
+    safeGetChecked,
+    safeGetSelectValue,
+    safeSetValue,
+    safeSetText,
+    safeSetHTML,
+    formatCurrency,
+    formatPercent,
+    formatNumber,
+    formatCompact,
+    randomNormal,
+    percentile,
+    clamp,
+    interpolate,
+    calculateCompoundGrowth,
+    calculatePMT,
+    calculateLoanBalance,
+    calculateNPV,
+    calculateAustralianTax,
+    calculatePostTaxIncome,
+    calculatePropertyCashFlow,
+    calculatePropertyTotalReturn,
+    calculateCGT,
+    calculateAgePension,
+    exportToCSV,
+    exportToJSON,
+    showTab,
+    updateProgress,
+    saveToLocalStorage,
+    loadFromLocalStorage,
+    handleError,
+    showNotification,
+    debounce,
+    animateValue
 };

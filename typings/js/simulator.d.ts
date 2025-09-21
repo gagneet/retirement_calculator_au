@@ -8,13 +8,88 @@ import { CONFIG } from './config.js';
 import { Utils } from './utils.js';
 
 // Tax Calculation Engine
-declare interface TaxCalculatorType {}
+declare interface TaxCalculatorType {
+	/**
+     * Calculate Australian income tax for given salary
+     */
+	static calculateIncomeTax: Function;
 
-declare interface PensionCalculatorType {}
+	/**
+     * Calculate post-tax income
+     */
+	static getPostTaxIncome: Function;
 
-declare interface HealthcareCalculatorType {}
+	/**
+     * Calculate marginal tax rate
+     */
+	static getMarginalTaxRate: {	};
 
-declare interface PortfolioCalculatorType {}
+	/**
+     * Calculate capital gains tax
+     */
+	static calculateCGT: {	};
+}
+
+declare interface PensionCalculatorType {
+	/**
+     * Calculate age pension entitlement based on assets and income tests
+     */
+	static calculatePension: {	};
+
+	/**
+     * Calculate deeming income for financial assets
+     */
+	static calculateDeeming: {	};
+
+	/**
+     * Get asset threshold for pension
+     */
+	static getAssetThreshold: {	};
+
+	/**
+     * Get asset limit for pension
+     */
+	static getAssetLimit: {	};
+}
+
+declare interface HealthcareCalculatorType {
+	/**
+     * Calculate projected healthcare costs with age-based escalation
+     */
+	static calculateHealthcareCosts: Function;
+
+	/**
+     * Get age-based healthcare cost multiplier
+     */
+	static getAgeMultiplier: Function;
+
+	/**
+     * Calculate aged care probability and expected cost
+     */
+	static calculateAgedCareCost: {	};
+
+	/**
+     * Calculate total lifetime healthcare costs
+     */
+	static calculateLifetimeHealthcareCosts: {	};
+}
+
+declare interface PortfolioCalculatorType {
+	/**
+     * Calculate dynamic asset allocation based on age (glide path)
+     */
+	static getDynamicAllocation: {	};
+
+	/**
+     * Calculate portfolio return based on asset allocation
+     */
+	static calculatePortfolioReturn: {	};
+
+	/**
+     * Calculate portfolio volatility based on asset allocation
+     */
+	static calculatePortfolioVolatility: Function;
+}
 
 /**
      * Run deterministic retirement simulation
@@ -260,4 +335,19 @@ declare interface PortfolioCalculatorType {}
         
         // Calculate statistics
         outcomes.sort((a, b) => a - b);
-        declare interface statisticsType {}
+        declare interface statisticsType {
+	/**
+     * Generate randomized scenario for Monte Carlo simulation
+     */
+	generateRandomScenario(): any;
+
+	/**
+     * Calculate salary for given year with growth and lean years
+     */
+	getSalaryForYear(baseSalary: any, year: any): any;
+
+	/**
+     * Calculate mortgage balance after payments
+     */
+	calculateMortgageBalance(years: any): number | null;
+}
