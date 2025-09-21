@@ -1,154 +1,446 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Retirement Calculator — Modular</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="css/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Australian Retirement Calculator</title>
+    
+    <!-- External Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Local Stylesheets -->
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="bg-gray-100 text-gray-800">
-  <div class="container mx-auto p-4 md:p-8">
-    <header class="text-center mb-6">
-      <h1 class="text-2xl md:text-3xl font-bold">Retirement Calculator (Modular)</h1>
-      <p class="text-sm text-gray-600">Deterministic + Monte Carlo, survivor, allocation, stochastic inflation & shocks</p>
-    </header>
+    <div class="container mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">Enhanced Australian Retirement Calculator</h1>
+            <p class="text-lg text-gray-600 mt-2">Professional-grade retirement planning with healthcare modeling, aged care projections, and advanced risk analysis</p>
+            <div class="flex justify-center gap-2 mt-3">
+                <span class="enhancement-badge">Healthcare Costs</span>
+                <span class="enhancement-badge">Aged Care</span>
+                <span class="enhancement-badge">Dynamic Allocation</span>
+                <span class="enhancement-badge">Risk Profiling</span>
+                <span class="enhancement-badge">Monte Carlo 5K+</span>
+            </div>
+        </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <!-- Left column: inputs -->
-      <div class="lg:col-span-1 bg-white p-4 rounded shadow-sm space-y-4">
-        <h2 class="font-semibold">Core inputs</h2>
+        <!-- Input Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Column 1: Personal & Financial Details -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Personal Details</h2>
+                
+                <div class="space-y-4">
+                    <div class="input-group">
+                        <label for="yourCurrentAge" class="input-label">Your Current Age</label>
+                        <input type="number" id="yourCurrentAge" value="49" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="partnerCurrentAge" class="input-label">Partner's Current Age</label>
+                        <input type="number" id="partnerCurrentAge" value="47" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="retirementAge" class="input-label">Your Retirement Age</label>
+                        <input type="number" id="retirementAge" value="72" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="partnerRetirementAge" class="input-label">Partner's Retirement Age</label>
+                        <input type="number" id="partnerRetirementAge" value="62" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="yourLifespan" class="input-label">Your Expected Lifespan</label>
+                        <input type="number" id="yourLifespan" value="95" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="partnerLifespan" class="input-label">Partner's Expected Lifespan</label>
+                        <input type="number" id="partnerLifespan" value="99" class="input-field">
+                    </div>
+                </div>
 
-        <label class="block text-sm">Your current age <input id="yourAge" type="number" value="49" class="input"></label>
-        <label class="block text-sm">Partner current age <input id="partnerAge" type="number" value="47" class="input"></label>
+                <h3 class="text-lg font-semibold mt-6 mb-4 border-b pb-2">Current Finances</h3>
+                <div class="space-y-4">
+                    <div class="input-group">
+                        <label for="yourSalary" class="input-label">Your Annual Salary (pre-tax)</label>
+                        <input type="number" id="yourSalary" value="214000" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="partnerSalary" class="input-label">Partner's Annual Salary (pre-tax)</label>
+                        <input type="number" id="partnerSalary" value="34500" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="currentSuper" class="input-label">Current Combined Superannuation</label>
+                        <input type="number" id="currentSuper" value="312000" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="currentSavings" class="input-label">Current Cash/Savings</label>
+                        <input type="number" id="currentSavings" value="55000" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="currentStocks" class="input-label">Current Stock Portfolio</label>
+                        <input type="number" id="currentStocks" value="62000" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="monthlyStockContribution" class="input-label">Monthly Stock Contributions</label>
+                        <input type="number" id="monthlyStockContribution" value="800" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="percentIncomeSaved" class="input-label">% of Post-Tax Income Saved</label>
+                        <input type="number" id="percentIncomeSaved" value="9" step="0.1" class="input-field">
+                    </div>
+                </div>
+            </div>
 
-        <label class="block text-sm">Retirement age (you) <input id="retireAge" type="number" value="72" class="input"></label>
-        <label class="block text-sm">Retirement age (partner) <input id="partnerRetireAge" type="number" value="62" class="input"></label>
+            <!-- Column 2: Property & Healthcare -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Property & Healthcare</h2>
+                
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Primary Residence</h3>
+                <div class="space-y-4">
+                    <div class="input-group">
+                        <label for="homeValue" class="input-label">Current Home Value</label>
+                        <input type="number" id="homeValue" value="810000" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="mortgageBalance" class="input-label">Outstanding Mortgage</label>
+                        <input type="number" id="mortgageBalance" value="594000" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="mortgageRate" class="input-label">Annual Mortgage Rate (%)</label>
+                        <input type="number" id="mortgageRate" value="5.37" step="0.01" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="planToDownsize" class="input-label">Plan to Downsize?</label>
+                        <select id="planToDownsize" class="input-field">
+                            <option value="false">No - Stay in current home</option>
+                            <option value="true">Yes - Downsize and access equity</option>
+                        </select>
+                    </div>
+                </div>
 
-        <label class="block text-sm">Your death age (optional, leave blank for probabilistic)</label>
-        <input id="yourDeathAge" type="number" placeholder="e.g. 95" class="input">
-        <label class="block text-sm">Partner death age (optional)</label>
-        <input id="partnerDeathAge" type="number" placeholder="e.g. 99" class="input">
+                <div class="advanced-section">
+                    <h3 class="section-header">Healthcare & Aged Care <span class="enhancement-badge">NEW</span></h3>
+                    <div class="space-y-3">
+                        <div class="input-group">
+                            <label for="currentHealthExpenses" class="input-label">Current Annual Health Expenses</label>
+                            <input type="number" id="currentHealthExpenses" value="5000" class="input-field">
+                        </div>
+                        <div class="input-group">
+                            <label for="healthInflationRate" class="input-label">Healthcare Inflation Rate (%)</label>
+                            <input type="number" id="healthInflationRate" value="6.5" step="0.1" class="input-field">
+                        </div>
+                        <div class="input-group">
+                            <label for="agedCareProbability" class="input-label">Aged Care Probability (%)</label>
+                            <input type="number" id="agedCareProbability" value="65" class="input-field">
+                        </div>
+                        <div class="input-group">
+                            <label for="agedCareCost" class="input-label">Estimated Aged Care Cost</label>
+                            <input type="number" id="agedCareCost" value="450000" class="input-field">
+                        </div>
+                        <div class="input-group">
+                            <label for="privateHealthInsurance" class="input-label">Private Health Insurance?</label>
+                            <select id="privateHealthInsurance" class="input-field">
+                                <option value="true">Yes - Premium coverage</option>
+                                <option value="false">No - Public system only</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
 
-        <hr>
+                <div class="advanced-section">
+                    <h3 class="section-header">Investment Property</h3>
+                    <div class="space-y-3">
+                        <div class="input-group">
+                            <label for="investmentPropertyValue" class="input-label">Current Value</label>
+                            <input type="number" id="investmentPropertyValue" value="550000" class="input-field">
+                        </div>
+                        <div class="input-group">
+                            <label for="investmentPropertyLoan" class="input-label">Outstanding Loan</label>
+                            <input type="number" id="investmentPropertyLoan" value="574000" class="input-field">
+                        </div>
+                        <div class="input-group">
+                            <label for="weeklyRentalIncome" class="input-label">Weekly Rental Income</label>
+                            <input type="number" id="weeklyRentalIncome" value="554" class="input-field">
+                        </div>
+                        <div class="input-group">
+                            <label for="annualPropertyExpenses" class="input-label">Annual Property Expenses</label>
+                            <input type="number" id="annualPropertyExpenses" value="9675" class="input-field">
+                        </div>
+                        <div class="input-group">
+                            <label for="sellPropertyYears" class="input-label">Sell Property in (Years)</label>
+                            <input type="number" id="sellPropertyYears" value="15" class="input-field">
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <label class="block text-sm">Current super (combined) <input id="currentSuper" type="number" value="312000" class="input"></label>
-        <label class="block text-sm">Current cash/savings <input id="currentSavings" type="number" value="55000" class="input"></label>
-        <label class="block text-sm">Current stocks (investable) <input id="currentStocks" type="number" value="62000" class="input"></label>
-        <label class="block text-sm">Monthly stock contribution <input id="monthlyStockContribution" type="number" value="800" class="input"></label>
+            <!-- Column 3: Asset Allocation & Risk -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Asset Allocation & Risk</h2>
+                
+                <div class="advanced-section">
+                    <h3 class="section-header">Risk Profile <span class="enhancement-badge">NEW</span></h3>
+                    <div class="space-y-3">
+                        <div class="input-group">
+                            <label for="riskTolerance" class="input-label">Risk Tolerance</label>
+                            <select id="riskTolerance" class="input-field">
+                                <option value="conservative">Conservative - Protect capital</option>
+                                <option value="moderate">Moderate - Balanced approach</option>
+                                <option value="growth" selected>Growth - Maximize returns</option>
+                                <option value="aggressive">Aggressive - High growth</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="dynamicAllocation" class="input-label">Dynamic Allocation Strategy</label>
+                            <select id="dynamicAllocation" class="input-field">
+                                <option value="true" selected>Yes - Age-based glide path</option>
+                                <option value="false">No - Fixed allocation</option>
+                            </select>
+                        </div>
+                        <div id="riskAssessment" class="mt-3 p-3 rounded-lg">
+                            <!-- Risk assessment will be populated -->
+                        </div>
+                    </div>
+                </div>
 
-        <hr>
+                <div class="space-y-4 mt-4">
+                    <div class="input-group">
+                        <label for="presetAllocation" class="input-label">Preset Allocation</label>
+                        <select id="presetAllocation" class="input-field">
+                            <option value="balanced">Balanced (60/30/10)</option>
+                            <option value="conservative">Conservative (30/50/20)</option>
+                            <option value="growth" selected>Growth (80/15/5)</option>
+                            <option value="aggressive">Aggressive (90/8/2)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="allocEquities" class="input-label">% Australian Equities</label>
+                        <input type="number" id="allocEquities" value="80" min="0" max="100" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="allocBonds" class="input-label">% Bonds/Fixed Income</label>
+                        <input type="number" id="allocBonds" value="15" min="0" max="100" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="allocCash" class="input-label">% Cash/Term Deposits</label>
+                        <input type="number" id="allocCash" value="5" min="0" max="100" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="frankingCredits" class="input-label">Include Franking Credits?</label>
+                        <select id="frankingCredits" class="input-field">
+                            <option value="true" selected>Yes - Australian dividends</option>
+                            <option value="false">No - Exclude franking</option>
+                        </select>
+                    </div>
+                </div>
 
-        <label class="block text-sm">ASFA comfortable (couple p.a.) <input id="asfaComfort" type="number" value="73875" class="input"></label>
-        <label class="block text-sm">Single ASFA (survivor) <input id="asfaSingle" type="number" value="52383" class="input"></label>
+                <div class="advanced-section">
+                    <h3 class="section-header">Economic Assumptions</h3>
+                    <div class="space-y-3">
+                        <div class="input-group">
+                            <label for="inflation" class="input-label">General Inflation Rate (%)</label>
+                            <input type="number" id="inflation" value="2.87" step="0.01" class="input-field">
+                        </div>
+                        <div class="input-group">
+                            <label for="investmentReturn" class="input-label">Base Investment Return (%)</label>
+                            <input type="number" id="investmentReturn" value="7.2" step="0.01" class="input-field">
+                        </div>
+                        <div class="input-group">
+                            <label for="superReturn" class="input-label">Super Annual Growth (%)</label>
+                            <input type="number" id="superReturn" value="8.75" step="0.01" class="input-field">
+                        </div>
+                        <div class="input-group">
+                            <label for="returnVolatility" class="input-label">Market Volatility (%)</label>
+                            <input type="number" id="returnVolatility" value="15" min="5" max="30" class="input-field">
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <hr>
+            <!-- Column 4: Simulation Controls -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Australian Pension & Simulation</h2>
+                
+                <div class="space-y-4">
+                    <div class="input-group">
+                        <label for="asfaComfortable" class="input-label">ASFA Comfortable (Couple) p.a.</label>
+                        <input type="number" id="asfaComfortable" value="73875" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="agePensionMax" class="input-label">Max Age Pension (Couple) p.a.</label>
+                        <input type="number" id="agePensionMax" value="45037" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="pensionAssetThreshold" class="input-label">Pension Asset Threshold</label>
+                        <input type="number" id="pensionAssetThreshold" value="470000" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label for="pensionAssetLimit" class="input-label">Pension Asset Limit</label>
+                        <input type="number" id="pensionAssetLimit" value="1031000" class="input-field">
+                    </div>
+                </div>
 
-        <label class="block text-sm">Inflation mean (%) <input id="inflationMean" type="number" value="2.87" step="0.01" class="input"></label>
-        <label class="block text-sm">Inflation vol σ (%) <input id="inflationVol" type="number" value="1.0" step="0.1" class="input"></label>
+                <div class="advanced-section">
+                    <h3 class="section-header">Advanced Simulation <span class="enhancement-badge">NEW</span></h3>
+                    <div class="space-y-3">
+                        <div class="input-group">
+                            <label for="numRuns" class="input-label">Monte Carlo Runs</label>
+                            <select id="numRuns" class="input-field">
+                                <option value="1000">1,000 (Fast)</option>
+                                <option value="5000" selected>5,000 (Recommended)</option>
+                                <option value="10000">10,000 (Professional)</option>
+                            </select>
+                        </div>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableSequenceRisk" checked class="checkbox-input">
+                                <span class="checkbox-text">Model Sequence Risk</span>
+                            </label>
+                        </div>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableMarketShocks" class="checkbox-input">
+                                <span class="checkbox-text">Include Market Crash Risk</span>
+                            </label>
+                        </div>
+                        <div id="shockControls" class="hidden space-y-2">
+                            <div class="input-group">
+                                <label for="shockProbability" class="input-label">Crash Probability (% p.a.)</label>
+                                <input type="number" id="shockProbability" value="8" min="1" max="20" class="input-field">
+                            </div>
+                            <div class="input-group">
+                                <label for="shockMagnitude" class="input-label">Crash Magnitude (%)</label>
+                                <input type="number" id="shockMagnitude" value="-35" max="0" class="input-field">
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-        <label class="block text-sm">Return decline rate (p.a., e.g. 0.03 means 0.03%) <input id="returnDecline" type="number" value="0.03" step="0.01" class="input"></label>
+                <div class="mt-6 space-y-3">
+                    <button id="btnCalculate" class="btn-primary">
+                        Calculate Retirement Plan
+                    </button>
+                    <button id="btnAdvancedMonteCarlo" class="btn-secondary">
+                        Run Advanced Monte Carlo
+                    </button>
+                    <button id="btnStressTest" class="btn-outline">
+                        Stress Test Portfolio
+                    </button>
+                    <button id="btnExportCSV" class="btn-outline">
+                        Export Results
+                    </button>
+                </div>
 
-        <hr>
-
-        <label class="block text-sm">Runs (Monte Carlo) <input id="numRuns" type="number" min="100" step="100" value="1000" class="input"></label>
-        <label class="block text-sm"><input id="enableSanity" type="checkbox"> Enable sanity-check (MC with zero volatility)</label>
-
-        <div class="flex gap-2">
-          <button id="btnRun" class="btn-primary">Run</button>
-          <button id="btnDeterministic" class="btn-outline">Deterministic only</button>
+                <div id="progressContainer" class="hidden mt-4">
+                    <div class="progress-bar-container">
+                        <div id="progressBar" class="progress-bar"></div>
+                    </div>
+                    <div id="progressText" class="progress-text"></div>
+                </div>
+            </div>
         </div>
 
-        <div id="progressContainer" class="hidden mt-2">
-          <div class="w-full bg-gray-200 rounded h-3"><div id="progressBar" class="h-3 bg-indigo-600 rounded" style="width:0%"></div></div>
-          <div id="progressText" class="text-xs text-gray-600 mt-1"></div>
+        <!-- Results Section -->
+        <div class="mt-8 bg-white rounded-lg shadow-md">
+            <div class="flex border-b overflow-x-auto">
+                <button class="tab-button active" onclick="showTab('summary')">Executive Summary</button>
+                <button class="tab-button" onclick="showTab('healthcare')">Healthcare Analysis</button>
+                <button class="tab-button" onclick="showTab('projection')">Year-by-Year</button>
+                <button class="tab-button" onclick="showTab('charts')">Risk Analysis</button>
+                <button class="tab-button" onclick="showTab('optimization')">Optimization</button>
+            </div>
+
+            <!-- Tab Contents -->
+            <div id="summary-tab" class="tab-content active p-6">
+                <h2 class="text-2xl font-semibold mb-4">Executive Summary</h2>
+                <div id="summaryResults" class="results-grid mb-6"></div>
+                <div id="finalResult" class="result-card"></div>
+                <div id="riskAnalysis" class="risk-grid"></div>
+                <div id="strategicRecommendations" class="recommendations-card">
+                    <h4 class="recommendations-header">Strategic Recommendations</h4>
+                    <ul id="recommendationsList" class="recommendations-list"></ul>
+                </div>
+            </div>
+
+            <div id="healthcare-tab" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold mb-4">Healthcare & Aged Care Analysis</h2>
+                <div id="healthcareResults" class="space-y-4"></div>
+                <div class="mt-6">
+                    <canvas id="healthcareChart" class="chart-canvas"></canvas>
+                </div>
+            </div>
+
+            <div id="projection-tab" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold mb-4">Year-by-Year Projection</h2>
+                <div class="overflow-x-auto">
+                    <table class="projection-table">
+                        <thead class="table-header">
+                            <tr>
+                                <th class="table-cell">Year</th>
+                                <th class="table-cell">Age</th>
+                                <th class="table-cell">Start Balance</th>
+                                <th class="table-cell">Return Rate</th>
+                                <th class="table-cell">Growth</th>
+                                <th class="table-cell">Withdrawal</th>
+                                <th class="table-cell">Healthcare</th>
+                                <th class="table-cell">Pension</th>
+                                <th class="table-cell">End Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projectionTable" class="table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="charts-tab" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold mb-4">Risk Analysis & Simulation Results</h2>
+                <div id="monteCarloResults" class="hidden mb-6">
+                    <div class="stats-grid">
+                        <div class="stat-card stat-blue">
+                            <div class="stat-label">Total Runs</div>
+                            <div id="mcRuns" class="stat-value">-</div>
+                        </div>
+                        <div class="stat-card stat-green">
+                            <div class="stat-label">Success Rate</div>
+                            <div id="mcSuccessRate" class="stat-value">-</div>
+                        </div>
+                        <div class="stat-card stat-gray">
+                            <div class="stat-label">Median Balance</div>
+                            <div id="mcMedian" class="stat-value">-</div>
+                        </div>
+                        <div class="stat-card stat-purple">
+                            <div class="stat-label">10th Percentile</div>
+                            <div id="mc10th" class="stat-value">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <h3 class="chart-title">Final Balance Distribution</h3>
+                        <canvas id="histChart" class="chart-canvas"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 class="chart-title">Portfolio Balance Over Time</h3>
+                        <canvas id="fanChart" class="chart-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="optimization-tab" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold mb-4">Optimization Recommendations</h2>
+                <div id="optimizationResults" class="space-y-4"></div>
+            </div>
         </div>
-      </div>
-
-      <!-- Middle column 1: allocation & shocks -->
-      <div class="lg:col-span-1 bg-white p-4 rounded shadow-sm space-y-4">
-        <h2 class="font-semibold">Asset allocation</h2>
-
-        <label class="block text-sm">Preset
-          <select id="presetAllocation" class="input">
-            <option value="balanced">Balanced (60/30/10)</option>
-            <option value="conservative">Conservative (30/50/20)</option>
-            <option value="growth">Growth (80/15/5)</option>
-          </select>
-        </label>
-
-        <label class="block text-sm">% Equities <input id="allocEquities" type="number" value="60" class="input"></label>
-        <label class="block text-sm">% Bonds <input id="allocBonds" type="number" value="30" class="input"></label>
-        <label class="block text-sm">% Cash <input id="allocCash" type="number" value="10" class="input"></label>
-
-        <p class="text-xs text-gray-500">Asset class presets use typical mean & σ (configurable in code).</p>
-
-        <hr>
-
-        <h2 class="font-semibold">Shock events</h2>
-        <label class="block text-sm">Enable shocks <input id="enableShocks" type="checkbox"></label>
-        <label class="block text-sm">Annual shock probability (%) <input id="shockProb" type="number" value="5" class="input"></label>
-        <label class="block text-sm">Equity shock magnitude (%) (negative) <input id="shockEquity" type="number" value="-30" class="input"></label>
-        <label class="block text-sm">Bond shock magnitude (%) <input id="shockBond" type="number" value="2" class="input"></label>
-      </div>
-
-      <!-- Middle column 2: survivor/mortality -->
-      <div class="lg:col-span-1 bg-white p-4 rounded shadow-sm space-y-4">
-        <h2 class="font-semibold">Survivor / mortality</h2>
-
-        <label class="block text-sm">Use fixed death ages? <input id="useFixedDeathAges" type="checkbox" checked></label>
-        <p class="text-xs text-gray-500">If unchecked, Monte Carlo will use annual survival probabilities below.</p>
-
-        <label class="block text-sm">Your annual survival prob (if probabilistic) (%) <input id="yourSurvivalProb" type="number" value="99" class="input"></label>
-        <label class="block text-sm">Partner annual survival prob (%) <input id="partnerSurvivalProb" type="number" value="98.5" class="input"></label>
-
-        <hr>
-
-        <h2 class="font-semibold">Volatility / presets</h2>
-        <label class="block text-sm">Equity mean (%) <input id="equityMean" type="number" value="7" step="0.1" class="input"></label>
-        <label class="block text-sm">Equity σ (%) <input id="equitySd" type="number" value="15" step="0.1" class="input"></label>
-
-        <label class="block text-sm">Bond mean (%) <input id="bondMean" type="number" value="3" step="0.1" class="input"></label>
-        <label class="block text-sm">Bond σ (%) <input id="bondSd" type="number" value="5" step="0.1" class="input"></label>
-
-        <label class="block text-sm">Cash mean (%) <input id="cashMean" type="number" value="1.5" step="0.1" class="input"></label>
-        <label class="block text-sm">Cash σ (%) <input id="cashSd" type="number" value="1" step="0.1" class="input"></label>
-      </div>
-
-      <!-- Right column: results + charts -->
-      <div class="lg:col-span-2 bg-white p-4 rounded shadow-sm space-y-4 col-span-full">
-        <div class="flex justify-between items-start">
-          <div>
-            <h2 class="font-semibold">Results & charts</h2>
-            <div id="summaryText" class="text-sm text-gray-700 mt-1"></div>
-          </div>
-          <div>
-            <button id="exportCSV" class="btn-outline">Export CSV (paths)</button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <h3 class="font-medium text-sm mb-2">Final balance distribution</h3>
-            <canvas id="histChart" height="240"></canvas>
-          </div>
-          <div>
-            <h3 class="font-medium text-sm mb-2">Fan chart (balances vs age)</h3>
-            <canvas id="fanChart" height="240"></canvas>
-          </div>
-        </div>
-
-        <div id="sanityResult" class="text-sm mt-2"></div>
-      </div>
     </div>
-  </div>
 
-  <!-- scripts -->
-  <script src="js/config.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/simulator.js"></script>
-  <script src="js/charts.js"></script>
-  <script src="js/app.js"></script>
+    <!-- JavaScript Modules -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/simulator.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>

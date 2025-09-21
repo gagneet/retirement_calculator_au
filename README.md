@@ -1,215 +1,324 @@
-# Australian Retirement Calculator for Couples
+# Enhanced Australian Retirement Calculator
 
-A comprehensive Python calculator to help Australian couples determine how much money they need for retirement, considering Australian-specific factors like Age Pension eligibility, Superannuation, property ownership, and ASFA retirement standards.
+A comprehensive, professional-grade retirement planning tool specifically designed for the Australian financial system. This modular calculator implements advanced features including Monte Carlo simulation, healthcare cost modeling, aged care projections, and dynamic asset allocation strategies.
 
-## File Structure
+## 🚀 Key Features
 
-retirement_calculator/
-│
-├── index.html
+### ✅ **Currently Implemented Enhancements**
+
+- **Healthcare Cost Escalation Modeling** - 6.5% annual inflation for healthcare vs general inflation
+- **Aged Care Cost Projections** - Probability-based aged care cost estimation with 65%+ likelihood
+- **Advanced Monte Carlo Simulation** - 5,000+ iterations with market shocks and volatility modeling
+- **Dynamic Asset Allocation** - Age-based glide paths with automatic risk adjustment
+- **Sequence of Returns Risk** - Monthly withdrawal simulation for realistic retirement modeling
+- **Enhanced Stress Testing** - Multiple scenario analysis including market crashes and healthcare crises
+- **Professional Risk Profiling** - Three-dimensional risk assessment (capacity, tolerance, requirement)
+- **Australian Tax System Integration** - Full 2024-25 tax brackets, Medicare levy, and franking credits
+- **Age Pension Optimization** - Complete Australian pension system modeling with asset/income tests
+
+### 🎯 **Professional-Grade Capabilities**
+
+- **Monte Carlo Analysis** with up to 10,000 iterations
+- **Correlation-adjusted returns** for realistic portfolio modeling
+- **Market shock simulation** with configurable crash probability and magnitude
+- **Healthcare inflation modeling** separate from general inflation
+- **Dynamic asset allocation** based on age and risk tolerance
+- **Comprehensive Australian pension modeling** including deeming rules
+- **Property investment analysis** with negative gearing and capital gains
+- **Export functionality** for detailed projection data
+
+## 📁 Project Structure
+
+```text
+retirement-calculator/
+├── index.html              # Main HTML structure with 4-column responsive layout
 ├── css/
-│   └── styles.css
-└── js/
-├── config.js
-├── utils.js
-├── simulator.js
-├── charts.js
-└── app.js
-
-
-## Features
-
-This calculator addresses the key question: **"Living in Australia as a couple, how can I work out the amount of money that I will need to retire on, considering that I live to the age of 95?"**
-
-### Key Calculations Include:
-
-- **Age Pension Eligibility**: Determines if you qualify for the Australian Age Pension based on current asset and income tests
-- **Superannuation Growth**: Projects your super balance growth until retirement
-- **Property Value Growth**: Calculates home value at retirement with inflation-only growth
-- **ASFA Retirement Standards**: Uses Association of Superannuation Funds of Australia standards for comfortable and modest retirement
-- **Life Expectancy Planning**: Plans for retirement from retirement age to 95 years old
-- **Comprehensive Assessment**: Combines all factors to determine total capital requirements
-
-### Australian-Specific Considerations:
-
-- Current Age Pension rates and thresholds (2024)
-- Asset test vs income test calculations
-- Principal residence exemption for asset test
-- ASFA comfortable and modest retirement standards
-- Australian inflation and superannuation growth assumptions
-
-## Quick Start
-
-### Basic Usage
-
-```python
-from retirement_calculator import AustralianRetirementCalculator
-
-# Create calculator instance
-calculator = AustralianRetirementCalculator()
-
-# Example: Couple aged 55, retiring at 67
-years_to_retirement = 67 - 55
-
-# Calculate property value at retirement
-home_value_at_retirement = calculator.calculate_property_value_at_retirement(
-    current_value=800000, 
-    years_to_retirement=years_to_retirement
-)
-
-# Calculate superannuation at retirement
-super_person1, super_person2 = calculator.calculate_superannuation_at_retirement(
-    current_balance_person1=200000,
-    current_balance_person2=150000,
-    annual_contribution_person1=25000,
-    annual_contribution_person2=20000,
-    years_to_retirement=years_to_retirement
-)
-
-# Check Age Pension eligibility
-pension_details = calculator.calculate_age_pension_eligibility(
-    combined_assets=super_person1 + super_person2,
-    own_home=True
-)
-
-# Calculate total retirement capital needed
-capital_needs = calculator.calculate_total_retirement_capital_needed(
-    retirement_age=67,
-    lifestyle='comfortable',
-    annual_pension=pension_details['annual_pension']
-)
-
-print(f"Total capital needed: ${capital_needs['total_capital_needed']:,.0f}")
+│   └── styles.css          # Comprehensive styling with responsive design
+├── js/
+│   ├── config.js           # Australian-specific constants and configuration
+│   ├── utils.js            # Reusable utility functions and helpers
+│   ├── simulator.js        # Core financial simulation engine
+│   ├── charts.js           # Professional chart rendering with Chart.js
+│   └── app.js              # Main application controller and orchestration
+└── README.md               # This documentation file
 ```
 
-### Run the Example
+### 🏗️ **Modular Architecture Benefits**
+
+- **Maintainable**: Each file has single responsibility
+- **Extensible**: Easy to add new features without touching core logic
+- **Debuggable**: Issues can be isolated to specific modules
+- **Team-friendly**: Multiple developers can work on different modules
+- **Testable**: Individual components can be unit tested
+
+## 🛠️ Installation & Setup
+
+### **Option 1: Simple Local Setup**
+
+1. Download all files maintaining the folder structure
+2. Open `index.html` in a modern web browser
+3. No server required - works completely offline
+
+### **Option 2: Web Server Setup** (Recommended)
 
 ```bash
-python retirement_calculator.py
+# Using Python's built-in server
+python -m http.server 8000
+
+# Using Node.js live-server
+npm install -g live-server
+live-server
+
+# Using PHP
+php -S localhost:8000
 ```
 
-This will run a comprehensive example scenario showing all calculations.
+### **External Dependencies** (Auto-loaded from CDN)
 
-## Example Output
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
+- [Chart.js](https://www.chartjs.org/) - Professional charting library
+- [Inter Font](https://fonts.google.com/specimen/Inter) - Clean, readable typography
 
-```
-=== Australian Retirement Calculator for Couples ===
+## 📊 Usage Guide
 
-Example Scenario:
-- Couple, both aged 55, planning to retire at 67
-- Current super balances: $200,000 and $150,000
-- Annual super contributions: $25,000 and $20,000
-- Own home worth $800,000
-- Target: Comfortable retirement to age 95
+### **Basic Workflow**
 
-Home value at retirement (inflation growth): $1,684,649
-Total superannuation at retirement: $1,349,588
-  - Person 1: $809,753
-  - Person 2: $539,835
+1. **Enter Personal Details**: Ages, retirement plans, life expectancy
+2. **Input Financial Information**: Salaries, super, savings, investments
+3. **Configure Healthcare Planning**: Current expenses, aged care probability
+4. **Set Asset Allocation**: Risk tolerance and investment mix
+5. **Run Calculations**: Deterministic analysis or Monte Carlo simulation
+6. **Review Results**: Summary, projections, and optimization recommendations
 
-Age Pension Assessment:
-  - Eligible: Yes
-  - Annual pension: $28,742
-  - Limiting test: Asset
+### **Advanced Features**
 
-Retirement Capital Requirements:
-  - Years in retirement: 28
-  - Total capital needed: $1,023,189
-  - Annual shortfall: $42,174
+#### **Monte Carlo Simulation**
 
-Retirement Readiness:
-  - Available capital: $1,349,588
-  - Capital needed: $1,023,189
-  - Surplus: $326,399 ✓
+- Run 1,000-10,000 simulations with random market conditions
+- View probability distributions and confidence intervals
+- Stress test against market crashes and economic downturns
 
-ASFA Comfortable Retirement Standard:
-  - Annual income needed: $70,916
-  - Monthly income needed: $5,910
-```
+#### **Healthcare Modeling**
 
-## Key Rates and Thresholds (2024)
+- Separate inflation rates for healthcare (typically 6.5% vs 2.9% general)
+- Age-based cost multipliers (3.8x higher costs after age 85)
+- Aged care probability modeling with expected costs
 
-### Age Pension
-- **Pension Age**: 67 years
-- **Maximum Rate (Couple Combined)**: $1,725.70 per fortnight
-- **Asset Test Threshold (Homeowners)**: $451,000
-- **Asset Test Threshold (Non-homeowners)**: $667,000
+#### **Dynamic Asset Allocation**
 
-### ASFA Retirement Standards (Quarterly)
-- **Comfortable Retirement (Couple)**: $17,729
-- **Modest Retirement (Couple)**: $12,715
+- Automatic age-based glide paths (90% equities at 30 → 40% at 80)
+- Risk tolerance adjustments (Conservative, Moderate, Growth, Aggressive)
+- Australian-specific considerations (franking credits, super rules)
 
-### Growth Assumptions
-- **Inflation Rate**: 3.5% per annum
-- **Superannuation Growth**: 7.0% per annum
+## 🏦 Australian Financial System Integration
 
-## Calculator Components
+### **Tax System (2024-25)**
 
-### Core Classes
+- Complete income tax brackets (19%, 32.5%, 37%, 45%)
+- Medicare levy and surcharge calculations
+- Capital gains tax with 50% discount for 12+ month holdings
+- Superannuation tax rates (15% contributions, 0% after 60)
 
-#### `AustralianRetirementCalculator`
-Main calculator class with methods for:
-- Property value calculations
-- Superannuation projections
-- Age Pension eligibility assessment
-- ASFA standard calculations
-- Total capital requirement calculations
+### **Age Pension System**
 
-### Key Methods
+- Asset test thresholds and limits for couples/singles
+- Income test with deeming rates (0.25% up to threshold, 2.25% above)
+- Automatic pension entitlement calculations
+- Integration with other retirement income sources
 
-#### `calculate_property_value_at_retirement(current_value, years_to_retirement)`
-Calculates property value at retirement assuming inflation-only growth.
+### **Healthcare & Aged Care**
 
-#### `calculate_superannuation_at_retirement(balances, contributions, years)`
-Projects superannuation balances at retirement including ongoing contributions.
+- Medicare safety nets and private health insurance benefits
+- Aged care probability tables based on Australian demographic data
+- Healthcare cost escalation modeling (6.5% annually)
+- Expected aged care costs ($350K-$650K depending on care level)
 
-#### `calculate_age_pension_eligibility(assets, own_home, income)`
-Determines Age Pension eligibility and payment amount using asset and income tests.
+## ⚙️ Configuration & Customization
 
-#### `calculate_retirement_needs(lifestyle)`
-Returns income requirements based on ASFA comfortable or modest standards.
+### **Key Configuration Files**
 
-#### `calculate_total_retirement_capital_needed(retirement_age, lifestyle, pension)`
-Calculates total capital needed from retirement to age 95.
+#### **config.js - Australian Constants**
 
-## Important Notes
-
-### Assumptions and Limitations
-
-1. **Rate Currency**: All calculations use 2024 rates and thresholds
-2. **Inflation**: Property growth assumes inflation-only (no real growth)
-3. **Super Growth**: Assumes 7% annual growth (historical average)
-4. **Age Pension**: Uses current rules (subject to government changes)
-5. **Life Expectancy**: Plans to age 95 for both partners
-6. **Home Ownership**: Principal residence exempt from asset test
-
-### Regular Updates Required
-
-This calculator should be updated regularly to reflect:
-- New Age Pension rates and thresholds
-- Updated ASFA retirement standards
-- Changes to superannuation rules
-- Current inflation and growth rates
-
-## Customization
-
-You can customize the calculator by modifying the constants in the `__init__` method:
-
-```python
-calculator = AustralianRetirementCalculator()
-calculator.INFLATION_RATE = 0.04  # 4% inflation
-calculator.SUPER_GROWTH_RATE = 0.08  # 8% super growth
+```javascript
+// Update tax brackets, pension rates, inflation assumptions
+export const TAX_CONFIG = {
+    TAX_BRACKETS: [
+        { min: 0, max: 18200, rate: 0 },
+        { min: 18200, max: 45000, rate: 0.19 },
+        // ... more brackets
+    ]
+};
 ```
 
-## Contributing
+#### **Economic Assumptions**
 
-To contribute to this project:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
+```javascript
+// Customize return expectations, volatility, correlations
+export const ECONOMIC_CONFIG = {
+    HISTORICAL_RETURNS: {
+        ASX_EQUITY: 0.095,      // 9.5% nominal historical
+        BONDS: 0.055,           // 5.5% nominal
+        // ... more asset classes
+    }
+};
+```
 
-## Disclaimer
+### **Extending Functionality**
 
-This calculator is for educational and planning purposes only. It should not be considered as financial advice. Always consult with a qualified financial advisor for personalized retirement planning advice. The calculator uses current rates and rules which may change over time.
+#### **Adding New Asset Classes**
+
+1. Update `ECONOMIC_CONFIG` in `config.js`
+2. Extend `PortfolioCalculator` in `simulator.js`
+3. Add UI controls in `index.html`
+4. Update chart rendering in `charts.js`
+
+#### **Custom Risk Profiles**
+
+```javascript
+// Add to config.js
+export const RISK_PROFILES = {
+    custom: {
+        name: "Custom Profile",
+        riskScore: 7,
+        maxEquity: 90,
+        recommendedAllocation: "aggressive"
+    }
+};
+```
+
+## 📈 Implementation Status
+
+### **✅ Fully Implemented**
+
+- Healthcare cost escalation modeling (6.5% inflation)
+- Aged care probability and cost projections
+- Monte Carlo simulation (5,000+ iterations)
+- Dynamic asset allocation with age-based glide paths
+- Sequence of returns risk modeling
+- Market shock simulation
+- Professional risk profiling
+- Australian tax and pension system integration
+- Stress testing capabilities
+- Export functionality
+
+### **🔄 Enhanced from Original**
+
+- **Monthly withdrawal simulation** (vs annual) for better accuracy
+- **Correlation-adjusted returns** instead of independent random draws
+- **Healthcare-specific inflation** separate from general inflation
+- **Franking credit benefits** for Australian equities
+- **Property investment modeling** with negative gearing
+- **Professional chart visualizations** with percentile bands
+
+### **🎯 Future Enhancement Opportunities**
+
+- Real-time market data integration via APIs
+- Machine learning for return predictions
+- Advanced tax optimization strategies
+- International retirement considerations
+- Estate planning integration
+- Insurance needs analysis
+
+## 🧮 Technical Details
+
+### **Simulation Engine**
+
+- **Monte Carlo Method**: Box-Muller transform for normal distributions
+- **Correlation Modeling**: Asset class correlations for realistic diversification
+- **Sequence Risk**: Amplified impact during early retirement years
+- **Market Shocks**: Configurable probability and magnitude
+- **Healthcare Costs**: Age-adjusted escalation with probability weighting
+
+### **Performance Optimizations**
+
+- **Chunked Processing**: Progress updates every 100 simulations
+- **Efficient Calculations**: Vectorized operations where possible
+- **Memory Management**: Cleanup of large arrays after use
+- **Chart Rendering**: Optimized datasets for smooth visualization
+
+### **Browser Compatibility**
+
+- **Modern Browsers**: Chrome 80+, Firefox 75+, Safari 13+
+- **ES6 Modules**: Native module support required
+- **Chart.js**: Hardware-accelerated canvas rendering
+- **Local Storage**: Automatic input persistence
+
+## 📝 Data Sources & Assumptions
+
+### **Australian Economic Data**
+
+- **Historical Returns**: 1900-2024 ASX data, RBA statistics
+- **Inflation Rates**: ABS historical data and RBA targets
+- **Healthcare Costs**: AIHW health expenditure reports
+- **Aged Care**: Department of Health actuarial studies
+
+### **Default Assumptions**
+
+- **General Inflation**: 2.87% (recent RBA target range)
+- **Healthcare Inflation**: 6.5% (historical average above CPI)
+- **ASX Equity Returns**: 7.2% real (post-inflation)
+- **Market Volatility**: 15% (historical standard deviation)
+- **Aged Care Probability**: 65% by age 85
+
+## 🔧 Troubleshooting
+
+### **Common Issues**
+
+#### **Charts Not Displaying**
+
+- Ensure Chart.js CDN is accessible
+- Check browser console for JavaScript errors
+- Verify canvas elements exist in DOM
+
+#### **Calculation Errors**
+
+- Validate all input fields are numeric
+- Check allocation percentages sum to 100%
+- Ensure retirement age > current age
+
+#### **Performance Issues**
+
+- Reduce Monte Carlo runs for older devices
+- Close other browser tabs during simulation
+- Use recent browser version for optimal performance
+
+### **Browser Storage Issues**
+
+- Calculator saves inputs to localStorage automatically
+- Clear browser data if experiencing persistence issues
+- No server-side storage required
+
+## 📞 Support & Contributions
+
+### **Getting Help**
+
+- Check browser console for error messages
+- Verify all input values are reasonable
+- Ensure stable internet for CDN dependencies
+
+### **Contributing**
+
+The modular structure makes contributions straightforward:
+
+- **Bug fixes**: Locate relevant module and submit fix
+- **New features**: Extend appropriate module or create new one
+- **Documentation**: Update this README or add inline comments
+
+## ⚖️ Legal Disclaimer
+
+This calculator is for educational and planning purposes only. It is not professional financial advice. Results are projections based on assumptions and should not be considered guaranteed outcomes.
+
+**Important Considerations:**
+
+- Consult qualified financial advisors for personalized advice
+- Government policies and tax rules may change
+- Historical returns do not guarantee future performance
+- Healthcare and aged care costs are estimates only
+
+### Australian Regulatory Note
+
+This tool is not a licensed financial product and does not provide financial product advice as defined by the Corporations Act 2001.
+
+---
+
+**Built with modern web technologies for professional Australian retirement planning. Last updated: 2024*
