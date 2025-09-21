@@ -1,0 +1,7 @@
+# No external dependencies required for the basic calculator
+# The calculator uses only Python standard library modules
+
+# Optional dependencies for enhanced functionality:
+# pandas>=1.5.0  # For data analysis and CSV export
+# matplotlib>=3.5.0  # For creating charts and graphs
+# numpy>=1.20.0  # For advanced mathematical calculations
