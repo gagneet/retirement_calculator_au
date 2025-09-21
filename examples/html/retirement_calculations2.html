@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Australian Retirement Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .input { @apply mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm; }
+        .btn-primary { @apply px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors; }
+        .btn-outline { @apply px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors; }
+        .tooltip { position: relative; display: inline-block; }
+        .tooltip .tooltiptext { visibility: hidden; width: 220px; background: #555; color: #fff; text-align: center; border-radius: 6px; padding: 5px 0; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -110px; opacity: 0; transition: opacity .3s; }
+        .tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
+        .tab-button { padding: 0.5rem 1rem; border-radius: 0.5rem 0.5rem 0 0; cursor: pointer; transition: background-color 0.2s; }
+        .tab-button.active { background-color: white; border-bottom: 2px solid #4f46e5; }
+        .tab-button:not(.active) { background-color: #f3f4f6; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .advanced-section { background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-900">Comprehensive Australian Retirement Calculator</h1>
+            <p class="text-sm text-gray-600 mt-2">Complete retirement planning with deterministic projections, Australian pension modeling, and Monte Carlo simulation</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Left column: Core inputs -->
+            <div class="lg:col-span-1 bg-white p-4 rounded-lg shadow-sm space-y-4">
+                <h2 class="font-semibold text-lg border-b pb-2">Personal Details</h2>
+                
+                <label class="block text-sm font-medium">Your Current Age
+                    <input id="yourCurrentAge" type="number" value="49" class="input">
+                </label>
+                <label class="block text-sm font-medium">Partner's Current Age
+                    <input id="partnerCurrentAge" type="number" value="47" class="input">
+                </label>
+                <label class="block text-sm font-medium">Your Retirement Age
+                    <input id="retirementAge" type="number" value="72" class="input">
+                </label>
+                <label class="block text-sm font-medium">Partner's Retirement Age
+                    <input id="partnerRetirementAge" type="number" value="62" class="input">
+                </label>
+                <label class="block text-sm font-medium">Your Expected Lifespan
+                    <input id="yourLifespan" type="number" value="95" class="input">
+                </label>
+                <label class="block text-sm font-medium">Partner's Expected Lifespan
+                    <input id="partnerLifespan" type="number" value="99" class="input">
+                </label>
+
+                <hr class="my-4">
+
+                <h3 class="font-semibold">Current Finances</h3>
+                <label class="block text-sm font-medium">Your Annual Salary (pre-tax)
+                    <input id="yourSalary" type="number" value="214000" class="input">
+                </label>
+                <label class="block text-sm font-medium">Partner's Annual Salary (pre-tax)
+                    <input id="partnerSalary" type="number" value="34500" class="input">
+                </label>
+                <label class="block text-sm font-medium">Current Combined Super
+                    <input id="currentSuper" type="number" value="312000" class="input">
+                </label>
+                <label class="block text-sm font-medium">Current Cash/Savings
+                    <input id="currentSavings" type="number" value="55000" class="input">
+                </label>
+                <label class="block text-sm font-medium">Current Stock Portfolio
+                    <input id="currentStocks" type="number" value="62000" class="input">
+                </label>
+                <label class="block text-sm font-medium">Monthly Stock Contributions
+                    <input id="monthlyStockContribution" type="number" value="800" class="input">
+                </label>
+                <label class="block text-sm font-medium">% of Post-Tax Income Saved (Cash)
+                    <input id="percentIncomeSaved" type="number" value="9" class="input">
+                </label>
+
+                <hr class="my-4">
+
+                <h3 class="font-semibold">Primary Residence</h3>
+                <label class="block text-sm font-medium">Current Home Value
+                    <input id="homeValue" type="number" value="810000" class="input">
+                </label>
+                <label class="block text-sm font-medium">Outstanding Mortgage
+                    <input id="mortgageBalance" type="number" value="594000" class="input">
+                </label>
+                <label class="block text-sm font-medium">Annual Mortgage Rate (%)
+                    <input id="mortgageRate" type="number" value="5.37" step="0.01" class="input">
+                </label>
+                <label class="block text-sm font-medium">Monthly Mortgage Payment
+                    <input id="monthlyMortgagePayment" type="number" value="3584" class="input">
+                </label>
+                <label class="block text-sm font-medium">Plan to Downsize?
+                    <select id="planToDownsize" class="input">
+                        <option value="false">No - Stay in current home</option>
+                        <option value="true">Yes - Downsize and access equity</option>
+                    </select>
+                </label>
+            </div>
+
+            <!-- Second column: Advanced options -->
+            <div class="lg:col-span-1 bg-white p-4 rounded-lg shadow-sm space-y-4">
+                <h2 class="font-semibold text-lg border-b pb-2">Advanced Options</h2>
+
+                <div class="advanced-section">
+                    <h3 class="font-semibold text-sm mb-3">Salary Progression</h3>
+                    <label class="block text-sm">Annual Real Salary Growth (%)
+                        <input id="salaryGrowthRate" type="number" value="1.5" step="0.1" class="input">
+                    </label>
+                    <label class="block text-sm">Lean Years Start (years before retirement)
+                        <input id="leanYearsStart" type="number" value="5" class="input">
+                    </label>
+                    <label class="block text-sm">Lean Years Salary Reduction (%)
+                        <input id="leanYearsReduction" type="number" value="25" class="input">
+                    </label>
+                </div>
+
+                <div class="advanced-section">
+                    <h3 class="font-semibold text-sm mb-3">Investment Property</h3>
+                    <label class="block text-sm">Current Value
+                        <input id="investmentPropertyValue" type="number" value="550000" class="input">
+                    </label>
+                    <label class="block text-sm">Outstanding Loan
+                        <input id="investmentPropertyLoan" type="number" value="574000" class="input">
+                    </label>
+                    <label class="block text-sm">Weekly Rental Income
+                        <input id="weeklyRentalIncome" type="number" value="554" class="input">
+                    </label>
+                    <label class="block text-sm">Annual Property Expenses
+                        <input id="annualPropertyExpenses" type="number" value="9675" class="input">
+                    </label>
+                    <label class="block text-sm">Sell Property in (Years)
+                        <input id="sellPropertyYears" type="number" value="15" class="input">
+                    </label>
+                    <label class="block text-sm">Capital Gains Tax Rate (%)
+                        <input id="capitalGainsTaxRate" type="number" value="34" class="input">
+                    </label>
+                </div>
+
+                <div class="advanced-section">
+                    <h3 class="font-semibold text-sm mb-3">Taxation</h3>
+                    <label class="block text-sm">Investment Tax Rate (%)
+                        <input id="investmentTaxRate" type="number" value="15" class="input">
+                    </label>
+                    <label class="block text-sm">Super Tax-Free After 60?
+                        <select id="superTaxFree" class="input">
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Third column: Economic assumptions -->
+            <div class="lg:col-span-1 bg-white p-4 rounded-lg shadow-sm space-y-4">
+                <h2 class="font-semibold text-lg border-b pb-2">Economic Assumptions</h2>
+
+                <label class="block text-sm font-medium">Annual Inflation Rate (%)
+                    <input id="inflation" type="number" value="2.87" step="0.01" class="input">
+                </label>
+                <label class="block text-sm font-medium">Initial Investment Return (%)
+                    <input id="investmentReturn" type="number" value="5.61" step="0.01" class="input">
+                </label>
+                <label class="block text-sm font-medium">Return Decline Rate (% p.a.)
+                    <input id="returnDeclineRate" type="number" value="0.03" step="0.01" class="input">
+                </label>
+                <label class="block text-sm font-medium">Savings Return (%)
+                    <input id="savingsReturn" type="number" value="1.40" step="0.01" class="input">
+                </label>
+                <label class="block text-sm font-medium">Super Annual Growth (%)
+                    <input id="superReturn" type="number" value="8.75" step="0.01" class="input">
+                </label>
+                <label class="block text-sm font-medium">Super Guarantee Rate (%)
+                    <input id="superContributionRate" type="number" value="12.00" step="0.01" class="input" readonly>
+                </label>
+
+                <hr class="my-4">
+
+                <h3 class="font-semibold">Australian Pension System (2025)</h3>
+                <label class="block text-sm font-medium">ASFA Comfortable (Couple) p.a.
+                    <input id="asfaComfortable" type="number" value="73875" class="input">
+                </label>
+                <label class="block text-sm font-medium">Max Age Pension (Couple) p.a.
+                    <input id="agePensionMax" type="number" value="45037" class="input">
+                </label>
+                <label class="block text-sm font-medium">Pension Asset Threshold (Couple)
+                    <input id="pensionAssetThreshold" type="number" value="470000" class="input">
+                </label>
+                <label class="block text-sm font-medium">Pension Asset Limit (Couple)
+                    <input id="pensionAssetLimit" type="number" value="1031000" class="input">
+                </label>
+                <label class="block text-sm font-medium">Pension Income Threshold (p.f.)
+                    <input id="pensionIncomeThreshold" type="number" value="372" class="input">
+                </label>
+
+                <hr class="my-4">
+
+                <h3 class="font-semibold">Monte Carlo Settings</h3>
+                <label class="block text-sm font-medium">Number of Runs
+                    <input id="numRuns" type="number" value="1000" min="100" step="100" class="input">
+                </label>
+                <label class="block text-sm font-medium">Return Volatility (%)
+                    <input id="returnVolatility" type="number" value="12" min="1" max="50" class="input">
+                </label>
+            </div>
+
+            <!-- Right column: Results -->
+            <div class="lg:col-span-1 bg-white p-4 rounded-lg shadow-sm space-y-4">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <h2 class="font-semibold text-lg">Results</h2>
+                    <div class="flex gap-2">
+                        <button id="btnCalculate" class="btn-primary">Calculate</button>
+                        <button id="btnMonteCarlo" class="btn-outline">Monte Carlo</button>
+                    </div>
+                </div>
+
+                <div id="progressContainer" class="hidden">
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div id="progressBar" class="h-3 bg-indigo-600 rounded-full" style="width:0%"></div>
+                    </div>
+                    <div id="progressText" class="text-xs text-gray-600 mt-1"></div>
+                </div>
+
+                <div id="summaryResults" class="space-y-3">
+                    <!-- Summary will be populated by JavaScript -->
+                </div>
+
+                <div id="detailedResults" class="text-sm text-gray-600">
+                    <!-- Detailed results will be populated -->
+                </div>
+
+                <div id="finalResult" class="mt-4 p-3 rounded-lg">
+                    <!-- Final assessment will be populated -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow-sm">
+                <h3 class="font-semibold mb-4">Year-by-Year Projection (First 30 Years)</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left">Year</th>
+                                <th class="px-3 py-2 text-left">Age</th>
+                                <th class="px-3 py-2 text-left">Balance</th>
+                                <th class="px-3 py-2 text-left">Return</th>
+                                <th class="px-3 py-2 text-left">Withdrawal</th>
+                                <th class="px-3 py-2 text-left">Income</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projectionTable">
+                            <!-- Projection rows will be populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-sm space-y-4">
+                <div id="monteCarloResults" class="hidden">
+                    <h3 class="font-semibold mb-4">Monte Carlo Results</h3>
+                    <div id="mcSummary" class="grid grid-cols-2 gap-3 text-sm mb-4">
+                        <!-- MC summary will be populated -->
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold text-sm mb-2">Final Balance Distribution</h4>
+                    <canvas id="histChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fan Chart -->
+        <div class="mt-6 bg-white p-6 rounded-lg shadow-sm">
+            <h3 class="font-semibold mb-4">Portfolio Balance Over Time</h3>
+            <canvas id="fanChart" width="800" height="300"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Configuration and Constants
+        const CONFIG = {
+            SUPER_GUARANTEE_RATE: 0.12,
+            DEMING_THRESHOLD: 106200,
+            SINGLE_PENSION_MAX: 28000,
+            SINGLE_ASSET_THRESHOLD: 301750,
+            SINGLE_ASSET_LIMIT: 686500,
+            SINGLE_INCOME_THRESHOLD: 212,
+            HOME_EQUITY_ACCESS_RATE: 0.7,
+            CGT_DISCOUNT: 0.5
+        };
+
+        // Utility Functions
+        const $ = (id) => document.getElementById(id);
+        
+        const formatCurrency = (num) => {
+            if (typeof num !== 'number' || isNaN(num)) return '$0';
+            return num.toLocaleString('en-AU', { 
+                style: 'currency', 
+                currency: 'AUD', 
+                maximumFractionDigits: 0 
+            });
+        };
+
+        const randomNormal = (mean, stdDev) => {
+            let u = 0, v = 0;
+            while (u === 0) u = Math.random();
+            while (v === 0) v = Math.random();
+            const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            return mean + z * stdDev;
+        };
+
+        const percentile = (arr, p) => {
+            if (arr.length === 0) return 0;
+            const sorted = [...arr].sort((a, b) => a - b);
+            const idx = Math.floor(p * sorted.length);
+            return sorted[idx] || 0;
+        };
+
+        // Financial Calculation Functions
+        const calculator = {
+            getPostTaxIncome: (preTaxSalary) => {
+                if (preTaxSalary <= 18200) return preTaxSalary;
+                if (preTaxSalary <= 45000) return preTaxSalary - (preTaxSalary - 18200) * 0.19;
+                if (preTaxSalary <= 120000) return preTaxSalary - (5092 + (preTaxSalary - 45000) * 0.325);
+                if (preTaxSalary <= 180000) return preTaxSalary - (29467 + (preTaxSalary - 120000) * 0.37);
+                return preTaxSalary - (51667 + (preTaxSalary - 180000) * 0.45);
+            },
+
+            loanBalance: (rate, nperYears, monthlyPayment, principal) => {
+                if (rate === 0) return Math.max(0, principal - (monthlyPayment * nperYears * 12));
+                const monthlyRate = rate / 12;
+                const totalPayments = nperYears * 12;
+                return Math.max(0, 
+                    principal * Math.pow(1 + monthlyRate, totalPayments) - 
+                    monthlyPayment * (Math.pow(1 + monthlyRate, totalPayments) - 1) / monthlyRate
+                );
+            },
+
+            getSalaryForYear: (baseSalary, year, inputs) => {
+                const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+                const realGrowthRate = inputs.salaryGrowthRate / 100;
+                const inflationRate = inputs.inflation;
+                
+                let salary = baseSalary * Math.pow(1 + realGrowthRate + inflationRate, year);
+                
+                const leanYearsStartYear = yearsToRetirement - inputs.leanYearsStart;
+                if (year >= leanYearsStartYear) {
+                    salary *= (1 - inputs.leanYearsReduction / 100);
+                }
+                
+                return salary;
+            },
+
+            getReturnForYear: (baseReturn, year, declineRate) => {
+                return Math.max(0.01, baseReturn - (declineRate / 100) * year);
+            },
+
+            getGrossWithdrawal: (netNeeded, taxRate, superTaxFree, age) => {
+                if (superTaxFree && age >= 60) return netNeeded;
+                return netNeeded / (1 - taxRate / 100);
+            }
+        };
+
+        // Input Collection
+        const collectInputs = () => ({
+            yourCurrentAge: parseFloat($('yourCurrentAge').value) || 0,
+            partnerCurrentAge: parseFloat($('partnerCurrentAge').value) || 0,
+            retirementAge: parseFloat($('retirementAge').value) || 0,
+            partnerRetirementAge: parseFloat($('partnerRetirementAge').value) || 0,
+            yourLifespan: parseFloat($('yourLifespan').value) || 0,
+            partnerLifespan: parseFloat($('partnerLifespan').value) || 0,
+            yourSalary: parseFloat($('yourSalary').value) || 0,
+            partnerSalary: parseFloat($('partnerSalary').value) || 0,
+            currentSuper: parseFloat($('currentSuper').value) || 0,
+            currentSavings: parseFloat($('currentSavings').value) || 0,
+            currentStocks: parseFloat($('currentStocks').value) || 0,
+            monthlyStockContribution: parseFloat($('monthlyStockContribution').value) || 0,
+            percentIncomeSaved: (parseFloat($('percentIncomeSaved').value) || 0) / 100,
+            homeValue: parseFloat($('homeValue').value) || 0,
+            mortgageBalance: parseFloat($('mortgageBalance').value) || 0,
+            mortgageRate: (parseFloat($('mortgageRate').value) || 0) / 100,
+            monthlyMortgagePayment: parseFloat($('monthlyMortgagePayment').value) || 0,
+            planToDownsize: $('planToDownsize').value === 'true',
+            investmentPropertyValue: parseFloat($('investmentPropertyValue').value) || 0,
+            investmentPropertyLoan: parseFloat($('investmentPropertyLoan').value) || 0,
+            weeklyRentalIncome: parseFloat($('weeklyRentalIncome').value) || 0,
+            annualPropertyExpenses: parseFloat($('annualPropertyExpenses').value) || 0,
+            sellPropertyYears: parseFloat($('sellPropertyYears').value) || 0,
+            capitalGainsTaxRate: (parseFloat($('capitalGainsTaxRate').value) || 0) / 100,
+            salaryGrowthRate: parseFloat($('salaryGrowthRate').value) || 0,
+            leanYearsStart: parseFloat($('leanYearsStart').value) || 0,
+            leanYearsReduction: parseFloat($('leanYearsReduction').value) || 0,
+            investmentTaxRate: parseFloat($('investmentTaxRate').value) || 0,
+            superTaxFree: $('superTaxFree').value === 'true',
+            inflation: (parseFloat($('inflation').value) || 0) / 100,
+            investmentReturn: (parseFloat($('investmentReturn').value) || 0) / 100,
+            returnDeclineRate: parseFloat($('returnDeclineRate').value) || 0,
+            savingsReturn: (parseFloat($('savingsReturn').value) || 0) / 100,
+            superReturn: (parseFloat($('superReturn').value) || 0) / 100,
+            superContributionRate: CONFIG.SUPER_GUARANTEE_RATE,
+            asfaComfortable: parseFloat($('asfaComfortable').value) || 0,
+            agePensionMax: parseFloat($('agePensionMax').value) || 0,
+            pensionAssetThreshold: parseFloat($('pensionAssetThreshold').value) || 0,
+            pensionAssetLimit: parseFloat($('pensionAssetLimit').value) || 0,
+            pensionIncomeThreshold: parseFloat($('pensionIncomeThreshold').value) || 0,
+            returnVolatility: (parseFloat($('returnVolatility').value) || 12) / 100
+        });
+
+        // Core Simulation Engine
+        const simulateRetirementPath = (inputs, useRandomReturns = false) => {
+            const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+            const yearsInRetirement = inputs.partnerLifespan - inputs.retirementAge;
+            
+            // Pre-retirement accumulation
+            let futureSuper = inputs.currentSuper;
+            let futureSavings = inputs.currentSavings;
+            let futureStocks = inputs.currentStocks;
+            let propertyWasSold = false;
+
+            const yourYearsToWork = inputs.retirementAge - inputs.yourCurrentAge;
+            const partnerYearsToWork = inputs.partnerRetirementAge - inputs.partnerCurrentAge;
+
+            for (let year = 1; year <= yearsToRetirement; year++) {
+                // Apply returns with declining rates
+                const superReturnRate = calculator.getReturnForYear(inputs.superReturn, year, inputs.returnDeclineRate);
+                const savingsReturnRate = calculator.getReturnForYear(inputs.savingsReturn, year, inputs.returnDeclineRate * 0.3);
+                const stockReturnRate = calculator.getReturnForYear(inputs.investmentReturn, year, inputs.returnDeclineRate);
+
+                const superReturn = useRandomReturns ? 
+                    randomNormal(superReturnRate, inputs.returnVolatility * 0.8) : superReturnRate;
+                const savingsReturn = useRandomReturns ? 
+                    randomNormal(savingsReturnRate, inputs.returnVolatility * 0.3) : savingsReturnRate;
+                const stockReturn = useRandomReturns ? 
+                    randomNormal(stockReturnRate, inputs.returnVolatility) : stockReturnRate;
+
+                futureSuper *= (1 + superReturn);
+                futureSavings *= (1 + savingsReturn);
+                futureStocks *= (1 + stockReturn);
+                
+                // Add contributions with salary progression
+                let yearlyPostTaxIncome = 0;
+                let yearlySuperContribution = 0;
+
+                if (year <= yourYearsToWork) {
+                    const yourSalary = calculator.getSalaryForYear(inputs.yourSalary, year, inputs);
+                    yearlyPostTaxIncome += calculator.getPostTaxIncome(yourSalary);
+                    yearlySuperContribution += yourSalary * inputs.superContributionRate;
+                }
+                if (year <= partnerYearsToWork) {
+                    const partnerSalary = calculator.getSalaryForYear(inputs.partnerSalary, year, inputs);
+                    yearlyPostTaxIncome += calculator.getPostTaxIncome(partnerSalary);
+                    yearlySuperContribution += partnerSalary * inputs.superContributionRate;
+                }
+
+                futureSuper += yearlySuperContribution;
+                futureSavings += yearlyPostTaxIncome * inputs.percentIncomeSaved;
+                futureStocks += inputs.monthlyStockContribution * 12;
+
+                // Property sale event
+                if (inputs.sellPropertyYears > 0 && year === inputs.sellPropertyYears) {
+                    propertyWasSold = true;
+                    const saleValue = inputs.investmentPropertyValue * Math.pow(1 + inputs.inflation, year);
+                    const capitalGain = saleValue - inputs.investmentPropertyValue;
+                    const taxableGain = capitalGain * CONFIG.CGT_DISCOUNT;
+                    const cgtPaid = taxableGain * inputs.capitalGainsTaxRate;
+                    const netProceeds = saleValue - inputs.investmentPropertyLoan - cgtPaid;
+                    futureStocks += netProceeds;
+                }
+            }
+
+            // At retirement setup
+            const homeValueAtRetirement = inputs.homeValue * Math.pow(1 + inputs.inflation, yearsToRetirement);
+            const mortgageBalanceAtRetirement = Math.max(0, 
+                calculator.loanBalance(inputs.mortgageRate, yearsToRetirement, inputs.monthlyMortgagePayment, inputs.mortgageBalance)
+            );
+            const homeEquityAtRetirement = homeValueAtRetirement - mortgageBalanceAtRetirement;
+
+            let investmentPropertyEquityAtRetirement = 0;
+            if (!propertyWasSold) {
+                const investmentPropertyValueAtRetirement = inputs.investmentPropertyValue * Math.pow(1 + inputs.inflation, yearsToRetirement);
+                investmentPropertyEquityAtRetirement = investmentPropertyValueAtRetirement - inputs.investmentPropertyLoan;
+            }
+
+            const netRentalIncome = (inputs.weeklyRentalIncome * 52) - inputs.annualPropertyExpenses;
+            const accessibleHomeEquity = inputs.planToDownsize ? homeEquityAtRetirement * CONFIG.HOME_EQUITY_ACCESS_RATE : 0;
+
+            // Retirement phase simulation
+            let currentBalance = futureSuper + futureSavings + futureStocks + accessibleHomeEquity;
+            const balances = [];
+            const yearlyData = [];
+
+            for (let i = 0; i < yearsInRetirement; i++) {
+                const currentAge = inputs.yourCurrentAge + yearsToRetirement + i;
+                const isCouple = currentAge < inputs.yourLifespan;
+                const incomeNeeded = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, yearsToRetirement + i);
+                const netRentalNow = propertyWasSold ? 0 : netRentalIncome * Math.pow(1 + inputs.inflation, yearsToRetirement + i);
+
+                // Pension calculation
+                const currentInvPropEquity = propertyWasSold ? 0 : investmentPropertyEquityAtRetirement * Math.pow(1 + inputs.inflation, i);
+                const assessableAssets = currentBalance + currentInvPropEquity - (inputs.planToDownsize ? 0 : homeEquityAtRetirement);
+                
+                const maxPension = isCouple ? inputs.agePensionMax : CONFIG.SINGLE_PENSION_MAX;
+                const assetThreshold = isCouple ? inputs.pensionAssetThreshold : CONFIG.SINGLE_ASSET_THRESHOLD;
+                const assetLimit = isCouple ? inputs.pensionAssetLimit : CONFIG.SINGLE_ASSET_LIMIT;
+                const incomeThreshold = isCouple ? inputs.pensionIncomeThreshold : CONFIG.SINGLE_INCOME_THRESHOLD;
+
+                let pFromAssets = 0;
+                if (assessableAssets <= assetThreshold) {
+                    pFromAssets = maxPension;
+                } else if (assessableAssets < assetLimit) {
+                    const excessAssets = assessableAssets - assetThreshold;
+                    const reduction = (excessAssets / 1000) * 3 * 26;
+                    pFromAssets = Math.max(0, maxPension - reduction);
+                }
+
+                let currentDeemed = currentBalance <= CONFIG.DEMING_THRESHOLD ? 
+                    currentBalance * 0.0025 : 
+                    (CONFIG.DEMING_THRESHOLD * 0.0025 + (currentBalance - CONFIG.DEMING_THRESHOLD) * 0.0225);
+                
+                let currentTotalIncome = currentDeemed + netRentalNow;
+                let pFromIncome = maxPension;
+                if ((currentTotalIncome / 26) > incomeThreshold) {
+                    const reduction = ((currentTotalIncome / 26) - incomeThreshold) * 0.5 * 26;
+                    pFromIncome = Math.max(0, maxPension - reduction);
+                }
+                
+                const annualPension = Math.min(pFromAssets, pFromIncome);
+                const totalIncome = annualPension + netRentalNow;
+                const netWithdrawalNeeded = Math.max(0, incomeNeeded - totalIncome);
+                
+                const grossWithdrawal = calculator.getGrossWithdrawal(
+                    netWithdrawalNeeded, 
+                    inputs.investmentTaxRate, 
+                    inputs.superTaxFree, 
+                    currentAge
+                );
+
+                if (currentBalance < grossWithdrawal) {
+                    currentBalance = 0;
+                    balances.push(0);
+                    yearlyData.push({
+                        year: new Date().getFullYear() + yearsToRetirement + i,
+                        age: currentAge,
+                        startBalance: 0,
+                        returnRate: 0,
+                        growth: 0,
+                        withdrawal: 0,
+                        income: totalIncome,
+                        endBalance: 0,
+                        depleted: true
+                    });
+                    break;
+                }
+
+                // Monthly withdrawal simulation
+                const returnRate = calculator.getReturnForYear(inputs.investmentReturn, yearsToRetirement + i, inputs.returnDeclineRate);
+                const actualReturn = useRandomReturns ? randomNormal(returnRate, inputs.returnVolatility) : returnRate;
+                const monthlyReturn = Math.pow(1 + actualReturn, 1/12) - 1;
+                const monthlyWithdrawal = grossWithdrawal / 12;
+
+                const startBalance = currentBalance;
+                let yearlyGrowth = 0;
+
+                for (let month = 1; month <= 12; month++) {
+                    const monthlyGrowth = currentBalance * monthlyReturn;
+                    yearlyGrowth += monthlyGrowth;
+                    currentBalance = currentBalance + monthlyGrowth - monthlyWithdrawal;
+                    
+                    if (currentBalance <= 0) {
+                        currentBalance = 0;
+                        break;
+                    }
+                }
+
+                balances.push(currentBalance);
+                yearlyData.push({
+                    year: new Date().getFullYear() + yearsToRetirement + i,
+                    age: currentAge,
+                    startBalance,
+                    returnRate: returnRate * 100,
+                    growth: yearlyGrowth,
+                    withdrawal: grossWithdrawal,
+                    income: totalIncome,
+                    endBalance: currentBalance,
+                    depleted: false
+                });
+
+                if (currentBalance <= 0) break;
+            }
+
+            return {
+                finalBalance: currentBalance,
+                balances,
+                yearlyData,
+                totalFinancialAssets: futureSuper + futureSavings + futureStocks,
+                accessibleHomeEquity,
+                homeEquity: homeEquityAtRetirement,
+                futureSuper,
+                futureSavings,
+                futureStocks,
+                propertyWasSold,
+                investmentPropertyEquity: investmentPropertyEquityAtRetirement,
+                netRentalIncome
+            };
+        };
+
+        // Chart Functions
+        let histChart = null, fanChart = null;
+
+        const renderHistogram = (outcomes) => {
+            const canvas = $('histChart');
+            const ctx = canvas.getContext('2d');
+            if (histChart) histChart.destroy();
+
+            const bins = 25;
+            const maxVal = Math.max(...outcomes);
+            const minVal = Math.min(...outcomes);
+            const binSize = (maxVal - minVal) / bins || 1;
+            const histogram = new Array(bins).fill(0);
+            
+            outcomes.forEach(val => {
+                let idx = Math.min(Math.floor((val - minVal) / binSize), bins - 1);
+                histogram[idx]++;
+            });
+            
+            const labels = histogram.map((_, i) => formatCurrency(minVal + i * binSize));
+            
+            histChart = new Chart(ctx, {
+                type: 'bar',
+                data: { 
+                    labels, 
+                    datasets: [{ 
+                        label: 'Final Balances', 
+                        data: histogram, 
+                        backgroundColor: 'rgba(54,162,235,0.6)',
+                        borderColor: 'rgba(54,162,235,1)',
+                        borderWidth: 1
+                    }] 
+                },
+                options: { 
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribution of Final Portfolio Balances'
+                        }
+                    },
+                    scales: { 
+                        x: { 
+                            title: { display: true, text: 'Final Balance (AUD)' },
+                            ticks: { maxRotation: 45 }
+                        }, 
+                        y: { title: { display: true, text: 'Number of Simulations' } } 
+                    } 
+                }
+            });
+        };
+
+        const renderFanChart = (inputs, paths) => {
+            const canvas = $('fanChart');
+            const ctx = canvas.getContext('2d');
+            if (fanChart) fanChart.destroy();
+
+            const maxYears = Math.max(...paths.map(p => p.length));
+            const years = Array.from({length: maxYears}, (_, i) => inputs.retirementAge + i);
+
+            const median = [], p10 = [], p90 = [], p25 = [], p75 = [];
+
+            for (let year = 0; year < maxYears; year++) {
+                const balancesAtYear = paths.map(p => p[year] ?? 0);
+                median.push(percentile(balancesAtYear, 0.5));
+                p10.push(percentile(balancesAtYear, 0.1));
+                p90.push(percentile(balancesAtYear, 0.9));
+                p25.push(percentile(balancesAtYear, 0.25));
+                p75.push(percentile(balancesAtYear, 0.75));
+            }
+
+            const deterministicResult = simulateRetirementPath(inputs, false);
+            const deterministicPath = deterministicResult.balances;
+
+            fanChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [
+                        {
+                            label: "Deterministic Projection",
+                            data: deterministicPath,
+                            borderColor: "black",
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 0
+                        },
+                        {
+                            label: "Median (Monte Carlo)",
+                            data: median,
+                            borderColor: "blue",
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 0
+                        },
+                        {
+                            label: "10th-90th Percentile",
+                            data: p90,
+                            borderColor: "rgba(54,162,235,0.0)",
+                            backgroundColor: "rgba(54,162,235,0.2)",
+                            fill: "+1",
+                            pointRadius: 0
+                        },
+                        {
+                            data: p10,
+                            borderColor: "rgba(54,162,235,0.0)",
+                            backgroundColor: "rgba(54,162,235,0.2)",
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            label: "25th-75th Percentile",
+                            data: p75,
+                            borderColor: "rgba(255,159,64,0.0)",
+                            backgroundColor: "rgba(255,159,64,0.3)",
+                            fill: "+1",
+                            pointRadius: 0
+                        },
+                        {
+                            data: p25,
+                            borderColor: "rgba(255,159,64,0.0)",
+                            backgroundColor: "rgba(255,159,64,0.3)",
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: { 
+                        mode: 'index', 
+                        intersect: false 
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Portfolio Balance Projections Over Time'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            title: { display: true, text: "Age (years)" } 
+                        },
+                        y: { 
+                            title: { display: true, text: "Portfolio Balance (AUD)" }, 
+                            beginAtZero: true 
+                        }
+                    }
+                }
+            });
+        };
+
+        // Monte Carlo simulation with progress
+        const runMonteCarloWithProgress = async (inputs, runs) => {
+            const chunk = 100;
+            let outcomes = [];
+            let paths = [];
+            const prog = $('progressContainer');
+            const bar = $('progressBar');
+            const text = $('progressText');
+            
+            prog.classList.remove('hidden');
+            bar.style.width = "0%";
+            text.textContent = "Starting simulation...";
+            
+            for (let i = 0; i < runs; i += chunk) {
+                for (let j = 0; j < chunk && i + j < runs; j++) {
+                    const result = simulateRetirementPath(inputs, true);
+                    outcomes.push(result.finalBalance);
+                    paths.push(result.balances);
+                }
+                const progress = Math.min(100, ((i + chunk) / runs) * 100);
+                bar.style.width = `${progress}%`;
+                text.textContent = `Running simulation... ${Math.round(progress)}% (${Math.min(i + chunk, runs)}/${runs})`;
+                await new Promise(r => setTimeout(r, 0));
+            }
+            
+            prog.classList.add('hidden');
+            outcomes.sort((a, b) => a - b);
+            return { outcomes, paths };
+        };
+
+        // Main calculation function
+        const calculateRetirement = () => {
+            const inputs = collectInputs();
+            const result = simulateRetirementPath(inputs, false);
+            
+            const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+            const requiredAnnualIncomeInRetirement = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, yearsToRetirement);
+
+            // Calculate initial pension estimate
+            const assessableAssets = result.totalFinancialAssets + (inputs.planToDownsize ? result.accessibleHomeEquity : 0);
+            let estimatedPensionAtStart = 0;
+            if (assessableAssets <= inputs.pensionAssetThreshold) {
+                estimatedPensionAtStart = inputs.agePensionMax;
+            } else if (assessableAssets < inputs.pensionAssetLimit) {
+                const excessAssets = assessableAssets - inputs.pensionAssetThreshold;
+                const reduction = (excessAssets / 1000) * 3 * 26;
+                estimatedPensionAtStart = Math.max(0, inputs.agePensionMax - reduction);
+            }
+
+            // Display summary results
+            $('summaryResults').innerHTML = `
+                <div class="grid grid-cols-1 gap-2 text-sm">
+                    <div class="p-2 bg-gray-50 rounded flex justify-between">
+                        <strong>Years to Retirement:</strong> 
+                        <span>${yearsToRetirement}</span>
+                    </div>
+                    <div class="p-2 bg-blue-50 rounded flex justify-between">
+                        <strong>Future Super:</strong> 
+                        <span class="font-semibold">${formatCurrency(result.futureSuper)}</span>
+                    </div>
+                    <div class="p-2 bg-blue-50 rounded flex justify-between">
+                        <strong>Future Investments:</strong> 
+                        <span class="font-semibold">${formatCurrency(result.futureStocks + result.futureSavings)}</span>
+                    </div>
+                    <div class="p-2 bg-green-50 rounded flex justify-between">
+                        <strong>Total Accessible Assets:</strong> 
+                        <span class="font-bold">${formatCurrency(result.totalFinancialAssets + result.accessibleHomeEquity)}</span>
+                    </div>
+                    <div class="p-2 bg-red-50 rounded flex justify-between">
+                        <strong>Income Needed (ASFA):</strong> 
+                        <span class="font-bold">${formatCurrency(requiredAnnualIncomeInRetirement)}</span>
+                    </div>
+                    <div class="p-2 bg-yellow-50 rounded flex justify-between">
+                        <strong>Estimated Pension:</strong> 
+                        <span>${formatCurrency(estimatedPensionAtStart)}/yr</span>
+                    </div>
+                </div>
+            `;
+
+            // Generate projection table
+            const projectionTable = $('projectionTable');
+            projectionTable.innerHTML = '';
+            
+            result.yearlyData.slice(0, 30).forEach(data => {
+                if (data.depleted) {
+                    projectionTable.innerHTML += `
+                        <tr class="bg-red-100">
+                            <td colspan="6" class="px-3 py-2 text-center font-bold">
+                                Financial assets depleted in ${data.year}
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                projectionTable.innerHTML += `
+                    <tr>
+                        <td class="px-3 py-2">${data.year}</td>
+                        <td class="px-3 py-2">${data.age}</td>
+                        <td class="px-3 py-2">${formatCurrency(data.startBalance)}</td>
+                        <td class="px-3 py-2">${data.returnRate.toFixed(2)}%</td>
+                        <td class="px-3 py-2 text-red-600">${formatCurrency(data.withdrawal)}</td>
+                        <td class="px-3 py-2 text-blue-600">${formatCurrency(data.income)}</td>
+                    </tr>
+                `;
+            });
+
+            // Final result
+            const finalResultContainer = $('finalResult');
+            if (result.finalBalance > 0) {
+                finalResultContainer.className = 'mt-4 p-3 rounded-lg bg-green-100 text-green-800';
+                finalResultContainer.innerHTML = `
+                    <div class="font-bold text-lg">Retirement Goal Met</div>
+                    <div class="mt-1">Projected remaining assets: <strong>${formatCurrency(result.finalBalance)}</strong></div>
+                `;
+            } else {
+                finalResultContainer.className = 'mt-4 p-3 rounded-lg bg-red-100 text-red-800';
+                finalResultContainer.innerHTML = `
+                    <div class="font-bold text-lg">Retirement Shortfall</div>
+                    <div class="mt-1">Assets projected to be depleted before end of lifespan</div>
+                `;
+            }
+
+            // Create simple histogram with deterministic result
+            renderHistogram([result.finalBalance]);
+            
+            return result;
+        };
+
+        // Event Listeners
+        $('btnCalculate').addEventListener('click', calculateRetirement);
+
+        $('btnMonteCarlo').addEventListener('click', async () => {
+            const inputs = collectInputs();
+            const runs = Math.max(100, parseInt($('numRuns').value) || 1000);
+            
+            const { outcomes, paths } = await runMonteCarloWithProgress(inputs, runs);
+            
+            const median = outcomes[Math.floor(runs / 2)];
+            const p10 = outcomes[Math.floor(runs * 0.1)];
+            const p90 = outcomes[Math.floor(runs * 0.9)];
+            const success = outcomes.filter(v => v > 0).length / runs;
+
+            $('monteCarloResults').classList.remove('hidden');
+            $('mcSummary').innerHTML = `
+                <div class="p-2 bg-blue-50 rounded text-center">
+                    <div class="font-semibold">Runs</div>
+                    <div>${runs.toLocaleString()}</div>
+                </div>
+                <div class="p-2 bg-green-50 rounded text-center">
+                    <div class="font-semibold">Success Rate</div>
+                    <div>${(success * 100).toFixed(1)}%</div>
+                </div>
+                <div class="p-2 bg-gray-50 rounded text-center">
+                    <div class="font-semibold">Median Balance</div>
+                    <div>${formatCurrency(median)}</div>
+                </div>
+                <div class="p-2 bg-gray-50 rounded text-center">
+                    <div class="font-semibold">10th Percentile</div>
+                    <div>${formatCurrency(p10)}</div>
+                </div>
+            `;
+
+            renderHistogram(outcomes);
+            renderFanChart(inputs, paths);
+        });
+
+        // Auto-calculate on input changes
+        document.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener('change', calculateRetirement);
+        });
+
+        // Initial calculation
+        window.addEventListener('load', calculateRetirement);
+    </script>
+</body>
+</html>

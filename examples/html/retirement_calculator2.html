@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Australian Retirement Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 220px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #555 transparent transparent transparent;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        input:read-only {
+            background-color: #f3f4f6;
+        }
+        .advanced-options {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div id="app" class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">Comprehensive Australian Retirement Calculator</h1>
+            <p class="text-lg text-gray-600 mt-2">Plan your financial future with detailed projections and pension eligibility analysis.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Inputs Column -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-semibold mb-6 border-b pb-2">Your Details & Assumptions</h2>
+
+                <!-- Personal Details -->
+                <div class="space-y-4 mb-6">
+                    <h3 class="text-lg font-medium text-gray-700">Personal Details</h3>
+                    <div>
+                        <label for="yourCurrentAge" class="block text-sm font-medium text-gray-700">Your Current Age</label>
+                        <input type="number" id="yourCurrentAge" value="49" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="partnerCurrentAge" class="block text-sm font-medium text-gray-700">Partner's Current Age</label>
+                        <input type="number" id="partnerCurrentAge" value="47" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="retirementAge" class="block text-sm font-medium text-gray-700">Your Planned Retirement Age</label>
+                        <input type="number" id="retirementAge" value="72" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                     <div>
+                        <label for="partnerRetirementAge" class="block text-sm font-medium text-gray-700">Partner's Planned Retirement Age</label>
+                        <input type="number" id="partnerRetirementAge" value="62" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                     <div>
+                        <label for="yourLifespan" class="block text-sm font-medium text-gray-700">Your Expected Lifespan</label>
+                        <input type="number" id="yourLifespan" value="95" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="partnerLifespan" class="block text-sm font-medium text-gray-700">Partner's Expected Lifespan</label>
+                        <input type="number" id="partnerLifespan" value="99" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+
+                <!-- Financial Details -->
+                <div class="space-y-4 mb-6">
+                    <h3 class="text-lg font-medium text-gray-700">Current Financials</h3>
+                     <div>
+                        <label for="yourSalary" class="block text-sm font-medium text-gray-700">Your Annual Salary (pre-tax)</label>
+                        <input type="number" id="yourSalary" value="214000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="partnerSalary" class="block text-sm font-medium text-gray-700">Partner's Annual Salary (pre-tax)</label>
+                        <input type="number" id="partnerSalary" value="34500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="currentSuper" class="block text-sm font-medium text-gray-700">Current Combined Superannuation</label>
+                        <input type="number" id="currentSuper" value="312000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="currentSavings" class="block text-sm font-medium text-gray-700">Current Cash/Savings</label>
+                        <input type="number" id="currentSavings" value="55000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                     <div>
+                        <label for="currentStocks" class="block text-sm font-medium text-gray-700">Current Stock Portfolio</label>
+                        <input type="number" id="currentStocks" value="62000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="monthlyStockContribution" class="block text-sm font-medium text-gray-700">Monthly Stock Contributions</label>
+                        <input type="number" id="monthlyStockContribution" value="800" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                     <div>
+                        <label for="percentIncomeSaved" class="block text-sm font-medium text-gray-700">% of Post-Tax Income Saved (Cash)</label>
+                        <input type="number" id="percentIncomeSaved" value="9" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+
+                <!-- Property Details -->
+                <div class="space-y-4 mb-6">
+                    <h3 class="text-lg font-medium text-gray-700">Primary Residence</h3>
+                    <div>
+                        <label for="homeValue" class="block text-sm font-medium text-gray-700">Current Home Value</label>
+                        <input type="number" id="homeValue" value="810000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="mortgageBalance" class="block text-sm font-medium text-gray-700">Outstanding Mortgage</label>
+                        <input type="number" id="mortgageBalance" value="594000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="mortgageRate" class="block text-sm font-medium text-gray-700">Annual Mortgage Rate (%)</label>
+                        <input type="number" id="mortgageRate" value="5.37" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                     <div>
+                        <label for="monthlyMortgagePayment" class="block text-sm font-medium text-gray-700">Monthly Mortgage Payment</label>
+                        <input type="number" id="monthlyMortgagePayment" value="3584" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+                
+                 <!-- Investment Property Details -->
+                <div class="space-y-4 mb-6 advanced-options">
+                    <h3 class="text-lg font-medium text-gray-700">Investment Property</h3>
+                     <div>
+                        <label for="investmentPropertyValue" class="block text-sm font-medium text-gray-700">Current Value</label>
+                        <input type="number" id="investmentPropertyValue" value="550000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                     <div>
+                        <label for="investmentPropertyLoan" class="block text-sm font-medium text-gray-700">Outstanding Loan</label>
+                        <input type="number" id="investmentPropertyLoan" value="574000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                     <div>
+                        <label for="weeklyRentalIncome" class="block text-sm font-medium text-gray-700">Weekly Rental Income ($)</label>
+                        <input type="number" id="weeklyRentalIncome" value="554" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <hr>
+                    <p class="text-sm font-medium text-gray-600">Annual Expenses</p>
+                    <div>
+                        <label for="invPropCouncil" class="block text-sm font-medium text-gray-700">Council & Water Rates</label>
+                        <input type="number" id="invPropCouncil" value="4800" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                     <div>
+                        <label for="invPropStrata" class="block text-sm font-medium text-gray-700">Strata / Body Corp</label>
+                        <input type="number" id="invPropStrata" value="3400" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                     <div>
+                        <label for="invPropInsurance" class="block text-sm font-medium text-gray-700">Insurance</label>
+                        <input type="number" id="invPropInsurance" value="475" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                     <div>
+                        <label for="invPropMaintenance" class="block text-sm font-medium text-gray-700">Repairs & Maintenance</label>
+                        <input type="number" id="invPropMaintenance" value="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+                
+                 <!-- Financial Events -->
+                <div class="space-y-4 mb-6 advanced-options">
+                    <h3 class="text-lg font-medium text-gray-700">Financial Events</h3>
+                     <div class="tooltip">
+                        <label for="sellPropertyYears" class="block text-sm font-medium text-gray-700">Sell Investment Property in (Years)</label>
+                        <span class="tooltiptext">Number of years from now to sell the property. Enter 0 to not sell.</span>
+                    </div>
+                    <input type="number" id="sellPropertyYears" value="15" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    <div class="tooltip">
+                         <label for="capitalGainsTaxRate" class="block text-sm font-medium text-gray-700">Capital Gains Tax Rate on Sale (%)</label>
+                        <span class="tooltiptext">Your estimated marginal tax rate at the time of sale. The 50% CGT discount will be applied.</span>
+                    </div>
+                     <input type="number" id="capitalGainsTaxRate" value="34" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+
+                <!-- Assumptions -->
+                <div class="space-y-4 mb-6">
+                     <h3 class="text-lg font-medium text-gray-700">Economic Assumptions</h3>
+                    <div>
+                        <label for="inflation" class="block text-sm font-medium text-gray-700">Annual Inflation Rate (%)</label>
+                        <input type="number" id="inflation" value="2.87" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="investmentReturn" class="block text-sm font-medium text-gray-700">Annual Investment Return (%)</label>
+                        <input type="number" id="investmentReturn" value="5.61" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="savingsReturn" class="block text-sm font-medium text-gray-700">Annual Return on Cash/Savings (%)</label>
+                        <input type="number" id="savingsReturn" value="1.40" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                     <div>
+                        <label for="superReturn" class="block text-sm font-medium text-gray-700">Annual Superannuation Growth (%)</label>
+                        <input type="number" id="superReturn" value="8.75" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                     <div>
+                        <label for="superContributionRate" class="block text-sm font-medium text-gray-700">Super Guarantee Rate (%)</label>
+                        <input type="number" id="superContributionRate" value="12.00" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" readonly>
+                    </div>
+                </div>
+
+                <!-- Retirement Standards -->
+                 <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-700">Retirement & Pension Standards (2025)</h3>
+                     <div class="tooltip">
+                        <label for="asfaComfortable" class="block text-sm font-medium text-gray-700">ASFA Comfortable (Couple) p.a.</label>
+                        <span class="tooltiptext">The Association of Superannuation Funds of Australia's budget for a comfortable lifestyle.</span>
+                    </div>
+                    <input type="number" id="asfaComfortable" value="73875" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                     <div class="tooltip">
+                        <label for="agePensionMax" class="block text-sm font-medium text-gray-700">Max Age Pension (Couple) p.a.</label>
+                        <span class="tooltiptext">Maximum annual pension payment for a couple from Centrelink.</span>
+                    </div>
+                    <input type="number" id="agePensionMax" value="45037" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    <div class="tooltip">
+                        <label for="pensionAssetThreshold" class="block text-sm font-medium text-gray-700">Pension Assets Test Threshold (Couple, Homeowner)</label>
+                        <span class="tooltiptext">Assets limit before pension is affected. Your home is exempt.</span>
+                    </div>
+                    <input type="number" id="pensionAssetThreshold" value="470000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                     <div class="tooltip">
+                        <label for="pensionAssetLimit" class="block text-sm font-medium text-gray-700">Pension Assets Test Limit (Couple, Homeowner)</label>
+                        <span class="tooltiptext">Assets limit above which no pension is paid.</span>
+                    </div>
+                    <input type="number" id="pensionAssetLimit" value="1031000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    <div class="tooltip">
+                        <label for="pensionIncomeThreshold" class="block text-sm font-medium text-gray-700">Pension Income Test Threshold (Couple) p.f.</label>
+                         <span class="tooltiptext">Fortnightly income limit before pension is affected.</span>
+                    </div>
+                    <input type="number" id="pensionIncomeThreshold" value="372" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+            </div>
+
+            <!-- Results Column -->
+            <div class="lg:col-span-2 space-y-8">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-semibold mb-4">Retirement Summary</h2>
+                    <div id="summary" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <!-- Summary content will be injected here by JavaScript -->
+                    </div>
+                    <div id="final-result" class="mt-6 text-center p-4 rounded-lg">
+                        <!-- Final result will be injected here -->
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-semibold mb-4">Year-by-Year Projection</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Balance</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Growth</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Withdrawal</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Income</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projection-table" class="bg-white divide-y divide-gray-200">
+                                <!-- Projection rows will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const $ = (selector) => document.getElementById(selector);
+
+    // Function to format numbers as currency
+    const formatCurrency = (num) => {
+        if (typeof num !== 'number') return '$0.00';
+        return num.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' });
+    };
+
+    // All financial calculations
+    const calculator = {
+        // Remaining balance of a loan
+        loanBalance: (rate, nper, pmt, pv) => {
+             if (rate === 0) return pv - (pmt * nper);
+             return pv * Math.pow(1 + rate, nper) - pmt * (Math.pow(1 + rate, nper) - 1) / rate;
+        },
+        getPostTaxIncome: (preTaxSalary) => {
+            if (preTaxSalary <= 18200) return preTaxSalary;
+            if (preTaxSalary <= 45000) return preTaxSalary - (preTaxSalary - 18200) * 0.19;
+            if (preTaxSalary <= 120000) return preTaxSalary - (5092 + (preTaxSalary - 45000) * 0.325);
+            if (preTaxSalary <= 180000) return preTaxSalary - (29467 + (preTaxSalary - 120000) * 0.37);
+            return preTaxSalary - (51667 + (preTaxSalary - 180000) * 0.45);
+        }
+    };
+
+    function calculateRetirement() {
+        // --- Get all inputs from the form ---
+        const inputs = {
+            yourCurrentAge: parseFloat($('yourCurrentAge').value) || 0,
+            partnerCurrentAge: parseFloat($('partnerCurrentAge').value) || 0,
+            retirementAge: parseFloat($('retirementAge').value) || 0,
+            partnerRetirementAge: parseFloat($('partnerRetirementAge').value) || 0,
+            yourLifespan: parseFloat($('yourLifespan').value) || 0,
+            partnerLifespan: parseFloat($('partnerLifespan').value) || 0,
+            yourSalary: parseFloat($('yourSalary').value) || 0,
+            partnerSalary: parseFloat($('partnerSalary').value) || 0,
+            currentSuper: parseFloat($('currentSuper').value) || 0,
+            currentSavings: parseFloat($('currentSavings').value) || 0,
+            currentStocks: parseFloat($('currentStocks').value) || 0,
+            monthlyStockContribution: parseFloat($('monthlyStockContribution').value) || 0,
+            percentIncomeSaved: (parseFloat($('percentIncomeSaved').value) || 0) / 100,
+            homeValue: parseFloat($('homeValue').value) || 0,
+            mortgageBalance: parseFloat($('mortgageBalance').value) || 0,
+            mortgageRate: (parseFloat($('mortgageRate').value) || 0) / 100,
+            monthlyMortgagePayment: parseFloat($('monthlyMortgagePayment').value) || 0,
+            investmentPropertyValue: parseFloat($('investmentPropertyValue').value) || 0,
+            investmentPropertyLoan: parseFloat($('investmentPropertyLoan').value) || 0,
+            weeklyRentalIncome: parseFloat($('weeklyRentalIncome').value) || 0,
+            invPropCouncil: parseFloat($('invPropCouncil').value) || 0,
+            invPropStrata: parseFloat($('invPropStrata').value) || 0,
+            invPropInsurance: parseFloat($('invPropInsurance').value) || 0,
+            invPropMaintenance: parseFloat($('invPropMaintenance').value) || 0,
+            sellPropertyYears: parseFloat($('sellPropertyYears').value) || 0,
+            capitalGainsTaxRate: (parseFloat($('capitalGainsTaxRate').value) || 0) / 100,
+            inflation: (parseFloat($('inflation').value) || 0) / 100,
+            investmentReturn: (parseFloat($('investmentReturn').value) || 0) / 100,
+            savingsReturn: (parseFloat($('savingsReturn').value) || 0) / 100,
+            superReturn: (parseFloat($('superReturn').value) || 0) / 100,
+            superContributionRate: (parseFloat($('superContributionRate').value) || 0) / 100,
+            asfaComfortable: parseFloat($('asfaComfortable').value) || 0,
+            agePensionMax: parseFloat($('agePensionMax').value) || 0,
+            pensionAssetThreshold: parseFloat($('pensionAssetThreshold').value) || 0,
+            pensionAssetLimit: parseFloat($('pensionAssetLimit').value) || 0,
+            pensionIncomeThreshold: parseFloat($('pensionIncomeThreshold').value) || 0,
+        };
+
+        // --- Core Calculations ---
+        const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+        const yearsInRetirement = inputs.partnerLifespan - inputs.retirementAge;
+        const combinedSalary = inputs.yourSalary + inputs.partnerSalary;
+		
+        // --- Pre-Retirement Iterative Calculation ---
+        let futureSuper = inputs.currentSuper;
+        let futureSavings = inputs.currentSavings;
+        let futureStocks = inputs.currentStocks;
+        let propertyWasSold = false;
+
+        const yourYearsToWork = inputs.retirementAge - inputs.yourCurrentAge;
+        const partnerYearsToWork = inputs.partnerRetirementAge - inputs.partnerCurrentAge;
+
+        for (let year = 1; year <= yearsToRetirement; year++) {
+            // 1. Grow existing assets
+            futureSuper *= (1 + inputs.superReturn);
+            futureSavings *= (1 + inputs.savingsReturn);
+            futureStocks *= (1 + inputs.investmentReturn);
+            
+            // 2. Calculate and add contributions for the year
+            let yearlyPostTaxIncome = 0;
+            let yearlySuperContribution = 0;
+
+            if (year <= yourYearsToWork) {
+                yearlyPostTaxIncome += calculator.getPostTaxIncome(inputs.yourSalary);
+                yearlySuperContribution += inputs.yourSalary * inputs.superContributionRate;
+            }
+            if (year <= partnerYearsToWork) {
+                yearlyPostTaxIncome += calculator.getPostTaxIncome(inputs.partnerSalary);
+                yearlySuperContribution += inputs.partnerSalary * inputs.superContributionRate;
+            }
+
+            futureSuper += yearlySuperContribution;
+            futureSavings += yearlyPostTaxIncome * inputs.percentIncomeSaved;
+            futureStocks += inputs.monthlyStockContribution * 12;
+
+            // 3. Check for property sale event
+            if (inputs.sellPropertyYears > 0 && year === inputs.sellPropertyYears) {
+                propertyWasSold = true;
+                const saleValue = inputs.investmentPropertyValue * Math.pow(1 + inputs.inflation, year);
+                const capitalGain = saleValue - inputs.investmentPropertyValue;
+                const taxableGain = capitalGain * 0.5; // 50% CGT discount
+                const cgtPaid = taxableGain * inputs.capitalGainsTaxRate;
+                const netProceeds = saleValue - inputs.investmentPropertyLoan - cgtPaid;
+                futureStocks += netProceeds; // Add proceeds to stock portfolio
+            }
+        }
+
+        // --- At Retirement Calculations ---
+        const homeValueAtRetirement = inputs.homeValue * Math.pow(1 + inputs.inflation, yearsToRetirement);
+        const mortgageBalanceAtRetirement = Math.max(0, calculator.loanBalance(inputs.mortgageRate / 12, yearsToRetirement * 12, inputs.monthlyMortgagePayment, inputs.mortgageBalance));
+
+        let investmentPropertyEquityAtRetirement = 0;
+        if (!propertyWasSold) {
+            const investmentPropertyValueAtRetirement = inputs.investmentPropertyValue * Math.pow(1 + inputs.inflation, yearsToRetirement);
+            investmentPropertyEquityAtRetirement = investmentPropertyValueAtRetirement - inputs.investmentPropertyLoan;
+        }
+
+        const totalFinancialAssets = futureSuper + futureSavings + futureStocks;
+        const totalAssessableAssets = totalFinancialAssets + (propertyWasSold ? 0 : investmentPropertyEquityAtRetirement);
+
+        const annualRentalExpenses = inputs.invPropCouncil + inputs.invPropStrata + inputs.invPropInsurance + inputs.invPropMaintenance;
+        const netRentalIncome = (inputs.weeklyRentalIncome * 52) - annualRentalExpenses;
+
+        const requiredAnnualIncomeInRetirement = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, yearsToRetirement);
+
+        // --- Pension Calculation at Start of Retirement ---
+        let pensionFromAssets = 0;
+        if (totalAssessableAssets <= inputs.pensionAssetThreshold) {
+            pensionFromAssets = inputs.agePensionMax;
+        } else if (totalAssessableAssets < inputs.pensionAssetLimit) {
+            const excessAssets = totalAssessableAssets - inputs.pensionAssetThreshold;
+            const reduction = (excessAssets / 1000) * 3 * 26;
+            pensionFromAssets = Math.max(0, inputs.agePensionMax - reduction);
+        }
+
+        let deemedIncome = 0;
+        const deemingThreshold = 106200;
+        if (totalFinancialAssets <= deemingThreshold) {
+            deemedIncome = totalFinancialAssets * 0.0025;
+        } else {
+            deemedIncome = (deemingThreshold * 0.0025) + ((totalFinancialAssets - deemingThreshold) * 0.0225);
+        }
+
+        // Total assessable income
+        const assessableIncome = deemedIncome + (propertyWasSold ? 0 : netRentalIncome);
+        const incomePerFortnight = assessableIncome / 26;
+        let pensionFromIncome = inputs.agePensionMax;
+        if (incomePerFortnight > inputs.pensionIncomeThreshold) {
+            const reduction = (incomePerFortnight - inputs.pensionIncomeThreshold) * 0.5 * 26;
+            pensionFromIncome = Math.max(0, inputs.agePensionMax - reduction);
+        }
+
+        const estimatedPensionAtStart = Math.min(pensionFromAssets, pensionFromIncome);
+        
+        // --- Display Summary Results ---
+         $('summary').innerHTML = `
+            <div class="p-2 bg-gray-50 rounded"><strong>Years to Retirement:</strong> <span class="float-right">${yearsToRetirement.toFixed(0)}</span></div>
+            <div class="p-2 bg-gray-50 rounded"><strong>Home Equity at Retirement:</strong> <span class="float-right">${formatCurrency(homeValueAtRetirement - mortgageBalanceAtRetirement)}</span></div>
+            <div class="p-2 bg-blue-50 rounded"><strong>Future Value of Super:</strong> <span class="float-right font-semibold">${formatCurrency(futureSuper)}</span></div>
+            <div class="p-2 bg-blue-50 rounded"><strong>Future Value of Investments:</strong> <span class="float-right font-semibold">${formatCurrency(futureStocks + futureSavings)}</span></div>
+            <div class="p-2 bg-green-50 rounded text-green-800"><strong>Total Financial Assets:</strong> <span class="float-right font-bold text-lg">${formatCurrency(totalFinancialAssets)}</span></div>
+            <div class="p-2 bg-red-50 rounded text-red-800"><strong>Income Needed (ASFA):</strong> <span class="float-right font-bold text-lg">${formatCurrency(requiredAnnualIncomeInRetirement)}</span></div>
+            <div class="p-2 bg-yellow-50 rounded"><strong>Net Rental Income at Ret.:</strong> <span class="float-right">${propertyWasSold ? 'N/A (Sold)' : formatCurrency(netRentalIncome)+'/yr'}</span></div>
+            <div class="p-2 bg-yellow-50 rounded"><strong>Estimated Pension at Start:</strong> <span class="float-right">${formatCurrency(estimatedPensionAtStart)}/yr</span></div>
+        `;
+
+        // --- Generate Year-by-Year Projection ---
+        const projectionTable = $('projection-table');
+        projectionTable.innerHTML = '';
+        let currentBalance = totalFinancialAssets;
+        let currentYear = new Date().getFullYear() + yearsToRetirement;
+        let yourAge = inputs.retirementAge;
+        let partnerAge = inputs.partnerCurrentAge + yearsToRetirement;
+        const yearsInRetirement = inputs.partnerLifespan - inputs.retirementAge;
+
+        for (let i = 0; i < yearsInRetirement; i++) {
+            const isCouple = yourAge < inputs.yourLifespan;
+            const incomeNeeded = requiredAnnualIncomeInRetirement * Math.pow(1 + inputs.inflation, i);
+            const netRentalNow = propertyWasSold ? 0 : netRentalIncome * Math.pow(1 + inputs.inflation, i);
+
+            // Recalculate pension each year
+            const currentInvPropEquity = propertyWasSold ? 0 : investmentPropertyEquityAtRetirement * Math.pow(1 + inputs.inflation, i);
+            const currentAssessableAssets = currentBalance + currentInvPropEquity;
+            
+            const maxPension = isCouple ? inputs.agePensionMax : 28000;
+            const assetThreshold = isCouple ? inputs.pensionAssetThreshold : 301750;
+            const assetLimit = isCouple ? inputs.pensionAssetLimit : 686500;
+            const incomeThreshold = isCouple ? inputs.pensionIncomeThreshold : 212;
+
+            let pFromAssets = 0;
+            if (currentAssessableAssets <= assetThreshold) pFromAssets = maxPension;
+            else if (currentAssessableAssets < assetLimit) pFromAssets = Math.max(0, maxPension - ((currentAssessableAssets - assetThreshold) / 1000) * 3 * 26);
+
+            let currentDeemed = currentBalance <= deemingThreshold ? currentBalance * 0.0025 : (deemingThreshold * 0.0025 + (currentBalance - deemingThreshold) * 0.0225);
+            let currentTotalIncome = currentDeemed + netRentalNow;
+            let pFromIncome = maxPension;
+            if ((currentTotalIncome / 26) > incomeThreshold) {
+                pFromIncome = Math.max(0, maxPension - ((currentTotalIncome / 26) - incomeThreshold) * 0.5 * 26);
+            }
+            
+            const annualPension = Math.min(pFromAssets, pFromIncome);
+            const totalIncome = annualPension + netRentalNow;
+            const withdrawal = Math.max(0, incomeNeeded - totalIncome);
+
+            if (currentBalance < withdrawal) {
+                projectionTable.innerHTML += `<tr class="bg-red-100"><td colspan="7" class="px-4 py-2 text-center font-bold">Financial assets depleted in this year.</td></tr>`;
+                currentBalance = 0;
+                break;
+            }
+
+            const investmentGrowth = (currentBalance - withdrawal) * inputs.investmentReturn;
+            
+            const startBalance = currentBalance;
+            currentBalance = currentBalance - withdrawal + investmentGrowth;
+
+            projectionTable.innerHTML += `
+                <tr>
+                    <td class="px-4 py-2">${currentYear + i}</td>
+                    <td class="px-4 py-2">${yourAge + i} / ${partnerAge + i}</td>
+                    <td class="px-4 py-2">${formatCurrency(startBalance)}</td>
+                    <td class="px-4 py-2 text-green-600">+${formatCurrency(investmentGrowth)}</td>
+                    <td class="px-4 py-2 text-red-600">-${formatCurrency(withdrawal)}</td>
+                    <td class="px-4 py-2 text-blue-600">+${formatCurrency(totalIncome)}</td>
+                    <td class="px-4 py-2 font-semibold">${formatCurrency(currentBalance)}</td>
+                </tr>
+            `;
+        }
+
+        // --- Final Surplus/Shortfall ---
+        const finalResultContainer = $('final-result');
+        if (currentBalance > 0) {
+            finalResultContainer.className = 'mt-6 text-center p-4 rounded-lg bg-green-100 text-green-800';
+            finalResultContainer.innerHTML = `<h3 class="font-bold text-xl">Retirement Goal Met</h3><p>You are projected to have <strong class="text-2xl">${formatCurrency(currentBalance)}</strong> of financial assets remaining at age ${inputs.partnerLifespan}.</p>`;
+        } else {
+            finalResultContainer.className = 'mt-6 text-center p-4 rounded-lg bg-red-100 text-red-800';
+            finalResultContainer.innerHTML = `<h3 class="font-bold text-xl">Retirement Shortfall</h3><p>Your financial assets are projected to be depleted before reaching your expected lifespan.</p>`;
+        }
+    }
+
+    // --- Event Listeners ---
+    document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('change', calculateRetirement);
+        input.addEventListener('keyup', calculateRetirement);
+    });
+
+    window.addEventListener('load', calculateRetirement);
+    </script>
+
+</body>
+</html>

@@ -2,6 +2,21 @@
 
 A comprehensive Python calculator to help Australian couples determine how much money they need for retirement, considering Australian-specific factors like Age Pension eligibility, Superannuation, property ownership, and ASFA retirement standards.
 
+## File Structure
+
+retirement_calculator/
+│
+├── index.html
+├── css/
+│   └── styles.css
+└── js/
+├── config.js
+├── utils.js
+├── simulator.js
+├── charts.js
+└── app.js
+
+
 ## Features
 
 This calculator addresses the key question: **"Living in Australia as a couple, how can I work out the amount of money that I will need to retire on, considering that I live to the age of 95?"**

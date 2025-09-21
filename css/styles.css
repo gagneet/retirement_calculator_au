@@ -1,0 +1,46 @@
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 220px;
+  background: #555;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -110px;
+  opacity: 0;
+  transition: opacity .3s;
+}
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
+.tab-button {
+  padding: .5rem 1rem;
+  border-radius: .5rem .5rem 0 0;
+  cursor: pointer;
+  transition: background .2s;
+}
+.tab-button.active {
+  background: white;
+  border-bottom: 2px solid #4f46e5;
+}
+.tab-button:not(.active) {
+  background: #f3f4f6;
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+input:read-only { background: #f3f4f6; }

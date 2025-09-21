@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retirement Calculator with Monte Carlo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+  <div class="container mx-auto p-6 space-y-6">
+
+    <!-- Title -->
+    <header class="text-center">
+      <h1 class="text-3xl font-bold">Retirement Calculator with Monte Carlo</h1>
+      <p class="text-gray-600 mt-2">Deterministic projection + stochastic simulation</p>
+    </header>
+
+    <!-- Inputs -->
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold mb-4">Inputs</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm">Your Current Age</label><input id="yourCurrentAge" type="number" value="49" class="w-full border rounded p-1"></div>
+        <div><label class="block text-sm">Retirement Age</label><input id="retirementAge" type="number" value="72" class="w-full border rounded p-1"></div>
+        <div><label class="block text-sm">Partner Current Age</label><input id="partnerCurrentAge" type="number" value="47" class="w-full border rounded p-1"></div>
+        <div><label class="block text-sm">Partner Retirement Age</label><input id="partnerRetirementAge" type="number" value="62" class="w-full border rounded p-1"></div>
+        <div><label class="block text-sm">Your Lifespan</label><input id="yourLifespan" type="number" value="95" class="w-full border rounded p-1"></div>
+        <div><label class="block text-sm">Partner Lifespan</label><input id="partnerLifespan" type="number" value="99" class="w-full border rounded p-1"></div>
+        <div><label class="block text-sm">Current Super</label><input id="currentSuper" type="number" value="312000" class="w-full border rounded p-1"></div>
+        <div><label class="block text-sm">Current Savings</label><input id="currentSavings" type="number" value="55000" class="w-full border rounded p-1"></div>
+        <div><label class="block text-sm">Current Stocks</label><input id="currentStocks" type="number" value="62000" class="w-full border rounded p-1"></div>
+        <div><label class="block text-sm">Annual Comfortable Income (ASFA)</label><input id="asfaComfortable" type="number" value="73875" class="w-full border rounded p-1"></div>
+        <div><label class="block text-sm">Inflation (%)</label><input id="inflation" type="number" value="2.87" class="w-full border rounded p-1"></div>
+        <div><label class="block text-sm">Investment Return (%)</label><input id="investmentReturn" type="number" value="5.61" class="w-full border rounded p-1"></div>
+      </div>
+    </div>
+
+    <!-- Monte Carlo Simulation -->
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold mb-4">Monte Carlo Simulation</h2>
+      <div class="flex items-center gap-4 mb-4">
+        <button id="runMonteCarlo" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+          Run Simulation
+        </button>
+        <div>
+          <label class="block text-sm">Number of Runs</label>
+          <input id="numRuns" type="number" value="1000" min="100" step="100" class="w-32 border rounded p-1">
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div id="progressContainer" class="hidden w-full bg-gray-200 rounded-full h-4">
+        <div id="progressBar" class="bg-indigo-600 h-4 rounded-full" style="width: 0%"></div>
+      </div>
+
+      <div id="monteCarloResults" class="mt-4 space-y-2 text-sm"></div>
+      <canvas id="monteCarloChart" class="mt-6"></canvas>
+    </div>
+
+    <!-- Fan Chart -->
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold mb-4">Fan Chart (Year-by-Year)</h2>
+      <canvas id="fanChart"></canvas>
+    </div>
+  </div>
+
+<script>
+// Helper
+const formatCurrency = (num) => num.toLocaleString('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 });
+
+// Random normal (Box-Muller)
+function randomNormal(mean, stdDev) {
+  let u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random();
+  return mean + Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2*Math.PI*v) * stdDev;
+}
+
+// Deterministic path
+function deterministicPath(inputs) {
+  const yearsToRet = inputs.retirementAge - inputs.yourCurrentAge;
+  const yearsInRet = inputs.partnerLifespan - inputs.retirementAge;
+  let balance = inputs.currentSuper + inputs.currentSavings + inputs.currentStocks;
+  let balances = [];
+  for(let y=0;y<yearsToRet+yearsInRet;y++){
+    balance *= (1+inputs.investmentReturn);
+    if(y>=yearsToRet) balance -= inputs.asfaComfortable * Math.pow(1+inputs.inflation,y);
+    if(balance<0) balance=0;
+    balances.push(balance);
+    if(balance===0) break;
+  }
+  return balances;
+}
+
+// One run (final balance)
+function simulateOneRun(inputs) {
+  const yearsToRet = inputs.retirementAge - inputs.yourCurrentAge;
+  const yearsInRet = inputs.partnerLifespan - inputs.retirementAge;
+  let balance = inputs.currentSuper + inputs.currentSavings + inputs.currentStocks;
+  for(let y=0;y<yearsToRet+yearsInRet;y++){
+    balance *= (1+randomNormal(inputs.investmentReturn,0.12));
+    if(y>=yearsToRet) balance -= inputs.asfaComfortable * Math.pow(1+inputs.inflation,y);
+    if(balance<=0){balance=0;break;}
+  }
+  return balance;
+}
+
+// One run (path)
+function simulateOnePath(inputs) {
+  const yearsToRet = inputs.retirementAge - inputs.yourCurrentAge;
+  const yearsInRet = inputs.partnerLifespan - inputs.retirementAge;
+  let balance = inputs.currentSuper + inputs.currentSavings + inputs.currentStocks;
+  let path=[];
+  for(let y=0;y<yearsToRet+yearsInRet;y++){
+    balance *= (1+randomNormal(inputs.investmentReturn,0.12));
+    if(y>=yearsToRet) balance -= inputs.asfaComfortable * Math.pow(1+inputs.inflation,y);
+    if(balance<0) balance=0;
+    path.push(balance);
+    if(balance===0) break;
+  }
+  return path;
+}
+
+// Percentile helper
+function percentile(arr,p){ if(!arr.length) return 0; const s=[...arr].sort((a,b)=>a-b); return s[Math.floor(p*s.length)]||0; }
+
+// Charts
+let monteCarloChart, fanChart;
+function renderMonteCarloChart(outcomes){
+  const bins=20,min=Math.min(...outcomes),max=Math.max(...outcomes),binSize=(max-min)/bins,hist=new Array(bins).fill(0);
+  outcomes.forEach(v=>hist[Math.min(Math.floor((v-min)/binSize),bins-1)]++);
+  const labels=hist.map((_,i)=>formatCurrency(min+i*binSize));
+  if(monteCarloChart) monteCarloChart.destroy();
+  monteCarloChart=new Chart(document.getElementById('monteCarloChart'),{
+    type:'bar',data:{labels,datasets:[{label:'Final Balances',data:hist,backgroundColor:'rgba(54,162,235,0.6)'}]},
+    options:{scales:{x:{title:{display:true,text:'Balance (AUD)'}},y:{title:{display:true,text:'Runs'}}}}
+  });
+}
+
+function renderFanChart(inputs,paths){
+  const maxY=Math.max(...paths.map(p=>p.length));
+  const years=Array.from({length:maxY},(_,i)=>inputs.yourCurrentAge+i);
+  const median=[],p10=[],p90=[],p25=[],p75=[];
+  for(let y=0;y<maxY;y++){
+    const vals=paths.map(p=>p[y]??0);
+    median.push(percentile(vals,0.5));
+    p10.push(percentile(vals,0.1));
+    p90.push(percentile(vals,0.9));
+    p25.push(percentile(vals,0.25));
+    p75.push(percentile(vals,0.75));
+  }
+  const det=deterministicPath(inputs);
+  if(fanChart) fanChart.destroy();
+  fanChart=new Chart(document.getElementById('fanChart'),{
+    type:'line',
+    data:{labels:years,datasets:[
+      {label:"Deterministic",data:det,borderColor:"black",borderWidth:2,fill:false,tension:0.1},
+      {label:"Median",data:median,borderColor:"blue",fill:false,tension:0.1},
+      {label:"10–90%",data:p90,borderColor:"transparent",backgroundColor:"rgba(54,162,235,0.2)",fill:"+1"},
+      {data:p10,borderColor:"transparent",backgroundColor:"rgba(54,162,235,0.2)",fill:false},
+      {label:"25–75%",data:p75,borderColor:"transparent",backgroundColor:"rgba(255,159,64,0.3)",fill:"+1"},
+      {data:p25,borderColor:"transparent",backgroundColor:"rgba(255,159,64,0.3)",fill:false}
+    ]},
+    options:{scales:{x:{title:{display:true,text:'Age'}},y:{title:{display:true,text:'Balance (AUD)'},beginAtZero:true}},
+             plugins:{tooltip:{callbacks:{label:ctx=>formatCurrency(ctx.raw)}}}}
+  });
+}
+
+// Monte Carlo with progress bar
+async function runMonteCarloWithProgress(inputs,runs){
+  const chunk=200; // adjust chunk size for responsiveness
+  let outcomes=[],paths=[];
+  const prog=document.getElementById('progressContainer');
+  const bar=document.getElementById('progressBar');
+  prog.classList.remove('hidden');
+  bar.style.width="0%";
+  for(let i=0;i<runs;i+=chunk){
+    for(let j=0;j<chunk && i+j<runs;j++){
+      outcomes.push(simulateOneRun(inputs));
+      paths.push(simulateOnePath(inputs));
+    }
+    bar.style.width=`${Math.min(100,((i+chunk)/runs)*100)}%`;
+    await new Promise(r=>setTimeout(r,0)); // yield to UI
+  }
+  prog.classList.add('hidden');
+  outcomes.sort((a,b)=>a-b);
+  return {outcomes,paths};
+}
+
+// Run button
+document.getElementById('runMonteCarlo').addEventListener('click',async()=>{
+  const inputs={
+    yourCurrentAge:+yourCurrentAge.value,partnerCurrentAge:+partnerCurrentAge.value,
+    retirementAge:+retirementAge.value,partnerRetirementAge:+partnerRetirementAge.value,
+    yourLifespan:+yourLifespan.value,partnerLifespan:+partnerLifespan.value,
+    currentSuper:+currentSuper.value,currentSavings:+currentSavings.value,currentStocks:+currentStocks.value,
+    asfaComfortable:+asfaComfortable.value,
+    inflation:(+inflation.value)/100,investmentReturn:(+investmentReturn.value)/100
+  };
+  const runs=Math.max(100,+numRuns.value||1000);
+  const {outcomes,paths}=await runMonteCarloWithProgress(inputs,runs);
+  const median=outcomes[Math.floor(runs/2)];
+  const p10=outcomes[Math.floor(runs*0.1)];
+  const p90=outcomes[Math.floor(runs*0.9)];
+  const success=outcomes.filter(v=>v>0).length/runs;
+  monteCarloResults.innerHTML=`
+    <div><b>Runs:</b> ${runs}</div>
+    <div><b>Success Rate:</b> ${(success*100).toFixed(1)}%</div>
+    <div><b>Median Final Balance:</b> ${formatCurrency(median)}</div>
+    <div><b>10th Percentile:</b> ${formatCurrency(p10)}</div>
+    <div><b>90th Percentile:</b> ${formatCurrency(p90)}</div>`;
+  renderMonteCarloChart(outcomes);
+  renderFanChart(inputs,paths);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Enhanced Australian Retirement Calculator — With Assumptions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tooltip { position: relative; display: inline-block; }
+        .tooltip .tooltiptext { visibility: hidden; width: 220px; background:#555; color:#fff; text-align:center; border-radius:6px; padding:5px 0; position:absolute; z-index:1; bottom:125%; left:50%; margin-left:-110px; opacity:0; transition:opacity .3s; }
+        .tooltip:hover .tooltiptext { visibility:visible; opacity:1; }
+        .tab-button { padding:.5rem 1rem; border-radius:.5rem .5rem 0 0; cursor:pointer; transition:background .2s;}
+        .tab-button.active { background:white; border-bottom:2px solid #4f46e5;}
+        .tab-button:not(.active){ background:#f3f4f6; }
+        .tab-content{ display:none;}
+        .tab-content.active{ display:block;}
+        input:read-only { background:#f3f4f6; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+<div class="container mx-auto p-4 md:p-8">
+    <header class="text-center mb-6">
+        <h1 class="text-3xl font-bold">Enhanced Australian Retirement Calculator</h1>
+        <p class="text-sm text-gray-600">Deterministic + Monte Carlo (monthly withdrawals, declining returns, taxation)</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Inputs -->
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+            <h2 class="text-lg font-semibold mb-3">Inputs & Assumptions</h2>
+            <div class="space-y-2 text-sm">
+                <label class="block">Your Current Age<input id="yourCurrentAge" type="number" value="49" class="w-full border rounded p-1"></label>
+                <label class="block">Partner Current Age<input id="partnerCurrentAge" type="number" value="47" class="w-full border rounded p-1"></label>
+                <label class="block">Retirement Age<input id="retirementAge" type="number" value="72" class="w-full border rounded p-1"></label>
+                <label class="block">Partner Retirement Age<input id="partnerRetirementAge" type="number" value="62" class="w-full border rounded p-1"></label>
+                <label class="block">Your Lifespan<input id="yourLifespan" type="number" value="95" class="w-full border rounded p-1"></label>
+                <label class="block">Partner Lifespan<input id="partnerLifespan" type="number" value="99" class="w-full border rounded p-1"></label>
+
+                <hr class="my-2">
+
+                <label class="block">Your Annual Salary (pre-tax)<input id="yourSalary" type="number" value="214000" class="w-full border rounded p-1"></label>
+                <label class="block">Partner Annual Salary (pre-tax)<input id="partnerSalary" type="number" value="34500" class="w-full border rounded p-1"></label>
+                <label class="block">Current Super (combined)<input id="currentSuper" type="number" value="312000" class="w-full border rounded p-1"></label>
+                <label class="block">Current Savings<input id="currentSavings" type="number" value="55000" class="w-full border rounded p-1"></label>
+                <label class="block">Current Stocks<input id="currentStocks" type="number" value="62000" class="w-full border rounded p-1"></label>
+                <label class="block">Monthly Stock Contribution<input id="monthlyStockContribution" type="number" value="800" class="w-full border rounded p-1"></label>
+                <label class="block">% of Post-Tax Income Saved<input id="percentIncomeSaved" type="number" value="9" step="0.1" class="w-full border rounded p-1"></label>
+
+                <hr class="my-2">
+
+                <label class="block">Home value<input id="homeValue" type="number" value="810000" class="w-full border rounded p-1"></label>
+                <label class="block">Mortgage balance<input id="mortgageBalance" type="number" value="594000" class="w-full border rounded p-1"></label>
+                <label class="block">Mortgage annual rate (%)<input id="mortgageRate" type="number" value="5.37" step="0.01" class="w-full border rounded p-1"></label>
+                <label class="block">Monthly mortgage payment<input id="monthlyMortgagePayment" type="number" value="3584" class="w-full border rounded p-1"></label>
+
+                <label class="block">Plan to downsize?<select id="planToDownsize" class="w-full border rounded p-1">
+                    <option value="false">No</option><option value="true">Yes</option></select></label>
+
+                <hr class="my-2">
+
+                <label class="block">Investment Property Value<input id="investmentPropertyValue" type="number" value="550000" class="w-full border rounded p-1"></label>
+                <label class="block">Investment Property Loan<input id="investmentPropertyLoan" type="number" value="574000" class="w-full border rounded p-1"></label>
+                <label class="block">Weekly rental income<input id="weeklyRentalIncome" type="number" value="554" class="w-full border rounded p-1"></label>
+
+                <hr class="my-2">
+
+                <label class="block">Sell investment property in (years)<input id="sellPropertyYears" type="number" value="15" class="w-full border rounded p-1"></label>
+                <label class="block">Capital gains tax rate (%)<input id="capitalGainsTaxRate" type="number" value="34" class="w-full border rounded p-1"></label>
+
+                <hr class="my-2">
+
+                <label class="block">Inflation (%)<input id="inflation" type="number" value="2.87" step="0.01" class="w-full border rounded p-1"></label>
+                <label class="block">Initial Investment Return (%)<input id="investmentReturn" type="number" value="5.61" step="0.01" class="w-full border rounded p-1"></label>
+                <label class="block">Return decline rate (p.a. %) <input id="returnDeclineRate" type="number" value="0.03" step="0.01" class="w-full border rounded p-1"></label>
+                <label class="block">Return volatility (σ %, equities)<input id="returnVolatility" type="number" value="12" min="1" max="50" class="w-full border rounded p-1"></label>
+                <label class="block">Savings return (%)<input id="savingsReturn" type="number" value="1.40" step="0.01" class="w-full border rounded p-1"></label>
+                <label class="block">Super annual growth (%)<input id="superReturn" type="number" value="8.75" step="0.01" class="w-full border rounded p-1"></label>
+
+                <label class="block">Super Guarantee (%)<input id="superContributionRate" type="number" value="12.00" step="0.01" readonly class="w-full border rounded p-1 bg-gray-100"></label>
+                <label class="block">Investment tax rate (%)<input id="investmentTaxRate" type="number" value="15" class="w-full border rounded p-1"></label>
+                <label class="block">Super withdrawals tax-free after 60?<select id="superTaxFree" class="w-full border rounded p-1"><option value="true">Yes</option><option value="false">No</option></select></label>
+
+                <hr class="my-2">
+
+                <label class="block">ASFA Comfortable (couple p.a.)<input id="asfaComfortable" type="number" value="73875" class="w-full border rounded p-1"></label>
+                <label class="block">Max Age Pension (couple p.a.)<input id="agePensionMax" type="number" value="45037" class="w-full border rounded p-1"></label>
+                <label class="block">Pension Asset Threshold (couple homeowner)<input id="pensionAssetThreshold" type="number" value="470000" class="w-full border rounded p-1"></label>
+                <label class="block">Pension Asset Limit (couple homeowner)<input id="pensionAssetLimit" type="number" value="1031000" class="w-full border rounded p-1"></label>
+                <label class="block">Pension income threshold (fortnightly, couple)<input id="pensionIncomeThreshold" type="number" value="372" class="w-full border rounded p-1"></label>
+
+                <hr class="my-2">
+
+                <label class="block">Salary growth (real %, p.a.)<input id="salaryGrowthRate" type="number" value="1.5" class="w-full border rounded p-1"></label>
+                <label class="block">Lean years start (yrs before retirement)<input id="leanYearsStart" type="number" value="5" class="w-full border rounded p-1"></label>
+                <label class="block">Lean years salary reduction (%)<input id="leanYearsReduction" type="number" value="25" class="w-full border rounded p-1"></label>
+            </div>
+        </div>
+
+        <!-- Results & Charts -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white rounded-lg shadow-sm">
+                <div class="flex border-b">
+                    <button class="tab-button active" onclick="showTab('summary')">Summary</button>
+                    <button class="tab-button" onclick="showTab('projection')">Year-by-Year</button>
+                    <button class="tab-button" onclick="showTab('montecarlo')">Monte Carlo</button>
+                </div>
+
+                <!-- Summary Tab -->
+                <div id="summary-tab" class="tab-content active p-6">
+                    <h2 class="text-xl font-semibold mb-3">Summary</h2>
+                    <div id="summary" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm"></div>
+
+                    <div id="assumptionsPanel" class="mt-4 p-4 bg-gray-50 rounded text-sm">
+                        <h3 class="font-semibold">Model Assumptions (derived from inputs)</h3>
+                        <div id="assumptions" class="mt-2 text-sm"></div>
+                    </div>
+
+                    <div id="final-result" class="mt-4 p-4 rounded text-sm"></div>
+
+                    <div class="mt-4 p-4 bg-indigo-50 rounded">
+                        <h4 class="font-semibold">Quick recommendations</h4>
+                        <ul id="quickRecommendations" class="list-disc ml-5 mt-2 text-sm"></ul>
+                    </div>
+                </div>
+
+                <!-- Year-by-Year Tab -->
+                <div id="projection-tab" class="tab-content p-6">
+                    <h2 class="text-xl font-semibold mb-3">Year-by-Year Projection (first 30 yrs shown)</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-3 py-2 text-left">Year</th>
+                                    <th class="px-3 py-2 text-left">Age</th>
+                                    <th class="px-3 py-2 text-left">Start Balance</th>
+                                    <th class="px-3 py-2 text-left">Return Rate</th>
+                                    <th class="px-3 py-2 text-left">Growth</th>
+                                    <th class="px-3 py-2 text-left">Gross Withdrawal</th>
+                                    <th class="px-3 py-2 text-left">Income</th>
+                                    <th class="px-3 py-2 text-left">End Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projection-table" class="bg-white divide-y"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Monte Carlo Tab -->
+                <div id="montecarlo-tab" class="tab-content p-6">
+                    <h2 class="text-xl font-semibold mb-3">Monte Carlo Simulation</h2>
+                    <div class="flex items-center gap-3 mb-3">
+                        <button id="runMonteCarlo" class="px-4 py-2 bg-indigo-600 text-white rounded">Run Simulation</button>
+                        <label class="text-sm">Runs<input id="numRuns" type="number" value="1000" min="100" step="100" class="ml-2 w-28 border rounded p-1 inline"></label>
+                    </div>
+
+                    <div id="progressContainer" class="hidden w-full bg-gray-200 rounded-full h-3 mb-3"><div id="progressBar" class="bg-indigo-600 h-3 rounded" style="width:0%"></div></div>
+
+                    <div id="monteCarloResults" class="mb-4 text-sm"></div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="font-semibold text-sm mb-2">Final Balance Distribution</h3>
+                            <canvas id="monteCarloChart"></canvas>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-sm mb-2">Fan Chart (median & percentile bands)</h3>
+                            <canvas id="fanChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+function formatCurrency(num) {
+    if (typeof num !== 'number' || isNaN(num)) return '$0';
+    return num.toLocaleString('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 });
+}
+function showTab(name) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+    document.getElementById(name + '-tab').classList.add('active');
+    event.target.classList.add('active');
+}
+
+/* ---------- Financial helpers (unchanged core) ---------- */
+const calculator = {
+    loanBalance: (rate, nperYears, monthlyPayment, pv) => {
+        // rate = annual decimal (e.g. 0.0537), nperYears = years, monthlyPayment = monthly amount, pv = principal
+        if (rate === 0) return Math.max(0, pv - (monthlyPayment * nperYears * 12));
+        const monthlyRate = rate / 12;
+        const totalPayments = nperYears * 12;
+        // future value after nperMonths with monthly payment pmt, starting pv
+        return Math.max(0, pv * Math.pow(1 + monthlyRate, totalPayments) - monthlyPayment * (Math.pow(1 + monthlyRate, totalPayments) - 1) / monthlyRate);
+    },
+
+    getPostTaxIncome: (preTaxSalary) => {
+        // Simple Australian tax bands (existing code) - returns approximate post-tax income
+        if (preTaxSalary <= 18200) return preTaxSalary;
+        if (preTaxSalary <= 45000) return preTaxSalary - (preTaxSalary - 18200) * 0.19;
+        if (preTaxSalary <= 120000) return preTaxSalary - (5092 + (preTaxSalary - 45000) * 0.325);
+        if (preTaxSalary <= 180000) return preTaxSalary - (29467 + (preTaxSalary - 120000) * 0.37);
+        return preTaxSalary - (51667 + (preTaxSalary - 180000) * 0.45);
+    },
+
+    getSalaryForYear: (baseSalary, yearIndex, inputs) => {
+        // yearIndex = years since now (1..yearsToRetirement)
+        const realGrowthRate = inputs.salaryGrowthRate / 100;
+        const inflationRate = inputs.inflation;
+        // apply real growth + inflation
+        let salary = baseSalary * Math.pow(1 + realGrowthRate + inflationRate, yearIndex);
+        // lean years reduction
+        const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+        const leanStartIndex = Math.max(0, yearsToRetirement - inputs.leanYearsStart);
+        if (yearIndex >= leanStartIndex) salary *= (1 - inputs.leanYearsReduction / 100);
+        return salary;
+    },
+
+    // declining returns: baseReturn is decimal (e.g. 0.0561)
+    getReturnForYear: (baseReturn, yearIndex, declineRatePercent) => {
+        // declineRatePercent is e.g. 0.03 for 0.03% per year in UI; treat as percent p.a.
+        // We convert declineRatePercent (which user enters as e.g. 0.03) into decimal decline per year:
+        // If declineRatePercent is small, typical interpretation: declineRatePercent = 0.03 means 0.03% (so 0.0003 decimal).
+        const declineDecimal = (declineRatePercent) / 100;
+        const ret = baseReturn - (declineDecimal * yearIndex);
+        return Math.max(0.01, ret); // floor at 1% (model choice)
+    },
+
+    // gross withdrawal to cover netNeeded after tax. taxRate is percentage (e.g. 15)
+    getGrossWithdrawal: (netNeeded, taxRatePercent, superTaxFree, age) => {
+        if (superTaxFree && age >= 60) return netNeeded;
+        const taxRate = taxRatePercent / 100;
+        if (taxRate >= 0.999) return netNeeded; // guard
+        return netNeeded / (1 - taxRate);
+    }
+};
+
+/* ---------- Monte Carlo helpers ---------- */
+function randomNormal(mean, stdDev) {
+    // Box-Muller transform
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    return mean + z * stdDev;
+}
+function percentile(arr, p) {
+    if (!arr.length) return 0;
+    const s = [...arr].sort((a,b)=>a-b);
+    const idx = Math.floor(p * s.length);
+    return s[Math.min(idx, s.length-1)] || 0;
+}
+
+/* ---------- Core simulation (enhanced monthly withdrawals) ---------- */
+function simulateRetirementPath(inputs, useRandomReturns = false) {
+    // returns object with finalBalance, balances (year-by-year), and other breakdowns
+    const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+    const yearsInRetirement = inputs.partnerLifespan - inputs.retirementAge;
+
+    // accumulation pre-retirement
+    let futureSuper = inputs.currentSuper;
+    let futureSavings = inputs.currentSavings;
+    let futureStocks = inputs.currentStocks;
+    let propertyWasSold = false;
+
+    const yourYearsToWork = Math.max(0, inputs.retirementAge - inputs.yourCurrentAge);
+    const partnerYearsToWork = Math.max(0, inputs.partnerRetirementAge - inputs.partnerCurrentAge);
+
+    for (let y = 1; y <= yearsToRetirement; y++) {
+        const superReturnRate = calculator.getReturnForYear(inputs.superReturn / 100, y, inputs.returnDeclineRate);
+        const savingsReturnRate = calculator.getReturnForYear(inputs.savingsReturn / 100, y, inputs.returnDeclineRate * 0.3);
+        const stockReturnRate = calculator.getReturnForYear(inputs.investmentReturn / 100, y, inputs.returnDeclineRate);
+
+        const sr = useRandomReturns ? randomNormal(superReturnRate, inputs.returnVolatility * 0.8) : superReturnRate;
+        const savr = useRandomReturns ? randomNormal(savingsReturnRate, inputs.returnVolatility * 0.3) : savingsReturnRate;
+        const stockr = useRandomReturns ? randomNormal(stockReturnRate, inputs.returnVolatility) : stockReturnRate;
+
+        futureSuper *= (1 + sr);
+        futureSavings *= (1 + savr);
+        futureStocks *= (1 + stockr);
+
+        // contributions using progressed salary
+        let yearlyPostTax = 0;
+        let yearlySuperContrib = 0;
+        if (y <= yourYearsToWork) {
+            const s = calculator.getSalaryForYear(inputs.yourSalary, y, inputs);
+            yearlyPostTax += calculator.getPostTaxIncome(s);
+            yearlySuperContrib += s * inputs.superContributionRate / 100;
+        }
+        if (y <= partnerYearsToWork) {
+            const ps = calculator.getSalaryForYear(inputs.partnerSalary, y, inputs);
+            yearlyPostTax += calculator.getPostTaxIncome(ps);
+            yearlySuperContrib += ps * inputs.superContributionRate / 100;
+        }
+
+        futureSuper += yearlySuperContrib;
+        futureSavings += yearlyPostTax * (inputs.percentIncomeSaved / 100);
+        futureStocks += inputs.monthlyStockContribution * 12;
+
+        // sale event
+        if (inputs.sellPropertyYears > 0 && y === inputs.sellPropertyYears) {
+            propertyWasSold = true;
+            const saleValue = inputs.investmentPropertyValue * Math.pow(1 + inputs.inflation, y);
+            const capitalGain = saleValue - inputs.investmentPropertyValue;
+            const taxableGain = capitalGain * 0.5;
+            const cgtPaid = taxableGain * (inputs.capitalGainsTaxRate / 100);
+            const netProceeds = saleValue - inputs.investmentPropertyLoan - cgtPaid;
+            futureStocks += netProceeds;
+        }
+    }
+
+    // retirement setup
+    const homeValueAtRet = inputs.homeValue * Math.pow(1 + inputs.inflation, yearsToRetirement);
+    const mortgageBalanceAtRet = Math.max(0, calculator.loanBalance(inputs.mortgageRate/100, yearsToRetirement, inputs.monthlyMortgagePayment, inputs.mortgageBalance));
+    const homeEquityAtRet = homeValueAtRet - mortgageBalanceAtRet;
+    const accessibleHomeEquity = (inputs.planToDownsize === true || inputs.planToDownsize === 'true') ? homeEquityAtRet * 0.7 : 0;
+
+    let investmentPropertyEquityAtRet = 0;
+    if (!propertyWasSold) {
+        const invValAtRet = inputs.investmentPropertyValue * Math.pow(1 + inputs.inflation, yearsToRetirement);
+        investmentPropertyEquityAtRet = invValAtRet - inputs.investmentPropertyLoan;
+    }
+
+    const annualRentalExpenses = inputs.invPropCouncil + inputs.invPropStrata + inputs.invPropInsurance + inputs.invPropMaintenance;
+    const netRentalIncome = (inputs.weeklyRentalIncome * 52) - annualRentalExpenses;
+
+    // initial balance available to withdrawals
+    let currentBalance = futureSuper + futureSavings + futureStocks + accessibleHomeEquity;
+    const balances = [];
+    const deemingThreshold = 106200;
+
+    for (let i = 0; i < yearsInRetirement; i++) {
+        const currentAge = inputs.yourCurrentAge + yearsToRetirement + i;
+        const isCouple = currentAge < inputs.yourLifespan; // approximate
+        const incomeNeeded = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, yearsToRetirement + i);
+        const netRentalNow = propertyWasSold ? 0 : netRentalIncome * Math.pow(1 + inputs.inflation, yearsToRetirement + i);
+
+        const currentInvPropEquity = propertyWasSold ? 0 : investmentPropertyEquityAtRet * Math.pow(1 + inputs.inflation, i);
+        const assessableAssets = currentBalance + currentInvPropEquity - ((inputs.planToDownsize === true || inputs.planToDownsize === 'true') ? 0 : homeEquityAtRet);
+
+        const maxPension = isCouple ? inputs.agePensionMax : 28000;
+        const assetThreshold = isCouple ? inputs.pensionAssetThreshold : 301750;
+        const assetLimit = isCouple ? inputs.pensionAssetLimit : 686500;
+        const incomeThreshold = isCouple ? inputs.pensionIncomeThreshold : 212;
+
+        let pFromAssets = 0;
+        if (assessableAssets <= assetThreshold) pFromAssets = maxPension;
+        else if (assessableAssets < assetLimit) {
+            const excessAssets = assessableAssets - assetThreshold;
+            const reduction = (excessAssets / 1000) * 3 * 26;
+            pFromAssets = Math.max(0, maxPension - reduction);
+        }
+
+        let currentDeemed = currentBalance <= deemingThreshold ? currentBalance * 0.0025 : (deemingThreshold * 0.0025 + (currentBalance - deemingThreshold) * 0.0225);
+        let currentTotalIncome = currentDeemed + netRentalNow;
+        let pFromIncome = maxPension;
+        if ((currentTotalIncome / 26) > incomeThreshold) {
+            const reduction = ((currentTotalIncome / 26) - incomeThreshold) * 0.5 * 26;
+            pFromIncome = Math.max(0, maxPension - reduction);
+        }
+
+        const annualPension = Math.min(pFromAssets, pFromIncome);
+        const totalIncome = annualPension + netRentalNow;
+        const netWithdrawalNeeded = Math.max(0, incomeNeeded - totalIncome);
+
+        // gross withdrawal after tax treatment
+        const grossWithdrawal = calculator.getGrossWithdrawal(netWithdrawalNeeded, inputs.investmentTaxRate, (inputs.superTaxFree === true || inputs.superTaxFree === 'true'), currentAge);
+
+        if (currentBalance < grossWithdrawal) {
+            currentBalance = 0;
+            balances.push(0);
+            break;
+        }
+
+        // monthly simulation of growth and withdrawals
+        const returnRate = calculator.getReturnForYear(inputs.investmentReturn / 100, yearsToRetirement + i, inputs.returnDeclineRate);
+        const actualReturn = useRandomReturns ? randomNormal(returnRate, inputs.returnVolatility / 100) : returnRate;
+        const monthlyReturn = Math.pow(1 + actualReturn, 1/12) - 1;
+        const monthlyWithdrawal = grossWithdrawal / 12;
+
+        let startBalance = currentBalance;
+        let yearlyGrowth = 0;
+
+        for (let month = 1; month <= 12; month++) {
+            const monthlyGrowth = currentBalance * monthlyReturn;
+            yearlyGrowth += monthlyGrowth;
+            currentBalance = currentBalance + monthlyGrowth - monthlyWithdrawal;
+            if (currentBalance <= 0) { currentBalance = 0; break; }
+        }
+
+        balances.push(currentBalance);
+        if (currentBalance <= 0) break;
+    }
+
+    return {
+        finalBalance: currentBalance,
+        balances,
+        totalFinancialAssets: futureSuper + futureSavings + futureStocks,
+        accessibleHomeEquity,
+        homeEquity: homeEquityAtRet,
+        futureSuper, futureSavings, futureStocks,
+        propertyWasSold,
+        investmentPropertyEquity: investmentPropertyEquityAtRet,
+        netRentalIncome
+    };
+}
+
+/* ---------- Charts ---------- */
+let monteCarloChart = null, fanChart = null;
+function renderMonteCarloChart(outcomes) {
+    const bins = 25;
+    const maxVal = Math.max(...outcomes);
+    const minVal = Math.min(...outcomes);
+    const binSize = (maxVal - minVal) / bins || 1;
+    const hist = new Array(bins).fill(0);
+    outcomes.forEach(v => {
+        const idx = Math.min(bins - 1, Math.floor((v - minVal) / binSize));
+        hist[idx]++;
+    });
+    const labels = hist.map((_,i) => formatCurrency(minVal + i * binSize));
+    if (monteCarloChart) monteCarloChart.destroy();
+    const ctx = $('monteCarloChart').getContext('2d');
+    monteCarloChart = new Chart(ctx, {
+        type:'bar',
+        data:{ labels, datasets:[{ label:'Final balances (AUD)', data: hist, backgroundColor:'rgba(54,162,235,0.6)', borderColor:'rgba(54,162,235,1)'}]},
+        options:{ responsive:true, plugins:{ title:{ display:true, text:'Final Balance Distribution' }}, scales:{ x:{ title:{ display:true, text:'Final balance (AUD)'}}, y:{ title:{ display:true, text:'Number of runs'} } } }
+    });
+}
+
+function renderFanChart(inputs, paths) {
+    const maxYears = Math.max(...paths.map(p => p.length));
+    // start ages at retirement age
+    const years = Array.from({length:maxYears}, (_,i) => inputs.retirementAge + i);
+    const median = [], p10 = [], p90 = [], p25 = [], p75 = [];
+    for (let y = 0; y < maxYears; y++) {
+        const vals = paths.map(p => p[y] ?? 0);
+        median.push(percentile(vals, 0.5));
+        p10.push(percentile(vals, 0.1));
+        p90.push(percentile(vals, 0.9));
+        p25.push(percentile(vals, 0.25));
+        p75.push(percentile(vals, 0.75));
+    }
+    const deterministic = simulateRetirementPath(inputs, false).balances;
+
+    if (fanChart) fanChart.destroy();
+    const ctx = $('fanChart').getContext('2d');
+    fanChart = new Chart(ctx, {
+        type:'line',
+        data:{ labels:years, datasets:[
+            { label:'Deterministic projection', data: deterministic, borderColor:'black', borderWidth:2, fill:false, pointRadius:0 },
+            { label:'Median (MC)', data: median, borderColor:'blue', fill:false, pointRadius:0 },
+            { label:'10–90%', data: p90, borderColor:'transparent', backgroundColor:'rgba(54,162,235,0.2)', fill:'+1', pointRadius:0 },
+            { data: p10, borderColor:'transparent', backgroundColor:'rgba(54,162,235,0.2)', fill:false, pointRadius:0 },
+            { label:'25–75%', data: p75, borderColor:'transparent', backgroundColor:'rgba(255,159,64,0.3)', fill:'+1', pointRadius:0 },
+            { data: p25, borderColor:'transparent', backgroundColor:'rgba(255,159,64,0.3)', fill:false, pointRadius:0 }
+        ]},
+        options:{ responsive:true, interaction:{ mode:'index', intersect:false }, plugins:{ title:{ display:true, text:'Fan Chart — Balances over time (from retirement)'}, tooltip:{ callbacks:{ label:ctx => formatCurrency(ctx.raw) } } }, scales:{ x:{ title:{ display:true, text:'Age' } }, y:{ title:{ display:true, text:'Balance (AUD)' }, beginAtZero:true } } }
+    });
+}
+
+/* ---------- Monte Carlo runner with progress ---------- */
+async function runMonteCarloWithProgress(inputs, runs) {
+    const chunk = 100;
+    const outcomes = [];
+    const paths = [];
+    $('progressContainer').classList.remove('hidden');
+    $('progressBar').style.width = '0%';
+    for (let i = 0; i < runs; i += chunk) {
+        for (let j = 0; j < chunk && (i + j) < runs; j++) {
+            const res = simulateRetirementPath(inputs, true);
+            outcomes.push(res.finalBalance);
+            paths.push(res.balances);
+        }
+        const pct = Math.min(100, Math.round(((i + chunk) / runs) * 100));
+        $('progressBar').style.width = pct + '%';
+        // yield to UI
+        await new Promise(r => setTimeout(r, 0));
+    }
+    $('progressContainer').classList.add('hidden');
+    outcomes.sort((a,b)=>a-b);
+    return { outcomes, paths };
+}
+
+/* ---------- Generate projection table & summary ---------- */
+function generateEnhancedProjectionTable(inputs, result) {
+    const projectionTable = $('projection-table');
+    projectionTable.innerHTML = '';
+    const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+    const yearsInRetirement = inputs.partnerLifespan - inputs.retirementAge;
+    let currentBalance = result.totalFinancialAssets + result.accessibleHomeEquity;
+    const currentYear = new Date().getFullYear() + yearsToRetirement;
+    const yourAge = inputs.retirementAge;
+    const partnerAge = inputs.partnerCurrentAge + yearsToRetirement;
+
+    const deemingThreshold = 106200;
+    const annualRentalExpenses = inputs.invPropCouncil + inputs.invPropStrata + inputs.invPropInsurance + inputs.invPropMaintenance;
+    const netRentalIncome = (inputs.weeklyRentalIncome * 52) - annualRentalExpenses;
+
+    for (let i = 0; i < Math.min(yearsInRetirement, 30); i++) {
+        const currentAge = yourAge + i;
+        const isCouple = currentAge < inputs.yourLifespan;
+        const incomeNeeded = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, yearsToRetirement + i);
+        const netRentalNow = result.propertyWasSold ? 0 : netRentalIncome * Math.pow(1 + inputs.inflation, yearsToRetirement + i);
+
+        const currentInvPropEquity = result.propertyWasSold ? 0 : result.investmentPropertyEquity * Math.pow(1 + inputs.inflation, i);
+        const assessableAssets = currentBalance + currentInvPropEquity - ((inputs.planToDownsize === true || inputs.planToDownsize === 'true') ? 0 : result.homeEquity);
+
+        const maxPension = isCouple ? inputs.agePensionMax : 28000;
+        const assetThreshold = isCouple ? inputs.pensionAssetThreshold : 301750;
+        const assetLimit = isCouple ? inputs.pensionAssetLimit : 686500;
+        const incomeThreshold = isCouple ? inputs.pensionIncomeThreshold : 212;
+
+        let pFromAssets = 0;
+        if (assessableAssets <= assetThreshold) pFromAssets = maxPension;
+        else if (assessableAssets < assetLimit) {
+            const excessAssets = assessableAssets - assetThreshold;
+            const reduction = (excessAssets / 1000) * 3 * 26;
+            pFromAssets = Math.max(0, maxPension - reduction);
+        }
+
+        let currentDeemed = currentBalance <= deemingThreshold ? currentBalance * 0.0025 : (deemingThreshold * 0.0025 + (currentBalance - deemingThreshold) * 0.0225);
+        let currentTotalIncome = currentDeemed + netRentalNow;
+        let pFromIncome = maxPension;
+        if ((currentTotalIncome / 26) > incomeThreshold) {
+            const reduction = ((currentTotalIncome / 26) - incomeThreshold) * 0.5 * 26;
+            pFromIncome = Math.max(0, maxPension - reduction);
+        }
+
+        const annualPension = Math.min(pFromAssets, pFromIncome);
+        const totalIncome = annualPension + netRentalNow;
+        const netWithdrawalNeeded = Math.max(0, incomeNeeded - totalIncome);
+        const grossWithdrawal = calculator.getGrossWithdrawal(netWithdrawalNeeded, inputs.investmentTaxRate, (inputs.superTaxFree === true || inputs.superTaxFree === 'true'), currentAge);
+
+        if (currentBalance < grossWithdrawal) {
+            projectionTable.innerHTML += `<tr class="bg-red-100"><td colspan="8" class="px-4 py-2 text-center font-semibold">Financial assets depleted in this year.</td></tr>`;
+            currentBalance = 0;
+            break;
+        }
+
+        const returnRate = calculator.getReturnForYear(inputs.investmentReturn / 100, yearsToRetirement + i, inputs.returnDeclineRate);
+        const monthlyReturn = Math.pow(1 + returnRate, 1/12) - 1;
+        const monthlyWithdrawal = grossWithdrawal / 12;
+        const startBalance = currentBalance;
+        let yearlyGrowth = 0;
+
+        for (let m = 1; m <= 12; m++) {
+            const mg = currentBalance * monthlyReturn;
+            yearlyGrowth += mg;
+            currentBalance = currentBalance + mg - monthlyWithdrawal;
+            if (currentBalance <= 0) { currentBalance = 0; break; }
+        }
+
+        projectionTable.innerHTML += `
+            <tr>
+                <td class="px-3 py-2">${currentYear + i}</td>
+                <td class="px-3 py-2">${yourAge + i} / ${partnerAge + i}</td>
+                <td class="px-3 py-2">${formatCurrency(startBalance)}</td>
+                <td class="px-3 py-2">${(returnRate*100).toFixed(2)}%</td>
+                <td class="px-3 py-2">${formatCurrency(yearlyGrowth)}</td>
+                <td class="px-3 py-2">${formatCurrency(grossWithdrawal)}</td>
+                <td class="px-3 py-2">${formatCurrency(totalIncome)}</td>
+                <td class="px-3 py-2 font-semibold">${formatCurrency(currentBalance)}</td>
+            </tr>
+        `;
+        if (currentBalance <= 0) break;
+    }
+}
+
+/* ---------- Main deterministic calculation & UI updates ---------- */
+function calculateRetirement() {
+    const inputs = collectInputs();
+    const result = simulateRetirementPath(inputs, false);
+    const yearsToRet = inputs.retirementAge - inputs.yourCurrentAge;
+    const requiredAnnualIncomeInRetirement = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, yearsToRet);
+
+    const assessableAssets = result.totalFinancialAssets + ( (inputs.planToDownsize === true || inputs.planToDownsize === 'true') ? result.accessibleHomeEquity : 0 );
+    let estimatedPensionAtStart = 0;
+    if (assessableAssets <= inputs.pensionAssetThreshold) estimatedPensionAtStart = inputs.agePensionMax;
+    else if (assessableAssets < inputs.pensionAssetLimit) {
+        const excess = assessableAssets - inputs.pensionAssetThreshold;
+        const reduction = (excess / 1000) * 3 * 26;
+        estimatedPensionAtStart = Math.max(0, inputs.agePensionMax - reduction);
+    }
+
+    $('summary').innerHTML = `
+        <div class="p-2 bg-gray-50 rounded"><strong>Years to retirement:</strong> <span class="float-right">${yearsToRet}</span></div>
+        <div class="p-2 bg-gray-50 rounded"><strong>Home equity at retirement:</strong> <span class="float-right">${formatCurrency(result.homeEquity)}</span></div>
+        <div class="p-2 bg-gray-50 rounded"><strong>Accessible home equity (if downsizing):</strong> <span class="float-right">${formatCurrency(result.accessibleHomeEquity)}</span></div>
+        <div class="p-2 bg-blue-50 rounded"><strong>Future super:</strong> <span class="float-right">${formatCurrency(result.futureSuper)}</span></div>
+        <div class="p-2 bg-blue-50 rounded"><strong>Future savings:</strong> <span class="float-right">${formatCurrency(result.futureSavings)}</span></div>
+        <div class="p-2 bg-blue-50 rounded"><strong>Future stocks:</strong> <span class="float-right">${formatCurrency(result.futureStocks)}</span></div>
+        <div class="p-2 bg-green-50 rounded"><strong>Total accessible assets:</strong> <span class="float-right font-bold">${formatCurrency(result.totalFinancialAssets + result.accessibleHomeEquity)}</span></div>
+        <div class="p-2 bg-red-50 rounded"><strong>Income needed (ASFA):</strong> <span class="float-right font-bold">${formatCurrency(requiredAnnualIncomeInRetirement)}</span></div>
+        <div class="p-2 bg-yellow-50 rounded"><strong>Net rental income at retirement:</strong> <span class="float-right">${result.propertyWasSold ? 'N/A (Sold)' : formatCurrency(result.netRentalIncome) + '/yr'}</span></div>
+        <div class="p-2 bg-yellow-50 rounded"><strong>Estimated pension at start:</strong> <span class="float-right">${formatCurrency(estimatedPensionAtStart)}/yr</span></div>
+    `;
+
+    // Assumptions panel
+    $('assumptions').innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div>Inflation: <strong>${(inputs.inflation*100).toFixed(2)}%</strong></div>
+            <div>Investment return (initial): <strong>${(inputs.investmentReturn*100).toFixed(2)}%</strong></div>
+            <div>Return decline rate: <strong>${inputs.returnDeclineRate}% p.a.</strong></div>
+            <div>Return volatility (σ): <strong>${(inputs.returnVolatility*100).toFixed(1)}%</strong></div>
+            <div>Savings return: <strong>${(inputs.savingsReturn*100).toFixed(2)}%</strong></div>
+            <div>Super return: <strong>${(inputs.superReturn*100).toFixed(2)}%</strong></div>
+            <div>Super guarantee: <strong>${(inputs.superContributionRate*100).toFixed(2)}%</strong></div>
+            <div>% post-tax income saved: <strong>${inputs.percentIncomeSaved}%</strong></div>
+            <div>ASFA comfortable (couple): <strong>${formatCurrency(inputs.asfaComfortable)}</strong></div>
+            <div>Investment tax rate: <strong>${inputs.investmentTaxRate}%</strong></div>
+            <div>Super tax-free after 60: <strong>${(inputs.superTaxFree === true || inputs.superTaxFree === 'true') ? 'Yes' : 'No'}</strong></div>
+        </div>
+    `;
+
+    // quick recommendations shown in UI
+    const quick = [];
+    quick.push('Consider testing multiple volatility and return scenarios (e.g., lower returns, higher volatility).');
+    quick.push('If you plan to downsize, confirm likely net proceeds & timing — model currently assumes 70% accessible.');
+    quick.push('Consider switching to a single-person ASFA budget if only one spouse survives.');
+    $('quickRecommendations').innerHTML = quick.map(r => `<li>${r}</li>`).join('');
+
+    // projection table
+    generateEnhancedProjectionTable(inputs, result);
+
+    // final message
+    if (result.finalBalance > 0) {
+        $('final-result').className = 'mt-4 p-3 rounded bg-green-100 text-green-800';
+        $('final-result').innerHTML = `<strong>Enhanced Retirement Goal Met</strong><div class="mt-1">Projected remaining assets at end of horizon: <strong>${formatCurrency(result.finalBalance)}</strong></div>`;
+    } else {
+        $('final-result').className = 'mt-4 p-3 rounded bg-red-100 text-red-800';
+        $('final-result').innerHTML = `<strong>Enhanced Model Shows Shortfall</strong><div class="mt-1">Assets are projected to be depleted before the end of the horizon.</div>`;
+    }
+}
+
+function collectInputs() {
+    return {
+        yourCurrentAge: parseFloat($('yourCurrentAge').value) || 0,
+        partnerCurrentAge: parseFloat($('partnerCurrentAge').value) || 0,
+        retirementAge: parseFloat($('retirementAge').value) || 0,
+        partnerRetirementAge: parseFloat($('partnerRetirementAge').value) || 0,
+        yourLifespan: parseFloat($('yourLifespan').value) || 0,
+        partnerLifespan: parseFloat($('partnerLifespan').value) || 0,
+        yourSalary: parseFloat($('yourSalary').value) || 0,
+        partnerSalary: parseFloat($('partnerSalary').value) || 0,
+        currentSuper: parseFloat($('currentSuper').value) || 0,
+        currentSavings: parseFloat($('currentSavings').value) || 0,
+        currentStocks: parseFloat($('currentStocks').value) || 0,
+        monthlyStockContribution: parseFloat($('monthlyStockContribution').value) || 0,
+        percentIncomeSaved: parseFloat($('percentIncomeSaved').value) || 0,
+        homeValue: parseFloat($('homeValue').value) || 0,
+        mortgageBalance: parseFloat($('mortgageBalance').value) || 0,
+        mortgageRate: parseFloat($('mortgageRate').value) || 0,
+        monthlyMortgagePayment: parseFloat($('monthlyMortgagePayment').value) || 0,
+        planToDownsize: $('planToDownsize').value === 'true',
+        investmentPropertyValue: parseFloat($('investmentPropertyValue').value) || 0,
+        investmentPropertyLoan: parseFloat($('investmentPropertyLoan').value) || 0,
+        weeklyRentalIncome: parseFloat($('weeklyRentalIncome').value) || 0,
+        invPropCouncil: parseFloat($('invPropCouncil') ? $('invPropCouncil').value : 0) || 0,
+        invPropStrata: parseFloat($('invPropStrata') ? $('invPropStrata').value : 0) || 0,
+        invPropInsurance: parseFloat($('invPropInsurance') ? $('invPropInsurance').value : 0) || 0,
+        invPropMaintenance: parseFloat($('invPropMaintenance') ? $('invPropMaintenance').value : 0) || 0,
+        sellPropertyYears: parseFloat($('sellPropertyYears').value) || 0,
+        capitalGainsTaxRate: parseFloat($('capitalGainsTaxRate').value) || 0,
+        salaryGrowthRate: parseFloat($('salaryGrowthRate').value) || 0,
+        leanYearsStart: parseFloat($('leanYearsStart').value) || 0,
+        leanYearsReduction: parseFloat($('leanYearsReduction').value) || 0,
+        investmentTaxRate: parseFloat($('investmentTaxRate').value) || 0,
+        superTaxFree: $('superTaxFree').value === 'true',
+        inflation: (parseFloat($('inflation').value) || 0) / 100,
+        investmentReturn: (parseFloat($('investmentReturn').value) || 0) / 100,
+        returnDeclineRate: parseFloat($('returnDeclineRate').value) || 0,
+        savingsReturn: (parseFloat($('savingsReturn') ? $('savingsReturn').value : 0) || 0) / 100,
+        superReturn: (parseFloat($('superReturn') ? $('superReturn').value : 0) || 0) / 100,
+        superContributionRate: (parseFloat($('superContributionRate') ? $('superContributionRate').value : 12) || 12) / 100,
+        asfaComfortable: parseFloat($('asfaComfortable').value) || 0,
+        agePensionMax: parseFloat($('agePensionMax').value) || 0,
+        pensionAssetThreshold: parseFloat($('pensionAssetThreshold').value) || 0,
+        pensionAssetLimit: parseFloat($('pensionAssetLimit').value) || 0,
+        pensionIncomeThreshold: parseFloat($('pensionIncomeThreshold').value) || 0,
+        returnVolatility: (parseFloat($('returnVolatility').value) || 12) / 100
+    };
+}
+
+/* ---------- Monte Carlo UI hook ---------- */
+$('runMonteCarlo').addEventListener('click', async () => {
+    const inputs = collectInputs();
+    const runs = Math.max(100, parseInt($('numRuns').value || 1000));
+    // run MC with progress
+    const { outcomes, paths } = await runMonteCarloWithProgress(inputs, runs);
+    const median = outcomes[Math.floor(runs/2)];
+    const p10 = outcomes[Math.floor(runs*0.1)];
+    const p90 = outcomes[Math.floor(runs*0.9)];
+    const success = outcomes.filter(v => v > 0).length / runs;
+
+    $('monteCarloResults').innerHTML = `
+        <div class="grid grid-cols-2 gap-2">
+            <div class="p-2 bg-blue-50 rounded"><strong>Runs</strong><div>${runs.toLocaleString()}</div></div>
+            <div class="p-2 bg-green-50 rounded"><strong>Success Rate</strong><div>${(success*100).toFixed(1)}%</div></div>
+            <div class="p-2 bg-gray-50 rounded"><strong>Median final balance</strong><div>${formatCurrency(median)}</div></div>
+            <div class="p-2 bg-gray-50 rounded"><strong>10th percentile</strong><div>${formatCurrency(p10)}</div></div>
+            <div class="p-2 bg-gray-50 rounded"><strong>90th percentile</strong><div>${formatCurrency(p90)}</div></div>
+            <div class="p-2 bg-indigo-50 rounded"><strong>Return volatility (σ)</strong><div>${(inputs.returnVolatility*100).toFixed(1)}%</div></div>
+        </div>
+    `;
+
+    renderMonteCarloChart(outcomes);
+    renderFanChart(inputs, paths);
+});
+
+/* ---------- UI wiring ---------- */
+document.querySelectorAll('input, select').forEach(el => {
+    el.addEventListener('change', calculateRetirement);
+    el.addEventListener('keyup', calculateRetirement);
+});
+window.addEventListener('load', calculateRetirement);
+</script>
+</body>
+</html>
