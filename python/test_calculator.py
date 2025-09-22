@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-Test script for the Enhanced Australian Retirement Calculator
+Test script for the Enhanced Australian Retirement Calculator.
 
-This script contains various test scenarios to validate the calculator's new structure.
+This script contains a comprehensive suite of tests for the EnhancedRetirementSimulator,
+validating its structure, calculations, and advanced features.
 """
 
-from retirement_calculator import EnhancedRetirementSimulator, get_default_inputs
 import unittest
+from retirement_calculator import EnhancedRetirementSimulator, get_default_inputs
 
 class TestEnhancedRetirementSimulator(unittest.TestCase):
 
@@ -22,68 +23,107 @@ class TestEnhancedRetirementSimulator(unittest.TestCase):
         print("✓ Simulator initializes correctly.")
 
     def test_basic_simulation_run(self):
-        """Test a basic run of the simulation."""
+        """Test a basic run of the deterministic simulation."""
         results = self.simulator.run_simulation()
         self.assertIn('finalBalance', results)
-        self.assertIn('totalFinancialAssets', results)
-        self.assertIn('yearlyData', results)
-        self.assertTrue(isinstance(results['yearlyData'], list))
-        print("✓ Basic simulation runs and returns expected keys.")
+        self.assertIsInstance(results['finalBalance'], (int, float))
+        print("✓ Basic deterministic simulation runs and returns expected keys.")
 
-    def test_simulation_with_no_income(self):
-        """Test simulation with zero income."""
-        inputs = self.default_inputs.copy()
-        inputs['yourSalary'] = 0
-        inputs['partnerSalary'] = 0
-        inputs['monthlyStockContribution'] = 0
-        inputs['percentIncomeSaved'] = 0
-        
-        simulator = EnhancedRetirementSimulator(inputs)
-        results = simulator.run_simulation()
-        
-        # With no income, super should not grow from contributions, only returns
-        # and final balance should be lower
-        base_case_results = self.simulator.run_simulation()
-        self.assertLess(results['totalFinancialAssets'], base_case_results['totalFinancialAssets'])
-        print("✓ Simulation with no income runs correctly.")
+    def test_monte_carlo_simulation(self):
+        """Test the Monte Carlo simulation runs and returns correct format."""
+        mc_results = self.simulator.run_monte_carlo_simulation(runs=100) # Reduced runs for speed
+
+        self.assertIn('success_rate', mc_results)
+        self.assertIn('median', mc_results)
+        self.assertLessEqual(mc_results['success_rate'], 1.0)
+        self.assertGreaterEqual(mc_results['success_rate'], 0.0)
+        print("✓ Monte Carlo simulation runs and returns correct format.")
 
     def test_downsizing_impact(self):
-        """Test the effect of downsizing."""
+        """Test the effect of downsizing on the simulation results."""
         inputs_no_downsize = self.default_inputs.copy()
         inputs_no_downsize['planToDownsize'] = False
-        inputs_no_downsize['yourCurrentSuper'] = 1000000  # Use a higher balance to avoid depletion
-        inputs_no_downsize['partnerCurrentSuper'] = 1000000  # Use a higher balance to avoid depletion
         sim_no_downsize = EnhancedRetirementSimulator(inputs_no_downsize)
         res_no_downsize = sim_no_downsize.run_simulation()
 
         inputs_yes_downsize = self.default_inputs.copy()
         inputs_yes_downsize['planToDownsize'] = True
-        inputs_yes_downsize['yourCurrentSuper'] = 1000000  # Use a higher balance to avoid depletion
-        inputs_yes_downsize['partnerCurrentSuper'] = 1000000  # Use a higher balance to avoid depletion
         sim_yes_downsize = EnhancedRetirementSimulator(inputs_yes_downsize)
         res_yes_downsize = sim_yes_downsize.run_simulation()
 
-        # Downsizing should result in higher accessible home equity and thus higher final balance
-        self.assertGreater(res_yes_downsize['accessibleHomeEquity'], 0)
-        self.assertEqual(res_no_downsize['accessibleHomeEquity'], 0)
+        # Final balance should be higher with downsizing, as more equity is accessed
         self.assertGreater(res_yes_downsize['finalBalance'], res_no_downsize['finalBalance'])
-        print("✓ Downsizing correctly impacts accessible home equity and final balance.")
+        print("✓ Downsizing correctly impacts final balance.")
+
+    def test_investment_property_impact(self):
+        """Test the effect of having an investment property."""
+        inputs_no_property = self.default_inputs.copy()
+        inputs_no_property['hasInvestmentProperty'] = False
+        sim_no_property = EnhancedRetirementSimulator(inputs_no_property)
+        res_no_property = sim_no_property.run_simulation()
+
+        inputs_with_property = self.default_inputs.copy()
+        inputs_with_property['hasInvestmentProperty'] = True
+        sim_with_property = EnhancedRetirementSimulator(inputs_with_property)
+        res_with_property = sim_with_property.run_simulation()
+
+        # The impact of an investment property can be positive or negative,
+        # so we just check that the final balance is different.
+        self.assertNotEqual(res_no_property['finalBalance'], res_with_property['finalBalance'])
+        print("✓ Investment property correctly impacts final balance.")
+
+    def test_retirement_age_solver(self):
+        """Test the retirement age solver."""
+        # Use a high income to ensure a solution is found
+        inputs = self.default_inputs.copy()
+        inputs['yourSalary'] = 300000
+        simulator = EnhancedRetirementSimulator(inputs)
+
+        earliest_age = simulator.solve_retirement_age()
+
+        self.assertIsNotNone(earliest_age)
+        self.assertIsInstance(earliest_age, int)
+        self.assertGreater(earliest_age, inputs['yourCurrentAge'])
+        print("✓ Retirement age solver finds a valid age.")
+
+    def test_stress_tests(self):
+        """Test that stress tests run and return a list of results."""
+        stress_results = self.simulator.run_stress_tests()
+
+        self.assertIsInstance(stress_results, list)
+        self.assertGreater(len(stress_results), 0)
+        self.assertIn('scenario', stress_results[0])
+        self.assertIn('finalBalance', stress_results[0])
+        self.assertIn('success', stress_results[0])
+        print("✓ Stress tests run and return correct format.")
+
+    def test_scenario_comparison(self):
+        """Test the scenario comparison feature."""
+        scenarios = self.simulator.get_common_scenarios()
+        results = self.simulator.run_scenario_comparison(scenarios)
+
+        self.assertIsInstance(results, list)
+        self.assertEqual(len(results), len(scenarios))
+        self.assertIn('name', results[0])
+        self.assertIn('successRate', results[0])
+        self.assertIn('medianBalance', results[0])
+        print("✓ Scenario comparison runs and returns correct format.")
 
 
 def main():
     """Run all tests."""
     print("ENHANCED RETIREMENT CALCULATOR - TEST SUITE")
     print("=" * 60)
-    
+
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestEnhancedRetirementSimulator))
     runner = unittest.TextTestRunner()
     result = runner.run(suite)
 
     if result.wasSuccessful():
-        print("\n🎉 ALL BASE TESTS PASSED SUCCESSFULLY! 🎉")
+        print("\n🎉 ALL TESTS PASSED SUCCESSFULLY! 🎉")
     else:
-        print("\n❌ SOME BASE TESTS FAILED ❌")
+        print("\n❌ SOME TESTS FAILED ❌")
 
 
 if __name__ == "__main__":

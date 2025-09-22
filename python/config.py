@@ -1,4 +1,4 @@
-# python/config.py - Enhanced Australian Retirement Calculator Configuration
+# config.py - Enhanced Australian Retirement Calculator Configuration
 # All Australian-specific constants, rules, and default values
 
 ENHANCED_CONFIG = {
@@ -12,15 +12,15 @@ ENHANCED_CONFIG = {
     "HOME_EQUITY_ACCESS_RATE": 0.7,
     "CGT_DISCOUNT": 0.5,
     "FRANKING_CREDIT_RATE": 0.3,
-    
+
     # Enhanced healthcare and aged care costs (2024 values)
     "HEALTHCARE_COSTS": {
         "home_package4": 56000,
-        "residential": 75000,
+        "residential": 76000,
         "premium": 120000,
-        "current_average": 3500
+        "current_average": 5200
     },
-    
+
     # Investment property constants
     "PROPERTY_COSTS": {
         "SELLING_COSTS_PERCENT": 0.06,
@@ -29,7 +29,7 @@ ENHANCED_CONFIG = {
         "MAINTENANCE_PERCENT": 0.01,
         "VACANCY_RATE": 0.04
     },
-    
+
     # Risk profiling thresholds
     "RISK_THRESHOLDS": {
         "capacity": {
@@ -43,130 +43,168 @@ ENHANCED_CONFIG = {
             "aggressive": 80
         }
     },
-    
-    # Asset allocation glide path rules - maps rule name to a function name in utils.py
+
+    # Asset allocation glide path rules
     "GLIDE_PATH_RULES": {
         "120minus": "glide_path_120_minus_age",
         "110minus": "glide_path_110_minus_age",
         "100minus": "glide_path_100_minus_age"
     },
-    
+
     # Australian tax brackets (2024-25)
     "TAX_BRACKETS": [
         { "min": 0, "max": 18200, "rate": 0 },
-        { "min": 18200, "max": 45000, "rate": 0.19 },
-        { "min": 45000, "max": 120000, "rate": 0.325 },
-        { "min": 120000, "max": 180000, "rate": 0.37 },
-        { "min": 180000, "max": float('inf'), "rate": 0.45 }
+        { "min": 18201, "max": 45000, "rate": 0.16 },
+        { "min": 45001, "max": 135000, "rate": 0.3 },
+        { "min": 135001, "max": 190000, "rate": 0.37 },
+        { "min": 190001, "max": float('inf'), "rate": 0.45 }
     ],
-    
+
     # Healthcare inflation rates by condition
     "HEALTHCARE_INFLATION": {
-        "none": 6.0,
-        "minor": 6.5,
-        "moderate": 7.0,
-        "major": 8.0
+        "none": 4.5,
+        "minor": 4.75,
+        "moderate": 6.0,
+        "major": 9.0
     },
-    
-    # Stress test scenarios
+
+    # Historical Australian market patterns and volatility modeling
+    "MARKET_REGIMES": {
+        # Interest rate environments based on historical RBA patterns
+        "interestRateRegimes": [
+            { "name": "COVID Ultra-Low", "cashRate": 0.001, "duration": 2, "probability": 0.05, "period": "2020-2022" },
+            { "name": "Low Rate", "cashRate": 0.02, "duration": 3, "probability": 0.15, "period": "2008-2020" },
+            { "name": "Normal", "cashRate": 0.045, "duration": 5, "probability": 0.50, "period": "2000-2007" },
+            { "name": "High Rate", "cashRate": 0.065, "duration": 3, "probability": 0.25, "period": "1980-2000" },
+            { "name": "Crisis High", "cashRate": 0.085, "duration": 2, "probability": 0.05, "period": "1990s recession" }
+        ],
+
+        # Property cycles based on Australian historical patterns (7-year cycles)
+        "propertyCycles": [
+            { "phase": "Boom", "yearsInCycle": [1, 2], "baseReturn": 0.12, "volatility": 0.08, "probability": 0.20 },
+            { "phase": "Peak", "yearsInCycle": [3], "baseReturn": 0.08, "volatility": 0.12, "probability": 0.10 },
+            { "phase": "Decline", "yearsInCycle": [4, 5], "baseReturn": -0.05, "volatility": 0.15, "probability": 0.25 },
+            { "phase": "Trough", "yearsInCycle": [6], "baseReturn": -0.02, "volatility": 0.10, "probability": 0.15 },
+            { "phase": "Recovery", "yearsInCycle": [7, 1], "baseReturn": 0.06, "volatility": 0.08, "probability": 0.30 }
+        ],
+
+        # ASX market volatility patterns
+        "equityMarketRegimes": [
+            { "name": "Bull Market", "baseReturn": 0.10, "volatility": 0.12, "duration": 5, "probability": 0.35 },
+            { "name": "Normal Market", "baseReturn": 0.07, "volatility": 0.15, "duration": 3, "probability": 0.40 },
+            { "name": "Volatile Market", "baseReturn": 0.05, "volatility": 0.25, "duration": 2, "probability": 0.15 },
+            { "name": "Bear Market", "baseReturn": -0.15, "volatility": 0.35, "duration": 1, "probability": 0.10 }
+        ]
+    },
+
+    # Enhanced stress test scenarios based on Australian historical events
     "STRESS_SCENARIOS": [
         {
-            "name": "Market Crash (GFC-style)",
-            "equityReturn": -0.4,
-            "bondReturn": 0.1,
-            "propertyReturn": -0.15,
+            "name": "COVID-19 Style Crash & Recovery",
+            "year1": { "equityReturn": -0.35, "bondReturn": 0.08, "propertyReturn": 0.15, "cashRate": 0.001 },
+            "year2": { "equityReturn": 0.25, "bondReturn": 0.02, "propertyReturn": 0.20, "cashRate": 0.001 },
             "duration": 2,
-            "probability": 0.1
+            "probability": 0.05,
+            "description": "35% equity fall followed by rapid recovery, property boom, ultra-low rates"
         },
         {
-            "name": "Property Market Crash",
-            "equityReturn": -0.1,
+            "name": "Global Financial Crisis",
+            "year1": { "equityReturn": -0.40, "bondReturn": 0.10, "propertyReturn": -0.05, "cashRate": 0.02 },
+            "year2": { "equityReturn": -0.20, "bondReturn": 0.08, "propertyReturn": -0.10, "cashRate": 0.015 },
+            "duration": 2,
+            "probability": 0.08,
+            "description": "Severe market crash with modest property decline"
+        },
+        {
+            "name": "Property Market Correction",
+            "equityReturn": -0.05,
             "bondReturn": 0.02,
-            "propertyReturn": -0.3,
+            "propertyReturn": -0.15,
             "duration": 3,
-            "probability": 0.05
+            "probability": 0.15,
+            "description": "Major property price correction as seen 2022-2024"
         },
         {
-            "name": "Stagflation Period",
-            "equityReturn": -0.1,
-            "bondReturn": -0.05,
-            "propertyReturn": 0.02,
-            "inflation": 0.08,
-            "duration": 3,
-            "probability": 0.05
+            "name": "Mining Boom End",
+            "equityReturn": -0.10,
+            "bondReturn": 0.03,
+            "propertyReturn": -0.25,
+            "duration": 4,
+            "probability": 0.10,
+            "description": "End of commodity cycle affecting property and equities"
         },
         {
             "name": "Interest Rate Shock",
             "equityReturn": -0.15,
-            "bondReturn": -0.2,
-            "propertyReturn": -0.1,
-            "cashReturn": 0.08,
+            "bondReturn": -0.20,
+            "propertyReturn": -0.10,
+            "cashReturn": 0.085,
             "duration": 1,
-            "probability": 0.15
+            "probability": 0.15,
+            "description": "Rapid rate rise cycle like 2022-2023"
         },
         {
             "name": "Healthcare Crisis",
             "healthcareCostMultiplier": 2.5,
             "duration": 5,
-            "probability": 0.2
+            "probability": 0.20,
+            "description": "Pandemic-style healthcare cost explosion"
         }
     ],
-    
+
     # Default values for new users
     "DEFAULTS": {
         "personal": {
             "yourCurrentAge": 45,
-            "partnerCurrentAge": 43,
-            "retirementAge": 65,
-            "partnerRetirementAge": 65,
-            "yourLifespan": 90,
-            "partnerLifespan": 92
+            "partnerCurrentAge": 40,
+            "retirementAge": 68,
+            "partnerRetirementAge": 68,
+            "yourLifespan": 95,
+            "partnerLifespan": 99
         },
         "financial": {
-            "yourSalary": 85000,
-            "partnerSalary": 65000,
-            "yourCurrentSuper": 150000,
-            "partnerCurrentSuper": 150000,
+            "yourSalary": 140000,
+            "partnerSalary": 45000,
+            "yourCurrentSuper": 200000,
+            "partnerCurrentSuper": 190000,
             "currentSavings": 25000,
             "currentStocks": 15000,
             "monthlyStockContribution": 500,
             "percentIncomeSaved": 10
         },
         "property": {
-            "homeValue": 750000,
-            "mortgageBalance": 400000,
-            "mortgageRate": 0.055,
-            "monthlyMortgagePayment": 2800,
-            "planToDownsize": False,
+            "homeValue": 1100000,
+            "mortgageBalance": 900000,
+            "mortgageRate": 5.37,
+            "monthlyMortgagePayment": 4100,
+            "planToDownsize": True,
             "hasInvestmentProperty": False,
             "investmentPropertyValue": 550000,
             "investmentPropertyLoan": 400000,
-            "investmentPropertyRate": 0.062,
+            "investmentPropertyRate": 6.2,
             "weeklyRentalIncome": 550,
             "annualPropertyExpenses": 8000,
-            "propertyGrowthRate": 0.045,
+            "propertyGrowthRate": 4.5,
             "sellPropertyYears": 15,
-            "capitalGainsTaxRate": 0.225
+            "capitalGainsTaxRate": 22.5
         },
         "healthcare": {
-            "currentHealthcareCosts": 3500,
-            "healthcareInflation": 6.5,
+            "currentHealthcareCosts": 5200,
+            "healthcareInflation": 4.5,
             "hasPrivateHealth": "comprehensive",
             "chronicConditions": "none",
-            "agedCareProbability": 65,
-            "agedCareStartAge": 85,
-            "agedCareDuration": 3.5,
-            "agedCareAnnualCost": 75000
+            "agedCareProbability": 68,
+            "agedCareStartAge": 88,
+            "agedCareDuration": 7.5,
+            "agedCareAnnualCost": 76000
         },
         "economic": {
-            "inflation": 0.0287,
-            "investmentReturn": 0.0561,
+            "inflation": 2.87,
+            "investmentReturn": 5.61,
             "returnDeclineRate": 0.03,
-            "savingsReturn": 0.014,
-            "superReturn": 0.0875,
-            "salaryGrowthRate": 1.5,
-            "leanYearsStart": 5,
-            "leanYearsReduction": 25
+            "savingsReturn": 1.4,
+            "superReturn": 8.75,
+            "salaryGrowthRate": 1.5
         },
         "allocation": {
             "useGlidePath": True,
@@ -182,10 +220,10 @@ ENHANCED_CONFIG = {
         },
         "simulation": {
             "numRuns": 5000,
-            "returnVolatility": 0.12,
+            "returnVolatility": 12,
             "enableShocks": False,
-            "shockProbability": 0.05,
-            "shockMagnitude": -0.25
+            "shockProbability": 5,
+            "shockMagnitude": -25
         },
         "pension": {
             "asfaComfortable": 73875,
@@ -195,17 +233,17 @@ ENHANCED_CONFIG = {
             "pensionIncomeThreshold": 372
         }
     },
-    
+
     # Validation rules
     "VALIDATION": {
-        "age": { "min": 18, "max": 100 },
+        "age": { "min": 18, "max": 120 },
         "salary": { "min": 0, "max": 1000000 },
         "percentage": { "min": 0, "max": 100 },
         "currency": { "min": 0, "max": 10000000 },
-        "years": { "min": 0.5, "max": 50 },
+        "years": { "min": 0.5, "max": 65 },
         "runs": { "min": 1000, "max": 10000 }
     },
-    
+
     # Asset allocation presets
     "ALLOCATION_PRESETS": {
         "conservative": { "equity": 30, "bonds": 50, "cash": 20 },
@@ -213,7 +251,7 @@ ENHANCED_CONFIG = {
         "growth": { "equity": 80, "bonds": 15, "cash": 5 },
         "aggressive": { "equity": 90, "bonds": 8, "cash": 2 }
     },
-    
+
     # Behavioral nudge settings
     "BEHAVIORAL_NUDGES": {
         "autoRebalanceThreshold": 0.05,
