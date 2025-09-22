@@ -4,22 +4,22 @@ Analyzed and fixed the major issues in js/charts.js:
 
 ### Y-Axis Scaling Fixes
 
-  1. Fixed Y-axis expansion: Added max or suggestedMax properties to prevent unlimited Y-axis growth:
-    - Fan chart: max: Math.max(...results.balances) * 1.1 (lines 70-71)
-    - Monte Carlo chart: suggestedMax: Math.max(...[].concat(...[p90, p75, median, p25, p10])) * 1.1 (lines 169-170)
-    - Property chart: suggestedMax: Math.max(...portfolioValues, ...propertyValues) * 1.1 (lines 365-366)
+1. Fixed Y-axis expansion: Added max or suggestedMax properties to prevent unlimited Y-axis growth:
+  - Fan chart: max: Math.max(...results.balances) * 1.1 (lines 70-71)
+  - Monte Carlo chart: suggestedMax: Math.max(...[].concat(...[p90, p75, median, p25, p10])) * 1.1 (lines 169-170)
+  - Property chart: suggestedMax: Math.max(...portfolioValues, ...propertyValues) * 1.1 (lines 365-366)
 
 ### Chart Size Fixes
 
-  2. Static chart sizing: Added aspectRatio: 2 to all charts while keeping maintainAspectRatio: false - this provides a consistent 2:1 width-to-height ratio
+1. Static chart sizing: Added aspectRatio: 2 to all charts while keeping maintainAspectRatio: false - this provides a consistent 2:1 width-to-height ratio
 
-  Monte Carlo Visualization Improvements:
+### Monte Carlo Visualization Improvements:
 
-  3. Better percentile labeling: Changed from generic "range" labels to specific percentile labels (90th, 75th, 25th, 10th percentiles)
-  4. Improved fill visualization: Added border colors and widths to percentile lines for better visibility
-  5. Fixed fill syntax: Maintained the fill: '+1' pattern which creates proper area fills between datasets
+1. Better percentile labeling: Changed from generic "range" labels to specific percentile labels (90th, 75th, 25th, 10th percentiles)
+2. Improved fill visualization: Added border colors and widths to percentile lines for better visibility
+3. Fixed fill syntax: Maintained the fill: '+1' pattern which creates proper area fills between datasets
 
-  The charts should now maintain consistent sizing and prevent the Y-axis from expanding uncontrollably with large data values.
+The charts should now maintain consistent sizing and prevent the Y-axis from expanding uncontrollably with large data values.
 
 ## Performance Issues Fixed
 
@@ -50,6 +50,30 @@ Math.max(
 - Changed maintainAspectRatio: false to maintainAspectRatio: true across all charts so that aspectRatio: 2 is properly enforced
 
 These changes eliminate potential memory issues and stack overflow errors with large datasets while ensuring proper chart sizing behavior.
+
+## The key fixes implemented for the chart canvas issues are:
+
+1. Fixed canvas aspect ratio conflicts: Changed maintainAspectRatio: false to true to prevent sizing conflicts
+2. Fixed Y-axis scaling calculation: Replaced the problematic reduce operation with Math.max(...p90.filter(...)) and proper fallback values
+3. Added error handling: Wrapped chart destruction in try-catch to prevent cascade failures
+4. Added canvas size constraints: Set maxHeight and maxWidth to prevent canvas overflow
+5. Improved data validation: Filter out invalid/infinite values before processing
+
+The main issue was that the Y-axis suggestedMax calculation could produce Infinity or NaN values, causing the canvas to exceed maximum size limits. This created a cascade of errors during chart destruction and recreation.
+
+## ✅ Phase 1: Critical Bug Fixes - COMPLETED
+
+### Fixed Chart Rendering Issues
+
+- Fixed canvas size overflow errors by setting proper maxHeight and maxWidth constraints
+- Fixed Y-axis scaling calculation that was causing infinite values (suggestedMax)
+- Added error handling for chart destruction to prevent cascade failures
+- Fixed data validation to filter out invalid/infinite values in Monte Carlo results
+- Changed maintainAspectRatio: false to true to prevent aspect ratio conflicts
+
+The "Canvas exceeds max size" and "Canvas is already in error state" errors should now be resolved.
+
+- ✅ Fixed critical chart rendering bugs that were causing crashes: The Monte Carlo button should now work without the canvas errors, and users can get retirement age recommendations plus more accurate franking credit benefits based on their specific dividend yield and franking rate expectations.
 
 ## Key Retirement Planning Calculations
 
