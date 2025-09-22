@@ -18,13 +18,13 @@ export class ChartManager {
     // Portfolio balance fan chart with percentiles
     renderFanChart(results, inputs) {
         this.destroyChart('fanChart');
-        
+
         const canvas = document.getElementById('fanChart');
         if (!canvas) return;
-        
+
         const ctx = canvas.getContext('2d');
         const years = results.yearlyData.map(d => d.age);
-        
+
         this.charts.fanChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -79,10 +79,10 @@ export class ChartManager {
     // Enhanced fan chart for Monte Carlo results
     renderMonteCarloFanChart(inputs, paths) {
         this.destroyChart('fanChart');
-        
+
         const canvas = document.getElementById('fanChart');
-        if (!canvas) return;
-        
+        if (!canvas || !paths || paths.length === 0) return;
+
         const ctx = canvas.getContext('2d');
         const maxYears = Math.max(...paths.map(p => p.length));
         const years = Array.from({length: maxYears}, (_, i) => inputs.retirementAge + i);
@@ -162,8 +162,8 @@ export class ChartManager {
                 },
                 scales: {
                     x: { title: { display: true, text: 'Age (years)' } },
-                    y: { 
-                        title: { display: true, text: 'Portfolio Balance (AUD)' }, 
+                    y: {
+                        title: { display: true, text: 'Portfolio Balance (AUD)' },
                         beginAtZero: true,
                         ticks: {
                             callback: (value) => formatCurrency(value)
@@ -177,37 +177,38 @@ export class ChartManager {
     // Final balance histogram
     renderHistogram(outcomes) {
         this.destroyChart('histChart');
-        
+
         const canvas = document.getElementById('histChart');
-        if (!canvas) return;
-        
+        if (!canvas || !outcomes || outcomes.length === 0) return;
+
         const ctx = canvas.getContext('2d');
         const bins = 25;
         const maxVal = Math.max(...outcomes);
         const minVal = Math.min(...outcomes);
-        const binSize = (maxVal - minVal) / bins || 1;
+        const range = Math.max(1, maxVal - minVal); // avoid divide by zero
+        const binSize = range / bins;
         const histogram = new Array(bins).fill(0);
-        
+
         outcomes.forEach(val => {
-            let idx = Math.min(Math.floor((val - minVal) / binSize), bins - 1);
+            const idx = Math.min(Math.floor((val - minVal) / binSize), bins - 1);
             histogram[idx]++;
         });
-        
+
         const labels = histogram.map((_, i) => formatCurrency(minVal + i * binSize));
-        
+
         this.charts.histChart = new Chart(ctx, {
             type: 'bar',
-            data: { 
-                labels, 
-                datasets: [{ 
-                    label: 'Number of Simulations', 
-                    data: histogram, 
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Number of Simulations',
+                    data: histogram,
                     backgroundColor: 'rgba(99, 102, 241, 0.6)',
                     borderColor: 'rgba(99, 102, 241, 1)',
                     borderWidth: 1
-                }] 
+                }]
             },
-            options: { 
+            options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
@@ -217,16 +218,16 @@ export class ChartManager {
                     },
                     legend: { display: false }
                 },
-                scales: { 
-                    x: { 
+                scales: {
+                    x: {
                         title: { display: true, text: 'Final Balance (AUD)' },
                         ticks: { maxRotation: 45 }
-                    }, 
-                    y: { 
+                    },
+                    y: {
                         title: { display: true, text: 'Number of Simulations' },
                         beginAtZero: true
-                    } 
-                } 
+                    }
+                }
             }
         });
     }
@@ -234,13 +235,13 @@ export class ChartManager {
     // Asset allocation over time
     renderAllocationChart(allocationHistory, startAge) {
         this.destroyChart('allocationChart');
-        
+
         const canvas = document.getElementById('allocationChart');
         if (!canvas) return;
-        
+
         const ctx = canvas.getContext('2d');
         const ages = allocationHistory.map((_, i) => startAge + i);
-        
+
         this.charts.allocationChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -285,10 +286,10 @@ export class ChartManager {
                     }
                 },
                 scales: {
-                    x: { 
+                    x: {
                         title: { display: true, text: 'Age (years)' }
                     },
-                    y: { 
+                    y: {
                         title: { display: true, text: 'Allocation Percentage (%)' },
                         min: 0,
                         max: 100
@@ -301,20 +302,20 @@ export class ChartManager {
     // Property vs Portfolio comparison
     renderPropertyChart(results, inputs) {
         this.destroyChart('propertyChart');
-        
+
         const canvas = document.getElementById('propertyChart');
         if (!canvas || !inputs.hasInvestmentProperty) return;
-        
+
         const ctx = canvas.getContext('2d');
         const years = results.yearlyData.map(d => d.year);
         const portfolioValues = results.balances;
-        
+
         // Calculate property values over time
         const propertyValues = results.propertyHistory.map((prop, i) => {
             if (prop.saleResult) return 0; // Property sold
             return inputs.investmentPropertyValue * Math.pow(1 + inputs.propertyGrowthRate / 100, i + 1);
         });
-        
+
         this.charts.propertyChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -356,7 +357,7 @@ export class ChartManager {
                 },
                 scales: {
                     x: { title: { display: true, text: 'Year' } },
-                    y: { 
+                    y: {
                         title: { display: true, text: 'Value (AUD)' },
                         ticks: {
                             callback: (value) => formatCurrency(value)
@@ -370,13 +371,13 @@ export class ChartManager {
     // Healthcare cost growth chart
     renderHealthcareChart(healthcareCostHistory, startYear) {
         this.destroyChart('healthcareChart');
-        
+
         const canvas = document.getElementById('healthcareChart');
         if (!canvas) return;
-        
+
         const ctx = canvas.getContext('2d');
         const years = healthcareCostHistory.map((_, i) => startYear + i);
-        
+
         this.charts.healthcareChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -405,7 +406,7 @@ export class ChartManager {
                 },
                 scales: {
                     x: { title: { display: true, text: 'Year' } },
-                    y: { 
+                    y: {
                         title: { display: true, text: 'Annual Cost (AUD)' },
                         beginAtZero: true,
                         ticks: {
@@ -420,12 +421,12 @@ export class ChartManager {
     // Risk analysis chart
     renderRiskAnalysisChart(riskData) {
         this.destroyChart('sequenceRiskChart');
-        
+
         const canvas = document.getElementById('sequenceRiskChart');
         if (!canvas) return;
-        
+
         const ctx = canvas.getContext('2d');
-        
+
         // Generate sequence of returns risk data
         const scenarios = [
             { name: 'Early Bear Market', impact: -25, probability: 15 },
@@ -434,7 +435,7 @@ export class ChartManager {
             { name: 'Healthcare Shock', impact: -20, probability: 25 },
             { name: 'No Major Shocks', impact: 5, probability: 30 }
         ];
-        
+
         this.charts.sequenceRiskChart = new Chart(ctx, {
             type: 'scatter',
             data: {
@@ -465,12 +466,12 @@ export class ChartManager {
                     }
                 },
                 scales: {
-                    x: { 
+                    x: {
                         title: { display: true, text: 'Probability (%)' },
                         min: 0,
                         max: 35
                     },
-                    y: { 
+                    y: {
                         title: { display: true, text: 'Portfolio Impact (%)' },
                         min: -40,
                         max: 10
@@ -483,13 +484,13 @@ export class ChartManager {
     // Property cash flow chart
     renderPropertyCashFlowChart(propertyHistory) {
         this.destroyChart('propertyCashFlowChart');
-        
+
         const canvas = document.getElementById('propertyCashFlowChart');
         if (!canvas || !propertyHistory.length) return;
-        
+
         const ctx = canvas.getContext('2d');
         const years = propertyHistory.map((_, i) => new Date().getFullYear() + i);
-        
+
         this.charts.propertyCashFlowChart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -544,7 +545,7 @@ export class ChartManager {
                 },
                 scales: {
                     x: { title: { display: true, text: 'Year' } },
-                    y: { 
+                    y: {
                         title: { display: true, text: 'Cash Flow (AUD)' },
                         ticks: {
                             callback: (value) => formatCurrency(value)
@@ -578,7 +579,7 @@ export class ChartManager {
         // Property charts
         if (inputs.hasInvestmentProperty) {
             this.renderPropertyChart(results, inputs);
-            
+
             if (results.propertyHistory && results.propertyHistory.length > 0) {
                 this.renderPropertyCashFlowChart(results.propertyHistory);
             }
