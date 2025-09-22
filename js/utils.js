@@ -5,7 +5,9 @@ export const $ = (id) => document.getElementById(id);
 
 export const safeGetValue = (id, defaultVal = 0) => {
     const elem = $(id);
-    return elem ? (parseFloat(elem.value) || defaultVal) : defaultVal;
+    if (!elem) return defaultVal;
+    const val = parseFloat(elem.value);
+    return isNaN(val) ? defaultVal : val;
 };
 
 export const safeGetChecked = (id, defaultVal = false) => {
@@ -35,16 +37,17 @@ export const safeSetHTML = (id, html) => {
 
 // Formatting utilities
 export const formatCurrency = (num) => {
-    if (typeof num !== 'number' || isNaN(num)) return '$0';
-    return num.toLocaleString('en-AU', { 
-        style: 'currency', 
-        currency: 'AUD', 
-        maximumFractionDigits: 0 
+    if (typeof num !== 'number' || isNaN(num)) return '$0.00';
+    return num.toLocaleString('en-AU', {
+        style: 'currency',
+        currency: 'AUD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
     });
 };
 
-export const formatPercent = (num, decimals = 1) => {
-    if (typeof num !== 'number' || isNaN(num)) return '0%';
+export const formatPercent = (num, decimals = 2) => {
+    if (typeof num !== 'number' || isNaN(num)) return '0.00%';
     return (num * 100).toFixed(decimals) + '%';
 };
 

@@ -2,158 +2,144 @@
 """
 Australian Retirement Calculator - Main CLI
 
-Command-line interface for the Australian Retirement Calculator.
-Provides options for basic calculations, interactive mode, and utilities.
+Command-line interface for the Enhanced Australian Retirement Calculator.
 """
 
 import sys
 import argparse
-from retirement_calculator import AustralianRetirementCalculator
-from retirement_utils import RetirementPlanningUtils
-import interactive_calculator
-
+from retirement_calculator import EnhancedRetirementSimulator, get_default_inputs
 
 def run_example():
     """Run the built-in example calculation."""
     print("Running example calculation...")
-    print()
     from retirement_calculator import main
     main()
 
+def run_projection(args):
+    """Run a simulation and display the year-by-year projection."""
+    inputs = get_default_inputs()
+    # Update inputs with any provided arguments
+    for key, value in vars(args).items():
+        if value is not None and key in inputs:
+            inputs[key] = value
 
-def run_tests():
-    """Run the test suite."""
-    print("Running test suite...")
-    print()
-    import test_calculator
-    test_calculator.main()
+    simulator = EnhancedRetirementSimulator(inputs)
+    results = simulator.run_simulation()
 
-
-def run_interactive():
-    """Run the interactive calculator."""
-    interactive_calculator.run_interactive_calculator()
-
-
-def run_utilities():
-    """Run the utilities demonstration."""
-    print("Running utilities demonstration...")
-    print()
-    from retirement_utils import demo_utilities
-    demo_utilities()
-
+    print("\n--- Year-by-Year Projection ---")
+    print("=" * 40)
+    print(f"{'Year':<5} {'Age':<4} {'End Balance':<15}")
+    print("-" * 40)
+    
+    for i, data in enumerate(results['yearlyData']):
+        year = data['year']
+        end_balance = data['endBalance']
+        age = inputs['retirementAge'] + i
+        print(f"{year:<5} {age:<4} ${end_balance:,.0f}")
+        if data['depleted']:
+            print("-" * 40)
+            print(f"Funds depleted in year {year}.")
+            break
 
 def quick_calculation(args):
     """Run a quick calculation with command-line arguments."""
-    calculator = AustralianRetirementCalculator()
+    inputs = get_default_inputs()
+    # Update inputs with any provided arguments
+    for key, value in vars(args).items():
+        if value is not None and key in inputs:
+            inputs[key] = value
+
+    simulator = EnhancedRetirementSimulator(inputs)
+    results = simulator.run_simulation()
     
-    years_to_retirement = args.retirement_age - args.current_age
+    print("\n--- Quick Simulation Results ---")
+    print(f"Final Balance: ${results['finalBalance']:,.0f}")
     
-    print(f"Quick Retirement Calculation")
-    print("=" * 40)
-    print(f"Current age: {args.current_age}")
-    print(f"Retirement age: {args.retirement_age}")
-    print(f"Years to retirement: {years_to_retirement}")
-    print(f"Current super: ${args.super_balance:,.0f}")
-    print(f"Annual contributions: ${args.annual_contributions:,.0f}")
-    print(f"Lifestyle: {args.lifestyle}")
-    print()
+    mc_results = simulator.run_monte_carlo_simulation(runs=args.runs)
+    print("\n--- Monte Carlo Simulation ---")
+    print(f"Success Rate: {mc_results['success_rate']:.1%}")
+    print(f"Median Outcome: ${mc_results['median']:,.0f}")
+
+def add_arguments_to_parser(parser):
+    """Adds all the simulation input arguments to the given parser."""
+    defaults = get_default_inputs()
     
-    # Calculate super at retirement (assuming equal split if only one value provided)
-    super1, super2 = calculator.calculate_superannuation_at_retirement(
-        args.super_balance / 2, args.super_balance / 2,
-        args.annual_contributions / 2, args.annual_contributions / 2,
-        years_to_retirement
-    )
-    total_super = super1 + super2
-    
-    print(f"Super at retirement: ${total_super:,.0f}")
-    
-    # Calculate pension
-    pension = calculator.calculate_age_pension_eligibility(total_super, True)
-    print(f"Annual Age Pension: ${pension['annual_pension']:,.0f}")
-    
-    # Calculate capital needs
-    capital_needs = calculator.calculate_total_retirement_capital_needed(
-        args.retirement_age, args.lifestyle, pension['annual_pension']
-    )
-    
-    surplus_deficit = total_super - capital_needs['total_capital_needed']
-    
-    print(f"Capital needed: ${capital_needs['total_capital_needed']:,.0f}")
-    print(f"Available capital: ${total_super:,.0f}")
-    
-    if surplus_deficit >= 0:
-        print(f"Status: SURPLUS ${surplus_deficit:,.0f} ✓")
-    else:
-        print(f"Status: DEFICIT ${abs(surplus_deficit):,.0f} ✗")
+    # Group arguments for better help text
+    personal_group = parser.add_argument_group('Personal Inputs')
+    financial_group = parser.add_argument_group('Financial Inputs')
+    property_group = parser.add_argument_group('Property Inputs')
+    economic_group = parser.add_argument_group('Economic Inputs')
+    sim_group = parser.add_argument_group('Simulation Inputs')
+
+    arg_map = {
+        'yourCurrentAge': personal_group, 'partnerCurrentAge': personal_group,
+        'retirementAge': personal_group, 'partnerRetirementAge': personal_group,
+        'yourLifespan': personal_group, 'partnerLifespan': personal_group,
+        'yourSalary': financial_group, 'partnerSalary': financial_group,
+        'currentSuper': financial_group, 'currentSavings': financial_group,
+        'currentStocks': financial_group, 'monthlyStockContribution': financial_group,
+        'percentIncomeSaved': financial_group,
+        'homeValue': property_group, 'mortgageBalance': property_group,
+        'mortgageRate': property_group, 'monthlyMortgagePayment': property_group,
+        'planToDownsize': property_group, 'hasInvestmentProperty': property_group,
+        'investmentPropertyValue': property_group, 'investmentPropertyLoan': property_group,
+        'investmentPropertyRate': property_group, 'weeklyRentalIncome': property_group,
+        'annualPropertyExpenses': property_group, 'propertyGrowthRate': property_group,
+        'sellPropertyYears': property_group, 'capitalGainsTaxRate': property_group,
+        'inflation': economic_group, 'investmentReturn': economic_group,
+        'returnDeclineRate': economic_group, 'savingsReturn': economic_group,
+        'superReturn': economic_group, 'salaryGrowthRate': economic_group,
+        'leanYearsStart': economic_group, 'leanYearsReduction': economic_group,
+        'useGlidePath': sim_group, 'glidePathRule': sim_group,
+        'returnVolatility': sim_group, 'enableShocks': sim_group,
+        'shockProbability': sim_group, 'shockMagnitude': sim_group,
+    }
+
+    for key, value in defaults.items():
+        arg_name = '--' + key
+        _type = type(value) if value is not None else str
+        group = arg_map.get(key, parser)
+        
+        if _type == bool:
+            group.add_argument(arg_name, action=argparse.BooleanOptionalAction, default=value)
+        else:
+            group.add_argument(arg_name, type=_type, default=value, help=f"Default: {value}")
 
 
 def main():
     """Main CLI function."""
     parser = argparse.ArgumentParser(
-        description='Australian Retirement Calculator for Couples',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  %(prog)s example              # Run built-in example
-  %(prog)s interactive          # Run interactive calculator
-  %(prog)s test                 # Run test suite
-  %(prog)s utilities            # Run utilities demo
-  
-  # Quick calculation
-  %(prog)s quick --current-age 50 --retirement-age 67 \\
-                 --super-balance 400000 --annual-contributions 40000
-        """
+        description='Enhanced Australian Retirement Calculator',
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
     
     # Example command
-    subparsers.add_parser('example', help='Run built-in example calculation')
-    
-    # Interactive command
-    subparsers.add_parser('interactive', help='Run interactive calculator')
-    
-    # Test command
-    subparsers.add_parser('test', help='Run test suite')
-    
-    # Utilities command
-    subparsers.add_parser('utilities', help='Run utilities demonstration')
-    
-    # Quick calculation command
-    quick_parser = subparsers.add_parser('quick', help='Quick calculation with command-line args')
-    quick_parser.add_argument('--current-age', type=int, required=True,
-                            help='Current age of older partner')
-    quick_parser.add_argument('--retirement-age', type=int, default=67,
-                            help='Planned retirement age (default: 67)')
-    quick_parser.add_argument('--super-balance', type=float, required=True,
-                            help='Combined current superannuation balance')
-    quick_parser.add_argument('--annual-contributions', type=float, default=0,
-                            help='Combined annual super contributions (default: 0)')
-    quick_parser.add_argument('--lifestyle', choices=['comfortable', 'modest'], 
-                            default='comfortable',
-                            help='Retirement lifestyle (default: comfortable)')
-    
-    # Parse arguments
+    subparsers.add_parser('example', help='Run built-in example calculation from retirement_calculator.py')
+
+    # Quick command
+    quick_parser = subparsers.add_parser('quick', help='Run a quick simulation with Monte Carlo.')
+    quick_parser.add_argument('--runs', type=int, default=1000, help='Number of Monte Carlo runs.')
+    add_arguments_to_parser(quick_parser)
+
+    # Projection command
+    proj_parser = subparsers.add_parser('projection', help='Get a year-by-year projection.')
+    add_arguments_to_parser(proj_parser)
+
     args = parser.parse_args()
     
-    # If no command specified, show help
     if not args.command:
         parser.print_help()
         return
     
-    # Execute the appropriate command
     try:
         if args.command == 'example':
             run_example()
-        elif args.command == 'interactive':
-            run_interactive()
-        elif args.command == 'test':
-            run_tests()
-        elif args.command == 'utilities':
-            run_utilities()
         elif args.command == 'quick':
             quick_calculation(args)
+        elif args.command == 'projection':
+            run_projection(args)
     except KeyboardInterrupt:
         print("\n\nCalculation interrupted by user.")
     except Exception as e:

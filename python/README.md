@@ -2,28 +2,94 @@
 
 A comprehensive Python calculator to help Australian couples determine how much money they need for retirement, considering Australian-specific factors like Age Pension eligibility, Superannuation, property ownership, and ASFA retirement standards.
 
-## Features
+This is a powerful Python-based simulation engine for comprehensive retirement planning for Australian couples. It has been significantly enhanced to provide detailed, year-by-year projections, probabilistic analysis through Monte Carlo simulations, and risk assessment via stress testing.
 
-This calculator addresses the key question: **"Living in Australia as a couple, how can I work out the amount of money that I will need to retire on, considering that I live to the age of 95?"**
+## Key Features
 
-### Key Calculations Include:
-
-- **Age Pension Eligibility**: Determines if you qualify for the Australian Age Pension based on current asset and income tests
-- **Superannuation Growth**: Projects your super balance growth until retirement
-- **Property Value Growth**: Calculates home value at retirement with inflation-only growth
-- **ASFA Retirement Standards**: Uses Association of Superannuation Funds of Australia standards for comfortable and modest retirement
-- **Life Expectancy Planning**: Plans for retirement from retirement age to 95 years old
-- **Comprehensive Assessment**: Combines all factors to determine total capital requirements
-
-### Australian-Specific Considerations:
-
-- Current Age Pension rates and thresholds (2024)
-- Asset test vs income test calculations
-- Principal residence exemption for asset test
-- ASFA comfortable and modest retirement standards
-- Australian inflation and superannuation growth assumptions
+- **Detailed Financial Modeling**: Simulates a wide range of financial factors, including:
+  - **Investment Properties**: Models cash flow, capital growth, loan balances, and sale with Capital Gains Tax (CGT).
+  - **Healthcare & Aged Care**: Projects future costs with a dedicated inflation rate.
+  - **Dynamic Asset Allocation**: Implements a "glide path" strategy that adjusts asset allocation with age.
+  - **Advanced Returns**: Includes franking credit benefits in return calculations.
+  - **Salary Progression**: Models salary growth and "lean years" before retirement.
+- **Monte Carlo Simulation**: Runs thousands of simulations with randomized returns to determine the probability of success and a range of potential outcomes.
+- **Stress Testing**: Assesses the plan's resilience against predefined market shocks (e.g., GFC-style crash, property market crash).
+- **Modular & Configurable**: All constants, tax brackets, and default parameters are stored in `config.py` for easy maintenance and customization.
 
 ## Quick Start
+
+The easiest way to use the calculator is via the command-line interface (`retirement_cli.py`).
+
+### Dependencies
+
+First, ensure you have the necessary dependencies installed:
+
+```bash
+pip install numpy
+```
+
+### 1. Run a Quick Simulation
+
+The `quick` command runs a full simulation, including a Monte Carlo analysis, using default values. This is a great way to see a summary of a typical scenario.
+
+```bash
+python3 python/retirement_cli.py quick
+```
+
+**Example Output:**
+
+```text
+--- Quick Simulation Results ---
+Final Balance: $0
+
+--- Monte Carlo Simulation ---
+Success Rate: 11.3%
+Median Outcome: $0
+```
+
+You can override any of the default parameters. To see a full list of available options:
+
+```bash
+python3 python/retirement_cli.py quick --help
+```
+
+**Example with custom parameters:**
+
+```bash
+python3 python/retirement_cli.py quick --yourCurrentAge 40 --yourSalary 100000 --currentSuper 250000
+```
+
+### 2. View a Detailed Projection
+
+The `projection` command runs a deterministic simulation and prints a detailed year-by-year table of your finances in retirement.
+
+```bash
+python3 python/retirement_cli.py projection
+```
+
+**Example Output:**
+
+```text
+--- Year-by-Year Projection ---
+========================================
+Year  Age  End Balance    
+----------------------------------------
+21    65   $2,707,626
+22    66   $2,718,275
+...
+41    85   $539,772
+42    86   $0
+----------------------------------------
+Funds depleted in year 42.
+```
+
+### 3. Use the Interactive Calculator
+
+For a more guided experience, you can use the interactive calculator. It will prompt you for the most important inputs and allow you to accept defaults for the rest.
+
+```bash
+python3 python/interactive_calculator.py
+```
 
 ### Basic Usage
 
@@ -77,7 +143,7 @@ This will run a comprehensive example scenario showing all calculations.
 
 ## Example Output
 
-```
+```text
 === Australian Retirement Calculator for Couples ===
 
 Example Scenario:
@@ -112,19 +178,55 @@ ASFA Comfortable Retirement Standard:
   - Monthly income needed: $5,910
 ```
 
+## Project Structure
+
+The Python application is organized into several files:
+
+- **`retirement_calculator.py`**: Contains the core `EnhancedRetirementSimulator` class, which is the main simulation engine.
+- **`config.py`**: Stores all configuration data, including tax brackets, default inputs, and simulation parameters.
+- **`utils.py`**: Provides helper functions for common financial calculations (e.g., `calculate_post_tax_income`, `calculate_age_pension`).
+- **`retirement_cli.py`**: The main command-line interface for running simulations.
+- **`interactive_calculator.py`**: A user-friendly, interactive version of the calculator.
+- **`test_calculator.py`**: The main test suite for the basic simulator structure.
+- **`test_enhancements.py`**: A test suite for the new, complex features (Monte Carlo, investment property, etc.).
+
+## Features
+
+This calculator addresses the key question: **"Living in Australia as a couple, how can I work out the amount of money that I will need to retire on, considering that I live to the age of 95?"**
+
+### Key Calculations Include
+
+- **Age Pension Eligibility**: Determines if you qualify for the Australian Age Pension based on current asset and income tests
+- **Superannuation Growth**: Projects your super balance growth until retirement
+- **Property Value Growth**: Calculates home value at retirement with inflation-only growth
+- **ASFA Retirement Standards**: Uses Association of Superannuation Funds of Australia standards for comfortable and modest retirement
+- **Life Expectancy Planning**: Plans for retirement from retirement age to 95 years old
+- **Comprehensive Assessment**: Combines all factors to determine total capital requirements
+
+### Australian-Specific Considerations
+
+- Current Age Pension rates and thresholds (2024)
+- Asset test vs income test calculations
+- Principal residence exemption for asset test
+- ASFA comfortable and modest retirement standards
+- Australian inflation and superannuation growth assumptions
+
 ## Key Rates and Thresholds (2024)
 
 ### Age Pension
+
 - **Pension Age**: 67 years
 - **Maximum Rate (Couple Combined)**: $1,725.70 per fortnight
 - **Asset Test Threshold (Homeowners)**: $451,000
 - **Asset Test Threshold (Non-homeowners)**: $667,000
 
 ### ASFA Retirement Standards (Quarterly)
+
 - **Comfortable Retirement (Couple)**: $17,729
 - **Modest Retirement (Couple)**: $12,715
 
 ### Growth Assumptions
+
 - **Inflation Rate**: 3.5% per annum
 - **Superannuation Growth**: 7.0% per annum
 
@@ -133,7 +235,9 @@ ASFA Comfortable Retirement Standard:
 ### Core Classes
 
 #### `AustralianRetirementCalculator`
+
 Main calculator class with methods for:
+
 - Property value calculations
 - Superannuation projections
 - Age Pension eligibility assessment
@@ -143,18 +247,23 @@ Main calculator class with methods for:
 ### Key Methods
 
 #### `calculate_property_value_at_retirement(current_value, years_to_retirement)`
+
 Calculates property value at retirement assuming inflation-only growth.
 
 #### `calculate_superannuation_at_retirement(balances, contributions, years)`
+
 Projects superannuation balances at retirement including ongoing contributions.
 
 #### `calculate_age_pension_eligibility(assets, own_home, income)`
+
 Determines Age Pension eligibility and payment amount using asset and income tests.
 
 #### `calculate_retirement_needs(lifestyle)`
+
 Returns income requirements based on ASFA comfortable or modest standards.
 
 #### `calculate_total_retirement_capital_needed(retirement_age, lifestyle, pension)`
+
 Calculates total capital needed from retirement to age 95.
 
 ## Important Notes
@@ -171,6 +280,7 @@ Calculates total capital needed from retirement to age 95.
 ### Regular Updates Required
 
 This calculator should be updated regularly to reflect:
+
 - New Age Pension rates and thresholds
 - Updated ASFA retirement standards
 - Changes to superannuation rules
@@ -189,6 +299,7 @@ calculator.SUPER_GROWTH_RATE = 0.08  # 8% super growth
 ## Contributing
 
 To contribute to this project:
+
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
@@ -198,3 +309,26 @@ To contribute to this project:
 ## Disclaimer
 
 This calculator is for educational and planning purposes only. It should not be considered as financial advice. Always consult with a qualified financial advisor for personalized retirement planning advice. The calculator uses current rates and rules which may change over time.
+
+---
+
+feat: Overhaul Python retirement calculator to match frontend features
+
+This commit completely revamps the Python backend of the Australian retirement calculator to align with the sophisticated features present in the JavaScript-based frontend.
+
+The key changes include:
+
+- **New Simulator Engine:** Replaced the basic calculator with a new `EnhancedRetirementSimulator` class in `retirement_calculator.py`. This class is capable of running detailed, year-by-year financial projections.
+- **Advanced Financial Modeling:** The new simulator now models:
+  - Detailed investment properties (cash flow, sale, CGT).
+  - Healthcare and aged care costs with separate inflation rates.
+  - Dynamic "glide path" asset allocation.
+  - Franking credits and salary progression with "lean years."
+- **Monte Carlo & Stress Testing:** Added capabilities to run Monte Carlo simulations to assess probabilistic outcomes and a suite of stress tests for risk analysis.
+- **Configuration as Code:** Moved all constants, tax brackets, and default parameters to a new `config.py` file for easy maintenance.
+- **Utility Functions:** Created a `utils.py` file for common financial calculations (tax, loans, pensions).
+- **Enhanced CLI:** Updated `retirement_cli.py` to expose the full power of the new simulator, with arguments for all input parameters and a command to view detailed projections.
+- **Updated Interactive Mode:** Overhauled `interactive_calculator.py` to provide a comprehensive, user-friendly way to interact with the new engine.
+- **Comprehensive Tests:** Updated the existing test suite and added a new suite (`test_enhancements.py`) to validate all the new, complex features, ensuring correctness and reliability.
+
+---
