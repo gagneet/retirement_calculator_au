@@ -10,8 +10,10 @@ def clamp(value, min_value, max_value):
     """Clamps a value between a minimum and maximum."""
     return max(min_value, min(value, max_value))
 
-def random_normal(mean, std_dev):
+def random_normal(mean, std_dev, seed=None):
     """Generates a random number from a normal distribution."""
+    if seed is not None:
+        random.seed(seed)
     return random.normalvariate(mean, std_dev)
 
 def calculate_post_tax_income(pre_tax_income: float, tax_brackets: List[Dict[str, Any]]) -> float:
@@ -67,3 +69,16 @@ def calculate_age_pension(assets: float, income: float, is_couple: bool, max_pen
     
     # The pension paid is the lower of the two tests
     return min(asset_test_pension, income_test_pension)
+
+# --- Glide Path Functions ---
+def glide_path_120_minus_age(age: int) -> int:
+    """Glide path rule: 120 - age."""
+    return clamp(120 - age, 20, 90)
+
+def glide_path_110_minus_age(age: int) -> int:
+    """Glide path rule: 110 - age."""
+    return clamp(110 - age, 20, 80)
+
+def glide_path_100_minus_age(age: int) -> int:
+    """Glide path rule: 100 - age."""
+    return clamp(100 - age, 20, 70)

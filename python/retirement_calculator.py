@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+
 Australian Retirement Calculator for Couples
 
 This calculator helps Australian couples determine the amount of money needed for retirement,
@@ -17,23 +18,16 @@ Enhanced Australian Retirement Calculator for Couples
 This calculator provides a comprehensive retirement projection based on a wide
 range of financial and lifestyle factors, including advanced modeling for
 investment properties, healthcare, aged care, and market dynamics.
+
 """
 
 import math
 import random
+import statistics
 from typing import Dict, Any, List
-import numpy as np
 
 from config import ENHANCED_CONFIG
-from utils import (
-    calculate_post_tax_income, 
-    calculate_loan_balance,
-    calculate_cgt,
-    calculate_age_pension,
-    random_normal,
-    clamp
-)
-
+import utils
 
 class EnhancedRetirementSimulator:
     """
@@ -66,9 +60,9 @@ class EnhancedRetirementSimulator:
         return {
             "runs": runs,
             "success_rate": len([o for o in outcomes if o > 0]) / runs,
-            "median": np.median(outcomes),
-            "percentile_10": np.percentile(outcomes, 10),
-            "percentile_90": np.percentile(outcomes, 90),
+            "median": statistics.median(outcomes),
+            "percentile_10": outcomes[int(runs * 0.1)],
+            "percentile_90": outcomes[int(runs * 0.9)],
         }
 
     def run_stress_tests(self) -> List[Dict[str, Any]]:
@@ -107,7 +101,7 @@ class EnhancedRetirementSimulator:
         elif debt_level == 'minimal': score += 5
         
         score -= self.inputs.get('dependents', 0) * 5
-        return clamp(score, 0, 100)
+        return utils.clamp(score, 0, 100)
 
     def _calculate_risk_requirement(self) -> int:
         """Calculates the investment risk required to meet retirement goals."""
@@ -122,12 +116,15 @@ class EnhancedRetirementSimulator:
         risk_free_rate = self.calc_consts['RISK_REQUIREMENT_RISK_FREE_RATE']
         sensitivity = self.calc_consts['RISK_REQUIREMENT_SENSITIVITY_FACTOR']
         
-        return clamp((required_growth - risk_free_rate) * 100 * sensitivity, 0, 100)
+        return utils.clamp((required_growth - risk_free_rate) * 100 * sensitivity, 0, 100)
 
     def _calculate_dynamic_allocation(self, age: int) -> Dict[str, float]:
         """Calculates the recommended asset allocation based on a glide path rule."""
-        rule = self.inputs['glidePathRule']
-        equity_percent = self.config['GLIDE_PATH_RULES'][rule](age)
+        rule_name = self.inputs['glidePathRule']
+        rule_func_name = self.config['GLIDE_PATH_RULES'][rule_name]
+        rule_func = getattr(utils, rule_func_name)
+        
+        equity_percent = rule_func(age)
         return {
             "equity": equity_percent,
             "bonds": max(10, (100 - equity_percent) * 0.7),
@@ -167,10 +164,12 @@ class EnhancedRetirementSimulator:
     def _calculate_property_loan_balance(self, year: int) -> float:
         """Calculates the remaining loan balance on the investment property."""
         # This is a simplified calculation. A more accurate model would use the actual monthly payments.
-        return calculate_loan_balance(
+        # The 1.5x multiplier is a heuristic to approximate a principal & interest payment.
+        payment_heuristic = self.inputs['investmentPropertyLoan'] * self.inputs['investmentPropertyRate'] * 1.5
+        return utils.calculate_loan_balance(
             self.inputs['investmentPropertyRate'],
             year,
-            self.inputs['investmentPropertyLoan'] * self.inputs['investmentPropertyRate'] * 1.5, # Simplified payment
+            payment_heuristic,
             self.inputs['investmentPropertyLoan']
         )
     
@@ -207,7 +206,7 @@ class EnhancedRetirementSimulator:
         remaining_loan = self._calculate_property_loan_balance(sale_year)
         selling_costs = sale_value * self.config['PROPERTY_COSTS']['SELLING_COSTS_PERCENT']
         
-        cgt = calculate_cgt(
+        cgt = utils.calculate_cgt(
             sale_value,
             self.inputs['investmentPropertyValue'],
             True,
@@ -254,7 +253,7 @@ class EnhancedRetirementSimulator:
             allocation = self._calculate_dynamic_allocation(current_age) if self.inputs['useGlidePath'] else {"equity": 60, "bonds": 30, "cash": 10}
             
             base_return = self._calculate_enhanced_return(allocation, self.inputs['investmentReturn'])
-            return_rate = random_normal(base_return, self.inputs['returnVolatility']) if use_random_returns else base_return
+            return_rate = utils.random_normal(base_return, self.inputs['returnVolatility']) if use_random_returns else base_return
 
             if stress_scenario and year <= stress_scenario.get('duration', 0):
                 return_rate = stress_scenario.get('equityReturn', return_rate)
@@ -266,8 +265,8 @@ class EnhancedRetirementSimulator:
             your_salary = self._get_salary_for_year(self.inputs['yourSalary'], year)
             partner_salary = self._get_salary_for_year(self.inputs['partnerSalary'], year)
             
-            post_tax_income = calculate_post_tax_income(your_salary, self.config['TAX_BRACKETS']) + \
-                              calculate_post_tax_income(partner_salary, self.config['TAX_BRACKETS'])
+            post_tax_income = utils.calculate_post_tax_income(your_salary, self.config['TAX_BRACKETS']) + \
+                              utils.calculate_post_tax_income(partner_salary, self.config['TAX_BRACKETS'])
             
             future_super += (your_salary + partner_salary) * self.config['SUPER_GUARANTEE_RATE']
             future_savings += post_tax_income * self.inputs['percentIncomeSaved']
@@ -290,8 +289,11 @@ class EnhancedRetirementSimulator:
 
         # --- Retirement Phase ---
         total_financial_assets = future_super + future_savings + future_stocks
+        
+        annual_mortgage_payment = self.inputs['monthlyMortgagePayment'] * 12
         home_equity = self.inputs['homeValue'] * ((1 + self.inputs['inflation']) ** years_to_retirement) - \
-                      calculate_loan_balance(self.inputs['mortgageRate'], years_to_retirement, self.inputs['monthlyMortgagePayment']*12, self.inputs['mortgageBalance'])
+                      utils.calculate_loan_balance(self.inputs['mortgageRate'], years_to_retirement, annual_mortgage_payment, self.inputs['mortgageBalance'])
+        
         accessible_home_equity = home_equity * self.config['HOME_EQUITY_ACCESS_RATE'] if self.inputs['planToDownsize'] else 0
 
         current_balance = total_financial_assets + accessible_home_equity
@@ -313,13 +315,13 @@ class EnhancedRetirementSimulator:
             income_needed = self.inputs['asfaComfortable'] * ((1 + self.inputs['inflation']) ** retirement_year)
             total_withdrawal = income_needed + healthcare_cost + aged_care_cost
             
-            pension = calculate_age_pension(current_balance + property_equity, 0, True, self.inputs['agePensionMax'], self.inputs['pensionAssetThreshold'], self.inputs['pensionAssetLimit'], self.inputs['pensionIncomeThreshold'])
+            pension = utils.calculate_age_pension(current_balance + property_equity, 0, True, self.inputs['agePensionMax'], self.inputs['pensionAssetThreshold'], self.inputs['pensionAssetLimit'], self.inputs['pensionIncomeThreshold'])
             
             net_withdrawal = max(0, total_withdrawal - pension)
             
             allocation = self._calculate_dynamic_allocation(current_age)
             base_return = self._calculate_enhanced_return(allocation, self.inputs['investmentReturn'])
-            return_rate = random_normal(base_return, self.inputs['returnVolatility']) if use_random_returns else base_return
+            return_rate = utils.random_normal(base_return, self.inputs['returnVolatility']) if use_random_returns else base_return
             
             if self.inputs['enableShocks'] and use_random_returns and random.random() < self.inputs['shockProbability']:
                 return_rate += self.inputs['shockMagnitude']
@@ -349,21 +351,27 @@ def get_default_inputs() -> Dict[str, Any]:
     Returns a dictionary of default inputs, mimicking the frontend's initial state.
     This is useful for testing and for the CLI.
     """
-    defaults = {}
-    for category in ENHANCED_CONFIG['DEFAULTS'].values():
-        defaults.update(category)
-    # JS values are in %, python expects decimals for rates
-    defaults['percentIncomeSaved'] /= 100 if defaults.get('percentIncomeSaved', 0) > 1 else 1
-    defaults['mortgageRate'] /= 100 if defaults.get('mortgageRate', 0) > 1 else 1
-    defaults['investmentPropertyRate'] /= 100 if defaults.get('investmentPropertyRate', 0) > 1 else 1
-    defaults['inflation'] /= 100 if defaults.get('inflation', 0) > 1 else 1
-    defaults['investmentReturn'] /= 100 if defaults.get('investmentReturn', 0) > 1 else 1
-    defaults['savingsReturn'] /= 100 if defaults.get('savingsReturn', 0) > 1 else 1
-    defaults['superReturn'] /= 100 if defaults.get('superReturn', 0) > 1 else 1
-    defaults['returnVolatility'] /= 100 if defaults.get('returnVolatility', 0) > 1 else 1
-    defaults['shockProbability'] /= 100 if defaults.get('shockProbability', 0) > 1 else 1
-    defaults['shockMagnitude'] /= 100 if defaults.get('shockMagnitude', 0) > 1 else 1
-    return defaults
+    defaults = ENHANCED_CONFIG['DEFAULTS'].copy()
+
+    # Convert percentage inputs to decimals where needed
+    percentage_fields = [
+        'percentIncomeSaved', 'mortgageRate', 'investmentPropertyRate', 'inflation', 
+        'investmentReturn', 'savingsReturn', 'superReturn', 'returnVolatility', 
+        'shockProbability', 'shockMagnitude', 'capitalGainsTaxRate', 
+        'propertyGrowthRate', 'healthcareInflation', 'frankingCreditBenefit'
+    ]
+    
+    for category in defaults.values():
+        for field in percentage_fields:
+            if field in category and category[field] > 1:
+                category[field] /= 100
+    
+    # Flatten the dictionary
+    flat_defaults = {}
+    for category in defaults.values():
+        flat_defaults.update(category)
+        
+    return flat_defaults
 
 
 def main():

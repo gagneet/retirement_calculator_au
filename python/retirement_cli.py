@@ -20,7 +20,7 @@ def run_projection(args):
     inputs = get_default_inputs()
     # Update inputs with any provided arguments
     for key, value in vars(args).items():
-        if value is not None:
+        if value is not None and key in inputs:
             inputs[key] = value
 
     simulator = EnhancedRetirementSimulator(inputs)
@@ -60,6 +60,52 @@ def quick_calculation(args):
     print(f"Success Rate: {mc_results['success_rate']:.1%}")
     print(f"Median Outcome: ${mc_results['median']:,.0f}")
 
+def add_arguments_to_parser(parser):
+    """Adds all the simulation input arguments to the given parser."""
+    defaults = get_default_inputs()
+    
+    # Group arguments for better help text
+    personal_group = parser.add_argument_group('Personal Inputs')
+    financial_group = parser.add_argument_group('Financial Inputs')
+    property_group = parser.add_argument_group('Property Inputs')
+    economic_group = parser.add_argument_group('Economic Inputs')
+    sim_group = parser.add_argument_group('Simulation Inputs')
+
+    arg_map = {
+        'yourCurrentAge': personal_group, 'partnerCurrentAge': personal_group,
+        'retirementAge': personal_group, 'partnerRetirementAge': personal_group,
+        'yourLifespan': personal_group, 'partnerLifespan': personal_group,
+        'yourSalary': financial_group, 'partnerSalary': financial_group,
+        'currentSuper': financial_group, 'currentSavings': financial_group,
+        'currentStocks': financial_group, 'monthlyStockContribution': financial_group,
+        'percentIncomeSaved': financial_group,
+        'homeValue': property_group, 'mortgageBalance': property_group,
+        'mortgageRate': property_group, 'monthlyMortgagePayment': property_group,
+        'planToDownsize': property_group, 'hasInvestmentProperty': property_group,
+        'investmentPropertyValue': property_group, 'investmentPropertyLoan': property_group,
+        'investmentPropertyRate': property_group, 'weeklyRentalIncome': property_group,
+        'annualPropertyExpenses': property_group, 'propertyGrowthRate': property_group,
+        'sellPropertyYears': property_group, 'capitalGainsTaxRate': property_group,
+        'inflation': economic_group, 'investmentReturn': economic_group,
+        'returnDeclineRate': economic_group, 'savingsReturn': economic_group,
+        'superReturn': economic_group, 'salaryGrowthRate': economic_group,
+        'leanYearsStart': economic_group, 'leanYearsReduction': economic_group,
+        'useGlidePath': sim_group, 'glidePathRule': sim_group,
+        'returnVolatility': sim_group, 'enableShocks': sim_group,
+        'shockProbability': sim_group, 'shockMagnitude': sim_group,
+    }
+
+    for key, value in defaults.items():
+        arg_name = '--' + key
+        _type = type(value) if value is not None else str
+        group = arg_map.get(key, parser)
+        
+        if _type == bool:
+            group.add_argument(arg_name, action=argparse.BooleanOptionalAction, default=value)
+        else:
+            group.add_argument(arg_name, type=_type, default=value, help=f"Default: {value}")
+
+
 def main():
     """Main CLI function."""
     parser = argparse.ArgumentParser(
@@ -72,30 +118,14 @@ def main():
     # Example command
     subparsers.add_parser('example', help='Run built-in example calculation from retirement_calculator.py')
 
-    # Default inputs for help text
-    defaults = get_default_inputs()
-
     # Quick command
     quick_parser = subparsers.add_parser('quick', help='Run a quick simulation with Monte Carlo.')
     quick_parser.add_argument('--runs', type=int, default=1000, help='Number of Monte Carlo runs.')
-    for key, value in defaults.items():
-        arg_name = '--' + key
-        _type = type(value) if value is not None else str
-        if _type == bool:
-            quick_parser.add_argument(arg_name, action=argparse.BooleanOptionalAction, default=value)
-        else:
-            quick_parser.add_argument(arg_name, type=_type, default=value, help=f"Default: {value}")
+    add_arguments_to_parser(quick_parser)
 
     # Projection command
     proj_parser = subparsers.add_parser('projection', help='Get a year-by-year projection.')
-    for key, value in defaults.items():
-        arg_name = '--' + key
-        _type = type(value) if value is not None else str
-        if _type == bool:
-            proj_parser.add_argument(arg_name, action=argparse.BooleanOptionalAction, default=value)
-        else:
-            proj_parser.add_argument(arg_name, type=_type, default=value, help=f"Default: {value}")
-
+    add_arguments_to_parser(proj_parser)
 
     args = parser.parse_args()
     

@@ -45,10 +45,11 @@ ENHANCED_CONFIG = {
     },
     
     # Asset allocation glide path rules
+    # Asset allocation glide path rules - maps rule name to a function name in utils.py
     "GLIDE_PATH_RULES": {
-        "120minus": lambda age: max(20, min(90, 120 - age)),
-        "110minus": lambda age: max(20, min(80, 110 - age)),
-        "100minus": lambda age: max(20, min(70, 100 - age))
+        "120minus": "glide_path_120_minus_age",
+        "110minus": "glide_path_110_minus_age",
+        "100minus": "glide_path_100_minus_age"
     },
     
     # Australian tax brackets (2024-25)
@@ -129,7 +130,7 @@ ENHANCED_CONFIG = {
             "currentSavings": 25000,
             "currentStocks": 15000,
             "monthlyStockContribution": 500,
-            "percentIncomeSaved": 0.10
+            "percentIncomeSaved": 10
         },
         "property": {
             "homeValue": 750000,
