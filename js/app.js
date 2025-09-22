@@ -717,12 +717,13 @@ class RetirementCalculatorApp {
     }
 
     // Export functionality
-    exportResults(exportType = 'csv') {
-        if (!this.currentResults) {
-            showNotification('No results to export. Please run a calculation first.', 'warning');
+    exportResults(exportType) {
+    // exportResults(exportType = 'csv') {
+        // if (!this.currentResults) {
+        if (!exportType) {
+            showNotification('Export type must be specified. No results to export. Please run a calculation first', 'warning');
             return;
         }
-
         switch (exportType) {
             case 'csv':
                 const csvData = this.currentResults.yearlyData.map(data => ({

@@ -308,6 +308,11 @@ export const exportToXLSX = (inputs, results, chartManager) => {
         return;
     }
 
+    if (typeof XLSX === 'undefined') {
+        showNotification('XLSX library not loaded. Please refresh the page and try again.', 'error');
+        return;
+    }
+
     const wb = XLSX.utils.book_new();
 
     // --- Summary Sheet ---
@@ -394,10 +399,20 @@ export const exportToXLSX = (inputs, results, chartManager) => {
     }));
     const ws_projection = XLSX.utils.json_to_sheet(projectionDataForSheet);
 
+    // Define column letter constants for maintainability
+    const COL_START_BALANCE = 'C';
+    const COL_GROWTH = 'D';
+    const COL_WITHDRAWAL = 'E';
+    const COL_HEALTHCARE_COST = 'F';
+    const COL_AGED_CARE_COST = 'G';
+    const COL_PROPERTY_INCOME = 'H';
+    const COL_PENSION_INCOME = 'I';
+
     // Add formulas for the 'End Balance' column (column J)
     for (let i = 0; i < results.yearlyData.length; i++) {
         const rowIndex = i + 2; // 1-based index, plus header row
-        const formula = `C${rowIndex}+D${rowIndex}-E${rowIndex}-F${rowIndex}-G${rowIndex}+H${rowIndex}+I${rowIndex}`;
+        // const formula = `C${rowIndex}+D${rowIndex}-E${rowIndex}-F${rowIndex}-G${rowIndex}+H${rowIndex}+I${rowIndex}`;
+        const formula = `${COL_START_BALANCE}${rowIndex}+${COL_GROWTH}${rowIndex}-${COL_WITHDRAWAL}${rowIndex}-${COL_HEALTHCARE_COST}${rowIndex}-${COL_AGED_CARE_COST}${rowIndex}+${COL_PROPERTY_INCOME}${rowIndex}+${COL_PENSION_INCOME}${rowIndex}`;
         const cellRef = XLSX.utils.encode_cell({c: 9, r: i + 1}); // Column J
         ws_projection[cellRef] = { f: formula };
     }
@@ -458,13 +473,23 @@ export const exportToXLSX = (inputs, results, chartManager) => {
     XLSX.utils.book_append_sheet(wb, ws_charts, 'Charts Data');
 
     // --- Write file ---
-    XLSX.writeFile(wb, 'Enhanced-Retirement-Report.xlsx');
-    showNotification('XLSX report generated successfully', 'success');
+    try {
+        XLSX.writeFile(wb, 'Australian-Couple-Retirement-Report.xlsx');
+        showNotification('XLSX report generated successfully', 'success');
+    } catch (error) {
+        console.error('Error generating XLSX file:', error);
+        showNotification('Failed to generate XLSX report. Please try again.', 'error');
+    }
 };
 
 export const exportToPDF = (inputs, results, chartManager) => {
     if (!results) {
         showNotification('No results to export. Please run a calculation first.', 'warning');
+        return;
+    }
+
+    if (typeof window.jspdf === 'undefined') {
+        showNotification('jsPDF library not loaded. Please refresh the page and try again.', 'error');
         return;
     }
 
@@ -518,7 +543,9 @@ export const exportToPDF = (inputs, results, chartManager) => {
     addChartToPDF('fanChart', 'Portfolio Balance Projection');
     addChartToPDF('histChart', 'Final Balance Distribution');
     
-    if (inputs.useGlidePath) {
+    // The code references inputs.useGlidePath but this property is not visible in the summary data structure.
+    // Verify that this property exists in the inputs object or handle the case where it might be undefined.
+    if (inputs.useGlidePath ?? false) {
         addChartToPDF('allocationChart', 'Asset Allocation Over Time');
     }
     if (inputs.hasInvestmentProperty) {
@@ -549,8 +576,13 @@ export const exportToPDF = (inputs, results, chartManager) => {
     });
 
     // --- Save PDF ---
-    doc.save('Enhanced-Retirement-Report.pdf');
-    showNotification('PDF report generated successfully', 'success');
+    try {
+        doc.save('Australian-Couple-Retirement-Report.pdf');
+        showNotification('PDF report generated successfully', 'success');
+    } catch (error) {
+        console.error('Error generating PDF file:', error);
+        showNotification('Failed to generate PDF report. Please try again.', 'error');
+    }
 };
 
 export const exportToJSON = (data, filename = 'retirement-data.json') => {
