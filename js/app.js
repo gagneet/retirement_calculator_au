@@ -107,6 +107,8 @@ class RetirementCalculatorApp {
             glidePathRule: safeGetSelectValue('glidePathRule', '110minus'),
             frankingCreditBenefit: safeGetValue('frankingCreditBenefit', 1.2),
             australianEquityAllocation: safeGetValue('australianEquityAllocation', 40),
+            dividendYield: safeGetValue('dividendYield', 4.5),
+            frankingRate: safeGetValue('frankingRate', 75),
             allocEquities: safeGetValue('allocEquities', 60),
             allocBonds: safeGetValue('allocBonds', 30),
             allocCash: safeGetValue('allocCash', 10),
@@ -703,7 +705,7 @@ class RetirementCalculatorApp {
     displayStressTestResults(results) {
         const stressTestResults = $('stressTestResults');
         if (!stressTestResults) return;
-        
+
         stressTestResults.innerHTML = results.map(result => `
             <div class="p-3 rounded ${result.success ? 'bg-green-50' : 'bg-red-50'}">
                 <div class="font-medium">${result.scenario}</div>
@@ -715,6 +717,52 @@ class RetirementCalculatorApp {
                 </div>
             </div>
         `).join('');
+    }
+
+    // Retirement age solver
+    async runRetirementSolver() {
+        if (this.isCalculating) return;
+        this.isCalculating = true;
+
+        try {
+            const inputs = this.collectInputs();
+
+            updateProgress(10, 'Analyzing retirement scenarios...');
+
+            // Run the retirement age solver
+            const solverResult = await this.simulator.solveRetirementAge(inputs, 0.7); // 70% success rate target
+
+            if (solverResult.success) {
+                // Display results
+                safeSetText('earliestRetirementAge', solverResult.earliestRetirementAge);
+                safeSetText('yearsToWork', solverResult.yearsToWork);
+                safeSetText('retirementSuccessRate', formatPercent(solverResult.successRate));
+                safeSetText('retirementProjectedBalance', formatCurrency(solverResult.deterministicProjection.totalFinancialAssets));
+                safeSetText('retirementMedianBalance', formatCurrency(solverResult.medianBalance));
+
+                // Show results section
+                const resultsSection = $('retirementSolverResults');
+                if (resultsSection) {
+                    resultsSection.classList.remove('hidden');
+                }
+
+                // Switch to optimization tab
+                showTab('optimization');
+
+                showNotification(`You can retire at age ${solverResult.earliestRetirementAge} with ${(solverResult.successRate * 100).toFixed(0)}% confidence!`, 'success');
+            } else {
+                showNotification(solverResult.message, 'error');
+            }
+
+            updateProgress(100, 'Analysis complete!');
+
+        } catch (error) {
+            console.error('Retirement solver error:', error);
+            showNotification('Error in retirement analysis: ' + error.message, 'error');
+        } finally {
+            this.isCalculating = false;
+            updateProgress(0);
+        }
     }
 
     // Export functionality
@@ -815,6 +863,12 @@ class RetirementCalculatorApp {
         const btnStressTest = $('btnStressTest');
         if (btnStressTest) {
             btnStressTest.addEventListener('click', () => this.runStressTest());
+        }
+
+        // Retirement solver button
+        const btnRetirementSolver = $('btnRetirementSolver');
+        if (btnRetirementSolver) {
+            btnRetirementSolver.addEventListener('click', () => this.runRetirementSolver());
         }
 
         // Export dropdown functionality

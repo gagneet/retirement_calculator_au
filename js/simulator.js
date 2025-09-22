@@ -74,10 +74,58 @@ export class RetirementSimulator {
         };
     }
 
-    // Enhanced return calculation with franking credits
-    calculateEnhancedReturn(allocation, baseReturn, frankingBenefit, australianEquityPercent) {
-        const frankingBonus = (allocation.equity / 100) * (australianEquityPercent / 100) * frankingBenefit / 100;
-        return baseReturn + frankingBonus;
+    // Enhanced return calculation with detailed franking credit modeling
+    calculateEnhancedReturn(allocation, baseReturn, inputs) {
+        // Get detailed franking credit calculation
+        const frankingDetails = this.calculateFrankingCredits(allocation, inputs);
+        return baseReturn + frankingDetails.totalBenefit;
+    }
+
+    // Detailed franking credit calculation with proper dividend modeling
+    calculateFrankingCredits(allocation, inputs) {
+        const australianEquityAllocation = (allocation.equity / 100) * (inputs.australianEquityAllocation / 100);
+
+        // Use user-provided dividend yield and franking rate
+        const dividendYield = inputs.dividendYield / 100; // Convert percentage to decimal
+        const frankingRate = inputs.frankingRate / 100;   // Convert percentage to decimal
+        const corporateTaxRate = 0.30;  // 30% Australian corporate tax rate
+
+        // Calculate gross dividend income from Australian equities
+        const grossDividendIncome = australianEquityAllocation * dividendYield;
+
+        // Calculate franked portion
+        const frankedDividends = grossDividendIncome * frankingRate;
+
+        // Calculate franking credits (attached tax credits)
+        const frankingCredits = frankedDividends * (corporateTaxRate / (1 - corporateTaxRate));
+
+        // Total franking credit benefit depends on investor's marginal tax rate
+        // Scale by user input (benefit factor)
+        const frankingCreditBenefit = frankingCredits * (inputs.frankingCreditBenefit / 1.2);
+
+        return {
+            australianEquityAllocation,
+            grossDividendIncome,
+            frankedDividends,
+            frankingCredits,
+            frankingCreditBenefit,
+            totalBenefit: frankingCreditBenefit, // This is the additional return from franking
+            effectiveAdditionalYield: frankingCreditBenefit // For display purposes
+        };
+    }
+
+    // Calculate franking credit benefit based on tax position (for retirement phase)
+    calculateTaxAdjustedFrankingBenefit(frankingCredits, marginalTaxRate = 0) {
+        // In retirement with low taxable income, franking credits are often fully refundable
+        const corporateTaxRate = 0.30;
+
+        if (marginalTaxRate < corporateTaxRate) {
+            // Full refund of excess franking credits
+            return frankingCredits * (1 - marginalTaxRate / corporateTaxRate);
+        } else {
+            // Franking credits offset tax liability
+            return frankingCredits * (corporateTaxRate / marginalTaxRate);
+        }
     }
 
     // Healthcare cost projection
@@ -266,10 +314,9 @@ export class RetirementSimulator {
 
             // Enhanced returns with franking credits
             const baseReturn = this.calculateEnhancedReturn(
-                allocation, 
-                inputs.investmentReturn, 
-                inputs.frankingCreditBenefit,
-                inputs.australianEquityAllocation
+                allocation,
+                inputs.investmentReturn,
+                inputs
             );
 
             let returnRate = baseReturn;
@@ -434,10 +481,9 @@ export class RetirementSimulator {
 
             // Enhanced return calculation
             const baseReturn = this.calculateEnhancedReturn(
-                allocation, 
-                inputs.investmentReturn, 
-                inputs.frankingCreditBenefit,
-                inputs.australianEquityAllocation
+                allocation,
+                inputs.investmentReturn,
+                inputs
             );
 
             let actualReturn = baseReturn;
@@ -550,6 +596,115 @@ export class RetirementSimulator {
     // Stress testing
     runStressTest(inputs, scenario) {
         return this.simulateRetirement(inputs, false, scenario);
+    }
+
+    // Retirement age solver - finds minimum retirement age to meet success criteria
+    async solveRetirementAge(inputs, targetSuccessRate = 0.7, minAge = null, maxAge = null) {
+        const originalRetirementAge = inputs.retirementAge;
+
+        // Set reasonable bounds
+        const minSearchAge = minAge || Math.max(inputs.yourCurrentAge + 5, 55);
+        const maxSearchAge = maxAge || Math.min(inputs.yourLifespan - 10, 75);
+
+        let bestAge = null;
+        let bestResult = null;
+
+        // Binary search for optimal retirement age
+        let lowAge = minSearchAge;
+        let highAge = maxSearchAge;
+
+        while (lowAge <= highAge) {
+            const testAge = Math.floor((lowAge + highAge) / 2);
+
+            // Create test inputs with new retirement age
+            const testInputs = { ...inputs, retirementAge: testAge };
+
+            // Run deterministic simulation first for quick check
+            const deterministicResult = this.simulateRetirement(testInputs, false);
+
+            // If deterministic fails completely, this age is too low
+            if (deterministicResult.finalBalance <= 0) {
+                lowAge = testAge + 1;
+                continue;
+            }
+
+            // Run Monte Carlo to get success rate (smaller sample for speed)
+            const mcResult = await this.runMonteCarloSimulation(testInputs, 500, null);
+
+            if (mcResult.successRate >= targetSuccessRate) {
+                bestAge = testAge;
+                bestResult = {
+                    retirementAge: testAge,
+                    successRate: mcResult.successRate,
+                    medianBalance: mcResult.median,
+                    deterministicResult
+                };
+                highAge = testAge - 1; // Look for even earlier retirement
+            } else {
+                lowAge = testAge + 1; // Need to retire later
+            }
+        }
+
+        // Restore original retirement age
+        inputs.retirementAge = originalRetirementAge;
+
+        if (!bestAge) {
+            return {
+                success: false,
+                message: `Cannot achieve ${(targetSuccessRate * 100).toFixed(0)}% success rate between ages ${minSearchAge}-${maxSearchAge}`,
+                earliestViableAge: null
+            };
+        }
+
+        return {
+            success: true,
+            earliestRetirementAge: bestAge,
+            successRate: bestResult.successRate,
+            medianBalance: bestResult.medianBalance,
+            yearsToWork: bestAge - inputs.yourCurrentAge,
+            deterministicProjection: bestResult.deterministicResult
+        };
+    }
+
+    // Target balance solver - finds retirement age to achieve specific balance target
+    async solveForTargetBalance(inputs, targetBalance, minAge = null, maxAge = null) {
+        const originalRetirementAge = inputs.retirementAge;
+
+        const minSearchAge = minAge || Math.max(inputs.yourCurrentAge + 5, 55);
+        const maxSearchAge = maxAge || Math.min(inputs.yourLifespan - 10, 75);
+
+        let bestAge = null;
+        let bestBalance = 0;
+
+        // Test each age to find closest to target
+        for (let age = minSearchAge; age <= maxSearchAge; age++) {
+            const testInputs = { ...inputs, retirementAge: age };
+            const result = this.simulateRetirement(testInputs, false);
+
+            if (result.totalFinancialAssets >= targetBalance) {
+                bestAge = age;
+                bestBalance = result.totalFinancialAssets;
+                break;
+            }
+
+            // Track best result even if target not met
+            if (result.totalFinancialAssets > bestBalance) {
+                bestBalance = result.totalFinancialAssets;
+                bestAge = age;
+            }
+        }
+
+        // Restore original retirement age
+        inputs.retirementAge = originalRetirementAge;
+
+        return {
+            success: bestBalance >= targetBalance,
+            retirementAge: bestAge,
+            projectedBalance: bestBalance,
+            targetBalance,
+            yearsToWork: bestAge - inputs.yourCurrentAge,
+            shortfall: Math.max(0, targetBalance - bestBalance)
+        };
     }
 }
 

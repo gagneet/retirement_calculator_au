@@ -10,7 +10,11 @@ export class ChartManager {
     // Destroy the existing chart if it exists
     destroyChart(chartId) {
         if (this.charts[chartId]) {
-            this.charts[chartId].destroy();
+            try {
+                this.charts[chartId].destroy();
+            } catch (error) {
+                console.warn(`Error destroying chart ${chartId}:`, error);
+            }
             delete this.charts[chartId];
         }
     }
@@ -85,6 +89,10 @@ export class ChartManager {
         const canvas = document.getElementById('fanChart');
         if (!canvas || !paths || paths.length === 0) return;
 
+        // Set reasonable canvas size to prevent overflow
+        canvas.style.maxHeight = '400px';
+        canvas.style.maxWidth = '100%';
+
         const ctx = canvas.getContext('2d');
         const maxYears = Math.max(...paths.map(p => p.length));
         const years = Array.from({length: maxYears}, (_, i) => inputs.retirementAge + i);
@@ -155,7 +163,7 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 aspectRatio: 2,
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
@@ -174,10 +182,7 @@ export class ChartManager {
                     y: {
                         title: { display: true, text: 'Portfolio Balance (AUD)' },
                         beginAtZero: true,
-                        suggestedMax: [p90, p75, median, p25, p10].reduce((m, arr) => {
-                            for (const v of arr) if (v > m) m = v;
-                            return m;
-                        }, -Infinity) * 1.1,
+                        suggestedMax: Math.max(...p90.filter(v => !isNaN(v) && isFinite(v))) * 1.1 || 100000,
                         ticks: {
                             callback: (value) => formatCurrency(value)
                         }
@@ -194,15 +199,24 @@ export class ChartManager {
         const canvas = document.getElementById('histChart');
         if (!canvas || !outcomes || outcomes.length === 0) return;
 
+        // Set reasonable canvas size to prevent overflow
+        canvas.style.maxHeight = '400px';
+        canvas.style.maxWidth = '100%';
+
         const ctx = canvas.getContext('2d');
         const bins = 25;
-        const maxVal = Math.max(...outcomes);
-        const minVal = Math.min(...outcomes);
+
+        // Filter out invalid values and handle edge cases
+        const validOutcomes = outcomes.filter(v => !isNaN(v) && isFinite(v));
+        if (validOutcomes.length === 0) return;
+
+        const maxVal = Math.max(...validOutcomes);
+        const minVal = Math.min(...validOutcomes);
         const range = Math.max(1, maxVal - minVal); // avoid divide by zero
         const binSize = range / bins;
         const histogram = new Array(bins).fill(0);
 
-        outcomes.forEach(val => {
+        validOutcomes.forEach(val => {
             const idx = Math.min(Math.floor((val - minVal) / binSize), bins - 1);
             histogram[idx]++;
         });
@@ -377,9 +391,9 @@ export class ChartManager {
                         title: { display: true, text: 'Value (AUD)' },
                         beginAtZero: true,
                         suggestedMax: Math.max(
-                            portfolioValues.reduce((m, v) => v > m ? v : m, -Infinity),
-                            propertyValues.reduce((m, v) => v > m ? v : m, -Infinity)
-                        ) * 1.1,
+                            ...portfolioValues.filter(v => !isNaN(v) && isFinite(v)),
+                            ...propertyValues.filter(v => !isNaN(v) && isFinite(v))
+                        ) * 1.1 || 100000,
                         ticks: {
                             callback: (value) => formatCurrency(value)
                         }
