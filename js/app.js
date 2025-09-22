@@ -356,13 +356,14 @@ class RetirementCalculatorApp {
                     <div class="p-3 bg-white rounded">
                         <div class="font-medium">Keep Property Strategy:</div>
                         <div class="mt-1">Total return: ${formatPercent(keepVsSellAnalysis.keepTotalReturn)}</div>
-                        <div>Net income contribution: ${formatCurrency(keepVsSellAnalysis.keepNetIncome)}</div>
+                        <div>${inputs.sellPropertyYears === 0 ? 'Annual' : 'Total'} net income contribution: ${formatCurrency(keepVsSellAnalysis.keepNetIncome)}</div>
                     </div>
+                    ${inputs.sellPropertyYears > 0 ? `
                     <div class="p-3 bg-white rounded">
                         <div class="font-medium">Sell in ${inputs.sellPropertyYears} years:</div>
                         <div class="mt-1">Net proceeds: ${formatCurrency(keepVsSellAnalysis.sellNetProceeds)}</div>
                         <div>Portfolio investment return: ${formatPercent(keepVsSellAnalysis.sellInvestmentReturn)}</div>
-                    </div>
+                    </div>` : ''}
                     <div class="p-2 bg-gray-100 rounded font-medium text-center">
                         ${keepVsSellAnalysis.recommendation}
                     </div>
@@ -478,28 +479,49 @@ class RetirementCalculatorApp {
         // Simplified analysis
         const yearsToSell = inputs.sellPropertyYears;
         const currentValue = inputs.investmentPropertyValue;
+        const annualRental = inputs.weeklyRentalIncome * 52;
+        const annualNetIncome = annualRental - inputs.annualPropertyExpenses;
+
+        // Handle keeping property indefinitely (sellPropertyYears = 0)
+        if (yearsToSell === 0) {
+            // When keeping indefinitely, show annual income contribution and long-term growth
+            const longTermYears = 30; // Use 30 years for long-term projection
+            const futureValue = currentValue * Math.pow(1 + inputs.propertyGrowthRate / 100, longTermYears);
+            const totalNetIncome = annualNetIncome * longTermYears;
+
+            return {
+                keepTotalReturn: (totalNetIncome + (futureValue - currentValue)) / currentValue,
+                keepNetIncome: annualNetIncome, // Show annual contribution when keeping indefinitely
+                sellNetProceeds: 0, // Not selling
+                sellInvestmentReturn: 0,
+                recommendation: annualNetIncome > 0 ?
+                    'Keeping property - generating positive cash flow' :
+                    'Property has negative cash flow - consider selling'
+            };
+        }
+
+        // Original logic for when selling in specific years
         const futureValue = currentValue * Math.pow(1 + inputs.propertyGrowthRate / 100, yearsToSell);
         const remainingLoan = this.simulator.calculatePropertyLoanBalance(
-            inputs.investmentPropertyLoan, 
-            inputs.investmentPropertyRate, 
+            inputs.investmentPropertyLoan,
+            inputs.investmentPropertyRate,
             yearsToSell
         );
-        
+
         const sellingCosts = futureValue * 0.06;
         const capitalGain = futureValue - currentValue;
         const cgtPayable = capitalGain * 0.5 * (inputs.capitalGainsTaxRate / 100);
         const sellNetProceeds = futureValue - remainingLoan - sellingCosts - cgtPayable;
-        
-        const annualRental = inputs.weeklyRentalIncome * 52;
-        const keepNetIncome = (annualRental - inputs.annualPropertyExpenses) * yearsToSell;
-        
+
+        const keepNetIncome = annualNetIncome * yearsToSell;
+
         return {
             keepTotalReturn: (keepNetIncome + (futureValue - currentValue)) / currentValue,
             keepNetIncome,
             sellNetProceeds,
             sellInvestmentReturn: 0.07,
-            recommendation: sellNetProceeds > (keepNetIncome + currentValue) ? 
-                'Consider selling - higher returns from portfolio investment' : 
+            recommendation: sellNetProceeds > (keepNetIncome + currentValue) ?
+                'Consider selling - higher returns from portfolio investment' :
                 'Consider keeping - property provides better total return'
         };
     }
