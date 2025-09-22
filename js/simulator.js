@@ -271,7 +271,13 @@ export class RetirementSimulator {
     simulateRetirement(inputs, useRandomReturns = false, stressScenario = null) {
         const maxLifespan = Math.max(inputs.yourLifespan, inputs.partnerLifespan);
         const yearsToRetirement = Math.max(0, inputs.retirementAge - inputs.yourCurrentAge);
-        const yearsInRetirement = Math.max(0, maxLifespan - inputs.retirementAge);
+
+        // Calculate total simulation years based on the maximum lifespan from current age
+        const maxYearsFromNow = Math.max(
+            inputs.yourLifespan - inputs.yourCurrentAge,
+            inputs.partnerLifespan - inputs.partnerCurrentAge
+        );
+        const yearsInRetirement = Math.max(0, maxYearsFromNow - yearsToRetirement);
 
         // Pre-retirement accumulation phase
         let futureSuper = inputs.yourCurrentSuper + inputs.partnerCurrentSuper;
