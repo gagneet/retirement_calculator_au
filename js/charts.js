@@ -7,7 +7,7 @@ export class ChartManager {
         this.charts = {};
     }
 
-    // Destroy existing chart if it exists
+    // Destroy the existing chart if it exists
     destroyChart(chartId) {
         if (this.charts[chartId]) {
             this.charts[chartId].destroy();
@@ -596,7 +596,7 @@ export class ChartManager {
         return null;
     }
 
-    // Export chart as image
+    // Export chart as an image
     exportChart(chartId, filename) {
         if (this.charts[chartId]) {
             const url = this.charts[chartId].toBase64Image();

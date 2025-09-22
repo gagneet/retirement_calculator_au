@@ -5,8 +5,8 @@ A comprehensive, modular retirement planning calculator specifically designed fo
 ## Features
 
 ### Core Functionality
-- **Investment Property Modeling**: Complete buy-and-hold vs sell analysis with cash flow projections
-- **Healthcare Cost Inflation**: 6.5% healthcare-specific inflation modeling vs general 2.9%
+- **Investment Property Modeling**: Complete buy-and-hold vs. sell analysis with cash flow projections
+- **Healthcare Cost Inflation**: 6.5% healthcare-specific inflation modeling vs. general 2.9%
 - **Aged Care Planning**: Probability-based aged care cost projections ($350K-550K lifetime)
 - **Dynamic Asset Allocation**: Age-based glide paths (Rule of 110/120 minus age)
 - **Advanced Risk Profiling**: Three-dimensional risk assessment (capacity/tolerance/requirement)
@@ -17,13 +17,13 @@ A comprehensive, modular retirement planning calculator specifically designed fo
 ### Australian-Specific Features
 - **Super Guarantee**: 12% contribution rate modeling
 - **Age Pension Integration**: Complete asset/income test calculations
-- **Tax System**: Full Australian tax bracket integration (2024-25)
+- **Tax System**: Full Australian tax bracket integration (2024–25)
 - **Property Market**: Australian property growth and CGT modeling
 - **ASFA Standards**: Comfortable retirement income benchmarks
 
 ### Advanced Analysis
 - **Year-by-Year Projections**: Detailed annual breakdown including healthcare and aged care costs
-- **Property vs Portfolio**: Comparative analysis of property investment vs diversified portfolio
+- **Property vs. Portfolio**: Comparative analysis of property investment vs. diversified portfolio
 - **Risk Analysis**: Sequence of returns risk and longevity risk assessment
 - **Optimization Strategies**: Pension maximization, tax optimization, contribution strategies
 
@@ -48,7 +48,7 @@ retirement-calculator/
 ### `config.js`
 - Australian pension system constants
 - Tax brackets and rates
-- Healthcare and aged care cost parameters
+- Healthcare and aged-care cost parameters
 - Stress test scenarios
 - Default values and validation rules
 
@@ -63,7 +63,7 @@ retirement-calculator/
 ### `simulator.js`
 - Risk profiling calculations
 - Dynamic asset allocation
-- Healthcare and aged care cost projections
+- Healthcare and aged-care cost projections
 - Investment property modeling
 - Main retirement simulation engine
 - Monte Carlo simulation
@@ -73,14 +73,14 @@ retirement-calculator/
 - Portfolio balance projections (fan charts)
 - Monte Carlo result visualization
 - Asset allocation over time
-- Property vs portfolio comparison
+- Property vs. portfolio comparison
 - Healthcare cost growth charts
 - Risk analysis visualizations
 
 ### `app.js`
 - Input collection and validation
 - UI updates and event handling
-- Results display and formatting
+- Result's display and formatting
 - Analysis and recommendations
 - Export functionality
 - Application initialization
@@ -117,15 +117,15 @@ retirement-calculator/
 ### Basic Usage
 1. **Personal Details**: Enter ages, retirement dates, and life expectancy
 2. **Risk Profile**: Set risk tolerance and financial situation
-3. **Financial Information**: Current assets, salaries, and savings rates
+3. **Financial Information**: Current assets, salaries, and savings-account rates
 4. **Property Portfolio**: Primary residence and investment property details
-5. **Healthcare Planning**: Current costs and aged care expectations
+5. **Healthcare Planning**: Current costs and aged-care expectations
 6. **Economic Assumptions**: Inflation, returns, and allocation preferences
 
 ### Advanced Features
 1. **Monte Carlo Simulation**: Run 5,000+ scenarios for probability analysis
 2. **Stress Testing**: Test portfolio resilience against economic shocks
-3. **Property Analysis**: Compare keeping vs selling investment properties
+3. **Property Analysis**: Compare keeping vs. selling investment properties
 4. **Optimization**: Review pension maximization and tax strategies
 
 ### Key Inputs
@@ -134,15 +134,15 @@ retirement-calculator/
 - Current property value and loan balance
 - Weekly rental income and annual expenses
 - Property growth rate assumptions
-- Sell vs hold timeline decisions
+- Sell vs. hold timeline decisions
 - Capital gains tax implications
 
 #### Healthcare & Aged Care
 - Current annual healthcare costs
-- Healthcare inflation rate (typically 6-7%)
+- Healthcare inflation rate (typically 6–7%)
 - Aged care probability (65% Australian average)
 - Expected care duration and costs
-- Care type preferences (home vs residential)
+- Care type preferences (home vs. residential)
 
 #### Dynamic Asset Allocation
 - Age-based glide path rules
@@ -155,7 +155,7 @@ retirement-calculator/
 ### Superannuation
 - 12% Super Guarantee modeling
 - Contribution caps and carry-forward rules
-- Tax treatment in accumulation vs pension phase
+- Tax treatment in accumulation vs. pension phase
 - Preservation age and access rules
 
 ### Age Pension
@@ -165,8 +165,8 @@ retirement-calculator/
 - Pension maximization strategies
 
 ### Taxation
-- Progressive tax brackets (2024-25)
-- Capital gains tax with 50% discount
+- Progressive tax brackets (2024–25)
+- Capital gains tax with a 50% discount
 - Franking credit refunds
 - Investment property tax benefits
 
@@ -174,27 +174,27 @@ retirement-calculator/
 - Negative gearing benefits
 - Depreciation allowances
 - CGT implications of sale timing
-- Rent vs own analysis
+- Rent vs. own analysis
 
 ## Key Calculations
 
 ### Property Cash Flow
-```javascript
+```text
 Net Cash Flow = (Weekly Rent × 52) - Annual Expenses - Interest Cost + Depreciation
 ```
 
 ### Age Pension Asset Test
-```javascript
+```text
 Pension = Max Pension - ((Assets - Threshold) / 1000) × $3 × 26 fortnights
 ```
 
 ### Healthcare Cost Projection
-```javascript
+```text
 Future Cost = Current Cost × (1 + Healthcare Inflation Rate)^Years
 ```
 
 ### Dynamic Allocation
-```javascript
+```text
 Equity % = Rule Number - Current Age
 // e.g., Rule of 110: 110 - 55 years old = 55% equities
 ```
@@ -202,7 +202,7 @@ Equity % = Rule Number - Current Age
 ## Validation and Assumptions
 
 ### Key Assumptions
-- Healthcare inflation: 6.5% annually (vs 2.9% general inflation)
+- Healthcare inflation: 6.5% annually (vs. 2.9% general inflation)
 - Property growth: 4.5% annually (long-term average)
 - Super return: 8.75% annually (long-term balanced fund average)
 - Aged care probability: 65% (Australian Institute of Health and Welfare)
@@ -225,7 +225,7 @@ Equity % = Rule Number - Current Age
 
 ### Personal Circumstances
 - Multiple retirement ages for couples
-- Flexible aged care planning
+- Flexible aged-care planning
 - Variable healthcare needs
 - Different property strategies
 
@@ -305,6 +305,6 @@ This calculator provides estimates based on assumptions and should not be consid
 ---
 
 *Last updated: September 2024*
-*Compatible with Australian financial regulations as of 2024-25 financial year*
+*Compatible with Australian financial regulations as of 2024–25 financial year*
 
 ---

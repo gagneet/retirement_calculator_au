@@ -395,7 +395,7 @@ export const exportToXLSX = (inputs, results, chartManager) => {
         'Aged Care Cost': d.agedCareCost,
         'Property Income': d.propertyIncome || 0,
         'Pension Income': d.pensionIncome || 0,
-        'End Balance': d.endBalance, // Placeholder, will be replaced by formula
+        'End Balance': d.endBalance, // Placeholder it shall be replaced by formula
     }));
     const ws_projection = XLSX.utils.json_to_sheet(projectionDataForSheet);
 
@@ -543,7 +543,7 @@ export const exportToPDF = (inputs, results, chartManager) => {
     addChartToPDF('histChart', 'Final Balance Distribution');
     
     // The code references inputs.useGlidePath but this property is not visible in the summary data structure.
-    // Verify that this property exists in the inputs object or handle the case where it might be undefined.
+    // Verify that this property exists in the 'inputs' object or handle the case where it might be undefined.
     // If inputs.useGlidePath is undefined or null, this will safely default to false. This ensures the chart is only added if useGlidePath is truthy.
     if (inputs.useGlidePath ?? false) {
         addChartToPDF('allocationChart', 'Asset Allocation Over Time');
@@ -603,7 +603,7 @@ export const showTab = (tabName) => {
         tab.classList.remove('active');
     });
     
-    // Remove active class from all tab buttons
+    // Remove the active class from all tab buttons
     document.querySelectorAll('.tab-button').forEach(btn => {
         btn.classList.remove('active');
     });

@@ -252,7 +252,7 @@ class RetirementCalculatorApp {
                 finalResultContainer.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
                 finalResultContainer.innerHTML = `
                     <div class="font-bold text-xl">Retirement Shortfall ⚠️</div>
-                    <div class="mt-1">Assets projected to be depleted before end of lifespan</div>
+                    <div class="mt-1">Assets projected to be depleted before the end of subject's lifespan</div>
                 `;
             }
         }
@@ -303,7 +303,7 @@ class RetirementCalculatorApp {
         if (!inputs.hasInvestmentProperty) {
             propertyAnalysis.innerHTML = `
                 <div class="col-span-2 p-4 bg-gray-50 rounded text-center">
-                    <p class="text-gray-600">No investment property included in analysis</p>
+                    <p class="text-gray-600">No investment property is included in the analysis</p>
                 </div>
             `;
             return;
@@ -338,7 +338,7 @@ class RetirementCalculatorApp {
             </div>
             
             <div class="property-card">
-                <h3 class="font-semibold mb-3">Keep vs Sell Analysis</h3>
+                <h3 class="font-semibold mb-3">Keep versus Sell Analysis</h3>
                 <div class="space-y-3 text-sm">
                     <div class="p-3 bg-white rounded">
                         <div class="font-medium">Keep Property Strategy:</div>
@@ -647,7 +647,7 @@ class RetirementCalculatorApp {
             this.chartManager.renderMonteCarloFanChart(inputs, results.paths);
             this.chartManager.renderHistogram(results.outcomes);
             
-            // Switch to charts tab
+            // Switch to the 'charts' tab
             showTab('charts');
             
             updateProgress(0);

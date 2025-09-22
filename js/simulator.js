@@ -113,7 +113,7 @@ export class RetirementSimulator {
         
         // Calculate as if it's a 30-year loan for monthly payment calculation
         const monthlyRate = rate / 12;
-        const totalPayments = 30 * 12; // 30 year loan
+        const totalPayments = 30 * 12; // a 30-year loan
         const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / 
                               (Math.pow(1 + monthlyRate, totalPayments) - 1);
         

@@ -160,7 +160,7 @@ select:focus {
 }
 
 .progress-bar-initial {
-    width: 0%;
+    width: 0;
 }
 
 /* Status indicators */
@@ -240,7 +240,7 @@ select:focus {
 }
 
 /* High contrast mode support */
-@media (prefers-contrast: high) {
+@media (prefers-contrast: no-preference) {
     .enhancement-highlight {
         border-left-width: 6px;
         border-left-color: #000;
