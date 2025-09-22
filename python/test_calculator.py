@@ -51,13 +51,15 @@ class TestEnhancedRetirementSimulator(unittest.TestCase):
         """Test the effect of downsizing."""
         inputs_no_downsize = self.default_inputs.copy()
         inputs_no_downsize['planToDownsize'] = False
-        inputs_no_downsize['currentSuper'] = 1000000  # Use a higher balance to avoid depletion
+        inputs_no_downsize['yourCurrentSuper'] = 1000000  # Use a higher balance to avoid depletion
+        inputs_no_downsize['partnerCurrentSuper'] = 1000000  # Use a higher balance to avoid depletion
         sim_no_downsize = EnhancedRetirementSimulator(inputs_no_downsize)
         res_no_downsize = sim_no_downsize.run_simulation()
 
         inputs_yes_downsize = self.default_inputs.copy()
         inputs_yes_downsize['planToDownsize'] = True
-        inputs_yes_downsize['currentSuper'] = 1000000  # Use a higher balance to avoid depletion
+        inputs_yes_downsize['yourCurrentSuper'] = 1000000  # Use a higher balance to avoid depletion
+        inputs_yes_downsize['partnerCurrentSuper'] = 1000000  # Use a higher balance to avoid depletion
         sim_yes_downsize = EnhancedRetirementSimulator(inputs_yes_downsize)
         res_yes_downsize = sim_yes_downsize.run_simulation()
 

@@ -109,7 +109,7 @@ class EnhancedRetirementSimulator:
         if years_to_retirement <= 0: return 100
         
         target_assets = self.inputs['asfaComfortable'] * self.calc_consts['RISK_REQUIREMENT_ASSET_TARGET_MULTIPLIER']
-        current_assets = self.inputs['currentSuper'] + self.inputs['currentSavings'] + self.inputs['currentStocks']
+        current_assets = self.inputs['yourCurrentSuper'] + self.inputs['partnerCurrentSuper'] + self.inputs['currentSavings'] + self.inputs['currentStocks']
         if current_assets == 0: return 100
         
         required_growth = (target_assets / current_assets)**(1/years_to_retirement) - 1
@@ -240,7 +240,7 @@ class EnhancedRetirementSimulator:
         # --- Accumulation Phase ---
         years_to_retirement = self.inputs['retirementAge'] - self.inputs['yourCurrentAge']
         
-        future_super = self.inputs['currentSuper']
+        future_super = (self.inputs['yourCurrentSuper'] + self.inputs['partnerCurrentSuper'])
         future_savings = self.inputs['currentSavings']
         future_stocks = self.inputs['currentStocks']
         

@@ -55,7 +55,7 @@ def run_interactive_calculator():
     print("\n--- 2. Financial Details ---")
     inputs['yourSalary'] = get_input("Your Annual Salary", inputs['yourSalary'], float)
     inputs['partnerSalary'] = get_input("Partner's Annual Salary", inputs['partnerSalary'], float)
-    inputs['currentSuper'] = get_input("Current Combined Super", inputs['currentSuper'], float)
+    inputs['yourCurrentSuper'] = get_input("Current Combined Super", inputs['yourCurrentSuper'], float)
     inputs['currentSavings'] = get_input("Current Cash/Savings", inputs['currentSavings'], float)
     inputs['currentStocks'] = get_input("Current Stock Portfolio", inputs['currentStocks'], float)
     inputs['monthlyStockContribution'] = get_input("Monthly Stock Contributions", inputs['monthlyStockContribution'], float)

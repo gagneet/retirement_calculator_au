@@ -56,7 +56,7 @@ export class RetirementSimulator {
     calculateRiskRequirement(inputs) {
         const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
         const targetAssets = inputs.asfaComfortable * 25; // 4% rule estimate
-        const currentAssets = inputs.currentSuper + inputs.currentSavings + inputs.currentStocks;
+        const currentAssets = inputs.yourCurrentSuper + inputs.partnerCurrentSuper + inputs.currentSavings + inputs.currentStocks;
         
         const required = (targetAssets / currentAssets - 1) / yearsToRetirement * 100;
         const riskRequired = clamp((required - 3) * 10, 0, 100); // 3% risk-free rate
@@ -221,28 +221,37 @@ export class RetirementSimulator {
 
     // Main simulation engine
     simulateRetirement(inputs, useRandomReturns = false, stressScenario = null) {
-        const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
-        const yearsInRetirement = inputs.partnerLifespan - inputs.retirementAge;
-        
+        const maxLifespan = Math.max(inputs.yourLifespan, inputs.partnerLifespan);
+        const yearsToRetirement = Math.max(0, inputs.retirementAge - inputs.yourCurrentAge);
+        const yearsInRetirement = Math.max(0, maxLifespan - inputs.retirementAge);
+
         // Pre-retirement accumulation phase
-        let futureSuper = inputs.currentSuper;
+        let futureSuper = inputs.yourCurrentSuper + inputs.partnerCurrentSuper;
         let futureSavings = inputs.currentSavings;
         let futureStocks = inputs.currentStocks;
         let propertyWasSold = false;
         let propertyEquity = 0;
-        
+
         const allocationHistory = [];
         const healthcareCostHistory = [];
         const propertyHistory = [];
 
         // Pre-retirement simulation
-        for (let year = 1; year <= yearsToRetirement; year++) {
-            const currentAge = inputs.yourCurrentAge + year;
+        const simulationEndYear = Math.max(yearsToRetirement, inputs.yourLifespan - inputs.yourCurrentAge, inputs.partnerLifespan - inputs.partnerCurrentAge);
+
+        for (let year = 1; year <= simulationEndYear; year++) {
+            const yourCurrentAge = inputs.yourCurrentAge + year;
+            const partnerCurrentAge = inputs.partnerCurrentAge + year;
+
+            // Stop simulation if both have passed away
+            if (yourCurrentAge > inputs.yourLifespan && partnerCurrentAge > inputs.partnerLifespan) {
+                break;
+            }
             
             // Dynamic allocation
             let allocation;
             if (inputs.useGlidePath) {
-                allocation = this.calculateDynamicAllocation(currentAge, inputs.glidePathRule);
+                allocation = this.calculateDynamicAllocation(yourCurrentAge, inputs.glidePathRule);
             } else {
                 allocation = {
                     equity: inputs.allocEquities || 60,
@@ -250,7 +259,10 @@ export class RetirementSimulator {
                     cash: inputs.allocCash || 10
                 };
             }
-            allocationHistory.push(allocation);
+            if (yourCurrentAge <= inputs.retirementAge) {
+                allocationHistory.push(allocation);
+            }
+            
 
             // Enhanced returns with franking credits
             const baseReturn = this.calculateEnhancedReturn(
@@ -280,8 +292,8 @@ export class RetirementSimulator {
             futureStocks *= (1 + returnRate);
 
             // Add contributions
-            const yourYearsToWork = inputs.retirementAge - inputs.yourCurrentAge;
-            const partnerYearsToWork = inputs.partnerRetirementAge - inputs.partnerCurrentAge;
+            const yourYearsToWork = Math.min(inputs.retirementAge, inputs.yourLifespan) - inputs.yourCurrentAge;
+            const partnerYearsToWork = Math.min(inputs.partnerRetirementAge, inputs.partnerLifespan) - inputs.partnerCurrentAge;
             
             let yearlyPostTaxIncome = 0;
             let yearlySuperContribution = 0;
@@ -302,7 +314,7 @@ export class RetirementSimulator {
             futureStocks += inputs.monthlyStockContribution * 12;
 
             // Property calculations
-            if (inputs.hasInvestmentProperty) {
+            if (inputs.hasInvestmentProperty && yourCurrentAge <= inputs.retirementAge) {
                 const propertyCashFlow = this.calculatePropertyCashFlow(inputs, year);
                 if (propertyCashFlow) {
                     propertyHistory.push(propertyCashFlow);
@@ -342,6 +354,9 @@ export class RetirementSimulator {
                 inputs.healthcareInflation
             );
             healthcareCostHistory.push(healthcareCost);
+             if (yourCurrentAge > inputs.retirementAge) {
+                break;
+            }
         }
 
         // At retirement setup
@@ -360,13 +375,20 @@ export class RetirementSimulator {
         const yearlyData = [];
 
         for (let i = 0; i < yearsInRetirement; i++) {
-            const currentAge = inputs.yourCurrentAge + yearsToRetirement + i;
             const retirementYear = yearsToRetirement + i;
-            const isCouple = currentAge < inputs.yourLifespan;
+            const yourCurrentAge = inputs.yourCurrentAge + retirementYear;
+            const partnerCurrentAge = inputs.partnerCurrentAge + retirementYear;
+            
+            // Check if both partners have passed away
+            if (yourCurrentAge > inputs.yourLifespan && partnerCurrentAge > inputs.partnerLifespan) {
+                break;
+            }
+
+            const isCouple = yourCurrentAge <= inputs.yourLifespan && partnerCurrentAge <= inputs.partnerLifespan;
             
             // Dynamic allocation in retirement
             const allocation = inputs.useGlidePath ? 
-                this.calculateDynamicAllocation(currentAge, inputs.glidePathRule) :
+                this.calculateDynamicAllocation(yourCurrentAge, inputs.glidePathRule) :
                 { equity: inputs.allocEquities, bonds: inputs.allocBonds, cash: inputs.allocCash };
 
             // Enhanced healthcare costs
@@ -378,8 +400,8 @@ export class RetirementSimulator {
 
             // Aged care costs if applicable
             let agedCareCost = 0;
-            if (currentAge >= inputs.agedCareStartAge && 
-                currentAge < inputs.agedCareStartAge + inputs.agedCareDuration) {
+            if (yourCurrentAge >= inputs.agedCareStartAge && 
+                yourCurrentAge < inputs.agedCareStartAge + inputs.agedCareDuration) {
                 agedCareCost = agedCareCosts.annualCost;
             }
 
@@ -450,7 +472,7 @@ export class RetirementSimulator {
             balances.push(currentBalance);
             yearlyData.push({
                 year: new Date().getFullYear() + retirementYear,
-                age: currentAge,
+                age: yourCurrentAge,
                 allocation: allocation,
                 startBalance,
                 returnRate: actualReturn * 100,

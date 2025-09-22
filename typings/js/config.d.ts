@@ -94,7 +94,9 @@ declare interface ENHANCED_CONFIGType {
 
 		static partnerSalary: number;
 
-		static currentSuper: number;
+		static yourCurrentSuper: number;
+
+		static partnerCurrentSuper: number;
 
 		static currentSavings: number;
 

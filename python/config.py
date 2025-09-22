@@ -125,7 +125,8 @@ ENHANCED_CONFIG = {
         "financial": {
             "yourSalary": 85000,
             "partnerSalary": 65000,
-            "currentSuper": 150000,
+            "yourCurrentSuper": 150000,
+            "partnerCurrentSuper": 150000,
             "currentSavings": 25000,
             "currentStocks": 15000,
             "monthlyStockContribution": 500,

@@ -125,7 +125,8 @@ export const ENHANCED_CONFIG = {
         financial: {
             yourSalary: 140000,
             partnerSalary: 45000,
-            currentSuper: 150000,
+            yourCurrentSuper: 200000,
+            partnerCurrentSuper: 190000,
             currentSavings: 25000,
             currentStocks: 15000,
             monthlyStockContribution: 500,

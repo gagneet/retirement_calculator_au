@@ -332,7 +332,7 @@ export const exportToXLSX = (inputs, results, chartManager) => {
 
         ['Financials', 'Your Annual Salary', inputs.yourSalary],
         ['Financials', 'Partners Annual Salary', inputs.partnerSalary],
-        ['Financials', 'Current Superannuation', inputs.currentSuper],
+        ['Financials', 'Current Superannuation', (inputs.yourCurrentSuper + inputs.partnerCurrentSuper)],
         ['Financials', 'Current Savings', inputs.currentSavings],
         ['Financials', 'Current Stocks', inputs.currentStocks],
         ['Financials', 'Monthly Stock Contributions', inputs.monthlyStockContribution],

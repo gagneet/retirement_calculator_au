@@ -58,7 +58,8 @@ class RetirementCalculatorApp {
             // Financial details
             yourSalary: safeGetValue('yourSalary', 214000),
             partnerSalary: safeGetValue('partnerSalary', 34500),
-            currentSuper: safeGetValue('currentSuper', 312000),
+            yourCurrentSuper: safeGetValue('yourCurrentSuper', 312000),
+            partnerCurrentSuper: safeGetValue('partnerCurrentSuper', 150000),
             currentSavings: safeGetValue('currentSavings', 55000),
             currentStocks: safeGetValue('currentStocks', 62000),
             monthlyStockContribution: safeGetValue('monthlyStockContribution', 800),
@@ -894,8 +895,8 @@ class RetirementCalculatorApp {
 
         // Auto-calculate on significant input changes (debounced)
         const autoCalculateInputs = [
-            'yourCurrentAge', 'retirementAge', 'yourSalary', 'currentSuper', 
-            'hasInvestmentProperty', 'investmentPropertyValue', 'useGlidePath',
+            'yourCurrentAge', 'retirementAge', 'yourSalary', 'yourCurrentSuper',  'partnerCurrentSuper',
+            'hasInvestmentProperty', 'investmentPropertyValue', 'useGlidePath', 
             'weeklyRentalIncome', 'sellPropertyYears', 'agedCareStartAge'
         ];
 

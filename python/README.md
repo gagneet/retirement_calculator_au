@@ -56,7 +56,7 @@ python3 python/retirement_cli.py quick --help
 **Example with custom parameters:**
 
 ```bash
-python3 python/retirement_cli.py quick --yourCurrentAge 40 --yourSalary 100000 --currentSuper 250000
+python3 python/retirement_cli.py quick --yourCurrentAge 40 --yourSalary 100000 --yourCurrentSuper 250000 --partnerCurrentSuper 250000
 ```
 
 ### 2. View a Detailed Projection

@@ -118,7 +118,7 @@ declare interface PortfolioCalculatorType {
         const yearsToRetirement = this.inputs.retirementAge - this.inputs.yourCurrentAge;
         const partnerYearsToWork = Math.max(0, this.inputs.partnerRetirementAge - this.inputs.partnerCurrentAge);
         
-        let futureSuper = this.inputs.currentSuper;
+        let futureSuper = (this.inputs.yourCurrentSuper + this.inputs.partnerCurrentSuper);
         let futureSavings = this.inputs.currentSavings;
         let futureStocks = this.inputs.currentStocks;
         

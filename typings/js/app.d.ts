@@ -54,9 +54,9 @@ class RetirementCalculatorApp {
         // Input change handlers for auto-calculation
         const inputIds = [
             'yourCurrentAge', 'partnerCurrentAge', 'retirementAge', 'partnerRetirementAge',
-            'yourLifespan', 'partnerLifespan', 'yourSalary', 'partnerSalary', 'currentSuper',
-            'currentSavings', 'currentStocks', 'monthlyStockContribution', 'percentIncomeSaved',
-            'homeValue', 'mortgageBalance', 'mortgageRate', 'planToDownsize',
+            'yourLifespan', 'partnerLifespan', 'yourSalary', 'partnerSalary', 'yourCurrentSuper',
+            'partnerCurrentSuper', 'currentSavings', 'currentStocks', 'monthlyStockContribution', 
+            'percentIncomeSaved', 'homeValue', 'mortgageBalance', 'mortgageRate', 'planToDownsize',
             'currentHealthExpenses', 'healthInflationRate', 'agedCareProbability', 'agedCareCost',
             'privateHealthInsurance', 'investmentPropertyValue', 'investmentPropertyLoan',
             'weeklyRentalIncome', 'annualPropertyExpenses', 'sellPropertyYears',
@@ -113,7 +113,8 @@ class RetirementCalculatorApp {
             // Financial details
             yourSalary: Utils.DOM.getNumericValue('yourSalary', CONFIG.DEFAULTS.yourSalary),
             partnerSalary: Utils.DOM.getNumericValue('partnerSalary', CONFIG.DEFAULTS.partnerSalary),
-            currentSuper: Utils.DOM.getNumericValue('currentSuper', CONFIG.DEFAULTS.currentSuper),
+            yourCurrentSuper: Utils.DOM.getNumericValue('yourCurrentSuper', CONFIG.DEFAULTS.yourCurrentSuper),
+            partnerCurrentSuper: Utils.DOM.getNumericValue('partnerCurrentSuper', CONFIG.DEFAULTS.partnerCurrentSuper),
             currentSavings: Utils.DOM.getNumericValue('currentSavings', CONFIG.DEFAULTS.currentSavings),
             currentStocks: Utils.DOM.getNumericValue('currentStocks', CONFIG.DEFAULTS.currentStocks),
             monthlyStockContribution: Utils.DOM.getNumericValue('monthlyStockContribution', CONFIG.DEFAULTS.monthlyStockContribution),
