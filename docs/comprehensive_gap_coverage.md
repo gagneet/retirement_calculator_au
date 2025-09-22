@@ -1,3 +1,81 @@
+# Australian Retirement Calculator Enhancement Roadmap
+
+This document provides a phased implementation plan for enhancing your Australian retirement calculator based on comprehensive technical analysis and current regulatory requirements. The recommendations are organized to ensure system stability while progressively adding sophisticated functionality.
+
+## Phase 1: Critical Bug Fixes and System Stability
+
+**Priority: Immediate** - These issues can cause application crashes and must be addressed first.
+
+The primary critical issue involves chart rendering functionality that will cause JavaScript errors and prevent Monte Carlo simulations from displaying results. The histogram rendering function contains syntax errors where spread operators are missing from Math.max and Math.min operations on arrays. Additionally, there are edge cases where empty datasets or identical minimum and maximum values will cause division by zero errors in the binning calculations.
+
+The fan chart rendering for Monte Carlo results also contains similar spread operator issues that need correction. These bugs prevent users from seeing their simulation results, which undermines the calculator's core value proposition.
+
+**Implementation Focus:** Fix all array operation syntax errors, add proper error handling for edge cases, and ensure all chart rendering functions handle empty or invalid datasets gracefully.
+
+## Phase 2: Core Functionality Enhancements
+
+**Priority: High** - These additions provide essential missing functionality that users expect.
+
+The calculator currently lacks an automated retirement age calculation feature, which is a fundamental capability users expect when they ask "when can I retire?" The implementation requires building a solver that tests different retirement ages against target income requirements or asset accumulation goals. This involves creating an iterative function that runs deterministic projections across candidate retirement ages until finding the minimum age that meets success criteria.
+
+The franking credit modeling needs substantial improvement from its current oversimplified approach. Rather than using a single scalar percentage, the system needs to model actual dividend yields, franking rates, and tax position impacts. This requires adding new input fields for dividend yield expectations and franking percentages, then building calculations that determine the actual dollar benefit per dollar invested.
+
+**Implementation Focus:** Build the retirement age solver using existing simulation functions, enhance franking credit calculations with proper dividend modeling, and ensure both integrate seamlessly with the existing user interface.
+
+## Phase 3: Scenario Modeling and Comparison
+
+**Priority: High** - Essential for comprehensive retirement planning analysis.
+
+The calculator needs explicit IF-THEN scenario capabilities that allow users to compare different strategic decisions side-by-side. Currently, users can input parameters for downsizing or selling investment property, but cannot easily compare these scenarios against keeping assets or alternative timing decisions.
+
+This phase involves building a scenario matrix system that can run multiple Monte Carlo simulations with different parameter sets and display comparative results. Users should be able to see side-by-side comparisons of outcomes for decisions like selling the family home at retirement versus keeping it, or selling an investment property now versus holding it for different time periods.
+
+**Implementation Focus:** Create scenario configuration interfaces, modify the simulation engine to handle multiple parameter sets, and build comparison visualization that shows success rates, median outcomes, and risk metrics across scenarios.
+
+## Phase 4: Policy Change Modeling
+
+**Priority: Medium** - Important for future-proofing against regulatory changes.
+
+Australia's retirement landscape faces potential policy changes around superannuation taxation, negative gearing, and capital gains tax treatment. The calculator needs configurable parameters that allow users to model these potential changes and understand their impact.
+
+This involves creating policy scenario toggles that adjust underlying calculation parameters. For negative gearing changes, the system needs to model different tax treatment of investment property losses. For capital gains tax changes, the discount rates and treatment need to be adjustable. For superannuation changes, contribution caps and tax treatment parameters need flexibility.
+
+**Implementation Focus:** Build policy scenario selection interfaces, create parameter override systems that don't break existing functionality, and ensure changes can be applied to any simulation scenario.
+
+## Phase 5: Advanced Analytics and Reporting
+
+**Priority: Medium** - Enhances user understanding and decision-making capability.
+
+The Monte Carlo simulation results need better interpretation tools to help users understand what the probability distributions mean for their retirement security. This includes showing depletion age distributions, confidence intervals around key outcomes, and sensitivity analysis showing how changes in key assumptions affect results.
+
+The system should also provide more sophisticated risk analysis, including sequence of returns risk modeling over extended retirement periods up to age 120. This requires enhancing the simulation engine to better model the specific risks associated with very long retirement periods.
+
+**Implementation Focus:** Add advanced statistical analysis to Monte Carlo results, create intuitive visualization of risk metrics, and build sensitivity analysis tools that show assumption impact.
+
+## Phase 6: User Experience and Documentation
+
+**Priority: Lower** - Important for adoption but not functionality.
+
+The calculator needs comprehensive help text and tooltips explaining complex concepts like franking credits, sequence of returns risk, and Age Pension means testing. Many users will not understand these concepts without guidance.
+
+Chart explanations need enhancement to help users interpret percentile bands, success rate definitions, and the meaning of different scenario outcomes. Interactive elements should provide contextual help without overwhelming the interface.
+
+**Implementation Focus:** Add contextual help systems, improve chart legends and tooltips, and create educational content that explains complex retirement planning concepts in accessible terms.
+
+## Implementation Considerations
+
+**Testing Strategy:** Each phase requires thorough testing with the previous phases to ensure no regression. The Monte Carlo simulations should be validated against known scenarios to ensure accuracy.
+
+**Data Validation:** All new input fields need proper validation to prevent users from entering values that could cause calculation errors or unrealistic scenarios.
+
+**Performance Monitoring:** Monte Carlo simulations with multiple scenarios could create performance issues. Implement progress indicators and consider web worker implementations for computationally intensive operations.
+
+**Regulatory Compliance:** All calculations should align with ASIC Regulatory Guide 276 requirements for superannuation calculators, including prescribed inflation rates and economic assumptions.
+
+The phased approach ensures that critical functionality is never compromised while systematically building toward a comprehensive retirement planning tool that addresses the complex needs of Australian retirees facing an evolving policy landscape.
+
+---
+
 Query:
 I have created this retirement calculator explicitly for Australian retirement options.
 
