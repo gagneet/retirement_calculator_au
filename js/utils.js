@@ -302,6 +302,289 @@ export const exportToCSV = (data, filename = 'retirement-projection.csv') => {
     URL.revokeObjectURL(url);
 };
 
+export const exportToXLSX = (inputs, results, chartManager) => {
+    if (!results) {
+        showNotification('No results to export. Please run a calculation first.', 'warning');
+        return;
+    }
+
+    if (typeof XLSX === 'undefined') {
+        showNotification('XLSX library not loaded. Please refresh the page and try again.', 'error');
+        return;
+    }
+
+    const wb = XLSX.utils.book_new();
+
+    // --- Summary Sheet ---
+    const summaryData = [
+        ['Category', 'Parameter', 'Value'],
+        ['Personal', 'Your Current Age', inputs.yourCurrentAge],
+        ['Personal', 'Partners Current Age', inputs.partnerCurrentAge],
+        ['Personal', 'Your Retirement Age', inputs.retirementAge],
+        ['Personal', 'Partners Retirement Age', inputs.partnerRetirementAge],
+        ['Personal', 'Your Lifespan', inputs.yourLifespan],
+        ['Personal', 'Partners Lifespan', inputs.partnerLifespan],
+        
+        ['Risk Profile', 'Risk Tolerance (1-10)', inputs.riskTolerance],
+        ['Risk Profile', 'Emergency Fund', inputs.hasEmergencyFund],
+        ['Risk Profile', 'High-Interest Debt', inputs.hasDebt],
+        ['Risk Profile', 'Financial Dependents', inputs.dependents],
+
+        ['Financials', 'Your Annual Salary', inputs.yourSalary],
+        ['Financials', 'Partners Annual Salary', inputs.partnerSalary],
+        ['Financials', 'Current Superannuation', inputs.currentSuper],
+        ['Financials', 'Current Savings', inputs.currentSavings],
+        ['Financials', 'Current Stocks', inputs.currentStocks],
+        ['Financials', 'Monthly Stock Contributions', inputs.monthlyStockContribution],
+        ['Financials', '% of Post-Tax Income Saved', inputs.percentIncomeSaved * 100],
+
+        ['Primary Residence', 'Current Home Value', inputs.homeValue],
+        ['Primary Residence', 'Outstanding Mortgage', inputs.mortgageBalance],
+        ['Primary Residence', 'Mortgage Rate (%)', inputs.mortgageRate * 100],
+        ['Primary Residence', 'Plan to Downsize', inputs.planToDownsize],
+
+        ['Investment Property', 'Has Investment Property', inputs.hasInvestmentProperty],
+    ];
+
+    if (inputs.hasInvestmentProperty) {
+        summaryData.push(
+            ['Investment Property', 'Current Value', inputs.investmentPropertyValue],
+            ['Investment Property', 'Outstanding Loan', inputs.investmentPropertyLoan],
+            ['Investment Property', 'Loan Interest Rate (%)', inputs.investmentPropertyRate * 100],
+            ['Investment Property', 'Weekly Rental Income', inputs.weeklyRentalIncome],
+            ['Investment Property', 'Annual Expenses', inputs.annualPropertyExpenses],
+            ['Investment Property', 'Annual Growth Rate (%)', inputs.propertyGrowthRate],
+            ['Investment Property', 'Sell in (Years)', inputs.sellPropertyYears]
+        );
+    }
+
+    summaryData.push(
+        ['Healthcare', 'Current Annual Costs', inputs.currentHealthcareCosts],
+        ['Healthcare', 'Healthcare Inflation (%)', inputs.healthcareInflation],
+        ['Aged Care', 'Aged Care Probability (%)', inputs.agedCareProbability],
+        ['Aged Care', 'Aged Care Start Age', inputs.agedCareStartAge],
+        ['Aged Care', 'Aged Care Duration (years)', inputs.agedCareDuration],
+        ['Aged Care', 'Annual Aged Care Cost', inputs.agedCareAnnualCost],
+        
+        ['Economic', 'Annual Inflation Rate (%)', inputs.inflation * 100],
+        ['Economic', 'Initial Investment Return (%)', inputs.investmentReturn * 100],
+        ['Economic', 'Savings Return (%)', inputs.savingsReturn * 100],
+        ['Economic', 'Super Annual Growth (%)', inputs.superReturn * 100],
+
+        ['--- RESULTS ---', '---', '---'],
+        ['Results', 'Future Super', results.futureSuper],
+        ['Results', 'Future Savings', results.futureSavings],
+        ['Results', 'Future Investments', results.futureStocks],
+        ['Results', 'Accessible Home Equity', results.accessibleHomeEquity],
+        ['Results', 'Property Equity', results.propertyEquity],
+        ['Results', 'Total Assets at Retirement', results.totalFinancialAssets + results.accessibleHomeEquity],
+        ['Results', 'Final Balance at end of Lifespan', results.finalBalance]
+    );
+
+    const ws_summary = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, ws_summary, 'Summary');
+
+    // --- Projection Sheet ---
+    const projectionDataForSheet = results.yearlyData.map(d => ({
+        'Year': d.year,
+        'Age': d.age,
+        'Start Balance': d.startBalance,
+        'Growth': d.growth,
+        'Withdrawal': d.withdrawal,
+        'Healthcare Cost': d.healthcareCost,
+        'Aged Care Cost': d.agedCareCost,
+        'Property Income': d.propertyIncome || 0,
+        'Pension Income': d.pensionIncome || 0,
+        'End Balance': d.endBalance, // Placeholder, will be replaced by formula
+    }));
+    const ws_projection = XLSX.utils.json_to_sheet(projectionDataForSheet);
+
+    // Define column letter constants for maintainability
+    const COL_START_BALANCE = 'C';
+    const COL_GROWTH = 'D';
+    const COL_WITHDRAWAL = 'E';
+    const COL_HEALTHCARE_COST = 'F';
+    const COL_AGED_CARE_COST = 'G';
+    const COL_PROPERTY_INCOME = 'H';
+    const COL_PENSION_INCOME = 'I';
+
+    // Add formulas for the 'End Balance' column (column J)
+    for (let i = 0; i < results.yearlyData.length; i++) {
+        const rowIndex = i + 2; // 1-based index, plus header row
+        const formula = `${COL_START_BALANCE}${rowIndex}+${COL_GROWTH}${rowIndex}-${COL_WITHDRAWAL}${rowIndex}-${COL_HEALTHCARE_COST}${rowIndex}-${COL_AGED_CARE_COST}${rowIndex}+${COL_PROPERTY_INCOME}${rowIndex}+${COL_PENSION_INCOME}${rowIndex}`;
+        const cellRef = XLSX.utils.encode_cell({c: 9, r: i + 1}); // Column J
+        ws_projection[cellRef] = { f: formula };
+    }
+    XLSX.utils.book_append_sheet(wb, ws_projection, 'Projection');
+
+    // --- Charts Data Sheet ---
+    const chartData = [];
+    
+    const fanChartData = chartManager.getChartData('fanChart');
+    if (fanChartData && fanChartData.labels) {
+        chartData.push(['Portfolio Balance Over Time (fanChart)']);
+        chartData.push(['Year', 'Balance']);
+        fanChartData.labels.forEach((label, i) => {
+            chartData.push([label, fanChartData.datasets[0].data[i]]);
+        });
+        chartData.push([]); // Spacer
+    }
+
+    const histChartData = chartManager.getChartData('histChart');
+    if (histChartData && histChartData.labels) {
+        chartData.push(['Final Balance Distribution (histChart)']);
+        chartData.push(['Balance Bin', 'Frequency']);
+        histChartData.labels.forEach((label, i) => {
+            chartData.push([label, histChartData.datasets[0].data[i]]);
+        });
+        chartData.push([]);
+    }
+
+    const allocationChartData = chartManager.getChartData('allocationChart');
+    if (allocationChartData && allocationChartData.labels) {
+        chartData.push(['Asset Allocation Over Time (allocationChart)']);
+        chartData.push(['Age', 'Equity %', 'Bonds %', 'Cash %']);
+        allocationChartData.labels.forEach((label, i) => {
+            chartData.push([
+                label, 
+                allocationChartData.datasets[0].data[i],
+                allocationChartData.datasets[1].data[i],
+                allocationChartData.datasets[2].data[i]
+            ]);
+        });
+        chartData.push([]);
+    }
+    
+    const propertyChartData = chartManager.getChartData('propertyChart');
+    if (propertyChartData && propertyChartData.labels) {
+        chartData.push(['Property vs Portfolio Growth (propertyChart)']);
+        chartData.push(['Year', 'Portfolio Value', 'Property Value']);
+        propertyChartData.labels.forEach((label, i) => {
+            chartData.push([
+                label,
+                propertyChartData.datasets[0] ? propertyChartData.datasets[0].data[i] : 0,
+                propertyChartData.datasets[1] ? propertyChartData.datasets[1].data[i] : 0
+            ]);
+        });
+    }
+
+    const ws_charts = XLSX.utils.aoa_to_sheet(chartData);
+    XLSX.utils.book_append_sheet(wb, ws_charts, 'Charts Data');
+
+    // --- Write file ---
+    try {
+        XLSX.writeFile(wb, 'Australian-Couple-Retirement-Report.xlsx');
+        showNotification('XLSX report generated successfully', 'success');
+    } catch (error) {
+        console.error('Error generating XLSX file:', error);
+        showNotification('Failed to generate XLSX report. Please try again.', 'error');
+    }
+};
+
+export const exportToPDF = (inputs, results, chartManager) => {
+    if (!results) {
+        showNotification('No results to export. Please run a calculation first.', 'warning');
+        return;
+    }
+
+    if (typeof window.jspdf === 'undefined') {
+        showNotification('jsPDF library not loaded. Please refresh the page and try again.', 'error');
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // --- Title ---
+    doc.setFontSize(22);
+    doc.text("Enhanced Retirement Report", 14, 22);
+
+    // --- Summary Table ---
+    doc.setFontSize(16);
+    doc.text("Summary", 14, 35);
+    
+    const summaryBody = [
+        ['Your Current Age', inputs.yourCurrentAge],
+        ['Partners Current Age', inputs.partnerCurrentAge],
+        ['Your Retirement Age', inputs.retirementAge],
+        ['Total Assets at Retirement', formatCurrency(results.totalFinancialAssets + results.accessibleHomeEquity)],
+        ['Projected Final Balance', formatCurrency(results.finalBalance)],
+        ['Success Rate (Monte Carlo)', results.mcSuccessRate ? formatPercent(results.mcSuccessRate) : 'N/A']
+    ];
+
+    doc.autoTable({
+        startY: 40,
+        head: [['Parameter', 'Value']],
+        body: summaryBody,
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185] }
+    });
+
+    let yPos = doc.autoTable.previous.finalY + 15;
+
+    // --- Charts ---
+    const addChartToPDF = (chartId, title) => {
+        const chart = chartManager.charts[chartId];
+        if (chart) {
+            if (yPos > 180) { // Check if there's enough space for the chart
+                doc.addPage();
+                yPos = 20;
+            }
+            doc.setFontSize(14);
+            doc.text(title, 14, yPos);
+            yPos += 8;
+            const imgData = chart.toBase64Image('image/jpeg', 0.9);
+            doc.addImage(imgData, 'JPEG', 14, yPos, 180, 100);
+            yPos += 105;
+        }
+    };
+
+    addChartToPDF('fanChart', 'Portfolio Balance Projection');
+    addChartToPDF('histChart', 'Final Balance Distribution');
+    
+    // The code references inputs.useGlidePath but this property is not visible in the summary data structure.
+    // Verify that this property exists in the inputs object or handle the case where it might be undefined.
+    // If inputs.useGlidePath is undefined or null, this will safely default to false. This ensures the chart is only added if useGlidePath is truthy.
+    if (inputs.useGlidePath ?? false) {
+        addChartToPDF('allocationChart', 'Asset Allocation Over Time');
+    }
+    if (inputs.hasInvestmentProperty) {
+        addChartToPDF('propertyChart', 'Property vs. Portfolio Growth');
+    }
+
+    // --- Projection Table ---
+    doc.addPage();
+    doc.setFontSize(16);
+    doc.text("Year-by-Year Projection (First 30 Years)", 14, 22);
+
+    const head = [['Year', 'Age', 'Start Balance', 'Growth', 'Withdrawal', 'End Balance']];
+    const body = results.yearlyData.slice(0, 30).map(d => [
+        d.year,
+        d.age,
+        formatCurrency(d.startBalance),
+        formatCurrency(d.growth),
+        formatCurrency(d.withdrawal),
+        formatCurrency(d.endBalance)
+    ]);
+
+    doc.autoTable({
+        head: head,
+        body: body,
+        startY: 30,
+        theme: 'striped',
+        headStyles: { fillColor: [41, 128, 185] }
+    });
+
+    // --- Save PDF ---
+    try {
+        doc.save('Australian-Couple-Retirement-Report.pdf');
+        showNotification('PDF report generated successfully', 'success');
+    } catch (error) {
+        console.error('Error generating PDF file:', error);
+        showNotification('Failed to generate PDF report. Please try again.', 'error');
+    }
+};
+
 export const exportToJSON = (data, filename = 'retirement-data.json') => {
     const jsonContent = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonContent], { type: 'application/json' });
