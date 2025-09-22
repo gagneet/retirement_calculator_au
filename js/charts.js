@@ -44,7 +44,8 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
                 plugins: {
                     title: {
                         display: true,
@@ -67,6 +68,7 @@ export class ChartManager {
                     y: {
                         title: { display: true, text: 'Portfolio Balance (AUD)' },
                         beginAtZero: true,
+                        max: results.balances.reduce((m, v) => v > m ? v : m, -Infinity) * 1.1,
                         ticks: {
                             callback: (value) => formatCurrency(value)
                         }
@@ -114,40 +116,47 @@ export class ChartManager {
                         borderWidth: 3
                     },
                     {
-                        label: '10th-90th Percentile Range',
+                        label: '90th Percentile',
                         data: p90,
-                        borderColor: 'rgba(59, 130, 246, 0)',
+                        borderColor: 'rgba(59, 130, 246, 0.3)',
                         backgroundColor: 'rgba(59, 130, 246, 0.2)',
                         fill: '+1',
-                        pointRadius: 0
+                        pointRadius: 0,
+                        borderWidth: 1
                     },
                     {
+                        label: '10th Percentile',
                         data: p10,
-                        borderColor: 'rgba(59, 130, 246, 0)',
+                        borderColor: 'rgba(59, 130, 246, 0.3)',
                         backgroundColor: 'rgba(59, 130, 246, 0.2)',
                         fill: false,
-                        pointRadius: 0
+                        pointRadius: 0,
+                        borderWidth: 1
                     },
                     {
-                        label: '25th-75th Percentile Range',
+                        label: '75th Percentile',
                         data: p75,
-                        borderColor: 'rgba(34, 197, 94, 0)',
+                        borderColor: 'rgba(34, 197, 94, 0.4)',
                         backgroundColor: 'rgba(34, 197, 94, 0.3)',
                         fill: '+1',
-                        pointRadius: 0
+                        pointRadius: 0,
+                        borderWidth: 1
                     },
                     {
+                        label: '25th Percentile',
                         data: p25,
-                        borderColor: 'rgba(34, 197, 94, 0)',
+                        borderColor: 'rgba(34, 197, 94, 0.4)',
                         backgroundColor: 'rgba(34, 197, 94, 0.3)',
                         fill: false,
-                        pointRadius: 0
+                        pointRadius: 0,
+                        borderWidth: 1
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                aspectRatio: 2,
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
                     title: {
@@ -165,6 +174,10 @@ export class ChartManager {
                     y: {
                         title: { display: true, text: 'Portfolio Balance (AUD)' },
                         beginAtZero: true,
+                        suggestedMax: [p90, p75, median, p25, p10].reduce((m, arr) => {
+                            for (const v of arr) if (v > m) m = v;
+                            return m;
+                        }, -Infinity) * 1.1,
                         ticks: {
                             callback: (value) => formatCurrency(value)
                         }
@@ -210,7 +223,8 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
                 plugins: {
                     title: {
                         display: true,
@@ -278,7 +292,8 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
                 plugins: {
                     title: {
                         display: true,
@@ -343,7 +358,8 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
                 plugins: {
                     title: {
                         display: true,
@@ -359,6 +375,11 @@ export class ChartManager {
                     x: { title: { display: true, text: 'Year' } },
                     y: {
                         title: { display: true, text: 'Value (AUD)' },
+                        beginAtZero: true,
+                        suggestedMax: Math.max(
+                            portfolioValues.reduce((m, v) => v > m ? v : m, -Infinity),
+                            propertyValues.reduce((m, v) => v > m ? v : m, -Infinity)
+                        ) * 1.1,
                         ticks: {
                             callback: (value) => formatCurrency(value)
                         }
@@ -396,7 +417,8 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
                 plugins: {
                     title: {
                         display: true,
@@ -449,7 +471,8 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
                 plugins: {
                     title: {
                         display: true,
@@ -531,7 +554,8 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
                 plugins: {
                     title: {
                         display: true,
