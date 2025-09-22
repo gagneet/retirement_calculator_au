@@ -270,7 +270,10 @@ class RetirementCalculatorApp {
         if (!projectionTable) return;
 
         projectionTable.innerHTML = '';
-        
+
+        // Get inputs for lifespan information
+        const inputs = this.collectInputs();
+
         result.yearlyData.slice(0, 30).forEach(data => {
             if (data.depleted) {
                 projectionTable.innerHTML += `
@@ -283,10 +286,18 @@ class RetirementCalculatorApp {
                 return;
             }
 
+            // Format age display as "YourAge/PartnerAge" with '-' for deceased
+            let ageDisplay = data.age;
+            if (data.partnerAge !== undefined) {
+                const yourAgeStr = data.yourAge > inputs.yourLifespan ? '-' : data.yourAge;
+                const partnerAgeStr = data.partnerAge > inputs.partnerLifespan ? '-' : data.partnerAge;
+                ageDisplay = `${yourAgeStr}/${partnerAgeStr}`;
+            }
+
             projectionTable.innerHTML += `
                 <tr>
                     <td class="px-4 py-2">${data.year}</td>
-                    <td class="px-4 py-2">${data.age}</td>
+                    <td class="px-4 py-2">${ageDisplay}</td>
                     <td class="px-4 py-2">${formatCurrency(data.startBalance)}</td>
                     <td class="px-4 py-2 text-blue-600">+${formatCurrency(data.propertyIncome || 0)}</td>
                     <td class="px-4 py-2 text-red-600">-${formatCurrency(data.healthcareCost)}</td>
@@ -1029,7 +1040,7 @@ class RetirementCalculatorApp {
                     Pension_Income: data.pensionIncome || 0,
                     End_Balance: data.endBalance
                 }));
-                exportToCSV(csvData, 'enhanced-retirement-projection.csv');
+                exportToCSV(csvData, 'enhanced-retirement-projection.csv', this.collectInputs());
                 break;
             case 'xlsx':
                 exportToXLSX(this.collectInputs(), this.currentResults, this.chartManager);

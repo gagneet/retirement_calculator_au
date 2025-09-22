@@ -519,6 +519,8 @@ export class RetirementSimulator {
             yearlyData.push({
                 year: new Date().getFullYear() + retirementYear,
                 age: yourCurrentAge,
+                partnerAge: partnerCurrentAge,
+                yourAge: yourCurrentAge,
                 allocation: allocation,
                 startBalance,
                 returnRate: actualReturn * 100,

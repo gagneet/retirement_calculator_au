@@ -272,16 +272,31 @@ export const validateForm = (inputs, validationRules) => {
 };
 
 // Export/Import utilities
-export const exportToCSV = (data, filename = 'retirement-projection.csv') => {
+export const exportToCSV = (data, filename = 'retirement-projection.csv', inputs = null) => {
     if (!data || data.length === 0) {
         console.warn('No data to export');
         return;
     }
-    
-    const headers = Object.keys(data[0]);
+
+    // Transform data to include formatted ages if inputs are provided
+    let transformedData = data;
+    if (inputs && data.length > 0 && data[0].yourAge !== undefined && data[0].partnerAge !== undefined) {
+        transformedData = data.map(d => {
+            const yourAgeStr = d.yourAge > inputs.yourLifespan ? '-' : d.yourAge;
+            const partnerAgeStr = d.partnerAge > inputs.partnerLifespan ? '-' : d.partnerAge;
+            const ageDisplay = `${yourAgeStr}/${partnerAgeStr}`;
+
+            return {
+                ...d,
+                age: ageDisplay // Replace the age field with formatted display
+            };
+        });
+    }
+
+    const headers = Object.keys(transformedData[0]);
     const csvContent = [
         headers.join(','),
-        ...data.map(row => 
+        ...transformedData.map(row =>
             headers.map(header => {
                 const value = row[header];
                 // Escape commas and quotes in CSV
@@ -292,7 +307,7 @@ export const exportToCSV = (data, filename = 'retirement-projection.csv') => {
             }).join(',')
         )
     ].join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -385,18 +400,28 @@ export const exportToXLSX = (inputs, results, chartManager) => {
     XLSX.utils.book_append_sheet(wb, ws_summary, 'Summary');
 
     // --- Projection Sheet ---
-    const projectionDataForSheet = results.yearlyData.map(d => ({
-        'Year': d.year,
-        'Age': d.age,
-        'Start Balance': d.startBalance,
-        'Growth': d.growth,
-        'Withdrawal': d.withdrawal,
-        'Healthcare Cost': d.healthcareCost,
-        'Aged Care Cost': d.agedCareCost,
-        'Property Income': d.propertyIncome || 0,
-        'Pension Income': d.pensionIncome || 0,
-        'End Balance': d.endBalance, // Placeholder it shall be replaced by formula
-    }));
+    const projectionDataForSheet = results.yearlyData.map(d => {
+        // Format age display as "YourAge/PartnerAge" with '-' for deceased
+        let ageDisplay = d.yourAge;
+        if (d.partnerAge !== undefined) {
+            const yourAgeStr = d.yourAge > inputs.yourLifespan ? '-' : d.yourAge;
+            const partnerAgeStr = d.partnerAge > inputs.partnerLifespan ? '-' : d.partnerAge;
+            ageDisplay = `${yourAgeStr}/${partnerAgeStr}`;
+        }
+
+        return {
+            'Year': d.year,
+            'Age': ageDisplay,
+            'Start Balance': d.startBalance,
+            'Growth': d.growth,
+            'Withdrawal': d.withdrawal,
+            'Healthcare Cost': d.healthcareCost,
+            'Aged Care Cost': d.agedCareCost,
+            'Property Income': d.propertyIncome || 0,
+            'Pension Income': d.pensionIncome || 0,
+            'End Balance': d.endBalance, // Placeholder it shall be replaced by formula
+        };
+    });
     const ws_projection = XLSX.utils.json_to_sheet(projectionDataForSheet);
 
     // Define column letter constants for maintainability
@@ -558,14 +583,24 @@ export const exportToPDF = (inputs, results, chartManager) => {
     doc.text("Year-by-Year Projection (First 30 Years)", 14, 22);
 
     const head = [['Year', 'Age', 'Start Balance', 'Growth', 'Withdrawal', 'End Balance']];
-    const body = results.yearlyData.slice(0, 30).map(d => [
-        d.year,
-        d.age,
-        formatCurrency(d.startBalance),
-        formatCurrency(d.growth),
-        formatCurrency(d.withdrawal),
-        formatCurrency(d.endBalance)
-    ]);
+    const body = results.yearlyData.slice(0, 30).map(d => {
+        // Format age display as "YourAge/PartnerAge" with '-' for deceased
+        let ageDisplay = d.yourAge;
+        if (d.partnerAge !== undefined) {
+            const yourAgeStr = d.yourAge > inputs.yourLifespan ? '-' : d.yourAge;
+            const partnerAgeStr = d.partnerAge > inputs.partnerLifespan ? '-' : d.partnerAge;
+            ageDisplay = `${yourAgeStr}/${partnerAgeStr}`;
+        }
+
+        return [
+            d.year,
+            ageDisplay,
+            formatCurrency(d.startBalance),
+            formatCurrency(d.growth),
+            formatCurrency(d.withdrawal),
+            formatCurrency(d.endBalance)
+        ];
+    });
 
     doc.autoTable({
         head: head,
