@@ -44,7 +44,6 @@ ENHANCED_CONFIG = {
         }
     },
     
-    # Asset allocation glide path rules
     # Asset allocation glide path rules - maps rule name to a function name in utils.py
     "GLIDE_PATH_RULES": {
         "120minus": "glide_path_120_minus_age",
