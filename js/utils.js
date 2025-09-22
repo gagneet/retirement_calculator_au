@@ -37,16 +37,17 @@ export const safeSetHTML = (id, html) => {
 
 // Formatting utilities
 export const formatCurrency = (num) => {
-    if (typeof num !== 'number' || isNaN(num)) return '$0';
-    return num.toLocaleString('en-AU', { 
-        style: 'currency', 
-        currency: 'AUD', 
-        maximumFractionDigits: 0 
+    if (typeof num !== 'number' || isNaN(num)) return '$0.00';
+    return num.toLocaleString('en-AU', {
+        style: 'currency',
+        currency: 'AUD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
     });
 };
 
-export const formatPercent = (num, decimals = 1) => {
-    if (typeof num !== 'number' || isNaN(num)) return '0%';
+export const formatPercent = (num, decimals = 2) => {
+    if (typeof num !== 'number' || isNaN(num)) return '0.00%';
     return (num * 100).toFixed(decimals) + '%';
 };
 
