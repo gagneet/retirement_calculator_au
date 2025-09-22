@@ -16,9 +16,9 @@ export const ENHANCED_CONFIG = {
     // Enhanced healthcare and aged care costs (2024 values)
     HEALTHCARE_COSTS: {
         home_package4: 56000,
-        residential: 75000,
+        residential: 76000,
         premium: 120000,
-        current_average: 3500
+        current_average: 5200
     },
     
     // Investment property constants
@@ -54,18 +54,18 @@ export const ENHANCED_CONFIG = {
     // Australian tax brackets (2024-25)
     TAX_BRACKETS: [
         { min: 0, max: 18200, rate: 0 },
-        { min: 18200, max: 45000, rate: 0.19 },
-        { min: 45000, max: 120000, rate: 0.325 },
-        { min: 120000, max: 180000, rate: 0.37 },
-        { min: 180000, max: Infinity, rate: 0.45 }
+        { min: 18201, max: 45000, rate: 0.16 },
+        { min: 45001, max: 135000, rate: 0.3 },
+        { min: 135001, max: 190000, rate: 0.37 },
+        { min: 190001, max: Infinity, rate: 0.45 }
     ],
     
     // Healthcare inflation rates by condition
     HEALTHCARE_INFLATION: {
-        none: 6.0,
-        minor: 6.5,
-        moderate: 7.0,
-        major: 8.0
+        none: 4.5,
+        minor: 4.75,
+        moderate: 6.0,
+        major: 9.0
     },
     
     // Stress test scenarios
@@ -116,15 +116,15 @@ export const ENHANCED_CONFIG = {
     DEFAULTS: {
         personal: {
             yourCurrentAge: 45,
-            partnerCurrentAge: 43,
-            retirementAge: 65,
-            partnerRetirementAge: 65,
-            yourLifespan: 90,
-            partnerLifespan: 92
+            partnerCurrentAge: 40,
+            retirementAge: 68,
+            partnerRetirementAge: 68,
+            yourLifespan: 95,
+            partnerLifespan: 99
         },
         financial: {
-            yourSalary: 85000,
-            partnerSalary: 65000,
+            yourSalary: 140000,
+            partnerSalary: 45000,
             currentSuper: 150000,
             currentSavings: 25000,
             currentStocks: 15000,
@@ -132,11 +132,11 @@ export const ENHANCED_CONFIG = {
             percentIncomeSaved: 0.10
         },
         property: {
-            homeValue: 750000,
-            mortgageBalance: 400000,
-            mortgageRate: 0.055,
-            monthlyMortgagePayment: 2800,
-            planToDownsize: false,
+            homeValue: 1100000,
+            mortgageBalance: 900000,
+            mortgageRate: 0.0537,
+            monthlyMortgagePayment: 4100,
+            planToDownsize: true,
             hasInvestmentProperty: false,
             investmentPropertyValue: 550000,
             investmentPropertyLoan: 400000,
@@ -148,14 +148,14 @@ export const ENHANCED_CONFIG = {
             capitalGainsTaxRate: 0.225
         },
         healthcare: {
-            currentHealthcareCosts: 3500,
-            healthcareInflation: 6.5,
+            currentHealthcareCosts: 5200,
+            healthcareInflation: 4.5,
             hasPrivateHealth: "comprehensive",
             chronicConditions: "none",
-            agedCareProbability: 65,
-            agedCareStartAge: 85,
-            agedCareDuration: 3.5,
-            agedCareAnnualCost: 75000
+            agedCareProbability: 68,
+            agedCareStartAge: 88,
+            agedCareDuration: 7.5,
+            agedCareAnnualCost: 76000
         },
         economic: {
             inflation: 0.0287,
@@ -195,11 +195,11 @@ export const ENHANCED_CONFIG = {
     
     // Validation rules
     VALIDATION: {
-        age: { min: 18, max: 100 },
+        age: { min: 18, max: 120 },
         salary: { min: 0, max: 1000000 },
         percentage: { min: 0, max: 100 },
         currency: { min: 0, max: 10000000 },
-        years: { min: 0.5, max: 50 },
+        years: { min: 0.5, max: 65 },
         runs: { min: 1000, max: 10000 }
     },
     
