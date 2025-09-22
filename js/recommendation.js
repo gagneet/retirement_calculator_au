@@ -1,4 +1,4 @@
-// js/recommendationEngine.js - The Decision Support Engine
+// js/recommendation.js - The Decision Support Engine
 
 import { ENHANCED_CONFIG } from './config.js';
 import { formatCurrency, formatPercent } from './utils.js';
@@ -368,7 +368,14 @@ class RecommendationEngine {
 
     _formatPropertyRecommendation(scenario, baseResult) {
         const successDiff = scenario.successRate - baseResult.successRate;
-        const netProceeds = scenario.deterministicResult.propertyWasSold ? scenario.deterministicResult.propertyHistory.slice(-1)[0].saleResult.netProceeds : 0;
+
+        let netProceeds = 0;
+        if (scenario.deterministicResult.propertyWasSold) {
+            const saleEntry = scenario.deterministicResult.propertyHistory.find(entry => entry.saleResult);
+            if (saleEntry) {
+                netProceeds = saleEntry.saleResult.netProceeds;
+            }
+        }
 
         let actionText = "";
         if (scenario.name.includes("at Retirement")) {
