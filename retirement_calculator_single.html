@@ -1,0 +1,3295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Australian Retirement Calculator</title>
+    <!-- Tailwind CSS is included via a local stylesheet -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Note: The 'autoSendContentViewEvent' error in the console is from an external script and is not part of this codebase. -->
+    <!--  The CDN scripts lack integrity hashes for security verification. Consider adding integrity attributes to ensure the scripts haven't been tampered with, similar to the existing Chart.js CDN. -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" integrity="sha256-Lye89HGy1p3XhJT24hcvsoRw64Q4IOL5a7hdOflhjTA=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha256-yVBhl8r4CaB1tt7h2g02+xnacVj/6KiOewyWxdhiPJk=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js" integrity="sha512-+EeCylkt9WHJk5tGJxYdecHOcXFRME7qnbsfeMsdQL6NUPYm2+uGFmyleEqsmVoap/f3dN/sc3BX9t9kHXkHHg==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.2/jspdf.plugin.autotable.min.js" integrity="sha512-JizZOUNesiGhMcp9fsA/9W31FOat6QysBM8hSj6ir8iIANIUJ2mhko7Lo1+j0ErftmJ8SebMZLm9iielKjeIEQ==" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+/* Enhanced Retirement Calculator Styles */
+
+/* Base font and typography */
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Tooltips */
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 220px;
+    background: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -110px;
+    opacity: 0;
+    transition: opacity .3s;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Tab system */
+.tab-button {
+    padding: .5rem 1rem;
+    border-radius: .5rem .5rem 0 0;
+    cursor: pointer;
+    transition: background .2s;
+}
+
+.tab-button.active {
+    background: white;
+    border-bottom: 2px solid #4f46e5;
+}
+
+.tab-button:not(.active) {
+    background: #f3f4f6;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Form styling */
+/* Default styles for form inputs for consistent look in light mode */
+input, select {
+    background-color: #f8fafc; /* A very light gray, almost white */
+    color: #111827;           /* A dark gray for text */
+    transition: background-color .2s, border-color .2s;
+}
+
+input::placeholder, textarea::placeholder {
+    color: #6b7280; /* Medium gray for placeholder text */
+}
+
+input:read-only {
+    background: #f3f4f6;
+}
+
+input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* Advanced sections */
+.advanced-section {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-top: 1rem;
+}
+
+/* Enhancement highlights */
+.enhancement-highlight {
+    border-left: 4px solid #10b981;
+    background: #f0fdf4;
+}
+
+/* Risk profile indicators */
+.risk-profile-indicator {
+    height: 8px;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+/* Button styles */
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.btn-secondary {
+    background: white;
+    border: 2px solid #e5e7eb;
+    color: #374151;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    border-color: #9ca3af;
+    background: #f9fafb;
+}
+
+.btn-danger {
+    background: white;
+    border: 2px solid #fca5a5;
+    color: #dc2626;
+    transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+    background: #fef2f2;
+    border-color: #f87171;
+}
+
+/* Card animations */
+.card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+/* Progress bars */
+.progress-bar {
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    transition: width 0.5s ease;
+}
+
+.progress-bar-initial {
+    width: 0;
+}
+
+/* Status indicators */
+.status-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.status-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.status-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* Chart containers */
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin: 1rem 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tab-button {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .chart-container {
+        height: 250px;
+    }
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .tab-content:not(.active) {
+        display: block !important;
+    }
+
+    .card {
+        break-inside: avoid;
+    }
+}
+
+/* Accessibility improvements */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Focus indicators for keyboard navigation */
+button:focus,
+input:focus,
+select:focus {
+    outline: 2px solid #4f46e5;
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: no-preference) {
+    .enhancement-highlight {
+        border-left-width: 6px;
+        border-left-color: #000;
+    }
+
+    .risk-profile-indicator {
+        border: 1px solid #000;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    body {
+        background: #1f2937;
+        color: #f9fafb;
+    }
+
+    .bg-white {
+        background: #374151;
+    }
+
+    .bg-gray-50 {
+        background: #4b5563;
+    }
+
+    .text-gray-600 {
+        color: #d1d5db;
+    }
+
+    .text-gray-700 {
+        color: #e5e7eb;
+    }
+
+    .border-gray-300 {
+        border-color: #6b7280;
+    }
+
+    input, select {
+        /* Important is used to override Tailwind's utility classes and ensure high contrast */
+        background-color: #1f2937 !important;
+        color: #f9fafb !important;
+        border-color: #9ca3af !important;
+    }
+
+    input::placeholder, textarea::placeholder {
+        color: #9ca3af; /* Lighter placeholder text for dark mode */
+    }
+
+    input:read-only {
+        background: #374151;
+    }
+}
+
+/* Property analysis specific styles */
+.property-card {
+    background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin: 0.5rem 0;
+}
+
+.property-positive {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+}
+
+.property-negative {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+}
+
+/* Risk analysis styling */
+.risk-meter {
+    width: 100%;
+    height: 20px;
+    background: linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #ef4444 100%);
+    border-radius: 10px;
+    position: relative;
+    margin: 0.5rem 0;
+}
+
+.risk-indicator {
+    position: absolute;
+    top: -5px;
+    width: 6px;
+    height: 30px;
+    background: #1f2937;
+    border-radius: 3px;
+    transition: left 0.5s ease;
+}
+
+/* Animation classes */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
+
+/* Loading states */
+.loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Utility classes */
+.text-shadow {
+    text-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.glass-effect {
+    background: rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Table styling */
+.data-table {
+    overflow-x: auto;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.data-table th {
+    background: #f8fafc;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.data-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.data-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+/* Special number formatting */
+.currency {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-weight: 600;
+}
+
+.percentage {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-weight: 500;
+}
+
+.positive {
+    color: #059669;
+}
+
+.negative {
+    color: #dc2626;
+}
+
+.neutral {
+    color: #6b7280;
+}
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">Enhanced Australian Retirement Calculator</h1>
+            <p class="text-lg text-gray-600 mt-2">Advanced retirement planning with healthcare costs, aged care, dynamic allocation, and investment property modeling</p>
+        </header>
+
+        <!-- Risk Profile Banner -->
+        <div id="riskProfileBanner" class="mb-6 p-4 rounded-lg border-l-4 border-blue-500 bg-blue-50">
+            <h3 class="font-semibold text-blue-900">Your Risk Profile</h3>
+            <div class="mt-2 grid grid-cols-3 gap-4 text-sm">
+                <div>
+                    <div class="font-medium">Risk Capacity</div>
+                    <div class="risk-profile-indicator bg-gray-200 mt-1">
+                        <div id="riskCapacityBar" class="h-full bg-blue-500 rounded" style="width: 0%"></div>
+                    </div>
+                    <div id="riskCapacityText" class="text-xs text-gray-600 mt-1">Calculating...</div>
+                </div>
+                <div>
+                    <div class="font-medium">Risk Tolerance</div>
+                    <div class="risk-profile-indicator bg-gray-200 mt-1">
+                        <div id="riskToleranceBar" class="h-full bg-green-500 rounded" style="width: 0%"></div>
+                    </div>
+                    <div id="riskToleranceText" class="text-xs text-gray-600 mt-1">Set below</div>
+                </div>
+                <div>
+                    <div class="font-medium">Risk Requirement</div>
+                    <div class="risk-profile-indicator bg-gray-200 mt-1">
+                        <div id="riskRequirementBar" class="h-full bg-red-500 rounded" style="width: 0%"></div>
+                    </div>
+                    <div id="riskRequirementText" class="text-xs text-gray-600 mt-1">Calculating...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Column 1: Personal & Risk Profile -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Personal & Risk Profile</h2>
+
+                <div class="space-y-4">
+                    <div>
+                        <label for="yourCurrentAge" class="block text-sm font-medium text-gray-700">Your Current Age</label>
+                        <input type="number" id="yourCurrentAge" value="49" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="partnerCurrentAge" class="block text-sm font-medium text-gray-700">Partner's Current Age</label>
+                        <input type="number" id="partnerCurrentAge" value="47" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="retirementAge" class="block text-sm font-medium text-gray-700">Your Retirement Age</label>
+                        <input type="number" id="retirementAge" value="72" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="partnerRetirementAge" class="block text-sm font-medium text-gray-700">Partner's Retirement Age</label>
+                        <input type="number" id="partnerRetirementAge" value="62" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="yourLifespan" class="block text-sm font-medium text-gray-700">Your Expected Lifespan</label>
+                        <input type="number" id="yourLifespan" value="95" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="partnerLifespan" class="block text-sm font-medium text-gray-700">Partner's Expected Lifespan</label>
+                        <input type="number" id="partnerLifespan" value="99" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+
+                <div class="advanced-section enhancement-highlight">
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Risk Tolerance Assessment</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="riskTolerance" class="block text-sm font-medium text-gray-700">Risk Tolerance (1-10)</label>
+                            <input type="range" id="riskTolerance" min="1" max="10" value="6" class="mt-1 block w-full">
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>Conservative</span>
+                                <span>Aggressive</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="hasEmergencyFund" class="block text-sm font-medium text-gray-700">Emergency Fund Status</label>
+                            <select id="hasEmergencyFund" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="full">6+ months expenses</option>
+                                <option value="partial">3-6 months expenses</option>
+                                <option value="minimal">1-3 months expenses</option>
+                                <option value="none">No emergency fund</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="hasDebt" class="block text-sm font-medium text-gray-700">High-Interest Debt Status</label>
+                            <select id="hasDebt" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="none">No high-interest debt</option>
+                                <option value="minimal">Under $10,000</option>
+                                <option value="moderate">$10,000-50,000</option>
+                                <option value="high">Over $50,000</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="dependents" class="block text-sm font-medium text-gray-700">Financial Dependents</label>
+                            <input type="number" id="dependents" value="0" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-semibold mt-6 mb-4 border-b pb-2">Current Finances</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label for="yourSalary" class="block text-sm font-medium text-gray-700">Your Annual Salary (pre-tax)</label>
+                        <input type="number" id="yourSalary" value="214000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="partnerSalary" class="block text-sm font-medium text-gray-700">Partner's Annual Salary (pre-tax)</label>
+                        <input type="number" id="partnerSalary" value="34500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="yourCurrentSuper" class="block text-sm font-medium text-gray-700">Your Current Superannuation</label>
+                        <input type="number" id="yourCurrentSuper" value="312000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="partnerCurrentSuper" class="block text-sm font-medium text-gray-700">Partner's Current Superannuation</label>
+                        <input type="number" id="partnerCurrentSuper" value="150000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="currentSavings" class="block text-sm font-medium text-gray-700">Current Cash/Savings</label>
+                        <input type="number" id="currentSavings" value="55000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="currentStocks" class="block text-sm font-medium text-gray-700">Current Stock Portfolio</label>
+                        <input type="number" id="currentStocks" value="62000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="monthlyStockContribution" class="block text-sm font-medium text-gray-700">Monthly Stock Contributions</label>
+                        <input type="number" id="monthlyStockContribution" value="800" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="percentIncomeSaved" class="block text-sm font-medium text-gray-700">% of Post-Tax Income Saved</label>
+                        <input type="number" id="percentIncomeSaved" value="9" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 2: Property & Investment Property -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Property Portfolio</h2>
+
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Primary Residence</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label for="homeValue" class="block text-sm font-medium text-gray-700">Current Home Value</label>
+                        <input type="number" id="homeValue" value="810000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="mortgageBalance" class="block text-sm font-medium text-gray-700">Outstanding Mortgage</label>
+                        <input type="number" id="mortgageBalance" value="594000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="mortgageRate" class="block text-sm font-medium text-gray-700">Annual Mortgage Rate (%)</label>
+                        <input type="number" id="mortgageRate" value="5.37" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="monthlyMortgagePayment" class="block text-sm font-medium text-gray-700">Monthly Mortgage Payment</label>
+                        <input type="number" id="monthlyMortgagePayment" value="3584" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="planToDownsize" class="block text-sm font-medium text-gray-700">Plan to Downsize?</label>
+                        <select id="planToDownsize" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <option value="false">No - Stay in current home</option>
+                            <option value="true">Yes - Downsize and access equity</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="advanced-section enhancement-highlight">
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Investment Property</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="hasInvestmentProperty" class="flex items-center">
+                                <input type="checkbox" id="hasInvestmentProperty" checked class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">Own Investment Property</span>
+                            </label>
+                        </div>
+                        <div id="investmentPropertySection">
+                            <div>
+                                <label for="investmentPropertyValue" class="block text-sm font-medium text-gray-700">Current Value</label>
+                                <input type="number" id="investmentPropertyValue" value="550000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="investmentPropertyLoan" class="block text-sm font-medium text-gray-700">Outstanding Loan</label>
+                                <input type="number" id="investmentPropertyLoan" value="574000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="investmentPropertyRate" class="block text-sm font-medium text-gray-700">Loan Interest Rate (%)</label>
+                                <input type="number" id="investmentPropertyRate" value="6.2" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="weeklyRentalIncome" class="block text-sm font-medium text-gray-700">Weekly Rental Income</label>
+                                <input type="number" id="weeklyRentalIncome" value="554" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="annualPropertyExpenses" class="block text-sm font-medium text-gray-700">Annual Property Expenses</label>
+                                <input type="number" id="annualPropertyExpenses" value="9675" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="propertyGrowthRate" class="block text-sm font-medium text-gray-700">Annual Growth Rate (%)</label>
+                                <input type="number" id="propertyGrowthRate" value="4.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="sellPropertyYears" class="block text-sm font-medium text-gray-700">Sell Property in (Years from now)</label>
+                                <input type="number" id="sellPropertyYears" value="15" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="capitalGainsTaxRate" class="block text-sm font-medium text-gray-700">Capital Gains Tax Rate (%)</label>
+                                <input type="number" id="capitalGainsTaxRate" value="22.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="enhancement-highlight p-4 rounded-lg mt-4">
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Healthcare & Aged Care</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="currentHealthcareCosts" class="block text-sm font-medium text-gray-700">Current Annual Healthcare Costs</label>
+                            <input type="number" id="currentHealthcareCosts" value="3500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="healthcareInflation" class="block text-sm font-medium text-gray-700">Healthcare Inflation Rate (%)</label>
+                            <input type="number" id="healthcareInflation" value="6.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="agedCareProbability" class="block text-sm font-medium text-gray-700">Aged Care Probability (%)</label>
+                            <input type="number" id="agedCareProbability" value="65" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="agedCareStartAge" class="block text-sm font-medium text-gray-700">Expected Aged Care Start Age</label>
+                            <input type="number" id="agedCareStartAge" value="85" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="agedCareDuration" class="block text-sm font-medium text-gray-700">Expected Duration (years)</label>
+                            <input type="number" id="agedCareDuration" value="3.5" step="0.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="agedCareAnnualCost" class="block text-sm font-medium text-gray-700">Annual Aged Care Cost</label>
+                            <input type="number" id="agedCareAnnualCost" value="75000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 3: Economic & Asset Allocation -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Economic & Asset Allocation</h2>
+
+                <div class="space-y-4">
+                    <div>
+                        <label for="inflation" class="block text-sm font-medium text-gray-700">Annual Inflation Rate (%)</label>
+                        <input type="number" id="inflation" value="2.87" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="investmentReturn" class="block text-sm font-medium text-gray-700">Initial Investment Return (%)</label>
+                        <input type="number" id="investmentReturn" value="5.61" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="returnDeclineRate" class="block text-sm font-medium text-gray-700">Return Decline Rate (% p.a.)</label>
+                        <input type="number" id="returnDeclineRate" value="0.03" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="savingsReturn" class="block text-sm font-medium text-gray-700">Savings Return (%)</label>
+                        <input type="number" id="savingsReturn" value="1.40" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="superReturn" class="block text-sm font-medium text-gray-700">Super Annual Growth (%)</label>
+                        <input type="number" id="superReturn" value="8.75" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+
+                <div class="enhancement-highlight p-4 rounded-lg mt-4">
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Dynamic Asset Allocation</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="useGlidePath" class="flex items-center">
+                                <input type="checkbox" id="useGlidePath" checked class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">Enable Dynamic Allocation</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label for="glidePathRule" class="block text-sm font-medium text-gray-700">Glide Path Strategy</label>
+                            <select id="glidePathRule" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="120minus">120 - Age (Aggressive)</option>
+                                <option value="110minus">110 - Age (Standard)</option>
+                                <option value="100minus">100 - Age (Conservative)</option>
+                            </select>
+                        </div>
+                        <div id="currentAllocationDisplay" class="p-3 bg-blue-50 rounded">
+                            <div class="text-sm font-medium text-blue-900">Current Recommended Allocation</div>
+                            <div id="recommendedAllocation" class="text-sm text-blue-800 mt-1">Calculating...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="enhancement-highlight p-4 rounded-lg mt-4">
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Franking Credits</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="australianEquityAllocation" class="block text-sm font-medium text-gray-700">Australian Equity % of Total Equities</label>
+                            <input type="number" id="australianEquityAllocation" value="40" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="dividendYield" class="block text-sm font-medium text-gray-700">Expected Dividend Yield (%)</label>
+                            <input type="number" id="dividendYield" value="4.5" step="0.1" min="0" max="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Average dividend yield for Australian equities</p>
+                        </div>
+                        <div>
+                            <label for="frankingRate" class="block text-sm font-medium text-gray-700">Franking Rate (%)</label>
+                            <input type="number" id="frankingRate" value="75" step="1" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Percentage of dividends that are franked</p>
+                        </div>
+                        <div>
+                            <label for="frankingCreditBenefit" class="block text-sm font-medium text-gray-700">Franking Credit Benefit Factor</label>
+                            <input type="number" id="frankingCreditBenefit" value="1.2" step="0.1" min="0" max="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Scaling factor based on tax position (1.0 = full benefit)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="advanced-section">
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Salary Progression</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="salaryGrowthRate" class="block text-sm font-medium text-gray-700">Annual Real Salary Growth (%)</label>
+                            <input type="number" id="salaryGrowthRate" value="1.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="leanYearsStart" class="block text-sm font-medium text-gray-700">Lean Years Start (years before retirement)</label>
+                            <input type="number" id="leanYearsStart" value="5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="leanYearsReduction" class="block text-sm font-medium text-gray-700">Lean Years Salary Reduction (%)</label>
+                            <input type="number" id="leanYearsReduction" value="25" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 4: Pension System & Simulation -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Australian Pension System</h2>
+
+                <div class="space-y-4">
+                    <div>
+                        <label for="asfaComfortable" class="block text-sm font-medium text-gray-700">ASFA Comfortable (Couple) p.a.</label>
+                        <input type="number" id="asfaComfortable" value="73875" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <p class="mt-1 text-xs text-gray-500">March 2025: $73,875 comfortable, $48,184 modest</p>
+                    </div>
+                    <div>
+                        <label for="agePensionMax" class="block text-sm font-medium text-gray-700">Max Age Pension (Couple) p.a.</label>
+                        <input type="number" id="agePensionMax" value="45037" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="pensionAssetThreshold" class="block text-sm font-medium text-gray-700">Pension Asset Threshold (Couple)</label>
+                        <input type="number" id="pensionAssetThreshold" value="470000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="pensionAssetLimit" class="block text-sm font-medium text-gray-700">Pension Asset Limit (Couple)</label>
+                        <input type="number" id="pensionAssetLimit" value="1031000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="pensionIncomeThreshold" class="block text-sm font-medium text-gray-700">Pension Income Threshold (p.f.)</label>
+                        <input type="number" id="pensionIncomeThreshold" value="372" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+
+                <div class="enhancement-highlight p-4 rounded-lg mt-6">
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Simulation Controls</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="numRuns" class="block text-sm font-medium text-gray-700">Monte Carlo Runs</label>
+                            <input type="number" id="numRuns" value="5000" min="1000" step="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="returnVolatility" class="block text-sm font-medium text-gray-700">Return Volatility (%)</label>
+                            <input type="number" id="returnVolatility" value="12" min="1" max="50" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="enableShocks" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">Enable Market Shocks</span>
+                            </label>
+                        </div>
+                        <div id="shockControls" class="hidden space-y-2">
+                            <div>
+                                <label for="shockProbability" class="block text-sm font-medium text-gray-700">Shock Probability (%)</label>
+                                <input type="number" id="shockProbability" value="5" min="0" max="20" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="shockMagnitude" class="block text-sm font-medium text-gray-700">Shock Magnitude (%)</label>
+                                <input type="number" id="shockMagnitude" value="-25" max="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 space-y-3">
+                    <button id="btnCalculate" class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                        Calculate Enhanced Projection
+                    </button>
+                    <button id="btnMonteCarlo" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                        Run Enhanced Monte Carlo
+                    </button>
+                    <button id="btnStressTest" class="w-full px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
+                        Run Stress Test Scenarios
+                    </button>
+                    <button id="btnRetirementSolver" class="w-full px-4 py-2 border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium">
+                        When Can I Retire?
+                    </button>
+                    <button id="btnScenarioComparison" class="w-full px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors font-medium">
+                        Compare Scenarios
+                    </button>
+                    <div class="relative inline-block w-full" id="exportContainer">
+                        <button id="btnExport" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center">
+                            Export Enhanced Report <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="exportDropdown" class="absolute bottom-full mb-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
+                            <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                <a href="#" id="btnExportCSV" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as CSV</a>
+                                <a href="#" id="btnExportXLSX" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as XLSX</a>
+                                <a href="#" id="btnExportPDF" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as PDF</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="progressContainer" class="hidden mt-4">
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div id="progressBar" class="h-3 bg-indigo-600 rounded-full progress-bar-initial"></div>
+                    </div>
+                    <div id="progressText" class="text-xs text-gray-600 mt-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Results Section -->
+        <div class="mt-8 bg-white rounded-lg shadow-md">
+            <div class="flex border-b">
+                <button class="tab-button active" onclick="showTab('summary')">Enhanced Summary</button>
+                <button class="tab-button" onclick="showTab('projection')">Year-by-Year</button>
+                <button class="tab-button" onclick="showTab('property')">Property Analysis</button>
+                <button class="tab-button" onclick="showTab('riskAnalysis')">Risk Analysis</button>
+                <button class="tab-button" onclick="showTab('charts')">Advanced Charts</button>
+                <button class="tab-button" onclick="showTab('optimization')">Optimization</button>
+                <button class="tab-button" onclick="showTab('scenarios')">Scenario Compare</button>
+            </div>
+
+            <!-- Enhanced Summary Tab -->
+            <div id="summary-tab" class="tab-content active p-6">
+                <h2 class="text-2xl font-semibold mb-4">Enhanced Retirement Summary</h2>
+                <div id="summaryResults" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6">
+                    <!-- Enhanced summary content will be populated by JavaScript -->
+                </div>
+                <div id="finalResult" class="mt-4 p-4 rounded-lg">
+                    <!-- Final result will be populated by JavaScript -->
+                </div>
+                <div id="enhancedRecommendations" class="mt-4 p-4 bg-green-50 rounded-lg">
+                    <h4 class="font-semibold text-green-900">AI-Powered Recommendations</h4>
+                    <ul id="enhancedRecommendationsList" class="list-disc ml-5 mt-2 text-sm text-green-800">
+                        <!-- Enhanced recommendations will be populated -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Year-by-Year Tab -->
+            <div id="projection-tab" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold mb-4">Year-by-Year Projection</h2>
+                <div class="mb-4 text-sm text-gray-600">
+                    <p><strong>Note:</strong> This projection includes healthcare costs, aged care planning, and investment property modeling.</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Portfolio</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Growth</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Yearly withdrawal</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property Income</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Healthcare</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aged Care</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projectionTable" class="bg-white divide-y divide-gray-200">
+                            <!-- Projection rows will be populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Property Analysis Tab -->
+            <div id="property-tab" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold mb-4">Investment Property Analysis</h2>
+                <div id="propertyAnalysis" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Property analysis will be populated -->
+                </div>
+            </div>
+
+            <!-- Risk Analysis Tab -->
+            <div id="riskAnalysis-tab" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold mb-4">Risk Analysis</h2>
+                <div id="riskAnalysisContent" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Risk analysis will be populated -->
+                </div>
+            </div>
+
+            <!-- Charts Tab -->
+            <div id="charts-tab" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold mb-4">Advanced Simulation Results</h2>
+
+                <div id="monteCarloResults" class="hidden mb-6">
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm mb-4">
+                        <div class="p-3 bg-blue-50 rounded text-center">
+                            <div class="font-semibold">Total Runs</div>
+                            <div id="mcRuns">-</div>
+                        </div>
+                        <div class="p-3 bg-green-50 rounded text-center">
+                            <div class="font-semibold">Success Rate</div>
+                            <div id="mcSuccessRate">-</div>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded text-center">
+                            <div class="font-semibold">Median Balance</div>
+                            <div id="mcMedian">-</div>
+                        </div>
+                        <div class="p-3 bg-purple-50 rounded text-center">
+                            <div class="font-semibold">10th Percentile</div>
+                            <div id="mc10th">-</div>
+                        </div>
+                        <div class="p-3 bg-yellow-50 rounded text-center">
+                            <div class="font-semibold">Confidence Score</div>
+                            <div id="mcConfidence">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2">Portfolio Balance Over Time</h3>
+                        <canvas id="fanChart"></canvas>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2">Final Balance Distribution</h3>
+                        <canvas id="histChart"></canvas>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2">Asset Allocation Over Time</h3>
+                        <canvas id="allocationChart"></canvas>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2">Property vs Portfolio Growth</h3>
+                        <canvas id="propertyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optimization Tab -->
+            <div id="optimization-tab" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold mb-4">Retirement Optimization Strategies</h2>
+
+                <!-- Retirement Age Solver Results -->
+                <div id="retirementSolverResults" class="hidden mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <h3 class="text-lg font-semibold text-green-900 mb-3">When Can You Retire?</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="text-center p-3 bg-white rounded border">
+                            <div class="text-2xl font-bold text-green-700" id="earliestRetirementAge">--</div>
+                            <div class="text-sm text-gray-600">Earliest Retirement Age</div>
+                        </div>
+                        <div class="text-center p-3 bg-white rounded border">
+                            <div class="text-2xl font-bold text-blue-700" id="yearsToWork">--</div>
+                            <div class="text-sm text-gray-600">Years to Work</div>
+                        </div>
+                        <div class="text-center p-3 bg-white rounded border">
+                            <div class="text-2xl font-bold text-purple-700" id="retirementSuccessRate">--</div>
+                            <div class="text-sm text-gray-600">Success Rate</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="p-3 bg-white rounded border">
+                            <div class="font-medium text-gray-700">Projected Balance at Retirement</div>
+                            <div class="text-lg font-semibold text-indigo-700" id="retirementProjectedBalance">--</div>
+                        </div>
+                        <div class="p-3 bg-white rounded border">
+                            <div class="font-medium text-gray-700">Median Final Balance</div>
+                            <div class="text-lg font-semibold text-teal-700" id="retirementMedianBalance">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="optimizationContent" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Optimization strategies will be populated -->
+                </div>
+            </div>
+
+            <!-- Scenario Comparison Tab -->
+            <div id="scenarios-tab" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold mb-4">Scenario Comparison</h2>
+
+                <!-- Scenario Selection Interface -->
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h3 class="text-lg font-medium mb-3">Select Scenarios to Compare</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="scenarioCheckboxes">
+                        <!-- Scenario checkboxes will be populated by JavaScript -->
+                    </div>
+                    <div class="mt-4 flex space-x-3">
+                        <button id="btnSelectAllScenarios" class="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                            Select All
+                        </button>
+                        <button id="btnDeselectAllScenarios" class="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                            Deselect All
+                        </button>
+                        <button id="btnRunComparison" class="px-4 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700">
+                            Run Comparison
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Scenario Comparison Results -->
+                <div id="scenarioComparisonResults" class="hidden">
+                    <!-- Comparison Summary Cards -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">Scenario Comparison Summary</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="scenarioSummaryCards">
+                            <!-- Summary cards will be populated -->
+                        </div>
+                    </div>
+
+                    <!-- Detailed Results Table -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">Detailed Comparison</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-200 rounded-lg">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Scenario</th>
+                                        <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Success Rate</th>
+                                        <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Median Balance</th>
+                                        <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Risk Score</th>
+                                        <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Recommendation</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scenarioComparisonTable">
+                                    <!-- Table rows will be populated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Visual Comparison Chart -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">Visual Comparison</h3>
+                        <div class="bg-white p-4 rounded-lg border">
+                            <canvas id="scenarioComparisonChart" width="800" height="400"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+// Enhanced Configuration - Australian Financial System Constants
+const ENHANCED_CONFIG = {
+    // Core Australian Financial System Parameters
+    SUPER_GUARANTEE_RATE: 0.115, // 11.5% in FY2025, increasing to 12% in FY2025-26
+
+    // Tax brackets for 2024-25 financial year
+    TAX_BRACKETS: [
+        { min: 0, max: 18200, rate: 0.0 },
+        { min: 18200, max: 45000, rate: 0.19 },
+        { min: 45000, max: 120000, rate: 0.325 },
+        { min: 120000, max: 180000, rate: 0.37 },
+        { min: 180000, max: Infinity, rate: 0.45 }
+    ],
+
+    // Medicare levy
+    MEDICARE_LEVY: 0.02,
+
+    // Age Pension parameters (couples, homeowners)
+    AGE_PENSION: {
+        MAX_PAYMENT: 45037, // Annual max pension for couple (March 2025)
+        ASSET_TEST_FREE_AREA: 470000, // Couple homeowner
+        ASSET_TEST_CUTOFF: 1031000, // Couple homeowner
+        ASSET_REDUCTION_RATE: 3.0, // $ per fortnight per $1000 of assets
+        INCOME_FREE_AREA: 372, // Per fortnight for couple
+        INCOME_REDUCTION_RATE: 0.50, // 50 cents per dollar
+        DEEMING_RATES: {
+            FIRST_BRACKET: 73000,
+            FIRST_RATE: 0.015, // 1.5%
+            HIGHER_RATE: 0.035 // 3.5%
+        }
+    },
+
+    // Capital gains tax
+    CGT_DISCOUNT: 0.5, // 50% discount for assets held > 12 months
+
+    // Franking credit system
+    FRANKING: {
+        COMPANY_TAX_RATE: 0.30,
+        FULL_FRANKING: 1.0,
+        REFUND_THRESHOLD: 0.0 // Can receive refunds if taxable income allows
+    },
+
+    // Healthcare cost modeling
+    HEALTHCARE: {
+        BASE_INFLATION: 0.065, // 6.5% p.a. healthcare inflation
+        AGED_CARE_PROBABILITY: 0.65, // 65% chance of needing aged care
+        AGED_CARE_COST: 75000, // Annual cost
+        AGED_CARE_DURATION: 3.5 // Average duration in years
+    },
+
+    // Stress test scenarios
+    STRESS_SCENARIOS: [
+        {
+            name: "GFC Repeat",
+            description: "2008-style financial crisis with prolonged recovery",
+            parameters: {
+                returnShock: -0.40, // 40% drop
+                duration: 2,
+                recoveryRate: 0.08
+            }
+        },
+        {
+            name: "Lost Decade Japan",
+            description: "Japan 1990s-style prolonged low growth",
+            parameters: {
+                returnReduction: 0.03,
+                duration: 10,
+                inflationIncrease: 0.01
+            }
+        },
+        {
+            name: "High Inflation Period",
+            description: "1970s-style sustained high inflation",
+            parameters: {
+                inflationIncrease: 0.05,
+                duration: 8,
+                realReturnDecline: 0.02
+            }
+        },
+        {
+            name: "Healthcare Cost Explosion",
+            description: "Accelerated healthcare cost growth",
+            parameters: {
+                healthcareInflationMultiplier: 2.0,
+                duration: 15
+            }
+        },
+        {
+            name: "Property Market Crash",
+            description: "Major property market correction",
+            parameters: {
+                propertyValueDecline: 0.30,
+                duration: 5,
+                recoveryRate: 0.04
+            }
+        }
+    ]
+};
+
+// Utility functions for DOM manipulation and calculations
+function $(id) {
+    return document.getElementById(id);
+}
+
+// Safe DOM value getters with fallbacks
+function safeGetValue(elementId, defaultValue = 0) {
+    const element = $(elementId);
+    if (!element) return defaultValue;
+    const value = parseFloat(element.value);
+    return isNaN(value) ? defaultValue : value;
+}
+
+function safeGetChecked(elementId, defaultValue = false) {
+    const element = $(elementId);
+    return element ? element.checked : defaultValue;
+}
+
+function safeGetSelectValue(elementId, defaultValue = '') {
+    const element = $(elementId);
+    return element ? element.value : defaultValue;
+}
+
+// Safe DOM setters
+function safeSetValue(elementId, value) {
+    const element = $(elementId);
+    if (element) {
+        element.value = value;
+    }
+}
+
+function safeSetText(elementId, text) {
+    const element = $(elementId);
+    if (element) {
+        element.textContent = text;
+    }
+}
+
+function safeSetHTML(elementId, html) {
+    const element = $(elementId);
+    if (element) {
+        element.innerHTML = html;
+    }
+}
+
+// Currency and percentage formatting
+function formatCurrency(amount) {
+    if (typeof amount !== 'number' || isNaN(amount)) return '$0';
+    return new Intl.NumberFormat('en-AU', {
+        style: 'currency',
+        currency: 'AUD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount);
+}
+
+function formatPercent(value) {
+    if (typeof value !== 'number' || isNaN(value)) return '0%';
+    return new Intl.NumberFormat('en-AU', {
+        style: 'percent',
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+    }).format(value);
+}
+
+// Statistical functions
+function percentile(arr, p) {
+    if (!arr || arr.length === 0) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const index = p * (sorted.length - 1);
+    const lower = Math.floor(index);
+    const upper = Math.ceil(index);
+    const weight = index % 1;
+
+    if (upper >= sorted.length) return sorted[sorted.length - 1];
+    return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+}
+
+// Australian tax calculation
+function calculateAustralianTax(income) {
+    let tax = 0;
+
+    for (const bracket of ENHANCED_CONFIG.TAX_BRACKETS) {
+        if (income > bracket.min) {
+            const taxableInThisBracket = Math.min(income, bracket.max) - bracket.min;
+            tax += taxableInThisBracket * bracket.rate;
+        }
+    }
+
+    // Add Medicare levy
+    if (income > 23226) { // Medicare levy low-income threshold for singles
+        tax += income * ENHANCED_CONFIG.MEDICARE_LEVY;
+    }
+
+    return tax;
+}
+
+// Age Pension calculation
+function calculateAgePension(assets, income) {
+    const pension = ENHANCED_CONFIG.AGE_PENSION;
+
+    // Asset test
+    let assetReduction = 0;
+    if (assets > pension.ASSET_TEST_FREE_AREA) {
+        const excessAssets = assets - pension.ASSET_TEST_FREE_AREA;
+        assetReduction = Math.floor(excessAssets / 1000) * pension.ASSET_REDUCTION_RATE * 26; // Annual
+    }
+
+    // Income test
+    let incomeReduction = 0;
+    if (income > pension.INCOME_FREE_AREA * 26) { // Annual income
+        const excessIncome = income - (pension.INCOME_FREE_AREA * 26);
+        incomeReduction = excessIncome * pension.INCOME_REDUCTION_RATE;
+    }
+
+    // Apply the more restrictive test
+    const maxReduction = Math.max(assetReduction, incomeReduction);
+    const pensionPayable = Math.max(0, pension.MAX_PAYMENT - maxReduction);
+
+    return {
+        pensionPayable,
+        assetReduction,
+        incomeReduction,
+        assetsTest: assets <= pension.ASSET_TEST_CUTOFF,
+        incomeTest: true
+    };
+}
+
+// Progress and notification functions
+function updateProgress(percentage, message = '') {
+    const progressContainer = $('progressContainer');
+    const progressBar = $('progressBar');
+    const progressText = $('progressText');
+
+    if (progressContainer && progressBar) {
+        if (percentage > 0) {
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = `${Math.min(100, Math.max(0, percentage))}%`;
+            if (progressText && message) {
+                progressText.textContent = message;
+            }
+        } else {
+            progressContainer.classList.add('hidden');
+        }
+    }
+}
+
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        type === 'warning' ? 'bg-yellow-500 text-black' :
+        'bg-blue-500 text-white'
+    }`;
+    notification.textContent = message;
+
+    document.body.appendChild(notification);
+
+    // Animate in
+    setTimeout(() => notification.style.transform = 'translateX(0)', 10);
+
+    // Remove after delay
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => notification.remove(), 300);
+    }, 4000);
+}
+
+// Tab management
+function showTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    // Remove active class from all buttons
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+
+    // Show selected tab
+    const selectedTab = $(`${tabName}-tab`);
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+
+    // Add active class to corresponding button
+    const buttons = document.querySelectorAll('.tab-button');
+    buttons.forEach(button => {
+        if (button.textContent.toLowerCase().includes(tabName.toLowerCase().replace(/([A-Z])/g, ' $1').trim().split(' ')[0])) {
+            button.classList.add('active');
+        }
+    });
+}
+
+// Debounce function for performance
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Export functionality
+function exportToCSV(data, filename, inputs = {}) {
+    // Add metadata header
+    const metadata = [
+        ['Generated by Enhanced Australian Retirement Calculator'],
+        ['Generation Date', new Date().toLocaleString()],
+        ['Scenario', inputs.scenarioName || 'Default'],
+        [''], // Empty row
+        ['Key Inputs'],
+        ['Your Age', inputs.yourCurrentAge],
+        ['Retirement Age', inputs.retirementAge],
+        ['Current Super', formatCurrency(inputs.yourCurrentSuper + inputs.partnerCurrentSuper)],
+        ['Investment Property', inputs.hasInvestmentProperty ? 'Yes' : 'No'],
+        [''], // Empty row
+    ];
+
+    // Convert data to CSV format
+    if (!data || data.length === 0) return;
+
+    const headers = Object.keys(data[0]);
+    const csvData = [
+        ...metadata,
+        headers,
+        ...data.map(row => headers.map(header => row[header]))
+    ];
+
+    const csvContent = csvData.map(row => row.join(',')).join('\n');
+    downloadFile(csvContent, filename, 'text/csv');
+}
+
+function exportToXLSX(inputs, results, chartManager) {
+    try {
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+
+        // Summary sheet
+        const summaryData = [
+            ['Enhanced Australian Retirement Calculator - Summary Report'],
+            ['Generated', new Date().toLocaleString()],
+            [],
+            ['Personal Details'],
+            ['Your Current Age', inputs.yourCurrentAge],
+            ['Partner\'s Age', inputs.partnerCurrentAge],
+            ['Retirement Age', inputs.retirementAge],
+            ['Expected Lifespan', `${inputs.yourLifespan} / ${inputs.partnerLifespan}`],
+            [],
+            ['Financial Position'],
+            ['Current Superannuation', formatCurrency(inputs.yourCurrentSuper + inputs.partnerCurrentSuper)],
+            ['Current Savings', formatCurrency(inputs.currentSavings)],
+            ['Investment Portfolio', formatCurrency(inputs.currentStocks)],
+            ['Home Equity', formatCurrency(Math.max(0, inputs.homeValue - inputs.mortgageBalance))],
+            [],
+            ['Projection Results'],
+            ['Future Super at Retirement', formatCurrency(results.futureSuper)],
+            ['Future Savings', formatCurrency(results.futureSavings)],
+            ['Total Financial Assets', formatCurrency(results.totalFinancialAssets)],
+            ['Final Balance', formatCurrency(results.finalBalance)]
+        ];
+
+        if (inputs.hasInvestmentProperty) {
+            summaryData.push(
+                [],
+                ['Investment Property'],
+                ['Current Value', formatCurrency(inputs.investmentPropertyValue)],
+                ['Weekly Rent', formatCurrency(inputs.weeklyRentalIncome)],
+                ['Annual Expenses', formatCurrency(inputs.annualPropertyExpenses)]
+            );
+        }
+
+        const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+
+        // Year-by-year projection sheet
+        if (results.yearlyData && results.yearlyData.length > 0) {
+            const projectionHeaders = [
+                'Year', 'Age', 'Start Balance', 'Growth', 'Withdrawal',
+                'Healthcare Cost', 'Aged Care Cost', 'Property Income', 'End Balance'
+            ];
+
+            const projectionData = results.yearlyData.map(data => [
+                data.year,
+                data.age,
+                data.startBalance,
+                data.growth || 0,
+                data.withdrawal || 0,
+                data.healthcareCost || 0,
+                data.agedCareCost || 0,
+                data.propertyIncome || 0,
+                data.endBalance
+            ]);
+
+            const ws2 = XLSX.utils.aoa_to_sheet([projectionHeaders, ...projectionData]);
+            XLSX.utils.book_append_sheet(wb, ws2, 'Year by Year');
+        }
+
+        // Write file
+        const filename = `enhanced_retirement_analysis_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, filename);
+
+        showNotification('XLSX export completed successfully', 'success');
+
+    } catch (error) {
+        console.error('XLSX export error:', error);
+        showNotification('Error exporting to XLSX: ' + error.message, 'error');
+    }
+}
+
+function exportToPDF(inputs, results, chartManager) {
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        let yPos = 20;
+
+        // Title
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('Enhanced Australian Retirement Analysis', 20, yPos);
+        yPos += 15;
+
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 20, yPos);
+        yPos += 15;
+
+        // Personal Details
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('Personal Details', 20, yPos);
+        yPos += 10;
+
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Current Age: ${inputs.yourCurrentAge} / ${inputs.partnerCurrentAge}`, 20, yPos);
+        yPos += 6;
+        doc.text(`Retirement Age: ${inputs.retirementAge} / ${inputs.partnerRetirementAge}`, 20, yPos);
+        yPos += 6;
+        doc.text(`Expected Lifespan: ${inputs.yourLifespan} / ${inputs.partnerLifespan}`, 20, yPos);
+        yPos += 15;
+
+        // Financial Summary
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('Financial Summary', 20, yPos);
+        yPos += 10;
+
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Current Superannuation: ${formatCurrency(inputs.yourCurrentSuper + inputs.partnerCurrentSuper)}`, 20, yPos);
+        yPos += 6;
+        doc.text(`Current Savings: ${formatCurrency(inputs.currentSavings)}`, 20, yPos);
+        yPos += 6;
+        doc.text(`Investment Portfolio: ${formatCurrency(inputs.currentStocks)}`, 20, yPos);
+        yPos += 6;
+        doc.text(`Home Equity: ${formatCurrency(Math.max(0, inputs.homeValue - inputs.mortgageBalance))}`, 20, yPos);
+        yPos += 15;
+
+        // Results
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('Projection Results', 20, yPos);
+        yPos += 10;
+
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Total Financial Assets at Retirement: ${formatCurrency(results.totalFinancialAssets)}`, 20, yPos);
+        yPos += 6;
+        doc.text(`Final Balance at End of Lifespan: ${formatCurrency(results.finalBalance)}`, 20, yPos);
+        yPos += 6;
+
+        const status = results.finalBalance > 0 ? 'SUCCESSFUL' : 'SHORTFALL PROJECTED';
+        doc.setFont(undefined, 'bold');
+        doc.text(`Retirement Outcome: ${status}`, 20, yPos);
+
+        // Add property analysis if available
+        if (inputs.hasInvestmentProperty && yPos < 250) {
+            yPos += 20;
+            doc.setFontSize(14);
+            doc.text('Investment Property', 20, yPos);
+            yPos += 10;
+
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Property Value: ${formatCurrency(inputs.investmentPropertyValue)}`, 20, yPos);
+            yPos += 6;
+            doc.text(`Weekly Rent: ${formatCurrency(inputs.weeklyRentalIncome)}`, 20, yPos);
+            yPos += 6;
+            doc.text(`Annual Expenses: ${formatCurrency(inputs.annualPropertyExpenses)}`, 20, yPos);
+        }
+
+        // Add a new page for year-by-year data if there's room and data available
+        if (results.yearlyData && results.yearlyData.length > 0) {
+            doc.addPage();
+            yPos = 20;
+
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'bold');
+            doc.text('Year-by-Year Projection Summary', 20, yPos);
+            yPos += 15;
+
+            // Create a simplified table for PDF
+            const tableData = results.yearlyData.slice(0, 20).map(data => [
+                data.year.toString(),
+                data.age.toString(),
+                formatCurrency(data.startBalance),
+                formatCurrency(data.endBalance)
+            ]);
+
+            // Use autoTable if available
+            if (doc.autoTable) {
+                doc.autoTable({
+                    head: [['Year', 'Age', 'Start Balance', 'End Balance']],
+                    body: tableData,
+                    startY: yPos,
+                    theme: 'grid',
+                    styles: { fontSize: 8 }
+                });
+            }
+        }
+
+        // Save the PDF
+        const filename = `enhanced_retirement_analysis_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(filename);
+
+        showNotification('PDF export completed successfully', 'success');
+
+    } catch (error) {
+        console.error('PDF export error:', error);
+        showNotification('Error exporting to PDF: ' + error.message, 'error');
+    }
+}
+
+// Helper function to trigger file download
+function downloadFile(content, filename, contentType) {
+    const blob = new Blob([content], { type: contentType });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+// ===== RETIREMENT SIMULATOR ENGINE =====
+class RetirementSimulator {
+    constructor() {
+        this.currentYear = new Date().getFullYear();
+    }
+
+    // Main simulation entry point
+    simulateRetirement(inputs, isMonteCarloRun = false) {
+        const startYear = this.currentYear;
+        const retirementYear = startYear + (inputs.retirementAge - inputs.yourCurrentAge);
+        const endYear = startYear + (inputs.partnerLifespan - inputs.yourCurrentAge);
+
+        // Calculate future balances at retirement
+        const futureSuper = this.calculateFutureSuper(inputs);
+        const futureSavings = this.calculateFutureSavings(inputs);
+        const futureStocks = this.calculateFutureStocks(inputs);
+
+        // Calculate accessible home equity
+        const accessibleHomeEquity = this.calculateAccessibleHomeEquity(inputs);
+
+        // Calculate property equity if applicable
+        const propertyEquity = inputs.hasInvestmentProperty ?
+            this.calculatePropertyEquity(inputs) : 0;
+
+        // Total financial assets at retirement
+        const totalFinancialAssets = futureSuper + futureSavings + futureStocks;
+
+        // Year-by-year projection
+        const yearlyData = [];
+        const balances = [];
+        const allocationHistory = [];
+        const healthcareCostHistory = [];
+        const propertyHistory = [];
+
+        let currentBalance = totalFinancialAssets;
+        let currentHealthcareCosts = inputs.currentHealthcareCosts;
+        let agedCareCosts = this.calculateAgedCareCosts(inputs);
+
+        for (let year = retirementYear; year <= endYear; year++) {
+            const age = inputs.yourCurrentAge + (year - startYear);
+            const partnerAge = inputs.partnerCurrentAge + (year - startYear);
+            const yearData = this.simulateYear({
+                ...inputs,
+                currentBalance,
+                currentHealthcareCosts,
+                age,
+                partnerAge,
+                year,
+                agedCareCosts,
+                isMonteCarloRun
+            });
+
+            yearlyData.push(yearData);
+            balances.push(yearData.endBalance);
+            currentBalance = yearData.endBalance;
+            currentHealthcareCosts = yearData.healthcareCost;
+
+            // Track allocations if using glide path
+            if (inputs.useGlidePath) {
+                const allocation = this.calculateDynamicAllocation(age, inputs.glidePathRule);
+                allocationHistory.push(allocation);
+            }
+
+            // Track healthcare costs
+            healthcareCostHistory.push(currentHealthcareCosts);
+
+            // Track property data if applicable
+            if (inputs.hasInvestmentProperty) {
+                const propertyData = this.calculatePropertyData(inputs, year - retirementYear);
+                propertyHistory.push(propertyData);
+            }
+
+            // Check if depleted
+            if (currentBalance <= 0) {
+                yearlyData.push({ year, age, depleted: true });
+                break;
+            }
+        }
+
+        return {
+            futureSuper,
+            futureSavings,
+            futureStocks,
+            totalFinancialAssets,
+            accessibleHomeEquity,
+            propertyEquity,
+            finalBalance: currentBalance,
+            yearlyData,
+            balances,
+            allocationHistory,
+            healthcareCostHistory,
+            propertyHistory,
+            agedCareCosts
+        };
+    }
+
+    // Simulate a single year in retirement
+    simulateYear(params) {
+        const {
+            currentBalance, currentHealthcareCosts, age, partnerAge, year,
+            agedCareCosts, isMonteCarloRun, asfaComfortable, inflation,
+            hasInvestmentProperty, useGlidePath, glidePathRule,
+            investmentReturn, returnVolatility
+        } = params;
+
+        const startBalance = currentBalance;
+
+        // Calculate required income (ASFA comfortable standard + inflation)
+        const yearsFromStart = year - this.currentYear;
+        const requiredIncome = asfaComfortable * Math.pow(1 + inflation, yearsFromStart);
+
+        // Calculate investment return for this year
+        let returnRate = investmentReturn;
+        if (useGlidePath) {
+            const allocation = this.calculateDynamicAllocation(age, glidePathRule);
+            returnRate = this.calculateEnhancedReturn(allocation, investmentReturn, params);
+        }
+
+        // Add volatility for Monte Carlo simulations
+        if (isMonteCarloRun && returnVolatility > 0) {
+            const volatility = returnVolatility;
+            const randomReturn = this.generateRandomReturn(returnRate, volatility);
+            returnRate = randomReturn;
+        }
+
+        // Calculate growth
+        const growth = currentBalance * returnRate;
+
+        // Calculate healthcare costs (with inflation)
+        const healthcareCost = currentHealthcareCosts * Math.pow(1 + params.healthcareInflation / 100, yearsFromStart);
+
+        // Calculate aged care costs
+        let agedCareCost = 0;
+        if (age >= params.agedCareStartAge && age < params.agedCareStartAge + params.agedCareDuration) {
+            agedCareCost = agedCareCosts.annualCost;
+        }
+
+        // Calculate property income if applicable
+        let propertyIncome = 0;
+        if (hasInvestmentProperty) {
+            const propertyData = this.calculatePropertyData(params, year - this.currentYear);
+            propertyIncome = propertyData.netCashFlow || 0;
+        }
+
+        // Calculate Age Pension
+        const pensionData = this.calculateAgePensionForYear(currentBalance, params);
+        const pensionIncome = pensionData.pensionPayable || 0;
+
+        // Total income available
+        const totalIncome = pensionIncome + propertyIncome;
+
+        // Calculate withdrawal needed
+        const totalExpenses = requiredIncome + healthcareCost + agedCareCost;
+        const withdrawal = Math.max(0, totalExpenses - totalIncome);
+
+        // Calculate end balance
+        const endBalance = Math.max(0, currentBalance + growth - withdrawal);
+
+        return {
+            year,
+            age,
+            yourAge: age,
+            partnerAge,
+            startBalance,
+            growth,
+            withdrawal,
+            healthcareCost,
+            agedCareCost,
+            propertyIncome,
+            pensionIncome,
+            endBalance,
+            returnRate,
+            depleted: endBalance <= 0
+        };
+    }
+
+    // Calculate future superannuation balance
+    calculateFutureSuper(inputs) {
+        const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+        const partnerYearsToRetirement = inputs.partnerRetirementAge - inputs.partnerCurrentAge;
+
+        // Your super growth
+        const yourFutureSuper = inputs.yourCurrentSuper *
+            Math.pow(1 + inputs.superReturn / 100, yearsToRetirement);
+
+        // Add ongoing contributions
+        const annualSuperContribution = (inputs.yourSalary + inputs.partnerSalary) *
+            inputs.superContributionRate;
+        const contributionGrowth = this.calculateAnnuityFutureValue(
+            annualSuperContribution,
+            inputs.superReturn / 100,
+            Math.min(yearsToRetirement, partnerYearsToRetirement)
+        );
+
+        // Partner's super growth
+        const partnerFutureSuper = inputs.partnerCurrentSuper *
+            Math.pow(1 + inputs.superReturn / 100, partnerYearsToRetirement);
+
+        return yourFutureSuper + partnerFutureSuper + contributionGrowth;
+    }
+
+    // Calculate future savings balance
+    calculateFutureSavings(inputs) {
+        const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+        const currentGrowth = inputs.currentSavings *
+            Math.pow(1 + inputs.savingsReturn / 100, yearsToRetirement);
+
+        // Calculate ongoing savings contributions
+        const totalSalary = inputs.yourSalary + inputs.partnerSalary;
+        const afterTaxIncome = totalSalary - calculateAustralianTax(totalSalary);
+        const annualSavings = afterTaxIncome * inputs.percentIncomeSaved;
+
+        const savingsGrowth = this.calculateAnnuityFutureValue(
+            annualSavings,
+            inputs.savingsReturn / 100,
+            yearsToRetirement
+        );
+
+        return currentGrowth + savingsGrowth;
+    }
+
+    // Calculate future investment/stock portfolio
+    calculateFutureStocks(inputs) {
+        const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+        const currentGrowth = inputs.currentStocks *
+            Math.pow(1 + inputs.investmentReturn / 100, yearsToRetirement);
+
+        // Add monthly contributions
+        const monthlyContribution = inputs.monthlyStockContribution;
+        const annualContribution = monthlyContribution * 12;
+
+        const contributionGrowth = this.calculateAnnuityFutureValue(
+            annualContribution,
+            inputs.investmentReturn / 100,
+            yearsToRetirement
+        );
+
+        return currentGrowth + contributionGrowth;
+    }
+
+    // Calculate accessible home equity
+    calculateAccessibleHomeEquity(inputs) {
+        if (!inputs.planToDownsize) return 0;
+
+        const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+
+        // Future home value
+        const futureHomeValue = inputs.homeValue *
+            Math.pow(1 + inputs.propertyGrowthRate / 100, yearsToRetirement);
+
+        // Calculate remaining mortgage
+        const remainingMortgage = this.calculateMortgageBalance(
+            inputs.mortgageBalance,
+            inputs.mortgageRate / 100,
+            inputs.monthlyMortgagePayment,
+            yearsToRetirement * 12
+        );
+
+        // Accessible equity (assuming 50% of net equity can be accessed through downsizing)
+        const netEquity = futureHomeValue - remainingMortgage;
+        return Math.max(0, netEquity * 0.5);
+    }
+
+    // Calculate property equity
+    calculatePropertyEquity(inputs) {
+        if (!inputs.hasInvestmentProperty) return 0;
+
+        const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+        const futureValue = inputs.investmentPropertyValue *
+            Math.pow(1 + inputs.propertyGrowthRate / 100, yearsToRetirement);
+
+        const remainingLoan = this.calculatePropertyLoanBalance(
+            inputs.investmentPropertyLoan,
+            inputs.investmentPropertyRate,
+            yearsToRetirement
+        );
+
+        return Math.max(0, futureValue - remainingLoan);
+    }
+
+    // Calculate property loan balance
+    calculatePropertyLoanBalance(currentBalance, annualRate, years) {
+        // Assume interest-only loan for investment property
+        return currentBalance;
+    }
+
+    // Calculate mortgage balance
+    calculateMortgageBalance(currentBalance, monthlyRate, monthlyPayment, months) {
+        let balance = currentBalance;
+        const rate = monthlyRate / 12;
+
+        for (let i = 0; i < months; i++) {
+            const interestPayment = balance * rate;
+            const principalPayment = monthlyPayment - interestPayment;
+            balance = Math.max(0, balance - principalPayment);
+        }
+
+        return balance;
+    }
+
+    // Calculate aged care costs
+    calculateAgedCareCosts(inputs) {
+        const probability = inputs.agedCareProbability / 100;
+        const annualCost = inputs.agedCareAnnualCost;
+        const duration = inputs.agedCareDuration;
+        const expectedCost = probability * annualCost * duration;
+
+        return {
+            probability,
+            annualCost,
+            duration,
+            expectedCost
+        };
+    }
+
+    // Dynamic asset allocation based on age
+    calculateDynamicAllocation(age, glidePathRule) {
+        let equityPercentage;
+
+        switch (glidePathRule) {
+            case '120minus':
+                equityPercentage = Math.max(20, Math.min(100, 120 - age));
+                break;
+            case '110minus':
+                equityPercentage = Math.max(20, Math.min(100, 110 - age));
+                break;
+            case '100minus':
+                equityPercentage = Math.max(20, Math.min(100, 100 - age));
+                break;
+            default:
+                equityPercentage = 60;
+        }
+
+        const bondsPercentage = Math.min(60, 100 - equityPercentage - 10);
+        const cashPercentage = 100 - equityPercentage - bondsPercentage;
+
+        return {
+            equity: equityPercentage,
+            bonds: bondsPercentage,
+            cash: cashPercentage
+        };
+    }
+
+    // Calculate enhanced return with franking credits
+    calculateEnhancedReturn(allocation, baseReturn, inputs) {
+        const equityReturn = baseReturn;
+        const bondsReturn = baseReturn * 0.7; // Bonds typically lower return
+        const cashReturn = inputs.savingsReturn / 100;
+
+        // Calculate franking credit benefit for Australian equities
+        const ausEquityPortion = (inputs.australianEquityAllocation / 100) * (allocation.equity / 100);
+        const frankingBenefit = this.calculateFrankingCredits(inputs) * ausEquityPortion;
+
+        const weightedReturn =
+            (allocation.equity / 100) * equityReturn +
+            (allocation.bonds / 100) * bondsReturn +
+            (allocation.cash / 100) * cashReturn +
+            frankingBenefit;
+
+        return weightedReturn;
+    }
+
+    // Calculate franking credit benefits
+    calculateFrankingCredits(inputs) {
+        const dividendYield = inputs.dividendYield / 100;
+        const frankingRate = inputs.frankingRate / 100;
+        const frankingCreditBenefit = inputs.frankingCreditBenefit;
+
+        // Franking credit value = dividend yield × franking rate × (tax rate / (1 - tax rate))
+        // Simplified to use the benefit factor provided by user
+        return dividendYield * frankingRate * (frankingCreditBenefit - 1);
+    }
+
+    // Calculate property data for a given year
+    calculatePropertyData(inputs, yearOffset) {
+        if (!inputs.hasInvestmentProperty) return null;
+
+        const annualRent = inputs.weeklyRentalIncome * 52;
+        const grossRental = annualRent * Math.pow(1.03, yearOffset); // 3% rental growth
+        const expenses = inputs.annualPropertyExpenses * Math.pow(1.03, yearOffset);
+        const interestCost = inputs.investmentPropertyLoan * (inputs.investmentPropertyRate / 100);
+        const netCashFlow = grossRental - expenses - interestCost;
+
+        // Check if property should be sold
+        let saleResult = null;
+        if (inputs.sellPropertyYears > 0 && yearOffset >= inputs.sellPropertyYears) {
+            const futureValue = inputs.investmentPropertyValue *
+                Math.pow(1 + inputs.propertyGrowthRate / 100, inputs.sellPropertyYears);
+            const sellingCosts = futureValue * 0.06; // 6% selling costs
+            const capitalGain = futureValue - inputs.investmentPropertyValue;
+            const cgtPayable = capitalGain * 0.5 * (inputs.capitalGainsTaxRate / 100);
+            const netProceeds = futureValue - inputs.investmentPropertyLoan - sellingCosts - cgtPayable;
+
+            saleResult = {
+                salePrice: futureValue,
+                sellingCosts,
+                capitalGain,
+                cgtPayable,
+                netProceeds
+            };
+        }
+
+        return {
+            grossRental,
+            expenses,
+            interestCost,
+            netCashFlow: saleResult ? 0 : netCashFlow,
+            saleResult
+        };
+    }
+
+    // Risk assessment functions
+    calculateRiskCapacity(inputs) {
+        let score = 0;
+
+        // Age factor (younger = higher capacity)
+        if (inputs.yourCurrentAge < 35) score += 30;
+        else if (inputs.yourCurrentAge < 50) score += 20;
+        else if (inputs.yourCurrentAge < 65) score += 10;
+
+        // Income stability
+        const totalIncome = inputs.yourSalary + inputs.partnerSalary;
+        if (totalIncome > 200000) score += 25;
+        else if (totalIncome > 100000) score += 20;
+        else if (totalIncome > 50000) score += 10;
+
+        // Emergency fund
+        switch (inputs.hasEmergencyFund) {
+            case 'full': score += 20; break;
+            case 'partial': score += 15; break;
+            case 'minimal': score += 5; break;
+        }
+
+        // Debt level
+        switch (inputs.hasDebt) {
+            case 'none': score += 15; break;
+            case 'minimal': score += 10; break;
+            case 'moderate': score += 5; break;
+        }
+
+        // Dependents
+        score -= inputs.dependents * 5;
+
+        return Math.max(0, Math.min(100, score));
+    }
+
+    calculateRiskRequirement(inputs) {
+        // Calculate gap between current trajectory and retirement needs
+        const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+        const futureNeeds = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, yearsToRetirement);
+
+        const totalCurrentAssets = inputs.yourCurrentSuper + inputs.partnerCurrentSuper +
+                                  inputs.currentSavings + inputs.currentStocks;
+
+        const conservativeGrowth = totalCurrentAssets * Math.pow(1.04, yearsToRetirement); // 4% conservative growth
+        const gap = futureNeeds - conservativeGrowth;
+
+        if (gap > futureNeeds * 0.5) return 90; // High risk required
+        if (gap > futureNeeds * 0.2) return 70; // Moderate risk required
+        if (gap > 0) return 50; // Some risk required
+        return 30; // Low risk required
+    }
+
+    // Age Pension calculation for a specific year
+    calculateAgePensionForYear(assets, inputs) {
+        // Simplified calculation - in reality this would be more complex
+        const deemedIncome = this.calculateDeemedIncome(assets);
+        return calculateAgePension(assets, deemedIncome);
+    }
+
+    calculateDeemedIncome(assets) {
+        const rates = ENHANCED_CONFIG.AGE_PENSION.DEEMING_RATES;
+        if (assets <= rates.FIRST_BRACKET) {
+            return assets * rates.FIRST_RATE;
+        } else {
+            return rates.FIRST_BRACKET * rates.FIRST_RATE +
+                   (assets - rates.FIRST_BRACKET) * rates.HIGHER_RATE;
+        }
+    }
+
+    // Utility functions
+    calculateAnnuityFutureValue(payment, rate, periods) {
+        if (rate === 0) return payment * periods;
+        return payment * (Math.pow(1 + rate, periods) - 1) / rate;
+    }
+
+    generateRandomReturn(expectedReturn, volatility) {
+        // Box-Muller transformation for normal distribution
+        const u1 = Math.random();
+        const u2 = Math.random();
+        const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+
+        return expectedReturn + (volatility / 100) * z;
+    }
+
+    getReturnForYear(baseReturn, year, declineRate) {
+        return baseReturn - (declineRate * year);
+    }
+}
+
+// ===== CHART MANAGER =====
+class ChartManager {
+    constructor() {
+        this.charts = {};
+    }
+
+    // Destroy the existing chart if it exists
+    destroyChart(chartId) {
+        if (this.charts[chartId]) {
+            try {
+                this.charts[chartId].destroy();
+            } catch (error) {
+                console.warn(`Error destroying chart ${chartId}:`, error);
+            }
+            delete this.charts[chartId];
+        }
+    }
+
+    // Portfolio balance fan chart with percentiles
+    renderFanChart(results, inputs) {
+        this.destroyChart('fanChart');
+
+        const canvas = document.getElementById('fanChart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const years = results.yearlyData.map(d => d.age);
+
+        this.charts.fanChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: years,
+                datasets: [
+                    {
+                        label: 'Portfolio Balance',
+                        data: results.balances,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0,
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Portfolio Balance Projection Over Time'
+                    },
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `Age ${context.label}: ${formatCurrency(context.raw)}`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Age (years)' },
+                        grid: { display: false }
+                    },
+                    y: {
+                        title: { display: true, text: 'Portfolio Balance (AUD)' },
+                        beginAtZero: true,
+                        max: results.balances.reduce((m, v) => v > m ? v : m, -Infinity) * 1.1,
+                        ticks: {
+                            callback: (value) => formatCurrency(value)
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Enhanced fan chart for Monte Carlo results
+    renderMonteCarloFanChart(inputs, paths) {
+        this.destroyChart('fanChart');
+
+        const canvas = document.getElementById('fanChart');
+        if (!canvas || !paths || paths.length === 0) return;
+
+        // Set reasonable canvas size to prevent overflow
+        canvas.style.maxHeight = '400px';
+        canvas.style.maxWidth = '100%';
+
+        const ctx = canvas.getContext('2d');
+        const maxYears = Math.max(...paths.map(p => p.length));
+        const years = Array.from({length: maxYears}, (_, i) => inputs.retirementAge + i);
+
+        const median = [], p10 = [], p90 = [], p25 = [], p75 = [];
+
+        for (let year = 0; year < maxYears; year++) {
+            const balancesAtYear = paths.map(p => p[year] ?? 0);
+            median.push(percentile(balancesAtYear, 0.5));
+            p10.push(percentile(balancesAtYear, 0.1));
+            p90.push(percentile(balancesAtYear, 0.9));
+            p25.push(percentile(balancesAtYear, 0.25));
+            p75.push(percentile(balancesAtYear, 0.75));
+        }
+
+        this.charts.fanChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: years,
+                datasets: [
+                    {
+                        label: 'Median (50th percentile)',
+                        data: median,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0,
+                        borderWidth: 3
+                    },
+                    {
+                        label: '90th Percentile',
+                        data: p90,
+                        borderColor: 'rgba(59, 130, 246, 0.3)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        fill: '+1',
+                        pointRadius: 0,
+                        borderWidth: 1
+                    },
+                    {
+                        label: '10th Percentile',
+                        data: p10,
+                        borderColor: 'rgba(59, 130, 246, 0.3)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        fill: false,
+                        pointRadius: 0,
+                        borderWidth: 1
+                    },
+                    {
+                        label: '75th Percentile',
+                        data: p75,
+                        borderColor: 'rgba(34, 197, 94, 0.4)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.3)',
+                        fill: '+1',
+                        pointRadius: 0,
+                        borderWidth: 1
+                    },
+                    {
+                        label: '25th Percentile',
+                        data: p25,
+                        borderColor: 'rgba(34, 197, 94, 0.4)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.3)',
+                        fill: false,
+                        pointRadius: 0,
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Monte Carlo Portfolio Balance Projections'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Age (years)' } },
+                    y: {
+                        title: { display: true, text: 'Portfolio Balance (AUD)' },
+                        beginAtZero: true,
+                        suggestedMax: Math.max(...p90.filter(v => !isNaN(v) && isFinite(v))) * 1.1 || 100000,
+                        ticks: {
+                            callback: (value) => formatCurrency(value)
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Final balance histogram
+    renderHistogram(outcomes) {
+        this.destroyChart('histChart');
+
+        const canvas = document.getElementById('histChart');
+        if (!canvas || !outcomes || outcomes.length === 0) return;
+
+        // Set reasonable canvas size to prevent overflow
+        canvas.style.maxHeight = '400px';
+        canvas.style.maxWidth = '100%';
+
+        const ctx = canvas.getContext('2d');
+        const bins = 25;
+
+        // Filter out invalid values and handle edge cases
+        const validOutcomes = outcomes.filter(v => !isNaN(v) && isFinite(v));
+        if (validOutcomes.length === 0) return;
+
+        const maxVal = Math.max(...validOutcomes);
+        const minVal = Math.min(...validOutcomes);
+        const range = Math.max(1, maxVal - minVal); // avoid divide by zero
+        const binSize = range / bins;
+        const histogram = new Array(bins).fill(0);
+
+        validOutcomes.forEach(val => {
+            const idx = Math.min(Math.floor((val - minVal) / binSize), bins - 1);
+            histogram[idx]++;
+        });
+
+        const labels = histogram.map((_, i) => formatCurrency(minVal + i * binSize));
+
+        this.charts.histChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Number of Simulations',
+                    data: histogram,
+                    backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                    borderColor: 'rgba(99, 102, 241, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Distribution of Final Portfolio Balances'
+                    },
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Final Balance (AUD)' },
+                        ticks: { maxRotation: 45 }
+                    },
+                    y: {
+                        title: { display: true, text: 'Number of Simulations' },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Asset allocation over time
+    renderAllocationChart(allocationHistory, startAge) {
+        this.destroyChart('allocationChart');
+
+        const canvas = document.getElementById('allocationChart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const ages = allocationHistory.map((_, i) => startAge + i);
+
+        this.charts.allocationChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ages,
+                datasets: [
+                    {
+                        label: 'Equity %',
+                        data: allocationHistory.map(a => a.equity),
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Bonds %',
+                        data: allocationHistory.map(a => a.bonds),
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Cash %',
+                        data: allocationHistory.map(a => a.cash),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Dynamic Asset Allocation Over Time'
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Age (years)' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Allocation Percentage (%)' },
+                        min: 0,
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+
+    // Property vs Portfolio comparison
+    renderPropertyChart(results, inputs) {
+        this.destroyChart('propertyChart');
+
+        const canvas = document.getElementById('propertyChart');
+        if (!canvas || !inputs.hasInvestmentProperty) return;
+
+        const ctx = canvas.getContext('2d');
+        const years = results.yearlyData.map(d => d.year);
+        const portfolioValues = results.balances;
+
+        // Calculate property values over time
+        const propertyValues = results.propertyHistory.map((prop, i) => {
+            if (prop.saleResult) return 0; // Property sold
+            return inputs.investmentPropertyValue * Math.pow(1 + inputs.propertyGrowthRate / 100, i + 1);
+        });
+
+        this.charts.propertyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: years.slice(0, Math.min(years.length, propertyValues.length)),
+                datasets: [
+                    {
+                        label: 'Portfolio Value',
+                        data: portfolioValues.slice(0, propertyValues.length),
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Property Value',
+                        data: propertyValues,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Portfolio vs Property Value Growth'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Year' } },
+                    y: {
+                        title: { display: true, text: 'Value (AUD)' },
+                        beginAtZero: true,
+                        suggestedMax: Math.max(
+                            ...portfolioValues.filter(v => !isNaN(v) && isFinite(v)),
+                            ...propertyValues.filter(v => !isNaN(v) && isFinite(v))
+                        ) * 1.1 || 100000,
+                        ticks: {
+                            callback: (value) => formatCurrency(value)
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Render all charts for a complete analysis
+    renderCompleteAnalysis(results, inputs, monteCarloResults = null) {
+        // Main portfolio chart
+        if (monteCarloResults) {
+            this.renderMonteCarloFanChart(inputs, monteCarloResults.paths);
+            this.renderHistogram(monteCarloResults.outcomes);
+        } else {
+            this.renderFanChart(results, inputs);
+        }
+
+        // Asset allocation chart
+        if (results.allocationHistory && results.allocationHistory.length > 0) {
+            this.renderAllocationChart(results.allocationHistory, inputs.yourCurrentAge);
+        }
+
+        // Property charts
+        if (inputs.hasInvestmentProperty) {
+            this.renderPropertyChart(results, inputs);
+        }
+    }
+
+    // Destroy all charts
+    destroyAllCharts() {
+        Object.keys(this.charts).forEach(chartId => {
+            this.destroyChart(chartId);
+        });
+    }
+}
+
+// ===== MAIN APPLICATION CONTROLLER =====
+class RetirementCalculatorApp {
+    constructor() {
+        this.simulator = new RetirementSimulator();
+        this.chartManager = new ChartManager();
+        this.currentResults = null;
+        this.isCalculating = false;
+
+        this.initializeApp();
+    }
+
+    initializeApp() {
+        this.setupEventListeners();
+        this.updateUIElements();
+        this.performInitialCalculation();
+    }
+
+    // Input collection with complete property support
+    collectInputs() {
+        return {
+            // Personal details
+            yourCurrentAge: safeGetValue('yourCurrentAge', 49),
+            partnerCurrentAge: safeGetValue('partnerCurrentAge', 47),
+            retirementAge: safeGetValue('retirementAge', 72),
+            partnerRetirementAge: safeGetValue('partnerRetirementAge', 62),
+            yourLifespan: safeGetValue('yourLifespan', 95),
+            partnerLifespan: safeGetValue('partnerLifespan', 99),
+
+            // Risk profile
+            riskTolerance: safeGetValue('riskTolerance', 6),
+            hasEmergencyFund: safeGetSelectValue('hasEmergencyFund', 'partial'),
+            hasDebt: safeGetSelectValue('hasDebt', 'minimal'),
+            dependents: safeGetValue('dependents', 0),
+
+            // Financial details
+            yourSalary: safeGetValue('yourSalary', 214000),
+            partnerSalary: safeGetValue('partnerSalary', 34500),
+            yourCurrentSuper: safeGetValue('yourCurrentSuper', 312000),
+            partnerCurrentSuper: safeGetValue('partnerCurrentSuper', 150000),
+            currentSavings: safeGetValue('currentSavings', 55000),
+            currentStocks: safeGetValue('currentStocks', 62000),
+            monthlyStockContribution: safeGetValue('monthlyStockContribution', 800),
+            percentIncomeSaved: safeGetValue('percentIncomeSaved', 9) / 100,
+
+            // Property details
+            homeValue: safeGetValue('homeValue', 810000),
+            mortgageBalance: safeGetValue('mortgageBalance', 594000),
+            mortgageRate: safeGetValue('mortgageRate', 5.37) / 100,
+            monthlyMortgagePayment: safeGetValue('monthlyMortgagePayment', 3584),
+            planToDownsize: safeGetSelectValue('planToDownsize', 'false') === 'true',
+
+            // Investment property
+            hasInvestmentProperty: safeGetChecked('hasInvestmentProperty', false),
+            investmentPropertyValue: safeGetValue('investmentPropertyValue', 550000),
+            investmentPropertyLoan: safeGetValue('investmentPropertyLoan', 574000),
+            investmentPropertyRate: safeGetValue('investmentPropertyRate', 6.2) / 100,
+            weeklyRentalIncome: safeGetValue('weeklyRentalIncome', 554),
+            annualPropertyExpenses: safeGetValue('annualPropertyExpenses', 9675),
+            propertyGrowthRate: safeGetValue('propertyGrowthRate', 4.5),
+            sellPropertyYears: safeGetValue('sellPropertyYears', 15),
+            capitalGainsTaxRate: safeGetValue('capitalGainsTaxRate', 22.5),
+
+            // Healthcare & aged care
+            currentHealthcareCosts: safeGetValue('currentHealthcareCosts', 3500),
+            healthcareInflation: safeGetValue('healthcareInflation', 6.5),
+            agedCareProbability: safeGetValue('agedCareProbability', 65),
+            agedCareStartAge: safeGetValue('agedCareStartAge', 85),
+            agedCareDuration: safeGetValue('agedCareDuration', 3.5),
+            agedCareAnnualCost: safeGetValue('agedCareAnnualCost', 75000),
+
+            // Economic assumptions
+            inflation: safeGetValue('inflation', 2.87) / 100,
+            investmentReturn: safeGetValue('investmentReturn', 5.61) / 100,
+            returnDeclineRate: safeGetValue('returnDeclineRate', 0.03),
+            savingsReturn: safeGetValue('savingsReturn', 1.40) / 100,
+            superReturn: safeGetValue('superReturn', 8.75) / 100,
+            superContributionRate: ENHANCED_CONFIG.SUPER_GUARANTEE_RATE,
+            salaryGrowthRate: safeGetValue('salaryGrowthRate', 1.5),
+            leanYearsStart: safeGetValue('leanYearsStart', 5),
+            leanYearsReduction: safeGetValue('leanYearsReduction', 25),
+
+            // Dynamic allocation
+            useGlidePath: safeGetChecked('useGlidePath', true),
+            glidePathRule: safeGetSelectValue('glidePathRule', '110minus'),
+            frankingCreditBenefit: safeGetValue('frankingCreditBenefit', 1.2),
+            australianEquityAllocation: safeGetValue('australianEquityAllocation', 40),
+            dividendYield: safeGetValue('dividendYield', 4.5),
+            frankingRate: safeGetValue('frankingRate', 75),
+            allocEquities: safeGetValue('allocEquities', 60),
+            allocBonds: safeGetValue('allocBonds', 30),
+            allocCash: safeGetValue('allocCash', 10),
+
+            // Pension system
+            asfaComfortable: safeGetValue('asfaComfortable', 73875),
+            agePensionMax: safeGetValue('agePensionMax', 45037),
+            pensionAssetThreshold: safeGetValue('pensionAssetThreshold', 470000),
+            pensionAssetLimit: safeGetValue('pensionAssetLimit', 1031000),
+            pensionIncomeThreshold: safeGetValue('pensionIncomeThreshold', 372),
+
+            // Simulation controls
+            returnVolatility: safeGetValue('returnVolatility', 12) / 100,
+            enableShocks: safeGetChecked('enableShocks', false),
+            shockProbability: safeGetValue('shockProbability', 5) / 100,
+            shockMagnitude: safeGetValue('shockMagnitude', -25) / 100,
+            numRuns: safeGetValue('numRuns', 5000)
+        };
+    }
+
+    // Update risk profile display
+    updateRiskProfile(inputs) {
+        const capacity = this.simulator.calculateRiskCapacity(inputs);
+        const tolerance = inputs.riskTolerance * 10;
+        const requirement = this.simulator.calculateRiskRequirement(inputs);
+
+        // Update risk bars
+        const riskCapacityBar = $('riskCapacityBar');
+        const riskToleranceBar = $('riskToleranceBar');
+        const riskRequirementBar = $('riskRequirementBar');
+
+        if (riskCapacityBar) riskCapacityBar.style.width = `${capacity}%`;
+        if (riskToleranceBar) riskToleranceBar.style.width = `${tolerance}%`;
+        if (riskRequirementBar) riskRequirementBar.style.width = `${requirement}%`;
+
+        // Update risk text
+        safeSetText('riskCapacityText', `${capacity.toFixed(0)}% (${capacity > 70 ? 'High' : capacity > 40 ? 'Moderate' : 'Low'})`);
+        safeSetText('riskToleranceText', `${tolerance.toFixed(0)}% (${tolerance > 70 ? 'Aggressive' : tolerance > 40 ? 'Balanced' : 'Conservative'})`);
+        safeSetText('riskRequirementText', `${requirement.toFixed(0)}% (${requirement > 70 ? 'High' : requirement > 40 ? 'Moderate' : 'Low'})`);
+    }
+
+    // Update recommended allocation display
+    updateRecommendedAllocation(inputs) {
+        if (inputs.useGlidePath) {
+            const allocation = this.simulator.calculateDynamicAllocation(inputs.yourCurrentAge, inputs.glidePathRule);
+            safeSetHTML('recommendedAllocation',
+                `Equity: ${allocation.equity}% | Bonds: ${allocation.bonds.toFixed(0)}% | Cash: ${allocation.cash.toFixed(0)}%`
+            );
+        } else {
+            safeSetText('recommendedAllocation', 'Using custom allocation');
+        }
+    }
+
+    // Main calculation function
+    async calculateRetirement() {
+        if (this.isCalculating) return;
+
+        this.isCalculating = true;
+
+        try {
+            const inputs = this.collectInputs();
+            const result = this.simulator.simulateRetirement(inputs, false);
+            this.currentResults = result;
+
+            // Update UI
+            this.updateRiskProfile(inputs);
+            this.updateRecommendedAllocation(inputs);
+            this.displaySummaryResults(result, inputs);
+            this.displayYearByYearProjection(result);
+            this.displayPropertyAnalysis(result, inputs);
+
+            // Render charts
+            this.chartManager.renderCompleteAnalysis(result, inputs);
+
+            showNotification('Calculation completed successfully', 'success');
+
+        } catch (error) {
+            console.error('Calculation error:', error);
+            showNotification('Error in calculation: ' + error.message, 'error');
+        } finally {
+            this.isCalculating = false;
+        }
+    }
+
+    // Display enhanced summary results
+    displaySummaryResults(result, inputs) {
+        const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+        const requiredAnnualIncomeInRetirement = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, yearsToRetirement);
+
+        safeSetHTML('summaryResults', `
+            <div class="p-3 bg-blue-50 rounded flex justify-between">
+                <strong>Years to Retirement:</strong>
+                <span>${yearsToRetirement}</span>
+            </div>
+            <div class="p-3 bg-blue-50 rounded flex justify-between">
+                <strong>Future Super:</strong>
+                <span class="font-semibold">${formatCurrency(result.futureSuper)}</span>
+            </div>
+            <div class="p-3 bg-blue-50 rounded flex justify-between">
+                <strong>Future Savings:</strong>
+                <span class="font-semibold">${formatCurrency(result.futureSavings)}</span>
+            </div>
+            <div class="p-3 bg-blue-50 rounded flex justify-between">
+                <strong>Future Investments:</strong>
+                <span class="font-semibold">${formatCurrency(result.futureStocks)}</span>
+            </div>
+            <div class="p-3 bg-green-50 rounded flex justify-between">
+                <strong>Accessible Home Equity:</strong>
+                <span class="font-semibold">${formatCurrency(result.accessibleHomeEquity)}</span>
+            </div>
+            ${inputs.hasInvestmentProperty ? `
+            <div class="p-3 bg-yellow-50 rounded flex justify-between">
+                <strong>Property Equity:</strong>
+                <span class="font-semibold">${formatCurrency(result.propertyEquity)}</span>
+            </div>
+            ` : ''}
+            <div class="p-3 bg-green-50 rounded flex justify-between">
+                <strong>Total Assets at Retirement:</strong>
+                <span class="font-bold text-lg">${formatCurrency(result.totalFinancialAssets + result.accessibleHomeEquity)}</span>
+            </div>
+            <div class="p-3 bg-red-50 rounded flex justify-between">
+                <strong>Income Needed (ASFA):</strong>
+                <span class="font-bold text-lg">${formatCurrency(requiredAnnualIncomeInRetirement)}</span>
+            </div>
+            <div class="p-3 bg-purple-50 rounded flex justify-between">
+                <strong>Expected Aged Care Costs:</strong>
+                <span class="font-semibold">${formatCurrency(result.agedCareCosts.expectedCost)}</span>
+            </div>
+        `);
+
+        // Final result
+        const finalResultContainer = $('finalResult');
+        if (finalResultContainer) {
+            if (result.finalBalance > 0) {
+                finalResultContainer.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
+                finalResultContainer.innerHTML = `
+                    <div class="font-bold text-xl">Retirement Goal Met ✓</div>
+                    <div class="mt-1">Projected remaining assets at age ${inputs.partnerLifespan}: <strong>${formatCurrency(result.finalBalance)}</strong></div>
+                `;
+            } else {
+                finalResultContainer.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
+                finalResultContainer.innerHTML = `
+                    <div class="font-bold text-xl">Retirement Shortfall ⚠️</div>
+                    <div class="mt-1">Assets projected to be depleted before the end of subject's lifespan</div>
+                `;
+            }
+        }
+
+        // Enhanced recommendations
+        const recommendations = this.generateEnhancedRecommendations(inputs, result);
+        safeSetHTML('enhancedRecommendationsList', recommendations.map(r => `<li>${r}</li>`).join(''));
+    }
+
+    // Display year-by-year projection table
+    displayYearByYearProjection(result) {
+        const projectionTable = $('projectionTable');
+        if (!projectionTable) return;
+
+        projectionTable.innerHTML = '';
+
+        // Get inputs for lifespan information
+        const inputs = this.collectInputs();
+
+        result.yearlyData.slice(0, 30).forEach(data => {
+            if (data.depleted) {
+                projectionTable.innerHTML += `
+                    <tr class="bg-red-100">
+                        <td colspan="9" class="px-4 py-2 text-center font-bold">
+                            Financial assets depleted in ${data.year}
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Format age display as "YourAge/PartnerAge" with '-' for deceased
+            let ageDisplay = data.age;
+            if (data.partnerAge !== undefined) {
+                const yourAgeStr = data.yourAge > inputs.yourLifespan ? '-' : data.yourAge;
+                const partnerAgeStr = data.partnerAge > inputs.partnerLifespan ? '-' : data.partnerAge;
+                ageDisplay = `${yourAgeStr}/${partnerAgeStr}`;
+            }
+
+            projectionTable.innerHTML += `
+                <tr>
+                    <td class="px-4 py-2">${data.year}</td>
+                    <td class="px-4 py-2">${ageDisplay}</td>
+                    <td class="px-4 py-2">${formatCurrency(data.startBalance)}</td>
+                    <td class="px-4 py-2 text-green-600">+${formatCurrency(data.growth || 0)}</td>
+                    <td class="px-4 py-2 text-red-600">-${formatCurrency(data.withdrawal || 0)}</td>
+                    <td class="px-4 py-2 text-blue-600">+${formatCurrency(data.propertyIncome || 0)}</td>
+                    <td class="px-4 py-2 text-red-600">-${formatCurrency(data.healthcareCost)}</td>
+                    <td class="px-4 py-2 text-red-600">-${formatCurrency(data.agedCareCost)}</td>
+                    <td class="px-4 py-2 font-semibold">${formatCurrency(data.endBalance)}</td>
+                </tr>
+            `;
+        });
+    }
+
+    // Display property analysis
+    displayPropertyAnalysis(result, inputs) {
+        const propertyAnalysis = $('propertyAnalysis');
+        if (!propertyAnalysis) return;
+
+        if (!inputs.hasInvestmentProperty) {
+            propertyAnalysis.innerHTML = `
+                <div class="col-span-2 p-4 bg-gray-50 rounded text-center">
+                    <p class="text-gray-600">No investment property is included in the analysis</p>
+                </div>
+            `;
+            return;
+        }
+
+        const currentCashFlow = result.propertyHistory[0] || {};
+        propertyAnalysis.innerHTML = `
+            <div class="property-card property-${currentCashFlow.netCashFlow > 0 ? 'positive' : 'negative'}">
+                <h3 class="font-semibold mb-3">Current Property Performance</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span>Annual Rental Income:</span>
+                        <span class="font-medium">${formatCurrency(currentCashFlow.grossRental || 0)}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Annual Expenses:</span>
+                        <span class="font-medium">-${formatCurrency(currentCashFlow.expenses || 0)}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Interest Cost:</span>
+                        <span class="font-medium">-${formatCurrency(currentCashFlow.interestCost || 0)}</span>
+                    </div>
+                    <div class="flex justify-between border-t pt-2">
+                        <span class="font-semibold">Net Cash Flow:</span>
+                        <span class="font-semibold ${currentCashFlow.netCashFlow > 0 ? 'text-green-600' : 'text-red-600'}">
+                            ${formatCurrency(currentCashFlow.netCashFlow || 0)}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    generateEnhancedRecommendations(inputs, result) {
+        const recommendations = [];
+
+        // Risk-based recommendations
+        const capacity = this.simulator.calculateRiskCapacity(inputs);
+        const tolerance = inputs.riskTolerance * 10;
+        const requirement = this.simulator.calculateRiskRequirement(inputs);
+
+        if (requirement > tolerance) {
+            recommendations.push('Consider increasing risk tolerance or extending retirement timeline to meet goals');
+        }
+
+        if (capacity > tolerance + 20) {
+            recommendations.push('You have capacity for higher risk to potentially improve returns');
+        }
+
+        // Healthcare recommendations
+        if (inputs.currentHealthcareCosts < 2000) {
+            recommendations.push('Consider budgeting more for healthcare costs - average is $3,500+ annually');
+        }
+
+        // Property recommendations
+        if (inputs.hasInvestmentProperty) {
+            const cashFlow = result.propertyHistory[0];
+            if (cashFlow && cashFlow.netCashFlow < 0) {
+                recommendations.push('Investment property has negative cash flow - review holding strategy');
+            }
+        }
+
+        // Allocation recommendations
+        if (!inputs.useGlidePath) {
+            recommendations.push('Consider enabling dynamic allocation for age-appropriate risk management');
+        }
+
+        // Aged care preparation
+        if (result.agedCareCosts.expectedCost > result.finalBalance * 0.3) {
+            recommendations.push('Aged care costs represent significant portion of assets - consider insurance options');
+        }
+
+        return recommendations;
+    }
+
+    // Monte Carlo simulation
+    async runMonteCarloSimulation() {
+        if (this.isCalculating) return;
+
+        this.isCalculating = true;
+
+        try {
+            const inputs = this.collectInputs();
+            const runs = inputs.numRuns;
+
+            updateProgress(10, 'Starting Monte Carlo simulation...');
+
+            // Simple Monte Carlo implementation (simplified for single file)
+            const outcomes = [];
+            const paths = [];
+
+            for (let run = 0; run < runs; run++) {
+                if (run % 100 === 0) {
+                    updateProgress(10 + (run / runs) * 80, `Running simulation ${run}/${runs}...`);
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+
+                const result = this.simulator.simulateRetirement(inputs, true);
+                outcomes.push(result.finalBalance);
+                paths.push(result.balances);
+            }
+
+            const successRate = outcomes.filter(o => o > 0).length / outcomes.length;
+            const median = percentile(outcomes, 0.5);
+            const percentile10 = percentile(outcomes, 0.1);
+
+            const monteCarloResults = {
+                outcomes,
+                paths,
+                successRate,
+                median,
+                percentile10
+            };
+
+            // Update Monte Carlo results display
+            const mcResults = $('monteCarloResults');
+            if (mcResults) {
+                mcResults.classList.remove('hidden');
+                safeSetText('mcRuns', runs.toLocaleString());
+                safeSetText('mcSuccessRate', formatPercent(successRate));
+                safeSetText('mcMedian', formatCurrency(median));
+                safeSetText('mc10th', formatCurrency(percentile10));
+                safeSetText('mcConfidence', `${(successRate * 100).toFixed(0)}%`);
+            }
+
+            // Render Monte Carlo charts
+            this.chartManager.renderMonteCarloFanChart(inputs, paths);
+            this.chartManager.renderHistogram(outcomes);
+
+            // Switch to the 'charts' tab
+            showTab('charts');
+
+            updateProgress(0);
+            showNotification('Monte Carlo simulation completed', 'success');
+
+        } catch (error) {
+            console.error('Monte Carlo simulation error:', error);
+            showNotification('Error in Monte Carlo simulation: ' + error.message, 'error');
+        } finally {
+            this.isCalculating = false;
+            updateProgress(0);
+        }
+    }
+
+    // Export functionality
+    exportResults(exportType) {
+        if (!exportType) {
+            showNotification('Export type must be specified.', 'warning');
+            return;
+        }
+
+        if (!this.currentResults) {
+            showNotification('No results to export. Please run a calculation first.', 'warning');
+            return;
+        }
+
+        switch (exportType) {
+            case 'csv':
+                const csvData = this.currentResults.yearlyData.map(data => ({
+                    Year: data.year,
+                    Age: data.age,
+                    Start_Balance: data.startBalance,
+                    Return_Rate: data.returnRate,
+                    Growth: data.growth,
+                    Withdrawal: data.withdrawal,
+                    Healthcare_Cost: data.healthcareCost,
+                    Aged_Care_Cost: data.agedCareCost,
+                    Property_Income: data.propertyIncome || 0,
+                    Pension_Income: data.pensionIncome || 0,
+                    End_Balance: data.endBalance
+                }));
+                exportToCSV(csvData, 'enhanced-retirement-projection.csv', this.collectInputs());
+                break;
+            case 'xlsx':
+                exportToXLSX(this.collectInputs(), this.currentResults, this.chartManager);
+                break;
+            case 'pdf':
+                exportToPDF(this.collectInputs(), this.currentResults, this.chartManager);
+                break;
+            default:
+                showNotification(`Invalid export type: ${exportType}`, 'error');
+        }
+    }
+
+    // UI update functions
+    updateUIElements() {
+        // Investment property section toggle
+        const hasInvestmentProperty = $('hasInvestmentProperty');
+        const investmentPropertySection = $('investmentPropertySection');
+
+        if (hasInvestmentProperty && investmentPropertySection) {
+            const togglePropertySection = () => {
+                if (hasInvestmentProperty.checked) {
+                    investmentPropertySection.classList.remove('hidden');
+                } else {
+                    investmentPropertySection.classList.add('hidden');
+                }
+            };
+
+            hasInvestmentProperty.addEventListener('change', togglePropertySection);
+            togglePropertySection(); // Initial state
+        }
+
+        // Update CGT rate based on marginal tax rate
+        const updateCGTRate = () => {
+            const totalSalary = safeGetValue('yourSalary', 0) + safeGetValue('partnerSalary', 0);
+            let marginalRate = 0;
+
+            if (totalSalary > 180000) marginalRate = 45;
+            else if (totalSalary > 120000) marginalRate = 37;
+            else if (totalSalary > 45000) marginalRate = 32.5;
+            else if (totalSalary > 18200) marginalRate = 19;
+
+            const cgtRate = marginalRate * 0.5; // 50% discount
+            safeSetValue('capitalGainsTaxRate', cgtRate);
+        };
+
+        // Salary change listeners for CGT calculation
+        const yourSalary = $('yourSalary');
+        const partnerSalary = $('partnerSalary');
+        if (yourSalary) yourSalary.addEventListener('blur', updateCGTRate);
+        if (partnerSalary) partnerSalary.addEventListener('blur', updateCGTRate);
+    }
+
+    // Event listeners
+    setupEventListeners() {
+        // Main calculation button
+        const btnCalculate = $('btnCalculate');
+        if (btnCalculate) {
+            btnCalculate.addEventListener('click', () => this.calculateRetirement());
+        }
+
+        // Monte Carlo button
+        const btnMonteCarlo = $('btnMonteCarlo');
+        if (btnMonteCarlo) {
+            btnMonteCarlo.addEventListener('click', () => this.runMonteCarloSimulation());
+        }
+
+        // Export dropdown functionality
+        const btnExport = $('btnExport');
+        const exportDropdown = $('exportDropdown');
+
+        if (btnExport && exportDropdown) {
+            btnExport.addEventListener('click', (e) => {
+                e.stopPropagation();
+                exportDropdown.classList.toggle('hidden');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!exportDropdown.contains(e.target) && !btnExport.contains(e.target)) {
+                    exportDropdown.classList.add('hidden');
+                }
+            });
+
+            $('btnExportCSV').addEventListener('click', (e) => {
+                e.preventDefault();
+                this.exportResults('csv');
+                exportDropdown.classList.add('hidden');
+            });
+            $('btnExportXLSX').addEventListener('click', (e) => {
+                e.preventDefault();
+                this.exportResults('xlsx');
+                exportDropdown.classList.add('hidden');
+            });
+            $('btnExportPDF').addEventListener('click', (e) => {
+                e.preventDefault();
+                this.exportResults('pdf');
+                exportDropdown.classList.add('hidden');
+            });
+        }
+
+        // Auto-update on risk tolerance change
+        const riskTolerance = $('riskTolerance');
+        if (riskTolerance) {
+            riskTolerance.addEventListener('input', debounce(() => {
+                const inputs = this.collectInputs();
+                this.updateRiskProfile(inputs);
+            }, 300));
+        }
+
+        // Auto-update on glide path change
+        const glidePathRule = $('glidePathRule');
+        if (glidePathRule) {
+            glidePathRule.addEventListener('change', () => {
+                const inputs = this.collectInputs();
+                this.updateRecommendedAllocation(inputs);
+            });
+        }
+
+        // Enable/disable shock controls
+        const enableShocks = $('enableShocks');
+        const shockControls = $('shockControls');
+        if (enableShocks && shockControls) {
+            enableShocks.addEventListener('change', () => {
+                if (enableShocks.checked) {
+                    shockControls.classList.remove('hidden');
+                } else {
+                    shockControls.classList.add('hidden');
+                }
+            });
+        }
+
+        // Tab management - make showTab globally available
+        window.showTab = showTab;
+
+        // Property analysis chart toggle
+        const hasInvestmentProperty = $('hasInvestmentProperty');
+        if (hasInvestmentProperty) {
+            hasInvestmentProperty.addEventListener('change', () => {
+                // Recalculate when property status changes
+                setTimeout(() => this.calculateRetirement(), 100);
+            });
+        }
+
+        // Auto-calculate on significant input changes (debounced)
+        const autoCalculateInputs = [
+            'yourCurrentAge', 'retirementAge', 'yourSalary', 'yourCurrentSuper', 'partnerCurrentSuper',
+            'hasInvestmentProperty', 'investmentPropertyValue', 'useGlidePath',
+            'weeklyRentalIncome', 'sellPropertyYears', 'agedCareStartAge'
+        ];
+
+        autoCalculateInputs.forEach(inputId => {
+            const input = $(inputId);
+            if (input) {
+                const eventType = input.type === 'checkbox' ? 'change' : 'blur';
+                input.addEventListener(eventType, debounce(() => {
+                    this.calculateRetirement();
+                }, 1000));
+            }
+        });
+
+        // Real-time updates for immediate feedback
+        const immediateUpdateInputs = ['riskTolerance', 'glidePathRule', 'useGlidePath'];
+        immediateUpdateInputs.forEach(inputId => {
+            const input = $(inputId);
+            if (input) {
+                input.addEventListener('input', debounce(() => {
+                    const inputs = this.collectInputs();
+                    this.updateRiskProfile(inputs);
+                    this.updateRecommendedAllocation(inputs);
+                }, 100));
+            }
+        });
+    }
+
+    // Initial calculation
+    performInitialCalculation() {
+        // Delay initial calculation to ensure DOM is ready
+        setTimeout(() => {
+            this.calculateRetirement();
+        }, 100);
+    }
+}
+
+// Initialize the application when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        new RetirementCalculatorApp();
+        console.log('Enhanced Australian Retirement Calculator initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize calculator:', error);
+        document.body.innerHTML = `
+            <div class="min-h-screen bg-red-50 flex items-center justify-center">
+                <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
+                    <h1 class="text-xl font-bold text-red-600 mb-4">Initialization Error</h1>
+                    <p class="text-gray-600 mb-4">The retirement calculator failed to load properly.</p>
+                    <p class="text-sm text-gray-500">Please check the browser console for details and ensure all files are properly loaded.</p>
+                    <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Reload Page
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+});
+    </script>
+</body>
+</html>
