@@ -765,6 +765,243 @@ class RetirementCalculatorApp {
         }
     }
 
+    // Scenario comparison functionality
+    initializeScenarioComparison() {
+        const inputs = this.collectInputs();
+        const availableScenarios = this.simulator.getCommonScenarios(inputs);
+
+        this.populateScenarioCheckboxes(availableScenarios);
+        showTab('scenarios');
+    }
+
+    populateScenarioCheckboxes(scenarios) {
+        const container = $('scenarioCheckboxes');
+        if (!container) return;
+
+        container.innerHTML = scenarios.map((scenario, index) => `
+            <div class="flex items-start p-3 border rounded-lg hover:bg-gray-50">
+                <input type="checkbox"
+                       id="scenario-${index}"
+                       value="${index}"
+                       class="mt-1 mr-3 h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                       ${index === 0 ? 'checked' : ''}>
+                <div class="flex-1">
+                    <label for="scenario-${index}" class="font-medium text-gray-900 cursor-pointer">
+                        ${scenario.name}
+                    </label>
+                    <p class="text-sm text-gray-600 mt-1">${scenario.description}</p>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    toggleAllScenarios(checked) {
+        const checkboxes = document.querySelectorAll('#scenarioCheckboxes input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = checked;
+        });
+    }
+
+    async runScenarioComparison() {
+        if (this.isCalculating) return;
+        this.isCalculating = true;
+
+        try {
+            const inputs = this.collectInputs();
+            const availableScenarios = this.simulator.getCommonScenarios(inputs);
+
+            // Get selected scenarios
+            const selectedIndices = Array.from(document.querySelectorAll('#scenarioCheckboxes input[type="checkbox"]:checked'))
+                .map(checkbox => parseInt(checkbox.value));
+
+            if (selectedIndices.length < 2) {
+                showNotification('Please select at least 2 scenarios to compare', 'error');
+                return;
+            }
+
+            const selectedScenarios = selectedIndices.map(index => availableScenarios[index]);
+
+            updateProgress(10, 'Initializing scenario comparison...');
+
+            // Progress callback for scenario comparison
+            const progressCallback = async (current, total, message) => {
+                const percentage = 10 + (current / total) * 80;
+                updateProgress(percentage, message);
+                await new Promise(resolve => setTimeout(resolve, 100));
+            };
+
+            const results = await this.simulator.runScenarioComparison(inputs, selectedScenarios, progressCallback);
+
+            // Display results
+            this.displayScenarioComparisonResults(results);
+
+            updateProgress(100, 'Scenario comparison complete!');
+            showNotification(`Successfully compared ${selectedScenarios.length} scenarios`, 'success');
+
+        } catch (error) {
+            console.error('Scenario comparison error:', error);
+            showNotification('Error in scenario comparison: ' + error.message, 'error');
+        } finally {
+            this.isCalculating = false;
+            updateProgress(0);
+        }
+    }
+
+    displayScenarioComparisonResults(results) {
+        const resultsContainer = $('scenarioComparisonResults');
+        if (!resultsContainer) return;
+
+        // Show results container
+        resultsContainer.classList.remove('hidden');
+
+        // Populate summary cards
+        this.populateScenarioSummaryCards(results.scenarios);
+
+        // Populate comparison table
+        this.populateScenarioComparisonTable(results.scenarios);
+
+        // Create comparison chart
+        this.createScenarioComparisonChart(results.scenarios);
+    }
+
+    populateScenarioSummaryCards(scenarios) {
+        const container = $('scenarioSummaryCards');
+        if (!container) return;
+
+        // Find best and worst scenarios
+        const bestSuccess = scenarios.reduce((best, scenario) =>
+            scenario.successRate > best.successRate ? scenario : best);
+        const bestBalance = scenarios.reduce((best, scenario) =>
+            scenario.medianBalance > best.medianBalance ? scenario : best);
+        const worstScenario = scenarios.reduce((worst, scenario) =>
+            scenario.successRate < worst.successRate ? scenario : worst);
+
+        container.innerHTML = `
+            <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h4 class="font-semibold text-green-900">Best Success Rate</h4>
+                <div class="text-2xl font-bold text-green-700">${formatPercent(bestSuccess.successRate)}</div>
+                <div class="text-sm text-green-600">${bestSuccess.name}</div>
+            </div>
+            <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 class="font-semibold text-blue-900">Highest Balance</h4>
+                <div class="text-2xl font-bold text-blue-700">${formatCurrency(bestBalance.medianBalance)}</div>
+                <div class="text-sm text-blue-600">${bestBalance.name}</div>
+            </div>
+            <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <h4 class="font-semibold text-yellow-900">Riskiest Option</h4>
+                <div class="text-2xl font-bold text-yellow-700">${formatPercent(worstScenario.successRate)}</div>
+                <div class="text-sm text-yellow-600">${worstScenario.name}</div>
+            </div>
+        `;
+    }
+
+    populateScenarioComparisonTable(scenarios) {
+        const tableBody = $('scenarioComparisonTable');
+        if (!tableBody) return;
+
+        tableBody.innerHTML = scenarios.map((scenario, index) => {
+            const riskScore = this.simulator.calculateRiskAdjustedScore(scenario);
+            const recommendation = index === 0 ? 'Baseline' :
+                this.simulator.generateScenarioRecommendation(scenario, scenarios[0]);
+
+            return `
+                <tr class="${index === 0 ? 'bg-blue-50' : 'hover:bg-gray-50'}">
+                    <td class="px-4 py-3 font-medium text-gray-900">
+                        ${scenario.name}
+                        ${index === 0 ? '<span class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Baseline</span>' : ''}
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="font-semibold ${scenario.successRate >= 0.7 ? 'text-green-600' : 'text-red-600'}">
+                            ${formatPercent(scenario.successRate)}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-center font-semibold">
+                        ${formatCurrency(scenario.medianBalance)}
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2 py-1 rounded text-xs font-medium ${
+                            riskScore >= 70 ? 'bg-green-100 text-green-800' :
+                            riskScore >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                        }">
+                            ${riskScore.toFixed(0)}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-center text-sm ${
+                        recommendation.includes('Strongly recommended') ? 'text-green-600 font-semibold' :
+                        recommendation.includes('Recommended') ? 'text-blue-600' :
+                        recommendation.includes('Not recommended') ? 'text-red-600' :
+                        'text-gray-600'
+                    }">
+                        ${recommendation}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    createScenarioComparisonChart(scenarios) {
+        this.chartManager.destroyChart('scenarioComparisonChart');
+
+        const canvas = $('scenarioComparisonChart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+
+        this.chartManager.charts.scenarioComparisonChart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: scenarios.map((scenario, index) => ({
+                    label: scenario.name,
+                    data: [{
+                        x: scenario.successRate * 100,
+                        y: scenario.medianBalance / 1000000
+                    }],
+                    backgroundColor: index === 0 ? 'rgba(59, 130, 246, 0.8)' : `hsla(${index * 40}, 70%, 50%, 0.8)`,
+                    borderColor: index === 0 ? 'rgb(59, 130, 246)' : `hsla(${index * 40}, 70%, 40%, 1)`,
+                    pointRadius: 8,
+                    pointHoverRadius: 10
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Scenario Success Rate vs. Median Balance'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const scenario = scenarios[context.datasetIndex];
+                                return [
+                                    scenario.name,
+                                    `Success Rate: ${formatPercent(scenario.successRate)}`,
+                                    `Median Balance: ${formatCurrency(scenario.medianBalance)}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Success Rate (%)' },
+                        min: 0,
+                        max: 100
+                    },
+                    y: {
+                        title: { display: true, text: 'Median Balance ($M)' },
+                        min: 0,
+                        ticks: {
+                            callback: (value) => `$${value.toFixed(1)}M`
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     // Export functionality
     exportResults(exportType) {
         if (!exportType) {
@@ -869,6 +1106,27 @@ class RetirementCalculatorApp {
         const btnRetirementSolver = $('btnRetirementSolver');
         if (btnRetirementSolver) {
             btnRetirementSolver.addEventListener('click', () => this.runRetirementSolver());
+        }
+
+        // Scenario comparison button
+        const btnScenarioComparison = $('btnScenarioComparison');
+        if (btnScenarioComparison) {
+            btnScenarioComparison.addEventListener('click', () => this.initializeScenarioComparison());
+        }
+
+        // Scenario comparison controls
+        const btnSelectAllScenarios = $('btnSelectAllScenarios');
+        const btnDeselectAllScenarios = $('btnDeselectAllScenarios');
+        const btnRunComparison = $('btnRunComparison');
+
+        if (btnSelectAllScenarios) {
+            btnSelectAllScenarios.addEventListener('click', () => this.toggleAllScenarios(true));
+        }
+        if (btnDeselectAllScenarios) {
+            btnDeselectAllScenarios.addEventListener('click', () => this.toggleAllScenarios(false));
+        }
+        if (btnRunComparison) {
+            btnRunComparison.addEventListener('click', () => this.runScenarioComparison());
         }
 
         // Export dropdown functionality

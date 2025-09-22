@@ -706,6 +706,169 @@ export class RetirementSimulator {
             shortfall: Math.max(0, targetBalance - bestBalance)
         };
     }
+
+    // Scenario comparison system
+    async runScenarioComparison(baseInputs, scenarios, progressCallback) {
+        const results = [];
+
+        for (let i = 0; i < scenarios.length; i++) {
+            const scenario = scenarios[i];
+
+            // Create modified inputs for this scenario
+            const scenarioInputs = { ...baseInputs, ...scenario.modifications };
+
+            if (progressCallback) {
+                await progressCallback(i, scenarios.length, `Running scenario: ${scenario.name}`);
+            }
+
+            // Run Monte Carlo simulation for this scenario
+            const mcResult = await this.runMonteCarloSimulation(scenarioInputs, 1000, null);
+
+            // Run deterministic simulation for comparison
+            const deterministicResult = this.simulateRetirement(scenarioInputs, false);
+
+            results.push({
+                name: scenario.name,
+                description: scenario.description,
+                modifications: scenario.modifications,
+                monteCarloResult: mcResult,
+                deterministicResult: deterministicResult,
+                successRate: mcResult.successRate,
+                medianBalance: mcResult.median,
+                finalBalance: deterministicResult.finalBalance,
+                totalAssets: deterministicResult.totalFinancialAssets
+            });
+        }
+
+        return {
+            scenarios: results,
+            comparison: this.generateScenarioComparison(results)
+        };
+    }
+
+    // Generate comparison analysis between scenarios
+    generateScenarioComparison(scenarioResults) {
+        if (scenarioResults.length < 2) return null;
+
+        const baseScenario = scenarioResults[0];
+        const comparisons = [];
+
+        for (let i = 1; i < scenarioResults.length; i++) {
+            const scenario = scenarioResults[i];
+
+            comparisons.push({
+                scenarioName: scenario.name,
+                successRateDiff: scenario.successRate - baseScenario.successRate,
+                medianBalanceDiff: scenario.medianBalance - baseScenario.medianBalance,
+                finalBalanceDiff: scenario.finalBalance - baseScenario.finalBalance,
+                riskAdjustedScore: this.calculateRiskAdjustedScore(scenario),
+                recommendation: this.generateScenarioRecommendation(scenario, baseScenario)
+            });
+        }
+
+        return {
+            baseScenario: baseScenario.name,
+            comparisons
+        };
+    }
+
+    // Calculate risk-adjusted score for scenario ranking
+    calculateRiskAdjustedScore(scenario) {
+        // Weight success rate more heavily than final balance
+        const successWeight = 0.6;
+        const balanceWeight = 0.4;
+
+        const normalizedSuccess = scenario.successRate * 100;
+        const normalizedBalance = Math.min(100, (scenario.medianBalance / 1000000) * 20);
+
+        return (successWeight * normalizedSuccess) + (balanceWeight * normalizedBalance);
+    }
+
+    // Generate recommendation text for scenario comparison
+    generateScenarioRecommendation(scenario, baseScenario) {
+        const successDiff = scenario.successRate - baseScenario.successRate;
+        const balanceDiff = scenario.medianBalance - baseScenario.medianBalance;
+
+        if (successDiff > 0.05 && balanceDiff > 50000) {
+            return "Strongly recommended - significantly better outcomes";
+        } else if (successDiff > 0.02 && balanceDiff > 0) {
+            return "Recommended - improved success rate and balance";
+        } else if (successDiff > 0 && balanceDiff > -100000) {
+            return "Consider - slightly better success rate";
+        } else if (successDiff < -0.05 || balanceDiff < -200000) {
+            return "Not recommended - significantly worse outcomes";
+        } else {
+            return "Neutral - minimal difference in outcomes";
+        }
+    }
+
+    // Pre-built scenario templates
+    getCommonScenarios(baseInputs) {
+        return [
+            {
+                name: "Current Plan",
+                description: "Your current retirement strategy",
+                modifications: {}
+            },
+            {
+                name: "Sell Property at Retirement",
+                description: "Sell investment property when you retire and invest proceeds",
+                modifications: {
+                    sellPropertyYears: baseInputs.retirementAge - baseInputs.yourCurrentAge,
+                    hasInvestmentProperty: baseInputs.hasInvestmentProperty
+                }
+            },
+            {
+                name: "Sell Property in 5 Years",
+                description: "Sell investment property in 5 years and invest proceeds",
+                modifications: {
+                    sellPropertyYears: 5,
+                    hasInvestmentProperty: baseInputs.hasInvestmentProperty
+                }
+            },
+            {
+                name: "Keep Property Forever",
+                description: "Hold investment property throughout retirement",
+                modifications: {
+                    sellPropertyYears: 0, // Never sell
+                    hasInvestmentProperty: baseInputs.hasInvestmentProperty
+                }
+            },
+            {
+                name: "Downsize Family Home",
+                description: "Downsize family home at retirement for extra funds",
+                modifications: {
+                    planToDownsize: true
+                }
+            },
+            {
+                name: "Conservative Allocation",
+                description: "Use more conservative investment allocation",
+                modifications: {
+                    allocEquities: Math.max(30, baseInputs.allocEquities - 20),
+                    allocBonds: Math.min(60, baseInputs.allocBonds + 15),
+                    allocCash: Math.min(20, baseInputs.allocCash + 5)
+                }
+            },
+            {
+                name: "Aggressive Allocation",
+                description: "Use more aggressive investment allocation",
+                modifications: {
+                    allocEquities: Math.min(90, baseInputs.allocEquities + 20),
+                    allocBonds: Math.max(5, baseInputs.allocBonds - 15),
+                    allocCash: Math.max(5, baseInputs.allocCash - 5)
+                }
+            },
+            {
+                name: "Retire 2 Years Later",
+                description: "Work 2 additional years before retiring",
+                modifications: {
+                    retirementAge: baseInputs.retirementAge + 2,
+                    partnerRetirementAge: baseInputs.partnerRetirementAge + 2
+                }
+            }
+        ];
+    }
 }
 
 export default RetirementSimulator;
