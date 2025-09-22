@@ -1,4 +1,27 @@
-I'll help you create a comprehensive retirement planning calculator. Given your preference for logical modeling and experimentation, I'll break this down into clear components and provide both Excel formulas and a C# program.
+## ● Fixed Chart Issues
+
+Analyzed and fixed the major issues in js/charts.js:
+
+### Y-Axis Scaling Fixes
+
+  1. Fixed Y-axis expansion: Added max or suggestedMax properties to prevent unlimited Y-axis growth:
+    - Fan chart: max: Math.max(...results.balances) * 1.1 (lines 70-71)
+    - Monte Carlo chart: suggestedMax: Math.max(...[].concat(...[p90, p75, median, p25, p10])) * 1.1 (lines 169-170)
+    - Property chart: suggestedMax: Math.max(...portfolioValues, ...propertyValues) * 1.1 (lines 365-366)
+
+### Chart Size Fixes
+
+  2. Static chart sizing: Added aspectRatio: 2 to all charts while keeping maintainAspectRatio: false - this provides a consistent 2:1 width-to-height ratio
+
+  Monte Carlo Visualization Improvements:
+
+  3. Better percentile labeling: Changed from generic "range" labels to specific percentile labels (90th, 75th, 25th, 10th percentiles)
+  4. Improved fill visualization: Added border colors and widths to percentile lines for better visibility
+  5. Fixed fill syntax: Maintained the fill: '+1' pattern which creates proper area fills between datasets
+
+  The charts should now maintain consistent sizing and prevent the Y-axis from expanding uncontrollably with large data values.
+
+Create a comprehensive retirement planning calculator. Given the preference for logical modeling and experimentation, we'll break this down into clear components and provide both Excel formulas and a C# program.
 
 ## Key Retirement Planning Calculations
 
