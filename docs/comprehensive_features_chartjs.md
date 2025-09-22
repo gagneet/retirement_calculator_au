@@ -21,9 +21,40 @@ Analyzed and fixed the major issues in js/charts.js:
 
   The charts should now maintain consistent sizing and prevent the Y-axis from expanding uncontrollably with large data values.
 
-Create a comprehensive retirement planning calculator. Given the preference for logical modeling and experimentation, we'll break this down into clear components and provide both Excel formulas and a C# program.
+## Performance Issues Fixed
+
+Addressed the suggested performance improvements:
+
+### 1. Fixed Math.max spread operators
+
+- Fan chart (line 71): Replaced Math.max(...results.balances) with results.balances.reduce((m, v) => v > m ? v : m, -Infinity)
+
+- Monte Carlo chart (line 169): Replaced complex spread operation with efficient single-pass reduce:
+```
+[p90, p75, median, p25, p10].reduce((m, arr) => {
+    for (const v of arr) if (v > m) m = v;
+    return m;
+}, -Infinity)
+```
+
+- Property chart (lines 365-367): Used separate reduces for each array:
+```
+Math.max(
+    portfolioValues.reduce((m, v) => v > m ? v : m, -Infinity),
+    propertyValues.reduce((m, v) => v > m ? v : m, -Infinity)
+)
+```
+
+### 2. Fixed aspectRatio configuration
+
+- Changed maintainAspectRatio: false to maintainAspectRatio: true across all charts so that aspectRatio: 2 is properly enforced
+
+These changes eliminate potential memory issues and stack overflow errors with large datasets while ensuring proper chart sizing behavior.
 
 ## Key Retirement Planning Calculations
+
+Create a comprehensive retirement planning calculator. Given the preference for logical modeling and experimentation, we'll break this down into clear components and provide both Excel 
+formulas and a C# program.
 
 The main components you need to calculate are:
 

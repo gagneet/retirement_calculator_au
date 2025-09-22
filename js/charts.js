@@ -44,7 +44,7 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 aspectRatio: 2,
                 plugins: {
                     title: {
@@ -68,7 +68,7 @@ export class ChartManager {
                     y: {
                         title: { display: true, text: 'Portfolio Balance (AUD)' },
                         beginAtZero: true,
-                        max: Math.max(...results.balances) * 1.1,
+                        max: results.balances.reduce((m, v) => v > m ? v : m, -Infinity) * 1.1,
                         ticks: {
                             callback: (value) => formatCurrency(value)
                         }
@@ -174,7 +174,10 @@ export class ChartManager {
                     y: {
                         title: { display: true, text: 'Portfolio Balance (AUD)' },
                         beginAtZero: true,
-                        suggestedMax: Math.max(...[].concat(...[p90, p75, median, p25, p10])) * 1.1,
+                        suggestedMax: [p90, p75, median, p25, p10].reduce((m, arr) => {
+                            for (const v of arr) if (v > m) m = v;
+                            return m;
+                        }, -Infinity) * 1.1,
                         ticks: {
                             callback: (value) => formatCurrency(value)
                         }
@@ -220,7 +223,7 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 aspectRatio: 2,
                 plugins: {
                     title: {
@@ -289,7 +292,7 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 aspectRatio: 2,
                 plugins: {
                     title: {
@@ -355,7 +358,7 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 aspectRatio: 2,
                 plugins: {
                     title: {
@@ -373,7 +376,10 @@ export class ChartManager {
                     y: {
                         title: { display: true, text: 'Value (AUD)' },
                         beginAtZero: true,
-                        suggestedMax: Math.max(...portfolioValues, ...propertyValues) * 1.1,
+                        suggestedMax: Math.max(
+                            portfolioValues.reduce((m, v) => v > m ? v : m, -Infinity),
+                            propertyValues.reduce((m, v) => v > m ? v : m, -Infinity)
+                        ) * 1.1,
                         ticks: {
                             callback: (value) => formatCurrency(value)
                         }
@@ -411,7 +417,7 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 aspectRatio: 2,
                 plugins: {
                     title: {
@@ -465,7 +471,7 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 aspectRatio: 2,
                 plugins: {
                     title: {
@@ -548,7 +554,7 @@ export class ChartManager {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 aspectRatio: 2,
                 plugins: {
                     title: {
