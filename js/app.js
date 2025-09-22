@@ -521,11 +521,48 @@ class RetirementCalculatorApp {
             keepTotalReturn: (keepNetIncome + (futureValue - currentValue)) / currentValue,
             keepNetIncome,
             sellNetProceeds,
-            sellInvestmentReturn: 0.07,
+            sellInvestmentReturn: this.calculatePortfolioReturn(inputs, yearsToSell),
             recommendation: sellNetProceeds > (keepNetIncome + currentValue) ?
                 'Consider selling - higher returns from portfolio investment' :
                 'Consider keeping - property provides better total return'
         };
+    }
+
+    // Calculate expected portfolio return for the property analysis
+    calculatePortfolioReturn(inputs, yearsToSell) {
+        // Get current allocation based on user's settings
+        let allocation;
+        const currentAge = inputs.yourCurrentAge;
+
+        if (inputs.useGlidePath) {
+            allocation = this.simulator.calculateDynamicAllocation(currentAge, inputs.glidePathRule);
+        } else {
+            allocation = {
+                equity: inputs.allocEquities || 60,
+                bonds: inputs.allocBonds || 30,
+                cash: inputs.allocCash || 10
+            };
+        }
+
+        // Calculate portfolio return using the same logic as the main simulation
+        const baseReturn = this.simulator.calculateEnhancedReturn(
+            allocation,
+            inputs.investmentReturn,
+            inputs
+        );
+
+        // Apply return decline if configured (average over the years to sell)
+        let averageReturn = 0;
+        for (let year = 1; year <= yearsToSell; year++) {
+            const returnForYear = this.simulator.getReturnForYear(
+                baseReturn,
+                year,
+                inputs.returnDeclineRate || 0
+            );
+            averageReturn += returnForYear;
+        }
+
+        return yearsToSell > 0 ? averageReturn / yearsToSell : baseReturn;
     }
 
     analyzePensionOptimization(result, inputs) {
