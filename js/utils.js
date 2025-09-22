@@ -85,6 +85,77 @@ export const percentile = (arr, p) => {
     return sorted[idx] || 0;
 };
 
+export const median = (arr) => {
+    if (arr.length === 0) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0
+        ? (sorted[mid - 1] + sorted[mid]) / 2
+        : sorted[mid];
+};
+
+// Enhanced statistical utilities for volatility modeling
+export const historicalVolatility = (returns, lookbackPeriod = 12) => {
+    if (returns.length < 2) return 0.15; // Default volatility
+    const recentReturns = returns.slice(-lookbackPeriod);
+    const mean = recentReturns.reduce((sum, r) => sum + r, 0) / recentReturns.length;
+    const variance = recentReturns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / (recentReturns.length - 1);
+    return Math.sqrt(variance);
+};
+
+// Regime-aware random generation with sequential correlation
+export const regimeAwareReturn = (baseReturn, volatility, prevReturn = null, correlation = 0.1) => {
+    let randomComponent = randomNormal(0, volatility);
+
+    // Apply sequential correlation (momentum/mean reversion)
+    if (prevReturn !== null) {
+        randomComponent += correlation * prevReturn;
+    }
+
+    return baseReturn + randomComponent;
+};
+
+// Property cycle modeling based on 7-year Australian cycles
+export const getPropertyCyclePhase = (year, cycleStartYear = 0) => {
+    const cyclePosition = ((year - cycleStartYear) % 7) + 1;
+
+    // Map cycle position to phases based on Australian historical patterns
+    if (cyclePosition <= 2) return "Boom";
+    if (cyclePosition === 3) return "Peak";
+    if (cyclePosition <= 5) return "Decline";
+    if (cyclePosition === 6) return "Trough";
+    return "Recovery";
+};
+
+// Interest rate regime modeling
+export const getCurrentRateRegime = (year, baseYear = 2024) => {
+    const yearsSince = year - baseYear;
+
+    // Model different interest rate environments with probabilities
+    const regimes = [
+        { name: "Ultra-Low", rate: 0.005, weight: 0.1, years: [0, 1, 2] },
+        { name: "Low", rate: 0.025, weight: 0.3, years: [3, 4, 5, 6] },
+        { name: "Normal", rate: 0.045, weight: 0.4, years: [7, 8, 9, 10, 11] },
+        { name: "High", rate: 0.065, weight: 0.15, years: [12, 13, 14] },
+        { name: "Crisis", rate: 0.085, weight: 0.05, years: [15, 16] }
+    ];
+
+    // Find regime based on year or use weighted random selection
+    for (const regime of regimes) {
+        if (regime.years.includes(yearsSince)) return regime;
+    }
+
+    // Fallback to weighted random selection
+    const rand = Math.random();
+    let cumWeight = 0;
+    for (const regime of regimes) {
+        cumWeight += regime.weight;
+        if (rand <= cumWeight) return regime;
+    }
+
+    return regimes[2]; // Default to normal
+};
+
 export const clamp = (value, min, max) => {
     return Math.min(Math.max(value, min), max);
 };
@@ -802,6 +873,11 @@ export default {
     formatCompact,
     randomNormal,
     percentile,
+    median,
+    historicalVolatility,
+    regimeAwareReturn,
+    getPropertyCyclePhase,
+    getCurrentRateRegime,
     clamp,
     interpolate,
     calculateCompoundGrowth,

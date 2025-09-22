@@ -1,19 +1,27 @@
 // js/simulator.js - Financial Simulation Engine with Investment Property Support
 
 import { ENHANCED_CONFIG } from './config.js';
-import { 
-    calculatePostTaxIncome, 
-    calculateLoanBalance, 
+import {
+    calculatePostTaxIncome,
+    calculateLoanBalance,
     calculatePropertyCashFlow,
     calculateCGT,
     calculateAgePension,
     randomNormal,
+    median,
+    regimeAwareReturn,
+    getPropertyCyclePhase,
+    getCurrentRateRegime,
     clamp
 } from './utils.js';
 
 export class RetirementSimulator {
     constructor() {
         this.config = ENHANCED_CONFIG;
+        this.previousReturns = {
+            portfolio: null,
+            property: null
+        };
     }
 
     // Risk profiling calculations
@@ -149,9 +157,36 @@ export class RetirementSimulator {
         };
     }
 
-    // Investment property calculations
+    // Investment property calculations with cycle-based modeling
     calculatePropertyValue(currentValue, growthRate, years) {
         return currentValue * Math.pow(1 + growthRate, years);
+    }
+
+    // Enhanced property calculation with Australian cycle patterns
+    calculateEnhancedPropertyReturn(year, baseGrowthRate, useVolatility = false, prevReturn = null) {
+        if (!useVolatility) {
+            return baseGrowthRate;
+        }
+
+        const cyclePhase = getPropertyCyclePhase(year);
+        const cycleConfig = this.config.MARKET_REGIMES.propertyCycles.find(
+            c => c.phase === cyclePhase
+        ) || this.config.MARKET_REGIMES.propertyCycles[4]; // Default to recovery
+
+        let actualReturn;
+        if (useVolatility) {
+            actualReturn = regimeAwareReturn(
+                cycleConfig.baseReturn,
+                cycleConfig.volatility,
+                prevReturn,
+                0.15 // Property has higher sequential correlation
+            );
+        } else {
+            actualReturn = cycleConfig.baseReturn;
+        }
+
+        // Ensure property returns don't go below -30% (historical floor)
+        return Math.max(-0.30, actualReturn);
     }
 
     calculatePropertyLoanBalance(principal, rate, years, isInterestOnly = false) {
@@ -252,23 +287,81 @@ export class RetirementSimulator {
         return salary;
     }
 
-    // Portfolio return calculation with declining rates
+    // Enhanced portfolio return calculation with market regimes
     getReturnForYear(baseReturn, year, declineRate) {
         return Math.max(0.01, baseReturn - (declineRate / 100) * year);
     }
 
-    calculatePortfolioReturn(allocations, baseReturn, year, declineRate) {
-        const equityReturn = this.getReturnForYear(baseReturn * 1.2, year, declineRate);
-        const bondReturn = this.getReturnForYear(baseReturn * 0.6, year, declineRate * 0.5);
-        const cashReturn = this.getReturnForYear(baseReturn * 0.3, year, 0);
-        
-        return (allocations.equity / 100) * equityReturn + 
-               (allocations.bonds / 100) * bondReturn + 
-               (allocations.cash / 100) * cashReturn;
+    // Regime-aware market return calculation
+    calculateEnhancedMarketReturn(year, baseReturn, useVolatility = false, prevReturn = null) {
+        if (!useVolatility) {
+            return baseReturn;
+        }
+
+        const rateRegime = getCurrentRateRegime(year + 2024);
+
+        // Select equity market regime based on historical patterns
+        const equityRegimes = this.config.MARKET_REGIMES.equityMarketRegimes;
+        const rand = Math.random();
+        let cumWeight = 0;
+        let selectedRegime = equityRegimes[1]; // Default to normal
+
+        for (const regime of equityRegimes) {
+            cumWeight += regime.probability;
+            if (rand <= cumWeight) {
+                selectedRegime = regime;
+                break;
+            }
+        }
+
+        // Calculate regime-aware return
+        let actualReturn = regimeAwareReturn(
+            selectedRegime.baseReturn,
+            selectedRegime.volatility,
+            prevReturn,
+            0.05 // Lower correlation for diversified portfolios
+        );
+
+        // Adjust for interest rate environment (inverse relationship)
+        const rateAdjustment = (0.045 - rateRegime.rate) * 0.5;
+        actualReturn += rateAdjustment;
+
+        return actualReturn;
+    }
+
+    calculatePortfolioReturn(allocations, baseReturn, year, declineRate, useVolatility = false, prevReturn = null) {
+        if (useVolatility) {
+            // Use enhanced regime-aware calculation
+            const marketReturn = this.calculateEnhancedMarketReturn(year, baseReturn, useVolatility, prevReturn);
+            const rateRegime = getCurrentRateRegime(year + 2024);
+
+            const equityReturn = marketReturn;
+            const bondReturn = Math.max(-0.15, rateRegime.rate + randomNormal(0, 0.04));
+            const cashReturn = Math.max(0.001, rateRegime.rate - 0.01);
+
+            return (allocations.equity / 100) * equityReturn +
+                   (allocations.bonds / 100) * bondReturn +
+                   (allocations.cash / 100) * cashReturn;
+        } else {
+            // Original calculation for deterministic scenarios
+            const equityReturn = this.getReturnForYear(baseReturn * 1.2, year, declineRate);
+            const bondReturn = this.getReturnForYear(baseReturn * 0.6, year, declineRate * 0.5);
+            const cashReturn = this.getReturnForYear(baseReturn * 0.3, year, 0);
+
+            return (allocations.equity / 100) * equityReturn +
+                   (allocations.bonds / 100) * bondReturn +
+                   (allocations.cash / 100) * cashReturn;
+        }
     }
 
     // Main simulation engine
     simulateRetirement(inputs, useRandomReturns = false, stressScenario = null) {
+        // Reset previous returns for each simulation
+        this.previousReturns = {
+            portfolio: null,
+            property: null
+        };
+
         const maxLifespan = Math.max(inputs.yourLifespan, inputs.partnerLifespan);
         const yearsToRetirement = Math.max(0, inputs.retirementAge - inputs.yourCurrentAge);
 
@@ -318,7 +411,7 @@ export class RetirementSimulator {
             }
             
 
-            // Enhanced returns with franking credits
+            // Enhanced returns with franking credits and regime modeling
             const baseReturn = this.calculateEnhancedReturn(
                 allocation,
                 inputs.investmentReturn,
@@ -326,8 +419,27 @@ export class RetirementSimulator {
             );
 
             let returnRate = baseReturn;
+
             if (useRandomReturns) {
-                returnRate = randomNormal(baseReturn, inputs.returnVolatility);
+                // Use enhanced portfolio return with regime modeling
+                returnRate = this.calculatePortfolioReturn(
+                    allocation,
+                    baseReturn,
+                    year,
+                    inputs.returnDeclineRate || 0.03,
+                    true,
+                    this.previousReturns.portfolio
+                );
+                this.previousReturns.portfolio = returnRate;
+            } else {
+                // Use traditional calculation for deterministic scenarios
+                returnRate = this.calculatePortfolioReturn(
+                    allocation,
+                    baseReturn,
+                    year,
+                    inputs.returnDeclineRate || 0.03,
+                    false
+                );
             }
 
             // Apply stress scenario if provided
@@ -384,10 +496,23 @@ export class RetirementSimulator {
                             propertyHistory[propertyHistory.length - 1].saleResult = saleResult;
                         }
                     } else {
-                        // Calculate current property equity
+                        // Calculate current property equity with enhanced cycle-based returns
+                        let propertyReturn;
+                        if (useRandomReturns) {
+                            propertyReturn = this.calculateEnhancedPropertyReturn(
+                                year,
+                                inputs.propertyGrowthRate / 100,
+                                true,
+                                this.previousReturns.property
+                            );
+                            this.previousReturns.property = propertyReturn;
+                        } else {
+                            propertyReturn = inputs.propertyGrowthRate / 100;
+                        }
+
                         const currentValue = this.calculatePropertyValue(
                             inputs.investmentPropertyValue,
-                            inputs.propertyGrowthRate / 100,
+                            propertyReturn,
                             year
                         );
                         const remainingLoan = this.calculatePropertyLoanBalance(
@@ -485,7 +610,7 @@ export class RetirementSimulator {
             const totalIncome = pensionIncome + propertyIncome;
             const netWithdrawalNeeded = Math.max(0, totalCostWithHealthcare - totalIncome);
 
-            // Enhanced return calculation
+            // Enhanced return calculation with regime modeling
             const baseReturn = this.calculateEnhancedReturn(
                 allocation,
                 inputs.investmentReturn,
@@ -494,13 +619,31 @@ export class RetirementSimulator {
 
             let actualReturn = baseReturn;
             if (useRandomReturns) {
-                actualReturn = randomNormal(baseReturn, inputs.returnVolatility);
-                
-                // Apply market shocks if enabled
+                // Use enhanced portfolio return with regime modeling
+                actualReturn = this.calculatePortfolioReturn(
+                    allocation,
+                    baseReturn,
+                    retirementYear,
+                    inputs.returnDeclineRate || 0.03,
+                    true,
+                    this.previousReturns.portfolio
+                );
+                this.previousReturns.portfolio = actualReturn;
+
+                // Apply market shocks if enabled (legacy support)
                 if (inputs.enableShocks && Math.random() < inputs.shockProbability) {
                     const shockEffect = inputs.shockMagnitude * (allocation.equity / 100);
                     actualReturn += shockEffect;
                 }
+            } else {
+                // Use deterministic calculation
+                actualReturn = this.calculatePortfolioReturn(
+                    allocation,
+                    baseReturn,
+                    retirementYear,
+                    inputs.returnDeclineRate || 0.03,
+                    false
+                );
             }
 
             // Monthly withdrawal simulation
@@ -565,39 +708,80 @@ export class RetirementSimulator {
         };
     }
 
-    // Monte Carlo simulation
+    // Enhanced Monte Carlo simulation with median-based analysis
     async runMonteCarloSimulation(inputs, runs, progressCallback) {
         const outcomes = [];
         const paths = [];
         const propertyOutcomes = [];
-        
+        const yearlyReturns = []; // Track returns for volatility analysis
+
         for (let i = 0; i < runs; i++) {
             const result = this.simulateRetirement(inputs, true);
             outcomes.push(result.finalBalance);
             paths.push(result.balances);
-            
+
+            // Track return patterns for analysis
+            if (result.yearlyData && result.yearlyData.length > 0) {
+                yearlyReturns.push(result.yearlyData.map(y => y.returnRate / 100));
+            }
+
             if (inputs.hasInvestmentProperty) {
                 propertyOutcomes.push({
                     finalPropertyValue: result.propertyEquity,
                     wasSold: result.propertyWasSold
                 });
             }
-            
+
             if (progressCallback && i % 100 === 0) {
                 await progressCallback(i, runs);
             }
         }
-        
+
         outcomes.sort((a, b) => a - b);
-        
+
+        // Enhanced statistical analysis using median-based calculations
+        const medianOutcome = median(outcomes);
+        const successfulOutcomes = outcomes.filter(o => o > 0);
+        const failureRate = (runs - successfulOutcomes.length) / runs;
+
+        // Calculate percentiles more robustly
+        const percentiles = {};
+        [5, 10, 25, 50, 75, 90, 95].forEach(p => {
+            const index = Math.floor((p / 100) * outcomes.length);
+            percentiles[`p${p}`] = outcomes[Math.min(index, outcomes.length - 1)];
+        });
+
+        // Calculate median returns by year if available
+        const medianReturnsByYear = [];
+        if (yearlyReturns.length > 0 && yearlyReturns[0]) {
+            const maxYears = Math.max(...yearlyReturns.map(yr => yr.length));
+            for (let year = 0; year < maxYears; year++) {
+                const yearReturns = yearlyReturns
+                    .map(yr => yr[year])
+                    .filter(r => r !== undefined);
+                if (yearReturns.length > 0) {
+                    medianReturnsByYear.push(median(yearReturns));
+                }
+            }
+        }
+
         return {
             outcomes,
             paths,
             propertyOutcomes,
-            successRate: outcomes.filter(o => o > 0).length / runs,
-            median: outcomes[Math.floor(runs / 2)],
-            percentile10: outcomes[Math.floor(runs * 0.1)],
-            percentile90: outcomes[Math.floor(runs * 0.9)]
+            successRate: successfulOutcomes.length / runs,
+            failureRate,
+            median: medianOutcome,
+            mean: outcomes.reduce((sum, val) => sum + val, 0) / outcomes.length,
+            percentiles,
+            medianReturnsByYear,
+            // Legacy support
+            percentile10: percentiles.p10,
+            percentile90: percentiles.p90,
+            // Risk metrics
+            shortfallRisk: failureRate,
+            tailRisk: percentiles.p5, // 5% worst case
+            downside: outcomes.filter(o => o < medianOutcome).length / runs
         };
     }
 

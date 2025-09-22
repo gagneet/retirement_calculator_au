@@ -68,47 +68,87 @@ export const ENHANCED_CONFIG = {
         major: 9.0
     },
     
-    // Stress test scenarios
+    // Historical Australian market patterns and volatility modeling
+    MARKET_REGIMES: {
+        // Interest rate environments based on historical RBA patterns
+        interestRateRegimes: [
+            { name: "COVID Ultra-Low", cashRate: 0.001, duration: 2, probability: 0.05, period: "2020-2022" },
+            { name: "Low Rate", cashRate: 0.02, duration: 3, probability: 0.15, period: "2008-2020" },
+            { name: "Normal", cashRate: 0.045, duration: 5, probability: 0.50, period: "2000-2007" },
+            { name: "High Rate", cashRate: 0.065, duration: 3, probability: 0.25, period: "1980-2000" },
+            { name: "Crisis High", cashRate: 0.085, duration: 2, probability: 0.05, period: "1990s recession" }
+        ],
+
+        // Property cycles based on Australian historical patterns (7-year cycles)
+        propertyCycles: [
+            { phase: "Boom", yearsInCycle: [1, 2], baseReturn: 0.12, volatility: 0.08, probability: 0.20 },
+            { phase: "Peak", yearsInCycle: [3], baseReturn: 0.08, volatility: 0.12, probability: 0.10 },
+            { phase: "Decline", yearsInCycle: [4, 5], baseReturn: -0.05, volatility: 0.15, probability: 0.25 },
+            { phase: "Trough", yearsInCycle: [6], baseReturn: -0.02, volatility: 0.10, probability: 0.15 },
+            { phase: "Recovery", yearsInCycle: [7, 1], baseReturn: 0.06, volatility: 0.08, probability: 0.30 }
+        ],
+
+        // ASX market volatility patterns
+        equityMarketRegimes: [
+            { name: "Bull Market", baseReturn: 0.10, volatility: 0.12, duration: 5, probability: 0.35 },
+            { name: "Normal Market", baseReturn: 0.07, volatility: 0.15, duration: 3, probability: 0.40 },
+            { name: "Volatile Market", baseReturn: 0.05, volatility: 0.25, duration: 2, probability: 0.15 },
+            { name: "Bear Market", baseReturn: -0.15, volatility: 0.35, duration: 1, probability: 0.10 }
+        ]
+    },
+
+    // Enhanced stress test scenarios based on Australian historical events
     STRESS_SCENARIOS: [
         {
-            name: "Market Crash (GFC-style)",
-            equityReturn: -0.4,
-            bondReturn: 0.1,
-            propertyReturn: -0.15,
+            name: "COVID-19 Style Crash & Recovery",
+            year1: { equityReturn: -0.35, bondReturn: 0.08, propertyReturn: 0.15, cashRate: 0.001 },
+            year2: { equityReturn: 0.25, bondReturn: 0.02, propertyReturn: 0.20, cashRate: 0.001 },
             duration: 2,
-            probability: 0.1
+            probability: 0.05,
+            description: "35% equity fall followed by rapid recovery, property boom, ultra-low rates"
         },
         {
-            name: "Property Market Crash",
-            equityReturn: -0.1,
+            name: "Global Financial Crisis",
+            year1: { equityReturn: -0.40, bondReturn: 0.10, propertyReturn: -0.05, cashRate: 0.02 },
+            year2: { equityReturn: -0.20, bondReturn: 0.08, propertyReturn: -0.10, cashRate: 0.015 },
+            duration: 2,
+            probability: 0.08,
+            description: "Severe market crash with modest property decline"
+        },
+        {
+            name: "Property Market Correction",
+            equityReturn: -0.05,
             bondReturn: 0.02,
-            propertyReturn: -0.3,
+            propertyReturn: -0.15,
             duration: 3,
-            probability: 0.05
+            probability: 0.15,
+            description: "Major property price correction as seen 2022-2024"
         },
         {
-            name: "Stagflation Period",
-            equityReturn: -0.1,
-            bondReturn: -0.05,
-            propertyReturn: 0.02,
-            inflation: 0.08,
-            duration: 3,
-            probability: 0.05
+            name: "Mining Boom End",
+            equityReturn: -0.10,
+            bondReturn: 0.03,
+            propertyReturn: -0.25,
+            duration: 4,
+            probability: 0.10,
+            description: "End of commodity cycle affecting property and equities"
         },
         {
             name: "Interest Rate Shock",
             equityReturn: -0.15,
-            bondReturn: -0.2,
-            propertyReturn: -0.1,
-            cashReturn: 0.08,
+            bondReturn: -0.20,
+            propertyReturn: -0.10,
+            cashReturn: 0.085,
             duration: 1,
-            probability: 0.15
+            probability: 0.15,
+            description: "Rapid rate rise cycle like 2022-2023"
         },
         {
             name: "Healthcare Crisis",
             healthcareCostMultiplier: 2.5,
             duration: 5,
-            probability: 0.2
+            probability: 0.20,
+            description: "Pandemic-style healthcare cost explosion"
         }
     ],
     
