@@ -7,6 +7,9 @@
    <!-- The Tailwind Play CDN is used for development and does not support SRI hashes. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js" integrity="sha256-XcdcwHqIPULERb2yDEM4R0XaQKU3YnDsrTmjACBZyfdVVqjh6xQ4/DCMd7XLcA6Y=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -405,9 +408,18 @@
                     <button id="btnStressTest" class="w-full px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
                         Run Stress Test Scenarios
                     </button>
-                    <button id="btnExportEnhanced" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                        Export Enhanced Report
-                    </button>
+                    <div class="relative inline-block w-full" id="exportContainer">
+                        <button id="btnExport" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center">
+                            Export Enhanced Report <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="exportDropdown" class="absolute bottom-full mb-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
+                            <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                <a href="#" id="btnExportCSV" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as CSV</a>
+                                <a href="#" id="btnExportXLSX" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as XLSX</a>
+                                <a href="#" id="btnExportPDF" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as PDF</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="progressContainer" class="hidden mt-4">

@@ -15,6 +15,8 @@ import {
     formatPercent,
     updateProgress,
     exportToCSV,
+    exportToXLSX,
+    exportToPDF,
     showTab,
     debounce,
     showNotification
@@ -715,28 +717,38 @@ class RetirementCalculatorApp {
     }
 
     // Export functionality
-    exportResults() {
+    exportResults(exportType = 'csv') {
         if (!this.currentResults) {
             showNotification('No results to export. Please run a calculation first.', 'warning');
             return;
         }
 
-        const exportData = this.currentResults.yearlyData.map(data => ({
-            Year: data.year,
-            Age: data.age,
-            Start_Balance: data.startBalance,
-            Return_Rate: data.returnRate,
-            Growth: data.growth,
-            Withdrawal: data.withdrawal,
-            Healthcare_Cost: data.healthcareCost,
-            Aged_Care_Cost: data.agedCareCost,
-            Property_Income: data.propertyIncome || 0,
-            Pension_Income: data.pensionIncome || 0,
-            End_Balance: data.endBalance
-        }));
-
-        exportToCSV(exportData, 'enhanced-retirement-projection.csv');
-        showNotification('Results exported successfully', 'success');
+        switch (exportType) {
+            case 'csv':
+                const csvData = this.currentResults.yearlyData.map(data => ({
+                    Year: data.year,
+                    Age: data.age,
+                    Start_Balance: data.startBalance,
+                    Return_Rate: data.returnRate,
+                    Growth: data.growth,
+                    Withdrawal: data.withdrawal,
+                    Healthcare_Cost: data.healthcareCost,
+                    Aged_Care_Cost: data.agedCareCost,
+                    Property_Income: data.propertyIncome || 0,
+                    Pension_Income: data.pensionIncome || 0,
+                    End_Balance: data.endBalance
+                }));
+                exportToCSV(csvData, 'enhanced-retirement-projection.csv');
+                break;
+            case 'xlsx':
+                exportToXLSX(this.collectInputs(), this.currentResults, this.chartManager);
+                break;
+            case 'pdf':
+                exportToPDF(this.collectInputs(), this.currentResults, this.chartManager);
+                break;
+            default:
+                showNotification(`Invalid export type: ${exportType}`, 'error');
+        }
     }
 
     // UI update functions
@@ -799,10 +811,37 @@ class RetirementCalculatorApp {
             btnStressTest.addEventListener('click', () => this.runStressTest());
         }
 
-        // Export button
-        const btnExportEnhanced = $('btnExportEnhanced');
-        if (btnExportEnhanced) {
-            btnExportEnhanced.addEventListener('click', () => this.exportResults());
+        // Export dropdown functionality
+        const btnExport = $('btnExport');
+        const exportDropdown = $('exportDropdown');
+
+        if (btnExport && exportDropdown) {
+            btnExport.addEventListener('click', (e) => {
+                e.stopPropagation();
+                exportDropdown.classList.toggle('hidden');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!exportDropdown.contains(e.target) && !btnExport.contains(e.target)) {
+                    exportDropdown.classList.add('hidden');
+                }
+            });
+
+            $('btnExportCSV').addEventListener('click', (e) => {
+                e.preventDefault();
+                this.exportResults('csv');
+                exportDropdown.classList.add('hidden');
+            });
+            $('btnExportXLSX').addEventListener('click', (e) => {
+                e.preventDefault();
+                this.exportResults('xlsx');
+                exportDropdown.classList.add('hidden');
+            });
+            $('btnExportPDF').addEventListener('click', (e) => {
+                e.preventDefault();
+                this.exportResults('pdf');
+                exportDropdown.classList.add('hidden');
+            });
         }
 
         // Auto-update on risk tolerance change
