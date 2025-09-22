@@ -411,7 +411,6 @@ export const exportToXLSX = (inputs, results, chartManager) => {
     // Add formulas for the 'End Balance' column (column J)
     for (let i = 0; i < results.yearlyData.length; i++) {
         const rowIndex = i + 2; // 1-based index, plus header row
-        // const formula = `C${rowIndex}+D${rowIndex}-E${rowIndex}-F${rowIndex}-G${rowIndex}+H${rowIndex}+I${rowIndex}`;
         const formula = `${COL_START_BALANCE}${rowIndex}+${COL_GROWTH}${rowIndex}-${COL_WITHDRAWAL}${rowIndex}-${COL_HEALTHCARE_COST}${rowIndex}-${COL_AGED_CARE_COST}${rowIndex}+${COL_PROPERTY_INCOME}${rowIndex}+${COL_PENSION_INCOME}${rowIndex}`;
         const cellRef = XLSX.utils.encode_cell({c: 9, r: i + 1}); // Column J
         ws_projection[cellRef] = { f: formula };
@@ -545,6 +544,7 @@ export const exportToPDF = (inputs, results, chartManager) => {
     
     // The code references inputs.useGlidePath but this property is not visible in the summary data structure.
     // Verify that this property exists in the inputs object or handle the case where it might be undefined.
+    // If inputs.useGlidePath is undefined or null, this will safely default to false. This ensures the chart is only added if useGlidePath is truthy.
     if (inputs.useGlidePath ?? false) {
         addChartToPDF('allocationChart', 'Asset Allocation Over Time');
     }
