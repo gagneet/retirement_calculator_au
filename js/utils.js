@@ -5,7 +5,9 @@ export const $ = (id) => document.getElementById(id);
 
 export const safeGetValue = (id, defaultVal = 0) => {
     const elem = $(id);
-    return elem ? (parseFloat(elem.value) || defaultVal) : defaultVal;
+    if (!elem) return defaultVal;
+    const val = parseFloat(elem.value);
+    return isNaN(val) ? defaultVal : val;
 };
 
 export const safeGetChecked = (id, defaultVal = false) => {

@@ -59,6 +59,17 @@ body {
 }
 
 /* Form styling */
+/* Default styles for form inputs for consistent look in light mode */
+input, select {
+    background-color: #f8fafc; /* A very light gray, almost white */
+    color: #111827;           /* A dark gray for text */
+    transition: background-color .2s, border-color .2s;
+}
+
+input::placeholder, textarea::placeholder {
+    color: #6b7280; /* Medium gray for placeholder text */
+}
+
 input:read-only { 
     background: #f3f4f6; 
 }
@@ -277,9 +288,14 @@ select:focus {
     }
     
     input, select {
-        background: #4b5563;
-        color: #f9fafb;
-        border-color: #6b7280;
+        /* Important is used to override Tailwind's utility classes and ensure high contrast */
+        background-color: #1f2937 !important;
+        color: #f9fafb !important;
+        border-color: #9ca3af !important;
+    }
+
+    input::placeholder, textarea::placeholder {
+        color: #9ca3af; /* Lighter placeholder text for dark mode */
     }
     
     input:read-only {
