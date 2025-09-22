@@ -400,16 +400,15 @@ def main():
     print(f"Success Rate: {mc_results['success_rate']:.1%}")
     print(f"Median Outcome: ${mc_results['median']:,.0f}")
     print(f"10th Percentile: ${mc_results['percentile_10']:,.0f}")
-    print(f"90th Percentile: ${mc_results['percentile_90']:,.0f}")
-
-    # Run Stress Tests
-    print("\n--- Stress Test Results ---")
-    stress_results = simulator.run_stress_tests()
-    for res in stress_results:
-        status = "✓ Survives" if res['success'] else "✗ Fails"
-        print(f"{res['scenario']:<25} | Final Balance: ${res['finalBalance']:<15,.0f} | {status}")
-
-    print("\n" + "=" * 60)
+    # Convert percentage inputs to decimals where needed
+    percentage_fields = ['percentIncomeSaved', 'mortgageRate', 'investmentPropertyRate', 
+                        'inflation', 'investmentReturn', 'savingsReturn', 'superReturn', 
+                        'returnVolatility', 'shockProbability', 'shockMagnitude']
+    
+    for field in percentage_fields:
+        if field in defaults and defaults[field] > 1:
+            defaults[field] /= 100
+    return defaults
 
 
 if __name__ == "__main__":
