@@ -31,7 +31,9 @@ class TestEnhancedRetirementSimulator(unittest.TestCase):
 
     def test_monte_carlo_simulation(self):
         """Test the Monte Carlo simulation runs and returns correct format."""
-        mc_results = self.simulator.run_monte_carlo_simulation(runs=100) # Reduced runs for speed
+        # Reduced runs for speed in testing; 100 is sufficient to validate functionality
+        # without compromising test suite performance.
+        mc_results = self.simulator.run_monte_carlo_simulation(runs=100)
 
         self.assertIn('success_rate', mc_results)
         self.assertIn('median', mc_results)

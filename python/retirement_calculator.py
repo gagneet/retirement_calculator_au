@@ -25,6 +25,7 @@ import math
 import random
 import statistics
 from typing import Dict, Any, List
+from datetime import datetime
 
 from config import ENHANCED_CONFIG
 import utils
@@ -66,7 +67,7 @@ class EnhancedRetirementSimulator:
         return {
             "runs": runs,
             "success_rate": len([o for o in outcomes if o > 0]) / runs,
-            "median": utils.median(outcomes),
+            "median": statistics.median(outcomes),
             "percentile_10": outcomes[int(runs * 0.1)],
             "percentile_90": outcomes[int(runs * 0.9)],
         }
@@ -86,7 +87,10 @@ class EnhancedRetirementSimulator:
         return results
 
     def solve_retirement_age(self, target_success_rate=0.7, min_age=None, max_age=None):
-        """Calculates risk capacity based on age, income, and financial stability."""
+        """
+        Solves for the earliest retirement age that meets a target success rate
+        in a Monte Carlo simulation.
+        """
         original_retirement_age = self.inputs['retirementAge']
         min_search_age = min_age or max(self.inputs['yourCurrentAge'] + 5, 55)
         max_search_age = max_age or min(self.inputs['yourLifespan'] - 10, 75)
@@ -272,7 +276,7 @@ class EnhancedRetirementSimulator:
         return self.inputs['investmentPropertyValue'] * (1 + self.inputs['propertyGrowthRate'] / 100)**year
 
     def _calculate_property_loan_balance(self, year: int) -> float:
-        payment_heuristic = self.inputs['investmentPropertyLoan'] * self.inputs['investmentPropertyRate'] * 1.5
+        payment_heuristic = self.inputs['investmentPropertyLoan'] * self.inputs['investmentPropertyRate'] * self.config['CALCULATION_CONSTANTS']['LOAN_PAYMENT_HEURISTIC_MULTIPLIER']
         return utils.calculate_loan_balance(self.inputs['investmentPropertyRate'], year, payment_heuristic, self.inputs['investmentPropertyLoan'])
 
     def _calculate_property_cash_flow(self, year: int) -> Dict[str, float]:
@@ -316,7 +320,7 @@ class EnhancedRetirementSimulator:
         if not use_volatility:
             return base_return
 
-        rate_regime = utils.get_current_rate_regime(year + 2024)
+        rate_regime = utils.get_current_rate_regime(year + datetime.now().year)
         equity_regimes = self.config['MARKET_REGIMES']['equityMarketRegimes']
 
         rand = random.random()
@@ -331,7 +335,7 @@ class EnhancedRetirementSimulator:
 
         actual_return = utils.regime_aware_return(selected_regime['baseReturn'], selected_regime['volatility'], prev_return, 0.05)
 
-        rate_adjustment = (0.045 - rate_regime['cashRate']) * 0.5
+        rate_adjustment = (self.config['CALCULATION_CONSTANTS']['BASELINE_RATE'] - rate_regime['cashRate']) * self.config['CALCULATION_CONSTANTS']['RATE_ADJUSTMENT_FACTOR']
         actual_return += rate_adjustment
 
         return actual_return
@@ -339,7 +343,7 @@ class EnhancedRetirementSimulator:
     def _calculate_portfolio_return(self, allocations, base_return, year, decline_rate, use_volatility=False, prev_return=None):
         if use_volatility:
             market_return = self._calculate_enhanced_market_return(year, base_return, use_volatility, prev_return)
-            rate_regime = utils.get_current_rate_regime(year + 2024)
+            rate_regime = utils.get_current_rate_regime(year + datetime.now().year)
 
             equity_return = market_return
             bond_return = max(-0.15, rate_regime['cashRate'] + utils.random_normal(0, 0.04))
@@ -407,7 +411,7 @@ def get_default_inputs() -> Dict[str, Any]:
 
     # Convert percentage inputs to decimals where needed
     percentage_fields = [
-        'percentIncomeSaved', 'mortgageRate', 'investmentPropertyRate', 'inflation',
+        'percentIncomeSaved', 'inflation',
         'investmentReturn', 'savingsReturn', 'superReturn', 'returnVolatility',
         'shockProbability', 'shockMagnitude', 'capitalGainsTaxRate',
         'propertyGrowthRate', 'healthcareInflation', 'frankingCreditBenefit'
@@ -419,7 +423,6 @@ def get_default_inputs() -> Dict[str, Any]:
             flat_defaults[field] /= 100
 
     return flat_defaults
-
 
 def main():
     """

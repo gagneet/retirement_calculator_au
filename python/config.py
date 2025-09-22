@@ -175,13 +175,13 @@ ENHANCED_CONFIG = {
         "property": {
             "homeValue": 1100000,
             "mortgageBalance": 900000,
-            "mortgageRate": 5.37,
+            "mortgageRate": 0.0537,
             "monthlyMortgagePayment": 4100,
             "planToDownsize": True,
             "hasInvestmentProperty": False,
             "investmentPropertyValue": 550000,
             "investmentPropertyLoan": 400000,
-            "investmentPropertyRate": 6.2,
+            "investmentPropertyRate": 0.062,
             "weeklyRentalIncome": 550,
             "annualPropertyExpenses": 8000,
             "propertyGrowthRate": 4.5,
@@ -264,6 +264,9 @@ ENHANCED_CONFIG = {
     "CALCULATION_CONSTANTS": {
         "RISK_REQUIREMENT_ASSET_TARGET_MULTIPLIER": 25,
         "RISK_REQUIREMENT_RISK_FREE_RATE": 0.02,
-        "RISK_REQUIREMENT_SENSITIVITY_FACTOR": 5
+        "RISK_REQUIREMENT_SENSITIVITY_FACTOR": 5,
+        "RATE_ADJUSTMENT_FACTOR": 0.5,
+        "BASELINE_RATE": 0.045,
+        "LOAN_PAYMENT_HEURISTIC_MULTIPLIER": 1.5
     }
 }
