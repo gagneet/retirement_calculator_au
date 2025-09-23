@@ -242,11 +242,12 @@ sudo apt install nodejs npm
 ### Basic Docker Setup
 
 **Dockerfile:**
+
 ```dockerfile
 FROM nginx:alpine
 
 # Copy project files
-COPY . /usr/share/nginx/html
+COPY .. /usr/share/nginx/html
 
 # Configure nginx for ES6 modules
 COPY nginx.conf /etc/nginx/nginx.conf

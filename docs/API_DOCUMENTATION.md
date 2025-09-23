@@ -41,9 +41,10 @@ new DecisionSupportEngine(simulator, inputs)
 - `inputs` (Object): User input data containing financial information
 
 **Example:**
+
 ```javascript
 import { DecisionSupportEngine } from './js/decision-support-engine.js';
-import { RetirementSimulator } from './js/simulator.js';
+import { RetirementSimulator } from './simulator.js';
 
 const simulator = new RetirementSimulator();
 const inputs = collectUserInputs(); // Your input collection function

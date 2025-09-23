@@ -66,7 +66,7 @@ app.listen(8000, () => console.log('Server running on http://localhost:8000'));
 ```dockerfile
 # Dockerfile
 FROM nginx:alpine
-COPY . /usr/share/nginx/html
+COPY .. /usr/share/nginx/html
 EXPOSE 80
 
 # Build and run
