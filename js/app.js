@@ -304,7 +304,7 @@ class RetirementCalculatorApp {
                 <tr>
                     <td class="px-4 py-2">${data.year}</td>
                     <td class="px-4 py-2">${ageDisplay}</td>
-                    <td class="px-4 py-2 text-blue-600">${formatCurrency(data.liquidAssets || data.startBalance)}</td>
+                    <td class="px-4 py-2 text-blue-600">${formatCurrency(data.startBalance)}</td>
                     <td class="px-4 py-2 text-gray-600">${formatCurrency(data.nonLiquidAssets || 0)}</td>
                     <td class="px-4 py-2 text-green-600">+${formatCurrency(data.growth || 0)}</td>
                     <td class="px-4 py-2 text-red-600">-${formatCurrency(data.withdrawal || 0)}</td>
@@ -350,6 +350,14 @@ class RetirementCalculatorApp {
                         <span>Interest Cost:</span>
                         <span class="font-medium">-${formatCurrency(currentCashFlow.interestCost || 0)}</span>
                     </div>
+                    <div class="flex justify-between text-green-600">
+                        <span>Depreciation Benefit:</span>
+                        <span class="font-medium">+${formatCurrency(currentCashFlow.depreciation || 0)}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-xs text-gray-500">Outstanding Loan:</span>
+                        <span class="text-xs text-gray-500">${formatCurrency(currentCashFlow.loanBalance || 0)}</span>
+                    </div>
                     <div class="flex justify-between border-t pt-2">
                         <span class="font-semibold">Net Cash Flow:</span>
                         <span class="font-semibold ${currentCashFlow.netCashFlow > 0 ? 'text-green-600' : 'text-red-600'}">
@@ -393,34 +401,59 @@ class RetirementCalculatorApp {
         riskAnalysisContent.innerHTML = `
             <div class="space-y-4">
                 <div class="p-4 bg-blue-50 rounded">
-                    <h3 class="font-semibold mb-3">Risk Profile Summary</h3>
+                    <h3 class="font-semibold mb-3">Risk Profile Summary
+                        <span class="text-xs text-gray-600 ml-2 cursor-help" title="Your comprehensive risk assessment based on financial capacity, emotional tolerance, and return requirements">ℹ️</span>
+                    </h3>
                     <div class="space-y-3">
                         <div>
                             <div class="flex justify-between mb-1">
-                                <span class="text-sm">Risk Capacity</span>
+                                <span class="text-sm cursor-help" title="Your financial ability to take risk based on income, assets, emergency funds, and time horizon. Higher capacity means you can financially afford more risk.">Risk Capacity 💰</span>
                                 <span class="text-sm font-medium">${capacity}%</span>
                             </div>
                             <div class="risk-meter">
                                 <div class="risk-indicator" style="left: ${capacity}%"></div>
                             </div>
+                            <div class="text-xs text-gray-600 mt-1">
+                                ${capacity < 40 ? 'Conservative - Limited ability to take risk' :
+                                  capacity < 70 ? 'Moderate - Balanced risk capacity' :
+                                  'High - Strong ability to handle risk'}
+                            </div>
                         </div>
                         <div>
                             <div class="flex justify-between mb-1">
-                                <span class="text-sm">Risk Tolerance</span>
+                                <span class="text-sm cursor-help" title="Your emotional comfort level with market volatility and potential losses. This reflects how you feel about risk, not your financial capacity.">Risk Tolerance 🎯</span>
                                 <span class="text-sm font-medium">${tolerance}%</span>
                             </div>
                             <div class="risk-meter">
                                 <div class="risk-indicator" style="left: ${tolerance}%"></div>
                             </div>
+                            <div class="text-xs text-gray-600 mt-1">
+                                ${tolerance < 40 ? 'Conservative investor - Prefers stability' :
+                                  tolerance < 70 ? 'Moderate investor - Balanced approach' :
+                                  'Aggressive investor - Comfortable with volatility'}
+                            </div>
                         </div>
                         <div>
                             <div class="flex justify-between mb-1">
-                                <span class="text-sm">Risk Requirement</span>
+                                <span class="text-sm cursor-help" title="The level of investment risk you need to take to achieve your retirement goals. Higher requirement means you need higher returns to succeed.">Risk Requirement 🎲</span>
                                 <span class="text-sm font-medium">${requirement}%</span>
                             </div>
                             <div class="risk-meter">
                                 <div class="risk-indicator" style="left: ${requirement}%"></div>
                             </div>
+                            <div class="text-xs text-gray-600 mt-1">
+                                ${requirement < 40 ? 'Low risk needed - Goals achievable with conservative investments' :
+                                  requirement < 70 ? 'Moderate risk needed - Balanced portfolio suggested' :
+                                  'High risk needed - Aggressive growth required for goals'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 bg-white rounded border">
+                        <h4 class="font-medium text-sm mb-2">Risk Alignment Assessment:</h4>
+                        <div class="text-xs text-gray-700">
+                            ${Math.abs(capacity - tolerance) < 20 && Math.abs(capacity - requirement) < 20 ?
+                                '✅ <strong>Well Aligned:</strong> Your capacity, tolerance, and requirement are well matched. This suggests a suitable investment approach.' :
+                                '⚠️ <strong>Misalignment Detected:</strong> Significant differences between your risk metrics may require portfolio adjustments or goal modification.'}
                         </div>
                     </div>
                 </div>
@@ -485,11 +518,13 @@ class RetirementCalculatorApp {
     analyzeKeepVsSell(inputs) {
         if (!inputs.hasInvestmentProperty) return null;
 
-        // Simplified analysis
+        // Comprehensive analysis using proper cash flow calculations
         const yearsToSell = inputs.sellPropertyYears;
         const currentValue = inputs.investmentPropertyValue;
-        const annualRental = inputs.weeklyRentalIncome * 52;
-        const annualNetIncome = annualRental - inputs.annualPropertyExpenses;
+
+        // Use the simulator's proper property cash flow calculation
+        const propertyCashFlow = this.simulator.calculatePropertyCashFlow(inputs, 0);
+        const annualNetIncome = propertyCashFlow ? propertyCashFlow.netCashFlow : 0;
 
         // Handle keeping property indefinitely (sellPropertyYears = 0)
         if (yearsToSell === 0) {
