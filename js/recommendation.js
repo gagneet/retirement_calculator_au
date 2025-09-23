@@ -1,7 +1,7 @@
 // js/recommendation.js - The Decision Support Engine
 
 import { ENHANCED_CONFIG } from './config.js';
-import { formatCurrency, formatPercent } from './utils.js';
+import { formatCurrency, formatPercent, updateProgress } from './utils.js';
 
 class RecommendationEngine {
     constructor(simulator, inputs) {
@@ -153,7 +153,7 @@ class RecommendationEngine {
         scenarios.push({
             name: "Keep Investment Property Indefinitely",
             description: "Retain the investment property throughout retirement for ongoing rental income.",
-            modifications: { sellPropertyYears: 999 } // 999 means never sell in the simulator
+            modifications: { sellPropertyYears: 0 } // 0 means never sell in the simulator
         });
 
         return scenarios;

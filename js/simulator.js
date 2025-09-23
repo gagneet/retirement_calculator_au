@@ -1022,7 +1022,7 @@ export class RetirementSimulator {
                 name: "Keep Property Forever",
                 description: "Hold investment property throughout retirement",
                 modifications: {
-                    sellPropertyYears: 999, // Never sell
+                    sellPropertyYears: 0, // Never sell
                     hasInvestmentProperty: baseInputs.hasInvestmentProperty
                 }
             },
