@@ -1,0 +1,708 @@
+{
+  "inputs": {
+    "yourCurrentAge": 45,
+    "partnerCurrentAge": 40,
+    "retirementAge": 68,
+    "partnerRetirementAge": 68,
+    "yourLifespan": 95,
+    "partnerLifespan": 99,
+    "yourSalary": 140000,
+    "partnerSalary": 45000,
+    "yourCurrentSuper": 200000,
+    "partnerCurrentSuper": 190000,
+    "currentSavings": 25000,
+    "currentStocks": 15000,
+    "monthlyStockContribution": 500,
+    "percentIncomeSaved": 0.1,
+    "homeValue": 1100000,
+    "mortgageBalance": 900000,
+    "mortgageRate": 0.0537,
+    "monthlyMortgagePayment": 4100,
+    "planToDownsize": true,
+    "hasInvestmentProperty": false,
+    "investmentPropertyValue": 550000,
+    "investmentPropertyLoan": 400000,
+    "investmentPropertyRate": 0.062,
+    "weeklyRentalIncome": 550,
+    "annualPropertyExpenses": 8000,
+    "propertyGrowthRate": 0.045,
+    "sellPropertyYears": 15,
+    "capitalGainsTaxRate": 0.225,
+    "currentHealthcareCosts": 5200,
+    "healthcareInflation": 0.045,
+    "hasPrivateHealth": "comprehensive",
+    "chronicConditions": "none",
+    "agedCareProbability": 68,
+    "agedCareStartAge": 88,
+    "agedCareDuration": 7.5,
+    "agedCareAnnualCost": 76000,
+    "inflation": 0.0287,
+    "investmentReturn": 0.056100000000000004,
+    "returnDeclineRate": 0.03,
+    "savingsReturn": 0.013999999999999999,
+    "superReturn": 0.0875,
+    "salaryGrowthRate": 1.5,
+    "useGlidePath": true,
+    "glidePathRule": "110minus",
+    "frankingCreditBenefit": 0.012,
+    "australianEquityAllocation": 40,
+    "riskTolerance": 6,
+    "hasEmergencyFund": "partial",
+    "hasDebt": "minimal",
+    "dependents": 0,
+    "numRuns": 5000,
+    "returnVolatility": 0.12,
+    "enableShocks": false,
+    "shockProbability": 0.05,
+    "shockMagnitude": -25,
+    "asfaComfortable": 73875,
+    "agePensionMax": 45037,
+    "pensionAssetThreshold": 470000,
+    "pensionAssetLimit": 1031000,
+    "pensionIncomeThreshold": 372
+  },
+  "results": {
+    "finalBalance": 0,
+    "totalFinancialAssets": 4064700.0142341526,
+    "accessibleHomeEquity": 707483.8505086605,
+    "propertyAnalysis": null
+  },
+  "risk_profile": {
+    "capacity": 63.1,
+    "tolerance": 60,
+    "requirement": 76.71742808798646,
+    "overall_score": 66.25522842639595,
+    "recommendation": "Growth-oriented approach appropriate. Higher equity allocation."
+  },
+  "projection_data": [
+    {
+      "year": 19,
+      "age": 64,
+      "liquid_assets": 4683772.758836376,
+      "non_liquid_assets": 0,
+      "growth": 43302.379163639256,
+      "withdrawal": 131713.4850700773,
+      "healthcare_cost": 5244.640522988262,
+      "aged_care_cost": 0,
+      "end_balance": 4683772.758836376,
+      "total_net_worth": 4683772.758836376,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 46,
+        "bonds": 37.8,
+        "cash": 16.2
+      },
+      "depleted": false
+    },
+    {
+      "year": 20,
+      "age": 65,
+      "liquid_assets": 3440912.8743365174,
+      "non_liquid_assets": 0,
+      "growth": -1107514.3835030438,
+      "withdrawal": 135345.5009968141,
+      "healthcare_cost": 5247.000611223607,
+      "aged_care_cost": 0,
+      "end_balance": 3440912.8743365174,
+      "total_net_worth": 3440912.8743365174,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 45,
+        "bonds": 38.5,
+        "cash": 16.5
+      },
+      "depleted": false
+    },
+    {
+      "year": 21,
+      "age": 66,
+      "liquid_assets": 3269980.128001985,
+      "non_liquid_assets": 0,
+      "growth": -31851.057226376488,
+      "withdrawal": 139081.6891081556,
+      "healthcare_cost": 5249.361761498659,
+      "aged_care_cost": 0,
+      "end_balance": 3269980.128001985,
+      "total_net_worth": 3269980.128001985,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 44,
+        "bonds": 39.199999999999996,
+        "cash": 16.8
+      },
+      "depleted": false
+    },
+    {
+      "year": 22,
+      "age": 67,
+      "liquid_assets": 3313850.1523845824,
+      "non_liquid_assets": 0,
+      "growth": 186795.0634983946,
+      "withdrawal": 142925.0391157973,
+      "healthcare_cost": 5251.7239742913325,
+      "aged_care_cost": 0,
+      "end_balance": 3313850.1523845824,
+      "total_net_worth": 3313850.1523845824,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 43,
+        "bonds": 39.9,
+        "cash": 17.099999999999998
+      },
+      "depleted": false
+    },
+    {
+      "year": 23,
+      "age": 68,
+      "liquid_assets": 3500998.553422088,
+      "non_liquid_assets": 0,
+      "growth": 334027.02757365233,
+      "withdrawal": 146878.62653614694,
+      "healthcare_cost": 5254.087250079764,
+      "aged_care_cost": 0,
+      "end_balance": 3500998.553422088,
+      "total_net_worth": 3500998.553422088,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 42,
+        "bonds": 40.599999999999994,
+        "cash": 17.4
+      },
+      "depleted": false
+    },
+    {
+      "year": 24,
+      "age": 69,
+      "liquid_assets": 3415182.9988975483,
+      "non_liquid_assets": 0,
+      "growth": 65130.06062838031,
+      "withdrawal": 150945.6151529196,
+      "healthcare_cost": 5256.4515893423,
+      "aged_care_cost": 0,
+      "end_balance": 3415182.9988975483,
+      "total_net_worth": 3415182.9988975483,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 41,
+        "bonds": 41.3,
+        "cash": 17.7
+      },
+      "depleted": false
+    },
+    {
+      "year": 25,
+      "age": 70,
+      "liquid_assets": 3371566.9674950484,
+      "non_liquid_assets": 0,
+      "growth": 111513.22814790935,
+      "withdrawal": 155129.25955040945,
+      "healthcare_cost": 5258.816992557506,
+      "aged_care_cost": 0,
+      "end_balance": 3371566.9674950484,
+      "total_net_worth": 3371566.9674950484,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 40,
+        "bonds": 42.0,
+        "cash": 18.0
+      },
+      "depleted": false
+    },
+    {
+      "year": 26,
+      "age": 71,
+      "liquid_assets": 3166454.2514780215,
+      "non_liquid_assets": 0,
+      "growth": -45679.808297560296,
+      "withdrawal": 159432.9077194665,
+      "healthcare_cost": 5261.183460204156,
+      "aged_care_cost": 0,
+      "end_balance": 3166454.2514780215,
+      "total_net_worth": 3166454.2514780215,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 39,
+        "bonds": 42.699999999999996,
+        "cash": 18.3
+      },
+      "depleted": false
+    },
+    {
+      "year": 27,
+      "age": 72,
+      "liquid_assets": 3541513.0577008915,
+      "non_liquid_assets": 0,
+      "growth": 538918.8099611343,
+      "withdrawal": 163860.00373826438,
+      "healthcare_cost": 5263.550992761248,
+      "aged_care_cost": 0,
+      "end_balance": 3541513.0577008915,
+      "total_net_worth": 3541513.0577008915,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 38,
+        "bonds": 43.4,
+        "cash": 18.599999999999998
+      },
+      "depleted": false
+    },
+    {
+      "year": 28,
+      "age": 73,
+      "liquid_assets": 3590264.5731653133,
+      "non_liquid_assets": 0,
+      "growth": 217165.60599442886,
+      "withdrawal": 168414.09053000706,
+      "healthcare_cost": 5265.919590707991,
+      "aged_care_cost": 0,
+      "end_balance": 3590264.5731653133,
+      "total_net_worth": 3590264.5731653133,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 37,
+        "bonds": 44.099999999999994,
+        "cash": 18.9
+      },
+      "depleted": false
+    },
+    {
+      "year": 29,
+      "age": 74,
+      "liquid_assets": 3474789.712207024,
+      "non_liquid_assets": 0,
+      "growth": 57623.95174149137,
+      "withdrawal": 173098.81269978077,
+      "healthcare_cost": 5268.28925452381,
+      "aged_care_cost": 0,
+      "end_balance": 3474789.712207024,
+      "total_net_worth": 3474789.712207024,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 36,
+        "bonds": 44.8,
+        "cash": 19.2
+      },
+      "depleted": false
+    },
+    {
+      "year": 30,
+      "age": 75,
+      "liquid_assets": 3436907.712455214,
+      "non_liquid_assets": 0,
+      "growth": 140035.91970101433,
+      "withdrawal": 177917.91945282414,
+      "healthcare_cost": 5270.659984688346,
+      "aged_care_cost": 0,
+      "end_balance": 3436907.712455214,
+      "total_net_worth": 3436907.712455214,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 35,
+        "bonds": 45.5,
+        "cash": 19.5
+      },
+      "depleted": false
+    },
+    {
+      "year": 31,
+      "age": 76,
+      "liquid_assets": 3201174.194634078,
+      "non_liquid_assets": 0,
+      "growth": -52858.250224583004,
+      "withdrawal": 182875.26759655276,
+      "healthcare_cost": 5273.031781681457,
+      "aged_care_cost": 0,
+      "end_balance": 3201174.194634078,
+      "total_net_worth": 3201174.194634078,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 34,
+        "bonds": 46.199999999999996,
+        "cash": 19.8
+      },
+      "depleted": false
+    },
+    {
+      "year": 32,
+      "age": 77,
+      "liquid_assets": 3145299.4330746606,
+      "non_liquid_assets": 0,
+      "growth": 132100.06306932407,
+      "withdrawal": 187974.82462874133,
+      "healthcare_cost": 5275.4046459832125,
+      "aged_care_cost": 0,
+      "end_balance": 3145299.4330746606,
+      "total_net_worth": 3145299.4330746606,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 33,
+        "bonds": 46.9,
+        "cash": 20.099999999999998
+      },
+      "depleted": false
+    },
+    {
+      "year": 33,
+      "age": 78,
+      "liquid_assets": 3111586.7896923055,
+      "non_liquid_assets": 0,
+      "growth": 159508.0285319821,
+      "withdrawal": 193220.67191433712,
+      "healthcare_cost": 5277.778578073906,
+      "aged_care_cost": 0,
+      "end_balance": 3111586.7896923055,
+      "total_net_worth": 3111586.7896923055,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 32,
+        "bonds": 47.599999999999994,
+        "cash": 20.4
+      },
+      "depleted": false
+    },
+    {
+      "year": 34,
+      "age": 79,
+      "liquid_assets": 3228138.007059827,
+      "non_liquid_assets": 0,
+      "growth": 315168.2253209695,
+      "withdrawal": 198617.00795344805,
+      "healthcare_cost": 5280.153578434039,
+      "aged_care_cost": 0,
+      "end_balance": 3228138.007059827,
+      "total_net_worth": 3228138.007059827,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 31,
+        "bonds": 48.3,
+        "cash": 20.7
+      },
+      "depleted": false
+    },
+    {
+      "year": 35,
+      "age": 80,
+      "liquid_assets": 3231094.831983238,
+      "non_liquid_assets": 0,
+      "growth": 207124.9766665322,
+      "withdrawal": 204168.1517431212,
+      "healthcare_cost": 5282.529647544336,
+      "aged_care_cost": 0,
+      "end_balance": 3231094.831983238,
+      "total_net_worth": 3231094.831983238,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 30,
+        "bonds": 49.0,
+        "cash": 21.0
+      },
+      "depleted": false
+    },
+    {
+      "year": 36,
+      "age": 81,
+      "liquid_assets": 3318320.5531002474,
+      "non_liquid_assets": 0,
+      "growth": 297104.2673526152,
+      "withdrawal": 209878.54623560567,
+      "healthcare_cost": 5284.906785885731,
+      "aged_care_cost": 0,
+      "end_balance": 3318320.5531002474,
+      "total_net_worth": 3318320.5531002474,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 29,
+        "bonds": 49.699999999999996,
+        "cash": 21.3
+      },
+      "depleted": false
+    },
+    {
+      "year": 37,
+      "age": 82,
+      "liquid_assets": 2950506.499316444,
+      "non_liquid_assets": 0,
+      "growth": -152061.29188793682,
+      "withdrawal": 215752.76189586628,
+      "healthcare_cost": 5287.28499393938,
+      "aged_care_cost": 0,
+      "end_balance": 2950506.499316444,
+      "total_net_worth": 2950506.499316444,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 28,
+        "bonds": 50.4,
+        "cash": 21.599999999999998
+      },
+      "depleted": false
+    },
+    {
+      "year": 38,
+      "age": 83,
+      "liquid_assets": 2887997.87231093,
+      "non_liquid_assets": 0,
+      "growth": 159286.87335568454,
+      "withdrawal": 221795.50036119885,
+      "healthcare_cost": 5289.664272186653,
+      "aged_care_cost": 0,
+      "end_balance": 2887997.87231093,
+      "total_net_worth": 2887997.87231093,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 27,
+        "bonds": 51.099999999999994,
+        "cash": 21.9
+      },
+      "depleted": false
+    },
+    {
+      "year": 39,
+      "age": 84,
+      "liquid_assets": 2670738.3212019135,
+      "non_liquid_assets": 0,
+      "growth": 10752.047096859578,
+      "withdrawal": 228011.59820587595,
+      "healthcare_cost": 5292.044621109137,
+      "aged_care_cost": 0,
+      "end_balance": 2670738.3212019135,
+      "total_net_worth": 2670738.3212019135,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 26,
+        "bonds": 51.8,
+        "cash": 22.2
+      },
+      "depleted": false
+    },
+    {
+      "year": 40,
+      "age": 85,
+      "liquid_assets": 2421866.110113481,
+      "non_liquid_assets": 0,
+      "growth": -14466.180274594033,
+      "withdrawal": 234406.03081383827,
+      "healthcare_cost": 5294.426041188636,
+      "aged_care_cost": 0,
+      "end_balance": 2421866.110113481,
+      "total_net_worth": 2421866.110113481,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 25,
+        "bonds": 52.5,
+        "cash": 22.5
+      },
+      "depleted": false
+    },
+    {
+      "year": 41,
+      "age": 86,
+      "liquid_assets": 2384581.296236994,
+      "non_liquid_assets": 0,
+      "growth": 203699.10248604475,
+      "withdrawal": 240983.91636253177,
+      "healthcare_cost": 5296.808532907171,
+      "aged_care_cost": 0,
+      "end_balance": 2384581.296236994,
+      "total_net_worth": 2384581.296236994,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 24,
+        "bonds": 53.199999999999996,
+        "cash": 22.8
+      },
+      "depleted": false
+    },
+    {
+      "year": 42,
+      "age": 87,
+      "liquid_assets": 2363602.485055589,
+      "non_liquid_assets": 0,
+      "growth": 226771.7087396768,
+      "withdrawal": 247750.51992108184,
+      "healthcare_cost": 5299.1920967469805,
+      "aged_care_cost": 0,
+      "end_balance": 2363602.485055589,
+      "total_net_worth": 2363602.485055589,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 23,
+        "bonds": 53.9,
+        "cash": 23.099999999999998
+      },
+      "depleted": false
+    },
+    {
+      "year": 43,
+      "age": 88,
+      "liquid_assets": 2098386.800244746,
+      "non_liquid_assets": 0,
+      "growth": 66980.15587879435,
+      "withdrawal": 332195.84068963747,
+      "healthcare_cost": 5301.576733190516,
+      "aged_care_cost": 77484.5830235537,
+      "end_balance": 2098386.800244746,
+      "total_net_worth": 2098386.800244746,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 22,
+        "bonds": 54.599999999999994,
+        "cash": 23.4
+      },
+      "depleted": false
+    },
+    {
+      "year": 44,
+      "age": 89,
+      "liquid_assets": 1787782.765123044,
+      "non_liquid_assets": 0,
+      "growth": 28752.24912023946,
+      "withdrawal": 339356.2842419414,
+      "healthcare_cost": 5303.962442720453,
+      "aged_care_cost": 77484.5830235537,
+      "end_balance": 1787782.765123044,
+      "total_net_worth": 1787782.765123044,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 21,
+        "bonds": 55.3,
+        "cash": 23.7
+      },
+      "depleted": false
+    },
+    {
+      "year": 45,
+      "age": 90,
+      "liquid_assets": 1586037.1485632206,
+      "non_liquid_assets": 0,
+      "growth": 144976.5485680792,
+      "withdrawal": 346722.16512790235,
+      "healthcare_cost": 5306.349225819677,
+      "aged_care_cost": 77484.5830235537,
+      "end_balance": 1586037.1485632206,
+      "total_net_worth": 1586037.1485632206,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 20,
+        "bonds": 56.0,
+        "cash": 24.0
+      },
+      "depleted": false
+    },
+    {
+      "year": 46,
+      "age": 91,
+      "liquid_assets": 1356010.0267442144,
+      "non_liquid_assets": 0,
+      "growth": 124272.25754966143,
+      "withdrawal": 354299.3793686677,
+      "healthcare_cost": 5308.737082971296,
+      "aged_care_cost": 77484.5830235537,
+      "end_balance": 1356010.0267442144,
+      "total_net_worth": 1356010.0267442144,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 20,
+        "bonds": 56.0,
+        "cash": 24.0
+      },
+      "depleted": false
+    },
+    {
+      "year": 47,
+      "age": 92,
+      "liquid_assets": 1176203.1927038233,
+      "non_liquid_assets": 0,
+      "growth": 182287.1581607874,
+      "withdrawal": 362093.9922011785,
+      "healthcare_cost": 5311.126014658634,
+      "aged_care_cost": 77484.5830235537,
+      "end_balance": 1176203.1927038233,
+      "total_net_worth": 1176203.1927038233,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 20,
+        "bonds": 56.0,
+        "cash": 24.0
+      },
+      "depleted": false
+    },
+    {
+      "year": 48,
+      "age": 93,
+      "liquid_assets": 951588.9323759372,
+      "non_liquid_assets": 0,
+      "growth": 145497.98260677606,
+      "withdrawal": 370112.2429346622,
+      "healthcare_cost": 5313.51602136523,
+      "aged_care_cost": 77484.5830235537,
+      "end_balance": 951588.9323759372,
+      "total_net_worth": 951588.9323759372,
+      "pension_received": 0,
+      "allocation": {
+        "equity": 20,
+        "bonds": 56.0,
+        "cash": 24.0
+      },
+      "depleted": false
+    },
+    {
+      "year": 49,
+      "age": 94,
+      "liquid_assets": 625477.7003180671,
+      "non_liquid_assets": 0,
+      "growth": 44776.25461396039,
+      "withdrawal": 370887.4866718305,
+      "healthcare_cost": 5315.907103574846,
+      "aged_care_cost": 77484.5830235537,
+      "end_balance": 625477.7003180671,
+      "total_net_worth": 625477.7003180671,
+      "pension_received": 7473.063274676897,
+      "allocation": {
+        "equity": 20,
+        "bonds": 56.0,
+        "cash": 24.0
+      },
+      "depleted": false
+    },
+    {
+      "year": 50,
+      "age": 95,
+      "liquid_assets": 268954.62214570487,
+      "non_liquid_assets": 0,
+      "growth": -2587.301726032816,
+      "withdrawal": 353935.77644632943,
+      "healthcare_cost": 5318.2992617714535,
+      "aged_care_cost": 77484.5830235537,
+      "end_balance": 268954.62214570487,
+      "total_net_worth": 268954.62214570487,
+      "pension_received": 32909.739375190766,
+      "allocation": {
+        "equity": 20,
+        "bonds": 56.0,
+        "cash": 24.0
+      },
+      "depleted": false
+    },
+    {
+      "year": 51,
+      "age": 96,
+      "liquid_assets": -6910.319905207027,
+      "non_liquid_assets": 0,
+      "growth": -2812.59243578877,
+      "withdrawal": 273052.3496151231,
+      "healthcare_cost": 5320.692496439251,
+      "aged_care_cost": 0,
+      "end_balance": -6910.319905207027,
+      "total_net_worth": -6910.319905207027,
+      "pension_received": 45037.0,
+      "allocation": {
+        "equity": 20,
+        "bonds": 56.0,
+        "cash": 24.0
+      },
+      "depleted": true
+    }
+  ],
+  "property_analysis": null,
+  "generated_date": "2025-09-23T11:11:54.321963"
+}
