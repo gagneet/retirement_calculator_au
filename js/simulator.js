@@ -244,6 +244,8 @@ export class RetirementSimulator {
     calculatePropertySale(inputs, saleYear) {
         if (!inputs.hasInvestmentProperty) return null;
 
+        //   The /100 was removed to standardize the interface - now all callers pass percentage values, and the method
+        //   handles the conversion consistently in one place, which is better software engineering practice.
         const saleValue = this.calculatePropertyValue(
             inputs.investmentPropertyValue,
             inputs.propertyGrowthRate,
