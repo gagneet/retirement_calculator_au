@@ -284,7 +284,7 @@ class RetirementCalculatorApp {
             if (data.depleted) {
                 projectionTable.innerHTML += `
                     <tr class="bg-red-100">
-                        <td colspan="10" class="px-4 py-2 text-center font-bold">
+                        <td colspan="11" class="px-4 py-2 text-center font-bold">
                             Financial assets depleted in ${data.year}
                         </td>
                     </tr>
@@ -312,6 +312,7 @@ class RetirementCalculatorApp {
                     <td class="px-4 py-2 text-red-600">-${formatCurrency(data.healthcareCost)}</td>
                     <td class="px-4 py-2 text-red-600">-${formatCurrency(data.agedCareCost)}</td>
                     <td class="px-4 py-2 font-semibold">${formatCurrency(data.endBalance)}</td>
+                    <td class="px-4 py-2 font-semibold text-purple-600">${formatCurrency((data.endBalance || 0) + (data.nonLiquidAssets || 0))}</td>
                 </tr>
             `;
         });

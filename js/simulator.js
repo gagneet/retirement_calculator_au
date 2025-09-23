@@ -246,7 +246,7 @@ export class RetirementSimulator {
 
         const saleValue = this.calculatePropertyValue(
             inputs.investmentPropertyValue,
-            inputs.propertyGrowthRate / 100,
+            inputs.propertyGrowthRate,
             saleYear
         );
 
@@ -521,7 +521,7 @@ export class RetirementSimulator {
 
                         const currentValue = this.calculatePropertyValue(
                             inputs.investmentPropertyValue,
-                            propertyReturn,
+                            propertyReturn * 100,  // Convert back to percentage for the method
                             year
                         );
                         const remainingLoan = this.calculatePropertyLoanBalance(
@@ -699,7 +699,8 @@ export class RetirementSimulator {
             }
 
             // Calculate liquid vs non-liquid assets for this year with growth
-            const liquidAssets = currentBalance; // This is the accessible retirement balance
+            const liquidAssets = startBalance; // Beginning of year liquid assets
+            const endLiquidAssets = currentBalance; // End of year liquid assets after transactions
 
             // Update home equity with inflation growth over time
             const yearsFromRetirement = i;
