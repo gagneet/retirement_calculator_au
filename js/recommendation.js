@@ -2,6 +2,7 @@
 
 import { ENHANCED_CONFIG } from './config.js';
 import { formatCurrency, formatPercent, updateProgress } from './utils.js';
+import Simulator from './simulator.js';
 
 class RecommendationEngine {
     constructor(simulator, inputs) {
@@ -388,7 +389,7 @@ class RecommendationEngine {
         const successDiff = scenario.successRate - baseResult.successRate;
 
         let netProceeds = 0;
-        if (scenario.deterministicResult.propertyWasSold) {
+        if (scenario.deterministicResult?.propertyWasSold && scenario.deterministicResult.propertyHistory) {
             const saleEntry = scenario.deterministicResult.propertyHistory.find(entry => entry.saleResult);
             if (saleEntry && saleEntry.saleResult) {
                 netProceeds = saleEntry.saleResult.netProceeds;
