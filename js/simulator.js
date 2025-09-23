@@ -159,7 +159,16 @@ export class RetirementSimulator {
 
     // Investment property calculations with cycle-based modeling
     calculatePropertyValue(currentValue, growthRate, years) {
-        return currentValue * Math.pow(1 + growthRate, years);
+        // Ensure growthRate is in decimal form (not percentage)
+        const rate = growthRate > 1 ? growthRate / 100 : growthRate;
+
+        // Cap years to prevent overflow and unrealistic projections
+        const cappedYears = Math.min(years, 50); // Maximum 50 years of property growth
+
+        // Cap growth rate to reasonable bounds (0% to 20% annually)
+        const cappedRate = Math.max(0, Math.min(rate, 0.20));
+
+        return currentValue * Math.pow(1 + cappedRate, cappedYears);
     }
 
     // Enhanced property calculation with Australian cycle patterns
@@ -608,7 +617,16 @@ export class RetirementSimulator {
                 propertyEquity = currentValue - remainingLoan;
             }
 
-            const baseIncomeNeeded = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear);
+            // Calculate base income with randomization (+/- $25,000)
+            const asfaWithInflation = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear);
+            let baseIncomeNeeded = asfaWithInflation;
+
+            // Add randomization if using Monte Carlo simulation
+            if (useRandomReturns) {
+                const randomVariation = (Math.random() - 0.5) * 2 * 25000; // +/- $25,000
+                baseIncomeNeeded = Math.max(0, asfaWithInflation + randomVariation);
+            }
+
             const totalCostWithHealthcare = baseIncomeNeeded + healthcareCost + agedCareCost;
 
             // Pension calculation
@@ -680,9 +698,15 @@ export class RetirementSimulator {
                 }
             }
 
-            // Calculate liquid vs non-liquid assets for this year
+            // Calculate liquid vs non-liquid assets for this year with growth
             const liquidAssets = currentBalance; // This is the accessible retirement balance
-            const nonLiquidAssets = inaccessibleHomeEquity + propertyEquity;
+
+            // Update home equity with inflation growth over time
+            const yearsFromRetirement = i;
+            const currentHomeEquity = inputs.planToDownsize ? 0 :
+                homeEquityAtRetirement * Math.pow(1 + inputs.inflation, yearsFromRetirement);
+
+            const nonLiquidAssets = currentHomeEquity + propertyEquity;
 
             balances.push(currentBalance);
             yearlyData.push({
