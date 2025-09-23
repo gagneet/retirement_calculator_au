@@ -133,3 +133,6 @@ Thumbs.db
 /tmp/
 *.tmp
 *.temp
+
+# Node
+node_modules/
