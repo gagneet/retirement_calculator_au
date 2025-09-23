@@ -152,65 +152,72 @@ export const ENHANCED_CONFIG = {
         }
     ],
     
-    // Default values for new users
+    // Default values for new users - consolidated from app.js
     DEFAULTS: {
         personal: {
-            yourCurrentAge: 45,
-            partnerCurrentAge: 40,
-            retirementAge: 68,
-            partnerRetirementAge: 68,
+            yourCurrentAge: 49,
+            partnerCurrentAge: 47,
+            retirementAge: 72,
+            partnerRetirementAge: 62,
             yourLifespan: 95,
             partnerLifespan: 99
         },
         financial: {
-            yourSalary: 140000,
-            partnerSalary: 45000,
-            yourCurrentSuper: 200000,
-            partnerCurrentSuper: 190000,
-            currentSavings: 25000,
-            currentStocks: 15000,
-            monthlyStockContribution: 500,
-            percentIncomeSaved: 0.10
+            yourSalary: 214000,
+            partnerSalary: 34500,
+            yourCurrentSuper: 312000,
+            partnerCurrentSuper: 150000,
+            currentSavings: 55000,
+            currentStocks: 62000,
+            monthlyStockContribution: 800,
+            percentIncomeSaved: 9  // Stored as percentage, will be divided by 100
         },
         property: {
-            homeValue: 1100000,
-            mortgageBalance: 900000,
-            mortgageRate: 0.0537,
-            monthlyMortgagePayment: 4100,
+            homeValue: 810000,
+            mortgageBalance: 594000,
+            mortgageRate: 5.37,  // Stored as percentage, will be divided by 100
+            monthlyMortgagePayment: 3584,
             planToDownsize: true,
             hasInvestmentProperty: false,
             investmentPropertyValue: 550000,
-            investmentPropertyLoan: 400000,
-            investmentPropertyRate: 0.062,
-            weeklyRentalIncome: 550,
-            annualPropertyExpenses: 8000,
-            propertyGrowthRate: 0.045,
+            investmentPropertyLoan: 574000,
+            investmentPropertyRate: 6.2,  // Stored as percentage, will be divided by 100
+            weeklyRentalIncome: 554,
+            annualPropertyExpenses: 9675,
+            propertyGrowthRate: 4.5,  // Stored as percentage
             sellPropertyYears: 15,
-            capitalGainsTaxRate: 0.225
+            capitalGainsTaxRate: 22.5  // Stored as percentage, will be divided by 100
         },
         healthcare: {
-            currentHealthcareCosts: 5200,
-            healthcareInflation: 4.5,
+            currentHealthcareCosts: 3500,
+            healthcareInflation: 6.5,
             hasPrivateHealth: "comprehensive",
             chronicConditions: "none",
-            agedCareProbability: 68,
-            agedCareStartAge: 88,
-            agedCareDuration: 7.5,
-            agedCareAnnualCost: 76000
+            agedCareProbability: 65,
+            agedCareStartAge: 85,
+            agedCareDuration: 3.5,
+            agedCareAnnualCost: 75000
         },
         economic: {
-            inflation: 0.0287,
-            investmentReturn: 0.0561,
+            inflation: 2.87,  // Stored as percentage, will be divided by 100
+            investmentReturn: 5.61,  // Stored as percentage, will be divided by 100
             returnDeclineRate: 0.03,
-            savingsReturn: 0.014,
-            superReturn: 0.0875,
-            salaryGrowthRate: 1.5
+            savingsReturn: 1.40,  // Stored as percentage, will be divided by 100
+            superReturn: 8.75,  // Stored as percentage, will be divided by 100
+            salaryGrowthRate: 1.5,
+            leanYearsStart: 5,
+            leanYearsReduction: 25
         },
         allocation: {
             useGlidePath: true,
             glidePathRule: "110minus",
             frankingCreditBenefit: 1.2,
-            australianEquityAllocation: 40
+            australianEquityAllocation: 40,
+            dividendYield: 4.5,
+            frankingRate: 75,
+            allocEquities: 60,
+            allocBonds: 30,
+            allocCash: 10
         },
         risk: {
             riskTolerance: 6,
@@ -220,10 +227,10 @@ export const ENHANCED_CONFIG = {
         },
         simulation: {
             numRuns: 5000,
-            returnVolatility: 0.12,
+            returnVolatility: 12,  // Stored as percentage, will be divided by 100
             enableShocks: false,
-            shockProbability: 0.05,
-            shockMagnitude: -0.25
+            shockProbability: 5,  // Stored as percentage, will be divided by 100
+            shockMagnitude: -25  // Stored as percentage, will be divided by 100
         },
         pension: {
             asfaComfortable: 73875,

@@ -549,6 +549,9 @@ export class RetirementSimulator {
         let currentBalance = futureSuper + futureSavings + futureStocks + accessibleHomeEquity;
         const agedCareCosts = this.calculateAgedCareCosts(inputs);
 
+        // Calculate non-liquid assets
+        const inaccessibleHomeEquity = inputs.planToDownsize ? 0 : homeEquityAtRetirement;
+
         const balances = [];
         const yearlyData = [];
 
@@ -583,13 +586,26 @@ export class RetirementSimulator {
                 agedCareCost = agedCareCosts.annualCost;
             }
 
-            // Property income (if still owned)
+            // Property income (if still owned) and update property equity
             let propertyIncome = 0;
             if (inputs.hasInvestmentProperty && !propertyWasSold) {
                 const propertyCashFlow = this.calculatePropertyCashFlow(inputs, retirementYear);
                 if (propertyCashFlow) {
                     propertyIncome = Math.max(0, propertyCashFlow.netCashFlow);
                 }
+
+                // Update property equity for current retirement year
+                const currentValue = this.calculatePropertyValue(
+                    inputs.investmentPropertyValue,
+                    inputs.propertyGrowthRate,
+                    retirementYear
+                );
+                const remainingLoan = this.calculatePropertyLoanBalance(
+                    inputs.investmentPropertyLoan,
+                    inputs.investmentPropertyRate,
+                    retirementYear
+                );
+                propertyEquity = currentValue - remainingLoan;
             }
 
             const baseIncomeNeeded = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear);
@@ -664,6 +680,10 @@ export class RetirementSimulator {
                 }
             }
 
+            // Calculate liquid vs non-liquid assets for this year
+            const liquidAssets = currentBalance; // This is the accessible retirement balance
+            const nonLiquidAssets = inaccessibleHomeEquity + propertyEquity;
+
             balances.push(currentBalance);
             yearlyData.push({
                 year: new Date().getFullYear() + retirementYear,
@@ -680,6 +700,8 @@ export class RetirementSimulator {
                 propertyIncome,
                 pensionIncome,
                 endBalance: currentBalance,
+                liquidAssets,
+                nonLiquidAssets,
                 depleted: false
             });
 

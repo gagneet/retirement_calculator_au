@@ -44,92 +44,94 @@ class RetirementCalculatorApp {
 
     // Input collection with complete property support
     collectInputs() {
+        const config = ENHANCED_CONFIG.DEFAULTS;
+
         return {
             // Personal details
-            yourCurrentAge: safeGetValue('yourCurrentAge', 49),
-            partnerCurrentAge: safeGetValue('partnerCurrentAge', 47),
-            retirementAge: safeGetValue('retirementAge', 72),
-            partnerRetirementAge: safeGetValue('partnerRetirementAge', 62),
-            yourLifespan: safeGetValue('yourLifespan', 95),
-            partnerLifespan: safeGetValue('partnerLifespan', 99),
+            yourCurrentAge: safeGetValue('yourCurrentAge', config.personal.yourCurrentAge),
+            partnerCurrentAge: safeGetValue('partnerCurrentAge', config.personal.partnerCurrentAge),
+            retirementAge: safeGetValue('retirementAge', config.personal.retirementAge),
+            partnerRetirementAge: safeGetValue('partnerRetirementAge', config.personal.partnerRetirementAge),
+            yourLifespan: safeGetValue('yourLifespan', config.personal.yourLifespan),
+            partnerLifespan: safeGetValue('partnerLifespan', config.personal.partnerLifespan),
 
             // Risk profile
-            riskTolerance: safeGetValue('riskTolerance', 6),
-            hasEmergencyFund: safeGetSelectValue('hasEmergencyFund', 'partial'),
-            hasDebt: safeGetSelectValue('hasDebt', 'minimal'),
-            dependents: safeGetValue('dependents', 0),
+            riskTolerance: safeGetValue('riskTolerance', config.risk.riskTolerance),
+            hasEmergencyFund: safeGetSelectValue('hasEmergencyFund', config.risk.hasEmergencyFund),
+            hasDebt: safeGetSelectValue('hasDebt', config.risk.hasDebt),
+            dependents: safeGetValue('dependents', config.risk.dependents),
 
             // Financial details
-            yourSalary: safeGetValue('yourSalary', 214000),
-            partnerSalary: safeGetValue('partnerSalary', 34500),
-            yourCurrentSuper: safeGetValue('yourCurrentSuper', 312000),
-            partnerCurrentSuper: safeGetValue('partnerCurrentSuper', 150000),
-            currentSavings: safeGetValue('currentSavings', 55000),
-            currentStocks: safeGetValue('currentStocks', 62000),
-            monthlyStockContribution: safeGetValue('monthlyStockContribution', 800),
-            percentIncomeSaved: safeGetValue('percentIncomeSaved', 9) / 100,
+            yourSalary: safeGetValue('yourSalary', config.financial.yourSalary),
+            partnerSalary: safeGetValue('partnerSalary', config.financial.partnerSalary),
+            yourCurrentSuper: safeGetValue('yourCurrentSuper', config.financial.yourCurrentSuper),
+            partnerCurrentSuper: safeGetValue('partnerCurrentSuper', config.financial.partnerCurrentSuper),
+            currentSavings: safeGetValue('currentSavings', config.financial.currentSavings),
+            currentStocks: safeGetValue('currentStocks', config.financial.currentStocks),
+            monthlyStockContribution: safeGetValue('monthlyStockContribution', config.financial.monthlyStockContribution),
+            percentIncomeSaved: safeGetValue('percentIncomeSaved', config.financial.percentIncomeSaved) / 100,
 
             // Property details
-            homeValue: safeGetValue('homeValue', 810000),
-            mortgageBalance: safeGetValue('mortgageBalance', 594000),
-            mortgageRate: safeGetValue('mortgageRate', 5.37) / 100,
-            monthlyMortgagePayment: safeGetValue('monthlyMortgagePayment', 3584),
+            homeValue: safeGetValue('homeValue', config.property.homeValue),
+            mortgageBalance: safeGetValue('mortgageBalance', config.property.mortgageBalance),
+            mortgageRate: safeGetValue('mortgageRate', config.property.mortgageRate) / 100,
+            monthlyMortgagePayment: safeGetValue('monthlyMortgagePayment', config.property.monthlyMortgagePayment),
             planToDownsize: safeGetSelectValue('planToDownsize', 'false') === 'true',
 
             // Investment property
-            hasInvestmentProperty: safeGetChecked('hasInvestmentProperty', false),
-            investmentPropertyValue: safeGetValue('investmentPropertyValue', 550000),
-            investmentPropertyLoan: safeGetValue('investmentPropertyLoan', 574000),
-            investmentPropertyRate: safeGetValue('investmentPropertyRate', 6.2) / 100,
-            weeklyRentalIncome: safeGetValue('weeklyRentalIncome', 554),
-            annualPropertyExpenses: safeGetValue('annualPropertyExpenses', 9675),
-            propertyGrowthRate: safeGetValue('propertyGrowthRate', 4.5),
-            sellPropertyYears: safeGetValue('sellPropertyYears', 15),
-            capitalGainsTaxRate: safeGetValue('capitalGainsTaxRate', 22.5),
+            hasInvestmentProperty: safeGetChecked('hasInvestmentProperty', config.property.hasInvestmentProperty),
+            investmentPropertyValue: safeGetValue('investmentPropertyValue', config.property.investmentPropertyValue),
+            investmentPropertyLoan: safeGetValue('investmentPropertyLoan', config.property.investmentPropertyLoan),
+            investmentPropertyRate: safeGetValue('investmentPropertyRate', config.property.investmentPropertyRate) / 100,
+            weeklyRentalIncome: safeGetValue('weeklyRentalIncome', config.property.weeklyRentalIncome),
+            annualPropertyExpenses: safeGetValue('annualPropertyExpenses', config.property.annualPropertyExpenses),
+            propertyGrowthRate: safeGetValue('propertyGrowthRate', config.property.propertyGrowthRate),
+            sellPropertyYears: safeGetValue('sellPropertyYears', config.property.sellPropertyYears),
+            capitalGainsTaxRate: safeGetValue('capitalGainsTaxRate', config.property.capitalGainsTaxRate),
 
             // Healthcare & aged care
-            currentHealthcareCosts: safeGetValue('currentHealthcareCosts', 3500),
-            healthcareInflation: safeGetValue('healthcareInflation', 6.5),
-            agedCareProbability: safeGetValue('agedCareProbability', 65),
-            agedCareStartAge: safeGetValue('agedCareStartAge', 85),
-            agedCareDuration: safeGetValue('agedCareDuration', 3.5),
-            agedCareAnnualCost: safeGetValue('agedCareAnnualCost', 75000),
+            currentHealthcareCosts: safeGetValue('currentHealthcareCosts', config.healthcare.currentHealthcareCosts),
+            healthcareInflation: safeGetValue('healthcareInflation', config.healthcare.healthcareInflation),
+            agedCareProbability: safeGetValue('agedCareProbability', config.healthcare.agedCareProbability),
+            agedCareStartAge: safeGetValue('agedCareStartAge', config.healthcare.agedCareStartAge),
+            agedCareDuration: safeGetValue('agedCareDuration', config.healthcare.agedCareDuration),
+            agedCareAnnualCost: safeGetValue('agedCareAnnualCost', config.healthcare.agedCareAnnualCost),
 
             // Economic assumptions
-            inflation: safeGetValue('inflation', 2.87) / 100,
-            investmentReturn: safeGetValue('investmentReturn', 5.61) / 100,
-            returnDeclineRate: safeGetValue('returnDeclineRate', 0.03),
-            savingsReturn: safeGetValue('savingsReturn', 1.40) / 100,
-            superReturn: safeGetValue('superReturn', 8.75) / 100,
+            inflation: safeGetValue('inflation', config.economic.inflation) / 100,
+            investmentReturn: safeGetValue('investmentReturn', config.economic.investmentReturn) / 100,
+            returnDeclineRate: safeGetValue('returnDeclineRate', config.economic.returnDeclineRate),
+            savingsReturn: safeGetValue('savingsReturn', config.economic.savingsReturn) / 100,
+            superReturn: safeGetValue('superReturn', config.economic.superReturn) / 100,
             superContributionRate: ENHANCED_CONFIG.SUPER_GUARANTEE_RATE,
-            salaryGrowthRate: safeGetValue('salaryGrowthRate', 1.5),
-            leanYearsStart: safeGetValue('leanYearsStart', 5),
-            leanYearsReduction: safeGetValue('leanYearsReduction', 25),
+            salaryGrowthRate: safeGetValue('salaryGrowthRate', config.economic.salaryGrowthRate),
+            leanYearsStart: safeGetValue('leanYearsStart', config.economic.leanYearsStart),
+            leanYearsReduction: safeGetValue('leanYearsReduction', config.economic.leanYearsReduction),
 
             // Dynamic allocation
-            useGlidePath: safeGetChecked('useGlidePath', true),
-            glidePathRule: safeGetSelectValue('glidePathRule', '110minus'),
-            frankingCreditBenefit: safeGetValue('frankingCreditBenefit', 1.2),
-            australianEquityAllocation: safeGetValue('australianEquityAllocation', 40),
-            dividendYield: safeGetValue('dividendYield', 4.5),
-            frankingRate: safeGetValue('frankingRate', 75),
-            allocEquities: safeGetValue('allocEquities', 60),
-            allocBonds: safeGetValue('allocBonds', 30),
-            allocCash: safeGetValue('allocCash', 10),
+            useGlidePath: safeGetChecked('useGlidePath', config.allocation.useGlidePath),
+            glidePathRule: safeGetSelectValue('glidePathRule', config.allocation.glidePathRule),
+            frankingCreditBenefit: safeGetValue('frankingCreditBenefit', config.allocation.frankingCreditBenefit),
+            australianEquityAllocation: safeGetValue('australianEquityAllocation', config.allocation.australianEquityAllocation),
+            dividendYield: safeGetValue('dividendYield', config.allocation.dividendYield),
+            frankingRate: safeGetValue('frankingRate', config.allocation.frankingRate),
+            allocEquities: safeGetValue('allocEquities', config.allocation.allocEquities),
+            allocBonds: safeGetValue('allocBonds', config.allocation.allocBonds),
+            allocCash: safeGetValue('allocCash', config.allocation.allocCash),
 
             // Pension system
-            asfaComfortable: safeGetValue('asfaComfortable', 73875),
-            agePensionMax: safeGetValue('agePensionMax', 45037),
-            pensionAssetThreshold: safeGetValue('pensionAssetThreshold', 470000),
-            pensionAssetLimit: safeGetValue('pensionAssetLimit', 1031000),
-            pensionIncomeThreshold: safeGetValue('pensionIncomeThreshold', 372),
+            asfaComfortable: safeGetValue('asfaComfortable', config.pension.asfaComfortable),
+            agePensionMax: safeGetValue('agePensionMax', config.pension.agePensionMax),
+            pensionAssetThreshold: safeGetValue('pensionAssetThreshold', config.pension.pensionAssetThreshold),
+            pensionAssetLimit: safeGetValue('pensionAssetLimit', config.pension.pensionAssetLimit),
+            pensionIncomeThreshold: safeGetValue('pensionIncomeThreshold', config.pension.pensionIncomeThreshold),
 
             // Simulation controls
-            returnVolatility: safeGetValue('returnVolatility', 12) / 100,
-            enableShocks: safeGetChecked('enableShocks', false),
-            shockProbability: safeGetValue('shockProbability', 5) / 100,
-            shockMagnitude: safeGetValue('shockMagnitude', -25) / 100,
-            numRuns: safeGetValue('numRuns', 5000)
+            returnVolatility: safeGetValue('returnVolatility', config.simulation.returnVolatility) / 100,
+            enableShocks: safeGetChecked('enableShocks', config.simulation.enableShocks),
+            shockProbability: safeGetValue('shockProbability', config.simulation.shockProbability) / 100,
+            shockMagnitude: safeGetValue('shockMagnitude', config.simulation.shockMagnitude) / 100,
+            numRuns: safeGetValue('numRuns', config.simulation.numRuns)
         };
     }
 
@@ -282,7 +284,7 @@ class RetirementCalculatorApp {
             if (data.depleted) {
                 projectionTable.innerHTML += `
                     <tr class="bg-red-100">
-                        <td colspan="9" class="px-4 py-2 text-center font-bold">
+                        <td colspan="10" class="px-4 py-2 text-center font-bold">
                             Financial assets depleted in ${data.year}
                         </td>
                     </tr>
@@ -302,7 +304,8 @@ class RetirementCalculatorApp {
                 <tr>
                     <td class="px-4 py-2">${data.year}</td>
                     <td class="px-4 py-2">${ageDisplay}</td>
-                    <td class="px-4 py-2">${formatCurrency(data.startBalance)}</td>
+                    <td class="px-4 py-2 text-blue-600">${formatCurrency(data.liquidAssets || data.startBalance)}</td>
+                    <td class="px-4 py-2 text-gray-600">${formatCurrency(data.nonLiquidAssets || 0)}</td>
                     <td class="px-4 py-2 text-green-600">+${formatCurrency(data.growth || 0)}</td>
                     <td class="px-4 py-2 text-red-600">-${formatCurrency(data.withdrawal || 0)}</td>
                     <td class="px-4 py-2 text-blue-600">+${formatCurrency(data.propertyIncome || 0)}</td>
