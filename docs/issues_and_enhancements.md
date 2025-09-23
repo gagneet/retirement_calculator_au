@@ -305,3 +305,42 @@ The modular calculator implements the key recommendations from your research doc
 The modular structure follows software engineering best practices while delivering a production-ready retirement calculator specifically designed for the Australian financial system. You can now easily maintain, extend, and customize the calculator as regulations change or new features are needed.
 
 ---
+
+## Enhanced Table Structure
+
+| Year | Age | Liquid Assets 💳 | Non-Liquid Assets 🏘️ | Growth | Withdrawal | Property Income | Healthcare | Aged Care | End Balance 💰 | Total Net Worth 🏠 |
+|------|-----|------------------|-----------------------|--------|------------|-----------------|------------|-----------|----------------|--------------------|
+
+Key Benefits:
+
+1. 🔍 Clear Asset Distinction:
+   - Liquid Assets: Start-of-year spendable money (Super, Savings, Stocks, accessible home equity)
+   - Non-Liquid Assets: Property wealth that requires selling/downsizing to access
+2. 💰 End Balance Clarity:
+   - Shows exactly how much liquid cash is available for spending
+   - This is what users can actually withdraw from without selling property
+3. 🏠 Total Net Worth Visibility:
+   - Includes both liquid AND non-liquid assets
+   - Shows complete financial picture and wealth accumulation
+   - Important for estate planning and overall financial health
+4. 📊 Cash Flow Tracking:
+   - Users can see: Start → Growth/Income → Expenses → End (liquid)
+   - Plus total net worth progression over time
+
+User Experience Benefits:
+
+- Financial Planning: Users see what they can actually spend (End Balance)
+- Wealth Tracking: Users see total wealth growth (Total Net Worth)
+- Decision Making: Clear visibility helps with downsizing/selling decisions
+- Peace of Mind: Both immediate liquidity AND total security are visible
+
+Tooltips Added:
+
+- 💳 Liquid Assets: "Super, savings, stocks, and accessible home equity - can be spent during retirement"
+- 🏘️ Non-Liquid Assets: "Home equity and investment property - requires selling/downsizing to access"
+- 💰 End Balance: "Liquid assets available for spending after all transactions"
+- 🏠 Total Net Worth: "Total net worth including property equity (liquid + non-liquid assets)"
+
+This solution addresses your concern perfectly - users now see both their spendable retirement funds AND their total wealth including property. The color coding (purple for Total Net Worth) helps distinguish it from the liquid End Balance, and the tooltips ensure users understand exactly what each column represents.
+
+This approach follows financial planning best practices by maintaining the crucial distinction between accessible and inaccessible wealth while still showing the complete financial picture!
