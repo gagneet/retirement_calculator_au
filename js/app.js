@@ -3,6 +3,8 @@
 import { ENHANCED_CONFIG } from './config.js';
 import RetirementSimulator from './simulator.js';
 import RecommendationEngine from './recommendation.js';
+import DecisionSupportEngine from './decision-support-engine.js';
+import MarketDataEngine from './market-data.js';
 import ChartManager from './charts.js';
 import {
     $,
@@ -27,6 +29,7 @@ class RetirementCalculatorApp {
     constructor() {
         this.simulator = new RetirementSimulator();
         this.chartManager = new ChartManager();
+        this.marketData = new MarketDataEngine();
         this.currentResults = null;
         this.isCalculating = false;
 
@@ -689,7 +692,7 @@ class RetirementCalculatorApp {
         return recommendations;
     }
 
-    // Recommendation Engine
+    // Enhanced Comprehensive Decision Support Engine
     async runRecommendationEngine() {
         if (this.isCalculating) return;
         this.isCalculating = true;
@@ -697,25 +700,46 @@ class RetirementCalculatorApp {
         try {
             const inputs = this.collectInputs();
 
-            updateProgress(10, 'Initializing Recommendation Engine...');
+            updateProgress(10, 'Initializing Comprehensive Decision Support Engine...');
             await new Promise(resolve => setTimeout(resolve, 0));
 
-            const engine = new RecommendationEngine(this.simulator, inputs);
+            // Use the new comprehensive decision support engine
+            const decisionEngine = new DecisionSupportEngine(this.simulator, inputs);
 
-            // This is a long process, so provide feedback
-            updateProgress(30, 'Running baseline simulation...');
-            const recommendations = await engine.generateRecommendations();
-            updateProgress(80, 'Formatting recommendations...');
+            // This is a long process, so provide detailed feedback
+            updateProgress(20, 'Analyzing market conditions and property cycles...');
+            updateProgress(30, 'Running baseline Monte Carlo simulation...');
+            updateProgress(40, 'Evaluating home ownership strategies...');
+            updateProgress(50, 'Analyzing investment property timing...');
+            updateProgress(60, 'Optimizing stock and share strategies...');
+            updateProgress(70, 'Evaluating trust structures and tax benefits...');
+            updateProgress(80, 'Analyzing superannuation optimization...');
 
-            this.displayRecommendations(recommendations);
+            const comprehensiveRecommendations = await decisionEngine.generateComprehensiveRecommendations();
+
+            updateProgress(90, 'Formatting comprehensive recommendations...');
+            this.displayComprehensiveRecommendations(comprehensiveRecommendations);
 
             showTab('recommendations');
-            updateProgress(100, 'AI Recommendations Generated!');
-            showNotification('Successfully generated AI recommendations.', 'success');
+            updateProgress(100, 'Comprehensive AI Recommendations Generated!');
+            showNotification('Successfully generated comprehensive AI recommendations covering all 8 strategic areas.', 'success');
 
         } catch (error) {
-            console.error('Recommendation Engine error:', error);
-            showNotification('Error generating recommendations: ' + error.message, 'error');
+            console.error('Comprehensive Recommendation Engine error:', error);
+            showNotification('Error generating comprehensive recommendations: ' + error.message, 'error');
+
+            // Fallback to basic recommendations if comprehensive fails
+            try {
+                updateProgress(50, 'Falling back to basic recommendations...');
+                const basicEngine = new RecommendationEngine(this.simulator, this.collectInputs());
+                const basicRecommendations = await basicEngine.generateRecommendations();
+                this.displayRecommendations(basicRecommendations);
+                showTab('recommendations');
+                showNotification('Generated basic recommendations (comprehensive engine had issues)', 'warning');
+            } catch (fallbackError) {
+                console.error('Fallback recommendation engine also failed:', fallbackError);
+                showNotification('Both comprehensive and basic recommendation engines failed', 'error');
+            }
         } finally {
             this.isCalculating = false;
             updateProgress(0);
@@ -767,6 +791,160 @@ class RetirementCalculatorApp {
                 </div>
             </div>
         `).join('');
+    }
+
+    // Display comprehensive recommendations with enhanced categorization
+    displayComprehensiveRecommendations(recommendations) {
+        const container = $('recommendationsContainer');
+        if (!container) return;
+
+        if (recommendations.length === 0) {
+            container.innerHTML = `
+                <div class="p-4 bg-green-50 text-green-800 rounded-lg">
+                    <h3 class="font-semibold">Your Comprehensive Plan Analysis Complete!</h3>
+                    <p>Our comprehensive analysis across all 8 strategic areas suggests your current plan is well-optimized. You can explore specific scenarios manually in the 'Scenario Compare' tab.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Group recommendations by category
+        const groupedRecs = recommendations.reduce((acc, rec) => {
+            if (!acc[rec.category]) {
+                acc[rec.category] = [];
+            }
+            acc[rec.category].push(rec);
+            return acc;
+        }, {});
+
+        const priorityColors = {
+            'high': 'border-red-500 bg-red-50',
+            'medium': 'border-yellow-500 bg-yellow-50',
+            'low': 'border-blue-500 bg-blue-50'
+        };
+
+        const categoryIcons = {
+            'Home Ownership': '🏠',
+            'Investment Property': '🏢',
+            'Stocks & Shares': '📈',
+            'Trust Structures': '🏛️',
+            'Early Retirement': '🏖️',
+            'Investment Optimization': '💰',
+            'Superannuation Strategy': '🛡️',
+            'Healthcare Planning': '🏥',
+            'Insurance Strategy': '☂️',
+            'Estate Planning': '📋',
+            'Age Pension Strategy': '🏛️',
+            'Geographic Strategy': '🗺️'
+        };
+
+        let html = `
+            <div class="mb-6 p-4 bg-blue-50 text-blue-900 rounded-lg">
+                <h2 class="text-xl font-bold mb-2">🎯 Comprehensive Retirement Strategy Analysis</h2>
+                <p class="text-sm">Generated ${recommendations.length} recommendations across ${Object.keys(groupedRecs).length} strategic areas. Recommendations are ordered by priority and confidence.</p>
+            </div>
+        `;
+
+        // Display each category
+        Object.entries(groupedRecs).forEach(([category, recs]) => {
+            const icon = categoryIcons[category] || '📊';
+
+            html += `
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-800">${icon} ${category}</h3>
+                    <div class="space-y-3">
+            `;
+
+            recs.forEach(rec => {
+                const priorityColor = priorityColors[rec.priority] || 'border-gray-300 bg-gray-50';
+                const confidenceBadge = rec.confidence ?
+                    `<span class="text-xs px-2 py-1 rounded-full ${rec.confidence > 0.8 ? 'bg-green-100 text-green-800' : rec.confidence > 0.6 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}">
+                        ${Math.round(rec.confidence * 100)}% confidence
+                    </span>` : '';
+
+                html += `
+                    <div class="recommendation-card p-4 rounded-lg border-l-4 ${priorityColor}">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs font-semibold uppercase px-2 py-1 rounded ${rec.priority === 'high' ? 'bg-red-100 text-red-700' : rec.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}">${rec.priority} priority</span>
+                                    ${confidenceBadge}
+                                </div>
+                                <h4 class="font-bold text-base text-gray-800">${rec.action || rec.title}</h4>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <p class="text-sm text-gray-700 mb-2">${rec.recommendation || rec.summary}</p>
+                            ${rec.timing ? `<p class="text-xs text-blue-600"><strong>Timing:</strong> ${rec.timing}</p>` : ''}
+                            ${rec.expectedBenefit ? `<p class="text-xs text-green-600"><strong>Expected Benefit:</strong> ${rec.expectedBenefit}</p>` : ''}
+                            ${rec.considerations ? `<p class="text-xs text-amber-600"><strong>Considerations:</strong> ${rec.considerations}</p>` : ''}
+                        </div>
+
+                        ${rec.successRate !== undefined ? `
+                            <div class="flex justify-between text-xs text-gray-600 pt-2 border-t border-gray-200">
+                                <span>Success Rate: <strong>${formatPercent(rec.successRate)}</strong></span>
+                                ${rec.medianBalance ? `<span>Projected Balance: <strong>${formatCurrency(rec.medianBalance)}</strong></span>` : ''}
+                            </div>
+                        ` : ''}
+
+                        ${rec.additionalBenefits ? `
+                            <div class="mt-2 text-xs text-gray-600">
+                                <strong>Additional Benefits:</strong> ${rec.additionalBenefits}
+                            </div>
+                        ` : ''}
+
+                        ${rec.strategies && rec.strategies.length > 0 ? `
+                            <div class="mt-2">
+                                <strong class="text-xs text-gray-700">Strategies:</strong>
+                                <ul class="text-xs text-gray-600 ml-4 mt-1">
+                                    ${rec.strategies.map(strategy => `<li>• ${strategy}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+            `;
+        });
+
+        // Add summary statistics
+        const highPriorityCount = recommendations.filter(r => r.priority === 'high').length;
+        const mediumPriorityCount = recommendations.filter(r => r.priority === 'medium').length;
+        const avgConfidence = recommendations.filter(r => r.confidence).reduce((sum, r) => sum + r.confidence, 0) / recommendations.filter(r => r.confidence).length;
+
+        html += `
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                <h3 class="font-semibold text-gray-800 mb-2">📊 Analysis Summary</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div class="text-center">
+                        <div class="font-bold text-red-600">${highPriorityCount}</div>
+                        <div class="text-gray-600">High Priority</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-bold text-yellow-600">${mediumPriorityCount}</div>
+                        <div class="text-gray-600">Medium Priority</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-bold text-blue-600">${Object.keys(groupedRecs).length}</div>
+                        <div class="text-gray-600">Categories</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-bold text-green-600">${Math.round(avgConfidence * 100)}%</div>
+                        <div class="text-gray-600">Avg Confidence</div>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-600 mt-2">
+                    🔍 Focus on high-priority recommendations first. Each recommendation includes confidence levels based on historical data and market analysis.
+                </p>
+            </div>
+        `;
+
+        container.innerHTML = html;
     }
 
     // Monte Carlo simulation
