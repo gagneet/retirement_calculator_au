@@ -16,676 +16,693 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="bg-gray-100 text-gray-800">
-    <div class="container mx-auto p-4 md:p-8">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900">Enhanced Australian Retirement Calculator</h1>
-            <p class="text-lg text-gray-600 mt-2">Advanced retirement planning with healthcare costs, aged care, dynamic allocation, and investment property modeling</p>
-        </header>
+<div class="container mx-auto p-4 md:p-8">
+    <header class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-gray-900">Enhanced Australian Retirement Calculator</h1>
+        <p class="text-lg text-gray-600 mt-2">Advanced retirement planning with healthcare costs, aged care, dynamic allocation, and investment property modeling</p>
+    </header>
 
-        <!-- Risk Profile Banner -->
-        <div id="riskProfileBanner" class="mb-6 p-4 rounded-lg border-l-4 border-blue-500 bg-blue-50">
-            <h3 class="font-semibold text-blue-900">Your Risk Profile</h3>
-            <div class="mt-2 grid grid-cols-3 gap-4 text-sm">
-                <div>
-                    <div class="font-medium">Risk Capacity</div>
-                    <div class="risk-profile-indicator bg-gray-200 mt-1">
-                        <div id="riskCapacityBar" class="h-full bg-blue-500 rounded" style="width: 0%"></div>
-                    </div>
-                    <div id="riskCapacityText" class="text-xs text-gray-600 mt-1">Calculating...</div>
+    <!-- Risk Profile Banner -->
+    <div id="riskProfileBanner" class="mb-6 p-4 rounded-lg border-l-4 border-blue-500 bg-blue-50">
+        <h3 class="font-semibold text-blue-900">Your Risk Profile</h3>
+        <div class="mt-2 grid grid-cols-3 gap-4 text-sm">
+            <div>
+                <div class="font-medium">Risk Capacity</div>
+                <div class="risk-profile-indicator bg-gray-200 mt-1">
+                    <div id="riskCapacityBar" class="h-full bg-blue-500 rounded" style="width: 0%"></div>
                 </div>
-                <div>
-                    <div class="font-medium">Risk Tolerance</div>
-                    <div class="risk-profile-indicator bg-gray-200 mt-1">
-                        <div id="riskToleranceBar" class="h-full bg-green-500 rounded" style="width: 0%"></div>
-                    </div>
-                    <div id="riskToleranceText" class="text-xs text-gray-600 mt-1">Set below</div>
+                <div id="riskCapacityText" class="text-xs text-gray-600 mt-1">Calculating...</div>
+            </div>
+            <div>
+                <div class="font-medium">Risk Tolerance</div>
+                <div class="risk-profile-indicator bg-gray-200 mt-1">
+                    <div id="riskToleranceBar" class="h-full bg-green-500 rounded" style="width: 0%"></div>
                 </div>
-                <div>
-                    <div class="font-medium">Risk Requirement</div>
-                    <div class="risk-profile-indicator bg-gray-200 mt-1">
-                        <div id="riskRequirementBar" class="h-full bg-red-500 rounded" style="width: 0%"></div>
-                    </div>
-                    <div id="riskRequirementText" class="text-xs text-gray-600 mt-1">Calculating...</div>
+                <div id="riskToleranceText" class="text-xs text-gray-600 mt-1">Set below</div>
+            </div>
+            <div>
+                <div class="font-medium">Risk Requirement</div>
+                <div class="risk-profile-indicator bg-gray-200 mt-1">
+                    <div id="riskRequirementBar" class="h-full bg-red-500 rounded" style="width: 0%"></div>
                 </div>
+                <div id="riskRequirementText" class="text-xs text-gray-600 mt-1">Calculating...</div>
             </div>
         </div>
+    </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <!-- Column 1: Personal & Risk Profile -->
-            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Personal & Risk Profile</h2>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label for="yourCurrentAge" class="block text-sm font-medium text-gray-700">Your Current Age</label>
-                        <input type="number" id="yourCurrentAge" value="49" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="partnerCurrentAge" class="block text-sm font-medium text-gray-700">Partner's Current Age</label>
-                        <input type="number" id="partnerCurrentAge" value="47" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="retirementAge" class="block text-sm font-medium text-gray-700">Your Retirement Age</label>
-                        <input type="number" id="retirementAge" value="72" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="partnerRetirementAge" class="block text-sm font-medium text-gray-700">Partner's Retirement Age</label>
-                        <input type="number" id="partnerRetirementAge" value="62" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="yourLifespan" class="block text-sm font-medium text-gray-700">Your Expected Lifespan</label>
-                        <input type="number" id="yourLifespan" value="95" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="partnerLifespan" class="block text-sm font-medium text-gray-700">Partner's Expected Lifespan</label>
-                        <input type="number" id="partnerLifespan" value="99" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Column 1: Personal & Risk Profile -->
+        <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">Personal & Risk Profile</h2>
+
+            <div class="space-y-4">
+                <div>
+                    <label for="yourCurrentAge" class="block text-sm font-medium text-gray-700">Your Current Age</label>
+                    <input type="number" id="yourCurrentAge" value="49" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
-
-                <div class="advanced-section enhancement-highlight">
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Risk Tolerance Assessment</h3>
-                    <div class="space-y-3">
-                        <div>
-                            <label for="riskTolerance" class="block text-sm font-medium text-gray-700">Risk Tolerance (1-10)</label>
-                            <input type="range" id="riskTolerance" min="1" max="10" value="6" class="mt-1 block w-full">
-                            <div class="flex justify-between text-xs text-gray-500 mt-1">
-                                <span>Conservative</span>
-                                <span>Aggressive</span>
-                            </div>
-                        </div>
-                        <div>
-                            <label for="hasEmergencyFund" class="block text-sm font-medium text-gray-700">Emergency Fund Status</label>
-                            <select id="hasEmergencyFund" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                <option value="full">6+ months expenses</option>
-                                <option value="partial">3-6 months expenses</option>
-                                <option value="minimal">1-3 months expenses</option>
-                                <option value="none">No emergency fund</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="hasDebt" class="block text-sm font-medium text-gray-700">High-Interest Debt Status</label>
-                            <select id="hasDebt" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                <option value="none">No high-interest debt</option>
-                                <option value="minimal">Under $10,000</option>
-                                <option value="moderate">$10,000-50,000</option>
-                                <option value="high">Over $50,000</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="dependents" class="block text-sm font-medium text-gray-700">Financial Dependents</label>
-                            <input type="number" id="dependents" value="0" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                    </div>
+                <div>
+                    <label for="partnerCurrentAge" class="block text-sm font-medium text-gray-700">Partner's Current Age</label>
+                    <input type="number" id="partnerCurrentAge" value="47" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
-
-                <h3 class="text-lg font-semibold mt-6 mb-4 border-b pb-2">Current Finances</h3>
-                <div class="space-y-4">
-                    <div>
-                        <label for="yourSalary" class="block text-sm font-medium text-gray-700">Your Annual Salary (pre-tax)</label>
-                        <input type="number" id="yourSalary" value="214000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="partnerSalary" class="block text-sm font-medium text-gray-700">Partner's Annual Salary (pre-tax)</label>
-                        <input type="number" id="partnerSalary" value="34500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="yourCurrentSuper" class="block text-sm font-medium text-gray-700">Your Current Superannuation</label>
-                        <input type="number" id="yourCurrentSuper" value="312000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="partnerCurrentSuper" class="block text-sm font-medium text-gray-700">Partner's Current Superannuation</label>
-                        <input type="number" id="partnerCurrentSuper" value="150000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="currentSavings" class="block text-sm font-medium text-gray-700">Current Cash/Savings</label>
-                        <input type="number" id="currentSavings" value="55000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="currentStocks" class="block text-sm font-medium text-gray-700">Current Stock Portfolio</label>
-                        <input type="number" id="currentStocks" value="62000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="monthlyStockContribution" class="block text-sm font-medium text-gray-700">Monthly Stock Contributions</label>
-                        <input type="number" id="monthlyStockContribution" value="800" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="percentIncomeSaved" class="block text-sm font-medium text-gray-700">% of Post-Tax Income Saved</label>
-                        <input type="number" id="percentIncomeSaved" value="9" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
+                <div>
+                    <label for="retirementAge" class="block text-sm font-medium text-gray-700">Your Retirement Age</label>
+                    <input type="number" id="retirementAge" value="72" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="partnerRetirementAge" class="block text-sm font-medium text-gray-700">Partner's Retirement Age</label>
+                    <input type="number" id="partnerRetirementAge" value="62" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="yourLifespan" class="block text-sm font-medium text-gray-700">Your Expected Lifespan</label>
+                    <input type="number" id="yourLifespan" value="95" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="partnerLifespan" class="block text-sm font-medium text-gray-700">Partner's Expected Lifespan</label>
+                    <input type="number" id="partnerLifespan" value="99" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
             </div>
 
-            <!-- Column 2: Property & Investment Property -->
-            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Property Portfolio</h2>
-                
-                <h3 class="text-lg font-medium text-gray-700 mb-3">Primary Residence</h3>
-                <div class="space-y-4">
+            <div class="advanced-section enhancement-highlight">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Risk Tolerance Assessment</h3>
+                <div class="space-y-3">
                     <div>
-                        <label for="homeValue" class="block text-sm font-medium text-gray-700">Current Home Value</label>
-                        <input type="number" id="homeValue" value="810000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <label for="riskTolerance" class="block text-sm font-medium text-gray-700">Risk Tolerance (1-10)</label>
+                        <input type="range" id="riskTolerance" min="1" max="10" value="6" class="mt-1 block w-full">
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>Conservative</span>
+                            <span>Aggressive</span>
+                        </div>
                     </div>
                     <div>
-                        <label for="mortgageBalance" class="block text-sm font-medium text-gray-700">Outstanding Mortgage</label>
-                        <input type="number" id="mortgageBalance" value="594000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="mortgageRate" class="block text-sm font-medium text-gray-700">Annual Mortgage Rate (%)</label>
-                        <input type="number" id="mortgageRate" value="5.37" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="monthlyMortgagePayment" class="block text-sm font-medium text-gray-700">Monthly Mortgage Payment</label>
-                        <input type="number" id="monthlyMortgagePayment" value="3584" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="planToDownsize" class="block text-sm font-medium text-gray-700">Plan to Downsize?</label>
-                        <select id="planToDownsize" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            <option value="false">No - Stay in current home</option>
-                            <option value="true">Yes - Downsize and access equity</option>
+                        <label for="hasEmergencyFund" class="block text-sm font-medium text-gray-700">Emergency Fund Status</label>
+                        <select id="hasEmergencyFund" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <option value="full">6+ months expenses</option>
+                            <option value="partial">3-6 months expenses</option>
+                            <option value="minimal">1-3 months expenses</option>
+                            <option value="none">No emergency fund</option>
                         </select>
                     </div>
-                </div>
-
-                <div class="advanced-section enhancement-highlight">
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Investment Property</h3>
-                    <div class="space-y-3">
-                        <div>
-                            <label for="hasInvestmentProperty" class="flex items-center">
-                                <input type="checkbox" id="hasInvestmentProperty" checked class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <span class="ml-2 text-sm text-gray-700">Own Investment Property</span>
-                            </label>
-                        </div>
-                        <div id="investmentPropertySection">
-                            <div>
-                                <label for="investmentPropertyValue" class="block text-sm font-medium text-gray-700">Current Value</label>
-                                <input type="number" id="investmentPropertyValue" value="550000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            </div>
-                            <div>
-                                <label for="investmentPropertyLoan" class="block text-sm font-medium text-gray-700">Outstanding Loan</label>
-                                <input type="number" id="investmentPropertyLoan" value="574000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            </div>
-                            <div>
-                                <label for="investmentPropertyRate" class="block text-sm font-medium text-gray-700">Loan Interest Rate (%)</label>
-                                <input type="number" id="investmentPropertyRate" value="6.2" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            </div>
-                            <div>
-                                <label for="weeklyRentalIncome" class="block text-sm font-medium text-gray-700">Weekly Rental Income</label>
-                                <input type="number" id="weeklyRentalIncome" value="554" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            </div>
-                            <div>
-                                <label for="annualPropertyExpenses" class="block text-sm font-medium text-gray-700">Annual Property Expenses</label>
-                                <input type="number" id="annualPropertyExpenses" value="9675" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            </div>
-                            <div>
-                                <label for="propertyGrowthRate" class="block text-sm font-medium text-gray-700">Annual Growth Rate (%)</label>
-                                <input type="number" id="propertyGrowthRate" value="4.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            </div>
-                            <div>
-                                <label for="sellPropertyYears" class="block text-sm font-medium text-gray-700">Sell Property in (Years from now)</label>
-                                <input type="number" id="sellPropertyYears" value="15" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            </div>
-                            <div>
-                                <label for="capitalGainsTaxRate" class="block text-sm font-medium text-gray-700">Capital Gains Tax Rate (%)</label>
-                                <input type="number" id="capitalGainsTaxRate" value="22.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            </div>
-                        </div>
+                    <div>
+                        <label for="hasDebt" class="block text-sm font-medium text-gray-700">High-Interest Debt Status</label>
+                        <select id="hasDebt" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <option value="none">No high-interest debt</option>
+                            <option value="minimal">Under $10,000</option>
+                            <option value="moderate">$10,000-50,000</option>
+                            <option value="high">Over $50,000</option>
+                        </select>
                     </div>
-                </div>
-
-                <div class="enhancement-highlight p-4 rounded-lg mt-4">
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Healthcare & Aged Care</h3>
-                    <div class="space-y-3">
-                        <div>
-                            <label for="currentHealthcareCosts" class="block text-sm font-medium text-gray-700">Current Annual Healthcare Costs</label>
-                            <input type="number" id="currentHealthcareCosts" value="3500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                        <div>
-                            <label for="healthcareInflation" class="block text-sm font-medium text-gray-700">Healthcare Inflation Rate (%)</label>
-                            <input type="number" id="healthcareInflation" value="6.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                        <div>
-                            <label for="agedCareProbability" class="block text-sm font-medium text-gray-700">Aged Care Probability (%)</label>
-                            <input type="number" id="agedCareProbability" value="65" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                        <div>
-                            <label for="agedCareStartAge" class="block text-sm font-medium text-gray-700">Expected Aged Care Start Age</label>
-                            <input type="number" id="agedCareStartAge" value="85" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                        <div>
-                            <label for="agedCareDuration" class="block text-sm font-medium text-gray-700">Expected Duration (years)</label>
-                            <input type="number" id="agedCareDuration" value="3.5" step="0.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                        <div>
-                            <label for="agedCareAnnualCost" class="block text-sm font-medium text-gray-700">Annual Aged Care Cost</label>
-                            <input type="number" id="agedCareAnnualCost" value="75000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
+                    <div>
+                        <label for="dependents" class="block text-sm font-medium text-gray-700">Financial Dependents</label>
+                        <input type="number" id="dependents" value="0" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                 </div>
             </div>
 
-            <!-- Column 3: Economic & Asset Allocation -->
-            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Economic & Asset Allocation</h2>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label for="inflation" class="block text-sm font-medium text-gray-700">Annual Inflation Rate (%)</label>
-                        <input type="number" id="inflation" value="2.87" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="investmentReturn" class="block text-sm font-medium text-gray-700">Initial Investment Return (%)</label>
-                        <input type="number" id="investmentReturn" value="5.61" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="returnDeclineRate" class="block text-sm font-medium text-gray-700">Return Decline Rate (% p.a.)</label>
-                        <input type="number" id="returnDeclineRate" value="0.03" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="savingsReturn" class="block text-sm font-medium text-gray-700">Savings Return (%)</label>
-                        <input type="number" id="savingsReturn" value="1.40" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="superReturn" class="block text-sm font-medium text-gray-700">Super Annual Growth (%)</label>
-                        <input type="number" id="superReturn" value="8.75" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
+            <h3 class="text-lg font-semibold mt-6 mb-4 border-b pb-2">Current Finances</h3>
+            <div class="space-y-4">
+                <div>
+                    <label for="yourSalary" class="block text-sm font-medium text-gray-700">Your Annual Salary (pre-tax)</label>
+                    <input type="number" id="yourSalary" value="214000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
-
-                <div class="enhancement-highlight p-4 rounded-lg mt-4">
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Dynamic Asset Allocation</h3>
-                    <div class="space-y-3">
-                        <div>
-                            <label for="useGlidePath" class="flex items-center">
-                                <input type="checkbox" id="useGlidePath" checked class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <span class="ml-2 text-sm text-gray-700">Enable Dynamic Allocation</span>
-                            </label>
-                        </div>
-                        <div>
-                            <label for="glidePathRule" class="block text-sm font-medium text-gray-700">Glide Path Strategy</label>
-                            <select id="glidePathRule" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                <option value="120minus">120 - Age (Aggressive)</option>
-                                <option value="110minus">110 - Age (Standard)</option>
-                                <option value="100minus">100 - Age (Conservative)</option>
-                            </select>
-                        </div>
-                        <div id="currentAllocationDisplay" class="p-3 bg-blue-50 rounded">
-                            <div class="text-sm font-medium text-blue-900">Current Recommended Allocation</div>
-                            <div id="recommendedAllocation" class="text-sm text-blue-800 mt-1">Calculating...</div>
-                        </div>
-                    </div>
+                <div>
+                    <label for="partnerSalary" class="block text-sm font-medium text-gray-700">Partner's Annual Salary (pre-tax)</label>
+                    <input type="number" id="partnerSalary" value="34500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
-
-                <div class="enhancement-highlight p-4 rounded-lg mt-4">
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Franking Credits</h3>
-                    <div class="space-y-3">
-                        <div>
-                            <label for="australianEquityAllocation" class="block text-sm font-medium text-gray-700">Australian Equity % of Total Equities</label>
-                            <input type="number" id="australianEquityAllocation" value="40" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                        <div>
-                            <label for="dividendYield" class="block text-sm font-medium text-gray-700">Expected Dividend Yield (%)</label>
-                            <input type="number" id="dividendYield" value="4.5" step="0.1" min="0" max="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            <p class="mt-1 text-xs text-gray-500">Average dividend yield for Australian equities</p>
-                        </div>
-                        <div>
-                            <label for="frankingRate" class="block text-sm font-medium text-gray-700">Franking Rate (%)</label>
-                            <input type="number" id="frankingRate" value="75" step="1" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            <p class="mt-1 text-xs text-gray-500">Percentage of dividends that are franked</p>
-                        </div>
-                        <div>
-                            <label for="frankingCreditBenefit" class="block text-sm font-medium text-gray-700">Franking Credit Benefit Factor</label>
-                            <input type="number" id="frankingCreditBenefit" value="1.2" step="0.1" min="0" max="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            <p class="mt-1 text-xs text-gray-500">Scaling factor based on tax position (1.0 = full benefit)</p>
-                        </div>
-                    </div>
+                <div>
+                    <label for="yourCurrentSuper" class="block text-sm font-medium text-gray-700">Your Current Superannuation</label>
+                    <input type="number" id="yourCurrentSuper" value="312000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
-
-                <div class="advanced-section">
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Salary Progression</h3>
-                    <div class="space-y-3">
-                        <div>
-                            <label for="salaryGrowthRate" class="block text-sm font-medium text-gray-700">Annual Real Salary Growth (%)</label>
-                            <input type="number" id="salaryGrowthRate" value="1.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                        <div>
-                            <label for="leanYearsStart" class="block text-sm font-medium text-gray-700">Lean Years Start (years before retirement)</label>
-                            <input type="number" id="leanYearsStart" value="5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                        <div>
-                            <label for="leanYearsReduction" class="block text-sm font-medium text-gray-700">Lean Years Salary Reduction (%)</label>
-                            <input type="number" id="leanYearsReduction" value="25" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                    </div>
+                <div>
+                    <label for="partnerCurrentSuper" class="block text-sm font-medium text-gray-700">Partner's Current Superannuation</label>
+                    <input type="number" id="partnerCurrentSuper" value="150000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
-            </div>
-
-            <!-- Column 4: Pension System & Simulation -->
-            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Australian Pension System</h2>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label for="asfaComfortable" class="block text-sm font-medium text-gray-700">ASFA Comfortable (Couple) p.a.</label>
-                        <input type="number" id="asfaComfortable" value="73875" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        <p class="mt-1 text-xs text-gray-500">March 2025: $73,875 comfortable, $48,184 modest</p>
-                    </div>
-                    <div>
-                        <label for="agePensionMax" class="block text-sm font-medium text-gray-700">Max Age Pension (Couple) p.a.</label>
-                        <input type="number" id="agePensionMax" value="45037" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="pensionAssetThreshold" class="block text-sm font-medium text-gray-700">Pension Asset Threshold (Couple)</label>
-                        <input type="number" id="pensionAssetThreshold" value="470000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="pensionAssetLimit" class="block text-sm font-medium text-gray-700">Pension Asset Limit (Couple)</label>
-                        <input type="number" id="pensionAssetLimit" value="1031000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label for="pensionIncomeThreshold" class="block text-sm font-medium text-gray-700">Pension Income Threshold (p.f.)</label>
-                        <input type="number" id="pensionIncomeThreshold" value="372" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
+                <div>
+                    <label for="currentSavings" class="block text-sm font-medium text-gray-700">Current Cash/Savings</label>
+                    <input type="number" id="currentSavings" value="55000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
-
-                <div class="enhancement-highlight p-4 rounded-lg mt-6">
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Simulation Controls</h3>
-                    <div class="space-y-3">
-                        <div>
-                            <label for="numRuns" class="block text-sm font-medium text-gray-700">Monte Carlo Runs</label>
-                            <input type="number" id="numRuns" value="5000" min="1000" step="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                        <div>
-                            <label for="returnVolatility" class="block text-sm font-medium text-gray-700">Return Volatility (%)</label>
-                            <input type="number" id="returnVolatility" value="12" min="1" max="50" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                        <div>
-                            <label class="flex items-center">
-                                <input type="checkbox" id="enableShocks" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <span class="ml-2 text-sm text-gray-700">Enable Market Shocks</span>
-                            </label>
-                        </div>
-                        <div id="shockControls" class="hidden space-y-2">
-                            <div>
-                                <label for="shockProbability" class="block text-sm font-medium text-gray-700">Shock Probability (%)</label>
-                                <input type="number" id="shockProbability" value="5" min="0" max="20" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            </div>
-                            <div>
-                                <label for="shockMagnitude" class="block text-sm font-medium text-gray-700">Shock Magnitude (%)</label>
-                                <input type="number" id="shockMagnitude" value="-25" max="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            </div>
-                        </div>
-                    </div>
+                <div>
+                    <label for="currentStocks" class="block text-sm font-medium text-gray-700">Current Stock Portfolio</label>
+                    <input type="number" id="currentStocks" value="62000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
-
-                <div class="mt-6 space-y-3">
-                    <button id="btnCalculate" class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
-                        Calculate Enhanced Projection
-                    </button>
-                    <button id="btnMonteCarlo" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                        Run Enhanced Monte Carlo
-                    </button>
-                    <button id="btnStressTest" class="w-full px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
-                        Run Stress Test Scenarios
-                    </button>
-                    <button id="btnRetirementSolver" class="w-full px-4 py-2 border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium">
-                        When Can I Retire?
-                    </button>
-                    <button id="btnScenarioComparison" class="w-full px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors font-medium">
-                        Compare Scenarios
-                    </button>
-                    <div class="relative inline-block w-full" id="exportContainer">
-                        <button id="btnExport" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center">
-                            Export Enhanced Report <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </button>
-                        <div id="exportDropdown" class="absolute bottom-full mb-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
-                            <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                                <a href="#" id="btnExportCSV" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as CSV</a>
-                                <a href="#" id="btnExportXLSX" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as XLSX</a>
-                                <a href="#" id="btnExportPDF" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as PDF</a>
-                            </div>
-                        </div>
-                    </div>
+                <div>
+                    <label for="monthlyStockContribution" class="block text-sm font-medium text-gray-700">Monthly Stock Contributions</label>
+                    <input type="number" id="monthlyStockContribution" value="800" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
-
-                <div id="progressContainer" class="hidden mt-4">
-                    <div class="w-full bg-gray-200 rounded-full h-3">
-                        <div id="progressBar" class="h-3 bg-indigo-600 rounded-full progress-bar-initial"></div>
-                    </div>
-                    <div id="progressText" class="text-xs text-gray-600 mt-1"></div>
+                <div>
+                    <label for="percentIncomeSaved" class="block text-sm font-medium text-gray-700">% of Post-Tax Income Saved</label>
+                    <input type="number" id="percentIncomeSaved" value="9" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
             </div>
         </div>
 
-        <!-- Enhanced Results Section -->
-        <div class="mt-8 bg-white rounded-lg shadow-md">
-            <div class="flex border-b">
-                <button class="tab-button active" onclick="showTab('summary')">Enhanced Summary</button>
-                <button class="tab-button" onclick="showTab('projection')">Year-by-Year</button>
-                <button class="tab-button" onclick="showTab('property')">Property Analysis</button>
-                <button class="tab-button" onclick="showTab('riskAnalysis')">Risk Analysis</button>
-                <button class="tab-button" onclick="showTab('charts')">Advanced Charts</button>
-                <button class="tab-button" onclick="showTab('optimization')">Optimization</button>
-                <button class="tab-button" onclick="showTab('scenarios')">Scenario Compare</button>
+        <!-- Column 2: Property & Investment Property -->
+        <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">Property Portfolio</h2>
+
+            <h3 class="text-lg font-medium text-gray-700 mb-3">Primary Residence</h3>
+            <div class="space-y-4">
+                <div>
+                    <label for="homeValue" class="block text-sm font-medium text-gray-700">Current Home Value</label>
+                    <input type="number" id="homeValue" value="810000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="mortgageBalance" class="block text-sm font-medium text-gray-700">Outstanding Mortgage</label>
+                    <input type="number" id="mortgageBalance" value="594000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="mortgageRate" class="block text-sm font-medium text-gray-700">Annual Mortgage Rate (%)</label>
+                    <input type="number" id="mortgageRate" value="5.37" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="monthlyMortgagePayment" class="block text-sm font-medium text-gray-700">Monthly Mortgage Payment</label>
+                    <input type="number" id="monthlyMortgagePayment" value="3584" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="planToDownsize" class="block text-sm font-medium text-gray-700">Plan to Downsize?</label>
+                    <select id="planToDownsize" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="false">No - Stay in current home</option>
+                        <option value="true">Yes - Downsize and access equity</option>
+                    </select>
+                </div>
             </div>
 
-            <!-- Enhanced Summary Tab -->
-            <div id="summary-tab" class="tab-content active p-6">
-                <h2 class="text-2xl font-semibold mb-4">Enhanced Retirement Summary</h2>
-                <div id="summaryResults" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6">
-                    <!-- Enhanced summary content will be populated by JavaScript -->
-                </div>
-                <div id="finalResult" class="mt-4 p-4 rounded-lg">
-                    <!-- Final result will be populated by JavaScript -->
-                </div>
-                <div id="enhancedRecommendations" class="mt-4 p-4 bg-green-50 rounded-lg">
-                    <h4 class="font-semibold text-green-900">AI-Powered Recommendations</h4>
-                    <ul id="enhancedRecommendationsList" class="list-disc ml-5 mt-2 text-sm text-green-800">
-                        <!-- Enhanced recommendations will be populated -->
-                    </ul>
+            <div class="advanced-section enhancement-highlight">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Investment Property</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label for="hasInvestmentProperty" class="flex items-center">
+                            <input type="checkbox" id="hasInvestmentProperty" checked class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <span class="ml-2 text-sm text-gray-700">Own Investment Property</span>
+                        </label>
+                    </div>
+                    <div id="investmentPropertySection">
+                        <div>
+                            <label for="investmentPropertyValue" class="block text-sm font-medium text-gray-700">Current Value</label>
+                            <input type="number" id="investmentPropertyValue" value="550000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="investmentPropertyLoan" class="block text-sm font-medium text-gray-700">Outstanding Loan</label>
+                            <input type="number" id="investmentPropertyLoan" value="574000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="investmentPropertyRate" class="block text-sm font-medium text-gray-700">Loan Interest Rate (%)</label>
+                            <input type="number" id="investmentPropertyRate" value="6.2" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="weeklyRentalIncome" class="block text-sm font-medium text-gray-700">Weekly Rental Income</label>
+                            <input type="number" id="weeklyRentalIncome" value="554" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="annualPropertyExpenses" class="block text-sm font-medium text-gray-700">Annual Property Expenses</label>
+                            <input type="number" id="annualPropertyExpenses" value="9675" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="propertyGrowthRate" class="block text-sm font-medium text-gray-700">Annual Growth Rate (%)</label>
+                            <input type="number" id="propertyGrowthRate" value="4.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="sellPropertyYears" class="block text-sm font-medium text-gray-700">Sell Property in (Years from now)</label>
+                            <input type="number" id="sellPropertyYears" value="15" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Enter 0 to never sell the property.</p>
+                        </div>
+                        <div>
+                            <label for="capitalGainsTaxRate" class="block text-sm font-medium text-gray-700">Capital Gains Tax Rate (%)</label>
+                            <input type="number" id="capitalGainsTaxRate" value="22.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Year-by-Year Tab -->
-            <div id="projection-tab" class="tab-content p-6">
-                <h2 class="text-2xl font-semibold mb-4">Year-by-Year Projection</h2>
-                <div class="mb-4 text-sm text-gray-600">
-                    <p><strong>Note:</strong> This projection includes healthcare costs, aged care planning, and investment property modeling.</p>
+            <div class="enhancement-highlight p-4 rounded-lg mt-4">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Healthcare & Aged Care</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label for="currentHealthcareCosts" class="block text-sm font-medium text-gray-700">Current Annual Healthcare Costs</label>
+                        <input type="number" id="currentHealthcareCosts" value="3500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="healthcareInflation" class="block text-sm font-medium text-gray-700">Healthcare Inflation Rate (%)</label>
+                        <input type="number" id="healthcareInflation" value="6.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="agedCareProbability" class="block text-sm font-medium text-gray-700">Aged Care Probability (%)</label>
+                        <input type="number" id="agedCareProbability" value="65" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="agedCareStartAge" class="block text-sm font-medium text-gray-700">Expected Aged Care Start Age</label>
+                        <input type="number" id="agedCareStartAge" value="85" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="agedCareDuration" class="block text-sm font-medium text-gray-700">Expected Duration (years)</label>
+                        <input type="number" id="agedCareDuration" value="3.5" step="0.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="agedCareAnnualCost" class="block text-sm font-medium text-gray-700">Annual Aged Care Cost</label>
+                        <input type="number" id="agedCareAnnualCost" value="75000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+            </div>
+        </div>
+
+        <!-- Column 3: Economic & Asset Allocation -->
+        <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">Economic & Asset Allocation</h2>
+
+            <div class="space-y-4">
+                <div>
+                    <label for="inflation" class="block text-sm font-medium text-gray-700">Annual Inflation Rate (%)</label>
+                    <input type="number" id="inflation" value="2.87" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="investmentReturn" class="block text-sm font-medium text-gray-700">Initial Investment Return (%)</label>
+                    <input type="number" id="investmentReturn" value="5.61" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="returnDeclineRate" class="block text-sm font-medium text-gray-700">Return Decline Rate (% p.a.)</label>
+                    <input type="number" id="returnDeclineRate" value="0.03" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="savingsReturn" class="block text-sm font-medium text-gray-700">Savings Return (%)</label>
+                    <input type="number" id="savingsReturn" value="1.40" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="superReturn" class="block text-sm font-medium text-gray-700">Super Annual Growth (%)</label>
+                    <input type="number" id="superReturn" value="8.75" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+            </div>
+
+            <div class="enhancement-highlight p-4 rounded-lg mt-4">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Dynamic Asset Allocation</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label for="useGlidePath" class="flex items-center">
+                            <input type="checkbox" id="useGlidePath" checked class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <span class="ml-2 text-sm text-gray-700">Enable Dynamic Allocation</span>
+                        </label>
+                    </div>
+                    <div>
+                        <label for="glidePathRule" class="block text-sm font-medium text-gray-700">Glide Path Strategy</label>
+                        <select id="glidePathRule" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <option value="120minus">120 - Age (Aggressive)</option>
+                            <option value="110minus">110 - Age (Standard)</option>
+                            <option value="100minus">100 - Age (Conservative)</option>
+                        </select>
+                    </div>
+                    <div id="currentAllocationDisplay" class="p-3 bg-blue-50 rounded">
+                        <div class="text-sm font-medium text-blue-900">Current Recommended Allocation</div>
+                        <div id="recommendedAllocation" class="text-sm text-blue-800 mt-1">Calculating...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="enhancement-highlight p-4 rounded-lg mt-4">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Franking Credits</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label for="australianEquityAllocation" class="block text-sm font-medium text-gray-700">Australian Equity % of Total Equities</label>
+                        <input type="number" id="australianEquityAllocation" value="40" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="dividendYield" class="block text-sm font-medium text-gray-700">Expected Dividend Yield (%)</label>
+                        <input type="number" id="dividendYield" value="4.5" step="0.1" min="0" max="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <p class="mt-1 text-xs text-gray-500">Average dividend yield for Australian equities</p>
+                    </div>
+                    <div>
+                        <label for="frankingRate" class="block text-sm font-medium text-gray-700">Franking Rate (%)</label>
+                        <input type="number" id="frankingRate" value="75" step="1" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <p class="mt-1 text-xs text-gray-500">Percentage of dividends that are franked</p>
+                    </div>
+                    <div>
+                        <label for="frankingCreditBenefit" class="block text-sm font-medium text-gray-700">Franking Credit Benefit Factor</label>
+                        <input type="number" id="frankingCreditBenefit" value="1.2" step="0.1" min="0" max="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <p class="mt-1 text-xs text-gray-500">Scaling factor based on tax position (1.0 = full benefit)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="advanced-section">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Salary Progression</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label for="salaryGrowthRate" class="block text-sm font-medium text-gray-700">Annual Real Salary Growth (%)</label>
+                        <input type="number" id="salaryGrowthRate" value="1.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="leanYearsStart" class="block text-sm font-medium text-gray-700">Lean Years Start (years before retirement)</label>
+                        <input type="number" id="leanYearsStart" value="5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="leanYearsReduction" class="block text-sm font-medium text-gray-700">Lean Years Salary Reduction (%)</label>
+                        <input type="number" id="leanYearsReduction" value="25" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 4: Pension System & Simulation -->
+        <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">Australian Pension System</h2>
+
+            <div class="space-y-4">
+                <div>
+                    <label for="asfaComfortable" class="block text-sm font-medium text-gray-700">ASFA Comfortable (Couple) p.a.</label>
+                    <input type="number" id="asfaComfortable" value="73875" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    <p class="mt-1 text-xs text-gray-500">March 2025: $73,875 comfortable, $48,184 modest</p>
+                </div>
+                <div>
+                    <label for="agePensionMax" class="block text-sm font-medium text-gray-700">Max Age Pension (Couple) p.a.</label>
+                    <input type="number" id="agePensionMax" value="45037" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="pensionAssetThreshold" class="block text-sm font-medium text-gray-700">Pension Asset Threshold (Couple)</label>
+                    <input type="number" id="pensionAssetThreshold" value="470000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="pensionAssetLimit" class="block text-sm font-medium text-gray-700">Pension Asset Limit (Couple)</label>
+                    <input type="number" id="pensionAssetLimit" value="1031000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="pensionIncomeThreshold" class="block text-sm font-medium text-gray-700">Pension Income Threshold (p.f.)</label>
+                    <input type="number" id="pensionIncomeThreshold" value="372" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+            </div>
+
+            <div class="enhancement-highlight p-4 rounded-lg mt-6">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Simulation Controls</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label for="numRuns" class="block text-sm font-medium text-gray-700">Monte Carlo Runs</label>
+                        <input type="number" id="numRuns" value="5000" min="1000" step="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="returnVolatility" class="block text-sm font-medium text-gray-700">Return Volatility (%)</label>
+                        <input type="number" id="returnVolatility" value="12" min="1" max="50" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="enableShocks" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <span class="ml-2 text-sm text-gray-700">Enable Market Shocks</span>
+                        </label>
+                    </div>
+                    <div id="shockControls" class="hidden space-y-2">
+                        <div>
+                            <label for="shockProbability" class="block text-sm font-medium text-gray-700">Shock Probability (%)</label>
+                            <input type="number" id="shockProbability" value="5" min="0" max="20" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="shockMagnitude" class="block text-sm font-medium text-gray-700">Shock Magnitude (%)</label>
+                            <input type="number" id="shockMagnitude" value="-25" max="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 space-y-3">
+                <button id="btnCalculate" class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                    Calculate Enhanced Projection
+                </button>
+                <button id="btnMonteCarlo" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Run Enhanced Monte Carlo
+                </button>
+                <button id="btnStressTest" class="w-full px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
+                    Run Stress Test Scenarios
+                </button>
+                <button id="btnRetirementSolver" class="w-full px-4 py-2 border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium">
+                    When Can I Retire?
+                </button>
+                <button id="btnGenerateRecommendations" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                    Generate AI Recommendations
+                </button>
+                <button id="btnScenarioComparison" class="w-full px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors font-medium">
+                    Compare Scenarios
+                </button>
+                <div class="relative inline-block w-full" id="exportContainer">
+                    <button id="btnExport" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center">
+                        Export Enhanced Report <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="exportDropdown" class="absolute bottom-full mb-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
+                        <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                            <a href="#" id="btnExportCSV" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as CSV</a>
+                            <a href="#" id="btnExportXLSX" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as XLSX</a>
+                            <a href="#" id="btnExportPDF" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as PDF</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="progressContainer" class="hidden mt-4">
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div id="progressBar" class="h-3 bg-indigo-600 rounded-full progress-bar-initial"></div>
+                </div>
+                <div id="progressText" class="text-xs text-gray-600 mt-1"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Results Section -->
+    <div class="mt-8 bg-white rounded-lg shadow-md">
+        <div class="flex border-b flex-wrap">
+            <button class="tab-button active" onclick="showTab('summary')">Enhanced Summary</button>
+            <button class="tab-button" onclick="showTab('recommendations')">AI Recommendations</button>
+            <button class="tab-button" onclick="showTab('projection')">Year-by-Year</button>
+            <button class="tab-button" onclick="showTab('property')">Property Analysis</button>
+            <button class="tab-button" onclick="showTab('riskAnalysis')">Risk Analysis</button>
+            <button class="tab-button" onclick="showTab('charts')">Advanced Charts</button>
+            <button class="tab-button" onclick="showTab('optimization')">Optimization</button>
+            <button class="tab-button" onclick="showTab('scenarios')">Scenario Compare</button>
+        </div>
+
+        <!-- Enhanced Summary Tab -->
+        <div id="summary-tab" class="tab-content active p-6">
+            <h2 class="text-2xl font-semibold mb-4">Enhanced Retirement Summary</h2>
+            <div id="summaryResults" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6">
+                <!-- Enhanced summary content will be populated by JavaScript -->
+            </div>
+            <div id="finalResult" class="mt-4 p-4 rounded-lg">
+                <!-- Final result will be populated by JavaScript -->
+            </div>
+            <div id="enhancedRecommendations" class="mt-4 p-4 bg-green-50 rounded-lg">
+                <h4 class="font-semibold text-green-900">AI-Powered Recommendations</h4>
+                <ul id="enhancedRecommendationsList" class="list-disc ml-5 mt-2 text-sm text-green-800">
+                    <!-- Enhanced recommendations will be populated -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- AI Recommendations Tab Content -->
+        <div id="recommendations-tab" class="tab-content p-6">
+            <h2 class="text-2xl font-semibold mb-4">AI-Powered Recommendation Engine</h2>
+            <p class="text-gray-600 mb-4">
+                This engine analyzes your financial situation and runs dozens of scenarios to identify the most impactful strategies to improve your retirement outcome. Click the "Generate AI Recommendations" button to start.
+            </p>
+            <div id="recommendationsContainer" class="space-y-4">
+                <!-- Recommendations will be populated here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Year-by-Year Tab -->
+        <div id="projection-tab" class="tab-content p-6">
+            <h2 class="text-2xl font-semibold mb-4">Year-by-Year Projection</h2>
+            <div class="mb-4 text-sm text-gray-600">
+                <p><strong>Note:</strong> This projection includes healthcare costs, aged care planning, and investment property modeling.</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Portfolio</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Growth</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Yearly Withdrawal</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property Income</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Healthcare</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aged Care</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Balance</th>
+                    </tr>
+                    </thead>
+                    <tbody id="projectionTable" class="bg-white divide-y divide-gray-200">
+                    <!-- Projection rows will be populated -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Property Analysis Tab -->
+        <div id="property-tab" class="tab-content p-6">
+            <h2 class="text-2xl font-semibold mb-4">Investment Property Analysis</h2>
+            <div id="propertyAnalysis" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Property analysis will be populated -->
+            </div>
+        </div>
+
+        <!-- Risk Analysis Tab -->
+        <div id="riskAnalysis-tab" class="tab-content p-6">
+            <h2 class="text-2xl font-semibold mb-4">Risk Analysis</h2>
+            <div id="riskAnalysisContent" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Risk analysis will be populated -->
+            </div>
+        </div>
+
+        <!-- Charts Tab -->
+        <div id="charts-tab" class="tab-content p-6">
+            <h2 class="text-2xl font-semibold mb-4">Advanced Simulation Results</h2>
+
+            <div id="monteCarloResults" class="hidden mb-6">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm mb-4">
+                    <div class="p-3 bg-blue-50 rounded text-center">
+                        <div class="font-semibold">Total Runs</div>
+                        <div id="mcRuns">-</div>
+                    </div>
+                    <div class="p-3 bg-green-50 rounded text-center">
+                        <div class="font-semibold">Success Rate</div>
+                        <div id="mcSuccessRate">-</div>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded text-center">
+                        <div class="font-semibold">Median Balance</div>
+                        <div id="mcMedian">-</div>
+                    </div>
+                    <div class="p-3 bg-purple-50 rounded text-center">
+                        <div class="font-semibold">10th Percentile</div>
+                        <div id="mc10th">-</div>
+                    </div>
+                    <div class="p-3 bg-yellow-50 rounded text-center">
+                        <div class="font-semibold">Confidence Score</div>
+                        <div id="mcConfidence">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Portfolio Balance Over Time</h3>
+                    <canvas id="fanChart"></canvas>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Final Balance Distribution</h3>
+                    <canvas id="histChart"></canvas>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Asset Allocation Over Time</h3>
+                    <canvas id="allocationChart"></canvas>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Property vs Portfolio Growth</h3>
+                    <canvas id="propertyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Optimization Tab -->
+        <div id="optimization-tab" class="tab-content p-6">
+            <h2 class="text-2xl font-semibold mb-4">Retirement Optimization Strategies</h2>
+
+            <!-- Retirement Age Solver Results -->
+            <div id="retirementSolverResults" class="hidden mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h3 class="text-lg font-semibold text-green-900 mb-3">When Can You Retire?</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="text-center p-3 bg-white rounded border">
+                        <div class="text-2xl font-bold text-green-700" id="earliestRetirementAge">--</div>
+                        <div class="text-sm text-gray-600">Earliest Retirement Age</div>
+                    </div>
+                    <div class="text-center p-3 bg-white rounded border">
+                        <div class="text-2xl font-bold text-blue-700" id="yearsToWork">--</div>
+                        <div class="text-sm text-gray-600">Years to Work</div>
+                    </div>
+                    <div class="text-center p-3 bg-white rounded border">
+                        <div class="text-2xl font-bold text-purple-700" id="retirementSuccessRate">--</div>
+                        <div class="text-sm text-gray-600">Success Rate</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-3 bg-white rounded border">
+                        <div class="font-medium text-gray-700">Projected Balance at Retirement</div>
+                        <div class="text-lg font-semibold text-indigo-700" id="retirementProjectedBalance">--</div>
+                    </div>
+                    <div class="p-3 bg-white rounded border">
+                        <div class="font-medium text-gray-700">Median Final Balance</div>
+                        <div class="text-lg font-semibold text-teal-700" id="retirementMedianBalance">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="optimizationContent" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Optimization strategies will be populated -->
+            </div>
+        </div>
+
+        <!-- Scenario Comparison Tab -->
+        <div id="scenarios-tab" class="tab-content p-6">
+            <h2 class="text-2xl font-semibold mb-4">Scenario Comparison</h2>
+
+            <!-- Scenario Selection Interface -->
+            <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 class="text-lg font-medium mb-3">Select Scenarios to Compare</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="scenarioCheckboxes">
+                    <!-- Scenario checkboxes will be populated by JavaScript -->
+                </div>
+                <div class="mt-4 flex space-x-3">
+                    <button id="btnSelectAllScenarios" class="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                        Select All
+                    </button>
+                    <button id="btnDeselectAllScenarios" class="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                        Deselect All
+                    </button>
+                    <button id="btnRunComparison" class="px-4 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700">
+                        Run Comparison
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scenario Comparison Results -->
+            <div id="scenarioComparisonResults" class="hidden">
+                <!-- Comparison Summary Cards -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Scenario Comparison Summary</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="scenarioSummaryCards">
+                        <!-- Summary cards will be populated -->
+                    </div>
+                </div>
+
+                <!-- Detailed Results Table -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Detailed Comparison</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-200 rounded-lg">
+                            <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Portfolio</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Growth</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Yearly Withdrawal</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property Income</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Healthcare</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aged Care</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Balance</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Scenario</th>
+                                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Success Rate</th>
+                                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Median Balance</th>
+                                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Risk Score</th>
+                                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Recommendation</th>
                             </tr>
-                        </thead>
-                        <tbody id="projectionTable" class="bg-white divide-y divide-gray-200">
-                            <!-- Projection rows will be populated -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Property Analysis Tab -->
-            <div id="property-tab" class="tab-content p-6">
-                <h2 class="text-2xl font-semibold mb-4">Investment Property Analysis</h2>
-                <div id="propertyAnalysis" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Property analysis will be populated -->
-                </div>
-            </div>
-
-            <!-- Risk Analysis Tab -->
-            <div id="riskAnalysis-tab" class="tab-content p-6">
-                <h2 class="text-2xl font-semibold mb-4">Risk Analysis</h2>
-                <div id="riskAnalysisContent" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Risk analysis will be populated -->
-                </div>
-            </div>
-
-            <!-- Charts Tab -->
-            <div id="charts-tab" class="tab-content p-6">
-                <h2 class="text-2xl font-semibold mb-4">Advanced Simulation Results</h2>
-                
-                <div id="monteCarloResults" class="hidden mb-6">
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm mb-4">
-                        <div class="p-3 bg-blue-50 rounded text-center">
-                            <div class="font-semibold">Total Runs</div>
-                            <div id="mcRuns">-</div>
-                        </div>
-                        <div class="p-3 bg-green-50 rounded text-center">
-                            <div class="font-semibold">Success Rate</div>
-                            <div id="mcSuccessRate">-</div>
-                        </div>
-                        <div class="p-3 bg-gray-50 rounded text-center">
-                            <div class="font-semibold">Median Balance</div>
-                            <div id="mcMedian">-</div>
-                        </div>
-                        <div class="p-3 bg-purple-50 rounded text-center">
-                            <div class="font-semibold">10th Percentile</div>
-                            <div id="mc10th">-</div>
-                        </div>
-                        <div class="p-3 bg-yellow-50 rounded text-center">
-                            <div class="font-semibold">Confidence Score</div>
-                            <div id="mcConfidence">-</div>
-                        </div>
+                            </thead>
+                            <tbody id="scenarioComparisonTable">
+                            <!-- Table rows will be populated -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div>
-                        <h3 class="text-lg font-semibold mb-2">Portfolio Balance Over Time</h3>
-                        <canvas id="fanChart"></canvas>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-semibold mb-2">Final Balance Distribution</h3>
-                        <canvas id="histChart"></canvas>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-semibold mb-2">Asset Allocation Over Time</h3>
-                        <canvas id="allocationChart"></canvas>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-semibold mb-2">Property vs Portfolio Growth</h3>
-                        <canvas id="propertyChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Optimization Tab -->
-            <div id="optimization-tab" class="tab-content p-6">
-                <h2 class="text-2xl font-semibold mb-4">Retirement Optimization Strategies</h2>
-
-                <!-- Retirement Age Solver Results -->
-                <div id="retirementSolverResults" class="hidden mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h3 class="text-lg font-semibold text-green-900 mb-3">When Can You Retire?</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div class="text-center p-3 bg-white rounded border">
-                            <div class="text-2xl font-bold text-green-700" id="earliestRetirementAge">--</div>
-                            <div class="text-sm text-gray-600">Earliest Retirement Age</div>
-                        </div>
-                        <div class="text-center p-3 bg-white rounded border">
-                            <div class="text-2xl font-bold text-blue-700" id="yearsToWork">--</div>
-                            <div class="text-sm text-gray-600">Years to Work</div>
-                        </div>
-                        <div class="text-center p-3 bg-white rounded border">
-                            <div class="text-2xl font-bold text-purple-700" id="retirementSuccessRate">--</div>
-                            <div class="text-sm text-gray-600">Success Rate</div>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="p-3 bg-white rounded border">
-                            <div class="font-medium text-gray-700">Projected Balance at Retirement</div>
-                            <div class="text-lg font-semibold text-indigo-700" id="retirementProjectedBalance">--</div>
-                        </div>
-                        <div class="p-3 bg-white rounded border">
-                            <div class="font-medium text-gray-700">Median Final Balance</div>
-                            <div class="text-lg font-semibold text-teal-700" id="retirementMedianBalance">--</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="optimizationContent" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Optimization strategies will be populated -->
-                </div>
-            </div>
-
-            <!-- Scenario Comparison Tab -->
-            <div id="scenarios-tab" class="tab-content p-6">
-                <h2 class="text-2xl font-semibold mb-4">Scenario Comparison</h2>
-
-                <!-- Scenario Selection Interface -->
-                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
-                    <h3 class="text-lg font-medium mb-3">Select Scenarios to Compare</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="scenarioCheckboxes">
-                        <!-- Scenario checkboxes will be populated by JavaScript -->
-                    </div>
-                    <div class="mt-4 flex space-x-3">
-                        <button id="btnSelectAllScenarios" class="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">
-                            Select All
-                        </button>
-                        <button id="btnDeselectAllScenarios" class="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">
-                            Deselect All
-                        </button>
-                        <button id="btnRunComparison" class="px-4 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700">
-                            Run Comparison
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Scenario Comparison Results -->
-                <div id="scenarioComparisonResults" class="hidden">
-                    <!-- Comparison Summary Cards -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold mb-3">Scenario Comparison Summary</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="scenarioSummaryCards">
-                            <!-- Summary cards will be populated -->
-                        </div>
-                    </div>
-
-                    <!-- Detailed Results Table -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold mb-3">Detailed Comparison</h3>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full bg-white border border-gray-200 rounded-lg">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Scenario</th>
-                                        <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Success Rate</th>
-                                        <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Median Balance</th>
-                                        <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Risk Score</th>
-                                        <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Recommendation</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="scenarioComparisonTable">
-                                    <!-- Table rows will be populated -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Visual Comparison Chart -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold mb-3">Visual Comparison</h3>
-                        <div class="bg-white p-4 rounded-lg border">
-                            <canvas id="scenarioComparisonChart" width="800" height="400"></canvas>
-                        </div>
+                <!-- Visual Comparison Chart -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Visual Comparison</h3>
+                    <div class="bg-white p-4 rounded-lg border">
+                        <canvas id="scenarioComparisonChart" width="800" height="400"></canvas>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Load JavaScript modules -->
-    <script type="module" src="js/config.js"></script>
-    <script type="module" src="js/utils.js"></script>
-    <script type="module" src="js/simulator.js"></script>
-    <script type="module" src="js/charts.js"></script>
-    <script type="module" src="js/app.js"></script>
+<!-- Load JavaScript modules -->
+<script type="module" src="js/config.js"></script>
+<script type="module" src="js/utils.js"></script>
+<script type="module" src="js/simulator.js"></script>
+<script type="module" src="js/recommendation.js"></script>
+<script type="module" src="js/charts.js"></script>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>

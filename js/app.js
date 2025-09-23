@@ -2,11 +2,12 @@
 
 import { ENHANCED_CONFIG } from './config.js';
 import RetirementSimulator from './simulator.js';
+import RecommendationEngine from './recommendation.js';
 import ChartManager from './charts.js';
-import { 
-    $, 
-    safeGetValue, 
-    safeGetChecked, 
+import {
+    $,
+    safeGetValue,
+    safeGetChecked,
     safeGetSelectValue,
     safeSetValue,
     safeSetText,
@@ -28,7 +29,7 @@ class RetirementCalculatorApp {
         this.chartManager = new ChartManager();
         this.currentResults = null;
         this.isCalculating = false;
-        
+
         this.initializeApp();
     }
 
@@ -48,13 +49,13 @@ class RetirementCalculatorApp {
             partnerRetirementAge: safeGetValue('partnerRetirementAge', 62),
             yourLifespan: safeGetValue('yourLifespan', 95),
             partnerLifespan: safeGetValue('partnerLifespan', 99),
-            
+
             // Risk profile
             riskTolerance: safeGetValue('riskTolerance', 6),
             hasEmergencyFund: safeGetSelectValue('hasEmergencyFund', 'partial'),
             hasDebt: safeGetSelectValue('hasDebt', 'minimal'),
             dependents: safeGetValue('dependents', 0),
-            
+
             // Financial details
             yourSalary: safeGetValue('yourSalary', 214000),
             partnerSalary: safeGetValue('partnerSalary', 34500),
@@ -64,14 +65,14 @@ class RetirementCalculatorApp {
             currentStocks: safeGetValue('currentStocks', 62000),
             monthlyStockContribution: safeGetValue('monthlyStockContribution', 800),
             percentIncomeSaved: safeGetValue('percentIncomeSaved', 9) / 100,
-            
+
             // Property details
             homeValue: safeGetValue('homeValue', 810000),
             mortgageBalance: safeGetValue('mortgageBalance', 594000),
             mortgageRate: safeGetValue('mortgageRate', 5.37) / 100,
             monthlyMortgagePayment: safeGetValue('monthlyMortgagePayment', 3584),
             planToDownsize: safeGetSelectValue('planToDownsize', 'false') === 'true',
-            
+
             // Investment property
             hasInvestmentProperty: safeGetChecked('hasInvestmentProperty', false),
             investmentPropertyValue: safeGetValue('investmentPropertyValue', 550000),
@@ -82,7 +83,7 @@ class RetirementCalculatorApp {
             propertyGrowthRate: safeGetValue('propertyGrowthRate', 4.5),
             sellPropertyYears: safeGetValue('sellPropertyYears', 15),
             capitalGainsTaxRate: safeGetValue('capitalGainsTaxRate', 22.5),
-            
+
             // Healthcare & aged care
             currentHealthcareCosts: safeGetValue('currentHealthcareCosts', 3500),
             healthcareInflation: safeGetValue('healthcareInflation', 6.5),
@@ -90,7 +91,7 @@ class RetirementCalculatorApp {
             agedCareStartAge: safeGetValue('agedCareStartAge', 85),
             agedCareDuration: safeGetValue('agedCareDuration', 3.5),
             agedCareAnnualCost: safeGetValue('agedCareAnnualCost', 75000),
-            
+
             // Economic assumptions
             inflation: safeGetValue('inflation', 2.87) / 100,
             investmentReturn: safeGetValue('investmentReturn', 5.61) / 100,
@@ -101,7 +102,7 @@ class RetirementCalculatorApp {
             salaryGrowthRate: safeGetValue('salaryGrowthRate', 1.5),
             leanYearsStart: safeGetValue('leanYearsStart', 5),
             leanYearsReduction: safeGetValue('leanYearsReduction', 25),
-            
+
             // Dynamic allocation
             useGlidePath: safeGetChecked('useGlidePath', true),
             glidePathRule: safeGetSelectValue('glidePathRule', '110minus'),
@@ -112,14 +113,14 @@ class RetirementCalculatorApp {
             allocEquities: safeGetValue('allocEquities', 60),
             allocBonds: safeGetValue('allocBonds', 30),
             allocCash: safeGetValue('allocCash', 10),
-            
+
             // Pension system
             asfaComfortable: safeGetValue('asfaComfortable', 73875),
             agePensionMax: safeGetValue('agePensionMax', 45037),
             pensionAssetThreshold: safeGetValue('pensionAssetThreshold', 470000),
             pensionAssetLimit: safeGetValue('pensionAssetLimit', 1031000),
             pensionIncomeThreshold: safeGetValue('pensionIncomeThreshold', 372),
-            
+
             // Simulation controls
             returnVolatility: safeGetValue('returnVolatility', 12) / 100,
             enableShocks: safeGetChecked('enableShocks', false),
@@ -154,7 +155,7 @@ class RetirementCalculatorApp {
     updateRecommendedAllocation(inputs) {
         if (inputs.useGlidePath) {
             const allocation = this.simulator.calculateDynamicAllocation(inputs.yourCurrentAge, inputs.glidePathRule);
-            safeSetHTML('recommendedAllocation', 
+            safeSetHTML('recommendedAllocation',
                 `Equity: ${allocation.equity}% | Bonds: ${allocation.bonds.toFixed(0)}% | Cash: ${allocation.cash.toFixed(0)}%`
             );
         } else {
@@ -165,14 +166,14 @@ class RetirementCalculatorApp {
     // Main calculation function
     async calculateRetirement() {
         if (this.isCalculating) return;
-        
+
         this.isCalculating = true;
-        
+
         try {
             const inputs = this.collectInputs();
             const result = this.simulator.simulateRetirement(inputs, false);
             this.currentResults = result;
-            
+
             // Update UI
             this.updateRiskProfile(inputs);
             this.updateRecommendedAllocation(inputs);
@@ -181,12 +182,12 @@ class RetirementCalculatorApp {
             this.displayPropertyAnalysis(result, inputs);
             this.displayRiskAnalysis(result, inputs);
             this.displayOptimizationStrategies(result, inputs);
-            
+
             // Render charts
             this.chartManager.renderCompleteAnalysis(result, inputs);
-            
+
             showNotification('Calculation completed successfully', 'success');
-            
+
         } catch (error) {
             console.error('Calculation error:', error);
             showNotification('Error in calculation: ' + error.message, 'error');
@@ -568,59 +569,59 @@ class RetirementCalculatorApp {
     analyzePensionOptimization(result, inputs) {
         const strategies = [];
         const totalAssets = result.totalFinancialAssets + result.accessibleHomeEquity;
-        
+
         if (totalAssets > inputs.pensionAssetThreshold) {
             strategies.push('Consider gifting strategies: $10K annually or $30K over 5 years');
             strategies.push('Funeral bonds up to $15,750 per person are exempt from asset test');
         }
-        
+
         if (inputs.planToDownsize) {
             strategies.push('Downsizing can free up to $300K per person (exempt from asset test for 2 years)');
         }
-        
+
         if (inputs.hasInvestmentProperty) {
             strategies.push('Investment property equity affects pension - consider timing of sale');
         }
-        
+
         strategies.push('Account-based pensions vs annuities: Compare asset test treatment');
-        
+
         return strategies;
     }
 
     analyzeTaxOptimization(inputs) {
         const strategies = [];
         const totalSalary = inputs.yourSalary + inputs.partnerSalary;
-        
+
         if (totalSalary > 100000) {
             strategies.push('Maximize salary sacrifice to super ($30K cap including carry-forward)');
         }
-        
+
         if (inputs.hasInvestmentProperty) {
             strategies.push('Maximize negative gearing benefits and depreciation claims');
             strategies.push('Consider timing property sale for optimal CGT treatment');
         }
-        
+
         strategies.push('Focus on franking credit eligible Australian shares in retirement');
         strategies.push('Use spouse super contributions if income disparity exists');
-        
+
         return strategies;
     }
 
     analyzeContributionOptimization(inputs) {
         const strategies = [];
-        
+
         strategies.push(`Current super guarantee: ${formatPercent(inputs.superContributionRate)} - increases to 12% by 2025`);
-        
+
         if (inputs.yourSalary > 50000) {
             strategies.push('Consider additional voluntary super contributions for tax benefits');
         }
-        
+
         if (!inputs.useGlidePath) {
             strategies.push('Enable dynamic allocation for age-appropriate risk management');
         }
-        
+
         strategies.push('Dollar-cost averaging through regular contributions reduces market timing risk');
-        
+
         return strategies;
     }
 
@@ -628,45 +629,45 @@ class RetirementCalculatorApp {
         const strategies = [];
         const capacity = this.simulator.calculateRiskCapacity(inputs);
         const tolerance = inputs.riskTolerance * 10;
-        
+
         if (capacity > tolerance + 20) {
             strategies.push('You have capacity for higher risk allocation to potentially improve returns');
         }
-        
+
         if (inputs.australianEquityAllocation < 30) {
             strategies.push('Consider increasing Australian equity allocation for franking credit benefits');
         }
-        
+
         if (!inputs.useGlidePath) {
             strategies.push('Dynamic allocation glide paths automatically reduce risk as you age');
         }
-        
+
         strategies.push('Regular rebalancing maintains target allocations and harvests gains');
-        
+
         return strategies;
     }
 
     generateEnhancedRecommendations(inputs, result) {
         const recommendations = [];
-        
+
         // Risk-based recommendations
         const capacity = this.simulator.calculateRiskCapacity(inputs);
         const tolerance = inputs.riskTolerance * 10;
         const requirement = this.simulator.calculateRiskRequirement(inputs);
-        
+
         if (requirement > tolerance) {
             recommendations.push('Consider increasing risk tolerance or extending retirement timeline to meet goals');
         }
-        
+
         if (capacity > tolerance + 20) {
             recommendations.push('You have capacity for higher risk to potentially improve returns');
         }
-        
+
         // Healthcare recommendations
         if (inputs.currentHealthcareCosts < 2000) {
             recommendations.push('Consider budgeting more for healthcare costs - average is $3,500+ annually');
         }
-        
+
         // Property recommendations
         if (inputs.hasInvestmentProperty) {
             const cashFlow = result.propertyHistory[0];
@@ -674,38 +675,118 @@ class RetirementCalculatorApp {
                 recommendations.push('Investment property has negative cash flow - review holding strategy');
             }
         }
-        
+
         // Allocation recommendations
         if (!inputs.useGlidePath) {
             recommendations.push('Consider enabling dynamic allocation for age-appropriate risk management');
         }
-        
+
         // Aged care preparation
         if (result.agedCareCosts.expectedCost > result.finalBalance * 0.3) {
             recommendations.push('Aged care costs represent significant portion of assets - consider insurance options');
         }
-        
+
         return recommendations;
+    }
+
+    // Recommendation Engine
+    async runRecommendationEngine() {
+        if (this.isCalculating) return;
+        this.isCalculating = true;
+
+        try {
+            const inputs = this.collectInputs();
+
+            updateProgress(10, 'Initializing Recommendation Engine...');
+            await new Promise(resolve => setTimeout(resolve, 0));
+
+            const engine = new RecommendationEngine(this.simulator, inputs);
+
+            // This is a long process, so provide feedback
+            updateProgress(30, 'Running baseline simulation...');
+            const recommendations = await engine.generateRecommendations();
+            updateProgress(80, 'Formatting recommendations...');
+
+            this.displayRecommendations(recommendations);
+
+            showTab('recommendations');
+            updateProgress(100, 'AI Recommendations Generated!');
+            showNotification('Successfully generated AI recommendations.', 'success');
+
+        } catch (error) {
+            console.error('Recommendation Engine error:', error);
+            showNotification('Error generating recommendations: ' + error.message, 'error');
+        } finally {
+            this.isCalculating = false;
+            updateProgress(0);
+        }
+    }
+
+    displayRecommendations(recommendations) {
+        const container = $('recommendationsContainer');
+        if (!container) return;
+
+        if (recommendations.length === 0) {
+            container.innerHTML = `
+                <div class="p-4 bg-green-50 text-green-800 rounded-lg">
+                    <h3 class="font-semibold">Your Plan Looks Solid!</h3>
+                    <p>Our analysis did not identify any high-impact strategies that would significantly improve your current plan. This suggests you are on a good track. You can still explore alternative scenarios manually in the 'Scenario Compare' tab.</p>
+                </div>
+            `;
+            return;
+        }
+
+        const impactColors = {
+            'high-positive': 'border-green-500 bg-green-50',
+            'positive': 'border-blue-500 bg-blue-50',
+            'neutral': 'border-gray-300 bg-gray-50',
+            'negative': 'border-yellow-500 bg-yellow-50',
+            'high-negative': 'border-red-500 bg-red-50'
+        };
+
+        container.innerHTML = recommendations.map(rec => `
+            <div class="recommendation-card p-4 rounded-lg border-l-4 ${impactColors[rec.impact]}">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-xs font-semibold uppercase text-gray-500">${rec.category}</span>
+                        <h4 class="font-bold text-lg text-gray-800">${rec.title}</h4>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-semibold text-sm ${rec.successRateDiff > 0 ? 'text-green-600' : 'text-red-600'}">
+                            ${rec.successRateDiff > 0 ? '+' : ''}${formatPercent(rec.successRateDiff, 1)} Success Rate
+                        </div>
+                        <div class="text-xs text-gray-600">New Rate: ${formatPercent(rec.successRate)}</div>
+                    </div>
+                </div>
+                <p class="mt-2 text-sm text-gray-700">${rec.summary}</p>
+                <div class="mt-2 text-right text-xs text-gray-600">
+                    Median Balance Change: 
+                    <span class="font-medium ${rec.medianBalanceDiff > 0 ? 'text-green-600' : 'text-red-600'}">
+                        ${rec.medianBalanceDiff > 0 ? '+' : ''}${formatCurrency(rec.medianBalanceDiff)}
+                    </span>
+                </div>
+            </div>
+        `).join('');
     }
 
     // Monte Carlo simulation
     async runMonteCarloSimulation() {
         if (this.isCalculating) return;
-        
+
         this.isCalculating = true;
-        
+
         try {
             const inputs = this.collectInputs();
             const runs = inputs.numRuns;
-            
+
             const progressCallback = async (completed, total) => {
                 const percentage = (completed / total) * 100;
                 updateProgress(percentage, `Running simulation... ${completed}/${total}`);
                 await new Promise(resolve => setTimeout(resolve, 0));
             };
-            
+
             const results = await this.simulator.runMonteCarloSimulation(inputs, runs, progressCallback);
-            
+
             // Update Monte Carlo results display
             const mcResults = $('monteCarloResults');
             if (mcResults) {
@@ -716,17 +797,17 @@ class RetirementCalculatorApp {
                 safeSetText('mc10th', formatCurrency(results.percentile10));
                 safeSetText('mcConfidence', `${(results.successRate * 100).toFixed(0)}%`);
             }
-            
+
             // Render Monte Carlo charts
             this.chartManager.renderMonteCarloFanChart(inputs, results.paths);
             this.chartManager.renderHistogram(results.outcomes);
-            
+
             // Switch to the 'charts' tab
             showTab('charts');
-            
+
             updateProgress(0);
             showNotification('Monte Carlo simulation completed', 'success');
-            
+
         } catch (error) {
             console.error('Monte Carlo simulation error:', error);
             showNotification('Error in Monte Carlo simulation: ' + error.message, 'error');
@@ -739,14 +820,14 @@ class RetirementCalculatorApp {
     // Stress testing
     async runStressTest() {
         if (this.isCalculating) return;
-        
+
         this.isCalculating = true;
-        
+
         try {
             const inputs = this.collectInputs();
             const scenarios = ENHANCED_CONFIG.STRESS_SCENARIOS;
             const results = [];
-            
+
             for (let i = 0; i < scenarios.length; i++) {
                 updateProgress((i / scenarios.length) * 100, `Testing scenario: ${scenarios[i].name}`);
                 const result = this.simulator.runStressTest(inputs, scenarios[i]);
@@ -757,14 +838,14 @@ class RetirementCalculatorApp {
                 });
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
-            
+
             // Display stress test results
             this.displayStressTestResults(results);
             showTab('riskAnalysis');
-            
+
             updateProgress(0);
             showNotification('Stress testing completed', 'success');
-            
+
         } catch (error) {
             console.error('Stress test error:', error);
             showNotification('Error in stress testing: ' + error.message, 'error');
@@ -992,19 +1073,19 @@ class RetirementCalculatorApp {
                     </td>
                     <td class="px-4 py-3 text-center">
                         <span class="px-2 py-1 rounded text-xs font-medium ${
-                            riskScore >= 70 ? 'bg-green-100 text-green-800' :
-                            riskScore >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                        }">
+                riskScore >= 70 ? 'bg-green-100 text-green-800' :
+                    riskScore >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+            }">
                             ${riskScore.toFixed(0)}
                         </span>
                     </td>
                     <td class="px-4 py-3 text-center text-sm ${
-                        recommendation.includes('Strongly recommended') ? 'text-green-600 font-semibold' :
-                        recommendation.includes('Recommended') ? 'text-blue-600' :
+                recommendation.includes('Strongly recommended') ? 'text-green-600 font-semibold' :
+                    recommendation.includes('Recommended') ? 'text-blue-600' :
                         recommendation.includes('Not recommended') ? 'text-red-600' :
-                        'text-gray-600'
-                    }">
+                            'text-gray-600'
+            }">
                         ${recommendation}
                     </td>
                 </tr>
@@ -1119,7 +1200,7 @@ class RetirementCalculatorApp {
         // Investment property section toggle
         const hasInvestmentProperty = $('hasInvestmentProperty');
         const investmentPropertySection = $('investmentPropertySection');
-        
+
         if (hasInvestmentProperty && investmentPropertySection) {
             const togglePropertySection = () => {
                 if (hasInvestmentProperty.checked) {
@@ -1128,7 +1209,7 @@ class RetirementCalculatorApp {
                     investmentPropertySection.classList.add('hidden');
                 }
             };
-            
+
             hasInvestmentProperty.addEventListener('change', togglePropertySection);
             togglePropertySection(); // Initial state
         }
@@ -1137,12 +1218,12 @@ class RetirementCalculatorApp {
         const updateCGTRate = () => {
             const totalSalary = safeGetValue('yourSalary', 0) + safeGetValue('partnerSalary', 0);
             let marginalRate = 0;
-            
+
             if (totalSalary > 180000) marginalRate = 45;
             else if (totalSalary > 120000) marginalRate = 37;
             else if (totalSalary > 45000) marginalRate = 32.5;
             else if (totalSalary > 18200) marginalRate = 19;
-            
+
             const cgtRate = marginalRate * 0.5; // 50% discount
             safeSetValue('capitalGainsTaxRate', cgtRate);
         };
@@ -1160,6 +1241,12 @@ class RetirementCalculatorApp {
         const btnCalculate = $('btnCalculate');
         if (btnCalculate) {
             btnCalculate.addEventListener('click', () => this.calculateRetirement());
+        }
+
+        // Recommendation Engine button
+        const btnGenerateRecommendations = $('btnGenerateRecommendations');
+        if (btnGenerateRecommendations) {
+            btnGenerateRecommendations.addEventListener('click', () => this.runRecommendationEngine());
         }
 
         // Monte Carlo button
@@ -1280,7 +1367,7 @@ class RetirementCalculatorApp {
         // Auto-calculate on significant input changes (debounced)
         const autoCalculateInputs = [
             'yourCurrentAge', 'retirementAge', 'yourSalary', 'yourCurrentSuper',  'partnerCurrentSuper',
-            'hasInvestmentProperty', 'investmentPropertyValue', 'useGlidePath', 
+            'hasInvestmentProperty', 'investmentPropertyValue', 'useGlidePath',
             'weeklyRentalIncome', 'sellPropertyYears', 'agedCareStartAge'
         ];
 

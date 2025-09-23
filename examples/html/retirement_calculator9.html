@@ -4,73 +4,90 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enhanced Australian Retirement Calculator</title>
+    <!-- Tailwind CSS is included via a local stylesheet -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Note: The 'autoSendContentViewEvent' error in the console is from an external script and is not part of this codebase. -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.2/jspdf.plugin.autotable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
 /* css/styles.css - Enhanced Retirement Calculator Styles */
 
 /* Base font and typography */
-body { 
-    font-family: 'Inter', sans-serif; 
+body {
+    font-family: 'Inter', sans-serif;
 }
 
 /* Tooltips */
-.tooltip { 
-    position: relative; 
-    display: inline-block; 
+.tooltip {
+    position: relative;
+    display: inline-block;
 }
 
-.tooltip .tooltiptext { 
-    visibility: hidden; 
-    width: 220px; 
-    background: #555; 
-    color: #fff; 
-    text-align: center; 
-    border-radius: 6px; 
-    padding: 5px 0; 
-    position: absolute; 
-    z-index: 1; 
-    bottom: 125%; 
-    left: 50%; 
-    margin-left: -110px; 
-    opacity: 0; 
-    transition: opacity .3s; 
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 220px;
+    background: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -110px;
+    opacity: 0;
+    transition: opacity .3s;
 }
 
-.tooltip:hover .tooltiptext { 
-    visibility: visible; 
-    opacity: 1; 
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
 }
 
 /* Tab system */
-.tab-button { 
-    padding: .5rem 1rem; 
-    border-radius: .5rem .5rem 0 0; 
-    cursor: pointer; 
-    transition: background .2s; 
+.tab-button {
+    padding: .5rem 1rem;
+    border-radius: .5rem .5rem 0 0;
+    cursor: pointer;
+    transition: background .2s;
 }
 
-.tab-button.active { 
-    background: white; 
-    border-bottom: 2px solid #4f46e5; 
+.tab-button.active {
+    background: white;
+    border-bottom: 2px solid #4f46e5;
 }
 
-.tab-button:not(.active) { 
-    background: #f3f4f6; 
+.tab-button:not(.active) {
+    background: #f3f4f6;
 }
 
-.tab-content { 
-    display: none; 
+.tab-content {
+    display: none;
 }
 
-.tab-content.active { 
-    display: block; 
+.tab-content.active {
+    display: block;
 }
 
 /* Form styling */
-input:read-only { 
-    background: #f3f4f6; 
+/* Default styles for form inputs for consistent look in light mode */
+input, select {
+    background-color: #f8fafc; /* A very light gray, almost white */
+    color: #111827;           /* A dark gray for text */
+    transition: background-color .2s, border-color .2s;
+}
+
+input::placeholder, textarea::placeholder {
+    color: #6b7280; /* Medium gray for placeholder text */
+}
+
+input:read-only {
+    background: #f3f4f6;
 }
 
 input:focus {
@@ -84,25 +101,25 @@ select:focus {
 }
 
 /* Advanced sections */
-.advanced-section { 
-    background: #f9fafb; 
-    border: 1px solid #e5e7eb; 
-    padding: 1rem; 
-    border-radius: 0.5rem; 
-    margin-top: 1rem; 
+.advanced-section {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-top: 1rem;
 }
 
 /* Enhancement highlights */
-.enhancement-highlight { 
-    border-left: 4px solid #10b981; 
-    background: #f0fdf4; 
+.enhancement-highlight {
+    border-left: 4px solid #10b981;
+    background: #f0fdf4;
 }
 
 /* Risk profile indicators */
-.risk-profile-indicator { 
-    height: 8px; 
-    border-radius: 4px; 
-    transition: all 0.3s; 
+.risk-profile-indicator {
+    height: 8px;
+    border-radius: 4px;
+    transition: all 0.3s;
 }
 
 /* Button styles */
@@ -159,7 +176,7 @@ select:focus {
 }
 
 .progress-bar-initial {
-    width: 0%;
+    width: 0;
 }
 
 /* Status indicators */
@@ -187,16 +204,16 @@ select:focus {
     .container {
         padding: 1rem;
     }
-    
+
     .grid {
         grid-template-columns: 1fr;
     }
-    
+
     .tab-button {
         padding: 0.25rem 0.5rem;
         font-size: 0.875rem;
     }
-    
+
     .chart-container {
         height: 250px;
     }
@@ -207,11 +224,11 @@ select:focus {
     .no-print {
         display: none !important;
     }
-    
+
     .tab-content:not(.active) {
         display: block !important;
     }
-    
+
     .card {
         break-inside: avoid;
     }
@@ -239,12 +256,12 @@ select:focus {
 }
 
 /* High contrast mode support */
-@media (prefers-contrast: high) {
+@media (prefers-contrast: no-preference) {
     .enhancement-highlight {
         border-left-width: 6px;
         border-left-color: #000;
     }
-    
+
     .risk-profile-indicator {
         border: 1px solid #000;
     }
@@ -265,33 +282,38 @@ select:focus {
         background: #1f2937;
         color: #f9fafb;
     }
-    
+
     .bg-white {
         background: #374151;
     }
-    
+
     .bg-gray-50 {
         background: #4b5563;
     }
-    
+
     .text-gray-600 {
         color: #d1d5db;
     }
-    
+
     .text-gray-700 {
         color: #e5e7eb;
     }
-    
+
     .border-gray-300 {
         border-color: #6b7280;
     }
-    
+
     input, select {
-        background: #4b5563;
+        /* Important is used to override Tailwind's utility classes and ensure high contrast */
+        background-color: #1f2937 !important;
         color: #f9fafb !important;
-        border-color: #6b7280;
+        border-color: #9ca3af !important;
     }
-    
+
+    input::placeholder, textarea::placeholder {
+        color: #9ca3af; /* Lighter placeholder text for dark mode */
+    }
+
     input:read-only {
         background: #374151;
     }
@@ -484,7 +506,7 @@ select:focus {
             <!-- Column 1: Personal & Risk Profile -->
             <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-4 border-b pb-2">Personal & Risk Profile</h2>
-                
+
                 <div class="space-y-4">
                     <div>
                         <label for="yourCurrentAge" class="block text-sm font-medium text-gray-700">Your Current Age</label>
@@ -559,8 +581,12 @@ select:focus {
                         <input type="number" id="partnerSalary" value="34500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                     <div>
-                        <label for="currentSuper" class="block text-sm font-medium text-gray-700">Current Combined Superannuation</label>
-                        <input type="number" id="currentSuper" value="292000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <label for="yourCurrentSuper" class="block text-sm font-medium text-gray-700">Your Current Superannuation</label>
+                        <input type="number" id="yourCurrentSuper" value="312000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="partnerCurrentSuper" class="block text-sm font-medium text-gray-700">Partner's Current Superannuation</label>
+                        <input type="number" id="partnerCurrentSuper" value="150000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                     <div>
                         <label for="currentSavings" class="block text-sm font-medium text-gray-700">Current Cash/Savings</label>
@@ -584,7 +610,7 @@ select:focus {
             <!-- Column 2: Property & Investment Property -->
             <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-4 border-b pb-2">Property Portfolio</h2>
-                
+
                 <h3 class="text-lg font-medium text-gray-700 mb-3">Primary Residence</h3>
                 <div class="space-y-4">
                     <div>
@@ -692,7 +718,7 @@ select:focus {
             <!-- Column 3: Economic & Asset Allocation -->
             <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-4 border-b pb-2">Economic & Asset Allocation</h2>
-                
+
                 <div class="space-y-4">
                     <div>
                         <label for="inflation" class="block text-sm font-medium text-gray-700">Annual Inflation Rate (%)</label>
@@ -744,12 +770,23 @@ select:focus {
                     <h3 class="text-lg font-medium text-gray-700 mb-3">Franking Credits</h3>
                     <div class="space-y-3">
                         <div>
-                            <label for="frankingCreditBenefit" class="block text-sm font-medium text-gray-700">Franking Credit Value (%)</label>
-                            <input type="number" id="frankingCreditBenefit" value="1.2" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                        <div>
                             <label for="australianEquityAllocation" class="block text-sm font-medium text-gray-700">Australian Equity % of Total Equities</label>
                             <input type="number" id="australianEquityAllocation" value="40" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="dividendYield" class="block text-sm font-medium text-gray-700">Expected Dividend Yield (%)</label>
+                            <input type="number" id="dividendYield" value="4.5" step="0.1" min="0" max="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Average dividend yield for Australian equities</p>
+                        </div>
+                        <div>
+                            <label for="frankingRate" class="block text-sm font-medium text-gray-700">Franking Rate (%)</label>
+                            <input type="number" id="frankingRate" value="75" step="1" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Percentage of dividends that are franked</p>
+                        </div>
+                        <div>
+                            <label for="frankingCreditBenefit" class="block text-sm font-medium text-gray-700">Franking Credit Benefit Factor</label>
+                            <input type="number" id="frankingCreditBenefit" value="1.2" step="0.1" min="0" max="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Scaling factor based on tax position (1.0 = full benefit)</p>
                         </div>
                     </div>
                 </div>
@@ -776,11 +813,12 @@ select:focus {
             <!-- Column 4: Pension System & Simulation -->
             <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-4 border-b pb-2">Australian Pension System</h2>
-                
+
                 <div class="space-y-4">
                     <div>
                         <label for="asfaComfortable" class="block text-sm font-medium text-gray-700">ASFA Comfortable (Couple) p.a.</label>
                         <input type="number" id="asfaComfortable" value="73875" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <p class="mt-1 text-xs text-gray-500">March 2025: $73,875 comfortable, $48,184 modest</p>
                     </div>
                     <div>
                         <label for="agePensionMax" class="block text-sm font-medium text-gray-700">Max Age Pension (Couple) p.a.</label>
@@ -840,9 +878,24 @@ select:focus {
                     <button id="btnStressTest" class="w-full px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
                         Run Stress Test Scenarios
                     </button>
-                    <button id="btnExportEnhanced" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                        Export Enhanced Report
+                    <button id="btnRetirementSolver" class="w-full px-4 py-2 border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium">
+                        When Can I Retire?
                     </button>
+                    <button id="btnScenarioComparison" class="w-full px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors font-medium">
+                        Compare Scenarios
+                    </button>
+                    <div class="relative inline-block w-full" id="exportContainer">
+                        <button id="btnExport" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center">
+                            Export Enhanced Report <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="exportDropdown" class="absolute bottom-full mb-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
+                            <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                <a href="#" id="btnExportCSV" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as CSV</a>
+                                <a href="#" id="btnExportXLSX" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as XLSX</a>
+                                <a href="#" id="btnExportPDF" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as PDF</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="progressContainer" class="hidden mt-4">
@@ -863,6 +916,7 @@ select:focus {
                 <button class="tab-button" onclick="showTab('riskAnalysis')">Risk Analysis</button>
                 <button class="tab-button" onclick="showTab('charts')">Advanced Charts</button>
                 <button class="tab-button" onclick="showTab('optimization')">Optimization</button>
+                <button class="tab-button" onclick="showTab('scenarios')">Scenario Compare</button>
             </div>
 
             <!-- Enhanced Summary Tab -->
@@ -895,6 +949,8 @@ select:focus {
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Portfolio</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Growth</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Yearly withdrawal</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property Income</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Healthcare</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aged Care</th>
@@ -930,7 +986,7 @@ select:focus {
             <!-- Charts Tab -->
             <div id="charts-tab" class="tab-content p-6">
                 <h2 class="text-2xl font-semibold mb-4">Advanced Simulation Results</h2>
-                
+
                 <div id="monteCarloResults" class="hidden mb-6">
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm mb-4">
                         <div class="p-3 bg-blue-50 rounded text-center">
@@ -988,7 +1044,8 @@ select:focus {
 
     <!-- Embedded JavaScript -->
     <script>
-// js/config.js
+	
+// Enhanced Configuration - Australian Financial System Constants - js/config.js
 const ENHANCED_CONFIG = {
     SUPER_GUARANTEE_RATE: 0.12,
     DEMING_THRESHOLD: 106200,

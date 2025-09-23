@@ -7,15 +7,14 @@
     <!-- Tailwind CSS is included via a local stylesheet -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Note: The 'autoSendContentViewEvent' error in the console is from an external script and is not part of this codebase. -->
-    <!--  The CDN scripts lack integrity hashes for security verification. Consider adding integrity attributes to ensure the scripts haven't been tampered with, similar to the existing Chart.js CDN. -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" integrity="sha256-Lye89HGy1p3XhJT24hcvsoRw64Q4IOL5a7hdOflhjTA=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha256-yVBhl8r4CaB1tt7h2g02+xnacVj/6KiOewyWxdhiPJk=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js" integrity="sha512-+EeCylkt9WHJk5tGJxYdecHOcXFRME7qnbsfeMsdQL6NUPYm2+uGFmyleEqsmVoap/f3dN/sc3BX9t9kHXkHHg==" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.2/jspdf.plugin.autotable.min.js" integrity="sha512-JizZOUNesiGhMcp9fsA/9W31FOat6QysBM8hSj6ir8iIANIUJ2mhko7Lo1+j0ErftmJ8SebMZLm9iielKjeIEQ==" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.2/jspdf.plugin.autotable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-/* Enhanced Retirement Calculator Styles */
+/* css/styles.css - Enhanced Retirement Calculator Styles */
 
 /* Base font and typography */
 body {
@@ -515,7 +514,7 @@ select:focus {
                     </div>
                     <div>
                         <label for="partnerCurrentAge" class="block text-sm font-medium text-gray-700">Partner's Current Age</label>
-                        <input type="number" id="partnerCurrentAge" value="47" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <input type="number" id="partnerCurrentAge" value="42" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                     <div>
                         <label for="retirementAge" class="block text-sm font-medium text-gray-700">Your Retirement Age</label>
@@ -566,7 +565,7 @@ select:focus {
                         </div>
                         <div>
                             <label for="dependents" class="block text-sm font-medium text-gray-700">Financial Dependents</label>
-                            <input type="number" id="dependents" value="0" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <input type="number" id="dependents" value="2" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         </div>
                     </div>
                 </div>
@@ -575,7 +574,7 @@ select:focus {
                 <div class="space-y-4">
                     <div>
                         <label for="yourSalary" class="block text-sm font-medium text-gray-700">Your Annual Salary (pre-tax)</label>
-                        <input type="number" id="yourSalary" value="214000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <input type="number" id="yourSalary" value="164000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                     <div>
                         <label for="partnerSalary" class="block text-sm font-medium text-gray-700">Partner's Annual Salary (pre-tax)</label>
@@ -616,11 +615,11 @@ select:focus {
                 <div class="space-y-4">
                     <div>
                         <label for="homeValue" class="block text-sm font-medium text-gray-700">Current Home Value</label>
-                        <input type="number" id="homeValue" value="810000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <input type="number" id="homeValue" value="1600000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                     <div>
                         <label for="mortgageBalance" class="block text-sm font-medium text-gray-700">Outstanding Mortgage</label>
-                        <input type="number" id="mortgageBalance" value="594000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <input type="number" id="mortgageBalance" value="1194000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                     <div>
                         <label for="mortgageRate" class="block text-sm font-medium text-gray-700">Annual Mortgage Rate (%)</label>
@@ -628,7 +627,7 @@ select:focus {
                     </div>
                     <div>
                         <label for="monthlyMortgagePayment" class="block text-sm font-medium text-gray-700">Monthly Mortgage Payment</label>
-                        <input type="number" id="monthlyMortgagePayment" value="3584" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <input type="number" id="monthlyMortgagePayment" value="4984" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                     <div>
                         <label for="planToDownsize" class="block text-sm font-medium text-gray-700">Plan to Downsize?</label>
@@ -671,11 +670,11 @@ select:focus {
                             </div>
                             <div>
                                 <label for="propertyGrowthRate" class="block text-sm font-medium text-gray-700">Annual Growth Rate (%)</label>
-                                <input type="number" id="propertyGrowthRate" value="4.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <input type="number" id="propertyGrowthRate" value="2.75" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             </div>
                             <div>
                                 <label for="sellPropertyYears" class="block text-sm font-medium text-gray-700">Sell Property in (Years from now)</label>
-                                <input type="number" id="sellPropertyYears" value="15" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <input type="number" id="sellPropertyYears" value="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             </div>
                             <div>
                                 <label for="capitalGainsTaxRate" class="block text-sm font-medium text-gray-700">Capital Gains Tax Rate (%)</label>
@@ -690,27 +689,27 @@ select:focus {
                     <div class="space-y-3">
                         <div>
                             <label for="currentHealthcareCosts" class="block text-sm font-medium text-gray-700">Current Annual Healthcare Costs</label>
-                            <input type="number" id="currentHealthcareCosts" value="3500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <input type="number" id="currentHealthcareCosts" value="5200" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         </div>
                         <div>
                             <label for="healthcareInflation" class="block text-sm font-medium text-gray-700">Healthcare Inflation Rate (%)</label>
-                            <input type="number" id="healthcareInflation" value="6.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <input type="number" id="healthcareInflation" value="4.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         </div>
                         <div>
                             <label for="agedCareProbability" class="block text-sm font-medium text-gray-700">Aged Care Probability (%)</label>
-                            <input type="number" id="agedCareProbability" value="65" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <input type="number" id="agedCareProbability" value="68" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         </div>
                         <div>
                             <label for="agedCareStartAge" class="block text-sm font-medium text-gray-700">Expected Aged Care Start Age</label>
-                            <input type="number" id="agedCareStartAge" value="85" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <input type="number" id="agedCareStartAge" value="88" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         </div>
                         <div>
                             <label for="agedCareDuration" class="block text-sm font-medium text-gray-700">Expected Duration (years)</label>
-                            <input type="number" id="agedCareDuration" value="3.5" step="0.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <input type="number" id="agedCareDuration" value="7.5" step="0.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         </div>
                         <div>
                             <label for="agedCareAnnualCost" class="block text-sm font-medium text-gray-700">Annual Aged Care Cost</label>
-                            <input type="number" id="agedCareAnnualCost" value="75000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <input type="number" id="agedCareAnnualCost" value="76000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         </div>
                     </div>
                 </div>
@@ -979,6 +978,9 @@ select:focus {
                 <div id="riskAnalysisContent" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Risk analysis will be populated -->
                 </div>
+                <div id="stressTestResults" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Stress test results will be populated -->
+                </div>
             </div>
 
             <!-- Charts Tab -->
@@ -1135,18 +1137,46 @@ select:focus {
     </div>
 
     <script>
-// Enhanced Configuration - Australian Financial System Constants
+	
+// Enhanced Configuration - Australian Financial System Constants - js/config.js
 const ENHANCED_CONFIG = {
-    // Core Australian Financial System Parameters
-    SUPER_GUARANTEE_RATE: 0.115, // 11.5% in FY2025, increasing to 12% in FY2025-26
-
-    // Tax brackets for 2024-25 financial year
+    SUPER_GUARANTEE_RATE: 0.12,
+    DEMING_THRESHOLD: 106200,
+    SINGLE_PENSION_MAX: 28000,
+    SINGLE_ASSET_THRESHOLD: 301750,
+    SINGLE_ASSET_LIMIT: 180500,
+    SINGLE_INCOME_THRESHOLD: 475,
+    HOME_EQUITY_ACCESS_RATE: 0.56,
+    CGT_DISCOUNT: 0.5,
+    FRANKING_CREDIT_RATE: 0.3,
+    HEALTHCARE_COSTS: {
+        home_package4: 56000,
+        residential: 75000,
+        premium: 120000,
+        current_average: 5400
+    },
+    PROPERTY_COSTS: {
+        SELLING_COSTS_PERCENT: 0.06,
+        STAMP_DUTY_THRESHOLD: 600000,
+        DEPRECIATION_RATE: 0.025,
+        MAINTENANCE_PERCENT: 0.01,
+        VACANCY_RATE: 0.04
+    },
+    RISK_THRESHOLDS: {
+        capacity: { low: 30, moderate: 60, high: 80 },
+        tolerance: { conservative: 30, balanced: 60, aggressive: 80 }
+    },
+    GLIDE_PATH_RULES: {
+        "120minus": age => Math.max(20, Math.min(90, 120 - age)),
+        "110minus": age => Math.max(20, Math.min(80, 110 - age)),
+        "100minus": age => Math.max(20, Math.min(70, 100 - age))
+    },
     TAX_BRACKETS: [
-        { min: 0, max: 18200, rate: 0.0 },
-        { min: 18200, max: 45000, rate: 0.19 },
-        { min: 45000, max: 120000, rate: 0.325 },
-        { min: 120000, max: 180000, rate: 0.37 },
-        { min: 180000, max: Infinity, rate: 0.45 }
+        { min: 0, max: 18200, rate: 0 },
+        { min: 18201, max: 45000, rate: 0.16 },
+        { min: 45001, max: 135000, rate: 0.3 },
+        { min: 135001, max: 190000, rate: 0.37 },
+        { min: 190001, max: Infinity, rate: 0.45 }
     ],
 
     // Medicare levy
