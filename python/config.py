@@ -268,5 +268,56 @@ ENHANCED_CONFIG = {
         "RATE_ADJUSTMENT_FACTOR": 0.5,
         "BASELINE_RATE": 0.045,
         "LOAN_PAYMENT_HEURISTIC_MULTIPLIER": 1.5
+    },
+
+    # Franking credit calculations for Australian equities
+    "FRANKING_CREDITS": {
+        "CORPORATE_TAX_RATE": 0.30,
+        "TYPICAL_FRANKING_RATE": 0.75,  # 75% of dividends are typically franked
+        "AVERAGE_DIVIDEND_YIELD": 0.045  # 4.5% average dividend yield
+    },
+
+    # Advanced simulation parameters
+    "SIMULATION_PARAMETERS": {
+        "MIN_MONTE_CARLO_RUNS": 1000,
+        "MAX_MONTE_CARLO_RUNS": 100000,
+        "DEFAULT_MONTE_CARLO_RUNS": 5000,
+        "CONFIDENCE_LEVELS": [0.1, 0.25, 0.5, 0.75, 0.9],
+        "CHUNK_SIZE": 1000  # For processing large simulations
+    },
+
+    # Enhanced healthcare modeling
+    "HEALTHCARE_MODELING": {
+        "BASE_INFLATION_ADJUSTMENT": 1.65,  # Healthcare inflates 1.65x faster than general
+        "CHRONIC_CONDITION_MULTIPLIERS": {
+            "none": 1.0,
+            "minor": 1.2,
+            "moderate": 1.8,
+            "major": 2.5
+        },
+        "PRIVATE_HEALTH_BENEFITS": {
+            "none": 0.0,
+            "basic": 0.15,
+            "comprehensive": 0.35
+        }
+    },
+
+    # Advanced analysis features
+    "ANALYSIS_FEATURES": {
+        "ENABLE_AI_RECOMMENDATIONS": True,
+        "ENABLE_OPTIMIZATION_SUGGESTIONS": True,
+        "ENABLE_SCENARIO_ANALYSIS": True,
+        "ENABLE_STRESS_TESTING": True,
+        "ENABLE_SENSITIVITY_ANALYSIS": True,
+        "RECOMMENDATION_CATEGORIES": [
+            "Risk Management",
+            "Asset Allocation",
+            "Property Strategy",
+            "Retirement Timing",
+            "Savings Strategy",
+            "Tax Optimization",
+            "Healthcare Planning",
+            "Estate Planning"
+        ]
     }
 }

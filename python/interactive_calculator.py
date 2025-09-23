@@ -82,8 +82,8 @@ def run_interactive_calculator():
     print(f"Total Financial Assets at Retirement: ${results['totalFinancialAssets']:,.0f}")
     print(f"Accessible Home Equity:             ${results['accessibleHomeEquity']:,.0f}")
     print(f"Final Balance at Lifespan End:      ${results['finalBalance']:,.0f}")
-    if results['yearlyData'] and results['yearlyData'][-1]['depleted']:
-        print(f"⚠️ Funds depleted in year {results['yearlyData'][-1]['year']}")
+    if results['yearlyData'] and results['yearlyData'][-1].depleted:
+        print(f"⚠️ Funds depleted in year {results['yearlyData'][-1].year}")
 
     # --- Monte Carlo ---
     print("\n--- 🎲 MONTE CARLO SIMULATION (1000 runs) ---")
@@ -107,11 +107,11 @@ def run_interactive_calculator():
         print(f"{'Year':<5} {'Age':<4} {'End Balance':<15}")
         print("-" * 30)
         for i, data in enumerate(results['yearlyData']):
-            year = data['year']
-            end_balance = data['endBalance']
+            year = data.year
+            end_balance = data.end_balance
             age = inputs['retirementAge'] + i
             print(f"{year:<5} {age:<4} ${end_balance:,.0f}")
-            if data['depleted']:
+            if data.depleted:
                 break
 
     print("\n" + "=" * 60)
