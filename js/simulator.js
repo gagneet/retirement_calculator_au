@@ -27,37 +27,37 @@ export class RetirementSimulator {
     // Risk profiling calculations
     calculateRiskCapacity(inputs) {
         let score = 50; // Base score
-        
+
         // Age factor (younger = higher capacity)
         const age = inputs.yourCurrentAge;
         if (age < 35) score += 25;
         else if (age < 50) score += 15;
         else if (age < 65) score += 5;
         else score -= 10;
-        
+
         // Income stability
         const totalIncome = inputs.yourSalary + inputs.partnerSalary;
         if (totalIncome > 200000) score += 20;
         else if (totalIncome > 100000) score += 10;
         else if (totalIncome > 50000) score += 5;
-        
+
         // Emergency fund
         const emergencyFund = inputs.hasEmergencyFund;
         if (emergencyFund === 'full') score += 15;
         else if (emergencyFund === 'partial') score += 10;
         else if (emergencyFund === 'minimal') score += 5;
         else score -= 15;
-        
+
         // Debt burden
         const debtLevel = inputs.hasDebt;
         if (debtLevel === 'none') score += 15;
         else if (debtLevel === 'minimal') score += 5;
         else if (debtLevel === 'moderate') score -= 10;
         else score -= 20;
-        
+
         // Dependents
         score -= inputs.dependents * 5;
-        
+
         return clamp(score, 0, 100);
     }
 
@@ -65,10 +65,10 @@ export class RetirementSimulator {
         const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
         const targetAssets = inputs.asfaComfortable * 25; // 4% rule estimate
         const currentAssets = inputs.yourCurrentSuper + inputs.partnerCurrentSuper + inputs.currentSavings + inputs.currentStocks;
-        
+
         const required = (targetAssets / currentAssets - 1) / yearsToRetirement * 100;
         const riskRequired = clamp((required - 3) * 10, 0, 100); // 3% risk-free rate
-        
+
         return riskRequired;
     }
 
@@ -148,7 +148,7 @@ export class RetirementSimulator {
         const inflatedCost = annualCost * Math.pow(1 + inputs.healthcareInflation / 100, yearsToAgedCare);
         const totalCost = inflatedCost * inputs.agedCareDuration;
         const probability = inputs.agedCareProbability / 100;
-        
+
         return {
             annualCost: inflatedCost,
             totalCost,
@@ -193,35 +193,35 @@ export class RetirementSimulator {
         if (isInterestOnly) {
             return principal; // Interest-only loan doesn't reduce principal
         }
-        
+
         // Calculate as if it's a 30-year loan for monthly payment calculation
         const monthlyRate = rate / 12;
         const totalPayments = 30 * 12; // a 30-year loan
-        const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / 
-                              (Math.pow(1 + monthlyRate, totalPayments) - 1);
-        
+        const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) /
+            (Math.pow(1 + monthlyRate, totalPayments) - 1);
+
         return calculateLoanBalance(rate, years, monthlyPayment * 12, principal);
     }
 
     calculatePropertyCashFlow(inputs, year = 0) {
         if (!inputs.hasInvestmentProperty) return null;
-        
+
         const inflationRate = inputs.inflation;
         const currentRental = inputs.weeklyRentalIncome * 52 * Math.pow(1 + inflationRate, year);
         const currentExpenses = inputs.annualPropertyExpenses * Math.pow(1 + inflationRate, year);
-        
+
         // Calculate interest cost
         const currentLoanBalance = this.calculatePropertyLoanBalance(
-            inputs.investmentPropertyLoan, 
-            inputs.investmentPropertyRate, 
+            inputs.investmentPropertyLoan,
+            inputs.investmentPropertyRate,
             year
         );
         const annualInterest = currentLoanBalance * inputs.investmentPropertyRate;
-        
+
         // Calculate depreciation benefit (2.5% of building value, assume 80% of property is building)
         const buildingValue = inputs.investmentPropertyValue * 0.8;
         const depreciation = buildingValue * this.config.PROPERTY_COSTS.DEPRECIATION_RATE;
-        
+
         return {
             grossRental: currentRental,
             expenses: currentExpenses,
@@ -234,21 +234,21 @@ export class RetirementSimulator {
 
     calculatePropertySale(inputs, saleYear) {
         if (!inputs.hasInvestmentProperty) return null;
-        
+
         const saleValue = this.calculatePropertyValue(
             inputs.investmentPropertyValue,
             inputs.propertyGrowthRate / 100,
             saleYear
         );
-        
+
         const remainingLoan = this.calculatePropertyLoanBalance(
             inputs.investmentPropertyLoan,
             inputs.investmentPropertyRate,
             saleYear
         );
-        
+
         const sellingCosts = saleValue * this.config.PROPERTY_COSTS.SELLING_COSTS_PERCENT;
-        
+
         const capitalGain = saleValue - inputs.investmentPropertyValue;
         const cgtPayable = calculateCGT(
             saleValue,
@@ -257,9 +257,9 @@ export class RetirementSimulator {
             saleYear,
             inputs.capitalGainsTaxRate / 100
         );
-        
+
         const netProceeds = saleValue - remainingLoan - sellingCosts - cgtPayable;
-        
+
         return {
             saleValue,
             remainingLoan,
@@ -276,14 +276,14 @@ export class RetirementSimulator {
         const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
         const realGrowthRate = inputs.salaryGrowthRate / 100;
         const inflationRate = inputs.inflation;
-        
+
         let salary = baseSalary * Math.pow(1 + realGrowthRate + inflationRate, year);
-        
+
         const leanYearsStartYear = yearsToRetirement - inputs.leanYearsStart;
         if (year >= leanYearsStartYear) {
             salary *= (1 - inputs.leanYearsReduction / 100);
         }
-        
+
         return salary;
     }
 
@@ -340,8 +340,8 @@ export class RetirementSimulator {
             const cashReturn = Math.max(0.001, rateRegime.rate - 0.01);
 
             return (allocations.equity / 100) * equityReturn +
-                   (allocations.bonds / 100) * bondReturn +
-                   (allocations.cash / 100) * cashReturn;
+                (allocations.bonds / 100) * bondReturn +
+                (allocations.cash / 100) * cashReturn;
         } else {
             // Original calculation for deterministic scenarios
             const equityReturn = this.getReturnForYear(baseReturn * 1.2, year, declineRate);
@@ -349,8 +349,8 @@ export class RetirementSimulator {
             const cashReturn = this.getReturnForYear(baseReturn * 0.3, year, 0);
 
             return (allocations.equity / 100) * equityReturn +
-                   (allocations.bonds / 100) * bondReturn +
-                   (allocations.cash / 100) * cashReturn;
+                (allocations.bonds / 100) * bondReturn +
+                (allocations.cash / 100) * cashReturn;
         }
     }
 
@@ -394,7 +394,7 @@ export class RetirementSimulator {
             if (yourCurrentAge > inputs.yourLifespan && partnerCurrentAge > inputs.partnerLifespan) {
                 break;
             }
-            
+
             // Dynamic allocation
             let allocation;
             if (inputs.useGlidePath) {
@@ -409,7 +409,7 @@ export class RetirementSimulator {
             if (yourCurrentAge <= inputs.retirementAge) {
                 allocationHistory.push(allocation);
             }
-            
+
 
             // Enhanced returns with franking credits and regime modeling
             const baseReturn = this.calculateEnhancedReturn(
@@ -446,8 +446,8 @@ export class RetirementSimulator {
             if (stressScenario && year <= stressScenario.duration) {
                 if (stressScenario.equityReturn) {
                     returnRate = (allocation.equity / 100) * stressScenario.equityReturn +
-                               (allocation.bonds / 100) * (stressScenario.bondReturn || 0.02) +
-                               (allocation.cash / 100) * 0.01;
+                        (allocation.bonds / 100) * (stressScenario.bondReturn || 0.02) +
+                        (allocation.cash / 100) * 0.01;
                 }
             }
 
@@ -459,7 +459,7 @@ export class RetirementSimulator {
             // Add contributions
             const yourYearsToWork = Math.min(inputs.retirementAge, inputs.yourLifespan) - inputs.yourCurrentAge;
             const partnerYearsToWork = Math.min(inputs.partnerRetirementAge, inputs.partnerLifespan) - inputs.partnerCurrentAge;
-            
+
             let yearlyPostTaxIncome = 0;
             let yearlySuperContribution = 0;
 
@@ -473,7 +473,7 @@ export class RetirementSimulator {
                 yearlyPostTaxIncome += calculatePostTaxIncome(partnerSalary, this.config.TAX_BRACKETS);
                 yearlySuperContribution += partnerSalary * inputs.superContributionRate;
             }
-            
+
             futureSuper += yearlySuperContribution;
             futureSavings += yearlyPostTaxIncome * inputs.percentIncomeSaved;
             futureStocks += inputs.monthlyStockContribution * 12;
@@ -483,10 +483,10 @@ export class RetirementSimulator {
                 const propertyCashFlow = this.calculatePropertyCashFlow(inputs, year);
                 if (propertyCashFlow) {
                     propertyHistory.push(propertyCashFlow);
-                    
+
                     // Add property cash flow to savings
                     futureSavings += propertyCashFlow.netCashFlow;
-                    
+
                     // Check if property should be sold
                     if (inputs.sellPropertyYears > 0 && year === inputs.sellPropertyYears) {
                         const saleResult = this.calculatePropertySale(inputs, year);
@@ -527,19 +527,19 @@ export class RetirementSimulator {
 
             // Track healthcare costs
             const healthcareCost = this.projectHealthcareCosts(
-                inputs.currentHealthcareCosts, 
-                year, 
+                inputs.currentHealthcareCosts,
+                year,
                 inputs.healthcareInflation
             );
             healthcareCostHistory.push(healthcareCost);
-             if (yourCurrentAge > inputs.retirementAge) {
+            if (yourCurrentAge > inputs.retirementAge) {
                 break;
             }
         }
 
         // At retirement setup
         const homeValueAtRetirement = inputs.homeValue * Math.pow(1 + inputs.inflation, yearsToRetirement);
-        const mortgageBalanceAtRetirement = Math.max(0, 
+        const mortgageBalanceAtRetirement = Math.max(0,
             calculateLoanBalance(inputs.mortgageRate, yearsToRetirement, inputs.monthlyMortgagePayment, inputs.mortgageBalance)
         );
         const homeEquityAtRetirement = homeValueAtRetirement - mortgageBalanceAtRetirement;
@@ -548,7 +548,7 @@ export class RetirementSimulator {
         // Retirement phase simulation
         let currentBalance = futureSuper + futureSavings + futureStocks + accessibleHomeEquity;
         const agedCareCosts = this.calculateAgedCareCosts(inputs);
-        
+
         const balances = [];
         const yearlyData = [];
 
@@ -556,29 +556,29 @@ export class RetirementSimulator {
             const retirementYear = yearsToRetirement + i;
             const yourCurrentAge = inputs.yourCurrentAge + retirementYear;
             const partnerCurrentAge = inputs.partnerCurrentAge + retirementYear;
-            
+
             // Check if both partners have passed away
             if (yourCurrentAge > inputs.yourLifespan && partnerCurrentAge > inputs.partnerLifespan) {
                 break;
             }
 
             const isCouple = yourCurrentAge <= inputs.yourLifespan && partnerCurrentAge <= inputs.partnerLifespan;
-            
+
             // Dynamic allocation in retirement
-            const allocation = inputs.useGlidePath ? 
+            const allocation = inputs.useGlidePath ?
                 this.calculateDynamicAllocation(yourCurrentAge, inputs.glidePathRule) :
                 { equity: inputs.allocEquities, bonds: inputs.allocBonds, cash: inputs.allocCash };
 
             // Enhanced healthcare costs
             const healthcareCost = this.projectHealthcareCosts(
-                inputs.currentHealthcareCosts, 
-                retirementYear, 
+                inputs.currentHealthcareCosts,
+                retirementYear,
                 inputs.healthcareInflation
             );
 
             // Aged care costs if applicable
             let agedCareCost = 0;
-            if (yourCurrentAge >= inputs.agedCareStartAge && 
+            if (yourCurrentAge >= inputs.agedCareStartAge &&
                 yourCurrentAge < inputs.agedCareStartAge + inputs.agedCareDuration) {
                 agedCareCost = agedCareCosts.annualCost;
             }
@@ -657,7 +657,7 @@ export class RetirementSimulator {
                 const monthlyGrowth = currentBalance * monthlyReturn;
                 yearlyGrowth += monthlyGrowth;
                 currentBalance = currentBalance + monthlyGrowth - monthlyWithdrawal;
-                
+
                 if (currentBalance <= 0) {
                     currentBalance = 0;
                     break;
@@ -1022,7 +1022,7 @@ export class RetirementSimulator {
                 name: "Keep Property Forever",
                 description: "Hold investment property throughout retirement",
                 modifications: {
-                    sellPropertyYears: 0, // Never sell
+                    sellPropertyYears: 999, // Never sell
                     hasInvestmentProperty: baseInputs.hasInvestmentProperty
                 }
             },

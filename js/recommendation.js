@@ -97,7 +97,7 @@ class RecommendationEngine {
      */
     _analyzeHomeOwnership(baselineResults) {
         const scenarios = [];
-        const { successRate } = baselineResults.successRate;
+        const successRate = baselineResults.successRate;
         const { planToDownsize, homeValue } = this.baseInputs;
 
         // Condition: Not already planning to downsize, home is valuable, and success rate can be improved.
@@ -153,7 +153,7 @@ class RecommendationEngine {
         scenarios.push({
             name: "Keep Investment Property Indefinitely",
             description: "Retain the investment property throughout retirement for ongoing rental income.",
-            modifications: { sellPropertyYears: 0 } // 0 means never sell in the simulator
+            modifications: { sellPropertyYears: 999 } // 999 means never sell in the simulator
         });
 
         return scenarios;
@@ -199,28 +199,46 @@ class RecommendationEngine {
 
         // Scenario 1: More aggressive allocation
         if (currentEquities < 80) {
+            let newEquities = Math.min(90, currentEquities + 15);
+            let newBonds = Math.max(5, this.baseInputs.allocBonds - 10);
+            let newCash = Math.max(5, this.baseInputs.allocCash - 5);
+            const total = newEquities + newBonds + newCash;
+            if (total !== 100) {
+                newEquities = Math.round((newEquities / total) * 100);
+                newBonds = Math.round((newBonds / total) * 100);
+                newCash = 100 - newEquities - newBonds;
+            }
             scenarios.push({
                 name: "Adopt a More Aggressive Strategy",
                 description: "Increase equity allocation by 15% for potentially higher long-term returns, accepting higher volatility.",
                 modifications: {
                     useGlidePath: false,
-                    allocEquities: Math.min(90, currentEquities + 15),
-                    allocBonds: Math.max(5, this.baseInputs.allocBonds - 10),
-                    allocCash: Math.max(5, this.baseInputs.allocCash - 5)
+                    allocEquities: newEquities,
+                    allocBonds: newBonds,
+                    allocCash: newCash
                 }
             });
         }
 
         // Scenario 2: More conservative allocation
         if (currentEquities > 30) {
+            let newEquities = Math.max(20, currentEquities - 15);
+            let newBonds = Math.min(70, this.baseInputs.allocBonds + 10);
+            let newCash = Math.min(20, this.baseInputs.allocCash + 5);
+            const total = newEquities + newBonds + newCash;
+            if (total !== 100) {
+                newEquities = Math.round((newEquities / total) * 100);
+                newBonds = Math.round((newBonds / total) * 100);
+                newCash = 100 - newEquities - newBonds;
+            }
             scenarios.push({
                 name: "Adopt a More Conservative Strategy",
                 description: "Decrease equity allocation by 15% to reduce portfolio risk, potentially lowering long-term returns.",
                 modifications: {
                     useGlidePath: false,
-                    allocEquities: Math.max(20, currentEquities - 15),
-                    allocBonds: Math.min(70, this.baseInputs.allocBonds + 10),
-                    allocCash: Math.min(20, this.baseInputs.allocCash + 5)
+                    allocEquities: newEquities,
+                    allocBonds: newBonds,
+                    allocCash: newCash
                 }
             });
         }
@@ -372,7 +390,7 @@ class RecommendationEngine {
         let netProceeds = 0;
         if (scenario.deterministicResult.propertyWasSold) {
             const saleEntry = scenario.deterministicResult.propertyHistory.find(entry => entry.saleResult);
-            if (saleEntry) {
+            if (saleEntry && saleEntry.saleResult) {
                 netProceeds = saleEntry.saleResult.netProceeds;
             }
         }
@@ -431,10 +449,12 @@ class RecommendationEngine {
     }
 
     _formatRetirementAgeRecommendation(scenario, baseResult) {
-        const successDiff = scenario.successRate - baseResult.successRate;
-        const age = scenario.modifications.retirementAge;
-
-        return `Working for additional years to retire at age ${age} increases your success rate from ${formatPercent(baseResult.successRate)} to ${formatPercent(scenario.successRate)}. This is one of the most powerful levers for improving your retirement outlook.`;
+        const age = scenario.modifications?.retirementAge;
+        if (typeof age === "number" && !isNaN(age)) {
+            return `Working for additional years to retire at age ${age} increases your success rate from ${formatPercent(baseResult.successRate)} to ${formatPercent(scenario.successRate)}. This is one of the most powerful levers for improving your retirement outlook.`;
+        } else {
+            return `Working additional years increases your success rate from ${formatPercent(baseResult.successRate)} to ${formatPercent(scenario.successRate)}. This is one of the most powerful levers for improving your retirement outlook.`;
+        }
     }
 }
 
