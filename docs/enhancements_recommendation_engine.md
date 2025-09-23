@@ -303,3 +303,223 @@ How to Use:
 The calculator now provides prescriptive advice like "Sell Brisbane investment property in 2 years when market cycle peaks to improve success rate by 12%" rather than just descriptive analysis.
 
 All recommendations are backed by Australian market data, regulatory compliance (2025 super caps, tax brackets), and confidence scoring to help you make informed decisions.
+
+---
+
+## Summary of Changes for the Fixed Portfolio Assets
+
+1. Fixed Portfolio Asset Categorization:
+- Problem Identified: The Year-to-Year table was incorrectly showing home equity and investment property as part of the liquid "Portfolio" balance that could be used for
+  retirement spending.
+- Solution Implemented:
+    - Added separate "Liquid Assets" and "Non-Liquid Assets" columns in the Year-to-Year table
+    - Liquid Assets: Super, Savings, Stocks, and accessible home equity (only if planning to downsize)
+    - Non-Liquid Assets: Inaccessible home equity and investment property equity
+
+2. Enhanced Asset Tracking:
+- Updated simulator.js to calculate and track liquid vs non-liquid assets for each retirement year
+- Added liquidAssets and nonLiquidAssets fields to the yearly data structure
+- Updated property equity calculations to work correctly during both pre-retirement and retirement phases
+
+3. Improved Table Display:
+- Updated the HTML table structure in index.html to show the new asset columns
+- Modified app.js to display the separated asset categories with appropriate color coding:
+    - Liquid assets in blue (readily accessible)
+    - Non-liquid assets in gray (not readily accessible without lifestyle changes)
+
+4. Centralized Configuration:
+- Problem Identified: Default values were scattered across multiple files with inconsistent values
+- Solution Implemented:
+    - Consolidated all default values into js/config.js under ENHANCED_CONFIG.DEFAULTS
+    - Updated all hardcoded defaults in app.js to reference the centralized configuration
+    - Organized defaults by category: personal, financial, property, healthcare, economic, allocation, risk, simulation, and pension
+
+5. Key Asset Classifications:
+- Liquid Assets: Can be readily accessed for retirement expenses without major lifestyle changes
+- Non-Liquid Assets: Require selling property or major lifestyle changes to access equity
+
+This solution provides users with a much clearer understanding of which assets they can actually rely on for retirement spending versus those that are tied up in property and would require significant decisions (like downsizing or selling investment properties) to access.
+
+The centralized configuration also makes the application much more maintainable and ensures consistency across all default values, eliminating the confusion caused by having different default values in different parts of the code.
+
+## Issues Fixed for Property Equity
+
+1. Property Equity Calculation Overflow:
+- Problem: When setting "Sell property in..." to 999 years, the exponential calculation (Math.pow(1 + growthRate, years)) caused astronomical overflow values.
+- Solution:
+    - Added year cap of maximum 50 years to prevent unrealistic projections
+    - Added growth rate bounds (0% to 20% annually)
+    - Added proper handling of percentage vs decimal rates
+    - Now calculatePropertyValue() will handle extreme values gracefully
+
+2. Non-liquid Assets Growth:
+- Problem: Home equity (non-liquid assets) was static and not growing over time during retirement.
+- Solution:
+    - Home equity now grows with inflation each year during retirement
+    - Property equity continues to grow based on property market cycles
+    - Both components of non-liquid assets now show realistic appreciation over time
+
+3. Liquid Assets Growth Verification:
+- Confirmed: Liquid assets (Super, Savings, Stocks, accessible home equity) use sophisticated market-based returns including:
+    - Base investment returns from Australian markets
+    - Franking credits (Australian dividend tax benefits)
+    - Market regime modeling (bull/bear cycles)
+    - Return decline over time
+    - Volatility and market shocks
+    - This is much more realistic than simple inflation adjustments
+
+4. Yearly Withdrawal Randomization:
+- Problem: Yearly withdrawals were based on a fixed AFSA comfortable standard.
+- Solution:
+    - Added ±$25,000 random variation to yearly withdrawal amounts
+    - Only applies during Monte Carlo simulations (when useRandomReturns is true)
+    - Deterministic runs still use fixed AFSA values for consistency
+    - Ensures non-negative withdrawal amounts
+
+### Technical Implementation Details
+
+- Overflow protection: Math.min(years, 50) caps property growth calculations
+- Rate normalization: Automatic handling of percentage vs decimal growth rates
+- Time-based growth: Home equity grows with Math.pow(1 + inflation, yearsFromRetirement)
+- Conditional randomization: Withdrawal variation only applies in stochastic simulations
+- Bounds checking: All calculations include reasonable min/max limits
+
+These changes ensure the retirement calculator provides realistic projections even with extreme inputs, while maintaining the sophisticated market modeling that makes it more accurate than simple inflation-based calculators.
+
+## Issues Fixed and Enhancements Made
+
+1. End Balance vs Liquid Assets Calculation Fix ✅
+
+Problem: "Liquid Assets" and "End Balance" columns showed identical values
+Solution:
+- Fixed the display logic so "Liquid Assets" shows the beginning-of-year balance (startBalance)
+- "End Balance" shows the end-of-year balance after Growth + Property Income - Withdrawals - Healthcare - Aged Care
+- Now the table properly shows the cash flow: Start → Additions → Subtractions → End
+
+2. Property Analysis Calculation Accuracy ✅
+
+Problem: 203% return calculation was missing key expenses like EMI/interest payments
+Solution:
+- Updated analyzeKeepVsSell method to use the comprehensive calculatePropertyCashFlow function
+- Now includes all proper components:
+    - ✅ Interest costs (loan payments)
+    - ✅ Depreciation benefits (tax deductions)
+    - ✅ All operating expenses
+    - ✅ Outstanding loan balance tracking
+- Property analysis now shows realistic returns instead of inflated figures
+
+3. Enhanced Property Analysis Display ✅
+
+Added comprehensive breakdown:
+- Annual Rental Income
+- Annual Expenses
+- Interest Cost (now properly included)
+- Depreciation Benefit (tax advantage shown in green)
+- Outstanding Loan Balance (for transparency)
+- Net Cash Flow (accurate calculation)
+
+4. Risk Analysis Tab Enhancement ✅
+
+Enhanced functionality with:
+- Detailed tooltips explaining each risk metric:
+    - 💰 Risk Capacity: Financial ability to take risk
+    - 🎯 Risk Tolerance: Emotional comfort with volatility
+    - 🎲 Risk Requirement: Risk needed to achieve goals
+- Interpretive descriptions for each risk level (Conservative/Moderate/High)
+- Risk Alignment Assessment that identifies mismatches between capacity, tolerance, and requirement
+- Visual improvements with emojis and better formatting
+
+5. Liquid vs Non-Liquid Asset Growth Verification ✅
+
+Confirmed and enhanced:
+- Liquid assets use sophisticated market-based returns including:
+    - Base investment returns from Australian markets
+    - Franking credits (dividend tax benefits)
+    - Market regime modeling (bull/bear cycles)
+    - Return decline over time
+    - Volatility and market shocks
+- Non-liquid assets now properly grow over time:
+    - Home equity grows with inflation during retirement
+    - Property equity continues to grow based on property market cycles
+
+6. Scenario Compare Integration ✅
+
+Confirmed compatibility:
+- The existing scenario comparison functionality automatically benefits from all the liquid/non-liquid asset improvements
+- Scenario results now use the corrected property calculations
+- All scenarios now properly separate liquid vs non-liquid assets
+
+### Key Technical Improvements
+
+Risk Analysis Tab Features:
+
+- Interactive tooltips on all risk metrics
+- Visual indicators with emojis for better UX
+- Alignment assessment that warns of mismatched risk profiles
+- Actionable insights for portfolio adjustments
+
+Property Analysis Accuracy:
+
+- Comprehensive cash flow modeling including loan interest
+- Tax benefit recognition through depreciation
+- Transparent loan tracking showing outstanding balances
+- Realistic return calculations instead of inflated figures
+
+Year-to-Year Table Clarity:
+
+- Proper cash flow progression from start to end balance
+- Clear separation of liquid vs non-liquid assets
+- Accurate growth modeling for all asset types
+
+The retirement calculator now provides much more accurate financial projections, clearer risk assessments, and better user guidance through enhanced documentation and tooltips. The property analysis no longer shows unrealistic returns, and users can clearly see which assets are available for retirement spending versus those tied up in real estate.
+
+---
+
+## ● ✅ Comprehensive Code Review Complete
+
+After thoroughly reviewing the logic and implementation, here's my assessment:
+
+All Critical Issues Fixed:
+
+1. ✅ End Balance Calculation Logic
+- Fixed the liquidAssets variable to represent start-of-year balance
+- End Balance correctly shows post-transaction balance
+- Table flow is now: Start → Growth/Income → Expenses → End
+2. ✅ Property Growth Rate Consistency
+- Standardized all calculatePropertyValue calls to pass percentage values
+- The method handles percentage-to-decimal conversion internally
+- Fixed inconsistent /100 divisions throughout the codebase
+3. ✅ Property Analysis Accuracy
+- Now uses proper calculatePropertyCashFlow method
+- Includes all components: interest, depreciation, expenses
+- Displays comprehensive breakdown with loan balance tracking
+4. ✅ Asset Growth Over Time
+- Liquid assets use sophisticated market-based returns
+- Non-liquid assets (home equity) grow with inflation
+- Property equity grows with market cycles and interest payments
+5. ✅ Risk Analysis Enhancement
+- Added detailed tooltips for all risk metrics
+- Interpretive descriptions for risk levels
+- Alignment assessment logic is sound
+6. ✅ Table Structure Integrity
+- HTML headers match display logic perfectly
+- Color coding is appropriate (blue for liquid, gray for non-liquid)
+- Depletion row spans correct number of columns (10)
+
+Logic Validation:
+
+- Withdrawal randomization: Only applies in Monte Carlo, ±$25K range is correct
+- Property overflow protection: 50-year cap and 20% growth rate cap prevent astronomical values
+- Home equity calculation: Correctly handles downsizing vs keeping scenarios
+- Configuration centralization: All defaults properly sourced from config.js
+
+Integration Assessment:
+
+All components work cohesively:
+- Simulator calculates liquid/non-liquid assets correctly
+- App.js displays them properly in separate columns
+- Property analysis uses accurate cash flow calculations
+- Risk analysis provides meaningful insights with proper explanations
+- Scenario comparison inherits all improvements automatically
+
+The code is now logically sound, mathematically accurate, and provides users with clear, realistic retirement projections. The separation of liquid vs non-liquid assets gives users proper visibility into what funds they can actually access during retirement.
