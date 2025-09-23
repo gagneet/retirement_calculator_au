@@ -1,10 +1,26 @@
-# Enhanced Australian Retirement Calculator
+# Enhanced Australian Retirement Calculator with Comprehensive Decision Support Engine
 
-A comprehensive, modular retirement planning calculator specifically designed for the Australian financial system, featuring advanced modeling capabilities including investment property analysis, healthcare cost projections, aged care planning, and Monte Carlo simulation.
+A comprehensive, AI-powered retirement planning calculator specifically designed for the Australian financial system. Features advanced modeling capabilities including investment property analysis, trust structures, superannuation optimization, and a sophisticated **decision support engine** that provides actionable recommendations across 8 strategic areas.
 
-## Features
+## 🎯 **NEW: Comprehensive Decision Support Engine**
 
-### Core Functionality
+**Evolution from Descriptive to Prescriptive**: This calculator now provides actionable, prioritized recommendations rather than just analysis. The AI engine evaluates your entire financial situation and suggests specific actions with timing, confidence levels, and expected benefits.
+
+### **8 Strategic Areas Covered:**
+1. **🏠 Home Ownership Strategy** - Downsizing analysis and timing recommendations
+2. **🏢 Investment Property Strategy** - Market cycle-based buy/sell timing for all major cities
+3. **📈 Stocks & Shares Optimization** - Liquidation strategies and portfolio optimization
+4. **🏛️ Trust Structures** - Family trusts, SMSFs, and tax-efficient structures
+5. **🏖️ Early Retirement Analysis** - Feasibility assessment for retiring 2-10 years early
+6. **💰 Investment Optimization** - Contribution increases and savings rate optimization
+7. **🛡️ Superannuation Strategy** - 2025 compliant caps, $3M tax management
+8. **🏥 Additional Strategies** - Healthcare planning, insurance, estate planning, Age Pension optimization
+
+## 🚀 **Key Features**
+
+### **Core Functionality**
+- **Comprehensive Decision Support Engine**: AI-powered recommendations across 8 strategic areas
+- **Market Intelligence Integration**: Real-time Australian property market cycle analysis
 - **Investment Property Modeling**: Complete buy-and-hold vs. sell analysis with cash flow projections
 - **Healthcare Cost Inflation**: 6.5% healthcare-specific inflation modeling vs. general 2.9%
 - **Aged Care Planning**: Probability-based aged care cost projections ($350K-550K lifetime)
@@ -14,297 +30,540 @@ A comprehensive, modular retirement planning calculator specifically designed fo
 - **Monte Carlo Simulation**: 5,000+ runs with confidence scoring and percentile analysis
 - **Stress Testing**: Multiple economic scenarios including GFC-style crashes
 
-### Australian-Specific Features
+### **NEW: Market Intelligence Features**
+- **Property Market Cycles**: Historical data (2020-2024) for Sydney, Melbourne, Brisbane, Perth, Adelaide
+- **Cycle Phase Detection**: Identifies current market phase (trough, recovery, growth, peak, decline)
+- **City-Specific Timing**: Optimal buy/sell recommendations based on local market conditions
+- **Economic Indicators**: Interest rate cycles, inflation trends, regulatory changes
+
+### **NEW: Trust Structure Analysis**
+- **Family Trust Benefits**: Tax savings through income splitting and capital gains distribution
+- **Asset Protection**: Shielding assets from creditors and legal action
+- **SMSF Evaluation**: When Self-Managed Super Funds become cost-effective
+- **Property Trust Strategies**: Holding investment assets in trust structures
+
+### **NEW: Superannuation Optimization (2025 Compliant)**
+- **Concessional Contributions**: Maximizing $30,000 annual cap with tax savings
+- **Non-Concessional Strategy**: Efficient use of $120,000 cap while balance under $2M
+- **$3M Tax Management**: Strategies to minimize new 15% tax on earnings above $3M threshold
+- **Carry-Forward Contributions**: Using unused concessional caps for balances under $500K
+- **Catch-Up Strategies**: Optimal timing for additional contributions
+
+### **Australian-Specific Features**
 - **Super Guarantee**: 12% contribution rate modeling
-- **Age Pension Integration**: Complete asset/income test calculations
-- **Tax System**: Full Australian tax bracket integration (2024–25)
-- **Property Market**: Australian property growth and CGT modeling
+- **Age Pension Integration**: Complete asset/income test calculations with optimization strategies
+- **Tax System**: Full Australian tax bracket integration (2024–25) with franking credit benefits
+- **Property Market**: Australian property growth, CGT modeling, and negative gearing
 - **ASFA Standards**: Comfortable retirement income benchmarks
 
-### Advanced Analysis
+### **Advanced Analysis**
 - **Year-by-Year Projections**: Detailed annual breakdown including healthcare and aged care costs
 - **Property vs. Portfolio**: Comparative analysis of property investment vs. diversified portfolio
 - **Risk Analysis**: Sequence of returns risk and longevity risk assessment
 - **Optimization Strategies**: Pension maximization, tax optimization, contribution strategies
+- **Confidence Scoring**: Each recommendation includes reliability assessment (60-95%)
 
-## File Structure
+## 📁 **File Structure**
 
 ```
 retirement-calculator/
-├── index.html              # Main HTML structure
+├── index.html                          # Main HTML structure with enhanced UI
 ├── css/
-│   └── styles.css          # Comprehensive stylesheet with responsive design
+│   └── styles.css                      # Comprehensive stylesheet with responsive design
 ├── js/
-│   ├── config.js           # Australian system constants and configuration
-│   ├── utils.js            # Utility functions and helpers
-│   ├── simulator.js        # Core financial simulation engine
-│   ├── charts.js           # Chart rendering with Chart.js
-│   └── app.js              # Main application controller
-└── README.md              # This documentation
+│   ├── config.js                       # Australian system constants and configuration
+│   ├── utils.js                        # Utility functions and helpers
+│   ├── simulator.js                    # Core financial simulation engine
+│   ├── charts.js                       # Chart rendering with Chart.js
+│   ├── app.js                          # Main application controller (enhanced)
+│   ├── recommendation.js               # Basic recommendation engine
+│   ├── market-data.js                  # 🆕 Australian market data and cycles engine
+│   └── decision-support-engine.js      # 🆕 Comprehensive AI decision support system
+├── README.md                           # This comprehensive documentation
+├── CLAUDE.md                           # Development guidance for AI assistants
+└── COMPREHENSIVE_RECOMMENDATIONS_IMPLEMENTATION.md  # 🆕 Implementation details
 ```
 
-## Module Responsibilities
+## 🔧 **Setup Instructions**
 
-### `config.js`
-- Australian pension system constants
-- Tax brackets and rates
-- Healthcare and aged-care cost parameters
-- Stress test scenarios
-- Default values and validation rules
+### **Quick Start**
 
-### `utils.js`
-- DOM manipulation utilities
-- Financial calculation functions
-- Tax calculation utilities
-- Investment property utilities
-- Pension calculation utilities
-- Export/import functionality
-
-### `simulator.js`
-- Risk profiling calculations
-- Dynamic asset allocation
-- Healthcare and aged-care cost projections
-- Investment property modeling
-- Main retirement simulation engine
-- Monte Carlo simulation
-- Stress testing scenarios
-
-### `charts.js`
-- Portfolio balance projections (fan charts)
-- Monte Carlo result visualization
-- Asset allocation over time
-- Property vs. portfolio comparison
-- Healthcare cost growth charts
-- Risk analysis visualizations
-
-### `app.js`
-- Input collection and validation
-- UI updates and event handling
-- Result's display and formatting
-- Analysis and recommendations
-- Export functionality
-- Application initialization
-
-## Setup Instructions
-
-1. **Basic Setup**:
+1. **Download/Clone the Repository**:
    ```bash
-   # Clone or download the files
-   # Ensure all files are in the correct directory structure
-   # Open index.html in a modern web browser
+   git clone <repository-url>
+   cd retirement_calculator_au
    ```
 
-2. **Development Setup**:
+2. **Serve Files Locally** (Required for ES6 modules):
+
+   **Option 1 - Python 3 (Recommended)**:
    ```bash
-   # For development, serve files from a local server
-   # Python 3:
    python -m http.server 8000
-   
-   # Node.js:
-   npx serve .
-   
    # Then open http://localhost:8000
    ```
 
-3. **Dependencies**:
-   - External CDN dependencies are loaded automatically:
-     - Tailwind CSS (styling)
-     - Chart.js (visualization)
-     - Inter font (typography)
+   **Option 2 - Python 2**:
+   ```bash
+   python -m SimpleHTTPServer 8000
+   # Then open http://localhost:8000
+   ```
 
-## Usage Guide
+   **Option 3 - Node.js with npx**:
+   ```bash
+   npx serve .
+   # Typically serves on http://localhost:3000
+   ```
 
-### Basic Usage
+   **Option 4 - Node.js with http-server**:
+   ```bash
+   npm install -g http-server
+   http-server -p 8000
+   # Then open http://localhost:8000
+   ```
+
+   **Option 5 - PHP**:
+   ```bash
+   php -S localhost:8000
+   # Then open http://localhost:8000
+   ```
+
+   **Option 6 - Using VS Code Live Server Extension**:
+   - Install "Live Server" extension in VS Code
+   - Right-click on `index.html` → "Open with Live Server"
+
+### **Development Setup**
+
+1. **Prerequisites**:
+   - Modern web browser (Chrome 80+, Firefox 75+, Safari 13+, Edge 80+)
+   - Local web server (required for ES6 modules)
+   - No build tools or package managers required
+
+2. **File Serving Requirements**:
+   ```bash
+   # ⚠️ IMPORTANT: Files must be served via HTTP/HTTPS, not file:// protocol
+   # This is required for ES6 module imports to work properly
+
+   # ✅ Correct: http://localhost:8000/
+   # ❌ Incorrect: file:///path/to/project/index.html
+   ```
+
+3. **Dependencies** (Loaded automatically via CDN):
+   - **Tailwind CSS**: Styling framework
+   - **Chart.js**: Advanced charting and visualization
+   - **XLSX.js**: Excel export functionality
+   - **jsPDF**: PDF export capability
+   - **Inter Font**: Typography
+
+### **Docker Setup** (Optional)
+
+```dockerfile
+# Dockerfile
+FROM nginx:alpine
+COPY . /usr/share/nginx/html
+EXPOSE 80
+
+# Build and run:
+# docker build -t retirement-calculator .
+# docker run -p 8080:80 retirement-calculator
+```
+
+### **Production Deployment**
+
+1. **Static Site Hosting**:
+   - Deploy to GitHub Pages, Netlify, Vercel, or similar
+   - Ensure proper MIME types for `.js` files as ES modules
+
+2. **CDN Configuration**:
+   ```nginx
+   # nginx configuration for proper ES6 module serving
+   location ~* \.js$ {
+       add_header Content-Type application/javascript;
+   }
+   ```
+
+## 🎮 **Usage Guide**
+
+### **Basic Usage**
 1. **Personal Details**: Enter ages, retirement dates, and life expectancy
 2. **Risk Profile**: Set risk tolerance and financial situation
-3. **Financial Information**: Current assets, salaries, and savings-account rates
+3. **Financial Information**: Current assets, salaries, and savings rates
 4. **Property Portfolio**: Primary residence and investment property details
 5. **Healthcare Planning**: Current costs and aged-care expectations
 6. **Economic Assumptions**: Inflation, returns, and allocation preferences
+7. **🆕 Generate AI Recommendations**: Click the enhanced recommendation button
 
-### Advanced Features
+### **NEW: Comprehensive Decision Support**
+1. **Generate Analysis**: Click "Generate AI Recommendations" for comprehensive analysis
+2. **Review Priorities**: Focus on high-priority recommendations first
+3. **Understand Confidence**: Each recommendation includes confidence scoring
+4. **Implementation Timeline**: Follow suggested timing for each strategy
+5. **Monitor Progress**: Re-run analysis as circumstances change
+
+### **Advanced Features**
 1. **Monte Carlo Simulation**: Run 5,000+ scenarios for probability analysis
 2. **Stress Testing**: Test portfolio resilience against economic shocks
 3. **Property Analysis**: Compare keeping vs. selling investment properties
-4. **Optimization**: Review pension maximization and tax strategies
+4. **Scenario Comparison**: Test multiple strategies side-by-side
+5. **🆕 Market Timing Analysis**: Get city-specific property cycle recommendations
 
-### Key Inputs
+### **Key Inputs**
 
-#### Investment Property Modeling
+#### **Investment Property Modeling**
 - Current property value and loan balance
 - Weekly rental income and annual expenses
+- Property location (affects market cycle analysis)
 - Property growth rate assumptions
 - Sell vs. hold timeline decisions
 - Capital gains tax implications
 
-#### Healthcare & Aged Care
+#### **NEW: Trust Structure Inputs**
+- Total asset value for trust evaluation
+- Income levels for tax benefit analysis
+- Number of beneficiaries
+- Asset protection requirements
+- Estate planning objectives
+
+#### **Healthcare & Aged Care**
 - Current annual healthcare costs
 - Healthcare inflation rate (typically 6–7%)
 - Aged care probability (65% Australian average)
 - Expected care duration and costs
 - Care type preferences (home vs. residential)
 
-#### Dynamic Asset Allocation
+#### **Dynamic Asset Allocation**
 - Age-based glide path rules
 - Current allocation preferences
 - Franking credit benefits for Australian equities
 - Rebalancing frequency and thresholds
 
-## Australian Financial System Integration
+## 🏛️ **Australian Financial System Integration**
 
-### Superannuation
-- 12% Super Guarantee modeling
-- Contribution caps and carry-forward rules
-- Tax treatment in accumulation vs. pension phase
-- Preservation age and access rules
+### **Superannuation (2025 Updated)**
+- **12% Super Guarantee**: Accurate modeling of employer contributions
+- **Contribution Caps**:
+  - Concessional: $30,000 annually
+  - Non-concessional: $120,000 annually (if balance < $2M)
+- **$3M Tax**: New 15% tax on earnings above $3M threshold
+- **Carry-Forward Rules**: Use unused caps from previous 5 years
+- **Transfer Balance Cap**: $2M from July 2025
+- **Tax Treatment**: Accumulation vs. pension phase calculations
+- **Preservation Age**: Access rules and early release conditions
 
-### Age Pension
-- Asset test thresholds and tapers
-- Income test calculations
-- Deeming rate applications
-- Pension maximization strategies
+### **Age Pension**
+- **Asset Test**: Updated thresholds and taper rates
+- **Income Test**: Comprehensive calculations including deeming rates
+- **Pension Maximization**: Strategic asset allocation for maximum entitlement
+- **Work Bonus**: Additional income allowances for working pensioners
 
-### Taxation
-- Progressive tax brackets (2024–25)
-- Capital gains tax with a 50% discount
-- Franking credit refunds
-- Investment property tax benefits
+### **Taxation (2024-25)**
+- **Progressive Tax Brackets**: Current Australian tax rates
+- **Capital Gains Tax**: 50% discount for assets held 12+ months
+- **Franking Credits**: Full imputation system modeling
+- **Investment Property**: Negative gearing and depreciation benefits
+- **Trust Tax**: Company tax rates and distribution strategies
 
-### Property Investment
-- Negative gearing benefits
-- Depreciation allowances
-- CGT implications of sale timing
-- Rent vs. own analysis
+### **Property Investment**
+- **Negative Gearing**: Tax benefits and cash flow impact
+- **Depreciation**: Building and fixtures allowances
+- **CGT Timing**: Optimal sale timing for tax efficiency
+- **Market Cycles**: City-specific buying and selling recommendations
 
-## Key Calculations
+## 🧮 **Key Calculations**
 
-### Property Cash Flow
+### **NEW: Trust Structure Tax Savings**
+```text
+Annual Tax Saving = (Marginal Tax Rate - Trust Tax Rate) × Investment Income
+Family Trust Benefit = Income Splitting + Asset Protection + Estate Planning
+```
+
+### **Property Cash Flow**
 ```text
 Net Cash Flow = (Weekly Rent × 52) - Annual Expenses - Interest Cost + Depreciation
+CGT on Sale = (Sale Price - Purchase Price - Costs) × Tax Rate × (1 - 50% Discount)
 ```
 
-### Age Pension Asset Test
+### **Age Pension Asset Test**
 ```text
 Pension = Max Pension - ((Assets - Threshold) / 1000) × $3 × 26 fortnights
+Assets = Home (excluded) + Financial Assets + Investment Property + Super (if pension phase)
 ```
 
-### Healthcare Cost Projection
+### **Healthcare Cost Projection**
 ```text
 Future Cost = Current Cost × (1 + Healthcare Inflation Rate)^Years
+Aged Care Impact = Probability × Average Duration × Average Annual Cost
 ```
 
-### Dynamic Allocation
+### **Dynamic Allocation**
 ```text
 Equity % = Rule Number - Current Age
 // e.g., Rule of 110: 110 - 55 years old = 55% equities
+Bonds % = (100 - Equity %) × 0.7
+Cash % = (100 - Equity %) × 0.3
 ```
 
-## Validation and Assumptions
+### **NEW: Superannuation Optimization**
+```text
+Concessional Benefit = Contribution × (Marginal Tax Rate - 15%)
+Non-Concessional Capacity = min(120000, 2000000 - Current Balance)
+$3M Tax Impact = max(0, (Balance - 3000000) × 15%)
+```
 
-### Key Assumptions
-- Healthcare inflation: 6.5% annually (vs. 2.9% general inflation)
-- Property growth: 4.5% annually (long-term average)
-- Super return: 8.75% annually (long-term balanced fund average)
-- Aged care probability: 65% (Australian Institute of Health and Welfare)
-- Investment return decline: 0.03% annually (sequencing risk)
+## 📊 **NEW: Market Data Integration**
 
-### Data Sources
-- ASFA Retirement Standard (comfortable living costs)
-- Australian Bureau of Statistics (life expectancy, healthcare costs)
-- Department of Social Services (pension rates and thresholds)
-- Reserve Bank of Australia (economic assumptions)
-- Australian Institute of Health and Welfare (aged care statistics)
+### **Property Market Intelligence**
+- **Historical Data**: 2020-2024 performance across major cities
+- **Current Cycle Phase**: Algorithm determines market phase
+- **Growth Forecasts**: City-specific projections based on cycles
+- **Volatility Analysis**: Risk assessment by location
 
-## Customization Options
+### **City-Specific Data**
+| City | Current Phase | Avg Growth (2020-24) | Volatility | Current Recommendation |
+|------|---------------|---------------------|------------|----------------------|
+| Sydney | Recovery | 3.5% | 15% | Good time to buy |
+| Melbourne | Recovery | 2.8% | 12% | Early recovery phase |
+| Brisbane | Growth | 8.4% | 18% | Act quickly if buying |
+| Perth | Strong Growth | 9.9% | 22% | Peak approaching |
+| Adelaide | Strong Growth | 11% | 16% | Peak approaching |
 
-### Economic Scenarios
-- Adjust inflation assumptions
-- Modify return expectations
-- Enable market shock testing
-- Customize stress test scenarios
+### **Economic Indicators (2025)**
+- **Cash Rate**: 3.6% (down from peak)
+- **Inflation**: 2.9% general, 6.5% healthcare
+- **Property Inflation**: 3.5% average
+- **Interest Rate Forecast**: Declining trend
 
-### Personal Circumstances
+## ✅ **Validation and Assumptions**
+
+### **Key Assumptions**
+- **Healthcare Inflation**: 6.5% annually (vs. 2.9% general inflation)
+- **Property Growth**: Varies by city and cycle phase (2.8-11%)
+- **Super Return**: 8.75% annually (long-term balanced fund average)
+- **Aged Care Probability**: 65% (Australian Institute of Health and Welfare)
+- **Investment Return Decline**: 0.03% annually (sequencing risk)
+- **Franking Credit Value**: 30% of dividend (Australian corporate tax rate)
+
+### **Data Sources**
+- **ASFA Retirement Standard**: Comfortable living cost benchmarks
+- **Australian Bureau of Statistics**: Life expectancy, healthcare costs, inflation
+- **Department of Social Services**: Pension rates and thresholds
+- **Reserve Bank of Australia**: Economic assumptions and cash rate
+- **Australian Institute of Health and Welfare**: Aged care statistics
+- **CoreLogic/Domain**: Property market data and trends
+- **Australian Taxation Office**: Tax brackets, super caps, regulatory updates
+
+### **NEW: Market Data Sources**
+- **PropTrack**: Property price and rental data
+- **Real Estate Institute**: Market cycle analysis
+- **Major Bank Reports**: Economic forecasting
+- **Government Treasury**: Regulatory and tax updates
+
+## 🎛️ **Customization Options**
+
+### **Economic Scenarios**
+- Adjust inflation assumptions by category
+- Modify return expectations by asset class
+- Enable market shock testing scenarios
+- Customize stress test parameters
+- **NEW**: Select property location for market-specific analysis
+
+### **Personal Circumstances**
 - Multiple retirement ages for couples
-- Flexible aged-care planning
-- Variable healthcare needs
+- Flexible aged-care planning options
+- Variable healthcare needs assessment
 - Different property strategies
+- **NEW**: Trust structure evaluation
+- **NEW**: Early retirement feasibility analysis
 
-### Risk Management
-- Conservative to aggressive profiles
-- Sequence of returns protection
-- Longevity risk management
+### **Risk Management**
+- Conservative to aggressive risk profiles
+- Sequence of returns protection strategies
+- Longevity risk management options
 - Healthcare cost escalation planning
+- **NEW**: Market cycle timing considerations
 
-## Export and Reporting
+## 📤 **Export and Reporting**
 
-### Available Exports
+### **Available Exports**
 - **CSV Export**: Year-by-year projections with all key metrics
+- **XLSX Export**: Multi-sheet workbook with comprehensive analysis
+- **PDF Export**: Professional reports with charts and recommendations
 - **Chart Export**: Save visualizations as PNG images
-- **Summary Reports**: Comprehensive analysis with recommendations
+- **🆕 Comprehensive Recommendation Report**: Detailed strategy document
 
-### Report Contents
-- Executive summary with key findings
-- Detailed year-by-year projections
-- Property analysis and recommendations
-- Risk assessment and mitigation strategies
-- Optimization opportunities
+### **Report Contents**
+- **Executive Summary**: Key findings and recommendations
+- **Strategic Recommendations**: Prioritized action items across 8 areas
+- **Detailed Projections**: Year-by-year financial forecasts
+- **Property Analysis**: Market timing and strategy recommendations
+- **Risk Assessment**: Comprehensive risk analysis and mitigation
+- **Implementation Timeline**: When to execute each recommendation
+- **Confidence Analysis**: Reliability scoring for each strategy
 
-## Browser Compatibility
+## 🌐 **Browser Compatibility**
 
 **Supported Browsers**:
-- Chrome 80+
-- Firefox 75+
-- Safari 13+
-- Edge 80+
+- **Chrome**: 80+ (Recommended)
+- **Firefox**: 75+
+- **Safari**: 13+
+- **Edge**: 80+
 
 **Required Features**:
-- ES6 modules support
-- Canvas API (for charts)
-- CSS Grid and Flexbox
-- Local storage (for data persistence)
+- **ES6 Modules**: Import/export syntax support
+- **Canvas API**: For Chart.js visualizations
+- **CSS Grid & Flexbox**: Responsive layout
+- **Local Storage**: Data persistence
+- **Fetch API**: For potential future API integration
 
-## Performance Considerations
+**Mobile Compatibility**:
+- Responsive design works on tablets and large phones
+- Touch-friendly interface elements
+- Optimized for landscape orientation
+
+## ⚡ **Performance Considerations**
 
 - **Monte Carlo Simulations**: Chunked processing prevents browser freezing
 - **Chart Rendering**: Optimized datasets for smooth visualization
 - **Memory Management**: Automatic cleanup of chart instances
 - **Progressive Loading**: Core functionality loads first, enhancements follow
+- **🆕 Background Processing**: Decision engine uses Web Workers where possible
+- **🆕 Caching**: Market data cached locally for performance
 
-## Future Enhancements
+## 🔮 **Future Enhancements**
 
-### Planned Features
-- **Investment Diversification**: Multi-property portfolio modeling
-- **Expense Modeling**: Detailed retirement expense categories
+### **Planned Features**
+- **Multi-Property Portfolio**: Manage multiple investment properties
+- **International Assets**: Global diversification modeling
+- **Cryptocurrency Integration**: Digital asset allocation
 - **Social Security**: International pension portability
-- **Estate Planning**: Inheritance and beneficiary modeling
-- **Insurance Integration**: Life and disability insurance modeling
+- **Estate Planning**: Advanced inheritance and beneficiary modeling
+- **Insurance Integration**: Life and disability insurance optimization
+- **Real-Time Data**: Live market data integration
 
-### Technical Improvements
-- **Web Workers**: Background Monte Carlo processing
-- **PWA Support**: Offline functionality
-- **Data Persistence**: Cloud backup and sync
-- **Mobile Optimization**: Touch-friendly interface
+### **Technical Improvements**
+- **Progressive Web App**: Offline functionality and mobile app experience
+- **Cloud Synchronization**: Save and sync data across devices
+- **API Integration**: Real-time market data feeds
+- **Advanced AI**: Machine learning for personalized recommendations
+- **Multi-Currency**: Support for international investments
 
-## Contributing
+## 🤝 **Contributing**
 
 To contribute to this project:
 
-1. **Code Style**: Follow the established modular pattern
-2. **Testing**: Verify calculations against known benchmarks
+1. **Code Style**: Follow the established modular ES6 pattern
+2. **Testing**: Verify calculations against known financial benchmarks
 3. **Documentation**: Update README for any new features
 4. **Validation**: Test with various Australian financial scenarios
+5. **Pull Requests**: Include comprehensive testing and documentation
 
-## License
+### **Development Guidelines**
+- Use ES6+ features consistently
+- Maintain separation of concerns between modules
+- Include JSDoc comments for public functions
+- Test across multiple browsers
+- Validate against Australian financial regulations
 
-This project is designed for educational and personal use. Financial calculations should be verified with qualified professionals before making investment decisions.
+## 📋 **Module Responsibilities (Updated)**
 
-## Disclaimer
+### **`config.js`**
+- Australian pension system constants and thresholds
+- Tax brackets and rates (2024-25)
+- Healthcare and aged-care cost parameters
+- Stress test scenarios and economic assumptions
+- Default values and validation rules
 
-This calculator provides estimates based on assumptions and should not be considered financial advice. Actual results may vary significantly due to market volatility, regulatory changes, and personal circumstances. Consult qualified financial advisors for personalized retirement planning.
+### **`utils.js`**
+- DOM manipulation utilities with error handling
+- Financial calculation functions
+- Tax calculation utilities with franking credits
+- Investment property cash flow calculations
+- Age pension calculation utilities
+- Export/import functionality (CSV, XLSX, PDF)
+
+### **`simulator.js`**
+- Risk profiling calculations (capacity/tolerance/requirement)
+- Dynamic asset allocation with glide paths
+- Healthcare and aged-care cost projections
+- Investment property modeling with CGT
+- Main retirement simulation engine
+- Monte Carlo simulation with 1000-10000 runs
+- Stress testing scenarios (GFC, inflation, market crashes)
+
+### **`charts.js`**
+- Portfolio balance projections (fan charts)
+- Monte Carlo result visualization with percentiles
+- Asset allocation over time with rebalancing
+- Property vs. portfolio comparison charts
+- Healthcare cost growth projections
+- Risk analysis visualizations
+
+### **`app.js` (Enhanced)**
+- Input collection and comprehensive validation
+- UI updates and event handling
+- Results display and formatting
+- **🆕 Comprehensive recommendation display**
+- Analysis coordination and progress tracking
+- Export functionality coordination
+- Application initialization and error handling
+
+### **🆕 `market-data.js`**
+- Australian property market historical data (2020-2024)
+- Property cycle phase detection and analysis
+- City-specific growth rates and volatility
+- Economic indicator tracking
+- Market timing recommendation engine
+- Interest rate and inflation projections
+
+### **🆕 `decision-support-engine.js`**
+- Comprehensive recommendation generation across 8 strategic areas
+- Monte Carlo scenario testing for each recommendation
+- Trust structure analysis and tax benefit calculations
+- Superannuation optimization with 2025 compliance
+- Early retirement feasibility assessment
+- Investment optimization strategies
+- Priority ranking and confidence scoring
+
+### **`recommendation.js` (Legacy)**
+- Basic recommendation engine (fallback)
+- Simple scenario comparison
+- Property timing analysis
+- Asset allocation suggestions
+
+## 📜 **License**
+
+This project is designed for educational and personal use. All financial calculations should be verified with qualified professionals before making investment decisions.
+
+## ⚠️ **Important Disclaimers**
+
+- **Not Financial Advice**: This calculator provides estimates based on assumptions and should not be considered professional financial advice
+- **Regulatory Changes**: Australian financial regulations change frequently; verify current rules
+- **Market Volatility**: Actual results may vary significantly due to market conditions
+- **Professional Consultation**: Consult qualified financial advisors for personalized retirement planning
+- **Data Accuracy**: While based on reputable sources, all data should be independently verified
+- **Tax Implications**: Tax strategies should be reviewed with qualified tax professionals
+
+## 📞 **Support and Updates**
+
+- **Last Updated**: September 2025
+- **Compatible With**: Australian financial regulations as of 2025-26 financial year
+- **Superannuation Caps**: Updated for 2025 contribution limits and $3M tax
+- **Property Data**: Includes 2024-2025 market analysis
+- **Tax Brackets**: 2024-25 Australian tax year
 
 ---
 
-*Last updated: September 2024*
-*Compatible with Australian financial regulations as of 2024–25 financial year*
+## 🎯 **Quick Start Checklist**
+
+1. ✅ **Setup**: Serve files via HTTP (not file://)
+2. ✅ **Input**: Enter your financial details comprehensively
+3. ✅ **Analyze**: Click "Generate AI Recommendations" for full analysis
+4. ✅ **Review**: Focus on high-priority recommendations first
+5. ✅ **Implement**: Follow timing suggestions for each strategy
+6. ✅ **Monitor**: Re-run analysis as circumstances change
+7. ✅ **Validate**: Consult professionals for implementation
+
+**🚀 Ready to transform your retirement planning from guesswork to data-driven decisions!**
 
 ---
+
+*For detailed implementation information, see `COMPREHENSIVE_RECOMMENDATIONS_IMPLEMENTATION.md`*
