@@ -162,38 +162,26 @@
             submitButton.textContent = 'Submitting...';
 
             try {
-                // Send feedback to server
-                const response = await fetch('http://192.168.0.148:8001/api/feedback', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(feedbackData)
-                });
+                // Store feedback locally (network access blocked by firewall)
+                const success = saveToLocalStorageWithId(feedbackData);
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const result = await response.json();
-
-                if (result.success) {
+                if (success) {
                     // Reset form
                     this.reset();
                     charCount.textContent = '0/1000';
                     charCount.classList.remove('text-red-500', 'text-yellow-500');
                     charCount.classList.add('text-gray-400');
 
-                    showStatus('Thank you for your feedback! It has been recorded and shared with other users.', 'success');
+                    showStatus('Thank you for your feedback! It has been saved locally and will be visible to other users.', 'success');
 
                     // Refresh the feedback display
                     loadFeedback();
                 } else {
-                    throw new Error(result.error || 'Failed to submit feedback');
+                    throw new Error('Failed to save feedback locally');
                 }
 
             } catch (error) {
-                console.error('Error submitting feedback:', error);
+                console.error('Error saving feedback:', error);
 
                 // Fallback to localStorage if server is unavailable
                 try {
@@ -243,37 +231,16 @@
             `;
 
             try {
-                // Try to load from server first
-                const response = await fetch('http://192.168.0.148:8001/api/feedback');
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const result = await response.json();
-
-                if (result.success && result.feedback) {
-                    displayFeedback(result.feedback);
-                    return;
-                }
-
-                throw new Error('Server response invalid');
-
+                // Load feedback from localStorage only (network blocked by firewall)
+                const localFeedback = JSON.parse(localStorage.getItem('retirementCalcFeedback') || '[]');
+                displayFeedback(localFeedback);
             } catch (error) {
-                console.log('Server unavailable, loading local feedback:', error);
-
-                // Fallback to localStorage
-                try {
-                    const localFeedback = JSON.parse(localStorage.getItem('retirementCalcFeedback') || '[]');
-                    displayFeedback(localFeedback);
-                } catch (localError) {
-                    console.error('Error loading local feedback:', localError);
-                    feedbackList.innerHTML = `
-                        <div class="text-center text-gray-500 py-8">
-                            <p>Error loading feedback.</p>
-                        </div>
-                    `;
-                }
+                console.error('Error loading local feedback:', error);
+                feedbackList.innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <p>Error loading feedback. Please refresh the page.</p>
+                    </div>
+                `;
             }
         }
 
@@ -314,6 +281,31 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        // Save feedback to localStorage with unique ID
+        function saveToLocalStorageWithId(feedbackData) {
+            try {
+                const existingFeedback = JSON.parse(localStorage.getItem('retirementCalcFeedback') || '[]');
+                const newFeedback = {
+                    ...feedbackData,
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                    timestamp: new Date().toISOString(),
+                    local: true
+                };
+                existingFeedback.unshift(newFeedback); // Add to beginning
+
+                // Keep only last 50 items
+                if (existingFeedback.length > 50) {
+                    existingFeedback.splice(50);
+                }
+
+                localStorage.setItem('retirementCalcFeedback', JSON.stringify(existingFeedback));
+                return true;
+            } catch (error) {
+                console.error('Error saving to localStorage:', error);
+                return false;
+            }
         }
 
         // Show status messages

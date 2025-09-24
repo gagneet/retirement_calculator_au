@@ -1,19 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-F3BXKGK3QZ"></script>
+    <!-- Google tag (gtag.js) - Safe loading -->
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
+      // Load Google Analytics safely
+      (function() {
+        try {
+          const script = document.createElement('script');
+          script.async = true;
+          script.src = 'https://www.googletagmanager.com/gtag/js?id=G-F3BXKGK3QZ';
+          script.onerror = function() { console.log('Google Analytics blocked by privacy tools'); };
+          document.head.appendChild(script);
 
-      gtag('config', 'G-F3BXKGK3QZ');
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-F3BXKGK3QZ');
+        } catch(e) {
+          console.log('Google Analytics initialization failed:', e.message);
+        }
+      })();
     </script>
 
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1599099437795468"
-         crossorigin="anonymous"></script>
+    <!-- Google AdSense - Safe loading -->
+    <script>
+      // Load AdSense safely
+      (function() {
+        try {
+          const script = document.createElement('script');
+          script.async = true;
+          script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1599099437795468';
+          script.crossOrigin = 'anonymous';
+          script.onerror = function() { console.log('Google AdSense blocked by privacy tools'); };
+          document.head.appendChild(script);
+        } catch(e) {
+          console.log('Google AdSense initialization failed:', e.message);
+        }
+      })();
+    </script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -61,6 +85,16 @@
 
     <!-- Tailwind CSS is included via a local stylesheet -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Suppress Tailwind CDN production warning
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                corePlugins: {
+                    preflight: false,
+                }
+            };
+        }
+    </script>
     <!-- Note: The 'autoSendContentViewEvent' error in the console is from an external script and is not part of this codebase. -->
     <!--  The CDN scripts lack integrity hashes for security verification. Consider adding integrity attributes to ensure the scripts haven't been tampered with, similar to the existing Chart.js CDN. -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js" integrity="sha256-Lye89HGy1p3XhJT24hcvsoRw64Q4IOL5a7hdOflhjTA=" crossorigin="anonymous"></script>
@@ -897,7 +931,7 @@
                     <span>|</span>
                     <a href="terms.html" class="hover:text-gray-700">Terms of Use</a>
                     <span>|</span>
-                    <a href="http://192.168.0.148:8001/contact.html" class="hover:text-gray-700" target="_blank">Contact</a>
+                    <a href="contact.html" class="hover:text-gray-700">Contact</a>
                 </div>
             </div>
 
@@ -910,11 +944,61 @@
 
 <!-- Load JavaScript modules -->
 <script src="js/theme.js"></script>
-<script type="module" src="js/config.js"></script>
-<script type="module" src="js/utils.js"></script>
-<script type="module" src="js/simulator.js"></script>
-<script type="module" src="js/recommendation.js"></script>
-<script type="module" src="js/charts.js"></script>
-<script type="module" src="js/app.js"></script>
+<!-- Module loading with error handling -->
+<script>
+    // Track module loading errors
+    let moduleErrors = [];
+    window.addEventListener('error', function(e) {
+        if (e.filename && e.filename.includes('.js')) {
+            moduleErrors.push({
+                file: e.filename,
+                message: e.message,
+                line: e.lineno
+            });
+        }
+    });
+
+    // Check for module support
+    if (!('type' in document.createElement('script'))) {
+        document.body.innerHTML = `
+            <div class="min-h-screen bg-yellow-50 flex items-center justify-center p-4">
+                <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
+                    <h1 class="text-xl font-bold text-yellow-600 mb-4">Browser Not Supported</h1>
+                    <p class="text-gray-600 mb-4">Your browser doesn't support ES6 modules.</p>
+                    <p class="text-sm text-gray-500">Please update to a modern browser like Chrome 61+, Firefox 60+, or Safari 11+.</p>
+                </div>
+            </div>
+        `;
+    }
+</script>
+
+<script type="module" src="js/config.js" onerror="console.error('Failed to load config.js')"></script>
+<script type="module" src="js/utils.js" onerror="console.error('Failed to load utils.js')"></script>
+<script type="module" src="js/simulator.js" onerror="console.error('Failed to load simulator.js')"></script>
+<script type="module" src="js/recommendation.js" onerror="console.error('Failed to load recommendation.js')"></script>
+<script type="module" src="js/decision-support-engine.js" onerror="console.error('Failed to load decision-support-engine.js')"></script>
+<script type="module" src="js/market-data.js" onerror="console.error('Failed to load market-data.js')"></script>
+<script type="module" src="js/charts.js" onerror="console.error('Failed to load charts.js')"></script>
+<script type="module" src="js/app.js" onerror="console.error('Failed to load app.js')"></script>
+
+<!-- Fallback for module loading timeout -->
+<script>
+    setTimeout(function() {
+        if (!window.RetirementCalculatorApp && moduleErrors.length === 0) {
+            document.body.innerHTML = `
+                <div class="min-h-screen bg-orange-50 flex items-center justify-center p-4">
+                    <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
+                        <h1 class="text-xl font-bold text-orange-600 mb-4">Loading Timeout</h1>
+                        <p class="text-gray-600 mb-4">The calculator is taking too long to load.</p>
+                        <p class="text-sm text-gray-500 mb-4">This might be due to a slow connection or blocked scripts.</p>
+                        <button onclick="location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Reload Page
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    }, 10000); // 10 second timeout
+</script>
 </body>
 </html>
