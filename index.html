@@ -954,72 +954,72 @@
 </div>
 
 <!-- Load JavaScript modules -->
-<script src="js/theme.js"></script>
-<!-- Module loading with error handling -->
-<script>
-    // Track module loading errors
-    let moduleErrors = [];
-    window.addEventListener('error', function(e) {
-        if (e.filename && e.filename.includes('.js')) {
-            moduleErrors.push({
-                file: e.filename,
-                message: e.message,
-                line: e.lineno
-            });
-        }
-    });
-
-    // Check for module support
-    if (!('noModule' in document.createElement('script'))) {
-        document.body.innerHTML = `
-            <div class="min-h-screen bg-yellow-50 flex items-center justify-center p-4">
-                <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h1 class="text-xl font-bold text-yellow-600 mb-4">Browser Not Supported</h1>
-                    <p class="text-gray-600 mb-4">Your browser doesn't support ES6 modules.</p>
-                    <p class="text-sm text-gray-500">Please update to a modern browser like Chrome 61+, Firefox 60+, or Safari 11+.</p>
-                </div>
-            </div>
-        `;
-    }
-</script>
-
-<script type="module" src="js/config.js" onerror="console.error('Failed to load config.js')"></script>
-<script type="module" src="js/utils.js" onerror="console.error('Failed to load utils.js')"></script>
-<script type="module" src="js/simulator.js" onerror="console.error('Failed to load simulator.js')"></script>
-<script type="module" src="js/recommendation.js" onerror="console.error('Failed to load recommendation.js')"></script>
-<script type="module" src="js/decision-support-engine.js" onerror="console.error('Failed to load decision-support-engine.js')"></script>
-<script type="module" src="js/market-data.js" onerror="console.error('Failed to load market-data.js')"></script>
-<script type="module" src="js/charts.js" onerror="console.error('Failed to load charts.js')"></script>
-<script type="module" src="js/app.js" onerror="console.error('Failed to load app.js')"></script>
-
-<!-- Fallback for module loading timeout -->
-<script>
-    setTimeout(function() {
-        if (!window.RetirementCalculatorApp && moduleErrors.length === 0) {
-            document.body.innerHTML = `
-                <div class="min-h-screen bg-orange-50 flex items-center justify-center p-4">
-                    <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
-                        <h1 class="text-xl font-bold text-orange-600 mb-4">Loading Timeout</h1>
-                        <p class="text-gray-600 mb-4">The calculator is taking too long to load.</p>
-                        <p class="text-sm text-gray-500 mb-4">This might be due to a slow connection or blocked scripts.</p>
-                        <button onclick="location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                            Reload Page
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-    }, 10000); // 10 second timeout
-</script>
-
-<!--
+<script type="module" src="js/theme.js"></script>
 <script type="module" src="js/config.js"></script>
 <script type="module" src="js/utils.js"></script>
 <script type="module" src="js/simulator.js"></script>
 <script type="module" src="js/recommendation.js"></script>
+<script type="module" src="js/decision-support-engine.js"></script>
+<script type="module" src="js/market-data.js"></script>
 <script type="module" src="js/charts.js"></script>
 <script type="module" src="js/app.js"></script>
--->
+
+<!-- Error handling and loading timeout -->
+<script>
+    // Track JavaScript errors
+    const jsErrors = [];
+    window.addEventListener('error', function(event) {
+        if (event.filename && event.filename.includes('.js')) {
+            jsErrors.push({
+                message: event.message,
+                filename: event.filename,
+                lineno: event.lineno,
+                colno: event.colno
+            });
+            console.error('JavaScript Error:', event.error);
+        }
+    });
+
+    // Track promise rejections
+    window.addEventListener('unhandledrejection', function(event) {
+        jsErrors.push({
+            message: event.reason.message || 'Promise rejection',
+            filename: 'Promise',
+            type: 'rejection'
+        });
+        console.error('Unhandled Promise Rejection:', event.reason);
+    });
+
+    // Check if app loaded after timeout
+    setTimeout(function() {
+        if (!window.RetirementCalculatorApp) {
+            const errorDetails = jsErrors.length > 0
+                ? `<div class="mt-4 p-3 bg-red-50 rounded text-left text-xs">
+                     <strong>Errors found:</strong><br>
+                     ${jsErrors.map(err => `• ${err.message} (${err.filename}${err.lineno ? `:${err.lineno}` : ''})`).join('<br>')}
+                   </div>`
+                : '';
+
+            document.body.innerHTML = `
+                <div class="min-h-screen bg-orange-50 flex items-center justify-center p-4">
+                    <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
+                        <h1 class="text-xl font-bold text-orange-600 mb-4">Calculator Loading Failed</h1>
+                        <p class="text-gray-600 mb-4">The application failed to initialize properly.</p>
+                        ${errorDetails}
+                        <div class="flex gap-2 justify-center mt-4">
+                            <button onclick="location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                Reload
+                            </button>
+                            <button onclick="window.open('https://caniuse.com/es6-module', '_blank')" class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-xs">
+                                Check Browser
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }, 8000);
+</script>
   
 </body>
 </html>

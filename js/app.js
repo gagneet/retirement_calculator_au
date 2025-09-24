@@ -1896,14 +1896,14 @@ class RetirementCalculatorApp {
             'dependents': config.risk.dependents,
 
             // Finances
-            'yourSalary': config.finances.yourSalary,
-            'partnerSalary': config.finances.partnerSalary,
-            'yourCurrentSuper': config.finances.yourCurrentSuper,
-            'partnerCurrentSuper': config.finances.partnerCurrentSuper,
-            'currentSavings': config.finances.currentSavings,
-            'currentStocks': config.finances.currentStocks,
-            'monthlyStockContribution': config.finances.monthlyStockContribution,
-            'percentIncomeSaved': config.finances.percentIncomeSaved,
+            'yourSalary': config.financial.yourSalary,
+            'partnerSalary': config.financial.partnerSalary,
+            'yourCurrentSuper': config.financial.yourCurrentSuper,
+            'partnerCurrentSuper': config.financial.partnerCurrentSuper,
+            'currentSavings': config.financial.currentSavings,
+            'currentStocks': config.financial.currentStocks,
+            'monthlyStockContribution': config.financial.monthlyStockContribution,
+            'percentIncomeSaved': config.financial.percentIncomeSaved,
 
             // Property
             'homeValue': config.property.homeValue,
@@ -1911,15 +1911,15 @@ class RetirementCalculatorApp {
             'mortgageRate': config.property.mortgageRate,
             'monthlyMortgagePayment': config.property.monthlyMortgagePayment,
             'planToDownsize': config.property.planToDownsize,
-            'hasInvestmentProperty': config.investmentProperty.hasInvestmentProperty,
-            'investmentPropertyValue': config.investmentProperty.investmentPropertyValue,
-            'investmentPropertyLoan': config.investmentProperty.investmentPropertyLoan,
-            'investmentPropertyRate': config.investmentProperty.investmentPropertyRate,
-            'weeklyRentalIncome': config.investmentProperty.weeklyRentalIncome,
-            'annualPropertyExpenses': config.investmentProperty.annualPropertyExpenses,
-            'propertyGrowthRate': config.investmentProperty.propertyGrowthRate,
-            'sellPropertyYears': config.investmentProperty.sellPropertyYears,
-            'capitalGainsTaxRate': config.investmentProperty.capitalGainsTaxRate,
+            'hasInvestmentProperty': config.property.hasInvestmentProperty,
+            'investmentPropertyValue': config.property.investmentPropertyValue,
+            'investmentPropertyLoan': config.property.investmentPropertyLoan,
+            'investmentPropertyRate': config.property.investmentPropertyRate,
+            'weeklyRentalIncome': config.property.weeklyRentalIncome,
+            'annualPropertyExpenses': config.property.annualPropertyExpenses,
+            'propertyGrowthRate': config.property.propertyGrowthRate,
+            'sellPropertyYears': config.property.sellPropertyYears,
+            'capitalGainsTaxRate': config.property.capitalGainsTaxRate,
 
             // Additional defaults for fields that might not be in config
             'useGlidePath': true,
@@ -1962,7 +1962,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-        new RetirementCalculatorApp();
+        window.RetirementCalculatorApp = new RetirementCalculatorApp();
         console.log('Enhanced Australian Retirement Calculator initialized successfully');
     } catch (error) {
         console.error('Failed to initialize calculator:', error);

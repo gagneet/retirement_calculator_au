@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Module Test</title>
+</head>
+<body>
+    <h1>Module Loading Test</h1>
+    <div id="status">Testing...</div>
+
+    <script type="module">
+        try {
+            console.log('Starting module test...');
+
+            // Test config import
+            import { ENHANCED_CONFIG } from './js/config.js';
+            console.log('✅ Config loaded:', ENHANCED_CONFIG ? 'OK' : 'FAIL');
+
+            // Test utils import
+            import { $, safeGetValue } from './js/utils.js';
+            console.log('✅ Utils loaded:', $ ? 'OK' : 'FAIL');
+
+            // Test simulator import
+            import RetirementSimulator from './js/simulator.js';
+            console.log('✅ Simulator loaded:', RetirementSimulator ? 'OK' : 'FAIL');
+
+            // Test app import
+            import RetirementCalculatorApp from './js/app.js';
+            console.log('✅ App loaded:', RetirementCalculatorApp ? 'OK' : 'FAIL');
+
+            document.getElementById('status').innerHTML = '✅ All modules loaded successfully!';
+
+        } catch (error) {
+            console.error('❌ Module loading error:', error);
+            document.getElementById('status').innerHTML = '❌ Error: ' + error.message;
+        }
+    </script>
+</body>
+</html>
