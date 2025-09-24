@@ -970,7 +970,7 @@
     });
 
     // Check for module support
-    if (!('type' in document.createElement('script'))) {
+    if (!('noModule' in document.createElement('script'))) {
         document.body.innerHTML = `
             <div class="min-h-screen bg-yellow-50 flex items-center justify-center p-4">
                 <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
