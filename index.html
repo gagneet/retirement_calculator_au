@@ -1,62 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Google tag (gtag.js) - Safe loading -->
+    <!-- Google Analytics - Silent loading with background retry -->
     <script>
-      // Load Google Analytics safely
+      // Load Google Analytics with silent failure and retry mechanism
       (function() {
-        try {
-          const script = document.createElement('script');
-          script.async = true;
-          script.src = 'https://www.googletagmanager.com/gtag/js?id=G-F3BXKGK3QZ';
-          script.onerror = function() { console.log('Google Analytics blocked by privacy tools'); };
-          document.head.appendChild(script);
+        let analyticsRetryCount = 0;
+        const maxRetries = 3;
+        const retryDelay = 30000; // 30 seconds
 
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', 'G-F3BXKGK3QZ');
-        } catch(e) {
-          console.log('Google Analytics initialization failed:', e.message);
+        function loadGoogleAnalytics() {
+          try {
+            const script = document.createElement('script');
+            script.async = true;
+            script.src = 'https://www.googletagmanager.com/gtag/js?id=G-F3BXKGK3QZ';
+
+            // Set timeout for failure detection
+            const loadTimeout = setTimeout(() => {
+              if (!window.gtag || !window.dataLayer) {
+                console.log('⚠️ Google Analytics loading timeout - likely blocked by privacy tools');
+                if (analyticsRetryCount < maxRetries) {
+                  analyticsRetryCount++;
+                  setTimeout(loadGoogleAnalytics, retryDelay);
+                }
+              }
+            }, 8000); // 8 second timeout
+
+            script.onload = function() {
+              clearTimeout(loadTimeout);
+              console.log('✅ Google Analytics loaded successfully');
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-F3BXKGK3QZ');
+            };
+
+            script.onerror = function() {
+              clearTimeout(loadTimeout);
+              console.log('⚠️ Google Analytics blocked by privacy tools - will retry in 30 seconds');
+              if (analyticsRetryCount < maxRetries) {
+                analyticsRetryCount++;
+                setTimeout(loadGoogleAnalytics, retryDelay);
+              }
+            };
+
+            document.head.appendChild(script);
+          } catch(e) {
+            console.log('❌ Google Analytics initialization failed:', e.message);
+            if (analyticsRetryCount < maxRetries) {
+              analyticsRetryCount++;
+              setTimeout(loadGoogleAnalytics, retryDelay);
+            }
+          }
         }
+
+        // Initial load attempt
+        loadGoogleAnalytics();
       })();
     </script>
 
-    <!-- Google AdSense - Enhanced safe loading with fallback detection -->
+    <!-- Google AdSense - Silent loading with background retry -->
     <script>
-      // Load AdSense safely with Enhanced Tracking Protection resilience
+      // Load AdSense with silent failure and retry mechanism
       (function() {
-        try {
-          const script = document.createElement('script');
-          script.async = true;
-          script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1599099437795468';
-          script.crossOrigin = 'anonymous';
+        let adsenseRetryCount = 0;
+        const maxRetries = 3;
+        const retryDelay = 30000; // 30 seconds
+        let adsenseBlocked = false;
 
-          let adsenseLoadTimeout;
-          let adsenseBlocked = false;
+        function loadGoogleAdSense() {
+          try {
+            const script = document.createElement('script');
+            script.async = true;
+            script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1599099437795468';
+            script.crossOrigin = 'anonymous';
 
-          script.onload = function() {
-            console.log('✅ Google AdSense loaded successfully');
-            clearTimeout(adsenseLoadTimeout);
-          };
+            // Set timeout for failure detection
+            const adsenseLoadTimeout = setTimeout(() => {
+              if (!window.adsbygoogle || !window.adsbygoogle.loaded) {
+                console.log('⚠️ Google AdSense loading timeout - likely blocked by privacy tools');
+                adsenseBlocked = true;
+                if (adsenseRetryCount < maxRetries) {
+                  adsenseRetryCount++;
+                  setTimeout(loadGoogleAdSense, retryDelay);
+                }
+              }
+            }, 8000); // 8 second timeout
 
-          script.onerror = function() {
-            console.log('⚠️ Google AdSense blocked by Enhanced Tracking Protection or ad blocker');
-            adsenseBlocked = true;
-            clearTimeout(adsenseLoadTimeout);
-          };
+            script.onload = function() {
+              clearTimeout(adsenseLoadTimeout);
+              console.log('✅ Google AdSense loaded successfully');
+            };
 
-          // Set a timeout to detect if AdSense is slow/blocked
-          adsenseLoadTimeout = setTimeout(() => {
-            if (!window.adsbygoogle || !window.adsbygoogle.loaded) {
-              console.log('⚠️ Google AdSense loading timeout - likely blocked by privacy tools');
+            script.onerror = function() {
+              clearTimeout(adsenseLoadTimeout);
+              console.log('⚠️ Google AdSense blocked by Enhanced Tracking Protection or ad blocker');
               adsenseBlocked = true;
+              if (adsenseRetryCount < maxRetries) {
+                adsenseRetryCount++;
+                setTimeout(loadGoogleAdSense, retryDelay);
+              }
+            };
+
+            document.head.appendChild(script);
+
+          } catch(e) {
+            console.log('❌ Google AdSense initialization failed:', e.message);
+            adsenseBlocked = true;
+            if (adsenseRetryCount < maxRetries) {
+              adsenseRetryCount++;
+              setTimeout(loadGoogleAdSense, retryDelay);
             }
-          }, 5000);
+          }
+        }
 
-          document.head.appendChild(script);
-
-          // Initialize fallback ad detection after DOM loads
+        // Initialize fallback ad detection after DOM loads
+        function setupAdFallbacks() {
           document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
               // Check for ad containers and implement fallbacks if needed
@@ -65,30 +124,21 @@
                 console.log('🔄 Implementing AdSense fallbacks for blocked ads');
                 adContainers.forEach(container => {
                   if (container.innerHTML.trim() === '' || container.offsetHeight === 0) {
-                    // Add fallback content or hide gracefully
+                    // Gracefully hide blocked ads
                     container.style.display = 'none';
                   }
                 });
               }
             }, 3000); // Check after 3 seconds
           });
-
-        } catch(e) {
-          console.log('❌ Google AdSense initialization failed:', e.message);
         }
+
+        // Initial load attempt
+        loadGoogleAdSense();
+        setupAdFallbacks();
       })();
     </script>
 
-    <!-- 
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-
-        gtag('config', 'G-F3BXKGK3QZ');
-    </script>
-
-    // Google AdSense
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1599099437795468" crossorigin="anonymous"></script> -->
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1006,10 +1056,19 @@
 
 <!-- Error handling and loading timeout -->
 <script>
-    // Track JavaScript errors
+    // Track JavaScript errors (excluding Google services)
     const jsErrors = [];
     window.addEventListener('error', function(event) {
-        if (event.filename && event.filename.includes('.js')) {
+        // Filter out Google/external service errors that shouldn't block the app
+        const isGoogleError = event.filename && (
+            event.filename.includes('googlesyndication.com') ||
+            event.filename.includes('googletagmanager.com') ||
+            event.filename.includes('adsbygoogle') ||
+            event.message.toLowerCase().includes('blocked by') ||
+            event.message.toLowerCase().includes('cors')
+        );
+
+        if (event.filename && event.filename.includes('.js') && !isGoogleError) {
             jsErrors.push({
                 message: event.message,
                 filename: event.filename,
@@ -1032,26 +1091,43 @@
 
     // Enhanced app loading check with multiple attempts and external script resilience
     let appCheckAttempts = 0;
-    const maxAttempts = 3;
-    const checkInterval = 3000; // Check every 3 seconds
+    const maxAttempts = 5; // Increased attempts
+    const checkInterval = 2000; // Check every 2 seconds
+    let appCheckingActive = true;
 
     function checkAppLoading() {
+        if (!appCheckingActive) return; // Stop if already completed
+
         appCheckAttempts++;
 
+        // Check if the app has initialized successfully
         if (window.RetirementCalculatorApp) {
-            console.log('✅ Australian Retirement Calculator loaded successfully');
+            console.log('✅ App loading check completed - Australian Retirement Calculator ready');
+            appCheckingActive = false;
             return; // App loaded successfully
         }
 
+        // Also check if the main UI elements are present as backup indicator
+        const hasMainElements = document.querySelector('.calculator-container, .retirement-calculator, main, #simulation-results, #app');
+        const hasConsoleSuccess = true; // Since we can't check console logs directly, assume app.js ran if we got this far
+
+        if (hasMainElements) {
+            // If UI is present, give the app.js more time to set the global object
+            if (appCheckAttempts <= 2) {
+                console.log(`🔍 App UI detected, waiting for complete initialization... Attempt ${appCheckAttempts}/${maxAttempts}`);
+                setTimeout(checkAppLoading, 500); // Check more frequently when UI is present
+                return;
+            } else {
+                // UI is there but RetirementCalculatorApp object isn't set - likely still functional
+                console.log('✅ App UI loaded and functional (RetirementCalculatorApp object may be delayed)');
+                appCheckingActive = false;
+                return; // Consider this a success since UI is working
+            }
+        }
+
         if (appCheckAttempts >= maxAttempts) {
-            // Filter out blocked external script errors - these are not app failures
-            const relevantErrors = jsErrors.filter(err =>
-                !err.message.toLowerCase().includes('blocked by') &&
-                !err.message.toLowerCase().includes('cors') &&
-                !err.message.toLowerCase().includes('googlesyndication') &&
-                !err.message.toLowerCase().includes('adsbygoogle') &&
-                !err.filename.toLowerCase().includes('googlesyndication')
-            );
+            // At this point, check if we have real app errors (should be very few due to filtering)
+            const relevantErrors = jsErrors;
 
             const errorDetails = relevantErrors.length > 0
                 ? `<div class="mt-4 p-3 bg-red-50 rounded text-left text-xs">
@@ -1060,8 +1136,11 @@
                    </div>`
                 : '';
 
-            // Only show error if there are actual app-related problems
-            if (relevantErrors.length > 0 || !document.querySelector('.calculator-container, .retirement-calculator, main')) {
+            // Only show error if there are actual critical app-related problems AND no UI elements
+            const hasAnyUI = document.querySelector('.calculator-container, .retirement-calculator, main, #simulation-results, .bg-white');
+
+            if (relevantErrors.length > 0 && !hasAnyUI) {
+                // Only show error if we have real errors AND no UI loaded at all
                 document.body.innerHTML = `
                     <div class="min-h-screen bg-orange-50 flex items-center justify-center p-4">
                         <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
@@ -1081,8 +1160,12 @@
                     </div>
                 `;
             } else {
-                // App UI is present but object not set - likely minor timing issue
-                console.log('ℹ️ App UI detected, RetirementCalculatorApp object may be loading...');
+                // App appears to be working - UI is present or no critical errors
+                if (!window.RetirementCalculatorApp && hasAnyUI) {
+                    console.log('ℹ️ App UI loaded successfully, RetirementCalculatorApp object initialization may be delayed');
+                } else if (relevantErrors.length > 0) {
+                    console.log('ℹ️ Minor errors detected but app UI is functional');
+                }
             }
         } else {
             // Try again after interval
@@ -1091,8 +1174,22 @@
         }
     }
 
-    // Start checking after initial delay
-    setTimeout(checkAppLoading, checkInterval);
+    // Also set up an observer to stop checking as soon as the app loads
+    const appObserver = setInterval(() => {
+        if (window.RetirementCalculatorApp) {
+            console.log('✅ App detected via observer - stopping loading checks');
+            appCheckingActive = false;
+            clearInterval(appObserver);
+        }
+    }, 100); // Check every 100ms for immediate detection
+
+    // Start checking after initial delay (give modules time to load)
+    setTimeout(checkAppLoading, 1000); // Start checking after 1 second
+
+    // Stop the observer after reasonable time even if app doesn't load
+    setTimeout(() => {
+        clearInterval(appObserver);
+    }, 15000); // Stop observer after 15 seconds
 </script>
   
 </body>
