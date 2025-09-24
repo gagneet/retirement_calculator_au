@@ -19,7 +19,7 @@ import logging
 # Configuration
 ADMIN_EMAIL = 'gagneet@silverfoxtechnologies.com.au'
 ADMIN_PASSWORD = 'Gagneet$5'
-FEEDBACK_FILE = 'data/feedback.json'
+FEEDBACK_FILE = '../data/feedback.json'
 MAX_FEEDBACK_ITEMS = 100
 SECRET_KEY = 'retirement-calculator-secret-key-change-this'
 

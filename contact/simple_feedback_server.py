@@ -19,7 +19,7 @@ import mimetypes
 # Configuration
 ADMIN_EMAIL = 'gagneet@silverfoxtechnologies.com.au'
 ADMIN_PASSWORD = 'Gagneet$5'
-FEEDBACK_FILE = 'data/feedback.json'
+FEEDBACK_FILE = '../data/feedback.json'
 MAX_FEEDBACK_ITEMS = 100
 PORT = 8001
 
@@ -233,7 +233,7 @@ class FeedbackHandler(BaseHTTPRequestHandler):
     def serve_contact_page(self):
         """Serve the contact page with modified API URLs"""
         try:
-            with open('contact.html', 'r', encoding='utf-8') as f:
+            with open('../contact.html', 'r', encoding='utf-8') as f:
                 content = f.read()
 
             # Replace the API URL to use relative paths
