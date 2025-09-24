@@ -1,5 +1,40 @@
 [
   {
+    "id": "5bc09f71-9226-4486-aa80-69c495ca9394",
+    "type": "feedback",
+    "message": "Test on port 5055",
+    "timestamp": "2025-09-24T09:32:34.624099",
+    "ip": "192.168.0.148"
+  },
+  {
+    "id": "cdeb1650-a851-471e-bcdf-6616241ce0f8",
+    "type": "feedback",
+    "message": "Simple test",
+    "timestamp": "2025-09-24T09:22:14.288398",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "f013aad2-1427-405f-bfd2-02d690312501",
+    "type": "feedback",
+    "message": "Test from fixed contact form",
+    "timestamp": "2025-09-24T09:20:49.965623",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "8eeb493b-8502-4f19-9fa2-20c43dbf0264",
+    "type": "feedback",
+    "message": "Test from Python script",
+    "timestamp": "2025-09-24T09:18:42.213784",
+    "ip": "127.0.0.1"
+  },
+  {
+    "id": "77ee4ec5-6b14-4260-832a-0467b70367c6",
+    "type": "feedback",
+    "message": "Test from curl",
+    "timestamp": "2025-09-24T09:17:57.006014",
+    "ip": "127.0.0.1"
+  },
+  {
     "id": "a25aac14-90d0-41d8-b932-9be43ef36183",
     "type": "feedback",
     "message": "This is a test feedback from the setup process!",

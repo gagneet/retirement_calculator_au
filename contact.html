@@ -163,13 +163,17 @@
 
             try {
                 // Send feedback to server
-                const response = await fetch('http://localhost:5000/api/feedback', {
+                const response = await fetch('http://192.168.0.148:8001/api/feedback', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify(feedbackData)
                 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
                 const result = await response.json();
 
@@ -240,7 +244,12 @@
 
             try {
                 // Try to load from server first
-                const response = await fetch('http://localhost:5000/api/feedback');
+                const response = await fetch('http://192.168.0.148:8001/api/feedback');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const result = await response.json();
 
                 if (result.success && result.feedback) {

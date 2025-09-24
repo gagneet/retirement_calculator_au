@@ -14,13 +14,14 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from email.mime.text import MIMEText
 import uuid
 import logging
+import mimetypes
 
 # Configuration
 ADMIN_EMAIL = 'gagneet@silverfoxtechnologies.com.au'
 ADMIN_PASSWORD = 'Gagneet$5'
 FEEDBACK_FILE = 'data/feedback.json'
 MAX_FEEDBACK_ITEMS = 100
-PORT = 5000
+PORT = 8001
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -99,6 +100,8 @@ class FeedbackHandler(BaseHTTPRequestHandler):
 
         elif self.path.startswith('/admin'):
             self.serve_admin_panel()
+        elif self.path == '/contact.html' or self.path == '/contact':
+            self.serve_contact_page()
         else:
             self.send_response(404)
             self.end_headers()
@@ -227,6 +230,26 @@ class FeedbackHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(html.encode())
 
+    def serve_contact_page(self):
+        """Serve the contact page with modified API URLs"""
+        try:
+            with open('contact.html', 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Replace the API URL to use relative paths
+            content = content.replace('http://192.168.0.148:8001/api/feedback', '/api/feedback')
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(content.encode('utf-8'))
+        except FileNotFoundError:
+            self.send_response(404)
+            self.send_header('Content-Type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b'Contact page not found')
+
     def handle_admin_login(self):
         """Handle admin login (simplified)"""
         # For simplicity, just redirect to admin panel
@@ -236,10 +259,11 @@ def run_server():
     """Run the feedback server"""
     ensure_data_directory()
 
-    server = HTTPServer(('localhost', PORT), FeedbackHandler)
-    print(f"Starting Feedback Server on http://localhost:{PORT}")
-    print(f"Admin panel: http://localhost:{PORT}/admin")
-    print(f"API endpoint: http://localhost:{PORT}/api/feedback")
+    server = HTTPServer(('0.0.0.0', PORT), FeedbackHandler)
+    print(f"Starting Feedback Server on http://192.168.0.148:{PORT}")
+    print(f"Admin panel: http://192.168.0.148:{PORT}/admin")
+    print(f"API endpoint: http://192.168.0.148:{PORT}/api/feedback")
+    print(f"Contact form: http://192.168.0.148:{PORT}/contact.html")
     print(f"Email notifications to: {ADMIN_EMAIL}")
     print("Press Ctrl+C to stop the server")
 
