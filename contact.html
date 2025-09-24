@@ -163,7 +163,7 @@
 
             try {
                 // Send feedback to server
-                const response = await fetch('api/feedback.php', {
+                const response = await fetch('http://localhost:5000/api/feedback', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -240,7 +240,7 @@
 
             try {
                 // Try to load from server first
-                const response = await fetch('api/feedback.php');
+                const response = await fetch('http://localhost:5000/api/feedback');
                 const result = await response.json();
 
                 if (result.success && result.feedback) {
