@@ -147,9 +147,7 @@
             const formData = new FormData(this);
             const feedbackData = {
                 type: formData.get('feedbackType'),
-                message: formData.get('feedbackText').trim(),
-                timestamp: new Date().toISOString(),
-                id: Date.now().toString()
+                message: formData.get('feedbackText').trim()
             };
 
             if (!feedbackData.message) {
@@ -157,82 +155,156 @@
                 return;
             }
 
-            try {
-                // Store feedback locally (in real implementation, this would be sent to server)
-                const existingFeedback = JSON.parse(localStorage.getItem('retirementCalcFeedback') || '[]');
-                existingFeedback.unshift(feedbackData);
+            // Disable submit button to prevent double submission
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = 'Submitting...';
 
-                // Keep only last 50 feedback items
-                if (existingFeedback.length > 50) {
-                    existingFeedback.splice(50);
+            try {
+                // Send feedback to server
+                const response = await fetch('api/feedback.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(feedbackData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Reset form
+                    this.reset();
+                    charCount.textContent = '0/1000';
+                    charCount.classList.remove('text-red-500', 'text-yellow-500');
+                    charCount.classList.add('text-gray-400');
+
+                    showStatus('Thank you for your feedback! It has been recorded and shared with other users.', 'success');
+
+                    // Refresh the feedback display
+                    loadFeedback();
+                } else {
+                    throw new Error(result.error || 'Failed to submit feedback');
                 }
 
-                localStorage.setItem('retirementCalcFeedback', JSON.stringify(existingFeedback));
-
-                // Reset form
-                this.reset();
-                charCount.textContent = '0/1000';
-                charCount.classList.remove('text-red-500', 'text-yellow-500');
-                charCount.classList.add('text-gray-400');
-
-                showStatus('Thank you for your feedback! It has been recorded.', 'success');
-
-                // Refresh the feedback display
-                loadFeedback();
-
             } catch (error) {
-                console.error('Error saving feedback:', error);
-                showStatus('There was an error saving your feedback. Please try again.', 'error');
+                console.error('Error submitting feedback:', error);
+
+                // Fallback to localStorage if server is unavailable
+                try {
+                    const existingFeedback = JSON.parse(localStorage.getItem('retirementCalcFeedback') || '[]');
+                    const localFeedback = {
+                        ...feedbackData,
+                        timestamp: new Date().toISOString(),
+                        id: Date.now().toString(),
+                        local: true
+                    };
+                    existingFeedback.unshift(localFeedback);
+
+                    if (existingFeedback.length > 50) {
+                        existingFeedback.splice(50);
+                    }
+
+                    localStorage.setItem('retirementCalcFeedback', JSON.stringify(existingFeedback));
+
+                    // Reset form
+                    this.reset();
+                    charCount.textContent = '0/1000';
+                    charCount.classList.remove('text-red-500', 'text-yellow-500');
+                    charCount.classList.add('text-gray-400');
+
+                    showStatus('Server unavailable. Your feedback has been saved locally.', 'warning');
+                    loadFeedback();
+
+                } catch (fallbackError) {
+                    showStatus('There was an error saving your feedback. Please try again.', 'error');
+                }
+            } finally {
+                // Re-enable submit button
+                submitButton.disabled = false;
+                submitButton.textContent = originalText;
             }
         });
 
         // Load and display feedback
-        function loadFeedback() {
+        async function loadFeedback() {
             const feedbackList = document.getElementById('feedbackList');
 
-            try {
-                const feedback = JSON.parse(localStorage.getItem('retirementCalcFeedback') || '[]');
+            // Show loading state
+            feedbackList.innerHTML = `
+                <div class="text-center text-gray-500 py-8">
+                    <p>Loading feedback...</p>
+                </div>
+            `;
 
-                if (feedback.length === 0) {
-                    feedbackList.innerHTML = `
-                        <div class="text-center text-gray-500 py-8">
-                            <p>No feedback yet. Be the first to share your thoughts!</p>
-                        </div>
-                    `;
+            try {
+                // Try to load from server first
+                const response = await fetch('api/feedback.php');
+                const result = await response.json();
+
+                if (result.success && result.feedback) {
+                    displayFeedback(result.feedback);
                     return;
                 }
 
-                feedbackList.innerHTML = feedback.map(item => {
-                    const date = new Date(item.timestamp).toLocaleDateString();
-                    const typeEmoji = {
-                        'feedback': '💬',
-                        'defect': '🐛',
-                        'kudos': '👏',
-                        'feature': '💡',
-                        'other': '📝'
-                    };
-
-                    return `
-                        <div class="border-l-4 border-gray-200 pl-4 py-2">
-                            <div class="flex items-center justify-between mb-1">
-                                <span class="text-sm font-medium text-gray-800">
-                                    ${typeEmoji[item.type] || '📝'} ${item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-                                </span>
-                                <span class="text-xs text-gray-500">${date}</span>
-                            </div>
-                            <p class="text-sm text-gray-700">${item.message}</p>
-                        </div>
-                    `;
-                }).join('');
+                throw new Error('Server response invalid');
 
             } catch (error) {
-                console.error('Error loading feedback:', error);
+                console.log('Server unavailable, loading local feedback:', error);
+
+                // Fallback to localStorage
+                try {
+                    const localFeedback = JSON.parse(localStorage.getItem('retirementCalcFeedback') || '[]');
+                    displayFeedback(localFeedback);
+                } catch (localError) {
+                    console.error('Error loading local feedback:', localError);
+                    feedbackList.innerHTML = `
+                        <div class="text-center text-gray-500 py-8">
+                            <p>Error loading feedback.</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // Display feedback function
+        function displayFeedback(feedback) {
+            const feedbackList = document.getElementById('feedbackList');
+
+            if (feedback.length === 0) {
                 feedbackList.innerHTML = `
                     <div class="text-center text-gray-500 py-8">
-                        <p>Error loading feedback.</p>
+                        <p>No feedback yet. Be the first to share your thoughts!</p>
                     </div>
                 `;
+                return;
             }
+
+            feedbackList.innerHTML = feedback.map(item => {
+                const date = new Date(item.timestamp).toLocaleDateString();
+                const typeEmoji = {
+                    'feedback': '💬',
+                    'defect': '🐛',
+                    'kudos': '👏',
+                    'feature': '💡',
+                    'other': '📝'
+                };
+
+                const isLocal = item.local ? ' <span class="text-xs text-yellow-600">(Local)</span>' : '';
+
+                return `
+                    <div class="border-l-4 border-gray-200 pl-4 py-2">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm font-medium text-gray-800">
+                                ${typeEmoji[item.type] || '📝'} ${item.type.charAt(0).toUpperCase() + item.type.slice(1)}${isLocal}
+                            </span>
+                            <span class="text-xs text-gray-500">${date}</span>
+                        </div>
+                        <p class="text-sm text-gray-700">${item.message}</p>
+                    </div>
+                `;
+            }).join('');
         }
 
         // Show status messages
