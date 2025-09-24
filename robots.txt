@@ -19,4 +19,4 @@ Allow: /favicon.ico
 Allow: /site.webmanifest
 
 # Sitemap location
-Sitemap: https://retirement-calculator.com.au/sitemap.xml
+Sitemap: https://retirement.gagneet.com/sitemap.xml

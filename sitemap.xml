@@ -6,7 +6,7 @@
 
     <!-- Main Calculator Page -->
     <url>
-        <loc>https://retirement-calculator.com.au/</loc>
+        <loc>https://retirement.gagneet.com/</loc>
         <lastmod>2024-01-15</lastmod>
         <changefreq>monthly</changefreq>
         <priority>1.0</priority>
@@ -14,35 +14,35 @@
 
     <!-- Individual Calculator Sections (potential future pages) -->
     <url>
-        <loc>https://retirement-calculator.com.au/#summary</loc>
+        <loc>https://retirement.gagneet.com/#summary</loc>
         <lastmod>2024-01-15</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <url>
-        <loc>https://retirement-calculator.com.au/#recommendations</loc>
+        <loc>https://retirement.gagneet.com/#recommendations</loc>
         <lastmod>2024-01-15</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <url>
-        <loc>https://retirement-calculator.com.au/#projection</loc>
+        <loc>https://retirement.gagneet.com/#projection</loc>
         <lastmod>2024-01-15</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://retirement-calculator.com.au/#property</loc>
+        <loc>https://retirement.gagneet.com/#property</loc>
         <lastmod>2024-01-15</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
 
     <url>
-        <loc>https://retirement-calculator.com.au/#charts</loc>
+        <loc>https://retirement.gagneet.com/#charts</loc>
         <lastmod>2024-01-15</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
