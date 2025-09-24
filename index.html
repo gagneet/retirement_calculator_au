@@ -953,215 +953,73 @@
     </footer>
 </div>
 
-<!-- Enhanced Module Loading with Proper Error Handling -->
-<script type="module">
-    // Check for ES6 module support
-    const supportsModules = 'noModule' in document.createElement('script');
-    if (!supportsModules) {
-        document.body.innerHTML = `
-            <div class="min-h-screen bg-yellow-50 flex items-center justify-center p-4">
-                <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h1 class="text-xl font-bold text-yellow-600 mb-4">Browser Not Supported</h1>
-                    <p class="text-gray-600 mb-4">Your browser doesn't support ES6 modules.</p>
-                    <p class="text-sm text-gray-500">Please update to a modern browser like Chrome 61+, Firefox 60+, or Safari 11+.</p>
-                    <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                        Retry
-                    </button>
-                </div>
-            </div>
-        `;
-        throw new Error('ES6 modules not supported');
-    }
+<!-- Load JavaScript modules -->
+<script type="module" src="js/theme.js?v=1758717013"></script>
+<script type="module" src="js/config.js?v=1758717013"></script>
+<script type="module" src="js/utils.js?v=1758717013"></script>
+<script type="module" src="js/simulator.js?v=1758717013"></script>
+<script type="module" src="js/recommendation.js?v=1758717013"></script>
+<script type="module" src="js/decision-support-engine.js?v=1758717013"></script>
+<script type="module" src="js/market-data.js?v=1758717013"></script>
+<script type="module" src="js/charts.js?v=1758717013"></script>
+<script type="module" src="js/app.js?v=1758717013"></script>
 
-    // Enhanced module loading with proper error handling
-    const moduleErrors = [];
-    const loadingStatus = {
-        loaded: 0,
-        total: 0,
-        failed: 0
-    };
-
-    // Show loading progress
-    function showLoadingProgress() {
-        const progress = document.createElement('div');
-        progress.id = 'module-loading-progress';
-        progress.style.cssText = `
-            position: fixed; top: 0; left: 0; right: 0; z-index: 10000;
-            background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
-            height: 3px; transform-origin: left;
-            transform: scaleX(0); transition: transform 0.3s ease;
-        `;
-        document.body.appendChild(progress);
-
-        const updateProgress = () => {
-            const percent = loadingStatus.total > 0 ? loadingStatus.loaded / loadingStatus.total : 0;
-            progress.style.transform = `scaleX(${percent})`;
-            if (percent >= 1) {
-                setTimeout(() => progress.remove(), 500);
-            }
-        };
-
-        return updateProgress;
-    }
-
-    const updateProgress = showLoadingProgress();
-
-    // Enhanced module loading function
-    async function loadModule(src, name, isEssential = true) {
-        loadingStatus.total++;
-        try {
-            console.log(`Loading ${name}...`);
-            const module = await import(src);
-            loadingStatus.loaded++;
-            console.log(`✅ ${name} loaded successfully`);
-            updateProgress();
-            return module;
-        } catch (error) {
-            loadingStatus.failed++;
-            loadingStatus.loaded++; // Count as processed
-
-            const errorInfo = {
-                name,
-                src,
-                message: error.message,
-                isEssential,
-                timestamp: new Date().toISOString()
-            };
-
-            moduleErrors.push(errorInfo);
-            console.error(`❌ Failed to load ${name}:`, error);
-
-            if (isEssential) {
-                console.error(`Essential module ${name} failed to load. This may cause application malfunction.`);
-            }
-
-            updateProgress();
-
-            // Don't throw for non-essential modules
-            if (!isEssential) {
-                return null;
-            }
-            throw error;
+<!-- Error handling and loading timeout -->
+<script>
+    // Track JavaScript errors
+    const jsErrors = [];
+    window.addEventListener('error', function(event) {
+        if (event.filename && event.filename.includes('.js')) {
+            jsErrors.push({
+                message: event.message,
+                filename: event.filename,
+                lineno: event.lineno,
+                colno: event.colno
+            });
+            console.error('JavaScript Error:', event.error);
         }
-    }
+    });
 
-    // Load modules with dependency order and error handling
-    async function initializeApplication() {
-        try {
-            // Phase 1: Load foundation modules (parallel - no dependencies)
-            console.log('Phase 1: Loading foundation modules...');
-            const [configModule, utilsModule] = await Promise.all([
-                loadModule('./js/config.js?v=1758716076', 'Config'),
-                loadModule('./js/utils.js?v=1758716076', 'Utils')
-            ]);
+    // Track promise rejections
+    window.addEventListener('unhandledrejection', function(event) {
+        jsErrors.push({
+            message: event.reason.message || 'Promise rejection',
+            filename: 'Promise',
+            type: 'rejection'
+        });
+        console.error('Unhandled Promise Rejection:', event.reason);
+    });
 
-            // Phase 2: Load theme (non-essential, can run independently)
-            console.log('Phase 2: Loading theme...');
-            loadModule('./js/theme.js?v=1758716076', 'Theme', false); // Non-blocking
+    // Check if app loaded after timeout
+    setTimeout(function() {
+        if (!window.RetirementCalculatorApp) {
+            const errorDetails = jsErrors.length > 0
+                ? `<div class="mt-4 p-3 bg-red-50 rounded text-left text-xs">
+                     <strong>Errors found:</strong><br>
+                     ${jsErrors.map(err => `• ${err.message} (${err.filename}${err.lineno ? `:${err.lineno}` : ''})`).join('<br>')}
+                   </div>`
+                : '';
 
-            // Phase 3: Load business logic modules (depend on config/utils)
-            console.log('Phase 3: Loading business logic modules...');
-            const [simulatorModule, marketDataModule] = await Promise.all([
-                loadModule('./js/simulator.js?v=1758716076', 'Simulator'),
-                loadModule('./js/market-data.js?v=1758716076', 'Market Data')
-            ]);
-
-            // Phase 4: Load specialized modules (depend on simulator)
-            console.log('Phase 4: Loading specialized modules...');
-            const [recommendationModule, decisionEngineModule, chartsModule] = await Promise.all([
-                loadModule('./js/recommendation.js?v=1758716076', 'Recommendation Engine'),
-                loadModule('./js/decision-support-engine.js?v=1758716076', 'Decision Support Engine'),
-                loadModule('./js/charts.js?v=1758716076', 'Charts')
-            ]);
-
-            // Phase 5: Load main application (depends on all others)
-            console.log('Phase 5: Loading main application...');
-            const appModule = await loadModule('./js/app.js?v=1758716076', 'Main Application');
-
-            // Application loaded successfully
-            console.log('🎉 All modules loaded successfully!');
-
-            // Wait a brief moment for app initialization
-            setTimeout(() => {
-                if (!window.RetirementCalculatorApp) {
-                    console.warn('⚠️ Application object not found on window. App may not have initialized properly.');
-                    showDetailedError(new Error('Application failed to initialize'));
-                } else {
-                    console.log('✅ Australian Retirement Calculator ready!');
-                }
-            }, 1000);
-
-        } catch (error) {
-            console.error('💥 Critical module loading failure:', error);
-            showDetailedError(error);
-        }
-    }
-
-    // Enhanced error display
-    function showDetailedError(error) {
-        const errorDetails = moduleErrors.length > 0
-            ? `<div class="mt-4 p-3 bg-red-50 rounded text-left">
-                 <strong>Module Errors:</strong><br>
-                 ${moduleErrors.map(err => `• ${err.name}: ${err.message}`).join('<br>')}
-               </div>`
-            : '';
-
-        document.body.innerHTML = `
-            <div class="min-h-screen bg-red-50 flex items-center justify-center p-4">
-                <div class="max-w-lg p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h1 class="text-xl font-bold text-red-600 mb-4">Loading Failed</h1>
-                    <p class="text-gray-600 mb-4">The calculator failed to load properly.</p>
-                    <p class="text-sm text-gray-500 mb-4">${error.message}</p>
-                    ${errorDetails}
-                    <div class="flex gap-2 justify-center mt-6">
-                        <button onclick="location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                            Reload Page
-                        </button>
-                        <button onclick="console.log('Module errors:', moduleErrors)" class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
-                            Debug Info
-                        </button>
+            document.body.innerHTML = `
+                <div class="min-h-screen bg-orange-50 flex items-center justify-center p-4">
+                    <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
+                        <h1 class="text-xl font-bold text-orange-600 mb-4">Calculator Loading Failed</h1>
+                        <p class="text-gray-600 mb-4">The application failed to initialize properly.</p>
+                        ${errorDetails}
+                        <div class="flex gap-2 justify-center mt-4">
+                            <button onclick="location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                Reload
+                            </button>
+                            <button onclick="window.open('https://caniuse.com/es6-module', '_blank')" class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-xs">
+                                Check Browser
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `;
-    }
-
-    // Global error handler as backup
-    window.addEventListener('error', (event) => {
-        if (event.filename && event.filename.includes('.js')) {
-            console.error('Global error caught:', event.error);
-            moduleErrors.push({
-                name: 'Unknown',
-                src: event.filename,
-                message: event.message,
-                line: event.lineno,
-                isEssential: true,
-                timestamp: new Date().toISOString()
-            });
+            `;
         }
-    });
-
-    // Global unhandled promise rejection handler
-    window.addEventListener('unhandledrejection', (event) => {
-        console.error('Unhandled promise rejection:', event.reason);
-        if (event.reason && event.reason.message && event.reason.message.includes('module')) {
-            showDetailedError(event.reason);
-        }
-    });
-
-    // Start the application loading process
-    initializeApplication();
+    }, 8000);
 </script>
-
-
-<!--
-<script type="module" src="js/config.js"></script>
-<script type="module" src="js/utils.js"></script>
-<script type="module" src="js/simulator.js"></script>
-<script type="module" src="js/recommendation.js"></script>
-<script type="module" src="js/charts.js"></script>
-<script type="module" src="js/app.js"></script>
--->
   
 </body>
 </html>
