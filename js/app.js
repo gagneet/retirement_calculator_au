@@ -1953,24 +1953,120 @@ class RetirementCalculatorApp {
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Check browser compatibility first
+    const isCompatible = checkBrowserCompatibility();
+
+    if (!isCompatible.supported) {
+        showCompatibilityError(isCompatible);
+        return;
+    }
+
     try {
         new RetirementCalculatorApp();
         console.log('Enhanced Australian Retirement Calculator initialized successfully');
     } catch (error) {
         console.error('Failed to initialize calculator:', error);
-        document.body.innerHTML = `
-            <div class="min-h-screen bg-red-50 flex items-center justify-center">
-                <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h1 class="text-xl font-bold text-red-600 mb-4">Initialization Error</h1>
-                    <p class="text-gray-600 mb-4">The retirement calculator failed to load properly.</p>
-                    <p class="text-sm text-gray-500">Please check the browser console for details and ensure all files are properly loaded.</p>
-                    <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                        Reload Page
-                    </button>
-                </div>
-            </div>
-        `;
+        showDetailedError(error);
     }
 });
+
+// Browser compatibility check
+function checkBrowserCompatibility() {
+    const checks = {
+        es6Classes: (function() {
+            try {
+                eval('class TestClass {}');
+                return true;
+            } catch (e) {
+                return false;
+            }
+        })(),
+        es6Modules: typeof Symbol !== 'undefined',
+        fetch: typeof fetch !== 'undefined',
+        localStorage: typeof localStorage !== 'undefined',
+        promises: typeof Promise !== 'undefined',
+        arrowFunctions: (function() {
+            try {
+                // Try to create an arrow function using the Function constructor
+                return Function('return (() => true)();')() === true;
+            } catch (e) {
+                return false;
+            }
+        })()
+    };
+
+    const failed = Object.entries(checks).filter(([key, value]) => !value);
+
+    return {
+        supported: failed.length === 0,
+        missing: failed.map(([key]) => key),
+        userAgent: navigator.userAgent,
+        isSafari: /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent),
+        isMobile: /Mobi|Android/i.test(navigator.userAgent)
+    };
+}
+
+// Show detailed error with diagnostics
+function showDetailedError(error) {
+    const compatibility = checkBrowserCompatibility();
+    document.body.innerHTML = `
+        <div class="min-h-screen bg-red-50 flex items-center justify-center p-4">
+            <div class="max-w-lg p-6 bg-white rounded-lg shadow-lg text-center">
+                <h1 class="text-xl font-bold text-red-600 mb-4">Initialization Error</h1>
+                <p class="text-gray-600 mb-4">The retirement calculator failed to load properly.</p>
+
+                <div class="text-left bg-gray-100 p-3 rounded mb-4 text-sm">
+                    <strong>Error Details:</strong><br>
+                    ${error.message || error}<br><br>
+                    <strong>Browser:</strong> ${compatibility.userAgent}<br>
+                    <strong>Safari:</strong> ${compatibility.isSafari}<br>
+                    <strong>Mobile:</strong> ${compatibility.isMobile}
+                </div>
+
+                <div class="mb-4">
+                    <button onclick="location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mr-2">
+                        Reload Page
+                    </button>
+                    <button onclick="fallbackMode()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Try Basic Mode
+                    </button>
+                </div>
+
+                <p class="text-xs text-gray-500">If the issue persists, try using a different browser or updating your current browser.</p>
+            </div>
+        </div>
+    `;
+}
+
+// Show compatibility error
+function showCompatibilityError(compatibility) {
+    document.body.innerHTML = `
+        <div class="min-h-screen bg-yellow-50 flex items-center justify-center p-4">
+            <div class="max-w-lg p-6 bg-white rounded-lg shadow-lg text-center">
+                <h1 class="text-xl font-bold text-yellow-600 mb-4">Browser Compatibility Issue</h1>
+                <p class="text-gray-600 mb-4">Your browser doesn't support some features required by this calculator.</p>
+
+                <div class="text-left bg-gray-100 p-3 rounded mb-4 text-sm">
+                    <strong>Missing Features:</strong><br>
+                    ${compatibility.missing.join(', ')}<br><br>
+                    <strong>Browser:</strong> ${compatibility.userAgent}
+                </div>
+
+                <div class="mb-4">
+                    <button onclick="fallbackMode()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Try Basic Mode
+                    </button>
+                </div>
+
+                <p class="text-xs text-gray-500">Please update your browser or try using Chrome, Firefox, or Safari 14+.</p>
+            </div>
+        </div>
+    `;
+}
+
+// Fallback mode for older browsers
+function fallbackMode() {
+    window.location.href = 'https://retirement.gagneet.com/basic.html';
+}
 
 export default RetirementCalculatorApp;
