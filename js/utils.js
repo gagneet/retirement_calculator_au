@@ -703,26 +703,47 @@ export const exportToJSON = (data, filename = 'retirement-data.json') => {
 };
 
 // Tab management utilities
-export const showTab = (tabName) => {
+export const showTab = (tabName, scrollToTab = false) => {
     // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
     });
-    
+
     // Remove the active class from all tab buttons
     document.querySelectorAll('.tab-button').forEach(btn => {
         btn.classList.remove('active');
     });
-    
+
     // Show selected tab content
     const targetTab = document.getElementById(tabName + '-tab');
     if (targetTab) {
         targetTab.classList.add('active');
     }
-    
+
+    // Find and activate the corresponding tab button
+    const tabButton = document.querySelector(`.tab-button[onclick="showTab('${tabName}')"]`);
+    if (tabButton) {
+        tabButton.classList.add('active');
+    }
+
     // Add active class to clicked button (if event is available)
     if (window.event && window.event.target) {
         window.event.target.classList.add('active');
+    }
+
+    // Smooth scroll to results section if requested
+    if (scrollToTab) {
+        // Find the results section (parent container of all tabs)
+        const resultsSection = document.querySelector('.mt-8.bg-white.rounded-lg.shadow-md');
+        if (resultsSection) {
+            setTimeout(() => {
+                resultsSection.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                    inline: 'nearest'
+                });
+            }, 100); // Small delay to allow tab switching animation to start
+        }
     }
 };
 

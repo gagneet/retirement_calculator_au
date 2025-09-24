@@ -191,6 +191,9 @@ class RetirementCalculatorApp {
             // Render charts
             this.chartManager.renderCompleteAnalysis(result, inputs);
 
+            // Show summary tab and scroll to results
+            showTab('summary', true);
+
             showNotification('Calculation completed successfully', 'success');
 
         } catch (error) {
@@ -759,7 +762,7 @@ class RetirementCalculatorApp {
             updateProgress(90, 'Formatting comprehensive recommendations...');
             this.displayComprehensiveRecommendations(comprehensiveRecommendations);
 
-            showTab('recommendations');
+            showTab('recommendations', true);
             updateProgress(100, 'Comprehensive AI Recommendations Generated!');
             showNotification('Successfully generated comprehensive AI recommendations covering all 8 strategic areas.', 'success');
 
@@ -773,7 +776,7 @@ class RetirementCalculatorApp {
                 const basicEngine = new RecommendationEngine(this.simulator, this.collectInputs());
                 const basicRecommendations = await basicEngine.generateRecommendations();
                 this.displayRecommendations(basicRecommendations);
-                showTab('recommendations');
+                showTab('recommendations', true);
                 showNotification('Generated basic recommendations (comprehensive engine had issues)', 'warning');
             } catch (fallbackError) {
                 console.error('Fallback recommendation engine also failed:', fallbackError);
@@ -1020,7 +1023,7 @@ class RetirementCalculatorApp {
             this.chartManager.renderHistogram(results.outcomes);
 
             // Switch to the 'charts' tab
-            showTab('charts');
+            showTab('charts', true);
 
             updateProgress(0);
             showNotification('Monte Carlo simulation completed', 'success');
@@ -1058,7 +1061,7 @@ class RetirementCalculatorApp {
 
             // Display stress test results
             this.displayStressTestResults(results);
-            showTab('riskAnalysis');
+            showTab('riskAnalysis', true);
 
             updateProgress(0);
             showNotification('Stress testing completed', 'success');
@@ -1117,7 +1120,7 @@ class RetirementCalculatorApp {
                 }
 
                 // Switch to optimization tab
-                showTab('optimization');
+                showTab('optimization', true);
 
                 showNotification(`You can retire at age ${solverResult.earliestRetirementAge} with ${(solverResult.successRate * 100).toFixed(0)}% confidence!`, 'success');
             } else {
@@ -1141,7 +1144,7 @@ class RetirementCalculatorApp {
         const availableScenarios = this.simulator.getCommonScenarios(inputs);
 
         this.populateScenarioCheckboxes(availableScenarios);
-        showTab('scenarios');
+        showTab('scenarios', true);
     }
 
     populateScenarioCheckboxes(scenarios) {
@@ -1541,10 +1544,33 @@ class RetirementCalculatorApp {
         // Auto-update on risk tolerance change
         const riskTolerance = $('riskTolerance');
         if (riskTolerance) {
+            // Update display and tooltip on change
+            riskTolerance.addEventListener('input', (e) => {
+                this.updateRiskToleranceDisplay(e.target.value);
+            });
+
+            // Debounced calculation update
             riskTolerance.addEventListener('input', debounce(() => {
                 const inputs = this.collectInputs();
                 this.updateRiskProfile(inputs);
             }, 300));
+
+            // Show tooltip on hover/focus
+            riskTolerance.addEventListener('mouseenter', () => {
+                this.showRiskToleranceTooltip();
+            });
+            riskTolerance.addEventListener('mouseleave', () => {
+                this.hideRiskToleranceTooltip();
+            });
+            riskTolerance.addEventListener('focus', () => {
+                this.showRiskToleranceTooltip();
+            });
+            riskTolerance.addEventListener('blur', () => {
+                this.hideRiskToleranceTooltip();
+            });
+
+            // Initialize display
+            this.updateRiskToleranceDisplay(riskTolerance.value);
         }
 
         // Auto-update on glide path change
@@ -1638,6 +1664,49 @@ class RetirementCalculatorApp {
         setTimeout(() => {
             this.calculateRetirement();
         }, 100);
+    }
+
+    // Risk tolerance display methods
+    updateRiskToleranceDisplay(value) {
+        const riskValue = parseInt(value);
+        const riskValueDisplay = $('riskToleranceValue');
+        const riskDescriptionDisplay = $('riskToleranceDescription');
+
+        if (riskValueDisplay) {
+            const labels = {
+                1: { text: 'Very Conservative (1)', desc: 'Minimal risk, capital preservation focus, mostly cash and bonds' },
+                2: { text: 'Conservative (2)', desc: 'Low risk tolerance, steady income preferred, bond-heavy allocation' },
+                3: { text: 'Cautious (3)', desc: 'Below-average risk appetite, stability over growth, defensive approach' },
+                4: { text: 'Moderate-Low (4)', desc: 'Some growth acceptable with capital protection, balanced-conservative' },
+                5: { text: 'Moderate (5)', desc: 'Balanced approach, equal focus on growth and stability' },
+                6: { text: 'Moderate (6)', desc: 'Balanced approach with moderate risk for steady growth' },
+                7: { text: 'Moderate-High (7)', desc: 'Growth-focused with tolerance for volatility, equity-tilted portfolio' },
+                8: { text: 'Aggressive (8)', desc: 'High risk tolerance, long-term growth priority, equity-heavy allocation' },
+                9: { text: 'Very Aggressive (9)', desc: 'Maximum growth potential, accepts high volatility, aggressive allocation' },
+                10: { text: 'Extremely Aggressive (10)', desc: 'Highest risk tolerance, maximum equity exposure, volatility welcomed' }
+            };
+
+            const riskProfile = labels[riskValue] || labels[6];
+            riskValueDisplay.textContent = riskProfile.text;
+
+            if (riskDescriptionDisplay) {
+                riskDescriptionDisplay.textContent = riskProfile.desc;
+            }
+        }
+    }
+
+    showRiskToleranceTooltip() {
+        const tooltip = $('riskToleranceTooltip');
+        if (tooltip) {
+            tooltip.classList.remove('hidden');
+        }
+    }
+
+    hideRiskToleranceTooltip() {
+        const tooltip = $('riskToleranceTooltip');
+        if (tooltip) {
+            tooltip.classList.add('hidden');
+        }
     }
 }
 
