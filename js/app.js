@@ -22,7 +22,9 @@ import {
     exportToPDF,
     showTab,
     debounce,
-    showNotification
+    showNotification,
+    saveToLocalStorage,
+    loadFromLocalStorage
 } from './utils.js';
 
 class RetirementCalculatorApp {
@@ -37,7 +39,9 @@ class RetirementCalculatorApp {
     }
 
     initializeApp() {
+        this.loadSavedInputs(); // Load saved inputs first
         this.setupEventListeners();
+        this.setupAutoSave(); // Setup auto-save functionality
         this.updateUIElements();
         this.performInitialCalculation();
     }
@@ -169,7 +173,7 @@ class RetirementCalculatorApp {
     }
 
     // Main calculation function
-    async calculateRetirement() {
+    async calculateRetirement(shouldScrollToResults = true) {
         if (this.isCalculating) return;
 
         this.isCalculating = true;
@@ -191,14 +195,20 @@ class RetirementCalculatorApp {
             // Render charts
             this.chartManager.renderCompleteAnalysis(result, inputs);
 
-            // Show summary tab and scroll to results
-            showTab('summary', true);
-
-            showNotification('Calculation completed successfully', 'success');
+            // Show summary tab and conditionally scroll to results
+            if (shouldScrollToResults) {
+                showTab('summary', true);
+                showNotification('Calculation completed successfully', 'success');
+            } else {
+                // For initial load, just switch tabs without scrolling or notification
+                showTab('summary', false);
+            }
 
         } catch (error) {
             console.error('Calculation error:', error);
-            showNotification('Error in calculation: ' + error.message, 'error');
+            if (shouldScrollToResults) {
+                showNotification('Error in calculation: ' + error.message, 'error');
+            }
         } finally {
             this.isCalculating = false;
         }
@@ -1460,7 +1470,7 @@ class RetirementCalculatorApp {
         // Main calculation button
         const btnCalculate = $('btnCalculate');
         if (btnCalculate) {
-            btnCalculate.addEventListener('click', () => this.calculateRetirement());
+            btnCalculate.addEventListener('click', () => this.calculateRetirement(true));
         }
 
         // Recommendation Engine button
@@ -1491,6 +1501,12 @@ class RetirementCalculatorApp {
         const btnScenarioComparison = $('btnScenarioComparison');
         if (btnScenarioComparison) {
             btnScenarioComparison.addEventListener('click', () => this.initializeScenarioComparison());
+        }
+
+        // Reset to defaults button
+        const btnResetDefaults = $('btnResetDefaults');
+        if (btnResetDefaults) {
+            btnResetDefaults.addEventListener('click', () => this.resetToDefaults());
         }
 
         // Scenario comparison controls
@@ -1602,8 +1618,8 @@ class RetirementCalculatorApp {
         const hasInvestmentProperty = $('hasInvestmentProperty');
         if (hasInvestmentProperty) {
             hasInvestmentProperty.addEventListener('change', () => {
-                // Recalculate when property status changes
-                setTimeout(() => this.calculateRetirement(), 100);
+                // Recalculate when property status changes (don't scroll for auto-updates)
+                setTimeout(() => this.calculateRetirement(false), 100);
             });
         }
 
@@ -1619,7 +1635,8 @@ class RetirementCalculatorApp {
             if (input) {
                 const eventType = input.type === 'checkbox' ? 'change' : 'blur';
                 input.addEventListener(eventType, debounce(() => {
-                    this.calculateRetirement();
+                    // Auto-calculations from input changes don't scroll
+                    this.calculateRetirement(false);
                 }, 1000));
             }
         });
@@ -1643,7 +1660,7 @@ class RetirementCalculatorApp {
                 switch (e.key) {
                     case 'Enter':
                         e.preventDefault();
-                        this.calculateRetirement();
+                        this.calculateRetirement(true);
                         break;
                     case 'm':
                         e.preventDefault();
@@ -1661,8 +1678,9 @@ class RetirementCalculatorApp {
     // Initial calculation
     performInitialCalculation() {
         // Delay initial calculation to ensure DOM is ready
+        // Don't scroll to results on initial load - just populate data silently
         setTimeout(() => {
-            this.calculateRetirement();
+            this.calculateRetirement(false);
         }, 100);
     }
 
@@ -1707,6 +1725,229 @@ class RetirementCalculatorApp {
         if (tooltip) {
             tooltip.classList.add('hidden');
         }
+    }
+
+    // Form persistence methods
+    getAllFormInputs() {
+        /**
+         * Get all form input IDs that should be persisted
+         */
+        return [
+            // Personal details
+            'yourCurrentAge', 'partnerCurrentAge', 'retirementAge', 'partnerRetirementAge',
+            'yourLifespan', 'partnerLifespan',
+
+            // Risk profile
+            'riskTolerance', 'hasEmergencyFund', 'hasDebt', 'dependents',
+
+            // Finances
+            'yourSalary', 'partnerSalary', 'yourCurrentSuper', 'partnerCurrentSuper',
+            'currentSavings', 'currentStocks', 'monthlyStockContribution', 'percentIncomeSaved',
+
+            // Property
+            'homeValue', 'mortgageBalance', 'mortgageRate', 'monthlyMortgagePayment',
+            'planToDownsize', 'hasInvestmentProperty', 'investmentPropertyValue',
+            'investmentPropertyLoan', 'investmentPropertyRate', 'weeklyRentalIncome',
+            'annualPropertyExpenses', 'propertyGrowthRate', 'sellPropertyYears',
+            'capitalGainsTaxRate',
+
+            // Healthcare
+            'currentHealthcareCosts', 'healthcareInflation', 'agedCareProbability',
+            'agedCareStartAge', 'agedCareDuration', 'agedCareAnnualCost',
+
+            // Economic
+            'inflation', 'investmentReturn', 'returnDeclineRate', 'savingsReturn',
+            'superReturn', 'useGlidePath', 'glidePathRule', 'australianEquityAllocation',
+            'dividendYield', 'frankingRate', 'frankingCreditBenefit',
+
+            // Salary progression
+            'salaryGrowthRate', 'leanYearsStart', 'leanYearsReduction',
+
+            // Pension system
+            'asfaComfortable', 'agePensionMax', 'pensionAssetThreshold',
+            'pensionAssetLimit', 'pensionIncomeThreshold',
+
+            // Simulation
+            'numRuns', 'returnVolatility', 'enableShocks', 'shockProbability', 'shockMagnitude'
+        ];
+    }
+
+    saveAllInputs() {
+        /**
+         * Save all form inputs to localStorage
+         */
+        const formData = {};
+        const inputIds = this.getAllFormInputs();
+
+        inputIds.forEach(inputId => {
+            const element = $(inputId);
+            if (element) {
+                if (element.type === 'checkbox') {
+                    formData[inputId] = element.checked;
+                } else if (element.type === 'radio') {
+                    if (element.checked) {
+                        formData[inputId] = element.value;
+                    }
+                } else {
+                    formData[inputId] = element.value;
+                }
+            }
+        });
+
+        const success = saveToLocalStorage('retirement-calculator-inputs', formData);
+        if (success) {
+            console.log('Form inputs saved to localStorage');
+        }
+        return success;
+    }
+
+    loadSavedInputs() {
+        /**
+         * Load previously saved inputs from localStorage
+         */
+        const savedData = loadFromLocalStorage('retirement-calculator-inputs', {});
+
+        if (Object.keys(savedData).length === 0) {
+            logger.info('No saved inputs found, using defaults');
+            return false;
+        }
+
+        logger.info('Loading saved inputs from localStorage');
+        let loadedCount = 0;
+
+        Object.entries(savedData).forEach(([inputId, value]) => {
+            const element = $(inputId);
+            if (element && value !== undefined && value !== null) {
+                if (element.type === 'checkbox') {
+                    element.checked = Boolean(value);
+                } else if (element.type === 'radio') {
+                    if (element.value === value) {
+                        element.checked = true;
+                    }
+                } else {
+                    element.value = value;
+                }
+                loadedCount++;
+            }
+        });
+
+        logger.info(`Loaded ${loadedCount} saved input values`);
+        return loadedCount > 0;
+    }
+
+    resetToDefaults() {
+        /**
+         * Reset all form inputs to their default values
+         */
+        const config = ENHANCED_CONFIG.DEFAULTS;
+        const inputIds = this.getAllFormInputs();
+
+        inputIds.forEach(inputId => {
+            const element = $(inputId);
+            if (element) {
+                // Get the default value from config
+                let defaultValue = this.getDefaultValue(inputId, config);
+
+                if (element.type === 'checkbox') {
+                    element.checked = Boolean(defaultValue);
+                } else if (element.type === 'radio') {
+                    if (element.value === defaultValue) {
+                        element.checked = true;
+                    }
+                } else {
+                    element.value = defaultValue || '';
+                }
+            }
+        });
+
+        // Clear localStorage
+        localStorage.removeItem('retirement-calculator-inputs');
+
+        // Update risk tolerance display
+        const riskTolerance = $('riskTolerance');
+        if (riskTolerance) {
+            this.updateRiskToleranceDisplay(riskTolerance.value);
+        }
+
+        // Trigger a calculation update
+        this.calculateRetirement(false);
+
+        showNotification('Form reset to default values', 'success');
+        logger.info('Form inputs reset to defaults');
+    }
+
+    getDefaultValue(inputId, config) {
+        /**
+         * Get default value for a given input ID from config
+         */
+        const defaultMap = {
+            // Personal details
+            'yourCurrentAge': config.personal.yourCurrentAge,
+            'partnerCurrentAge': config.personal.partnerCurrentAge,
+            'retirementAge': config.personal.retirementAge,
+            'partnerRetirementAge': config.personal.partnerRetirementAge,
+            'yourLifespan': config.personal.yourLifespan,
+            'partnerLifespan': config.personal.partnerLifespan,
+
+            // Risk profile
+            'riskTolerance': config.risk.riskTolerance,
+            'hasEmergencyFund': config.risk.hasEmergencyFund,
+            'hasDebt': config.risk.hasDebt,
+            'dependents': config.risk.dependents,
+
+            // Finances
+            'yourSalary': config.finances.yourSalary,
+            'partnerSalary': config.finances.partnerSalary,
+            'yourCurrentSuper': config.finances.yourCurrentSuper,
+            'partnerCurrentSuper': config.finances.partnerCurrentSuper,
+            'currentSavings': config.finances.currentSavings,
+            'currentStocks': config.finances.currentStocks,
+            'monthlyStockContribution': config.finances.monthlyStockContribution,
+            'percentIncomeSaved': config.finances.percentIncomeSaved,
+
+            // Property
+            'homeValue': config.property.homeValue,
+            'mortgageBalance': config.property.mortgageBalance,
+            'mortgageRate': config.property.mortgageRate,
+            'monthlyMortgagePayment': config.property.monthlyMortgagePayment,
+            'planToDownsize': config.property.planToDownsize,
+            'hasInvestmentProperty': config.investmentProperty.hasInvestmentProperty,
+            'investmentPropertyValue': config.investmentProperty.investmentPropertyValue,
+            'investmentPropertyLoan': config.investmentProperty.investmentPropertyLoan,
+            'investmentPropertyRate': config.investmentProperty.investmentPropertyRate,
+            'weeklyRentalIncome': config.investmentProperty.weeklyRentalIncome,
+            'annualPropertyExpenses': config.investmentProperty.annualPropertyExpenses,
+            'propertyGrowthRate': config.investmentProperty.propertyGrowthRate,
+            'sellPropertyYears': config.investmentProperty.sellPropertyYears,
+            'capitalGainsTaxRate': config.investmentProperty.capitalGainsTaxRate,
+
+            // Additional defaults for fields that might not be in config
+            'useGlidePath': true,
+            'glidePathRule': '110minus',
+            'enableShocks': false
+        };
+
+        return defaultMap[inputId];
+    }
+
+    setupAutoSave() {
+        /**
+         * Setup automatic saving of form inputs when they change
+         */
+        const inputIds = this.getAllFormInputs();
+        const debouncedSave = debounce(() => {
+            this.saveAllInputs();
+        }, 1000); // Save 1 second after user stops typing
+
+        inputIds.forEach(inputId => {
+            const element = $(inputId);
+            if (element) {
+                const eventType = element.type === 'checkbox' || element.type === 'radio' || element.type === 'select-one' ? 'change' : 'input';
+                element.addEventListener(eventType, debouncedSave);
+            }
+        });
+
+        console.log('Auto-save setup completed for form inputs');
     }
 }
 
