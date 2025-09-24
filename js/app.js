@@ -1985,7 +1985,14 @@ function checkBrowserCompatibility() {
         fetch: typeof fetch !== 'undefined',
         localStorage: typeof localStorage !== 'undefined',
         promises: typeof Promise !== 'undefined',
-        arrowFunctions: (() => true)() === true
+        arrowFunctions: (function() {
+            try {
+                // Try to create an arrow function using the Function constructor
+                return Function('return (() => true)();')() === true;
+            } catch (e) {
+                return false;
+            }
+        })()
     };
 
     const failed = Object.entries(checks).filter(([key, value]) => !value);
