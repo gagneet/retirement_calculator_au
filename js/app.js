@@ -1787,7 +1787,8 @@ class RetirementCalculatorApp {
          * Save all form inputs to localStorage
          */
         const formData = {};
-        const inputIds = this.getAllFormInputs();
+        const inputGroups = this.getAllFormInputs();
+        const inputIds = Object.values(inputGroups).flat();
 
         inputIds.forEach(inputId => {
             const element = $(inputId);
@@ -1850,7 +1851,8 @@ class RetirementCalculatorApp {
          * Reset all form inputs to their default values
          */
         const config = ENHANCED_CONFIG.DEFAULTS;
-        const inputIds = this.getAllFormInputs();
+        const inputGroups = this.getAllFormInputs();
+        const inputIds = Object.values(inputGroups).flat();
 
         inputIds.forEach(inputId => {
             const element = $(inputId);
@@ -1944,7 +1946,8 @@ class RetirementCalculatorApp {
         /**
          * Setup automatic saving of form inputs when they change
          */
-        const inputIds = this.getAllFormInputs();
+        const inputGroups = this.getAllFormInputs();
+        const inputIds = Object.values(inputGroups).flat();
         const debouncedSave = debounce(() => {
             this.saveAllInputs();
         }, 1000); // Save 1 second after user stops typing
@@ -1985,8 +1988,8 @@ function checkBrowserCompatibility() {
     const checks = {
         es6Classes: (function() {
             try {
-                eval('class TestClass {}');
-                return true;
+                // Check if class keyword is supported without eval
+                return typeof class {} === 'function';
             } catch (e) {
                 return false;
             }
@@ -1997,8 +2000,9 @@ function checkBrowserCompatibility() {
         promises: typeof Promise !== 'undefined',
         arrowFunctions: (function() {
             try {
-                // Try to create an arrow function using the Function constructor
-                return Function('return (() => true)();')() === true;
+                // Check arrow function support more safely
+                const arrowTest = () => true;
+                return typeof arrowTest === 'function' && arrowTest() === true;
             } catch (e) {
                 return false;
             }
