@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "id": "a25aac14-90d0-41d8-b932-9be43ef36183",
+    "type": "feedback",
+    "message": "This is a test feedback from the setup process!",
+    "timestamp": "2025-09-24T07:35:21.485462",
+    "ip": "127.0.0.1"
+  }
+]
