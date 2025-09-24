@@ -11,6 +11,10 @@
       gtag('config', 'G-F3BXKGK3QZ');
     </script>
 
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1599099437795468"
+         crossorigin="anonymous"></script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Australian Retirement Calculator | Advanced Planning Tool with Super & Age Pension</title>
@@ -66,6 +70,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 
+    <!-- Prevent flash of unstyled content -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('retirement-calc-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+
+            if (theme === 'dark') {
+                document.documentElement.style.backgroundColor = '#111827';
+                document.documentElement.style.color = '#f9fafb';
+            } else {
+                document.documentElement.style.backgroundColor = '#f3f4f6';
+                document.documentElement.style.color = '#111827';
+            }
+        })();
+    </script>
+
     <!-- Structured Data -->
     <script type="application/ld+json">
     {
@@ -115,12 +135,33 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
 <div class="container mx-auto p-4 md:p-8">
-    <header class="text-center mb-8">
+    <header class="text-center mb-8 relative">
+        <!-- Theme Toggle Button -->
+        <div class="absolute top-0 right-0">
+            <button id="themeToggle" class="theme-toggle tooltip" aria-label="Toggle theme">
+                <svg class="theme-toggle-icon sun-icon" fill="currentColor" viewBox="0 0 24 24" style="display: block;">
+                    <path d="M12 7a5 5 0 100 10 5 5 0 000-10zM12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                </svg>
+                <svg class="theme-toggle-icon moon-icon" fill="currentColor" viewBox="0 0 24 24" style="display: none;">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                </svg>
+                <span class="tooltiptext">Toggle Dark Mode</span>
+            </button>
+        </div>
+
         <div class="flex items-center justify-center mb-4">
             <img src="assets/logo.svg" alt="Australian Retirement Calculator - Professional Financial Planning Tool" class="h-16 w-auto">
         </div>
         <h1 class="sr-only">Australian Retirement Calculator - Advanced Planning Tool</h1>
         <p class="text-lg text-gray-600">Advanced retirement planning with superannuation, age pension, healthcare costs, aged care, dynamic allocation, and investment property modeling</p>
+
+        <!-- Quick Start Instructions -->
+        <div class="mt-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-lg">
+            <p class="text-sm text-blue-800">
+                <strong>Quick Start:</strong> Fill in your personal details and finances in the left panels, then click "Calculate Enhanced Projection" to see your retirement forecast. Use "Run Enhanced Monte Carlo" for risk analysis.
+            </p>
+        </div>
+
         <div class="mt-4 text-sm text-gray-500">
             <span class="inline-block px-2 py-1 bg-green-100 text-green-800 rounded-full mr-2">✓ Free to Use</span>
             <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded-full mr-2">✓ Australian Tax Rules</span>
@@ -192,11 +233,17 @@
                 <h3 class="text-lg font-medium text-gray-700 mb-3">Risk Tolerance Assessment</h3>
                 <div class="space-y-3">
                     <div>
-                        <label for="riskTolerance" class="block text-sm font-medium text-gray-700">Risk Tolerance (1-10)</label>
-                        <input type="range" id="riskTolerance" min="1" max="10" value="6" class="mt-1 block w-full">
-                        <div class="flex justify-between text-xs text-gray-500 mt-1">
-                            <span>Conservative</span>
-                            <span>Aggressive</span>
+                        <label for="riskTolerance" class="block text-sm font-medium text-gray-700">Risk Tolerance</label>
+                        <div class="mt-1 relative">
+                            <input type="range" id="riskTolerance" min="1" max="10" value="6" class="risk-tolerance-slider w-full h-2 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-500 mt-2">
+                                <span>Conservative</span>
+                                <span class="font-semibold text-blue-700" id="riskToleranceValue">Moderate (6)</span>
+                                <span>Aggressive</span>
+                            </div>
+                        </div>
+                        <div id="riskToleranceTooltip" class="mt-2 p-2 bg-gray-100 rounded text-xs text-gray-600 hidden">
+                            <span id="riskToleranceDescription">Balanced approach with moderate risk for steady growth</span>
                         </div>
                     </div>
                     <div>
@@ -845,9 +892,9 @@
                 <div class="text-sm text-gray-500 mt-4 md:mt-0 space-x-4">
                     <a href="privacy.html" class="hover:text-gray-700">Privacy Policy</a>
                     <span>|</span>
-                    <a href="#" class="hover:text-gray-700">Terms of Use</a>
+                    <a href="terms.html" class="hover:text-gray-700">Terms of Use</a>
                     <span>|</span>
-                    <a href="#" class="hover:text-gray-700">Contact</a>
+                    <a href="contact.html" class="hover:text-gray-700">Contact</a>
                 </div>
             </div>
 
@@ -859,6 +906,7 @@
 </div>
 
 <!-- Load JavaScript modules -->
+<script src="js/theme.js"></script>
 <script type="module" src="js/config.js"></script>
 <script type="module" src="js/utils.js"></script>
 <script type="module" src="js/simulator.js"></script>
