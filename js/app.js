@@ -1,6 +1,5 @@
 // js/app.js - Main Application Controller
 
-import ThemeManager from './theme.js';
 import { ENHANCED_CONFIG } from './config.js';
 import RetirementSimulator from './simulator.js';
 import RecommendationEngine from './recommendation.js';
@@ -1809,11 +1808,11 @@ class RetirementCalculatorApp {
         const savedData = loadFromLocalStorage('retirement-calculator-inputs', {});
 
         if (Object.keys(savedData).length === 0) {
-            logger.info('No saved inputs found, using defaults');
+            // logger.info('No saved inputs found, using defaults');
             return false;
         }
 
-        logger.info('Loading saved inputs from localStorage');
+        // logger.info('Loading saved inputs from localStorage');
         let loadedCount = 0;
 
         Object.entries(savedData).forEach(([inputId, value]) => {
@@ -1832,7 +1831,7 @@ class RetirementCalculatorApp {
             }
         });
 
-        logger.info(`Loaded ${loadedCount} saved input values`);
+        // logger.info(`Loaded ${loadedCount} saved input values`);
         return loadedCount > 0;
     }
 
@@ -1874,7 +1873,7 @@ class RetirementCalculatorApp {
         this.calculateRetirement(false);
 
         showNotification('Form reset to default values', 'success');
-        logger.info('Form inputs reset to defaults');
+        // logger.info('Form inputs reset to defaults');
     }
 
     getDefaultValue(inputId, config) {
@@ -1955,7 +1954,6 @@ class RetirementCalculatorApp {
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     try {
-        new ThemeManager();
         new RetirementCalculatorApp();
         console.log('Enhanced Australian Retirement Calculator initialized successfully');
     } catch (error) {
