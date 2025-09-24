@@ -9,9 +9,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit(0);
 }
 
-// Configuration
+<?php
+// Configuration - Use environment variables for sensitive data
 define('FEEDBACK_FILE', '../data/feedback.json');
-define('ADMIN_EMAIL', 'gagneet@silverfoxtechnologies.com.au');
+define('ADMIN_EMAIL', $_ENV['ADMIN_EMAIL'] ?? 'admin@example.com');
 define('SITE_NAME', 'Australian Retirement Calculator');
 
 // Ensure data directory exists
