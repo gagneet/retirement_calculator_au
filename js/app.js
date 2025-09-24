@@ -1728,48 +1728,58 @@ class RetirementCalculatorApp {
     }
 
     // Form persistence methods
+    /**
+     * Returns a categorized object of all form input IDs that should be persisted.
+     * Each key represents a category, and its value is an array of input field IDs.
+     * This structure improves maintainability and clarity for form persistence.
+     * 
+     * Example return value:
+     * {
+     *   personalDetails: ['yourCurrentAge', ...],
+     *   riskProfile: ['riskTolerance', ...],
+     *   ...
+     * }
+     */
     getAllFormInputs() {
-        /**
-         * Get all form input IDs that should be persisted
-         */
-        return [
-            // Personal details
-            'yourCurrentAge', 'partnerCurrentAge', 'retirementAge', 'partnerRetirementAge',
-            'yourLifespan', 'partnerLifespan',
-
-            // Risk profile
-            'riskTolerance', 'hasEmergencyFund', 'hasDebt', 'dependents',
-
-            // Finances
-            'yourSalary', 'partnerSalary', 'yourCurrentSuper', 'partnerCurrentSuper',
-            'currentSavings', 'currentStocks', 'monthlyStockContribution', 'percentIncomeSaved',
-
-            // Property
-            'homeValue', 'mortgageBalance', 'mortgageRate', 'monthlyMortgagePayment',
-            'planToDownsize', 'hasInvestmentProperty', 'investmentPropertyValue',
-            'investmentPropertyLoan', 'investmentPropertyRate', 'weeklyRentalIncome',
-            'annualPropertyExpenses', 'propertyGrowthRate', 'sellPropertyYears',
-            'capitalGainsTaxRate',
-
-            // Healthcare
-            'currentHealthcareCosts', 'healthcareInflation', 'agedCareProbability',
-            'agedCareStartAge', 'agedCareDuration', 'agedCareAnnualCost',
-
-            // Economic
-            'inflation', 'investmentReturn', 'returnDeclineRate', 'savingsReturn',
-            'superReturn', 'useGlidePath', 'glidePathRule', 'australianEquityAllocation',
-            'dividendYield', 'frankingRate', 'frankingCreditBenefit',
-
-            // Salary progression
-            'salaryGrowthRate', 'leanYearsStart', 'leanYearsReduction',
-
-            // Pension system
-            'asfaComfortable', 'agePensionMax', 'pensionAssetThreshold',
-            'pensionAssetLimit', 'pensionIncomeThreshold',
-
-            // Simulation
-            'numRuns', 'returnVolatility', 'enableShocks', 'shockProbability', 'shockMagnitude'
-        ];
+        return {
+            personalDetails: [
+                'yourCurrentAge', 'partnerCurrentAge', 'retirementAge', 'partnerRetirementAge',
+                'yourLifespan', 'partnerLifespan'
+            ],
+            riskProfile: [
+                'riskTolerance', 'hasEmergencyFund', 'hasDebt', 'dependents'
+            ],
+            finances: [
+                'yourSalary', 'partnerSalary', 'yourCurrentSuper', 'partnerCurrentSuper',
+                'currentSavings', 'currentStocks', 'monthlyStockContribution', 'percentIncomeSaved'
+            ],
+            property: [
+                'homeValue', 'mortgageBalance', 'mortgageRate', 'monthlyMortgagePayment',
+                'planToDownsize', 'hasInvestmentProperty', 'investmentPropertyValue',
+                'investmentPropertyLoan', 'investmentPropertyRate', 'weeklyRentalIncome',
+                'annualPropertyExpenses', 'propertyGrowthRate', 'sellPropertyYears',
+                'capitalGainsTaxRate'
+            ],
+            healthcare: [
+                'currentHealthcareCosts', 'healthcareInflation', 'agedCareProbability',
+                'agedCareStartAge', 'agedCareDuration', 'agedCareAnnualCost'
+            ],
+            economic: [
+                'inflation', 'investmentReturn', 'returnDeclineRate', 'savingsReturn',
+                'superReturn', 'useGlidePath', 'glidePathRule', 'australianEquityAllocation',
+                'dividendYield', 'frankingRate', 'frankingCreditBenefit'
+            ],
+            salaryProgression: [
+                'salaryGrowthRate', 'leanYearsStart', 'leanYearsReduction'
+            ],
+            pensionSystem: [
+                'asfaComfortable', 'agePensionMax', 'pensionAssetThreshold',
+                'pensionAssetLimit', 'pensionIncomeThreshold'
+            ],
+            simulation: [
+                'numRuns', 'returnVolatility', 'enableShocks', 'shockProbability', 'shockMagnitude'
+            ]
+        };
     }
 
     saveAllInputs() {
