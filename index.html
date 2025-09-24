@@ -22,19 +22,59 @@
       })();
     </script>
 
-    <!-- Google AdSense - Safe loading -->
+    <!-- Google AdSense - Enhanced safe loading with fallback detection -->
     <script>
-      // Load AdSense safely
+      // Load AdSense safely with Enhanced Tracking Protection resilience
       (function() {
         try {
           const script = document.createElement('script');
           script.async = true;
           script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1599099437795468';
           script.crossOrigin = 'anonymous';
-          script.onerror = function() { console.log('Google AdSense blocked by privacy tools'); };
+
+          let adsenseLoadTimeout;
+          let adsenseBlocked = false;
+
+          script.onload = function() {
+            console.log('✅ Google AdSense loaded successfully');
+            clearTimeout(adsenseLoadTimeout);
+          };
+
+          script.onerror = function() {
+            console.log('⚠️ Google AdSense blocked by Enhanced Tracking Protection or ad blocker');
+            adsenseBlocked = true;
+            clearTimeout(adsenseLoadTimeout);
+          };
+
+          // Set a timeout to detect if AdSense is slow/blocked
+          adsenseLoadTimeout = setTimeout(() => {
+            if (!window.adsbygoogle || !window.adsbygoogle.loaded) {
+              console.log('⚠️ Google AdSense loading timeout - likely blocked by privacy tools');
+              adsenseBlocked = true;
+            }
+          }, 5000);
+
           document.head.appendChild(script);
+
+          // Initialize fallback ad detection after DOM loads
+          document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+              // Check for ad containers and implement fallbacks if needed
+              const adContainers = document.querySelectorAll('ins.adsbygoogle, .adsbygoogle');
+              if (adContainers.length > 0 && (adsenseBlocked || !window.adsbygoogle)) {
+                console.log('🔄 Implementing AdSense fallbacks for blocked ads');
+                adContainers.forEach(container => {
+                  if (container.innerHTML.trim() === '' || container.offsetHeight === 0) {
+                    // Add fallback content or hide gracefully
+                    container.style.display = 'none';
+                  }
+                });
+              }
+            }, 3000); // Check after 3 seconds
+          });
+
         } catch(e) {
-          console.log('Google AdSense initialization failed:', e.message);
+          console.log('❌ Google AdSense initialization failed:', e.message);
         }
       })();
     </script>
@@ -990,35 +1030,69 @@
         console.error('Unhandled Promise Rejection:', event.reason);
     });
 
-    // Check if app loaded after timeout
-    setTimeout(function() {
-        if (!window.RetirementCalculatorApp) {
-            const errorDetails = jsErrors.length > 0
+    // Enhanced app loading check with multiple attempts and external script resilience
+    let appCheckAttempts = 0;
+    const maxAttempts = 3;
+    const checkInterval = 3000; // Check every 3 seconds
+
+    function checkAppLoading() {
+        appCheckAttempts++;
+
+        if (window.RetirementCalculatorApp) {
+            console.log('✅ Australian Retirement Calculator loaded successfully');
+            return; // App loaded successfully
+        }
+
+        if (appCheckAttempts >= maxAttempts) {
+            // Filter out blocked external script errors - these are not app failures
+            const relevantErrors = jsErrors.filter(err =>
+                !err.message.toLowerCase().includes('blocked by') &&
+                !err.message.toLowerCase().includes('cors') &&
+                !err.message.toLowerCase().includes('googlesyndication') &&
+                !err.message.toLowerCase().includes('adsbygoogle') &&
+                !err.filename.toLowerCase().includes('googlesyndication')
+            );
+
+            const errorDetails = relevantErrors.length > 0
                 ? `<div class="mt-4 p-3 bg-red-50 rounded text-left text-xs">
                      <strong>Errors found:</strong><br>
-                     ${jsErrors.map(err => `• ${err.message} (${err.filename}${err.lineno ? `:${err.lineno}` : ''})`).join('<br>')}
+                     ${relevantErrors.map(err => `• ${err.message} (${err.filename}${err.lineno ? `:${err.lineno}` : ''})`).join('<br>')}
                    </div>`
                 : '';
 
-            document.body.innerHTML = `
-                <div class="min-h-screen bg-orange-50 flex items-center justify-center p-4">
-                    <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
-                        <h1 class="text-xl font-bold text-orange-600 mb-4">Calculator Loading Failed</h1>
-                        <p class="text-gray-600 mb-4">The application failed to initialize properly.</p>
-                        ${errorDetails}
-                        <div class="flex gap-2 justify-center mt-4">
-                            <button onclick="location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                Reload
-                            </button>
-                            <button onclick="window.open('https://caniuse.com/es6-module', '_blank')" class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-xs">
-                                Check Browser
-                            </button>
+            // Only show error if there are actual app-related problems
+            if (relevantErrors.length > 0 || !document.querySelector('.calculator-container, .retirement-calculator, main')) {
+                document.body.innerHTML = `
+                    <div class="min-h-screen bg-orange-50 flex items-center justify-center p-4">
+                        <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
+                            <h1 class="text-xl font-bold text-orange-600 mb-4">Calculator Loading Failed</h1>
+                            <p class="text-gray-600 mb-4">The application failed to initialize properly.</p>
+                            ${errorDetails}
+                            <div class="flex gap-2 justify-center mt-4">
+                                <button onclick="location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    Reload
+                                </button>
+                                <button onclick="window.open('https://caniuse.com/es6-module', '_blank')" class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-xs">
+                                    Check Browser
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-4">Please try refreshing the page or updating your browser.</p>
                         </div>
                     </div>
-                </div>
-            `;
+                `;
+            } else {
+                // App UI is present but object not set - likely minor timing issue
+                console.log('ℹ️ App UI detected, RetirementCalculatorApp object may be loading...');
+            }
+        } else {
+            // Try again after interval
+            setTimeout(checkAppLoading, checkInterval);
+            console.log(`🔍 Checking app loading... Attempt ${appCheckAttempts}/${maxAttempts}`);
         }
-    }, 8000);
+    }
+
+    // Start checking after initial delay
+    setTimeout(checkAppLoading, checkInterval);
 </script>
   
 </body>
