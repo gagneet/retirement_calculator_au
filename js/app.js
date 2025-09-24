@@ -1973,7 +1973,14 @@ document.addEventListener('DOMContentLoaded', () => {
 // Browser compatibility check
 function checkBrowserCompatibility() {
     const checks = {
-        es6Classes: typeof class {} === 'function',
+        es6Classes: (function() {
+            try {
+                eval('class TestClass {}');
+                return true;
+            } catch (e) {
+                return false;
+            }
+        })(),
         es6Modules: typeof Symbol !== 'undefined',
         fetch: typeof fetch !== 'undefined',
         localStorage: typeof localStorage !== 'undefined',
