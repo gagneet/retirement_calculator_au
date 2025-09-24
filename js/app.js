@@ -1732,7 +1732,7 @@ class RetirementCalculatorApp {
      * Returns a categorized object of all form input IDs that should be persisted.
      * Each key represents a category, and its value is an array of input field IDs.
      * This structure improves maintainability and clarity for form persistence.
-     * 
+     *
      * Example return value:
      * {
      *   personalDetails: ['yourCurrentAge', ...],
@@ -1787,8 +1787,7 @@ class RetirementCalculatorApp {
          * Save all form inputs to localStorage
          */
         const formData = {};
-        const inputGroups = this.getAllFormInputs();
-        const inputIds = Object.values(inputGroups).flat();
+        const inputIds = Object.values(this.getAllFormInputs()).flat();
 
         inputIds.forEach(inputId => {
             const element = $(inputId);
@@ -1851,8 +1850,7 @@ class RetirementCalculatorApp {
          * Reset all form inputs to their default values
          */
         const config = ENHANCED_CONFIG.DEFAULTS;
-        const inputGroups = this.getAllFormInputs();
-        const inputIds = Object.values(inputGroups).flat();
+        const inputIds = Object.values(this.getAllFormInputs()).flat();
 
         inputIds.forEach(inputId => {
             const element = $(inputId);
@@ -1946,8 +1944,7 @@ class RetirementCalculatorApp {
         /**
          * Setup automatic saving of form inputs when they change
          */
-        const inputGroups = this.getAllFormInputs();
-        const inputIds = Object.values(inputGroups).flat();
+        const inputIds = Object.values(this.getAllFormInputs()).flat();
         const debouncedSave = debounce(() => {
             this.saveAllInputs();
         }, 1000); // Save 1 second after user stops typing
@@ -1988,8 +1985,8 @@ function checkBrowserCompatibility() {
     const checks = {
         es6Classes: (function() {
             try {
-                // Check if class keyword is supported without eval
-                return typeof class {} === 'function';
+                eval('class TestClass {}');
+                return true;
             } catch (e) {
                 return false;
             }
@@ -2000,9 +1997,8 @@ function checkBrowserCompatibility() {
         promises: typeof Promise !== 'undefined',
         arrowFunctions: (function() {
             try {
-                // Check arrow function support more safely
-                const arrowTest = () => true;
-                return typeof arrowTest === 'function' && arrowTest() === true;
+                // Try to create an arrow function using the Function constructor
+                return Function('return (() => true)();')() === true;
             } catch (e) {
                 return false;
             }
