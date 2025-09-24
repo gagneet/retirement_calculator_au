@@ -2,7 +2,7 @@
 
 import { ENHANCED_CONFIG } from './config.js';
 import { formatCurrency, formatPercent, updateProgress } from './utils.js';
-import Simulator from './simulator.js';
+import RetirementSimulator from './simulator.js';
 
 class RecommendationEngine {
     constructor(simulator, inputs) {

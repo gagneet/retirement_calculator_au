@@ -22,7 +22,9 @@ import {
     exportToPDF,
     showTab,
     debounce,
-    showNotification
+    showNotification,
+    saveToLocalStorage,
+    loadFromLocalStorage
 } from './utils.js';
 
 class RetirementCalculatorApp {
@@ -37,7 +39,9 @@ class RetirementCalculatorApp {
     }
 
     initializeApp() {
+        this.loadSavedInputs(); // Load saved inputs first
         this.setupEventListeners();
+        this.setupAutoSave(); // Setup auto-save functionality
         this.updateUIElements();
         this.performInitialCalculation();
     }
@@ -169,7 +173,7 @@ class RetirementCalculatorApp {
     }
 
     // Main calculation function
-    async calculateRetirement() {
+    async calculateRetirement(shouldScrollToResults = true) {
         if (this.isCalculating) return;
 
         this.isCalculating = true;
@@ -191,11 +195,20 @@ class RetirementCalculatorApp {
             // Render charts
             this.chartManager.renderCompleteAnalysis(result, inputs);
 
-            showNotification('Calculation completed successfully', 'success');
+            // Show summary tab and conditionally scroll to results
+            if (shouldScrollToResults) {
+                showTab('summary', true);
+                showNotification('Calculation completed successfully', 'success');
+            } else {
+                // For initial load, just switch tabs without scrolling or notification
+                showTab('summary', false);
+            }
 
         } catch (error) {
             console.error('Calculation error:', error);
-            showNotification('Error in calculation: ' + error.message, 'error');
+            if (shouldScrollToResults) {
+                showNotification('Error in calculation: ' + error.message, 'error');
+            }
         } finally {
             this.isCalculating = false;
         }
@@ -416,8 +429,8 @@ class RetirementCalculatorApp {
                             </div>
                             <div class="text-xs text-gray-600 mt-1">
                                 ${capacity < 40 ? 'Conservative - Limited ability to take risk' :
-                                  capacity < 70 ? 'Moderate - Balanced risk capacity' :
-                                  'High - Strong ability to handle risk'}
+            capacity < 70 ? 'Moderate - Balanced risk capacity' :
+                'High - Strong ability to handle risk'}
                             </div>
                         </div>
                         <div>
@@ -430,8 +443,8 @@ class RetirementCalculatorApp {
                             </div>
                             <div class="text-xs text-gray-600 mt-1">
                                 ${tolerance < 40 ? 'Conservative investor - Prefers stability' :
-                                  tolerance < 70 ? 'Moderate investor - Balanced approach' :
-                                  'Aggressive investor - Comfortable with volatility'}
+            tolerance < 70 ? 'Moderate investor - Balanced approach' :
+                'Aggressive investor - Comfortable with volatility'}
                             </div>
                         </div>
                         <div>
@@ -444,8 +457,8 @@ class RetirementCalculatorApp {
                             </div>
                             <div class="text-xs text-gray-600 mt-1">
                                 ${requirement < 40 ? 'Low risk needed - Goals achievable with conservative investments' :
-                                  requirement < 70 ? 'Moderate risk needed - Balanced portfolio suggested' :
-                                  'High risk needed - Aggressive growth required for goals'}
+            requirement < 70 ? 'Moderate risk needed - Balanced portfolio suggested' :
+                'High risk needed - Aggressive growth required for goals'}
                             </div>
                         </div>
                     </div>
@@ -453,8 +466,8 @@ class RetirementCalculatorApp {
                         <h4 class="font-medium text-sm mb-2">Risk Alignment Assessment:</h4>
                         <div class="text-xs text-gray-700">
                             ${Math.abs(capacity - tolerance) < 20 && Math.abs(capacity - requirement) < 20 ?
-                                '✅ <strong>Well Aligned:</strong> Your capacity, tolerance, and requirement are well matched. This suggests a suitable investment approach.' :
-                                '⚠️ <strong>Misalignment Detected:</strong> Significant differences between your risk metrics may require portfolio adjustments or goal modification.'}
+            '✅ <strong>Well Aligned:</strong> Your capacity, tolerance, and requirement are well matched. This suggests a suitable investment approach.' :
+            '⚠️ <strong>Misalignment Detected:</strong> Significant differences between your risk metrics may require portfolio adjustments or goal modification.'}
                         </div>
                     </div>
                 </div>
@@ -759,7 +772,7 @@ class RetirementCalculatorApp {
             updateProgress(90, 'Formatting comprehensive recommendations...');
             this.displayComprehensiveRecommendations(comprehensiveRecommendations);
 
-            showTab('recommendations');
+            showTab('recommendations', true);
             updateProgress(100, 'Comprehensive AI Recommendations Generated!');
             showNotification('Successfully generated comprehensive AI recommendations covering all 8 strategic areas.', 'success');
 
@@ -773,7 +786,7 @@ class RetirementCalculatorApp {
                 const basicEngine = new RecommendationEngine(this.simulator, this.collectInputs());
                 const basicRecommendations = await basicEngine.generateRecommendations();
                 this.displayRecommendations(basicRecommendations);
-                showTab('recommendations');
+                showTab('recommendations', true);
                 showNotification('Generated basic recommendations (comprehensive engine had issues)', 'warning');
             } catch (fallbackError) {
                 console.error('Fallback recommendation engine also failed:', fallbackError);
@@ -1020,7 +1033,7 @@ class RetirementCalculatorApp {
             this.chartManager.renderHistogram(results.outcomes);
 
             // Switch to the 'charts' tab
-            showTab('charts');
+            showTab('charts', true);
 
             updateProgress(0);
             showNotification('Monte Carlo simulation completed', 'success');
@@ -1058,7 +1071,7 @@ class RetirementCalculatorApp {
 
             // Display stress test results
             this.displayStressTestResults(results);
-            showTab('riskAnalysis');
+            showTab('riskAnalysis', true);
 
             updateProgress(0);
             showNotification('Stress testing completed', 'success');
@@ -1117,7 +1130,7 @@ class RetirementCalculatorApp {
                 }
 
                 // Switch to optimization tab
-                showTab('optimization');
+                showTab('optimization', true);
 
                 showNotification(`You can retire at age ${solverResult.earliestRetirementAge} with ${(solverResult.successRate * 100).toFixed(0)}% confidence!`, 'success');
             } else {
@@ -1141,7 +1154,7 @@ class RetirementCalculatorApp {
         const availableScenarios = this.simulator.getCommonScenarios(inputs);
 
         this.populateScenarioCheckboxes(availableScenarios);
-        showTab('scenarios');
+        showTab('scenarios', true);
     }
 
     populateScenarioCheckboxes(scenarios) {
@@ -1457,7 +1470,7 @@ class RetirementCalculatorApp {
         // Main calculation button
         const btnCalculate = $('btnCalculate');
         if (btnCalculate) {
-            btnCalculate.addEventListener('click', () => this.calculateRetirement());
+            btnCalculate.addEventListener('click', () => this.calculateRetirement(true));
         }
 
         // Recommendation Engine button
@@ -1488,6 +1501,12 @@ class RetirementCalculatorApp {
         const btnScenarioComparison = $('btnScenarioComparison');
         if (btnScenarioComparison) {
             btnScenarioComparison.addEventListener('click', () => this.initializeScenarioComparison());
+        }
+
+        // Reset to defaults button
+        const btnResetDefaults = $('btnResetDefaults');
+        if (btnResetDefaults) {
+            btnResetDefaults.addEventListener('click', () => this.resetToDefaults());
         }
 
         // Scenario comparison controls
@@ -1541,10 +1560,33 @@ class RetirementCalculatorApp {
         // Auto-update on risk tolerance change
         const riskTolerance = $('riskTolerance');
         if (riskTolerance) {
+            // Update display and tooltip on change
+            riskTolerance.addEventListener('input', (e) => {
+                this.updateRiskToleranceDisplay(e.target.value);
+            });
+
+            // Debounced calculation update
             riskTolerance.addEventListener('input', debounce(() => {
                 const inputs = this.collectInputs();
                 this.updateRiskProfile(inputs);
             }, 300));
+
+            // Show tooltip on hover/focus
+            riskTolerance.addEventListener('mouseenter', () => {
+                this.showRiskToleranceTooltip();
+            });
+            riskTolerance.addEventListener('mouseleave', () => {
+                this.hideRiskToleranceTooltip();
+            });
+            riskTolerance.addEventListener('focus', () => {
+                this.showRiskToleranceTooltip();
+            });
+            riskTolerance.addEventListener('blur', () => {
+                this.hideRiskToleranceTooltip();
+            });
+
+            // Initialize display
+            this.updateRiskToleranceDisplay(riskTolerance.value);
         }
 
         // Auto-update on glide path change
@@ -1576,8 +1618,8 @@ class RetirementCalculatorApp {
         const hasInvestmentProperty = $('hasInvestmentProperty');
         if (hasInvestmentProperty) {
             hasInvestmentProperty.addEventListener('change', () => {
-                // Recalculate when property status changes
-                setTimeout(() => this.calculateRetirement(), 100);
+                // Recalculate when property status changes (don't scroll for auto-updates)
+                setTimeout(() => this.calculateRetirement(false), 100);
             });
         }
 
@@ -1593,7 +1635,8 @@ class RetirementCalculatorApp {
             if (input) {
                 const eventType = input.type === 'checkbox' ? 'change' : 'blur';
                 input.addEventListener(eventType, debounce(() => {
-                    this.calculateRetirement();
+                    // Auto-calculations from input changes don't scroll
+                    this.calculateRetirement(false);
                 }, 1000));
             }
         });
@@ -1617,7 +1660,7 @@ class RetirementCalculatorApp {
                 switch (e.key) {
                     case 'Enter':
                         e.preventDefault();
-                        this.calculateRetirement();
+                        this.calculateRetirement(true);
                         break;
                     case 'm':
                         e.preventDefault();
@@ -1635,32 +1678,424 @@ class RetirementCalculatorApp {
     // Initial calculation
     performInitialCalculation() {
         // Delay initial calculation to ensure DOM is ready
+        // Don't scroll to results on initial load - just populate data silently
         setTimeout(() => {
-            this.calculateRetirement();
+            this.calculateRetirement(false);
         }, 100);
+    }
+
+    // Risk tolerance display methods
+    updateRiskToleranceDisplay(value) {
+        const riskValue = parseInt(value);
+        const riskValueDisplay = $('riskToleranceValue');
+        const riskDescriptionDisplay = $('riskToleranceDescription');
+
+        if (riskValueDisplay) {
+            const labels = {
+                1: { text: 'Very Conservative (1)', desc: 'Minimal risk, capital preservation focus, mostly cash and bonds' },
+                2: { text: 'Conservative (2)', desc: 'Low risk tolerance, steady income preferred, bond-heavy allocation' },
+                3: { text: 'Cautious (3)', desc: 'Below-average risk appetite, stability over growth, defensive approach' },
+                4: { text: 'Moderate-Low (4)', desc: 'Some growth acceptable with capital protection, balanced-conservative' },
+                5: { text: 'Moderate (5)', desc: 'Balanced approach, equal focus on growth and stability' },
+                6: { text: 'Moderate (6)', desc: 'Balanced approach with moderate risk for steady growth' },
+                7: { text: 'Moderate-High (7)', desc: 'Growth-focused with tolerance for volatility, equity-tilted portfolio' },
+                8: { text: 'Aggressive (8)', desc: 'High risk tolerance, long-term growth priority, equity-heavy allocation' },
+                9: { text: 'Very Aggressive (9)', desc: 'Maximum growth potential, accepts high volatility, aggressive allocation' },
+                10: { text: 'Extremely Aggressive (10)', desc: 'Highest risk tolerance, maximum equity exposure, volatility welcomed' }
+            };
+
+            const riskProfile = labels[riskValue] || labels[6];
+            riskValueDisplay.textContent = riskProfile.text;
+
+            if (riskDescriptionDisplay) {
+                riskDescriptionDisplay.textContent = riskProfile.desc;
+            }
+        }
+    }
+
+    showRiskToleranceTooltip() {
+        const tooltip = $('riskToleranceTooltip');
+        if (tooltip) {
+            tooltip.classList.remove('hidden');
+        }
+    }
+
+    hideRiskToleranceTooltip() {
+        const tooltip = $('riskToleranceTooltip');
+        if (tooltip) {
+            tooltip.classList.add('hidden');
+        }
+    }
+
+    // Form persistence methods
+    /**
+     * Returns a categorized object of all form input IDs that should be persisted.
+     * Each key represents a category, and its value is an array of input field IDs.
+     * This structure improves maintainability and clarity for form persistence.
+     * 
+     * Example return value:
+     * {
+     *   personalDetails: ['yourCurrentAge', ...],
+     *   riskProfile: ['riskTolerance', ...],
+     *   ...
+     * }
+     */
+    getAllFormInputs() {
+        return {
+            personalDetails: [
+                'yourCurrentAge', 'partnerCurrentAge', 'retirementAge', 'partnerRetirementAge',
+                'yourLifespan', 'partnerLifespan'
+            ],
+            riskProfile: [
+                'riskTolerance', 'hasEmergencyFund', 'hasDebt', 'dependents'
+            ],
+            finances: [
+                'yourSalary', 'partnerSalary', 'yourCurrentSuper', 'partnerCurrentSuper',
+                'currentSavings', 'currentStocks', 'monthlyStockContribution', 'percentIncomeSaved'
+            ],
+            property: [
+                'homeValue', 'mortgageBalance', 'mortgageRate', 'monthlyMortgagePayment',
+                'planToDownsize', 'hasInvestmentProperty', 'investmentPropertyValue',
+                'investmentPropertyLoan', 'investmentPropertyRate', 'weeklyRentalIncome',
+                'annualPropertyExpenses', 'propertyGrowthRate', 'sellPropertyYears',
+                'capitalGainsTaxRate'
+            ],
+            healthcare: [
+                'currentHealthcareCosts', 'healthcareInflation', 'agedCareProbability',
+                'agedCareStartAge', 'agedCareDuration', 'agedCareAnnualCost'
+            ],
+            economic: [
+                'inflation', 'investmentReturn', 'returnDeclineRate', 'savingsReturn',
+                'superReturn', 'useGlidePath', 'glidePathRule', 'australianEquityAllocation',
+                'dividendYield', 'frankingRate', 'frankingCreditBenefit'
+            ],
+            salaryProgression: [
+                'salaryGrowthRate', 'leanYearsStart', 'leanYearsReduction'
+            ],
+            pensionSystem: [
+                'asfaComfortable', 'agePensionMax', 'pensionAssetThreshold',
+                'pensionAssetLimit', 'pensionIncomeThreshold'
+            ],
+            simulation: [
+                'numRuns', 'returnVolatility', 'enableShocks', 'shockProbability', 'shockMagnitude'
+            ]
+        };
+    }
+
+    saveAllInputs() {
+        /**
+         * Save all form inputs to localStorage
+         */
+        const formData = {};
+        const inputIds = this.getAllFormInputs();
+
+        inputIds.forEach(inputId => {
+            const element = $(inputId);
+            if (element) {
+                if (element.type === 'checkbox') {
+                    formData[inputId] = element.checked;
+                } else if (element.type === 'radio') {
+                    if (element.checked) {
+                        formData[inputId] = element.value;
+                    }
+                } else {
+                    formData[inputId] = element.value;
+                }
+            }
+        });
+
+        const success = saveToLocalStorage('retirement-calculator-inputs', formData);
+        if (success) {
+            console.log('Form inputs saved to localStorage');
+        }
+        return success;
+    }
+
+    loadSavedInputs() {
+        /**
+         * Load previously saved inputs from localStorage
+         */
+        const savedData = loadFromLocalStorage('retirement-calculator-inputs', {});
+
+        if (Object.keys(savedData).length === 0) {
+            // logger.info('No saved inputs found, using defaults');
+            return false;
+        }
+
+        // logger.info('Loading saved inputs from localStorage');
+        let loadedCount = 0;
+
+        Object.entries(savedData).forEach(([inputId, value]) => {
+            const element = $(inputId);
+            if (element && value !== undefined && value !== null) {
+                if (element.type === 'checkbox') {
+                    element.checked = Boolean(value);
+                } else if (element.type === 'radio') {
+                    if (element.value === value) {
+                        element.checked = true;
+                    }
+                } else {
+                    element.value = value;
+                }
+                loadedCount++;
+            }
+        });
+
+        // logger.info(`Loaded ${loadedCount} saved input values`);
+        return loadedCount > 0;
+    }
+
+    resetToDefaults() {
+        /**
+         * Reset all form inputs to their default values
+         */
+        const config = ENHANCED_CONFIG.DEFAULTS;
+        const inputIds = this.getAllFormInputs();
+
+        inputIds.forEach(inputId => {
+            const element = $(inputId);
+            if (element) {
+                // Get the default value from config
+                let defaultValue = this.getDefaultValue(inputId, config);
+
+                if (element.type === 'checkbox') {
+                    element.checked = Boolean(defaultValue);
+                } else if (element.type === 'radio') {
+                    if (element.value === defaultValue) {
+                        element.checked = true;
+                    }
+                } else {
+                    element.value = defaultValue || '';
+                }
+            }
+        });
+
+        // Clear localStorage
+        localStorage.removeItem('retirement-calculator-inputs');
+
+        // Update risk tolerance display
+        const riskTolerance = $('riskTolerance');
+        if (riskTolerance) {
+            this.updateRiskToleranceDisplay(riskTolerance.value);
+        }
+
+        // Trigger a calculation update
+        this.calculateRetirement(false);
+
+        showNotification('Form reset to default values', 'success');
+        // logger.info('Form inputs reset to defaults');
+    }
+
+    getDefaultValue(inputId, config) {
+        /**
+         * Get default value for a given input ID from config
+         */
+        const defaultMap = {
+            // Personal details
+            'yourCurrentAge': config.personal.yourCurrentAge,
+            'partnerCurrentAge': config.personal.partnerCurrentAge,
+            'retirementAge': config.personal.retirementAge,
+            'partnerRetirementAge': config.personal.partnerRetirementAge,
+            'yourLifespan': config.personal.yourLifespan,
+            'partnerLifespan': config.personal.partnerLifespan,
+
+            // Risk profile
+            'riskTolerance': config.risk.riskTolerance,
+            'hasEmergencyFund': config.risk.hasEmergencyFund,
+            'hasDebt': config.risk.hasDebt,
+            'dependents': config.risk.dependents,
+
+            // Finances
+            'yourSalary': config.financial.yourSalary,
+            'partnerSalary': config.financial.partnerSalary,
+            'yourCurrentSuper': config.financial.yourCurrentSuper,
+            'partnerCurrentSuper': config.financial.partnerCurrentSuper,
+            'currentSavings': config.financial.currentSavings,
+            'currentStocks': config.financial.currentStocks,
+            'monthlyStockContribution': config.financial.monthlyStockContribution,
+            'percentIncomeSaved': config.financial.percentIncomeSaved,
+
+            // Property
+            'homeValue': config.property.homeValue,
+            'mortgageBalance': config.property.mortgageBalance,
+            'mortgageRate': config.property.mortgageRate,
+            'monthlyMortgagePayment': config.property.monthlyMortgagePayment,
+            'planToDownsize': config.property.planToDownsize,
+            'hasInvestmentProperty': config.property.hasInvestmentProperty,
+            'investmentPropertyValue': config.property.investmentPropertyValue,
+            'investmentPropertyLoan': config.property.investmentPropertyLoan,
+            'investmentPropertyRate': config.property.investmentPropertyRate,
+            'weeklyRentalIncome': config.property.weeklyRentalIncome,
+            'annualPropertyExpenses': config.property.annualPropertyExpenses,
+            'propertyGrowthRate': config.property.propertyGrowthRate,
+            'sellPropertyYears': config.property.sellPropertyYears,
+            'capitalGainsTaxRate': config.property.capitalGainsTaxRate,
+
+            // Additional defaults for fields that might not be in config
+            'useGlidePath': true,
+            'glidePathRule': '110minus',
+            'enableShocks': false
+        };
+
+        return defaultMap[inputId];
+    }
+
+    setupAutoSave() {
+        /**
+         * Setup automatic saving of form inputs when they change
+         */
+        const inputIds = this.getAllFormInputs();
+        const debouncedSave = debounce(() => {
+            this.saveAllInputs();
+        }, 1000); // Save 1 second after user stops typing
+
+        inputIds.forEach(inputId => {
+            const element = $(inputId);
+            if (element) {
+                const eventType = element.type === 'checkbox' || element.type === 'radio' || element.type === 'select-one' ? 'change' : 'input';
+                element.addEventListener(eventType, debouncedSave);
+            }
+        });
+
+        console.log('Auto-save setup completed for form inputs');
     }
 }
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Check browser compatibility first
+    const isCompatible = checkBrowserCompatibility();
+
+    if (!isCompatible.supported) {
+        showCompatibilityError(isCompatible);
+        return;
+    }
+
     try {
-        new RetirementCalculatorApp();
+        window.RetirementCalculatorApp = new RetirementCalculatorApp();
         console.log('Enhanced Australian Retirement Calculator initialized successfully');
     } catch (error) {
         console.error('Failed to initialize calculator:', error);
-        document.body.innerHTML = `
-            <div class="min-h-screen bg-red-50 flex items-center justify-center">
-                <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
-                    <h1 class="text-xl font-bold text-red-600 mb-4">Initialization Error</h1>
-                    <p class="text-gray-600 mb-4">The retirement calculator failed to load properly.</p>
-                    <p class="text-sm text-gray-500">Please check the browser console for details and ensure all files are properly loaded.</p>
-                    <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                        Reload Page
-                    </button>
-                </div>
-            </div>
-        `;
+        showDetailedError(error);
     }
 });
+
+// Browser compatibility check
+function checkBrowserCompatibility() {
+    const checks = {
+        es6Classes: (function() {
+            try {
+                eval('class TestClass {}');
+                return true;
+            } catch (e) {
+                return false;
+            }
+        })(),
+        es6Modules: typeof Symbol !== 'undefined',
+        fetch: typeof fetch !== 'undefined',
+        localStorage: typeof localStorage !== 'undefined',
+        promises: typeof Promise !== 'undefined',
+        arrowFunctions: (function() {
+            try {
+                // Try to create an arrow function using the Function constructor
+                return Function('return (() => true)();')() === true;
+            } catch (e) {
+                return false;
+            }
+        })()
+    };
+
+    const failed = Object.entries(checks).filter(([key, value]) => !value);
+
+    return {
+        supported: failed.length === 0,
+        missing: failed.map(([key]) => key),
+        userAgent: navigator.userAgent,
+        isSafari: /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent),
+        isMobile: /Mobi|Android/i.test(navigator.userAgent)
+    };
+}
+
+// Show detailed error with diagnostics
+function showDetailedError(error) {
+    const compatibility = checkBrowserCompatibility();
+    document.body.innerHTML = `
+        <div class="min-h-screen bg-red-50 flex items-center justify-center p-4">
+            <div class="max-w-lg p-6 bg-white rounded-lg shadow-lg text-center">
+                <h1 class="text-xl font-bold text-red-600 mb-4">Initialization Error</h1>
+                <p class="text-gray-600 mb-4">The retirement calculator failed to load properly.</p>
+
+                <div class="text-left bg-gray-100 p-3 rounded mb-4 text-sm">
+                    <strong>Error Details:</strong><br>
+                    ${error.message || error}<br><br>
+                    <strong>Browser:</strong> ${compatibility.userAgent}<br>
+                    <strong>Safari:</strong> ${compatibility.isSafari}<br>
+                    <strong>Mobile:</strong> ${compatibility.isMobile}
+                </div>
+
+                <div class="mb-4">
+                    <button onclick="location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mr-2">
+                        Reload Page
+                    </button>
+                    <button onclick="fallbackMode()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Try Basic Mode
+                    </button>
+                </div>
+
+                <p class="text-xs text-gray-500">If the issue persists, try using a different browser or updating your current browser.</p>
+            </div>
+        </div>
+    `;
+}
+
+// Show compatibility error
+function showCompatibilityError(compatibility) {
+    document.body.innerHTML = `
+        <div class="min-h-screen bg-yellow-50 flex items-center justify-center p-4">
+            <div class="max-w-lg p-6 bg-white rounded-lg shadow-lg text-center">
+                <h1 class="text-xl font-bold text-yellow-600 mb-4">Browser Compatibility Issue</h1>
+                <p class="text-gray-600 mb-4">Your browser doesn't support some features required by this calculator.</p>
+
+                <div class="text-left bg-gray-100 p-3 rounded mb-4 text-sm">
+                    <strong>Missing Features:</strong><br>
+                    ${compatibility.missing.join(', ')}<br><br>
+                    <strong>Browser:</strong> ${compatibility.userAgent}
+                </div>
+
+                <div class="mb-4">
+                    <button onclick="fallbackMode()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Try Basic Mode
+                    </button>
+                </div>
+
+                <p class="text-xs text-gray-500">Please update your browser or try using Chrome, Firefox, or Safari 14+.</p>
+            </div>
+        </div>
+    `;
+}
+
+// Fallback mode for older browsers
+// function fallbackMode() {
+//     window.location.href = 'https://retirement.gagneet.com/index.html';
+// }
+
+function fallbackMode() {
+    // Try local fallback first, then external
+    const localFallback = './index.html';
+    const externalFallback = '';
+
+    // Check if local fallback exists
+    fetch(localFallback, { method: 'HEAD' })
+        .then(response => {
+            if (response.ok) {
+                window.location.href = localFallback;
+            } else {
+                window.location.href = externalFallback;
+            }
+        })
+        .catch(() => {
+            window.location.href = externalFallback;
+        });
+}
 
 export default RetirementCalculatorApp;

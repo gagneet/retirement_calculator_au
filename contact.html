@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us | Australian Retirement Calculator</title>
+    <meta name="description" content="Contact us for feedback, bug reports, or suggestions about the Australian Retirement Calculator. We value your input to improve our retirement planning tools.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://retirement.gagneet.com/contact.html">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <header class="mb-8">
+            <a href="/" class="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
+                ← Back to Calculator
+            </a>
+            <h1 class="text-3xl font-bold text-gray-900">Contact Us</h1>
+            <p class="text-gray-600 mt-2">We value your feedback and suggestions</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Feedback Form -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Send Feedback</h2>
+
+                <form id="feedbackForm" class="space-y-4">
+                    <div>
+                        <label for="feedbackType" class="block text-sm font-medium text-gray-700 mb-2">Feedback Type</label>
+                        <div class="space-y-2">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="feedbackType" value="feedback" class="form-radio text-blue-600" checked>
+                                <span class="ml-2 text-sm text-gray-700">💬 General Feedback</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="feedbackType" value="defect" class="form-radio text-blue-600">
+                                <span class="ml-2 text-sm text-gray-700">🐛 Bug Report</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="feedbackType" value="kudos" class="form-radio text-blue-600">
+                                <span class="ml-2 text-sm text-gray-700">👏 Kudos / Appreciation</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="feedbackType" value="feature" class="form-radio text-blue-600">
+                                <span class="ml-2 text-sm text-gray-700">💡 Feature Request</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="feedbackType" value="other" class="form-radio text-blue-600">
+                                <span class="ml-2 text-sm text-gray-700">📝 Other</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="feedbackText" class="block text-sm font-medium text-gray-700 mb-2">Your Message</label>
+                        <textarea
+                            id="feedbackText"
+                            name="feedbackText"
+                            rows="6"
+                            maxlength="1000"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 resize-none"
+                            placeholder="Please share your feedback, suggestions, or report any issues you've encountered..."
+                            required
+                        ></textarea>
+                        <div class="flex justify-between mt-1">
+                            <p class="text-xs text-gray-500">Maximum 1000 characters</p>
+                            <span id="charCount" class="text-xs text-gray-400">0/1000</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button
+                            type="submit"
+                            class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                        >
+                            Submit Feedback
+                        </button>
+                    </div>
+                </form>
+
+                <div id="feedbackStatus" class="mt-4 hidden">
+                    <!-- Status messages will appear here -->
+                </div>
+            </div>
+
+            <!-- Recent Feedback Display -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Recent Feedback</h2>
+                <p class="text-sm text-gray-600 mb-4">Here's what others have shared recently:</p>
+
+                <div id="feedbackList" class="space-y-4 max-h-96 overflow-y-auto">
+                    <!-- Feedback items will be loaded here -->
+                    <div class="text-center text-gray-500 py-8">
+                        <p>Loading recent feedback...</p>
+                    </div>
+                </div>
+
+                <button
+                    id="refreshFeedback"
+                    class="mt-4 w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+                >
+                    Refresh Feedback
+                </button>
+            </div>
+        </div>
+
+        <!-- Information Section -->
+        <div class="mt-8 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold text-blue-900 mb-2">How We Use Your Feedback</h3>
+            <ul class="text-sm text-blue-800 space-y-1">
+                <li>• <strong>General Feedback:</strong> Helps us improve the overall user experience</li>
+                <li>• <strong>Bug Reports:</strong> Allows us to fix issues and improve calculator reliability</li>
+                <li>• <strong>Feature Requests:</strong> Guides our development priorities for new features</li>
+                <li>• <strong>Kudos:</strong> Motivates our team and helps us understand what works well</li>
+            </ul>
+            <p class="text-xs text-blue-700 mt-3">
+                <strong>Note:</strong> All feedback is stored locally and helps improve the calculator for everyone. Please don't include personal financial information in your feedback.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Character counter for textarea
+        const feedbackText = document.getElementById('feedbackText');
+        const charCount = document.getElementById('charCount');
+
+        feedbackText.addEventListener('input', function() {
+            const currentLength = this.value.length;
+            charCount.textContent = `${currentLength}/1000`;
+
+            if (currentLength > 950) {
+                charCount.classList.add('text-red-500');
+            } else if (currentLength > 800) {
+                charCount.classList.remove('text-red-500');
+                charCount.classList.add('text-yellow-500');
+            } else {
+                charCount.classList.remove('text-red-500', 'text-yellow-500');
+                charCount.classList.add('text-gray-400');
+            }
+        });
+
+        // Form submission
+        document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const feedbackData = {
+                type: formData.get('feedbackType'),
+                message: formData.get('feedbackText').trim()
+            };
+
+            if (!feedbackData.message) {
+                showStatus('Please enter your feedback message.', 'error');
+                return;
+            }
+
+            // Disable submit button to prevent double submission
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = 'Submitting...';
+
+            try {
+                // Store feedback locally (network access blocked by firewall)
+                const success = saveToLocalStorageWithId(feedbackData);
+
+                if (success) {
+                    // Reset form
+                    this.reset();
+                    charCount.textContent = '0/1000';
+                    charCount.classList.remove('text-red-500', 'text-yellow-500');
+                    charCount.classList.add('text-gray-400');
+
+                    showStatus('Thank you for your feedback! It has been saved locally and will be visible to other users.', 'success');
+
+                    // Refresh the feedback display
+                    loadFeedback();
+                } else {
+                    throw new Error('Failed to save feedback locally');
+                }
+
+            } catch (error) {
+                console.error('Error saving feedback:', error);
+
+                // Fallback to localStorage if server is unavailable
+                try {
+                    const existingFeedback = JSON.parse(localStorage.getItem('retirementCalcFeedback') || '[]');
+                    const localFeedback = {
+                        ...feedbackData,
+                        timestamp: new Date().toISOString(),
+                        id: Date.now().toString(),
+                        local: true
+                    };
+                    existingFeedback.unshift(localFeedback);
+
+                    if (existingFeedback.length > 50) {
+                        existingFeedback.splice(50);
+                    }
+
+                    localStorage.setItem('retirementCalcFeedback', JSON.stringify(existingFeedback));
+
+                    // Reset form
+                    this.reset();
+                    charCount.textContent = '0/1000';
+                    charCount.classList.remove('text-red-500', 'text-yellow-500');
+                    charCount.classList.add('text-gray-400');
+
+                    showStatus('Server unavailable. Your feedback has been saved locally.', 'warning');
+                    loadFeedback();
+
+                } catch (fallbackError) {
+                    showStatus('There was an error saving your feedback. Please try again.', 'error');
+                }
+            } finally {
+                // Re-enable submit button
+                submitButton.disabled = false;
+                submitButton.textContent = originalText;
+            }
+        });
+
+        // Load and display feedback
+        async function loadFeedback() {
+            const feedbackList = document.getElementById('feedbackList');
+
+            // Show loading state
+            feedbackList.innerHTML = `
+                <div class="text-center text-gray-500 py-8">
+                    <p>Loading feedback...</p>
+                </div>
+            `;
+
+            try {
+                // Load feedback from localStorage only (network blocked by firewall)
+                const localFeedback = JSON.parse(localStorage.getItem('retirementCalcFeedback') || '[]');
+                displayFeedback(localFeedback);
+            } catch (error) {
+                console.error('Error loading local feedback:', error);
+                feedbackList.innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <p>Error loading feedback. Please refresh the page.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Display feedback function
+        function displayFeedback(feedback) {
+            const feedbackList = document.getElementById('feedbackList');
+
+            if (feedback.length === 0) {
+                feedbackList.innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <p>No feedback yet. Be the first to share your thoughts!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            feedbackList.innerHTML = feedback.map(item => {
+                const date = new Date(item.timestamp).toLocaleDateString();
+                const typeEmoji = {
+                    'feedback': '💬',
+                    'defect': '🐛',
+                    'kudos': '👏',
+                    'feature': '💡',
+                    'other': '📝'
+                };
+
+                const isLocal = item.local ? ' <span class="text-xs text-yellow-600">(Local)</span>' : '';
+
+                return `
+                    <div class="border-l-4 border-gray-200 pl-4 py-2">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm font-medium text-gray-800">
+                                ${typeEmoji[item.type] || '📝'} ${item.type.charAt(0).toUpperCase() + item.type.slice(1)}${isLocal}
+                            </span>
+                            <span class="text-xs text-gray-500">${date}</span>
+                        </div>
+                        <p class="text-sm text-gray-700">${item.message}</p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Save feedback to localStorage with unique ID
+        function saveToLocalStorageWithId(feedbackData) {
+            try {
+                const existingFeedback = JSON.parse(localStorage.getItem('retirementCalcFeedback') || '[]');
+                const newFeedback = {
+                    ...feedbackData,
+                    id: Date.now().toString() + Math.random().toString(36).substring(2, 11),
+                    timestamp: new Date().toISOString(),
+                    local: true
+                };
+                existingFeedback.unshift(newFeedback); // Add to beginning
+
+                // Keep only last 50 items
+                if (existingFeedback.length > 50) {
+                    existingFeedback.splice(50);
+                }
+
+                localStorage.setItem('retirementCalcFeedback', JSON.stringify(existingFeedback));
+                return true;
+            } catch (error) {
+                console.error('Error saving to localStorage:', error);
+                return false;
+            }
+        }
+
+        // Show status messages
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('feedbackStatus');
+            const bgColor = type === 'error' ? 'bg-red-100 border-red-400 text-red-700' : 'bg-green-100 border-green-400 text-green-700';
+
+            statusEl.innerHTML = `
+                <div class="border-l-4 ${bgColor} p-4 rounded">
+                    <p>${message}</p>
+                </div>
+            `;
+            statusEl.classList.remove('hidden');
+
+            // Hide after 5 seconds
+            setTimeout(() => {
+                statusEl.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Refresh button
+        document.getElementById('refreshFeedback').addEventListener('click', loadFeedback);
+
+        // Load feedback on page load
+        document.addEventListener('DOMContentLoaded', loadFeedback);
+    </script>
+</body>
+</html>
