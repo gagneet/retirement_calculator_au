@@ -1,5 +1,6 @@
 // js/app.js - Main Application Controller
 
+import ThemeManager from './theme.js';
 import { ENHANCED_CONFIG } from './config.js';
 import RetirementSimulator from './simulator.js';
 import RecommendationEngine from './recommendation.js';
@@ -429,8 +430,8 @@ class RetirementCalculatorApp {
                             </div>
                             <div class="text-xs text-gray-600 mt-1">
                                 ${capacity < 40 ? 'Conservative - Limited ability to take risk' :
-                                  capacity < 70 ? 'Moderate - Balanced risk capacity' :
-                                  'High - Strong ability to handle risk'}
+            capacity < 70 ? 'Moderate - Balanced risk capacity' :
+                'High - Strong ability to handle risk'}
                             </div>
                         </div>
                         <div>
@@ -443,8 +444,8 @@ class RetirementCalculatorApp {
                             </div>
                             <div class="text-xs text-gray-600 mt-1">
                                 ${tolerance < 40 ? 'Conservative investor - Prefers stability' :
-                                  tolerance < 70 ? 'Moderate investor - Balanced approach' :
-                                  'Aggressive investor - Comfortable with volatility'}
+            tolerance < 70 ? 'Moderate investor - Balanced approach' :
+                'Aggressive investor - Comfortable with volatility'}
                             </div>
                         </div>
                         <div>
@@ -457,8 +458,8 @@ class RetirementCalculatorApp {
                             </div>
                             <div class="text-xs text-gray-600 mt-1">
                                 ${requirement < 40 ? 'Low risk needed - Goals achievable with conservative investments' :
-                                  requirement < 70 ? 'Moderate risk needed - Balanced portfolio suggested' :
-                                  'High risk needed - Aggressive growth required for goals'}
+            requirement < 70 ? 'Moderate risk needed - Balanced portfolio suggested' :
+                'High risk needed - Aggressive growth required for goals'}
                             </div>
                         </div>
                     </div>
@@ -466,8 +467,8 @@ class RetirementCalculatorApp {
                         <h4 class="font-medium text-sm mb-2">Risk Alignment Assessment:</h4>
                         <div class="text-xs text-gray-700">
                             ${Math.abs(capacity - tolerance) < 20 && Math.abs(capacity - requirement) < 20 ?
-                                '✅ <strong>Well Aligned:</strong> Your capacity, tolerance, and requirement are well matched. This suggests a suitable investment approach.' :
-                                '⚠️ <strong>Misalignment Detected:</strong> Significant differences between your risk metrics may require portfolio adjustments or goal modification.'}
+            '✅ <strong>Well Aligned:</strong> Your capacity, tolerance, and requirement are well matched. This suggests a suitable investment approach.' :
+            '⚠️ <strong>Misalignment Detected:</strong> Significant differences between your risk metrics may require portfolio adjustments or goal modification.'}
                         </div>
                     </div>
                 </div>
@@ -1954,6 +1955,7 @@ class RetirementCalculatorApp {
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     try {
+        new ThemeManager();
         new RetirementCalculatorApp();
         console.log('Enhanced Australian Retirement Calculator initialized successfully');
     } catch (error) {
