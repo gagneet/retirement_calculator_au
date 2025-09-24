@@ -1,9 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-F3BXKGK3QZ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-F3BXKGK3QZ');
+    </script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Australian Retirement Calculator</title>
+    <title>Australian Retirement Calculator | Advanced Planning Tool with Super & Age Pension</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Free Australian retirement calculator with superannuation, age pension, investment property analysis, healthcare costs, and Monte Carlo simulation. Plan your retirement with confidence using Australian financial rules.">
+    <meta name="keywords" content="Australian retirement calculator, superannuation calculator, age pension calculator, retirement planning Australia, investment property calculator, Monte Carlo simulation, ASFA retirement standards, healthcare costs retirement">
+    <meta name="author" content="Australian Retirement Calculator">
+    <meta name="robots" content="index, follow">
+    <meta name="googlebot" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="geo.region" content="AU">
+    <meta name="geo.country" content="Australia">
+    <meta name="distribution" content="global">
+    <meta name="rating" content="general">
+    <meta name="revisit-after" content="7 days">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://retirement-calculator.com.au/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://retirement-calculator.com.au/">
+    <meta property="og:title" content="Australian Retirement Calculator | Advanced Planning Tool">
+    <meta property="og:description" content="Free Australian retirement calculator with superannuation, age pension, investment property analysis, and Monte Carlo simulation. Plan your retirement with confidence.">
+    <meta property="og:image" content="https://retirement-calculator.com.au/assets/logo.svg">
+    <meta property="og:site_name" content="Australian Retirement Calculator">
+    <meta property="og:locale" content="en_AU">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://retirement-calculator.com.au/">
+    <meta property="twitter:title" content="Australian Retirement Calculator | Advanced Planning Tool">
+    <meta property="twitter:description" content="Free Australian retirement calculator with superannuation, age pension, investment property analysis, and Monte Carlo simulation.">
+    <meta property="twitter:image" content="https://retirement-calculator.com.au/assets/logo.svg">
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon-16x16.svg" sizes="16x16">
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon-32x32.svg" sizes="32x32">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.svg" sizes="192x192">
+    <link rel="manifest" href="/site.webmanifest">
+
     <!-- Tailwind CSS is included via a local stylesheet -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Note: The 'autoSendContentViewEvent' error in the console is from an external script and is not part of this codebase. -->
@@ -14,12 +65,67 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.2/jspdf.plugin.autotable.min.js" integrity="sha512-JizZOUNesiGhMcp9fsA/9W31FOat6QysBM8hSj6ir8iIANIUJ2mhko7Lo1+j0ErftmJ8SebMZLm9iielKjeIEQ==" crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Australian Retirement Calculator",
+      "description": "Advanced retirement planning calculator for the Australian financial system including superannuation, age pension, investment property analysis, healthcare costs, and Monte Carlo simulation.",
+      "url": "https://retirement-calculator.com.au/",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "AUD",
+        "availability": "https://schema.org/InStock"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "Australian Retirement Calculator"
+      },
+      "dateModified": "2024-01-15",
+      "inLanguage": "en-AU",
+      "isAccessibleForFree": true,
+      "keywords": "retirement calculator, superannuation, age pension, Australian retirement, investment property, Monte Carlo simulation",
+      "audience": {
+        "@type": "Audience",
+        "audienceType": "Australian residents planning for retirement",
+        "geographicArea": {
+          "@type": "Country",
+          "name": "Australia"
+        }
+      },
+      "featureList": [
+        "Superannuation growth calculator",
+        "Age pension eligibility and payments",
+        "Investment property analysis",
+        "Healthcare and aged care cost modeling",
+        "Monte Carlo simulation",
+        "Dynamic asset allocation",
+        "Risk profiling assessment",
+        "ASFA retirement standards comparison",
+        "Year-by-year projections",
+        "PDF/Excel export capabilities"
+      ]
+    }
+    </script>
 </head>
 <body class="bg-gray-100 text-gray-800">
 <div class="container mx-auto p-4 md:p-8">
     <header class="text-center mb-8">
-        <h1 class="text-4xl font-bold text-gray-900">Enhanced Australian Retirement Calculator</h1>
-        <p class="text-lg text-gray-600 mt-2">Advanced retirement planning with healthcare costs, aged care, dynamic allocation, and investment property modeling</p>
+        <div class="flex items-center justify-center mb-4">
+            <img src="/assets/logo.svg" alt="Australian Retirement Calculator - Professional Financial Planning Tool" class="h-16 w-auto">
+        </div>
+        <h1 class="sr-only">Australian Retirement Calculator - Advanced Planning Tool</h1>
+        <p class="text-lg text-gray-600">Advanced retirement planning with superannuation, age pension, healthcare costs, aged care, dynamic allocation, and investment property modeling</p>
+        <div class="mt-4 text-sm text-gray-500">
+            <span class="inline-block px-2 py-1 bg-green-100 text-green-800 rounded-full mr-2">✓ Free to Use</span>
+            <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded-full mr-2">✓ Australian Tax Rules</span>
+            <span class="inline-block px-2 py-1 bg-purple-100 text-purple-800 rounded-full">✓ Monte Carlo Analysis</span>
+        </div>
     </header>
 
     <!-- Risk Profile Banner -->
@@ -697,6 +803,59 @@
             </div>
         </div>
     </div>
+
+    <!-- SEO Footer -->
+    <footer class="mt-12 border-t border-gray-200 bg-white">
+        <div class="container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="font-semibold text-gray-900 mb-3">About This Calculator</h3>
+                    <p class="text-sm text-gray-600">
+                        Free Australian retirement planning calculator using current superannuation rules, age pension thresholds, and ASFA retirement standards. All calculations performed locally in your browser.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-900 mb-3">Key Features</h3>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>• Superannuation growth projections</li>
+                        <li>• Age pension eligibility calculator</li>
+                        <li>• Investment property analysis</li>
+                        <li>• Healthcare & aged care costs</li>
+                        <li>• Monte Carlo risk simulation</li>
+                        <li>• Dynamic asset allocation</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-900 mb-3">Australian Standards</h3>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>• Current 2024-25 tax brackets</li>
+                        <li>• Latest ASFA retirement standards</li>
+                        <li>• Services Australia pension rules</li>
+                        <li>• Capital gains tax calculations</li>
+                        <li>• Franking credits included</li>
+                        <li>• Negative gearing modeling</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center">
+                <div class="text-sm text-gray-500">
+                    <p>© 2024 Australian Retirement Calculator. All calculations are estimates for planning purposes only.</p>
+                </div>
+                <div class="text-sm text-gray-500 mt-4 md:mt-0 space-x-4">
+                    <a href="/privacy.html" class="hover:text-gray-700">Privacy Policy</a>
+                    <span>|</span>
+                    <a href="#" class="hover:text-gray-700">Terms of Use</a>
+                    <span>|</span>
+                    <a href="#" class="hover:text-gray-700">Contact</a>
+                </div>
+            </div>
+
+            <div class="mt-6 text-xs text-gray-400">
+                <p><strong>Disclaimer:</strong> This calculator is for educational and planning purposes only. Results are estimates based on the inputs provided and should not be considered as financial advice. Always consult with a qualified financial advisor for personalized retirement planning. Australian tax laws and pension rules are subject to change.</p>
+            </div>
+        </div>
+    </footer>
 </div>
 
 <!-- Load JavaScript modules -->
