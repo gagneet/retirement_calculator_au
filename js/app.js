@@ -2065,8 +2065,27 @@ function showCompatibilityError(compatibility) {
 }
 
 // Fallback mode for older browsers
+// function fallbackMode() {
+//     window.location.href = 'https://retirement.gagneet.com/index.html';
+// }
+
 function fallbackMode() {
-    window.location.href = 'https://retirement.gagneet.com/basic.html';
+    // Try local fallback first, then external
+    const localFallback = './index.html';
+    const externalFallback = '';
+
+    // Check if local fallback exists
+    fetch(localFallback, { method: 'HEAD' })
+        .then(response => {
+            if (response.ok) {
+                window.location.href = localFallback;
+            } else {
+                window.location.href = externalFallback;
+            }
+        })
+        .catch(() => {
+            window.location.href = externalFallback;
+        });
 }
 
 export default RetirementCalculatorApp;
