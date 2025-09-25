@@ -151,7 +151,56 @@ export const ENHANCED_CONFIG = {
             description: "Pandemic-style healthcare cost explosion"
         }
     ],
-    
+
+    // Trust-related constants and rules
+    TRUST_RULES: {
+        // Attribution rules based on control level
+        ATTRIBUTION_RATES: {
+            high: 1.0,      // 100% attribution for high control
+            medium: 0.75,   // 75% attribution for medium control
+            low: 0.50,      // 50% attribution for low control
+            none: 0.0       // 0% attribution for no control
+        },
+
+        // Trust type risk factors
+        TYPE_FACTORS: {
+            discretionary: {
+                baseAttribution: 1.0,
+                centrelinkScrutiny: 'high',
+                description: 'Discretionary Family Trust - highest scrutiny'
+            },
+            unit: {
+                baseAttribution: 0.8,
+                centrelinkScrutiny: 'medium',
+                description: 'Unit Trust - clearer ownership structure'
+            },
+            hybrid: {
+                baseAttribution: 0.9,
+                centrelinkScrutiny: 'high',
+                description: 'Hybrid Trust - complex assessment'
+            },
+            other: {
+                baseAttribution: 0.85,
+                centrelinkScrutiny: 'medium',
+                description: 'Other Trust Structure'
+            }
+        },
+
+        // Principal residence exemption rules
+        HOME_EXEMPTION: {
+            inPersonalName: true,   // Full exemption when in personal name
+            inTrust: false,         // May lose exemption when in trust
+            dependsOnControl: true  // Depends on level of control over trust
+        },
+
+        // Deeming rate adjustments for trust income
+        DEEMING_ADJUSTMENTS: {
+            trustDistributions: true,       // Trust distributions subject to deeming
+            actualIncomeTest: false,        // Use deeming rather than actual income
+            frankingCreditEligible: true   // Trust distributions can include franking credits
+        }
+    },
+
     // Default values for new users - consolidated from app.js
     DEFAULTS: {
         personal: {
@@ -218,6 +267,17 @@ export const ENHANCED_CONFIG = {
             allocEquities: 60,
             allocBonds: 30,
             allocCash: 10
+        },
+        trust: {
+            hasTrustAssets: false,
+            trustType: "discretionary",
+            trustControlLevel: "high",
+            trustNetAssets: 0,
+            trustAttributionPercentage: 100,
+            trustAnnualDistributions: 0,
+            homeInTrust: false,
+            investmentPropertyInTrust: false,
+            stocksInTrust: false
         },
         risk: {
             riskTolerance: 6,

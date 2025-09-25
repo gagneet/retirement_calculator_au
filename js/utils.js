@@ -238,6 +238,119 @@ export const calculateCGT = (salePrice, purchasePrice, isResident, holdingPeriod
     return taxableGain * marginalTaxRate;
 };
 
+// Trust calculation utilities
+export const calculateTrustAttribution = (trustInputs, trustRules) => {
+    if (!trustInputs.hasTrustAssets) {
+        return {
+            attributedAssets: 0,
+            attributedIncome: 0,
+            homeExemptionLost: false,
+            pensionImpact: null
+        };
+    }
+
+    const controlRate = trustRules.ATTRIBUTION_RATES[trustInputs.trustControlLevel] || 1.0;
+    const typeRate = trustRules.TYPE_FACTORS[trustInputs.trustType]?.baseAttribution || 1.0;
+    const userPercentage = trustInputs.trustAttributionPercentage / 100;
+
+    // Calculate final attribution rate
+    const finalAttributionRate = Math.min(1.0, controlRate * typeRate * userPercentage);
+
+    const attributedAssets = trustInputs.trustNetAssets * finalAttributionRate;
+    const attributedIncome = trustInputs.trustAnnualDistributions * finalAttributionRate;
+
+    // Check if home exemption is lost
+    const homeExemptionLost = trustInputs.homeInTrust &&
+        trustRules.HOME_EXEMPTION.dependsOnControl &&
+        (trustInputs.trustControlLevel === 'high' || trustInputs.trustControlLevel === 'medium');
+
+    return {
+        attributedAssets,
+        attributedIncome,
+        homeExemptionLost,
+        finalAttributionRate,
+        pensionImpact: {
+            assetsTest: attributedAssets,
+            incomeTest: attributedIncome,
+            homeExemption: !homeExemptionLost
+        }
+    };
+};
+
+export const adjustAssetsForTrust = (originalAssets, trustAttribution, trustInputs) => {
+    let adjustedAssets = originalAssets;
+
+    // Add attributed trust assets
+    adjustedAssets += trustAttribution.attributedAssets;
+
+    // If home is in trust and loses exemption, add home value to assessable assets
+    if (trustAttribution.homeExemptionLost && trustInputs.homeValue) {
+        adjustedAssets += trustInputs.homeValue;
+    }
+
+    return adjustedAssets;
+};
+
+export const adjustIncomeForTrust = (originalIncome, trustAttribution, demingRates) => {
+    let adjustedIncome = originalIncome;
+
+    // Add trust distributions (subject to deeming rules)
+    if (trustAttribution.attributedIncome > 0) {
+        // For simplicity, treat trust income as deemed at the higher rate
+        const deemedIncome = trustAttribution.attributedAssets * (demingRates?.high || 0.0275);
+        adjustedIncome += Math.max(trustAttribution.attributedIncome, deemedIncome);
+    }
+
+    return adjustedIncome;
+};
+
+export const getTrustRecommendations = (trustInputs, trustRules, pensionEligible) => {
+    const recommendations = [];
+
+    if (!trustInputs.hasTrustAssets) return recommendations;
+
+    const controlLevel = trustInputs.trustControlLevel;
+    const trustType = trustInputs.trustType;
+
+    // High control recommendations
+    if (controlLevel === 'high' && pensionEligible) {
+        recommendations.push({
+            priority: 'high',
+            category: 'trust-structure',
+            title: 'Consider Reducing Trust Control',
+            description: 'High control over trust results in full attribution of assets for Age Pension. Consider transferring trustee/appointer roles.',
+            impact: 'May improve Age Pension eligibility',
+            caution: 'Seek professional advice before making structural changes to avoid CGT or stamp duty implications.'
+        });
+    }
+
+    // Home in trust recommendations
+    if (trustInputs.homeInTrust) {
+        recommendations.push({
+            priority: 'high',
+            category: 'property-structure',
+            title: 'Principal Residence in Trust',
+            description: 'Your home may lose Age Pension asset test exemption when held in trust.',
+            impact: 'Home value may be assessable for Age Pension',
+            caution: 'Consider professional advice on transferring home back to personal names before pension age.'
+        });
+    }
+
+    // Attribution percentage recommendations
+    if (trustInputs.trustAttributionPercentage === 100 && trustInputs.trustControlLevel !== 'high') {
+        recommendations.push({
+            priority: 'medium',
+            category: 'attribution-review',
+            title: 'Review Attribution Percentage',
+            description: 'Your control level suggests attribution may be less than 100%.',
+            impact: 'May reduce assessable trust assets',
+            caution: 'Centrelink determines attribution based on actual control - obtain professional assessment.'
+        });
+    }
+
+    return recommendations;
+};
+
 // Pension calculation utilities
 export const calculateAgePension = (assets, income, isCouple, maxPension, assetThreshold, assetLimit, incomeThreshold) => {
     // Asset test
