@@ -3,140 +3,140 @@
 <head>
     <!-- Google Analytics - Silent loading with background retry -->
     <script>
-      // Load Google Analytics with silent failure and retry mechanism
-      (function() {
-        let analyticsRetryCount = 0;
-        const maxRetries = 3;
-        const retryDelay = 30000; // 30 seconds
+        // Load Google Analytics with silent failure and retry mechanism
+        (function() {
+            let analyticsRetryCount = 0;
+            const maxRetries = 3;
+            const retryDelay = 30000; // 30 seconds
 
-        function loadGoogleAnalytics() {
-          try {
-            const script = document.createElement('script');
-            script.async = true;
-            script.src = 'https://www.googletagmanager.com/gtag/js?id=G-F3BXKGK3QZ';
+            function loadGoogleAnalytics() {
+                try {
+                    const script = document.createElement('script');
+                    script.async = true;
+                    script.src = 'https://www.googletagmanager.com/gtag/js?id=G-F3BXKGK3QZ';
 
-            // Set timeout for failure detection
-            const loadTimeout = setTimeout(() => {
-              if (!window.gtag || !window.dataLayer) {
-                console.log('⚠️ Google Analytics loading timeout - likely blocked by privacy tools');
-                if (analyticsRetryCount < maxRetries) {
-                  analyticsRetryCount++;
-                  setTimeout(loadGoogleAnalytics, retryDelay);
+                    // Set timeout for failure detection
+                    const loadTimeout = setTimeout(() => {
+                        if (!window.gtag || !window.dataLayer) {
+                            console.log('⚠️ Google Analytics loading timeout - likely blocked by privacy tools');
+                            if (analyticsRetryCount < maxRetries) {
+                                analyticsRetryCount++;
+                                setTimeout(loadGoogleAnalytics, retryDelay);
+                            }
+                        }
+                    }, 8000); // 8 second timeout
+
+                    script.onload = function() {
+                        clearTimeout(loadTimeout);
+                        console.log('✅ Google Analytics loaded successfully');
+                        window.dataLayer = window.dataLayer || [];
+                        function gtag(){dataLayer.push(arguments);}
+                        gtag('js', new Date());
+                        gtag('config', 'G-F3BXKGK3QZ');
+                    };
+
+                    script.onerror = function() {
+                        clearTimeout(loadTimeout);
+                        console.log('⚠️ Google Analytics blocked by privacy tools - will retry in 30 seconds');
+                        if (analyticsRetryCount < maxRetries) {
+                            analyticsRetryCount++;
+                            setTimeout(loadGoogleAnalytics, retryDelay);
+                        }
+                    };
+
+                    document.head.appendChild(script);
+                } catch(e) {
+                    console.log('❌ Google Analytics initialization failed:', e.message);
+                    if (analyticsRetryCount < maxRetries) {
+                        analyticsRetryCount++;
+                        setTimeout(loadGoogleAnalytics, retryDelay);
+                    }
                 }
-              }
-            }, 8000); // 8 second timeout
-
-            script.onload = function() {
-              clearTimeout(loadTimeout);
-              console.log('✅ Google Analytics loaded successfully');
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-F3BXKGK3QZ');
-            };
-
-            script.onerror = function() {
-              clearTimeout(loadTimeout);
-              console.log('⚠️ Google Analytics blocked by privacy tools - will retry in 30 seconds');
-              if (analyticsRetryCount < maxRetries) {
-                analyticsRetryCount++;
-                setTimeout(loadGoogleAnalytics, retryDelay);
-              }
-            };
-
-            document.head.appendChild(script);
-          } catch(e) {
-            console.log('❌ Google Analytics initialization failed:', e.message);
-            if (analyticsRetryCount < maxRetries) {
-              analyticsRetryCount++;
-              setTimeout(loadGoogleAnalytics, retryDelay);
             }
-          }
-        }
 
-        // Initial load attempt
-        loadGoogleAnalytics();
-      })();
+            // Initial load attempt
+            loadGoogleAnalytics();
+        })();
     </script>
 
     <!-- Google AdSense - Silent loading with background retry -->
     <script>
-      // Load AdSense with silent failure and retry mechanism
-      (function() {
-        let adsenseRetryCount = 0;
-        const maxRetries = 3;
-        const retryDelay = 30000; // 30 seconds
-        let adsenseBlocked = false;
+        // Load AdSense with silent failure and retry mechanism
+        (function() {
+            let adsenseRetryCount = 0;
+            const maxRetries = 3;
+            const retryDelay = 30000; // 30 seconds
+            let adsenseBlocked = false;
 
-        function loadGoogleAdSense() {
-          try {
-            const script = document.createElement('script');
-            script.async = true;
-            script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1599099437795468';
-            script.crossOrigin = 'anonymous';
+            function loadGoogleAdSense() {
+                try {
+                    const script = document.createElement('script');
+                    script.async = true;
+                    script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1599099437795468';
+                    script.crossOrigin = 'anonymous';
 
-            // Set timeout for failure detection
-            const adsenseLoadTimeout = setTimeout(() => {
-              if (!window.adsbygoogle || !window.adsbygoogle.loaded) {
-                console.log('⚠️ Google AdSense loading timeout - likely blocked by privacy tools');
-                adsenseBlocked = true;
-                if (adsenseRetryCount < maxRetries) {
-                  adsenseRetryCount++;
-                  setTimeout(loadGoogleAdSense, retryDelay);
+                    // Set timeout for failure detection
+                    const adsenseLoadTimeout = setTimeout(() => {
+                        if (!window.adsbygoogle || !window.adsbygoogle.loaded) {
+                            console.log('⚠️ Google AdSense loading timeout - likely blocked by privacy tools');
+                            adsenseBlocked = true;
+                            if (adsenseRetryCount < maxRetries) {
+                                adsenseRetryCount++;
+                                setTimeout(loadGoogleAdSense, retryDelay);
+                            }
+                        }
+                    }, 8000); // 8 second timeout
+
+                    script.onload = function() {
+                        clearTimeout(adsenseLoadTimeout);
+                        console.log('✅ Google AdSense loaded successfully');
+                    };
+
+                    script.onerror = function() {
+                        clearTimeout(adsenseLoadTimeout);
+                        console.log('⚠️ Google AdSense blocked by Enhanced Tracking Protection or ad blocker');
+                        adsenseBlocked = true;
+                        if (adsenseRetryCount < maxRetries) {
+                            adsenseRetryCount++;
+                            setTimeout(loadGoogleAdSense, retryDelay);
+                        }
+                    };
+
+                    document.head.appendChild(script);
+
+                } catch(e) {
+                    console.log('❌ Google AdSense initialization failed:', e.message);
+                    adsenseBlocked = true;
+                    if (adsenseRetryCount < maxRetries) {
+                        adsenseRetryCount++;
+                        setTimeout(loadGoogleAdSense, retryDelay);
+                    }
                 }
-              }
-            }, 8000); // 8 second timeout
-
-            script.onload = function() {
-              clearTimeout(adsenseLoadTimeout);
-              console.log('✅ Google AdSense loaded successfully');
-            };
-
-            script.onerror = function() {
-              clearTimeout(adsenseLoadTimeout);
-              console.log('⚠️ Google AdSense blocked by Enhanced Tracking Protection or ad blocker');
-              adsenseBlocked = true;
-              if (adsenseRetryCount < maxRetries) {
-                adsenseRetryCount++;
-                setTimeout(loadGoogleAdSense, retryDelay);
-              }
-            };
-
-            document.head.appendChild(script);
-
-          } catch(e) {
-            console.log('❌ Google AdSense initialization failed:', e.message);
-            adsenseBlocked = true;
-            if (adsenseRetryCount < maxRetries) {
-              adsenseRetryCount++;
-              setTimeout(loadGoogleAdSense, retryDelay);
             }
-          }
-        }
 
-        // Initialize fallback ad detection after DOM loads
-        function setupAdFallbacks() {
-          document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-              // Check for ad containers and implement fallbacks if needed
-              const adContainers = document.querySelectorAll('ins.adsbygoogle, .adsbygoogle');
-              if (adContainers.length > 0 && (adsenseBlocked || !window.adsbygoogle)) {
-                console.log('🔄 Implementing AdSense fallbacks for blocked ads');
-                adContainers.forEach(container => {
-                  if (container.innerHTML.trim() === '' || container.offsetHeight === 0) {
-                    // Gracefully hide blocked ads
-                    container.style.display = 'none';
-                  }
+            // Initialize fallback ad detection after DOM loads
+            function setupAdFallbacks() {
+                document.addEventListener('DOMContentLoaded', () => {
+                    setTimeout(() => {
+                        // Check for ad containers and implement fallbacks if needed
+                        const adContainers = document.querySelectorAll('ins.adsbygoogle, .adsbygoogle');
+                        if (adContainers.length > 0 && (adsenseBlocked || !window.adsbygoogle)) {
+                            console.log('🔄 Implementing AdSense fallbacks for blocked ads');
+                            adContainers.forEach(container => {
+                                if (container.innerHTML.trim() === '' || container.offsetHeight === 0) {
+                                    // Gracefully hide blocked ads
+                                    container.style.display = 'none';
+                                }
+                            });
+                        }
+                    }, 3000); // Check after 3 seconds
                 });
-              }
-            }, 3000); // Check after 3 seconds
-          });
-        }
+            }
 
-        // Initial load attempt
-        loadGoogleAdSense();
-        setupAdFallbacks();
-      })();
+            // Initial load attempt
+            loadGoogleAdSense();
+            setupAdFallbacks();
+        })();
     </script>
 
 
@@ -281,7 +281,7 @@
         }
     </script>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body>
 <div class="container mx-auto p-4 md:p-8">
     <header class="text-center mb-8 relative">
         <!-- Theme Toggle Button -->
@@ -1509,6 +1509,6 @@
         clearInterval(appObserver);
     }, 15000); // Stop observer after 15 seconds
 </script>
-  
+
 </body>
 </html>

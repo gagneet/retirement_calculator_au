@@ -53,18 +53,11 @@ class ThemeManager {
     applyTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
 
-        // Update Tailwind classes on body for compatibility
-        if (theme === 'dark') {
-            document.body.classList.remove('bg-gray-100', 'text-gray-800');
-            document.body.classList.add('bg-gray-900', 'text-gray-100');
-        } else {
-            document.body.classList.remove('bg-gray-900', 'text-gray-100');
-            document.body.classList.add('bg-gray-100', 'text-gray-800');
-        }
-
-        // Trigger custom event for other components
+        // Trigger custom event for other components to react to theme changes
         document.dispatchEvent(new CustomEvent('themechange', {
-            detail: { theme }
+            detail: {
+                theme
+            }
         }));
     }
 
