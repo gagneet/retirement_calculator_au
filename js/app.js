@@ -1533,6 +1533,12 @@ class RetirementCalculatorApp {
             btnResetDefaults.addEventListener('click', () => this.resetToDefaults());
         }
 
+        // Clear Cache button
+        const btnClearCache = $('clearCacheBtn');
+        if (btnClearCache) {
+            btnClearCache.addEventListener('click', () => this.clearCache());
+        }
+
         // Scenario comparison controls
         const btnSelectAllScenarios = $('btnSelectAllScenarios');
         const btnDeselectAllScenarios = $('btnDeselectAllScenarios');
@@ -2000,6 +2006,26 @@ class RetirementCalculatorApp {
         };
 
         return defaultMap[inputId];
+    }
+
+    clearCache() {
+        if (confirm('Are you sure you want to clear the cache? This will reset all your inputs to the default values.')) {
+            // Clear localStorage and sessionStorage
+            localStorage.clear();
+            sessionStorage.clear();
+
+            // Clear cookies
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i];
+                const eqPos = cookie.indexOf('=');
+                const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+                document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+            }
+
+            // Force a hard reload
+            location.reload(true);
+        }
     }
 
     setupAutoSave() {
