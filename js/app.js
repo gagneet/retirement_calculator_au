@@ -6,6 +6,7 @@ import RecommendationEngine from './recommendation.js';
 import DecisionSupportEngine from './decision-support-engine.js';
 import MarketDataEngine from './market-data.js';
 import ChartManager from './charts.js';
+import { initializeTrustUI } from './trust-ui.js';
 import {
     $,
     safeGetValue,
@@ -24,7 +25,9 @@ import {
     debounce,
     showNotification,
     saveToLocalStorage,
-    loadFromLocalStorage
+    loadFromLocalStorage,
+    initializeTooltips,
+    addTooltipBottomStyles
 } from './utils.js';
 
 class RetirementCalculatorApp {
@@ -43,6 +46,12 @@ class RetirementCalculatorApp {
         this.setupEventListeners();
         this.setupAutoSave(); // Setup auto-save functionality
         this.updateUIElements();
+        initializeTrustUI(); // Initialize trust UI functionality
+
+        // Initialize tooltip system
+        addTooltipBottomStyles(); // Add bottom positioning styles
+        initializeTooltips(); // Initialize tooltip functionality
+
         this.performInitialCalculation();
     }
 
@@ -129,6 +138,17 @@ class RetirementCalculatorApp {
             pensionAssetThreshold: safeGetValue('pensionAssetThreshold', config.pension.pensionAssetThreshold),
             pensionAssetLimit: safeGetValue('pensionAssetLimit', config.pension.pensionAssetLimit),
             pensionIncomeThreshold: safeGetValue('pensionIncomeThreshold', config.pension.pensionIncomeThreshold),
+
+            // Trust structure details
+            hasTrustAssets: safeGetChecked('hasTrustAssets', config.trust.hasTrustAssets),
+            trustType: safeGetSelectValue('trustType', config.trust.trustType),
+            trustControlLevel: safeGetSelectValue('trustControlLevel', config.trust.trustControlLevel),
+            trustNetAssets: safeGetValue('trustNetAssets', config.trust.trustNetAssets),
+            trustAttributionPercentage: safeGetValue('trustAttributionPercentage', config.trust.trustAttributionPercentage),
+            trustAnnualDistributions: safeGetValue('trustAnnualDistributions', config.trust.trustAnnualDistributions),
+            homeInTrust: safeGetChecked('homeInTrust', config.trust.homeInTrust),
+            investmentPropertyInTrust: safeGetChecked('investmentPropertyInTrust', config.trust.investmentPropertyInTrust),
+            stocksInTrust: safeGetChecked('stocksInTrust', config.trust.stocksInTrust),
 
             // Simulation controls
             returnVolatility: safeGetValue('returnVolatility', config.simulation.returnVolatility) / 100,
@@ -1571,18 +1591,26 @@ class RetirementCalculatorApp {
                 this.updateRiskProfile(inputs);
             }, 300));
 
-            // Show tooltip on hover/focus
-            riskTolerance.addEventListener('mouseenter', () => {
-                this.showRiskToleranceTooltip();
+            // Show tooltip on hover/focus - enhanced for all browsers including Edge
+            riskTolerance.addEventListener('mouseenter', (e) => {
+                this.showRiskToleranceTooltip(e);
             });
-            riskTolerance.addEventListener('mouseleave', () => {
-                this.hideRiskToleranceTooltip();
+            riskTolerance.addEventListener('mouseleave', (e) => {
+                this.hideRiskToleranceTooltip(e);
             });
-            riskTolerance.addEventListener('focus', () => {
-                this.showRiskToleranceTooltip();
+            riskTolerance.addEventListener('focus', (e) => {
+                this.showRiskToleranceTooltip(e);
             });
-            riskTolerance.addEventListener('blur', () => {
-                this.hideRiskToleranceTooltip();
+            riskTolerance.addEventListener('blur', (e) => {
+                this.hideRiskToleranceTooltip(e);
+            });
+
+            // Additional events for better Edge support
+            riskTolerance.addEventListener('pointerenter', (e) => {
+                this.showRiskToleranceTooltip(e);
+            });
+            riskTolerance.addEventListener('pointerleave', (e) => {
+                this.hideRiskToleranceTooltip(e);
             });
 
             // Initialize display
@@ -1713,17 +1741,31 @@ class RetirementCalculatorApp {
         }
     }
 
-    showRiskToleranceTooltip() {
+    showRiskToleranceTooltip(event) {
         const tooltip = $('riskToleranceTooltip');
         if (tooltip) {
+            // Force show tooltip for all browsers
             tooltip.classList.remove('hidden');
+            tooltip.style.display = 'block';
+            tooltip.style.opacity = '1';
+
+            // Ensure the description is updated
+            const riskTolerance = $('riskTolerance');
+            if (riskTolerance) {
+                this.updateRiskToleranceDisplay(riskTolerance.value);
+            }
         }
     }
 
-    hideRiskToleranceTooltip() {
+    hideRiskToleranceTooltip(event) {
         const tooltip = $('riskToleranceTooltip');
         if (tooltip) {
-            tooltip.classList.add('hidden');
+            // Use a small delay to allow for smooth transitions
+            setTimeout(() => {
+                tooltip.classList.add('hidden');
+                tooltip.style.display = '';
+                tooltip.style.opacity = '';
+            }, 150);
         }
     }
 
@@ -1759,6 +1801,11 @@ class RetirementCalculatorApp {
                 'investmentPropertyLoan', 'investmentPropertyRate', 'weeklyRentalIncome',
                 'annualPropertyExpenses', 'propertyGrowthRate', 'sellPropertyYears',
                 'capitalGainsTaxRate'
+            ],
+            trust: [
+                'hasTrustAssets', 'trustType', 'trustControlLevel', 'trustNetAssets',
+                'trustAttributionPercentage', 'trustAnnualDistributions', 'homeInTrust',
+                'investmentPropertyInTrust', 'stocksInTrust'
             ],
             healthcare: [
                 'currentHealthcareCosts', 'healthcareInflation', 'agedCareProbability',
@@ -1930,6 +1977,17 @@ class RetirementCalculatorApp {
             'propertyGrowthRate': config.property.propertyGrowthRate,
             'sellPropertyYears': config.property.sellPropertyYears,
             'capitalGainsTaxRate': config.property.capitalGainsTaxRate,
+
+            // Trust
+            'hasTrustAssets': config.trust.hasTrustAssets,
+            'trustType': config.trust.trustType,
+            'trustControlLevel': config.trust.trustControlLevel,
+            'trustNetAssets': config.trust.trustNetAssets,
+            'trustAttributionPercentage': config.trust.trustAttributionPercentage,
+            'trustAnnualDistributions': config.trust.trustAnnualDistributions,
+            'homeInTrust': config.trust.homeInTrust,
+            'investmentPropertyInTrust': config.trust.investmentPropertyInTrust,
+            'stocksInTrust': config.trust.stocksInTrust,
 
             // Additional defaults for fields that might not be in config
             'useGlidePath': true,

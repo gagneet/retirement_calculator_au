@@ -286,12 +286,12 @@
     <header class="text-center mb-8 relative">
         <!-- Theme Toggle Button -->
         <div class="absolute top-0 right-0">
-            <button id="themeToggle" class="theme-toggle tooltip" aria-label="Toggle theme">
-                <svg class="theme-toggle-icon sun-icon" fill="currentColor" viewBox="0 0 24 24" style="display: block;">
-                    <path d="M12 7a5 5 0 100 10 5 5 0 000-10zM12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            <button id="themeToggle" class="theme-toggle tooltip" aria-label="Toggle theme" type="button">
+                <svg class="theme-toggle-icon sun-icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" width="20" height="20" style="display: block;" aria-hidden="false">
+                    <path d="M12 7a5 5 0 100 10 5 5 0 000-10zM12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="none" stroke-width="0"/>
                 </svg>
-                <svg class="theme-toggle-icon moon-icon" fill="currentColor" viewBox="0 0 24 24" style="display: none;">
-                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                <svg class="theme-toggle-icon moon-icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" width="20" height="20" style="display: none;" aria-hidden="true">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="none" stroke-width="0"/>
                 </svg>
                 <span class="tooltiptext">Toggle Dark Mode</span>
             </button>
@@ -352,15 +352,45 @@
 
             <div class="space-y-4">
                 <div>
-                    <label for="yourCurrentAge" class="block text-sm font-medium text-gray-700">Your Current Age</label>
+                    <div class="label-with-tooltip">
+                        <label for="yourCurrentAge" class="block text-sm font-medium text-gray-700">Your Current Age</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Age information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Your Current Age</strong>
+                                Enter your age today. This affects superannuation preservation rules, age pension eligibility, and asset allocation recommendations.
+                                <div class="tooltip-example">Example: If you're 49, you can access super at 60</div>
+                            </span>
+                        </div>
+                    </div>
                     <input type="number" id="yourCurrentAge" value="49" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
-                    <label for="partnerCurrentAge" class="block text-sm font-medium text-gray-700">Partner's Current Age</label>
+                    <div class="label-with-tooltip">
+                        <label for="partnerCurrentAge" class="block text-sm font-medium text-gray-700">Partner's Current Age</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Partner age information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Partner's Current Age</strong>
+                                Your partner's age affects age pension calculations as couple rates apply when both are eligible. Leave blank if single.
+                                <div class="tooltip-example">Example: Younger partner delays full age pension benefits</div>
+                            </span>
+                        </div>
+                    </div>
                     <input type="number" id="partnerCurrentAge" value="42" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
-                    <label for="retirementAge" class="block text-sm font-medium text-gray-700">Your Retirement Age</label>
+                    <div class="label-with-tooltip">
+                        <label for="retirementAge" class="block text-sm font-medium text-gray-700">Your Retirement Age</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Retirement age information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Your Retirement Age</strong>
+                                Age when you plan to stop working. Consider: Age pension starts at 67, but you can access super from preservation age (60-65 depending on birth year).
+                                <div class="tooltip-example">Example: Retire at 65, bridge gap until age pension at 67</div>
+                            </span>
+                        </div>
+                    </div>
                     <input type="number" id="retirementAge" value="68" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
@@ -368,7 +398,17 @@
                     <input type="number" id="partnerRetirementAge" value="60" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
-                    <label for="yourLifespan" class="block text-sm font-medium text-gray-700">Your Expected Lifespan</label>
+                    <div class="label-with-tooltip">
+                        <label for="yourLifespan" class="block text-sm font-medium text-gray-700">Your Expected Lifespan</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Life expectancy information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Your Expected Lifespan</strong>
+                                How long you expect to live. Australian life expectancy is ~81 for men, ~85 for women. Planning to 90+ ensures your money doesn't run out.
+                                <div class="tooltip-example">Example: Plan to 95 for conservative estimates</div>
+                            </span>
+                        </div>
+                    </div>
                     <input type="number" id="yourLifespan" value="99" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
@@ -381,7 +421,17 @@
                 <h3 class="text-lg font-medium text-gray-700 mb-3">Risk Tolerance Assessment</h3>
                 <div class="space-y-3">
                     <div>
-                        <label for="riskTolerance" class="block text-sm font-medium text-gray-700">Risk Tolerance</label>
+                        <div class="label-with-tooltip">
+                            <label for="riskTolerance" class="block text-sm font-medium text-gray-700">Risk Tolerance</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Risk tolerance information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Risk Tolerance</strong>
+                                    How comfortable you are with investment volatility. Conservative (1-3): Low growth, stable returns. Moderate (4-7): Balanced approach. Aggressive (8-10): High growth potential with higher volatility.
+                                    <div class="tooltip-example">Example: Conservative investors prefer bonds and term deposits</div>
+                                </span>
+                            </div>
+                        </div>
                         <div class="mt-1 relative">
                             <input type="range" id="riskTolerance" min="1" max="10" value="6" class="risk-tolerance-slider w-full h-2 rounded-lg appearance-none cursor-pointer">
                             <div class="flex justify-between text-xs text-gray-500 mt-2">
@@ -395,7 +445,17 @@
                         </div>
                     </div>
                     <div>
-                        <label for="hasEmergencyFund" class="block text-sm font-medium text-gray-700">Emergency Fund Status</label>
+                        <div class="label-with-tooltip">
+                            <label for="hasEmergencyFund" class="block text-sm font-medium text-gray-700">Emergency Fund Status</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Emergency fund information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Emergency Fund Status</strong>
+                                    Cash reserves for unexpected expenses (job loss, medical bills). Having 6+ months of expenses improves your risk capacity and allows for more aggressive investing.
+                                    <div class="tooltip-example">Example: $30k expenses = $15k emergency fund minimum</div>
+                                </span>
+                            </div>
+                        </div>
                         <select id="hasEmergencyFund" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             <option value="full">6+ months expenses</option>
                             <option value="partial">3-6 months expenses</option>
@@ -404,7 +464,17 @@
                         </select>
                     </div>
                     <div>
-                        <label for="hasDebt" class="block text-sm font-medium text-gray-700">High-Interest Debt Status</label>
+                        <div class="label-with-tooltip">
+                            <label for="hasDebt" class="block text-sm font-medium text-gray-700">High-Interest Debt Status</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Debt information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>High-Interest Debt Status</strong>
+                                    Credit cards, personal loans, or other debts above 8-10% interest. High debt reduces risk capacity and should typically be paid off before investing.
+                                    <div class="tooltip-example">Example: 20% credit card debt vs 7% investment returns</div>
+                                </span>
+                            </div>
+                        </div>
                         <select id="hasDebt" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             <option value="none">No high-interest debt</option>
                             <option value="minimal">Under $10,000</option>
@@ -413,7 +483,17 @@
                         </select>
                     </div>
                     <div>
-                        <label for="dependents" class="block text-sm font-medium text-gray-700">Financial Dependents</label>
+                        <div class="label-with-tooltip">
+                            <label for="dependents" class="block text-sm font-medium text-gray-700">Financial Dependents</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Dependents information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Financial Dependents</strong>
+                                    Number of people relying on your income (children, elderly parents). More dependents reduce risk tolerance as you need more stable income sources.
+                                    <div class="tooltip-example">Example: 2 school-age children requiring education funding</div>
+                                </span>
+                            </div>
+                        </div>
                         <input type="number" id="dependents" value="2" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                 </div>
@@ -422,7 +502,17 @@
             <h3 class="text-lg font-semibold mt-6 mb-4 border-b pb-2">Current Finances</h3>
             <div class="space-y-4">
                 <div>
-                    <label for="yourSalary" class="block text-sm font-medium text-gray-700">Your Annual Salary (pre-tax)</label>
+                    <div class="label-with-tooltip">
+                        <label for="yourSalary" class="block text-sm font-medium text-gray-700">Your Annual Salary (pre-tax)</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Salary information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Your Annual Salary (pre-tax)</strong>
+                                Gross income before tax and super. Used for tax calculations, super guarantee contributions (12%), and retirement projections.
+                                <div class="tooltip-example">Example: $100k salary = $12k super + $76k take-home (approx)</div>
+                            </span>
+                        </div>
+                    </div>
                     <input type="number" id="yourSalary" value="164000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
@@ -430,7 +520,17 @@
                     <input type="number" id="partnerSalary" value="124500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
-                    <label for="yourCurrentSuper" class="block text-sm font-medium text-gray-700">Your Current Superannuation</label>
+                    <div class="label-with-tooltip">
+                        <label for="yourCurrentSuper" class="block text-sm font-medium text-gray-700">Your Current Superannuation</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Super balance information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Your Current Superannuation</strong>
+                                Total super balance today across all funds. Check your myGov account or latest super statement for accurate figures.
+                                <div class="tooltip-example">Example: $300k at age 50 could grow to $800k+ by retirement</div>
+                            </span>
+                        </div>
+                    </div>
                     <input type="number" id="yourCurrentSuper" value="300000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
@@ -438,7 +538,17 @@
                     <input type="number" id="partnerCurrentSuper" value="150000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
-                    <label for="currentSavings" class="block text-sm font-medium text-gray-700">Current Cash/Savings</label>
+                    <div class="label-with-tooltip">
+                        <label for="currentSavings" class="block text-sm font-medium text-gray-700">Current Cash/Savings</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Savings information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Current Cash/Savings</strong>
+                                Bank accounts, term deposits, cash investments. Include emergency fund and any cash earmarked for retirement.
+                                <div class="tooltip-example">Example: $50k emergency fund + $75k investment cash = $125k</div>
+                            </span>
+                        </div>
+                    </div>
                     <input type="number" id="currentSavings" value="125000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
@@ -450,7 +560,17 @@
                     <input type="number" id="monthlyStockContribution" value="800" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
-                    <label for="percentIncomeSaved" class="block text-sm font-medium text-gray-700">% of Post-Tax Income Saved</label>
+                    <div class="label-with-tooltip">
+                        <label for="percentIncomeSaved" class="block text-sm font-medium text-gray-700">% of Post-Tax Income Saved</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Savings rate information">i</span>
+                            <span class="tooltiptext">
+                                <strong>% of Post-Tax Income Saved</strong>
+                                Percentage of after-tax income you save for retirement (excluding super). Higher savings rates dramatically improve retirement outcomes.
+                                <div class="tooltip-example">Example: Save 10% of $80k take-home = $8k annually</div>
+                            </span>
+                        </div>
+                    </div>
                     <input type="number" id="percentIncomeSaved" value="9" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
             </div>
@@ -463,7 +583,17 @@
             <h3 class="text-lg font-medium text-gray-700 mb-3">Primary Residence</h3>
             <div class="space-y-4">
                 <div>
-                    <label for="homeValue" class="block text-sm font-medium text-gray-700">Current Home Value</label>
+                    <div class="label-with-tooltip">
+                        <label for="homeValue" class="block text-sm font-medium text-gray-700">Current Home Value</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Home value information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Current Home Value</strong>
+                                Today's market value of your primary residence. Use recent sales of comparable properties or professional valuation. Home value affects age pension asset test but is partially exempt.
+                                <div class="tooltip-example">Example: $800k home may add ~$200k to age pension assets test</div>
+                            </span>
+                        </div>
+                    </div>
                     <input type="number" id="homeValue" value="1450000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
@@ -479,7 +609,17 @@
                     <input type="number" id="monthlyMortgagePayment" value="4984" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
-                    <label for="planToDownsize" class="block text-sm font-medium text-gray-700">Plan to Downsize?</label>
+                    <div class="label-with-tooltip">
+                        <label for="planToDownsize" class="block text-sm font-medium text-gray-700">Plan to Downsize?</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Downsizing information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Plan to Downsize?</strong>
+                                Whether you plan to sell and buy a smaller/cheaper home in retirement. Downsizing can free up capital and reduce living costs. The downsizer contribution allows up to $300k into super.
+                                <div class="tooltip-example">Example: $1.2M home → $800k apartment = $400k freed up</div>
+                            </span>
+                        </div>
+                    </div>
                     <select id="planToDownsize" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         <option value="false">No - Stay in current home</option>
                         <option value="true">Yes - Downsize and access equity</option>
@@ -535,6 +675,96 @@
             </div>
 
             <div class="enhancement-highlight p-4 rounded-lg mt-4">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Trust Structures</h3>
+                <div class="space-y-3">
+                    <div class="p-3 bg-blue-50 rounded text-sm">
+                        <p class="text-blue-800 mb-2"><strong>Important:</strong> Trust assets may be attributed to you for Age Pension means testing if you have control.</p>
+                        <p class="text-blue-700 text-xs">Consult a financial advisor for trust-specific advice. This calculator estimates impacts based on Centrelink's attribution rules.</p>
+                    </div>
+                    <div>
+                        <label for="hasTrustAssets" class="flex items-center">
+                            <input type="checkbox" id="hasTrustAssets" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <span class="ml-2 text-sm text-gray-700">Have Trust Assets or Control</span>
+                        </label>
+                    </div>
+                    <div id="trustAssetsSection" class="hidden space-y-3">
+                        <div>
+                            <label for="trustType" class="block text-sm font-medium text-gray-700">Primary Trust Type</label>
+                            <select id="trustType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="discretionary">Discretionary Family Trust</option>
+                                <option value="unit">Unit Trust</option>
+                                <option value="hybrid">Hybrid Trust</option>
+                                <option value="other">Other Trust Structure</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="trustControlLevel" class="block text-sm font-medium text-gray-700">Control Level</label>
+                            <select id="trustControlLevel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="high">High Control (Trustee/Appointer/Beneficiary)</option>
+                                <option value="medium">Medium Control (Beneficiary with influence)</option>
+                                <option value="low">Low Control (Beneficiary only)</option>
+                                <option value="none">No Control (Arms-length)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div class="label-with-tooltip">
+                                <label for="trustNetAssets" class="block text-sm font-medium text-gray-700">Current Trust Net Assets Value</label>
+                                <div class="tooltip">
+                                    <span class="tooltip-icon" aria-label="Trust assets information">i</span>
+                                    <span class="tooltiptext">
+                                        <strong>Current Trust Net Assets Value</strong>
+                                        Total market value of all trust assets (property, shares, cash) minus any trust debts. If you control the trust, some or all of this may be attributed to you for age pension means testing.
+                                        <div class="tooltip-example">Example: $500k trust property - $200k loan = $300k net assets</div>
+                                    </span>
+                                </div>
+                            </div>
+                            <input type="number" id="trustNetAssets" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Total value of trust assets minus liabilities</p>
+                        </div>
+                        <div>
+                            <div class="label-with-tooltip">
+                                <label for="trustAttributionPercentage" class="block text-sm font-medium text-gray-700">Attribution Percentage (%)</label>
+                                <div class="tooltip">
+                                    <span class="tooltip-icon" aria-label="Attribution percentage information">i</span>
+                                    <span class="tooltiptext">
+                                        <strong>Attribution Percentage (%)</strong>
+                                        Centrelink may attribute trust assets/income to you based on your control level. High control (trustee/appointer) = 100%. Lower control may result in partial attribution. This affects age pension eligibility.
+                                        <div class="tooltip-example">Example: 100% of $300k trust = $300k added to your assets test</div>
+                                    </span>
+                                </div>
+                            </div>
+                            <input type="number" id="trustAttributionPercentage" value="100" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Percentage of trust assets/income attributed to you by Centrelink</p>
+                        </div>
+                        <div>
+                            <label for="trustAnnualDistributions" class="block text-sm font-medium text-gray-700">Annual Trust Distributions Received</label>
+                            <input type="number" id="trustAnnualDistributions" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Actual distributions received from trust in last financial year</p>
+                        </div>
+                        <div>
+                            <label for="homeInTrust" class="flex items-center">
+                                <input type="checkbox" id="homeInTrust" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">Principal Residence Held in Trust</span>
+                            </label>
+                            <p class="mt-1 text-xs text-gray-500">May lose Age Pension principal residence exemption</p>
+                        </div>
+                        <div>
+                            <label for="investmentPropertyInTrust" class="flex items-center">
+                                <input type="checkbox" id="investmentPropertyInTrust" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">Investment Property Held in Trust</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label for="stocksInTrust" class="flex items-center">
+                                <input type="checkbox" id="stocksInTrust" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">Share Portfolio Held in Trust</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="enhancement-highlight p-4 rounded-lg mt-4">
                 <h3 class="text-lg font-medium text-gray-700 mb-3">Healthcare & Aged Care</h3>
                 <div class="space-y-3">
                     <div>
@@ -546,11 +776,31 @@
                         <input type="number" id="healthcareInflation" value="3.82" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                     <div>
-                        <label for="agedCareProbability" class="block text-sm font-medium text-gray-700">Aged Care Probability (%)</label>
+                        <div class="label-with-tooltip">
+                            <label for="agedCareProbability" class="block text-sm font-medium text-gray-700">Aged Care Probability (%)</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Aged care probability information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Aged Care Probability (%)</strong>
+                                    Likelihood you'll need residential aged care. Australian statistics show ~70% of people will need aged care at some point. Consider family history, health, and gender (women have higher probability due to longer life expectancy).
+                                    <div class="tooltip-example">Example: 68% means 68% chance of needing aged care costing ~$75k/year</div>
+                                </span>
+                            </div>
+                        </div>
                         <input type="number" id="agedCareProbability" value="68" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                     <div>
-                        <label for="agedCareStartAge" class="block text-sm font-medium text-gray-700">Expected Aged Care Start Age</label>
+                        <div class="label-with-tooltip">
+                            <label for="agedCareStartAge" class="block text-sm font-medium text-gray-700">Expected Aged Care Start Age</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Aged care start age information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Expected Aged Care Start Age</strong>
+                                    Average age when residential aged care begins. Australian average is around 85-88. Consider your health, family history, and lifestyle factors.
+                                    <div class="tooltip-example">Example: Good health and family history suggests starting at 90</div>
+                                </span>
+                            </div>
+                        </div>
                         <input type="number" id="agedCareStartAge" value="88" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                     <div>
@@ -558,7 +808,17 @@
                         <input type="number" id="agedCareDuration" value="11.5" step="0.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                     <div>
-                        <label for="agedCareAnnualCost" class="block text-sm font-medium text-gray-700">Annual Aged Care Cost</label>
+                        <div class="label-with-tooltip">
+                            <label for="agedCareAnnualCost" class="block text-sm font-medium text-gray-700">Annual Aged Care Cost</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Aged care cost information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Annual Aged Care Cost</strong>
+                                    Total yearly cost for residential aged care including accommodation, care fees, and daily living expenses. Government subsidies reduce this, but you may still pay $40k-$100k+ annually.
+                                    <div class="tooltip-example">Example: $76k/year includes accommodation payment + care fees</div>
+                                </span>
+                            </div>
+                        </div>
                         <input type="number" id="agedCareAnnualCost" value="76000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                 </div>
@@ -571,7 +831,17 @@
 
             <div class="space-y-4">
                 <div>
-                    <label for="inflation" class="block text-sm font-medium text-gray-700">Annual Inflation Rate (%)</label>
+                    <div class="label-with-tooltip">
+                        <label for="inflation" class="block text-sm font-medium text-gray-700">Annual Inflation Rate (%)</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Inflation information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Annual Inflation Rate (%)</strong>
+                                Expected long-term inflation rate. RBA targets 2-3% annually. Higher inflation erodes purchasing power, requiring larger retirement balances to maintain lifestyle.
+                                <div class="tooltip-example">Example: 3% inflation means $100 today = $74 purchasing power in 10 years</div>
+                            </span>
+                        </div>
+                    </div>
                     <input type="number" id="inflation" value="2.87" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
@@ -587,7 +857,17 @@
                     <input type="number" id="savingsReturn" value="1.40" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
-                    <label for="superReturn" class="block text-sm font-medium text-gray-700">Super Annual Growth (%)</label>
+                    <div class="label-with-tooltip">
+                        <label for="superReturn" class="block text-sm font-medium text-gray-700">Super Annual Growth (%)</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Super return information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Super Annual Growth (%)</strong>
+                                Expected annual return for your superannuation. Balanced super funds historically return 7-9% long-term. Growth options may achieve 9-11% but with higher volatility.
+                                <div class="tooltip-example">Example: 8% return doubles super balance roughly every 9 years</div>
+                            </span>
+                        </div>
+                    </div>
                     <input type="number" id="superReturn" value="8.75" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
             </div>
@@ -675,7 +955,17 @@
                     <input type="number" id="agePensionMax" value="45037" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
-                    <label for="pensionAssetThreshold" class="block text-sm font-medium text-gray-700">Pension Asset Threshold (Couple)</label>
+                    <div class="label-with-tooltip">
+                        <label for="pensionAssetThreshold" class="block text-sm font-medium text-gray-700">Pension Asset Threshold (Couple)</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Asset threshold information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Pension Asset Threshold (Couple)</strong>
+                                Asset value below which couples receive full age pension. Above this threshold, pension reduces by $3 per fortnight for every $1,000 in excess assets. Home is partially exempt.
+                                <div class="tooltip-example">Example: $500k assets = reduced age pension of ~$43k/year</div>
+                            </span>
+                        </div>
+                    </div>
                     <input type="number" id="pensionAssetThreshold" value="470000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
@@ -696,7 +986,17 @@
                         <input type="number" id="numRuns" value="5000" min="1000" step="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                     <div>
-                        <label for="returnVolatility" class="block text-sm font-medium text-gray-700">Return Volatility (%)</label>
+                        <div class="label-with-tooltip">
+                            <label for="returnVolatility" class="block text-sm font-medium text-gray-700">Return Volatility (%)</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Volatility information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Return Volatility (%)</strong>
+                                    Standard deviation of annual returns (risk measure). Conservative portfolios: 5-8%, Balanced: 10-15%, Growth: 15-20%. Higher volatility means more variable year-to-year returns.
+                                    <div class="tooltip-example">Example: 12% volatility means returns typically vary ±24% from average</div>
+                                </span>
+                            </div>
+                        </div>
                         <input type="number" id="returnVolatility" value="12" min="1" max="50" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                     <div>
@@ -1064,6 +1364,7 @@
 <script type="module" src="js/theme.js"></script>
 <script type="module" src="js/config.js"></script>
 <script type="module" src="js/utils.js"></script>
+<script type="module" src="js/trust-ui.js"></script>
 <script type="module" src="js/simulator.js"></script>
 <script type="module" src="js/recommendation.js"></script>
 <script type="module" src="js/decision-support-engine.js"></script>

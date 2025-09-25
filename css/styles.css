@@ -128,40 +128,379 @@ header .absolute.top-0.right-0 {
     min-height: 48px !important;
 }
 
-/* Ensure SVG icons are visible */
+/* Ensure SVG icons are visible - Enhanced for Microsoft Edge */
 #themeToggle svg {
     fill: currentColor !important;
     width: 20px !important;
     height: 20px !important;
+    stroke: currentColor !important;
+    stroke-width: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
 }
 
-/* Tooltips */
+/* Force visibility for Edge - show/hide logic */
+#themeToggle .sun-icon {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+#themeToggle .moon-icon {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Dark mode icon states */
+[data-theme="dark"] #themeToggle .sun-icon {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+[data-theme="dark"] #themeToggle .moon-icon {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Microsoft Edge specific fixes */
+@supports (-ms-ime-align: auto) {
+    #themeToggle svg {
+        fill: #f59e0b !important;
+        stroke: none !important;
+        display: block !important;
+    }
+
+    [data-theme="dark"] #themeToggle svg {
+        fill: #fbbf24 !important;
+    }
+
+    #themeToggle .moon-icon {
+        fill: #60a5fa !important;
+    }
+
+    [data-theme="dark"] #themeToggle .moon-icon {
+        fill: #93c5fd !important;
+    }
+}
+
+/* Edge Chromium specific fixes */
+@supports (-webkit-appearance: none) and (not (-moz-appearance: none)) {
+    #themeToggle svg {
+        -webkit-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+    }
+}
+
+/* Fallback for older Edge versions */
+@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
+    #themeToggle {
+        background-color: #ffffff !important;
+        border: 2px solid #e5e7eb !important;
+    }
+
+    #themeToggle svg {
+        fill: #f59e0b !important;
+        width: 20px !important;
+        height: 20px !important;
+        display: block !important;
+        position: relative !important;
+        top: 0 !important;
+        left: 0 !important;
+        transform: none !important;
+    }
+
+    #themeToggle .moon-icon {
+        fill: #60a5fa !important;
+    }
+}
+
+/* Theme transition helper class */
+.theme-toggle-update {
+    opacity: 0.9 !important;
+}
+
+/* Enhanced Tooltip System */
 .tooltip {
     position: relative;
     display: inline-block;
 }
 
-.tooltip .tooltiptext {
-    visibility: hidden;
-    width: 220px;
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-    text-align: center;
-    border-radius: 6px;
-    padding: 5px 0;
-    position: absolute;
-    z-index: 1;
-    bottom: 125%;
-    left: 50%;
-    margin-left: -110px;
-    opacity: 0;
-    transition: opacity .3s;
-    border: 1px solid var(--border-primary);
+/* Tooltip icon styles - Professional information icon */
+.tooltip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: bold;
+    font-style: italic;
+    font-family: 'Times New Roman', serif;
+    margin: 0;
+    cursor: help;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+    line-height: 1;
 }
 
+.tooltip-icon:hover {
+    background: linear-gradient(135deg, #8b5cf6, #a855f7);
+    transform: scale(1.15);
+    box-shadow: 0 3px 8px rgba(99, 102, 241, 0.3);
+}
+
+.tooltip-icon:focus {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .tooltip-icon {
+    background: linear-gradient(135deg, #818cf8, #a78bfa);
+    box-shadow: 0 2px 4px rgba(129, 140, 248, 0.3);
+}
+
+[data-theme="dark"] .tooltip-icon:hover {
+    background: linear-gradient(135deg, #a78bfa, #c084fc);
+    box-shadow: 0 3px 8px rgba(129, 140, 248, 0.4);
+}
+
+/* Main tooltip content */
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 280px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    text-align: left;
+    border-radius: 8px;
+    padding: 12px 16px;
+    position: absolute;
+    z-index: 1000;
+    bottom: 135%;
+    left: 50%;
+    margin-left: -140px;
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    border: 1px solid var(--border-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* Tooltip arrow */
+.tooltip .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -6px;
+    border-width: 6px;
+    border-style: solid;
+    border-color: var(--bg-secondary) transparent transparent transparent;
+}
+
+/* Tooltip positioning variants */
+.tooltip-right .tooltiptext {
+    bottom: auto;
+    top: 50%;
+    left: 125%;
+    margin-left: 0;
+    margin-top: -20px;
+    width: 260px;
+}
+
+.tooltip-right .tooltiptext::after {
+    top: 50%;
+    left: 0;
+    margin-left: -12px;
+    margin-top: -6px;
+    border-color: transparent var(--bg-secondary) transparent transparent;
+}
+
+.tooltip-left .tooltiptext {
+    bottom: auto;
+    top: 50%;
+    right: 125%;
+    left: auto;
+    margin-left: 0;
+    margin-top: -20px;
+    width: 260px;
+}
+
+.tooltip-left .tooltiptext::after {
+    top: 50%;
+    right: 0;
+    margin-right: -12px;
+    margin-top: -6px;
+    border-color: transparent transparent transparent var(--bg-secondary);
+}
+
+.tooltip-top .tooltiptext {
+    top: auto;
+    bottom: 135%;
+    left: 50%;
+    margin-left: -140px;
+}
+
+.tooltip-top .tooltiptext::after {
+    top: 100%;
+    left: 50%;
+    margin-left: -6px;
+    border-color: var(--bg-secondary) transparent transparent transparent;
+}
+
+/* Show tooltip on hover */
 .tooltip:hover .tooltiptext {
     visibility: visible;
     opacity: 1;
+}
+
+/* Desktop-specific adjustments */
+@media (min-width: 769px) {
+    .label-with-tooltip {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: nowrap;
+        gap: 8px;
+    }
+
+    .label-with-tooltip label {
+        display: inline-block;
+        white-space: nowrap;
+    }
+
+    .label-with-tooltip .tooltip {
+        display: inline-flex;
+        align-items: center;
+        margin: 0;
+    }
+
+    .tooltip-icon {
+        margin: 0;
+        flex-shrink: 0;
+    }
+}
+
+/* Mobile-friendly tooltip adjustments */
+@media (max-width: 768px) {
+    .tooltip .tooltiptext {
+        width: 240px;
+        margin-left: -120px;
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+
+    .tooltip-icon {
+        width: 14px;
+        height: 14px;
+        font-size: 9px;
+    }
+
+    .tooltip-right .tooltiptext,
+    .tooltip-left .tooltiptext {
+        width: 220px;
+    }
+
+    .label-with-tooltip {
+        flex-wrap: wrap;
+    }
+}
+
+/* Dark theme adjustments for tooltips */
+[data-theme="dark"] .tooltip .tooltiptext {
+    background: var(--bg-tertiary);
+    border-color: var(--border-secondary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .tooltip .tooltiptext::after {
+    border-color: var(--bg-tertiary) transparent transparent transparent;
+}
+
+[data-theme="dark"] .tooltip-right .tooltiptext::after {
+    border-color: transparent var(--bg-tertiary) transparent transparent;
+}
+
+[data-theme="dark"] .tooltip-left .tooltiptext::after {
+    border-color: transparent transparent transparent var(--bg-tertiary);
+}
+
+[data-theme="dark"] .tooltip-top .tooltiptext::after {
+    border-color: var(--bg-tertiary) transparent transparent transparent;
+}
+
+/* Label wrapper for form fields with tooltips */
+.label-with-tooltip {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+    width: 100%;
+    flex-wrap: nowrap;
+}
+
+.label-with-tooltip label {
+    margin-bottom: 0;
+    flex: 0 1 auto;
+    white-space: nowrap;
+    overflow: visible;
+}
+
+.label-with-tooltip .tooltip {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    margin-left: 8px;
+}
+
+/* Tooltip content styling */
+.tooltip .tooltiptext strong {
+    color: var(--accent-primary);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.tooltip .tooltiptext .tooltip-example {
+    font-style: italic;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-primary);
+}
+
+/* Accessibility improvements */
+.tooltip-icon[aria-label] {
+    cursor: help;
+}
+
+.tooltip:focus-within .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .tooltip-icon {
+        border: 2px solid currentColor;
+        background: transparent;
+        color: var(--text-primary);
+    }
+
+    .tooltip .tooltiptext {
+        border: 2px solid var(--text-primary);
+        background: var(--bg-primary);
+    }
 }
 
 /* Tab system */
@@ -624,14 +963,25 @@ select:focus {
     outline: none;
     opacity: 0.8;
     transition: opacity 0.2s;
+    border: none;
+    height: 8px;
 }
 
 .risk-tolerance-slider:hover {
     opacity: 1;
 }
 
+/* WebKit browsers (Chrome, Safari, Edge Chromium) */
+.risk-tolerance-slider::-webkit-slider-track {
+    background: linear-gradient(to right, #10b981 0%, #f59e0b 50%, #ef4444 100%);
+    height: 8px;
+    border-radius: 4px;
+    border: none;
+}
+
 .risk-tolerance-slider::-webkit-slider-thumb {
     appearance: none;
+    -webkit-appearance: none;
     height: 20px;
     width: 20px;
     border-radius: 50%;
@@ -640,11 +990,20 @@ select:focus {
     cursor: pointer;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all 0.2s ease;
+    margin-top: -6px; /* Center thumb on track */
 }
 
 .risk-tolerance-slider::-webkit-slider-thumb:hover {
     transform: scale(1.1);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Firefox */
+.risk-tolerance-slider::-moz-range-track {
+    background: linear-gradient(to right, #10b981 0%, #f59e0b 50%, #ef4444 100%);
+    height: 8px;
+    border-radius: 4px;
+    border: none;
 }
 
 .risk-tolerance-slider::-moz-range-thumb {
@@ -656,11 +1015,56 @@ select:focus {
     cursor: pointer;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all 0.2s ease;
+    border: none;
 }
 
 .risk-tolerance-slider::-moz-range-thumb:hover {
     transform: scale(1.1);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Microsoft Edge Legacy support */
+.risk-tolerance-slider::-ms-track {
+    width: 100%;
+    height: 8px;
+    background: transparent;
+    border-color: transparent;
+    border-width: 6px 0;
+    color: transparent;
+}
+
+.risk-tolerance-slider::-ms-fill-lower {
+    background: linear-gradient(to right, #10b981 0%, #f59e0b 50%);
+    border-radius: 4px;
+}
+
+.risk-tolerance-slider::-ms-fill-upper {
+    background: linear-gradient(to right, #f59e0b 0%, #ef4444 100%);
+    border-radius: 4px;
+}
+
+.risk-tolerance-slider::-ms-thumb {
+    border: 2px solid #4f46e5;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: #ffffff;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.risk-tolerance-slider::-ms-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Additional browser fallbacks */
+@supports not ((-webkit-appearance: none) or (-moz-appearance: none)) {
+    .risk-tolerance-slider {
+        background: linear-gradient(to right, #10b981 0%, #f59e0b 50%, #ef4444 100%) !important;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+    }
 }
 
 /* Dark mode support for risk tolerance slider */
@@ -677,4 +1081,42 @@ select:focus {
 [data-theme="dark"] #riskToleranceTooltip {
     background-color: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
+}
+
+/* Enhanced tooltip styling for cross-browser compatibility */
+#riskToleranceTooltip {
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    visibility: visible;
+    z-index: 1000;
+    position: relative;
+    border: 1px solid #d1d5db;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#riskToleranceTooltip.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Ensure slider container has proper positioning for tooltip */
+.risk-tolerance-slider {
+    position: relative;
+}
+
+/* Add focus styles for better accessibility in Edge */
+.risk-tolerance-slider:focus {
+    outline: 2px solid #4f46e5;
+    outline-offset: 2px;
+}
+
+.risk-tolerance-slider:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
+}
+
+.risk-tolerance-slider:focus::-moz-range-thumb {
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
+}
+
+.risk-tolerance-slider:focus::-ms-thumb {
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
 }

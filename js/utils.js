@@ -238,6 +238,119 @@ export const calculateCGT = (salePrice, purchasePrice, isResident, holdingPeriod
     return taxableGain * marginalTaxRate;
 };
 
+// Trust calculation utilities
+export const calculateTrustAttribution = (trustInputs, trustRules) => {
+    if (!trustInputs.hasTrustAssets) {
+        return {
+            attributedAssets: 0,
+            attributedIncome: 0,
+            homeExemptionLost: false,
+            pensionImpact: null
+        };
+    }
+
+    const controlRate = trustRules.ATTRIBUTION_RATES[trustInputs.trustControlLevel] || 1.0;
+    const typeRate = trustRules.TYPE_FACTORS[trustInputs.trustType]?.baseAttribution || 1.0;
+    const userPercentage = trustInputs.trustAttributionPercentage / 100;
+
+    // Calculate final attribution rate
+    const finalAttributionRate = Math.min(1.0, controlRate * typeRate * userPercentage);
+
+    const attributedAssets = trustInputs.trustNetAssets * finalAttributionRate;
+    const attributedIncome = trustInputs.trustAnnualDistributions * finalAttributionRate;
+
+    // Check if home exemption is lost
+    const homeExemptionLost = trustInputs.homeInTrust &&
+        trustRules.HOME_EXEMPTION.dependsOnControl &&
+        (trustInputs.trustControlLevel === 'high' || trustInputs.trustControlLevel === 'medium');
+
+    return {
+        attributedAssets,
+        attributedIncome,
+        homeExemptionLost,
+        finalAttributionRate,
+        pensionImpact: {
+            assetsTest: attributedAssets,
+            incomeTest: attributedIncome,
+            homeExemption: !homeExemptionLost
+        }
+    };
+};
+
+export const adjustAssetsForTrust = (originalAssets, trustAttribution, trustInputs) => {
+    let adjustedAssets = originalAssets;
+
+    // Add attributed trust assets
+    adjustedAssets += trustAttribution.attributedAssets;
+
+    // If home is in trust and loses exemption, add home value to assessable assets
+    if (trustAttribution.homeExemptionLost && trustInputs.homeValue) {
+        adjustedAssets += trustInputs.homeValue;
+    }
+
+    return adjustedAssets;
+};
+
+export const adjustIncomeForTrust = (originalIncome, trustAttribution, demingRates) => {
+    let adjustedIncome = originalIncome;
+
+    // Add trust distributions (subject to deeming rules)
+    if (trustAttribution.attributedIncome > 0) {
+        // For simplicity, treat trust income as deemed at the higher rate
+        const deemedIncome = trustAttribution.attributedAssets * (demingRates?.high || 0.0275);
+        adjustedIncome += Math.max(trustAttribution.attributedIncome, deemedIncome);
+    }
+
+    return adjustedIncome;
+};
+
+export const getTrustRecommendations = (trustInputs, trustRules, pensionEligible) => {
+    const recommendations = [];
+
+    if (!trustInputs.hasTrustAssets) return recommendations;
+
+    const controlLevel = trustInputs.trustControlLevel;
+    const trustType = trustInputs.trustType;
+
+    // High control recommendations
+    if (controlLevel === 'high' && pensionEligible) {
+        recommendations.push({
+            priority: 'high',
+            category: 'trust-structure',
+            title: 'Consider Reducing Trust Control',
+            description: 'High control over trust results in full attribution of assets for Age Pension. Consider transferring trustee/appointer roles.',
+            impact: 'May improve Age Pension eligibility',
+            caution: 'Seek professional advice before making structural changes to avoid CGT or stamp duty implications.'
+        });
+    }
+
+    // Home in trust recommendations
+    if (trustInputs.homeInTrust) {
+        recommendations.push({
+            priority: 'high',
+            category: 'property-structure',
+            title: 'Principal Residence in Trust',
+            description: 'Your home may lose Age Pension asset test exemption when held in trust.',
+            impact: 'Home value may be assessable for Age Pension',
+            caution: 'Consider professional advice on transferring home back to personal names before pension age.'
+        });
+    }
+
+    // Attribution percentage recommendations
+    if (trustInputs.trustAttributionPercentage === 100 && trustInputs.trustControlLevel !== 'high') {
+        recommendations.push({
+            priority: 'medium',
+            category: 'attribution-review',
+            title: 'Review Attribution Percentage',
+            description: 'Your control level suggests attribution may be less than 100%.',
+            impact: 'May reduce assessable trust assets',
+            caution: 'Centrelink determines attribution based on actual control - obtain professional assessment.'
+        });
+    }
+
+    return recommendations;
+};
+
 // Pension calculation utilities
 export const calculateAgePension = (assets, income, isCouple, maxPension, assetThreshold, assetLimit, incomeThreshold) => {
     // Asset test
@@ -855,29 +968,189 @@ export const debounce = (func, wait) => {
 // Animation utilities
 export const animateValue = (element, start, end, duration = 1000) => {
     const startTime = performance.now();
-    
+
     const animate = (currentTime) => {
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        
+
         // Easing function (ease-out)
         const easedProgress = 1 - Math.pow(1 - progress, 3);
-        
+
         const current = start + (end - start) * easedProgress;
-        
+
         if (typeof element === 'string') {
             const elem = $(element);
             if (elem) elem.textContent = formatCurrency(current);
         } else if (element) {
             element.textContent = formatCurrency(current);
         }
-        
+
         if (progress < 1) {
             requestAnimationFrame(animate);
         }
     };
-    
+
     requestAnimationFrame(animate);
+};
+
+// Tooltip utilities
+export const initializeTooltips = () => {
+    const tooltips = document.querySelectorAll('.tooltip');
+
+    tooltips.forEach(tooltip => {
+        const tooltipIcon = tooltip.querySelector('.tooltip-icon');
+        const tooltipText = tooltip.querySelector('.tooltiptext');
+
+        if (!tooltipIcon || !tooltipText) return;
+
+        // Add keyboard accessibility
+        tooltipIcon.setAttribute('tabindex', '0');
+        tooltipIcon.setAttribute('role', 'button');
+
+        // Handle keyboard events
+        tooltipIcon.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleTooltip(tooltip);
+            }
+            if (e.key === 'Escape') {
+                hideTooltip(tooltip);
+            }
+        });
+
+        // Handle touch events for mobile
+        tooltipIcon.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            toggleTooltip(tooltip);
+        });
+
+        // Handle focus events
+        tooltipIcon.addEventListener('focus', () => {
+            showTooltip(tooltip);
+        });
+
+        tooltipIcon.addEventListener('blur', (e) => {
+            // Only hide if focus is not moving to the tooltip content
+            setTimeout(() => {
+                if (!tooltip.contains(document.activeElement)) {
+                    hideTooltip(tooltip);
+                }
+            }, 100);
+        });
+
+        // Position tooltip based on viewport
+        tooltipIcon.addEventListener('mouseenter', () => {
+            adjustTooltipPosition(tooltip);
+        });
+    });
+
+    // Close tooltips when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.tooltip')) {
+            hideAllTooltips();
+        }
+    });
+};
+
+export const showTooltip = (tooltip) => {
+    const tooltipText = tooltip.querySelector('.tooltiptext');
+    if (tooltipText) {
+        tooltipText.style.visibility = 'visible';
+        tooltipText.style.opacity = '1';
+        adjustTooltipPosition(tooltip);
+    }
+};
+
+export const hideTooltip = (tooltip) => {
+    const tooltipText = tooltip.querySelector('.tooltiptext');
+    if (tooltipText) {
+        tooltipText.style.visibility = 'hidden';
+        tooltipText.style.opacity = '0';
+    }
+};
+
+export const toggleTooltip = (tooltip) => {
+    const tooltipText = tooltip.querySelector('.tooltiptext');
+    if (tooltipText) {
+        const isVisible = tooltipText.style.visibility === 'visible';
+        if (isVisible) {
+            hideTooltip(tooltip);
+        } else {
+            hideAllTooltips(); // Hide other tooltips first
+            showTooltip(tooltip);
+        }
+    }
+};
+
+export const hideAllTooltips = () => {
+    document.querySelectorAll('.tooltiptext').forEach(tooltipText => {
+        tooltipText.style.visibility = 'hidden';
+        tooltipText.style.opacity = '0';
+    });
+};
+
+export const adjustTooltipPosition = (tooltip) => {
+    const tooltipText = tooltip.querySelector('.tooltiptext');
+    if (!tooltipText) return;
+
+    const rect = tooltip.getBoundingClientRect();
+    const tooltipRect = tooltipText.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Reset positioning classes
+    tooltip.classList.remove('tooltip-left', 'tooltip-right', 'tooltip-top');
+
+    // Check if tooltip goes off the right edge
+    if (rect.left + tooltipRect.width / 2 > viewportWidth - 20) {
+        tooltip.classList.add('tooltip-left');
+    }
+    // Check if tooltip goes off the left edge
+    else if (rect.left - tooltipRect.width / 2 < 20) {
+        tooltip.classList.add('tooltip-right');
+    }
+
+    // Check if tooltip goes off the top edge
+    if (rect.top - tooltipRect.height < 20) {
+        tooltip.classList.add('tooltip-bottom');
+        tooltip.classList.remove('tooltip-top');
+    } else {
+        tooltip.classList.add('tooltip-top');
+        tooltip.classList.remove('tooltip-bottom');
+    }
+
+    // For mobile, ensure tooltip doesn't go off screen
+    if (viewportWidth < 768) {
+        const tooltipLeft = parseInt(tooltipText.style.left) || 0;
+        const tooltipWidth = tooltipRect.width;
+
+        if (tooltipLeft + tooltipWidth > viewportWidth - 20) {
+            tooltipText.style.left = (viewportWidth - tooltipWidth - 20) + 'px';
+        }
+        if (tooltipLeft < 20) {
+            tooltipText.style.left = '20px';
+        }
+    }
+};
+
+// Add tooltip positioning bottom class styles dynamically
+export const addTooltipBottomStyles = () => {
+    const style = document.createElement('style');
+    style.textContent = `
+        .tooltip-bottom .tooltiptext {
+            top: 135% !important;
+            bottom: auto !important;
+        }
+        .tooltip-bottom .tooltiptext::after {
+            top: -6px !important;
+            bottom: auto !important;
+            border-color: transparent transparent var(--bg-secondary) transparent !important;
+        }
+        [data-theme="dark"] .tooltip-bottom .tooltiptext::after {
+            border-color: transparent transparent var(--bg-tertiary) transparent !important;
+        }
+    `;
+    document.head.appendChild(style);
 };
 
 export default {
@@ -921,5 +1194,12 @@ export default {
     handleError,
     showNotification,
     debounce,
-    animateValue
+    animateValue,
+    initializeTooltips,
+    showTooltip,
+    hideTooltip,
+    toggleTooltip,
+    hideAllTooltips,
+    adjustTooltipPosition,
+    addTooltipBottomStyles
 };

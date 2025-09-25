@@ -91,24 +91,70 @@ class ThemeManager {
     }
 
     /**
-     * Update toggle button appearance
+     * Update toggle button appearance - Enhanced for Microsoft Edge
      */
     updateToggleButton() {
         const toggleButton = document.getElementById('themeToggle');
         const sunIcon = toggleButton?.querySelector('.sun-icon');
         const moonIcon = toggleButton?.querySelector('.moon-icon');
 
-        if (!toggleButton) return;
+        if (!toggleButton || !sunIcon || !moonIcon) return;
 
         if (this.currentTheme === 'dark') {
+            // Hide sun icon
             sunIcon.style.display = 'none';
+            sunIcon.style.opacity = '0';
+            sunIcon.style.visibility = 'hidden';
+            sunIcon.setAttribute('aria-hidden', 'true');
+
+            // Show moon icon
             moonIcon.style.display = 'block';
-            toggleButton.querySelector('.tooltiptext').textContent = 'Switch to Light Mode';
+            moonIcon.style.opacity = '1';
+            moonIcon.style.visibility = 'visible';
+            moonIcon.setAttribute('aria-hidden', 'false');
+
+            // Update tooltip
+            const tooltipText = toggleButton.querySelector('.tooltiptext');
+            if (tooltipText) tooltipText.textContent = 'Switch to Light Mode';
         } else {
+            // Show sun icon
             sunIcon.style.display = 'block';
+            sunIcon.style.opacity = '1';
+            sunIcon.style.visibility = 'visible';
+            sunIcon.setAttribute('aria-hidden', 'false');
+
+            // Hide moon icon
             moonIcon.style.display = 'none';
-            toggleButton.querySelector('.tooltiptext').textContent = 'Switch to Dark Mode';
+            moonIcon.style.opacity = '0';
+            moonIcon.style.visibility = 'hidden';
+            moonIcon.setAttribute('aria-hidden', 'true');
+
+            // Update tooltip
+            const tooltipText = toggleButton.querySelector('.tooltiptext');
+            if (tooltipText) tooltipText.textContent = 'Switch to Dark Mode';
         }
+
+        // Force repaint for Edge
+        this.forceRepaint(toggleButton);
+    }
+
+    /**
+     * Force repaint for Microsoft Edge
+     */
+    forceRepaint(element) {
+        if (!element) return;
+
+        // Trigger a reflow/repaint
+        const originalDisplay = element.style.display;
+        element.style.display = 'none';
+        element.offsetHeight; // Trigger reflow
+        element.style.display = originalDisplay || '';
+
+        // Alternative method - toggle a class
+        element.classList.add('theme-toggle-update');
+        setTimeout(() => {
+            element.classList.remove('theme-toggle-update');
+        }, 10);
     }
 
     /**
