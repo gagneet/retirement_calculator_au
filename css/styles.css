@@ -259,23 +259,19 @@ header .absolute.top-0.right-0 {
 
 /* Tooltip icon styles - Professional information icon */
 .tooltip-icon {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    margin: 0;
+    background-color: #2563eb; /* blue */
+    color: #ffffff;           /* white "i" */
+    font-size: 14px;
+    font-weight: bold;
     cursor: help;
-    transition: all 0.2s ease;
-    vertical-align: middle;
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin: 0 4px;
     flex-shrink: 0;
-    color: transparent;
-    background-image: url("data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='24'%20height='24'%20viewBox='0%200%2024%2024'%20fill='%23ffffff'%3E%3Cpath%20d='M11%207h2v2h-2zm0%204h2v6h-2zm1-9C6.48%202%202%206.48%202%2012s4.48%2010%2010%2010%2010-4.48%2010-10S17.52%202%2012%202zm0%2018c-4.41%200-8-3.59-8-8s3.59-8%208-8%208%203.59%208%208-3.59%208-8%208z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 80%;
 }
 
 .tooltip-icon:hover {
@@ -291,8 +287,8 @@ header .absolute.top-0.right-0 {
 
 /* Dark theme adjustments */
 [data-theme="dark"] .tooltip-icon {
-    background: linear-gradient(135deg, #818cf8, #a78bfa);
-    box-shadow: 0 2px 4px rgba(129, 140, 248, 0.3);
+    background-color: #3b82f6;
+    color: #ffffff;
 }
 
 [data-theme="dark"] .tooltip-icon:hover {
