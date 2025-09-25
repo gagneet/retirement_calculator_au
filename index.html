@@ -185,9 +185,22 @@
     <link rel="manifest" href="assets/site.webmanifest">
 
     <!-- Tailwind CSS is included via a local stylesheet -->
+    <script>
+        // Suppress Tailwind CDN production warning by overriding console.warn temporarily
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+            if (args[0] && args[0].includes && args[0].includes('cdn.tailwindcss.com')) return;
+            originalWarn.apply(console, args);
+        };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // Suppress Tailwind CDN production warning
+        // Restore console.warn after Tailwind loads
+        setTimeout(() => {
+            console.warn = originalWarn;
+        }, 100);
+
+        // Configure Tailwind if available
         if (typeof tailwind !== 'undefined') {
             tailwind.config = {
                 corePlugins: {
@@ -991,7 +1004,7 @@
 
     <!-- SEO Footer -->
     <footer class="mt-12 border-t border-gray-200 bg-white">
-        <div class="container mx-auto px-4 py-8">
+        <div class="container mx-auto px-6 py-8 max-w-7xl">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div>
                     <h3 class="font-semibold text-gray-900 mb-3">About This Calculator</h3>
@@ -1023,16 +1036,20 @@
                 </div>
             </div>
 
-            <div class="mt-8 pt-6 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center">
-                <div class="text-sm text-gray-500">
-                    <p>© 2024 Australian Retirement Calculator. All calculations are estimates for planning purposes only.</p>
-                </div>
-                <div class="text-sm text-gray-500 mt-4 md:mt-0 space-x-4">
-                    <a href="privacy.html" class="hover:text-gray-700">Privacy Policy</a>
-                    <span>|</span>
-                    <a href="terms.html" class="hover:text-gray-700">Terms of Use</a>
-                    <span>|</span>
-                    <a href="contact.html" class="hover:text-gray-700">Contact</a>
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <div class="flex flex-col space-y-4">
+                    <div class="text-sm text-gray-500 text-center">
+                        <p>© 2025 Australian Retirement Calculator. All calculations are estimates for planning purposes only.</p>
+                    </div>
+                    <div class="text-sm text-gray-500 text-center">
+                        <div class="flex justify-center gap-4">
+                            <a href="privacy.html" class="hover:text-gray-700">Privacy Policy</a>
+                            <span class="text-gray-300">|</span>
+                            <a href="terms.html" class="hover:text-gray-700">Terms of Use</a>
+                            <span class="text-gray-300">|</span>
+                            <a href="contact.html" class="hover:text-gray-700">Contact</a>
+                        </div>
+                    </div>
                 </div>
             </div>
 
