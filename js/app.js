@@ -25,7 +25,9 @@ import {
     debounce,
     showNotification,
     saveToLocalStorage,
-    loadFromLocalStorage
+    loadFromLocalStorage,
+    initializeTooltips,
+    addTooltipBottomStyles
 } from './utils.js';
 
 class RetirementCalculatorApp {
@@ -45,6 +47,11 @@ class RetirementCalculatorApp {
         this.setupAutoSave(); // Setup auto-save functionality
         this.updateUIElements();
         initializeTrustUI(); // Initialize trust UI functionality
+
+        // Initialize tooltip system
+        addTooltipBottomStyles(); // Add bottom positioning styles
+        initializeTooltips(); // Initialize tooltip functionality
+
         this.performInitialCalculation();
     }
 
