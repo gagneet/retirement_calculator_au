@@ -144,51 +144,54 @@ header .absolute.top-0.right-0 {
 
 /* Debug: Make button more visible */
 #themeToggle {
-    opacity: 1 !important;
-    visibility: visible !important;
-    display: flex !important;
-    min-width: 48px !important;
-    min-height: 48px !important;
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: var(--btn-bg, #f3f4f6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.3s ease;
 }
 
 /* Ensure SVG icons are visible - Enhanced for Microsoft Edge */
 #themeToggle svg {
-    fill: currentColor !important;
-    width: 20px !important;
-    height: 20px !important;
-    stroke: currentColor !important;
-    stroke-width: 0 !important;
-    pointer-events: none !important;
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    color: var(--btn-icon, #111827);
 }
 
 /* Force visibility for Edge - show/hide logic */
+/* --- Default (light theme): show sun, hide moon --- */
 #themeToggle .sun-icon {
-    display: block !important;
-    opacity: 1 !important;
-    visibility: visible !important;
+  opacity: 1;
+  visibility: visible;
 }
 
 #themeToggle .moon-icon {
-    display: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
+  opacity: 0;
+  visibility: hidden;
 }
 
 /* Dark mode icon states */
 [data-theme="dark"] #themeToggle .sun-icon {
-    display: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
+  opacity: 0;
+  visibility: hidden;
 }
 
 [data-theme="dark"] #themeToggle .moon-icon {
-    display: block !important;
-    opacity: 1 !important;
-    visibility: visible !important;
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Hover states */
+#themeToggle:hover {
+    background: var(--btn-bg-hover, #e5e7eb);
 }
 
 /* Microsoft Edge specific fixes */
@@ -259,7 +262,7 @@ header .absolute.top-0.right-0 {
     display: inline-block;
     width: 16px;
     height: 16px;
-    background: linear-gradient(135deg, #1e3a8a, #2563eb); /* deep blues */
+    background: linear-gradient(135deg, #1e3a8a, #2563eb);
     border-radius: 50%;
     margin: 0;
     cursor: help;
@@ -269,7 +272,7 @@ header .absolute.top-0.right-0 {
     border: 1px solid rgba(255, 255, 255, 0.2);
     flex-shrink: 0;
     color: transparent;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%232563eb'%3e%3cpath d='M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z'/%3e%3c/svg%3e");
+    background-image: url("data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='24'%20height='24'%20viewBox='0%200%2024%2024'%20fill='%23ffffff'%3E%3Cpath%20d='M11%207h2v2h-2zm0%204h2v6h-2zm1-9C6.48%202%202%206.48%202%2012s4.48%2010%2010%2010%2010-4.48%2010-10S17.52%202%2012%202zm0%2018c-4.41%200-8-3.59-8-8s3.59-8%208-8%208%203.59%208%208-3.59%208-8%208z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;
     background-size: 80%;
