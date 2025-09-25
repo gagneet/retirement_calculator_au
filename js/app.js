@@ -27,7 +27,8 @@ import {
     saveToLocalStorage,
     loadFromLocalStorage,
     initializeTooltips,
-    addTooltipBottomStyles
+    addTooltipBottomStyles,
+    initializeCurrencyInputs
 } from './utils.js';
 
 class RetirementCalculatorApp {
@@ -51,6 +52,7 @@ class RetirementCalculatorApp {
         // Initialize tooltip system
         addTooltipBottomStyles(); // Add bottom positioning styles
         initializeTooltips(); // Initialize tooltip functionality
+        initializeCurrencyInputs(); // Initialize currency input formatting
 
         this.performInitialCalculation();
     }

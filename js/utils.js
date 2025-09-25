@@ -3,11 +3,21 @@
 // DOM manipulation utilities
 export const $ = (id) => document.getElementById(id);
 
+// Utility to parse formatted currency input values
+export const parseCurrencyInput = (formattedValue) => {
+    // Remove all non-numeric characters except decimal point and minus
+    const numericString = String(formattedValue).replace(/[^\d.-]/g, '');
+    const num = parseFloat(numericString);
+    return isNaN(num) ? 0 : num;
+};
+
 export const safeGetValue = (id, defaultVal = 0) => {
     const elem = $(id);
     if (!elem) return defaultVal;
-    const val = parseFloat(elem.value);
-    return isNaN(val) ? defaultVal : val;
+
+    // Handle formatted currency inputs by parsing them first
+    const parsedVal = parseCurrencyInput(elem.value);
+    return isNaN(parsedVal) ? defaultVal : parsedVal;
 };
 
 export const safeGetChecked = (id, defaultVal = false) => {
@@ -60,13 +70,100 @@ export const formatNumber = (num, decimals = 0) => {
 
 export const formatCompact = (num) => {
     if (typeof num !== 'number' || isNaN(num)) return '0';
-    
+
     if (num >= 1000000) {
         return (num / 1000000).toFixed(1) + 'M';
     } else if (num >= 1000) {
         return (num / 1000).toFixed(0) + 'K';
     }
     return num.toFixed(0);
+};
+
+// Input formatting utilities for live currency formatting
+export const formatCurrencyInput = (value) => {
+    // Remove all non-numeric characters except decimal point
+    const numericValue = String(value).replace(/[^\d.-]/g, '');
+    const num = parseFloat(numericValue);
+
+    if (isNaN(num)) return '';
+
+    // Format with thousands separators but no currency symbol for input fields
+    return num.toLocaleString('en-AU', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+    });
+};
+
+export const addCurrencyFormatting = (inputElement) => {
+    if (!inputElement) return;
+
+    let isFormatting = false;
+
+    const formatInput = () => {
+        if (isFormatting) return;
+        isFormatting = true;
+
+        const cursorPosition = inputElement.selectionStart;
+        const originalValue = inputElement.value;
+        const numericValue = parseCurrencyInput(originalValue);
+
+        if (originalValue !== '' && !isNaN(numericValue)) {
+            const formattedValue = formatCurrencyInput(numericValue);
+            inputElement.value = formattedValue;
+
+            // Restore cursor position accounting for added commas
+            const originalLength = originalValue.length;
+            const newLength = formattedValue.length;
+            const lengthDiff = newLength - originalLength;
+            const newCursorPosition = Math.max(0, Math.min(cursorPosition + lengthDiff, newLength));
+
+            inputElement.setSelectionRange(newCursorPosition, newCursorPosition);
+        }
+
+        isFormatting = false;
+    };
+
+    // Format on blur (when user leaves the field)
+    inputElement.addEventListener('blur', formatInput);
+
+    // Format on input but debounced to prevent cursor jumping
+    let formatTimer;
+    inputElement.addEventListener('input', () => {
+        clearTimeout(formatTimer);
+        formatTimer = setTimeout(formatInput, 500); // Delay formatting during typing
+    });
+
+    // Format on paste
+    inputElement.addEventListener('paste', () => {
+        setTimeout(formatInput, 10);
+    });
+
+    // Format existing value on initialization
+    if (inputElement.value) {
+        formatInput();
+    }
+};
+
+export const initializeCurrencyInputs = () => {
+    // Currency input field IDs that should be formatted
+    const currencyFieldIds = [
+        'yourSalary', 'partnerSalary', 'yourCurrentSuper', 'partnerCurrentSuper',
+        'currentSavings', 'currentStocks', 'monthlyStockContribution',
+        'homeValue', 'mortgageBalance', 'monthlyMortgagePayment',
+        'investmentPropertyValue', 'investmentPropertyLoan',
+        'weeklyRentalIncome', 'annualPropertyExpenses',
+        'trustNetAssets', 'trustAnnualDistributions',
+        'currentHealthcareCosts', 'agedCareAnnualCost',
+        'asfaComfortable', 'agePensionMax', 'pensionAssetThreshold',
+        'pensionAssetLimit', 'pensionIncomeThreshold'
+    ];
+
+    currencyFieldIds.forEach(id => {
+        const element = $(id);
+        if (element) {
+            addCurrencyFormatting(element);
+        }
+    });
 };
 
 // Mathematical utilities
@@ -1165,6 +1262,10 @@ export default {
     formatPercent,
     formatNumber,
     formatCompact,
+    formatCurrencyInput,
+    parseCurrencyInput,
+    addCurrencyFormatting,
+    initializeCurrencyInputs,
     randomNormal,
     percentile,
     median,
