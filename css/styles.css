@@ -388,29 +388,27 @@ header .absolute.top-0.right-0 {
 }
 
 /* Desktop-specific adjustments */
-@media (min-width: 769px) {
-    .label-with-tooltip {
-        display: flex;
-        align-items: center;
-        flex-wrap: nowrap;
-        gap: 8px;
-    }
+.label-with-tooltip {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px;
+}
 
-    .label-with-tooltip label {
-        flex-shrink: 0;
-        white-space: nowrap;
-    }
+.label-with-tooltip label {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
 
-    .label-with-tooltip .tooltip {
-        display: inline-flex;
-        align-items: center;
-        margin-left: 4px;
-    }
+.label-with-tooltip .tooltip {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+}
 
-    .tooltip-icon {
-        margin: 0;
-        flex-shrink: 0;
-    }
+.tooltip-icon {
+    margin: 0;
+    flex-shrink: 0;
 }
 
 /* Mobile-friendly tooltip adjustments */
