@@ -24,52 +24,276 @@ export class RetirementSimulator {
         };
     }
 
-    // Risk profiling calculations
+    // Enhanced Risk profiling calculations with dynamic factors
     calculateRiskCapacity(inputs) {
         let score = 50; // Base score
 
-        // Age factor (younger = higher capacity)
+        // Age factor with exponential time horizon weighting
         const age = inputs.yourCurrentAge;
-        if (age < 35) score += 25;
-        else if (age < 50) score += 15;
-        else if (age < 65) score += 5;
-        else score -= 10;
+        const yearsToRetirement = Math.max(1, inputs.retirementAge - age);
+        const timeHorizonFactor = Math.min(30, Math.pow(yearsToRetirement / 10, 1.2) * 10);
+        score += timeHorizonFactor;
 
-        // Income stability
+        // Portfolio-to-income ratio analysis
         const totalIncome = inputs.yourSalary + inputs.partnerSalary;
-        if (totalIncome > 200000) score += 20;
+        const currentAssets = inputs.yourCurrentSuper + inputs.partnerCurrentSuper +
+                            inputs.currentSavings + inputs.currentStocks;
+        const portfolioToIncomeRatio = totalIncome > 0 ? currentAssets / totalIncome : 0;
+
+        if (portfolioToIncomeRatio > 10) score += 25; // Very high capacity
+        else if (portfolioToIncomeRatio > 5) score += 20;
+        else if (portfolioToIncomeRatio > 3) score += 15;
+        else if (portfolioToIncomeRatio > 1) score += 10;
+        else if (portfolioToIncomeRatio > 0.5) score += 5;
+        else score -= 10; // Low asset base relative to income
+
+        // Enhanced income stability scoring
+        if (totalIncome > 300000) score += 25;
+        else if (totalIncome > 200000) score += 20;
+        else if (totalIncome > 150000) score += 15;
         else if (totalIncome > 100000) score += 10;
+        else if (totalIncome > 75000) score += 8;
         else if (totalIncome > 50000) score += 5;
+        else score -= 5;
 
-        // Emergency fund
+        // Emergency fund with graduated scoring
         const emergencyFund = inputs.hasEmergencyFund;
-        if (emergencyFund === 'full') score += 15;
-        else if (emergencyFund === 'partial') score += 10;
-        else if (emergencyFund === 'minimal') score += 5;
-        else score -= 15;
+        if (emergencyFund === 'full') score += 20; // 6+ months
+        else if (emergencyFund === 'partial') score += 12; // 3-6 months
+        else if (emergencyFund === 'minimal') score += 5; // 1-3 months
+        else score -= 20; // No emergency fund
 
-        // Debt burden
+        // Enhanced debt burden analysis
         const debtLevel = inputs.hasDebt;
-        if (debtLevel === 'none') score += 15;
-        else if (debtLevel === 'minimal') score += 5;
-        else if (debtLevel === 'moderate') score -= 10;
-        else score -= 20;
+        if (debtLevel === 'none') score += 20;
+        else if (debtLevel === 'minimal') score += 8; // <10% of income
+        else if (debtLevel === 'moderate') score -= 12; // 10-30% of income
+        else score -= 25; // >30% of income
 
-        // Dependents
-        score -= inputs.dependents * 5;
+        // Dependents with scaled impact
+        const dependentPenalty = Math.min(inputs.dependents * 7, 25); // Cap penalty
+        score -= dependentPenalty;
+
+        // Healthcare cost buffer (age-based)
+        if (age > 55) {
+            const healthcareFactor = inputs.hasEmergencyFund === 'full' ? 5 : -10;
+            score += healthcareFactor;
+        }
 
         return clamp(score, 0, 100);
     }
 
-    calculateRiskRequirement(inputs) {
-        const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+    calculateRiskRequirement(inputs, monteCarloResults = null) {
+        const yearsToRetirement = Math.max(1, inputs.retirementAge - inputs.yourCurrentAge);
         const targetAssets = inputs.asfaComfortable * 25; // 4% rule estimate
-        const currentAssets = inputs.yourCurrentSuper + inputs.partnerCurrentSuper + inputs.currentSavings + inputs.currentStocks;
+        const currentAssets = inputs.yourCurrentSuper + inputs.partnerCurrentSuper +
+                            inputs.currentSavings + inputs.currentStocks;
 
-        const required = (targetAssets / currentAssets - 1) / yearsToRetirement * 100;
-        const riskRequired = clamp((required - 3) * 10, 0, 100); // 3% risk-free rate
+        // Base calculation using required return approach
+        const growthNeeded = targetAssets / Math.max(1, currentAssets);
+        const requiredAnnualReturn = Math.pow(growthNeeded, 1 / yearsToRetirement) - 1;
+        const riskFreeRate = 0.03; // 3% assumed risk-free rate
+        const excessReturnNeeded = Math.max(0, requiredAnnualReturn - riskFreeRate);
 
-        return riskRequired;
+        let baseRiskScore = Math.min(100, excessReturnNeeded * 1000); // Scale to 0-100
+
+        // Enhanced risk requirement from Monte Carlo results if available
+        if (monteCarloResults && monteCarloResults.successRate !== undefined) {
+            const successRate = monteCarloResults.successRate;
+
+            // Adjust risk requirement based on success probability
+            if (successRate < 0.5) {
+                baseRiskScore += 30; // Need much higher risk for low success rate
+            } else if (successRate < 0.7) {
+                baseRiskScore += 20; // Moderate increase needed
+            } else if (successRate < 0.85) {
+                baseRiskScore += 10; // Slight increase needed
+            } else if (successRate > 0.95) {
+                baseRiskScore = Math.max(0, baseRiskScore - 15); // Can afford less risk
+            }
+
+            // Factor in shortfall analysis
+            if (monteCarloResults.medianBalance && monteCarloResults.medianBalance < 0) {
+                const shortfallMagnitude = Math.abs(monteCarloResults.medianBalance);
+                const shortfallPenalty = Math.min(25, shortfallMagnitude / targetAssets * 50);
+                baseRiskScore += shortfallPenalty;
+            }
+
+            // Consider portfolio depletion probability
+            if (monteCarloResults.depletionProbability && monteCarloResults.depletionProbability > 0.3) {
+                baseRiskScore += monteCarloResults.depletionProbability * 30;
+            }
+        }
+
+        // Adjust for age - older individuals may need lower risk despite requirements
+        const age = inputs.yourCurrentAge;
+        if (age > 55) {
+            const ageAdjustment = Math.min(15, (age - 55) * 0.8);
+            baseRiskScore = Math.max(0, baseRiskScore - ageAdjustment);
+        }
+
+        return clamp(baseRiskScore, 0, 100);
+    }
+
+    // Intelligent risk alignment assessment with specific recommendations
+    analyzeRiskAlignment(capacity, tolerance, requirement, inputs, monteCarloResults = null) {
+        const capacityTolerance = Math.abs(capacity - tolerance);
+        const capacityRequirement = Math.abs(capacity - requirement);
+        const toleranceRequirement = Math.abs(tolerance - requirement);
+        const maxDifference = Math.max(capacityTolerance, capacityRequirement, toleranceRequirement);
+
+        let assessment = {
+            alignment: 'well-aligned',
+            severity: 'low',
+            recommendations: [],
+            riskWarnings: [],
+            opportunities: []
+        };
+
+        // Determine alignment severity
+        if (maxDifference > 40) {
+            assessment.alignment = 'severely-misaligned';
+            assessment.severity = 'high';
+        } else if (maxDifference > 25) {
+            assessment.alignment = 'moderately-misaligned';
+            assessment.severity = 'medium';
+        } else if (maxDifference > 15) {
+            assessment.alignment = 'slightly-misaligned';
+            assessment.severity = 'low';
+        }
+
+        // Capacity vs Tolerance analysis
+        if (capacity > tolerance + 20) {
+            assessment.recommendations.push({
+                type: 'tolerance-education',
+                priority: 'medium',
+                title: 'Consider Increasing Risk Tolerance',
+                description: `Your financial capacity (${capacity}%) is significantly higher than your comfort level (${tolerance}%). You may be missing growth opportunities due to conservative preferences.`,
+                action: 'Review investment education materials and consider gradually increasing equity allocation.'
+            });
+        } else if (tolerance > capacity + 20) {
+            assessment.riskWarnings.push({
+                type: 'capacity-constraint',
+                priority: 'high',
+                title: 'Risk Tolerance Exceeds Capacity',
+                description: `Your desired risk level (${tolerance}%) may be too aggressive given your financial capacity (${capacity}%).`,
+                action: 'Build emergency fund, reduce debt, or lower risk expectations to match financial reality.'
+            });
+        }
+
+        // Requirement vs Capacity/Tolerance analysis
+        if (requirement > Math.max(capacity, tolerance) + 15) {
+            assessment.riskWarnings.push({
+                type: 'goal-mismatch',
+                priority: 'high',
+                title: 'Goals Require Higher Risk Than Comfortable',
+                description: `Achieving your retirement goals requires ${requirement}% risk level, but your capacity (${capacity}%) or tolerance (${tolerance}%) may limit this.`,
+                action: 'Consider extending retirement age, increasing contributions, or moderating lifestyle goals.'
+            });
+        } else if (requirement < Math.min(capacity, tolerance) - 20) {
+            assessment.opportunities.push({
+                type: 'conservative-opportunity',
+                priority: 'low',
+                title: 'Conservative Strategy May Be Sufficient',
+                description: `Your goals only require ${requirement}% risk level, well below your capacity (${capacity}%) and tolerance (${tolerance}%).`,
+                action: 'Consider more conservative allocation or explore additional financial goals.'
+            });
+        }
+
+        // Monte Carlo specific insights
+        if (monteCarloResults) {
+            if (monteCarloResults.successRate < 0.6) {
+                assessment.riskWarnings.push({
+                    type: 'low-success-rate',
+                    priority: 'high',
+                    title: 'Low Retirement Success Probability',
+                    description: `Monte Carlo analysis shows only ${(monteCarloResults.successRate * 100).toFixed(0)}% chance of meeting goals.`,
+                    action: 'Increase contributions, extend retirement age, or consider more aggressive allocation if capacity allows.'
+                });
+            }
+
+            if (monteCarloResults.sequenceRisk && monteCarloResults.sequenceRisk > 0.3) {
+                assessment.riskWarnings.push({
+                    type: 'sequence-risk',
+                    priority: 'medium',
+                    title: 'High Sequence of Returns Risk',
+                    description: 'Early retirement years show vulnerability to market downturns.',
+                    action: 'Consider bond tent strategy or delayed retirement to reduce sequence risk.'
+                });
+            }
+        }
+
+        // Age-specific recommendations
+        const age = inputs.yourCurrentAge;
+        const yearsToRetirement = inputs.retirementAge - age;
+
+        if (yearsToRetirement < 10 && tolerance > 70) {
+            assessment.recommendations.push({
+                type: 'pre-retirement-derisking',
+                priority: 'medium',
+                title: 'Consider Pre-Retirement De-Risking',
+                description: `With ${yearsToRetirement} years to retirement, high risk tolerance may need adjustment.`,
+                action: 'Gradually reduce equity allocation as retirement approaches (bond tent strategy).'
+            });
+        }
+
+        if (age < 40 && capacity > 70 && tolerance < 50) {
+            assessment.opportunities.push({
+                type: 'young-conservative',
+                priority: 'medium',
+                title: 'Time Horizon Advantage Underutilized',
+                description: 'Your young age and high capacity suggest you can afford more growth-oriented investments.',
+                action: 'Consider education on long-term investing benefits and dollar-cost averaging.'
+            });
+        }
+
+        return assessment;
+    }
+
+    // Risk scenario analysis for stress testing
+    calculateRiskScenarios(inputs, monteCarloResults) {
+        const scenarios = [];
+
+        // Market crash scenario (2008 GFC style)
+        scenarios.push({
+            name: 'Market Crash',
+            description: '40% portfolio decline in first retirement year',
+            impact: 'High negative impact on early retirement cash flows',
+            probability: '~10-15% chance in any given decade',
+            mitigation: 'Maintain 2-3 years of expenses in cash/bonds'
+        });
+
+        // High inflation scenario
+        scenarios.push({
+            name: 'High Inflation',
+            description: '6%+ annual inflation for extended period',
+            impact: 'Erodes purchasing power, especially healthcare costs',
+            probability: '~20% based on historical patterns',
+            mitigation: 'Include inflation-protected securities (TIPS) and real assets'
+        });
+
+        // Longevity risk
+        const lifeExpectancy = Math.max(inputs.yourLifespan, inputs.partnerLifespan);
+        if (lifeExpectancy > 90) {
+            scenarios.push({
+                name: 'Longevity Risk',
+                description: `Living to ${lifeExpectancy}+ requires 30+ year portfolio`,
+                impact: 'Portfolio must last longer than typical assumptions',
+                probability: '25-30% chance of one spouse living to 90+',
+                mitigation: 'Annuities for longevity insurance, maintain equity exposure'
+            });
+        }
+
+        // Healthcare cost explosion
+        scenarios.push({
+            name: 'Healthcare Costs',
+            description: 'Healthcare inflation exceeds 7% annually',
+            impact: 'Significant drain on retirement resources',
+            probability: '~40% based on recent trends',
+            mitigation: 'Health savings accounts, aged care insurance, healthy lifestyle'
+        });
+
+        return scenarios;
     }
 
     // Dynamic allocation calculations

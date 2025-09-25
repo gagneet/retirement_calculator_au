@@ -427,88 +427,244 @@ class RetirementCalculatorApp {
         `;
     }
 
-    // Display risk analysis
+    // Enhanced Risk Analysis Display with Dynamic Assessment
     displayRiskAnalysis(result, inputs) {
         const riskAnalysisContent = $('riskAnalysisContent');
         if (!riskAnalysisContent) return;
 
+        // Calculate enhanced risk metrics
         const capacity = this.simulator.calculateRiskCapacity(inputs);
         const tolerance = inputs.riskTolerance * 10;
-        const requirement = this.simulator.calculateRiskRequirement(inputs);
+
+        // Pass Monte Carlo results for dynamic requirement calculation
+        const monteCarloResults = this.currentMonteCarloResults || result.monteCarloResults || {};
+        const requirement = this.simulator.calculateRiskRequirement(inputs, monteCarloResults);
+
+        // Get intelligent risk alignment assessment
+        const riskAssessment = this.simulator.analyzeRiskAlignment(
+            capacity, tolerance, requirement, inputs, monteCarloResults
+        );
+
+        // Get risk scenarios
+        const riskScenarios = this.simulator.calculateRiskScenarios(inputs, monteCarloResults);
 
         riskAnalysisContent.innerHTML = `
-            <div class="space-y-4">
-                <div class="p-4 bg-blue-50 rounded">
-                    <h3 class="font-semibold mb-3">Risk Profile Summary
-                        <span class="text-xs text-gray-600 ml-2 cursor-help" title="Your comprehensive risk assessment based on financial capacity, emotional tolerance, and return requirements">ℹ️</span>
+            <div class="space-y-6">
+                <!-- Enhanced Risk Profile Summary -->
+                <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800">
+                        📊 Dynamic Risk Profile Analysis
+                        <span class="text-xs text-gray-600 ml-2 cursor-help" title="AI-powered risk assessment using Monte Carlo simulation results">🤖</span>
                     </h3>
-                    <div class="space-y-3">
-                        <div>
-                            <div class="flex justify-between mb-1">
-                                <span class="text-sm cursor-help" title="Your financial ability to take risk based on income, assets, emergency funds, and time horizon. Higher capacity means you can financially afford more risk.">Risk Capacity 💰</span>
-                                <span class="text-sm font-medium">${capacity}%</span>
-                            </div>
-                            <div class="risk-meter">
-                                <div class="risk-indicator" style="left: ${capacity}%"></div>
-                            </div>
-                            <div class="text-xs text-gray-600 mt-1">
-                                ${capacity < 40 ? 'Conservative - Limited ability to take risk' :
-            capacity < 70 ? 'Moderate - Balanced risk capacity' :
-                'High - Strong ability to handle risk'}
-                            </div>
+
+                    <!-- Risk Comparison Chart -->
+                    <div class="risk-comparison-chart">
+                        <div class="risk-comparison-bar capacity"
+                             style="height: ${capacity}%"
+                             data-value="${capacity}%"
+                             title="Risk Capacity: Your financial ability to take risk">
                         </div>
-                        <div>
-                            <div class="flex justify-between mb-1">
-                                <span class="text-sm cursor-help" title="Your emotional comfort level with market volatility and potential losses. This reflects how you feel about risk, not your financial capacity.">Risk Tolerance 🎯</span>
-                                <span class="text-sm font-medium">${tolerance}%</span>
-                            </div>
-                            <div class="risk-meter">
-                                <div class="risk-indicator" style="left: ${tolerance}%"></div>
-                            </div>
-                            <div class="text-xs text-gray-600 mt-1">
-                                ${tolerance < 40 ? 'Conservative investor - Prefers stability' :
-            tolerance < 70 ? 'Moderate investor - Balanced approach' :
-                'Aggressive investor - Comfortable with volatility'}
-                            </div>
+                        <div class="risk-comparison-bar tolerance"
+                             style="height: ${tolerance}%"
+                             data-value="${tolerance}%"
+                             title="Risk Tolerance: Your emotional comfort with volatility">
                         </div>
-                        <div>
-                            <div class="flex justify-between mb-1">
-                                <span class="text-sm cursor-help" title="The level of investment risk you need to take to achieve your retirement goals. Higher requirement means you need higher returns to succeed.">Risk Requirement 🎲</span>
-                                <span class="text-sm font-medium">${requirement}%</span>
-                            </div>
-                            <div class="risk-meter">
-                                <div class="risk-indicator" style="left: ${requirement}%"></div>
-                            </div>
-                            <div class="text-xs text-gray-600 mt-1">
-                                ${requirement < 40 ? 'Low risk needed - Goals achievable with conservative investments' :
-            requirement < 70 ? 'Moderate risk needed - Balanced portfolio suggested' :
-                'High risk needed - Aggressive growth required for goals'}
-                            </div>
+                        <div class="risk-comparison-bar requirement"
+                             style="height: ${requirement}%"
+                             data-value="${requirement}%"
+                             title="Risk Requirement: Risk needed for your goals">
                         </div>
                     </div>
-                    <div class="mt-4 p-3 bg-white rounded border">
-                        <h4 class="font-medium text-sm mb-2">Risk Alignment Assessment:</h4>
-                        <div class="text-xs text-gray-700">
-                            ${Math.abs(capacity - tolerance) < 20 && Math.abs(capacity - requirement) < 20 ?
-            '✅ <strong>Well Aligned:</strong> Your capacity, tolerance, and requirement are well matched. This suggests a suitable investment approach.' :
-            '⚠️ <strong>Misalignment Detected:</strong> Significant differences between your risk metrics may require portfolio adjustments or goal modification.'}
+
+                    <div class="grid grid-cols-3 gap-3 mt-4">
+                        <div class="text-center">
+                            <div class="text-xs font-medium text-gray-600">CAPACITY</div>
+                            <div class="text-sm text-gray-800">${this.getRiskLabel(capacity)}</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs font-medium text-gray-600">TOLERANCE</div>
+                            <div class="text-sm text-gray-800">${this.getRiskLabel(tolerance)}</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs font-medium text-gray-600">REQUIREMENT</div>
+                            <div class="text-sm text-gray-800">${this.getRiskLabel(requirement)}</div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="space-y-4">
-                <div class="p-4 bg-yellow-50 rounded">
-                    <h3 class="font-semibold mb-3">Key Risk Factors</h3>
-                    <ul class="text-sm space-y-2">
-                        <li>• <strong>Sequence of Returns Risk:</strong> ${result.finalBalance > 0 ? 'Low impact expected' : 'High impact - early losses could deplete portfolio'}</li>
-                        <li>• <strong>Longevity Risk:</strong> ${inputs.partnerLifespan > 95 ? 'High - planning for extended lifespan' : 'Moderate - standard life expectancy'}</li>
-                        <li>• <strong>Healthcare Cost Risk:</strong> ${inputs.healthcareInflation > 6 ? 'High - above-average inflation assumed' : 'Moderate - standard healthcare inflation'}</li>
-                        <li>• <strong>Property Concentration Risk:</strong> ${inputs.hasInvestmentProperty ? 'Present - significant property exposure' : 'Low - diversified portfolio'}</li>
-                    </ul>
+
+                <!-- Intelligent Risk Alignment Assessment -->
+                <div class="p-4 rounded-lg border ${this.getAlignmentColorClass(riskAssessment.alignment)}">
+                    <h4 class="font-semibold text-sm mb-3 flex items-center">
+                        ${this.getAlignmentIcon(riskAssessment.alignment)} Risk Alignment Analysis
+                        <span class="ml-2 text-xs px-2 py-1 rounded-full ${this.getSeverityBadgeClass(riskAssessment.severity)}">${riskAssessment.severity.toUpperCase()}</span>
+                    </h4>
+                    <div class="text-sm mb-3">
+                        ${this.getAlignmentDescription(riskAssessment.alignment, capacity, tolerance, requirement)}
+                    </div>
+
+                    ${riskAssessment.riskWarnings.length > 0 ? `
+                        <div class="mt-3">
+                            <div class="text-xs font-semibold text-red-700 mb-2">⚠️ RISK WARNINGS:</div>
+                            ${riskAssessment.riskWarnings.map(warning => `
+                                <div class="risk-scenario-card high-priority">
+                                    <div class="font-medium text-sm">${warning.title}</div>
+                                    <div class="text-xs text-gray-600 mt-1">${warning.description}</div>
+                                    <div class="text-xs text-blue-600 mt-2"><strong>Action:</strong> ${warning.action}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+
+                    ${riskAssessment.recommendations.length > 0 ? `
+                        <div class="mt-3">
+                            <div class="text-xs font-semibold text-yellow-700 mb-2">💡 RECOMMENDATIONS:</div>
+                            ${riskAssessment.recommendations.map(rec => `
+                                <div class="risk-scenario-card medium-priority">
+                                    <div class="font-medium text-sm">${rec.title}</div>
+                                    <div class="text-xs text-gray-600 mt-1">${rec.description}</div>
+                                    <div class="text-xs text-blue-600 mt-2"><strong>Action:</strong> ${rec.action}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+
+                    ${riskAssessment.opportunities.length > 0 ? `
+                        <div class="mt-3">
+                            <div class="text-xs font-semibold text-green-700 mb-2">🚀 OPPORTUNITIES:</div>
+                            ${riskAssessment.opportunities.map(opp => `
+                                <div class="risk-scenario-card low-priority">
+                                    <div class="font-medium text-sm">${opp.title}</div>
+                                    <div class="text-xs text-gray-600 mt-1">${opp.description}</div>
+                                    <div class="text-xs text-blue-600 mt-2"><strong>Action:</strong> ${opp.action}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+
+                <!-- Monte Carlo Risk Insights -->
+                ${monteCarloResults.successRate ? `
+                    <div class="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                        <h4 class="font-semibold mb-3 text-purple-800">🎯 Monte Carlo Risk Insights</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-xs text-gray-600">Success Rate</div>
+                                <div class="text-lg font-bold ${monteCarloResults.successRate > 0.8 ? 'text-green-600' : monteCarloResults.successRate > 0.6 ? 'text-yellow-600' : 'text-red-600'}">
+                                    ${(monteCarloResults.successRate * 100).toFixed(1)}%
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-600">Risk Requirement Impact</div>
+                                <div class="text-sm ${requirement > 70 ? 'text-red-600' : requirement > 50 ? 'text-yellow-600' : 'text-green-600'}">
+                                    ${requirement > 70 ? 'High risk needed' : requirement > 50 ? 'Moderate risk needed' : 'Conservative approach viable'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Risk Scenarios -->
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <h4 class="font-semibold mb-3 text-gray-800">⚡ Key Risk Scenarios</h4>
+                    <div class="space-y-3">
+                        ${riskScenarios.map(scenario => `
+                            <div class="risk-scenario-card">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="font-medium text-sm">${scenario.name}</div>
+                                    <div class="text-xs text-gray-500">${scenario.probability}</div>
+                                </div>
+                                <div class="text-xs text-gray-600 mb-2">${scenario.description}</div>
+                                <div class="text-xs text-gray-700"><strong>Impact:</strong> ${scenario.impact}</div>
+                                <div class="text-xs text-blue-600 mt-1"><strong>Mitigation:</strong> ${scenario.mitigation}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Dynamic Risk Recommendations -->
+                <div class="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+                    <h4 class="font-semibold mb-3 text-green-800">🎯 Next Steps</h4>
+                    <div class="text-sm space-y-2">
+                        ${this.generateDynamicRecommendations(capacity, tolerance, requirement, riskAssessment, monteCarloResults)}
+                    </div>
                 </div>
             </div>
         `;
+    }
+
+    // Helper methods for enhanced risk display
+    getRiskLabel(score) {
+        if (score < 30) return 'Conservative';
+        if (score < 50) return 'Moderate-Conservative';
+        if (score < 70) return 'Moderate';
+        if (score < 85) return 'Moderate-Aggressive';
+        return 'Aggressive';
+    }
+
+    getAlignmentColorClass(alignment) {
+        const classes = {
+            'well-aligned': 'bg-green-50 border-green-200',
+            'slightly-misaligned': 'bg-yellow-50 border-yellow-200',
+            'moderately-misaligned': 'bg-orange-50 border-orange-200',
+            'severely-misaligned': 'bg-red-50 border-red-200'
+        };
+        return classes[alignment] || 'bg-gray-50 border-gray-200';
+    }
+
+    getAlignmentIcon(alignment) {
+        const icons = {
+            'well-aligned': '✅',
+            'slightly-misaligned': '⚠️',
+            'moderately-misaligned': '🔶',
+            'severely-misaligned': '❌'
+        };
+        return icons[alignment] || '❓';
+    }
+
+    getSeverityBadgeClass(severity) {
+        const classes = {
+            'low': 'bg-green-100 text-green-800',
+            'medium': 'bg-yellow-100 text-yellow-800',
+            'high': 'bg-red-100 text-red-800'
+        };
+        return classes[severity] || 'bg-gray-100 text-gray-800';
+    }
+
+    getAlignmentDescription(alignment, capacity, tolerance, requirement) {
+        switch(alignment) {
+            case 'well-aligned':
+                return 'Your risk metrics are well-balanced, indicating a coherent investment strategy that matches your financial situation, comfort level, and goals.';
+            case 'slightly-misaligned':
+                return `Minor differences detected between your risk metrics (C:${capacity}%, T:${tolerance}%, R:${requirement}%). Small adjustments may optimize your approach.`;
+            case 'moderately-misaligned':
+                return `Significant gaps exist between your risk capacity, tolerance, and requirements. This may indicate the need for strategy adjustments or goal modifications.`;
+            case 'severely-misaligned':
+                return `Major misalignment detected in your risk profile. Your financial situation, comfort level, and goals may be incompatible without significant changes.`;
+            default:
+                return 'Risk alignment assessment completed.';
+        }
+    }
+
+    generateDynamicRecommendations(capacity, tolerance, requirement, assessment, mcResults) {
+        const recommendations = [];
+
+        if (mcResults.successRate && mcResults.successRate < 0.7) {
+            recommendations.push('• Consider increasing contributions or extending retirement age to improve success probability');
+        }
+
+        if (capacity > tolerance + 20) {
+            recommendations.push('• Your financial capacity suggests you could benefit from investment education to increase risk comfort');
+        }
+
+        if (requirement > Math.max(capacity, tolerance) + 15) {
+            recommendations.push('• Your goals may require either more aggressive investing or extending your timeline');
+        }
+
+        if (assessment.alignment === 'well-aligned') {
+            recommendations.push('• Your risk profile is well-balanced - consider regular reviews as circumstances change');
+        }
+
+        return recommendations.length > 0 ? recommendations.join('<br>') : '• Your risk profile appears well-structured for your current situation';
     }
 
     // Display optimization strategies

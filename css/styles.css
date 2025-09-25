@@ -833,6 +833,173 @@ select:focus {
     transition: left 0.5s ease;
 }
 
+/* Enhanced Risk Dashboard Styling */
+.risk-alignment-heatmap {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.risk-alignment-cell {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.risk-alignment-well-aligned {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    color: #166534;
+    border: 1px solid #86efac;
+}
+
+.risk-alignment-slightly-misaligned {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e;
+    border: 1px solid #fcd34d;
+}
+
+.risk-alignment-moderately-misaligned {
+    background: linear-gradient(135deg, #fed7aa, #fdba74);
+    color: #c2410c;
+    border: 1px solid #fb923c;
+}
+
+.risk-alignment-severely-misaligned {
+    background: linear-gradient(135deg, #fecaca, #fca5a5);
+    color: #991b1b;
+    border: 1px solid #f87171;
+}
+
+.risk-scenario-card {
+    border-left: 4px solid #3b82f6;
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.02));
+    padding: 1rem;
+    margin: 0.75rem 0;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.risk-scenario-card:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.risk-scenario-card.high-priority {
+    border-left-color: #ef4444;
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.05), rgba(239, 68, 68, 0.02));
+}
+
+.risk-scenario-card.medium-priority {
+    border-left-color: #f59e0b;
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.02));
+}
+
+.risk-scenario-card.low-priority {
+    border-left-color: #10b981;
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.02));
+}
+
+.risk-recommendation-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin: 0.25rem;
+}
+
+.risk-recommendation-badge.high-priority {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+
+.risk-recommendation-badge.medium-priority {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+}
+
+.risk-recommendation-badge.low-priority {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #86efac;
+}
+
+.risk-progress-container {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.risk-progress-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s ease;
+    background: linear-gradient(90deg, #10b981, #3b82f6, #ef4444);
+}
+
+.risk-triangle {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 4px 8px 4px;
+    border-color: transparent transparent #1f2937 transparent;
+    position: absolute;
+    top: -8px;
+    transform: translateX(-4px);
+    transition: left 0.5s ease;
+}
+
+.risk-comparison-chart {
+    display: flex;
+    align-items: flex-end;
+    height: 120px;
+    gap: 1rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-radius: 0.75rem;
+    margin: 1rem 0;
+}
+
+.risk-comparison-bar {
+    flex: 1;
+    background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+    border-radius: 4px 4px 0 0;
+    position: relative;
+    transition: all 0.5s ease;
+}
+
+.risk-comparison-bar::after {
+    content: attr(data-value);
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.risk-comparison-bar.capacity {
+    background: linear-gradient(180deg, #10b981, #059669);
+}
+
+.risk-comparison-bar.tolerance {
+    background: linear-gradient(180deg, #f59e0b, #d97706);
+}
+
+.risk-comparison-bar.requirement {
+    background: linear-gradient(180deg, #ef4444, #dc2626);
+}
+
 /* Animation classes */
 .fade-in {
     animation: fadeIn 0.5s ease-in;
