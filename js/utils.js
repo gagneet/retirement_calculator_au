@@ -3,8 +3,8 @@
 // DOM manipulation utilities
 export const $ = (id) => document.getElementById(id);
 
-// Utility to parse formatted currency input values
-export const parseCurrencyInput = (formattedValue) => {
+// Utility to parse formatted numeric input values (currency, percentages)
+export const parseFormattedNumber = (formattedValue) => {
     // Remove all non-numeric characters except decimal point and minus
     const numericString = String(formattedValue).replace(/[^\d.-]/g, '');
     const num = parseFloat(numericString);
@@ -15,8 +15,8 @@ export const safeGetValue = (id, defaultVal = 0) => {
     const elem = $(id);
     if (!elem) return defaultVal;
 
-    // Handle formatted currency inputs by parsing them first
-    const parsedVal = parseCurrencyInput(elem.value);
+    // Handle formatted inputs by parsing them first
+    const parsedVal = parseFormattedNumber(elem.value);
     return isNaN(parsedVal) ? defaultVal : parsedVal;
 };
 
@@ -63,8 +63,8 @@ export const formatPercent = (num, decimals = 2) => {
 
 export const formatNumber = (num, decimals = 0) => {
     if (typeof num !== 'number' || isNaN(num)) return '0';
-    return num.toLocaleString('en-AU', { 
-        maximumFractionDigits: decimals 
+    return num.toLocaleString('en-AU', {
+        maximumFractionDigits: decimals
     });
 };
 
@@ -105,7 +105,7 @@ export const addCurrencyFormatting = (inputElement) => {
 
         const cursorPosition = inputElement.selectionStart;
         const originalValue = inputElement.value;
-        const numericValue = parseCurrencyInput(originalValue);
+        const numericValue = parseFormattedNumber(originalValue);
 
         if (originalValue !== '' && !isNaN(numericValue)) {
             const formattedValue = formatCurrencyInput(numericValue);
@@ -162,6 +162,53 @@ export const initializeCurrencyInputs = () => {
         const element = $(id);
         if (element) {
             addCurrencyFormatting(element);
+        }
+    });
+};
+
+// Add live formatting for percentage inputs
+export const addPercentageFormatting = (inputElement) => {
+    if (!inputElement) return;
+
+    const formatInput = () => {
+        const originalValue = inputElement.value;
+        const numericValue = parseFormattedNumber(originalValue);
+
+        if (originalValue.endsWith('%')) return;
+
+        if (originalValue !== '' && !isNaN(numericValue)) {
+            inputElement.value = `${numericValue}%`;
+        }
+    };
+
+    inputElement.addEventListener('blur', formatInput);
+
+    // Format on paste
+    inputElement.addEventListener('paste', () => {
+        setTimeout(formatInput, 10);
+    });
+
+    // Format existing value on initialization
+    if (inputElement.value) {
+        formatInput();
+    }
+};
+
+export const initializePercentageInputs = () => {
+    // Percentage input field IDs that should be formatted
+    const percentageFieldIds = [
+        'percentIncomeSaved', 'mortgageRate', 'investmentPropertyRate',
+        'propertyGrowthRate', 'capitalGainsTaxRate', 'healthcareInflation',
+        'agedCareProbability', 'inflation', 'investmentReturn',
+        'returnDeclineRate', 'savingsReturn', 'superReturn',
+        'salaryGrowthRate', 'leanYearsReduction', 'australianEquityAllocation',
+        'dividendYield', 'frankingRate', 'returnVolatility', 'shockProbability', 'shockMagnitude'
+    ];
+
+    percentageFieldIds.forEach(id => {
+        const element = $(id);
+        if (element) {
+            addPercentageFormatting(element);
         }
     });
 };
@@ -275,8 +322,8 @@ export const calculateLoanBalance = (rate, nperYears, monthlyPayment, principal)
     if (rate === 0) return Math.max(0, principal - (monthlyPayment * nperYears * 12));
     const monthlyRate = rate / 12;
     const totalPayments = nperYears * 12;
-    return Math.max(0, 
-        principal * Math.pow(1 + monthlyRate, totalPayments) - 
+    return Math.max(0,
+        principal * Math.pow(1 + monthlyRate, totalPayments) -
         monthlyPayment * (Math.pow(1 + monthlyRate, totalPayments) - 1) / monthlyRate
     );
 };
@@ -291,21 +338,21 @@ export const calculateNPV = (cashFlows, discountRate) => {
 export const calculateAustralianTax = (income, taxBrackets) => {
     let tax = 0;
     let remainingIncome = income;
-    
+
     for (const bracket of taxBrackets) {
         if (remainingIncome <= 0) break;
-        
+
         const taxableInThisBracket = Math.min(
-            remainingIncome, 
+            remainingIncome,
             bracket.max - bracket.min
         );
-        
+
         if (taxableInThisBracket > 0) {
             tax += taxableInThisBracket * bracket.rate;
             remainingIncome -= taxableInThisBracket;
         }
     }
-    
+
     return tax;
 };
 
@@ -328,10 +375,10 @@ export const calculatePropertyTotalReturn = (currentValue, purchaseValue, rental
 export const calculateCGT = (salePrice, purchasePrice, isResident, holdingPeriod, marginalTaxRate) => {
     const capitalGain = salePrice - purchasePrice;
     if (capitalGain <= 0) return 0;
-    
+
     const discountApplies = isResident && holdingPeriod >= 1;
     const taxableGain = discountApplies ? capitalGain * 0.5 : capitalGain;
-    
+
     return taxableGain * marginalTaxRate;
 };
 
@@ -459,7 +506,7 @@ export const calculateAgePension = (assets, income, isCouple, maxPension, assetT
         const reduction = (excessAssets / 1000) * 3 * 26; // $3 per fortnight per $1000
         pensionFromAssets = Math.max(0, maxPension - reduction);
     }
-    
+
     // Income test
     let pensionFromIncome = maxPension;
     const fortnightlyIncome = income / 26;
@@ -468,7 +515,7 @@ export const calculateAgePension = (assets, income, isCouple, maxPension, assetT
         const reduction = excessIncome * 0.5 * 26; // 50 cents per dollar
         pensionFromIncome = Math.max(0, maxPension - reduction);
     }
-    
+
     return Math.min(pensionFromAssets, pensionFromIncome);
 };
 
@@ -505,8 +552,8 @@ export const sortBy = (array, key, ascending = true) => {
 
 export const sum = (array, key) => {
     return array.reduce((total, item) => {
-        const value = typeof key === 'function' ? key(item) : 
-                     key ? item[key] : item;
+        const value = typeof key === 'function' ? key(item) :
+            key ? item[key] : item;
         return total + (value || 0);
     }, 0);
 };
@@ -519,36 +566,36 @@ export const average = (array, key) => {
 // Validation utilities
 export const validateInput = (value, rules) => {
     const errors = [];
-    
+
     if (rules.required && (!value || value === '')) {
         errors.push('This field is required');
     }
-    
+
     if (rules.min !== undefined && value < rules.min) {
         errors.push(`Value must be at least ${rules.min}`);
     }
-    
+
     if (rules.max !== undefined && value > rules.max) {
         errors.push(`Value must be no more than ${rules.max}`);
     }
-    
+
     if (rules.integer && !Number.isInteger(value)) {
         errors.push('Value must be a whole number');
     }
-    
+
     return errors;
 };
 
 export const validateForm = (inputs, validationRules) => {
     const errors = {};
-    
+
     for (const [field, rules] of Object.entries(validationRules)) {
         const fieldErrors = validateInput(inputs[field], rules);
         if (fieldErrors.length > 0) {
             errors[field] = fieldErrors;
         }
     }
-    
+
     return errors;
 };
 
@@ -620,7 +667,7 @@ export const exportToXLSX = (inputs, results, chartManager) => {
         ['Personal', 'Partners Retirement Age', inputs.partnerRetirementAge],
         ['Personal', 'Your Lifespan', inputs.yourLifespan],
         ['Personal', 'Partners Lifespan', inputs.partnerLifespan],
-        
+
         ['Risk Profile', 'Risk Tolerance (1-10)', inputs.riskTolerance],
         ['Risk Profile', 'Emergency Fund', inputs.hasEmergencyFund],
         ['Risk Profile', 'High-Interest Debt', inputs.hasDebt],
@@ -632,11 +679,11 @@ export const exportToXLSX = (inputs, results, chartManager) => {
         ['Financials', 'Current Savings', inputs.currentSavings],
         ['Financials', 'Current Stocks', inputs.currentStocks],
         ['Financials', 'Monthly Stock Contributions', inputs.monthlyStockContribution],
-        ['Financials', '% of Post-Tax Income Saved', inputs.percentIncomeSaved * 100],
+        ['Financials', '% of Post-Tax Income Saved', formatPercent(inputs.percentIncomeSaved, 2)],
 
-        ['Primary Residence', 'Current Home Value', inputs.homeValue],
-        ['Primary Residence', 'Outstanding Mortgage', inputs.mortgageBalance],
-        ['Primary Residence', 'Mortgage Rate (%)', inputs.mortgageRate * 100],
+        ['Primary Residence', 'Current Home Value', formatCurrency(inputs.homeValue)],
+        ['Primary Residence', 'Outstanding Mortgage', formatCurrency(inputs.mortgageBalance)],
+        ['Primary Residence', 'Mortgage Rate (%)', formatPercent(inputs.mortgageRate, 2)],
         ['Primary Residence', 'Plan to Downsize', inputs.planToDownsize],
 
         ['Investment Property', 'Has Investment Property', inputs.hasInvestmentProperty],
@@ -644,37 +691,37 @@ export const exportToXLSX = (inputs, results, chartManager) => {
 
     if (inputs.hasInvestmentProperty) {
         summaryData.push(
-            ['Investment Property', 'Current Value', inputs.investmentPropertyValue],
-            ['Investment Property', 'Outstanding Loan', inputs.investmentPropertyLoan],
-            ['Investment Property', 'Loan Interest Rate (%)', inputs.investmentPropertyRate * 100],
-            ['Investment Property', 'Weekly Rental Income', inputs.weeklyRentalIncome],
-            ['Investment Property', 'Annual Expenses', inputs.annualPropertyExpenses],
-            ['Investment Property', 'Annual Growth Rate (%)', inputs.propertyGrowthRate],
+            ['Investment Property', 'Current Value', formatCurrency(inputs.investmentPropertyValue)],
+            ['Investment Property', 'Outstanding Loan', formatCurrency(inputs.investmentPropertyLoan)],
+            ['Investment Property', 'Loan Interest Rate (%)', formatPercent(inputs.investmentPropertyRate, 2)],
+            ['Investment Property', 'Weekly Rental Income', formatCurrency(inputs.weeklyRentalIncome)],
+            ['Investment Property', 'Annual Expenses', formatCurrency(inputs.annualPropertyExpenses)],
+            ['Investment Property', 'Annual Growth Rate (%)', formatPercent(inputs.propertyGrowthRate, 2)],
             ['Investment Property', 'Sell in (Years)', inputs.sellPropertyYears]
         );
     }
 
     summaryData.push(
-        ['Healthcare', 'Current Annual Costs', inputs.currentHealthcareCosts],
-        ['Healthcare', 'Healthcare Inflation (%)', inputs.healthcareInflation],
-        ['Aged Care', 'Aged Care Probability (%)', inputs.agedCareProbability],
+        ['Healthcare', 'Current Annual Costs', formatCurrency(inputs.currentHealthcareCosts)],
+        ['Healthcare', 'Healthcare Inflation (%)', formatPercent(inputs.healthcareInflation, 2)],
+        ['Aged Care', 'Aged Care Probability (%)', formatPercent(inputs.agedCareProbability, 0)],
         ['Aged Care', 'Aged Care Start Age', inputs.agedCareStartAge],
         ['Aged Care', 'Aged Care Duration (years)', inputs.agedCareDuration],
-        ['Aged Care', 'Annual Aged Care Cost', inputs.agedCareAnnualCost],
-        
-        ['Economic', 'Annual Inflation Rate (%)', inputs.inflation * 100],
-        ['Economic', 'Initial Investment Return (%)', inputs.investmentReturn * 100],
-        ['Economic', 'Savings Return (%)', inputs.savingsReturn * 100],
-        ['Economic', 'Super Annual Growth (%)', inputs.superReturn * 100],
+        ['Aged Care', 'Annual Aged Care Cost', formatCurrency(inputs.agedCareAnnualCost)],
+
+        ['Economic', 'Annual Inflation Rate (%)', formatPercent(inputs.inflation, 2)],
+        ['Economic', 'Initial Investment Return (%)', formatPercent(inputs.investmentReturn, 2)],
+        ['Economic', 'Savings Return (%)', formatPercent(inputs.savingsReturn, 2)],
+        ['Economic', 'Super Annual Growth (%)', formatPercent(inputs.superReturn, 2)],
 
         ['--- RESULTS ---', '---', '---'],
-        ['Results', 'Future Super', results.futureSuper],
-        ['Results', 'Future Savings', results.futureSavings],
-        ['Results', 'Future Investments', results.futureStocks],
-        ['Results', 'Accessible Home Equity', results.accessibleHomeEquity],
-        ['Results', 'Property Equity', results.propertyEquity],
-        ['Results', 'Total Assets at Retirement', results.totalFinancialAssets + results.accessibleHomeEquity],
-        ['Results', 'Final Balance at end of Lifespan', results.finalBalance]
+        ['Results', 'Future Super', formatCurrency(results.futureSuper)],
+        ['Results', 'Future Savings', formatCurrency(results.futureSavings)],
+        ['Results', 'Future Investments', formatCurrency(results.futureStocks)],
+        ['Results', 'Accessible Home Equity', formatCurrency(results.accessibleHomeEquity)],
+        ['Results', 'Property Equity', formatCurrency(results.propertyEquity)],
+        ['Results', 'Total Assets at Retirement', formatCurrency(results.totalFinancialAssets + results.accessibleHomeEquity)],
+        ['Results', 'Final Balance at end of Lifespan', formatCurrency(results.finalBalance)]
     );
 
     const ws_summary = XLSX.utils.aoa_to_sheet(summaryData);
@@ -719,13 +766,13 @@ export const exportToXLSX = (inputs, results, chartManager) => {
         const rowIndex = i + 2; // 1-based index, plus header row
         const formula = `${COL_START_BALANCE}${rowIndex}+${COL_GROWTH}${rowIndex}-${COL_WITHDRAWAL}${rowIndex}-${COL_HEALTHCARE_COST}${rowIndex}-${COL_AGED_CARE_COST}${rowIndex}+${COL_PROPERTY_INCOME}${rowIndex}+${COL_PENSION_INCOME}${rowIndex}`;
         const cellRef = XLSX.utils.encode_cell({c: 9, r: i + 1}); // Column J
-        ws_projection[cellRef] = { f: formula };
+        ws_projection[cellRef] = { f: formula, t: 'n', z: '$#,##0.00' };
     }
     XLSX.utils.book_append_sheet(wb, ws_projection, 'Projection');
 
     // --- Charts Data Sheet ---
     const chartData = [];
-    
+
     const fanChartData = chartManager.getChartData('fanChart');
     if (fanChartData && fanChartData.labels) {
         chartData.push(['Portfolio Balance Over Time (fanChart)']);
@@ -752,7 +799,7 @@ export const exportToXLSX = (inputs, results, chartManager) => {
         chartData.push(['Age', 'Equity %', 'Bonds %', 'Cash %']);
         allocationChartData.labels.forEach((label, i) => {
             chartData.push([
-                label, 
+                label,
                 allocationChartData.datasets[0].data[i],
                 allocationChartData.datasets[1].data[i],
                 allocationChartData.datasets[2].data[i]
@@ -760,7 +807,7 @@ export const exportToXLSX = (inputs, results, chartManager) => {
         });
         chartData.push([]);
     }
-    
+
     const propertyChartData = chartManager.getChartData('propertyChart');
     if (propertyChartData && propertyChartData.labels) {
         chartData.push(['Property vs Portfolio Growth (propertyChart)']);
@@ -808,14 +855,33 @@ export const exportToPDF = (inputs, results, chartManager) => {
     // --- Summary Table ---
     doc.setFontSize(16);
     doc.text("Summary", 14, 35);
-    
+
     const summaryBody = [
         ['Your Current Age', inputs.yourCurrentAge],
         ['Partners Current Age', inputs.partnerCurrentAge],
         ['Your Retirement Age', inputs.retirementAge],
         ['Total Assets at Retirement', formatCurrency(results.totalFinancialAssets + results.accessibleHomeEquity)],
         ['Projected Final Balance', formatCurrency(results.finalBalance)],
-        ['Success Rate (Monte Carlo)', results.mcSuccessRate ? formatPercent(results.mcSuccessRate) : 'N/A']
+        ['Success Rate (Monte Carlo)', results.mcSuccessRate ? formatPercent(results.mcSuccessRate) : 'N/A'],
+        ['Mortgage Rate', formatPercent(inputs.mortgageRate, 2)],
+        ['Investment Property Rate', formatPercent(inputs.investmentPropertyRate, 2)],
+        ['Property Growth Rate', formatPercent(inputs.propertyGrowthRate, 2)],
+        ['Capital Gains Tax Rate', formatPercent(inputs.capitalGainsTaxRate, 2)],
+        ['Healthcare Inflation', formatPercent(inputs.healthcareInflation, 2)],
+        ['Aged Care Probability', formatPercent(inputs.agedCareProbability, 0)],
+        ['Inflation', formatPercent(inputs.inflation, 2)],
+        ['Investment Return', formatPercent(inputs.investmentReturn, 2)],
+        ['Return Decline Rate', formatPercent(inputs.returnDeclineRate, 2)],
+        ['Savings Return', formatPercent(inputs.savingsReturn, 2)],
+        ['Super Return', formatPercent(inputs.superReturn, 2)],
+        ['Salary Growth Rate', formatPercent(inputs.salaryGrowthRate, 2)],
+        ['Lean Years Reduction', formatPercent(inputs.leanYearsReduction, 2)],
+        ['Australian Equity Allocation', formatPercent(inputs.australianEquityAllocation, 2)],
+        ['Dividend Yield', formatPercent(inputs.dividendYield, 2)],
+        ['Franking Rate', formatPercent(inputs.frankingRate, 2)],
+        ['Return Volatility', formatPercent(inputs.returnVolatility, 2)],
+        ['Shock Probability', formatPercent(inputs.shockProbability, 2)],
+        ['Shock Magnitude', formatPercent(inputs.shockMagnitude, 2)]
     ];
 
     doc.autoTable({
@@ -847,7 +913,7 @@ export const exportToPDF = (inputs, results, chartManager) => {
 
     addChartToPDF('fanChart', 'Portfolio Balance Projection');
     addChartToPDF('histChart', 'Final Balance Distribution');
-    
+
     // The code references inputs.useGlidePath but this property is not visible in the summary data structure.
     // Verify that this property exists in the 'inputs' object or handle the case where it might be undefined.
     // If inputs.useGlidePath is undefined or null, this will safely default to false. This ensures the chart is only added if useGlidePath is truthy.
@@ -962,7 +1028,7 @@ export const updateProgress = (percentage, text = '') => {
     const progressBar = $('progressBar');
     const progressText = $('progressText');
     const progressContainer = $('progressContainer');
-    
+
     if (progressContainer) {
         if (percentage > 0) {
             progressContainer.classList.remove('hidden');
@@ -970,11 +1036,11 @@ export const updateProgress = (percentage, text = '') => {
             progressContainer.classList.add('hidden');
         }
     }
-    
+
     if (progressBar) {
         progressBar.style.width = `${Math.min(100, Math.max(0, percentage))}%`;
     }
-    
+
     if (progressText) {
         progressText.textContent = text;
     }
@@ -1004,7 +1070,7 @@ export const loadFromLocalStorage = (key, defaultValue = null) => {
 // Error handling utilities
 export const handleError = (error, context = '') => {
     console.error(`Error in ${context}:`, error);
-    
+
     // Show user-friendly error message
     const errorMsg = error.message || 'An unexpected error occurred';
     showNotification(`Error: ${errorMsg}`, 'error');
@@ -1015,7 +1081,7 @@ export const showNotification = (message, type = 'info', duration = 5000) => {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
-    
+
     // Style the notification
     notification.style.cssText = `
         position: fixed;
@@ -1028,7 +1094,7 @@ export const showNotification = (message, type = 'info', duration = 5000) => {
         max-width: 300px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     `;
-    
+
     // Set background color based on type
     const colors = {
         info: '#3b82f6',
@@ -1037,10 +1103,10 @@ export const showNotification = (message, type = 'info', duration = 5000) => {
         error: '#ef4444'
     };
     notification.style.backgroundColor = colors[type] || colors.info;
-    
+
     // Add to page
     document.body.appendChild(notification);
-    
+
     // Remove after duration
     setTimeout(() => {
         if (notification.parentNode) {
@@ -1263,9 +1329,11 @@ export default {
     formatNumber,
     formatCompact,
     formatCurrencyInput,
-    parseCurrencyInput,
+    parseFormattedNumber,
     addCurrencyFormatting,
     initializeCurrencyInputs,
+    addPercentageFormatting,
+    initializePercentageInputs,
     randomNormal,
     percentile,
     median,
