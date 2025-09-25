@@ -259,17 +259,17 @@ header .absolute.top-0.right-0 {
     display: inline-block;
     width: 16px;
     height: 16px;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: linear-gradient(135deg, #1e3a8a, #2563eb); /* deep blues */
     border-radius: 50%;
     margin: 0;
     cursor: help;
     transition: all 0.2s ease;
     vertical-align: middle;
-    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.2);
     flex-shrink: 0;
-    color: transparent; /* Hide the text 'i' */
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z'/%3e%3c/svg%3e");
+    color: transparent;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%232563eb'%3e%3cpath d='M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z'/%3e%3c/svg%3e");
     background-repeat: no-repeat;
     background-position: center;
     background-size: 80%;
