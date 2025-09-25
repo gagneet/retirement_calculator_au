@@ -427,7 +427,7 @@ class RetirementCalculatorApp {
         `;
     }
 
-    // Enhanced Risk Analysis Display with Dynamic Assessment
+    // Practical Risk Analysis with Visual Sliders and Actionable Recommendations
     displayRiskAnalysis(result, inputs) {
         const riskAnalysisContent = $('riskAnalysisContent');
         if (!riskAnalysisContent) return;
@@ -440,152 +440,151 @@ class RetirementCalculatorApp {
         const monteCarloResults = this.currentMonteCarloResults || result.monteCarloResults || {};
         const requirement = this.simulator.calculateRiskRequirement(inputs, monteCarloResults);
 
-        // Get intelligent risk alignment assessment
-        const riskAssessment = this.simulator.analyzeRiskAlignment(
-            capacity, tolerance, requirement, inputs, monteCarloResults
-        );
-
-        // Get risk scenarios
-        const riskScenarios = this.simulator.calculateRiskScenarios(inputs, monteCarloResults);
+        // Generate age-based and Australian-specific recommendations
+        const ageRecommendations = this.generateAgeBasedRecommendations(inputs, capacity, tolerance);
+        const diversificationSuggestions = this.generateDiversificationSuggestions(inputs, result);
+        const australianOpportunities = this.generateAustralianInvestmentOpportunities(inputs, monteCarloResults);
 
         riskAnalysisContent.innerHTML = `
             <div class="space-y-6">
-                <!-- Enhanced Risk Profile Summary -->
-                <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-800">
-                        📊 Dynamic Risk Profile Analysis
-                        <span class="text-xs text-gray-600 ml-2 cursor-help" title="AI-powered risk assessment using Monte Carlo simulation results">🤖</span>
-                    </h3>
+                <!-- Top Section: Risk Profile and Immediate Actions -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Risk Profile with Visual Sliders -->
+                    <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-800">
+                            📊 Your Risk Profile Assessment
+                        </h3>
 
-                    <!-- Risk Comparison Chart -->
-                    <div class="risk-comparison-chart">
-                        <div class="risk-comparison-bar capacity"
-                             style="height: ${capacity}%"
-                             data-value="${capacity}%"
-                             title="Risk Capacity: Your financial ability to take risk">
+                        <div class="space-y-4">
+                            <!-- Risk Capacity Slider -->
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-sm font-medium cursor-help" title="Your financial ability to take risk based on income, assets, time horizon, and emergency funds">
+                                        💰 Risk Capacity
+                                    </span>
+                                    <span class="text-sm font-bold text-blue-600">${capacity.toFixed(1)}/100</span>
+                                </div>
+                                <div class="risk-meter">
+                                    <div class="risk-indicator" style="left: ${capacity}%"></div>
+                                    <div class="risk-triangle" style="left: ${capacity}%"></div>
+                                </div>
+                                <div class="text-xs text-gray-600 mt-1">
+                                    ${this.getRiskCapacityExplanation(capacity, inputs)}
+                                </div>
+                            </div>
+
+                            <!-- Risk Tolerance Slider -->
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-sm font-medium cursor-help" title="Your comfort level with market ups and downs - this is what you set in the main form">
+                                        🎯 Risk Tolerance
+                                    </span>
+                                    <span class="text-sm font-bold text-green-600">${tolerance.toFixed(1)}/100</span>
+                                </div>
+                                <div class="risk-meter">
+                                    <div class="risk-indicator" style="left: ${tolerance}%"></div>
+                                    <div class="risk-triangle" style="left: ${tolerance}%"></div>
+                                </div>
+                                <div class="text-xs text-gray-600 mt-1">
+                                    ${this.getRiskToleranceExplanation(tolerance)}
+                                </div>
+                            </div>
+
+                            <!-- Risk Requirement Slider -->
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-sm font-medium cursor-help" title="The level of risk needed to achieve your retirement goals based on your current savings and targets">
+                                        🎲 Risk Requirement
+                                    </span>
+                                    <span class="text-sm font-bold text-red-600">${requirement.toFixed(1)}/100</span>
+                                </div>
+                                <div class="risk-meter">
+                                    <div class="risk-indicator" style="left: ${requirement}%"></div>
+                                    <div class="risk-triangle" style="left: ${requirement}%"></div>
+                                </div>
+                                <div class="text-xs text-gray-600 mt-1">
+                                    ${this.getRiskRequirementExplanation(requirement, monteCarloResults)}
+                                </div>
+                            </div>
                         </div>
-                        <div class="risk-comparison-bar tolerance"
-                             style="height: ${tolerance}%"
-                             data-value="${tolerance}%"
-                             title="Risk Tolerance: Your emotional comfort with volatility">
-                        </div>
-                        <div class="risk-comparison-bar requirement"
-                             style="height: ${requirement}%"
-                             data-value="${requirement}%"
-                             title="Risk Requirement: Risk needed for your goals">
+
+                        <!-- Risk Alignment Summary -->
+                        <div class="mt-4 p-3 rounded border ${this.getAlignmentSummaryColor(capacity, tolerance, requirement)}">
+                            <div class="font-medium text-sm mb-1">
+                                ${this.getRiskAlignmentSummary(capacity, tolerance, requirement)}
+                            </div>
+                            <div class="text-xs">
+                                ${this.getRiskAlignmentAdvice(capacity, tolerance, requirement)}
+                            </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-3 mt-4">
-                        <div class="text-center">
-                            <div class="text-xs font-medium text-gray-600">CAPACITY</div>
-                            <div class="text-sm text-gray-800">${this.getRiskLabel(capacity)}</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-xs font-medium text-gray-600">TOLERANCE</div>
-                            <div class="text-sm text-gray-800">${this.getRiskLabel(tolerance)}</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-xs font-medium text-gray-600">REQUIREMENT</div>
-                            <div class="text-sm text-gray-800">${this.getRiskLabel(requirement)}</div>
+                    <!-- Immediate Action Items -->
+                    <div class="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
+                        <h4 class="font-semibold mb-3 text-blue-800">
+                            ⚡ Immediate Action Items
+                        </h4>
+                        <div class="space-y-3">
+                            ${this.generateImmediateActions(capacity, tolerance, requirement, inputs, monteCarloResults).map(action => `
+                                <div class="flex items-start space-x-2 text-sm">
+                                    <div class="text-blue-600 mt-0.5">•</div>
+                                    <div>${action}</div>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
                 </div>
 
-                <!-- Intelligent Risk Alignment Assessment -->
-                <div class="p-4 rounded-lg border ${this.getAlignmentColorClass(riskAssessment.alignment)}">
-                    <h4 class="font-semibold text-sm mb-3 flex items-center">
-                        ${this.getAlignmentIcon(riskAssessment.alignment)} Risk Alignment Analysis
-                        <span class="ml-2 text-xs px-2 py-1 rounded-full ${this.getSeverityBadgeClass(riskAssessment.severity)}">${riskAssessment.severity.toUpperCase()}</span>
-                    </h4>
-                    <div class="text-sm mb-3">
-                        ${this.getAlignmentDescription(riskAssessment.alignment, capacity, tolerance, requirement)}
-                    </div>
-
-                    ${riskAssessment.riskWarnings.length > 0 ? `
-                        <div class="mt-3">
-                            <div class="text-xs font-semibold text-red-700 mb-2">⚠️ RISK WARNINGS:</div>
-                            ${riskAssessment.riskWarnings.map(warning => `
-                                <div class="risk-scenario-card high-priority">
-                                    <div class="font-medium text-sm">${warning.title}</div>
-                                    <div class="text-xs text-gray-600 mt-1">${warning.description}</div>
-                                    <div class="text-xs text-blue-600 mt-2"><strong>Action:</strong> ${warning.action}</div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : ''}
-
-                    ${riskAssessment.recommendations.length > 0 ? `
-                        <div class="mt-3">
-                            <div class="text-xs font-semibold text-yellow-700 mb-2">💡 RECOMMENDATIONS:</div>
-                            ${riskAssessment.recommendations.map(rec => `
-                                <div class="risk-scenario-card medium-priority">
-                                    <div class="font-medium text-sm">${rec.title}</div>
+                <!-- Middle Section: Age-Based and Australian Opportunities -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Age-Based Investment Recommendations -->
+                    <div class="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                        <h4 class="font-semibold mb-3 text-green-800">
+                            🎂 Age-Based Investment Strategy (Age ${inputs.yourCurrentAge})
+                        </h4>
+                        <div class="space-y-3">
+                            ${ageRecommendations.map(rec => `
+                                <div class="bg-white rounded p-3 border border-green-100">
+                                    <div class="font-medium text-sm text-gray-800">${rec.title}</div>
                                     <div class="text-xs text-gray-600 mt-1">${rec.description}</div>
-                                    <div class="text-xs text-blue-600 mt-2"><strong>Action:</strong> ${rec.action}</div>
+                                    <div class="text-xs text-green-600 mt-2"><strong>Suggested Action:</strong> ${rec.action}</div>
                                 </div>
                             `).join('')}
-                        </div>
-                    ` : ''}
-
-                    ${riskAssessment.opportunities.length > 0 ? `
-                        <div class="mt-3">
-                            <div class="text-xs font-semibold text-green-700 mb-2">🚀 OPPORTUNITIES:</div>
-                            ${riskAssessment.opportunities.map(opp => `
-                                <div class="risk-scenario-card low-priority">
-                                    <div class="font-medium text-sm">${opp.title}</div>
-                                    <div class="text-xs text-gray-600 mt-1">${opp.description}</div>
-                                    <div class="text-xs text-blue-600 mt-2"><strong>Action:</strong> ${opp.action}</div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : ''}
-                </div>
-
-                <!-- Monte Carlo Risk Insights -->
-                ${monteCarloResults.successRate ? `
-                    <div class="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-                        <h4 class="font-semibold mb-3 text-purple-800">🎯 Monte Carlo Risk Insights</h4>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <div class="text-xs text-gray-600">Success Rate</div>
-                                <div class="text-lg font-bold ${monteCarloResults.successRate > 0.8 ? 'text-green-600' : monteCarloResults.successRate > 0.6 ? 'text-yellow-600' : 'text-red-600'}">
-                                    ${(monteCarloResults.successRate * 100).toFixed(1)}%
-                                </div>
-                            </div>
-                            <div>
-                                <div class="text-xs text-gray-600">Risk Requirement Impact</div>
-                                <div class="text-sm ${requirement > 70 ? 'text-red-600' : requirement > 50 ? 'text-yellow-600' : 'text-green-600'}">
-                                    ${requirement > 70 ? 'High risk needed' : requirement > 50 ? 'Moderate risk needed' : 'Conservative approach viable'}
-                                </div>
-                            </div>
                         </div>
                     </div>
-                ` : ''}
 
-                <!-- Risk Scenarios -->
-                <div class="p-4 bg-gray-50 rounded-lg">
-                    <h4 class="font-semibold mb-3 text-gray-800">⚡ Key Risk Scenarios</h4>
-                    <div class="space-y-3">
-                        ${riskScenarios.map(scenario => `
-                            <div class="risk-scenario-card">
-                                <div class="flex justify-between items-start mb-2">
-                                    <div class="font-medium text-sm">${scenario.name}</div>
-                                    <div class="text-xs text-gray-500">${scenario.probability}</div>
+                    <!-- Australian Investment Opportunities -->
+                    <div class="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
+                        <h4 class="font-semibold mb-3 text-orange-800">
+                            🇦🇺 Australian Investment Opportunities
+                        </h4>
+                        <div class="space-y-3">
+                            ${australianOpportunities.map(opp => `
+                                <div class="bg-white rounded p-3 border border-yellow-100">
+                                    <div class="font-medium text-sm text-gray-800">${opp.title}</div>
+                                    <div class="text-xs text-gray-600 mt-1">${opp.description}</div>
+                                    <div class="text-xs text-orange-600 mt-2"><strong>How to implement:</strong> ${opp.implementation}</div>
+                                    ${opp.benefit ? `<div class="text-xs text-green-600 mt-1"><strong>Benefit:</strong> ${opp.benefit}</div>` : ''}
                                 </div>
-                                <div class="text-xs text-gray-600 mb-2">${scenario.description}</div>
-                                <div class="text-xs text-gray-700"><strong>Impact:</strong> ${scenario.impact}</div>
-                                <div class="text-xs text-blue-600 mt-1"><strong>Mitigation:</strong> ${scenario.mitigation}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Section: Diversification Suggestions (Full Width) -->
+                <div class="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
+                    <h4 class="font-semibold mb-3 text-purple-800">
+                        🎯 Risk Reduction Through Diversification
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${diversificationSuggestions.map(sug => `
+                            <div class="bg-white rounded p-3 border border-purple-100">
+                                <div class="font-medium text-sm text-gray-800">${sug.title}</div>
+                                <div class="text-xs text-gray-600 mt-1">${sug.description}</div>
+                                <div class="text-xs text-purple-600 mt-2"><strong>Implementation:</strong> ${sug.implementation}</div>
+                                <div class="text-xs text-blue-600 mt-1"><strong>Risk Reduction:</strong> ${sug.riskReduction}</div>
                             </div>
                         `).join('')}
-                    </div>
-                </div>
-
-                <!-- Dynamic Risk Recommendations -->
-                <div class="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
-                    <h4 class="font-semibold mb-3 text-green-800">🎯 Next Steps</h4>
-                    <div class="text-sm space-y-2">
-                        ${this.generateDynamicRecommendations(capacity, tolerance, requirement, riskAssessment, monteCarloResults)}
                     </div>
                 </div>
             </div>
@@ -763,6 +762,272 @@ class RetirementCalculatorApp {
         } else {
             return "Your plan struggles in many scenarios. Major changes to contributions, retirement age, or expenses are likely needed.";
         }
+    }
+
+    // Enhanced helper methods for practical risk analysis
+    getRiskCapacityExplanation(capacity, inputs) {
+        const age = inputs.yourCurrentAge;
+        const yearsToRetirement = inputs.retirementAge - age;
+
+        if (capacity >= 80) {
+            return `Strong capacity - ${yearsToRetirement} years to retirement, solid emergency funds, and good income stability give you flexibility to handle market volatility.`;
+        } else if (capacity >= 60) {
+            return `Good capacity - You have reasonable ability to weather market downturns, with ${yearsToRetirement} years until retirement providing recovery time.`;
+        } else if (capacity >= 40) {
+            return `Moderate capacity - Limited by time horizon or financial constraints. Consider building emergency funds before taking higher risks.`;
+        } else {
+            return `Low capacity - High debt, limited emergency funds, or short time horizon restrict your ability to handle market volatility safely.`;
+        }
+    }
+
+    getRiskToleranceExplanation(tolerance) {
+        if (tolerance >= 80) {
+            return "High comfort with volatility - You're willing to accept significant ups and downs for potential long-term growth.";
+        } else if (tolerance >= 60) {
+            return "Moderate comfort - You can accept some volatility but prefer more balanced, steadier growth approaches.";
+        } else if (tolerance >= 40) {
+            return "Conservative preference - You prefer stability and are uncomfortable with significant portfolio swings.";
+        } else {
+            return "Very conservative - You prioritize capital preservation and steady returns over growth potential.";
+        }
+    }
+
+    getRiskRequirementExplanation(requirement, monteCarloResults) {
+        const successRate = monteCarloResults.successRate ? (monteCarloResults.successRate * 100).toFixed(0) : 'Unknown';
+
+        if (requirement >= 80) {
+            return `High growth needed - Your current savings require aggressive investing to meet retirement goals. Success rate: ${successRate}%.`;
+        } else if (requirement >= 60) {
+            return `Moderate growth needed - Balanced portfolio approach should work, but some risk is necessary for success.`;
+        } else if (requirement >= 40) {
+            return `Conservative approach viable - Your savings are on track, allowing for more stability-focused investments.`;
+        } else {
+            return `Low risk sufficient - You're well-positioned for retirement and can afford conservative investments.`;
+        }
+    }
+
+    getAlignmentSummaryColor(capacity, tolerance, requirement) {
+        const maxDiff = Math.max(Math.abs(capacity - tolerance), Math.abs(capacity - requirement), Math.abs(tolerance - requirement));
+
+        if (maxDiff <= 15) return 'bg-green-100 border-green-300';
+        if (maxDiff <= 30) return 'bg-yellow-100 border-yellow-300';
+        return 'bg-red-100 border-red-300';
+    }
+
+    getRiskAlignmentSummary(capacity, tolerance, requirement) {
+        const maxDiff = Math.max(Math.abs(capacity - tolerance), Math.abs(capacity - requirement), Math.abs(tolerance - requirement));
+
+        if (maxDiff <= 15) {
+            return "✅ Well Aligned - Your financial situation, comfort level, and goals work well together.";
+        } else if (maxDiff <= 30) {
+            return "⚠️ Some Misalignment - Minor adjustments could optimize your investment approach.";
+        } else {
+            return "❌ Significant Misalignment - Important changes needed to align your strategy with reality.";
+        }
+    }
+
+    getRiskAlignmentAdvice(capacity, tolerance, requirement) {
+        if (capacity > tolerance + 20) {
+            return "Your financial capacity suggests you could take more risk than you're comfortable with. Consider investment education to increase confidence.";
+        } else if (tolerance > capacity + 20) {
+            return "Your risk comfort exceeds your financial ability. Focus on building emergency funds and reducing debt before increasing risk.";
+        } else if (requirement > Math.max(capacity, tolerance) + 20) {
+            return "Your goals require more risk than you can afford or feel comfortable with. Consider extending retirement age or increasing contributions.";
+        } else {
+            return "Continue monitoring as your situation changes, and adjust your approach as you get closer to retirement.";
+        }
+    }
+
+    generateAgeBasedRecommendations(inputs, capacity, tolerance) {
+        const age = inputs.yourCurrentAge;
+        const yearsToRetirement = inputs.retirementAge - age;
+        const recommendations = [];
+
+        if (age <= 35) {
+            recommendations.push({
+                title: "High Growth Opportunity Window",
+                description: `At ${age}, you have 25+ years of compounding ahead. Time is your greatest asset for wealth building.`,
+                action: "Consider 80-90% equities if your capacity allows. Focus on Australian shares with franking credits and international diversification."
+            });
+
+            recommendations.push({
+                title: "Take Advantage of Franking Credits",
+                description: "Young investors can maximize franking credit benefits over decades of investing.",
+                action: "Allocate 40-60% to Australian dividend-paying stocks (CBA, WOW, TLS) for tax-effective income."
+            });
+        } else if (age <= 50) {
+            recommendations.push({
+                title: "Peak Earning Years Strategy",
+                description: `Your 40s and early 50s are typically peak earning years. Maximize contributions while you can.`,
+                action: "Consider salary sacrificing additional super contributions. Review your allocation - aim for 70-80% growth assets."
+            });
+
+            recommendations.push({
+                title: "Diversification Focus",
+                description: "Balance Australian franking credits with international exposure for risk management.",
+                action: "Split growth assets: 50% Australian equities, 30% international shares, 20% property/REITs."
+            });
+        } else if (age <= 60) {
+            recommendations.push({
+                title: "Pre-Retirement Transition",
+                description: `With ${yearsToRetirement} years to retirement, start gradually reducing volatility while maintaining growth.`,
+                action: "Consider 'bond tent' strategy - reduce equities by 2-3% per year. Maintain some Australian dividend stocks."
+            });
+
+            recommendations.push({
+                title: "Pension Phase Planning",
+                description: "Plan for tax-free phase after 60 where franking credits become even more valuable.",
+                action: "Position high-dividend Australian stocks for pension phase when all income becomes tax-free."
+            });
+        } else {
+            recommendations.push({
+                title: "Capital Preservation Focus",
+                description: "At 60+, protecting what you've built becomes more important than aggressive growth.",
+                action: "Target 50-60% growth assets maximum. Focus on quality dividend stocks and defensive assets."
+            });
+
+            recommendations.push({
+                title: "Pension Phase Benefits",
+                description: "In super pension phase, all investment income is tax-free, making franked dividends even more attractive.",
+                action: "Maximize franked dividend income in super. Consider 60% Australian shares, 40% defensive assets."
+            });
+        }
+
+        return recommendations;
+    }
+
+    generateAustralianInvestmentOpportunities(inputs, monteCarloResults) {
+        const opportunities = [];
+        const successRate = monteCarloResults.successRate ? monteCarloResults.successRate * 100 : 70;
+
+        opportunities.push({
+            title: "Enhanced Franking Credits Strategy",
+            description: "Australian companies pay fully-franked dividends, providing tax credits worth up to 30% extra income.",
+            implementation: "Focus on ASX dividend aristocrats: CBA, ANZ, BHP, RIO, WES, COL. Aim for 40-60% of equity allocation.",
+            benefit: `Could boost after-tax returns by 1-2% annually, worth $10K-30K over retirement depending on your tax situation.`
+        });
+
+        opportunities.push({
+            title: "Superannuation Contribution Strategies",
+            description: "Tax-effective super contributions can significantly boost retirement savings.",
+            implementation: "Salary sacrifice to $30K annual cap (concessional). Consider spouse contributions and government co-contributions.",
+            benefit: "Tax savings of 19-32.5% on contributions, plus compound growth in tax-sheltered environment."
+        });
+
+        if (inputs.yourCurrentAge >= 50) {
+            opportunities.push({
+                title: "Catch-Up Contributions (Age 50+)",
+                description: "Higher contribution limits available for those approaching retirement.",
+                implementation: "Use catch-up provisions to contribute additional $7,500 annually to super from unused cap space.",
+                benefit: "Extra tax deductions and accelerated retirement savings in final working years."
+            });
+        }
+
+        opportunities.push({
+            title: "Australian Property Investment Trusts (REITs)",
+            description: "Diversify beyond direct property with liquid, professionally managed real estate investments.",
+            implementation: "Consider VAS (Vanguard Australian Shares), ILF (iShares Core Composite Bond), or A-REITs like SCG, MGR.",
+            benefit: "Exposure to commercial property returns with better liquidity than direct investment."
+        });
+
+        if (successRate < 80) {
+            opportunities.push({
+                title: "International Diversification",
+                description: "Reduce home country bias with global exposure while maintaining Australian base.",
+                implementation: "Target 30-40% international equities through VGS (Vanguard MSCI World) or IVV (S&P 500).",
+                benefit: "Better risk-adjusted returns and currency diversification to improve retirement success rate."
+            });
+        }
+
+        return opportunities;
+    }
+
+    generateDiversificationSuggestions(inputs, result) {
+        const suggestions = [];
+        const hasProperty = inputs.hasInvestmentProperty;
+        const currentSavings = inputs.currentSavings || 0;
+        const stocksAllocation = inputs.currentStocks || 0;
+
+        suggestions.push({
+            title: "Emergency Fund Optimization",
+            description: "Maintain 3-6 months expenses in high-yield savings before increasing investment risk.",
+            implementation: "Use online banks (ING, UBank, CUA) offering 4-5% on savings. Keep separate from investment funds.",
+            riskReduction: "Reduces need to sell investments during market downturns, protecting long-term growth."
+        });
+
+        if (!hasProperty && currentSavings > 50000) {
+            suggestions.push({
+                title: "Consider Investment Property vs REITs",
+                description: "Diversify into property through direct investment or Real Estate Investment Trusts.",
+                implementation: "REITs offer liquidity and diversification without direct property management. Consider A-REITs or global property funds.",
+                riskReduction: "Property provides inflation hedge and income diversification beyond shares and bonds."
+            });
+        }
+
+        suggestions.push({
+            title: "Bond Ladder or Term Deposits",
+            description: "Reduce volatility with fixed-income investments matching your risk capacity.",
+            implementation: "Build ladder of 1-5 year government bonds or bank term deposits. Consider TIPS for inflation protection.",
+            riskReduction: "Provides steady income and capital stability, reducing overall portfolio volatility by 20-30%."
+        });
+
+        if (stocksAllocation > currentSavings * 2) {
+            suggestions.push({
+                title: "Rebalance Asset Concentration",
+                description: "Your stock allocation appears high relative to total savings, increasing concentration risk.",
+                implementation: "Gradually rebalance to target allocation. Consider dollar-cost averaging over 6-12 months.",
+                riskReduction: "Reduces single-asset-class risk and smooths investment returns over time."
+            });
+        }
+
+        suggestions.push({
+            title: "International Currency Exposure",
+            description: "Hedge against Australian dollar fluctuations with global investments.",
+            implementation: "Allocate 20-30% to international shares (VGS, IVV) or currency-hedged options (VGAD, IHVV).",
+            riskReduction: "Protects against local economic downturns and provides currency diversification."
+        });
+
+        return suggestions;
+    }
+
+    generateImmediateActions(capacity, tolerance, requirement, inputs, monteCarloResults) {
+        const actions = [];
+        const successRate = monteCarloResults.successRate ? monteCarloResults.successRate * 100 : 70;
+        const age = inputs.yourCurrentAge;
+
+        if (Math.abs(capacity - tolerance) > 25) {
+            if (capacity > tolerance) {
+                actions.push("Consider investment education to build confidence - your finances support more risk than you're taking");
+            } else {
+                actions.push("Focus on building emergency funds and paying down debt before increasing investment risk");
+            }
+        }
+
+        if (successRate < 70) {
+            actions.push(`Your ${successRate.toFixed(0)}% success rate suggests increasing super contributions by $50-100 weekly could significantly improve outcomes`);
+        }
+
+        if (requirement > 70 && tolerance < 50) {
+            actions.push("Your goals require higher returns - consider working 2-3 years longer or increasing contributions rather than taking uncomfortable risks");
+        }
+
+        if (age < 45 && capacity > 70 && tolerance < 60) {
+            actions.push("At your age, time is your biggest asset - consider gradually increasing your risk tolerance through education and small steps");
+        }
+
+        if (age >= 55 && tolerance > 80) {
+            actions.push("Consider gradually reducing risk as you approach retirement - implement a 'bond tent' strategy over the next 5-10 years");
+        }
+
+        if (!inputs.hasInvestmentProperty && inputs.currentSavings > 100000) {
+            actions.push("With significant savings, consider property investment or REITs for diversification beyond stocks and super");
+        }
+
+        if (inputs.yourSalary + inputs.partnerSalary > 120000) {
+            actions.push("Review salary sacrificing to super - you're likely in higher tax brackets where super contributions provide significant tax benefits");
+        }
+
+        return actions.length > 0 ? actions : ["Your risk profile appears well-balanced - continue regular reviews as your situation changes"];
     }
 
     // Display optimization strategies

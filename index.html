@@ -1,6 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Cache-clearing script
+    <script>
+        (function() {
+            // Check if the cache has already been cleared in this session
+            if (!sessionStorage.getItem('cacheCleared')) {
+                // Clear localStorage
+                localStorage.clear();
+
+                // Clear cookies
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i];
+                    const eqPos = cookie.indexOf("=");
+                    const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                }
+
+                // Mark cache as cleared for this session
+                sessionStorage.setItem('cacheCleared', 'true');
+
+                // Force a hard reload
+                location.reload(true);
+            }
+        })();
+    </script>
+    -->
+
     <!-- Google Analytics - Silent loading with background retry -->
     <script>
         // Load Google Analytics with silent failure and retry mechanism
@@ -1145,7 +1172,7 @@
         <!-- Risk Analysis Tab -->
         <div id="riskAnalysis-tab" class="tab-content p-6">
             <h2 class="text-2xl font-semibold mb-4">Risk Analysis</h2>
-            <div id="riskAnalysisContent" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div id="riskAnalysisContent" class="w-full">
                 <!-- Risk analysis will be populated -->
             </div>
         </div>
