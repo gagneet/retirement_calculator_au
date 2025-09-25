@@ -535,6 +535,76 @@
             </div>
 
             <div class="enhancement-highlight p-4 rounded-lg mt-4">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Trust Structures</h3>
+                <div class="space-y-3">
+                    <div class="p-3 bg-blue-50 rounded text-sm">
+                        <p class="text-blue-800 mb-2"><strong>Important:</strong> Trust assets may be attributed to you for Age Pension means testing if you have control.</p>
+                        <p class="text-blue-700 text-xs">Consult a financial advisor for trust-specific advice. This calculator estimates impacts based on Centrelink's attribution rules.</p>
+                    </div>
+                    <div>
+                        <label for="hasTrustAssets" class="flex items-center">
+                            <input type="checkbox" id="hasTrustAssets" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <span class="ml-2 text-sm text-gray-700">Have Trust Assets or Control</span>
+                        </label>
+                    </div>
+                    <div id="trustAssetsSection" class="hidden space-y-3">
+                        <div>
+                            <label for="trustType" class="block text-sm font-medium text-gray-700">Primary Trust Type</label>
+                            <select id="trustType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="discretionary">Discretionary Family Trust</option>
+                                <option value="unit">Unit Trust</option>
+                                <option value="hybrid">Hybrid Trust</option>
+                                <option value="other">Other Trust Structure</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="trustControlLevel" class="block text-sm font-medium text-gray-700">Control Level</label>
+                            <select id="trustControlLevel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="high">High Control (Trustee/Appointer/Beneficiary)</option>
+                                <option value="medium">Medium Control (Beneficiary with influence)</option>
+                                <option value="low">Low Control (Beneficiary only)</option>
+                                <option value="none">No Control (Arms-length)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="trustNetAssets" class="block text-sm font-medium text-gray-700">Current Trust Net Assets Value</label>
+                            <input type="number" id="trustNetAssets" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Total value of trust assets minus liabilities</p>
+                        </div>
+                        <div>
+                            <label for="trustAttributionPercentage" class="block text-sm font-medium text-gray-700">Attribution Percentage (%)</label>
+                            <input type="number" id="trustAttributionPercentage" value="100" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Percentage of trust assets/income attributed to you by Centrelink</p>
+                        </div>
+                        <div>
+                            <label for="trustAnnualDistributions" class="block text-sm font-medium text-gray-700">Annual Trust Distributions Received</label>
+                            <input type="number" id="trustAnnualDistributions" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Actual distributions received from trust in last financial year</p>
+                        </div>
+                        <div>
+                            <label for="homeInTrust" class="flex items-center">
+                                <input type="checkbox" id="homeInTrust" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">Principal Residence Held in Trust</span>
+                            </label>
+                            <p class="mt-1 text-xs text-gray-500">May lose Age Pension principal residence exemption</p>
+                        </div>
+                        <div>
+                            <label for="investmentPropertyInTrust" class="flex items-center">
+                                <input type="checkbox" id="investmentPropertyInTrust" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">Investment Property Held in Trust</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label for="stocksInTrust" class="flex items-center">
+                                <input type="checkbox" id="stocksInTrust" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">Share Portfolio Held in Trust</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="enhancement-highlight p-4 rounded-lg mt-4">
                 <h3 class="text-lg font-medium text-gray-700 mb-3">Healthcare & Aged Care</h3>
                 <div class="space-y-3">
                     <div>
@@ -1064,6 +1134,7 @@
 <script type="module" src="js/theme.js"></script>
 <script type="module" src="js/config.js"></script>
 <script type="module" src="js/utils.js"></script>
+<script type="module" src="js/trust-ui.js"></script>
 <script type="module" src="js/simulator.js"></script>
 <script type="module" src="js/recommendation.js"></script>
 <script type="module" src="js/decision-support-engine.js"></script>
