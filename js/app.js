@@ -667,6 +667,104 @@ class RetirementCalculatorApp {
         return recommendations.length > 0 ? recommendations.join('<br>') : '• Your risk profile appears well-structured for your current situation';
     }
 
+    // Generate narrative explanations for Monte Carlo charts
+    generateMonteCarloNarrative(results, inputs) {
+        const successRate = results.successRate * 100;
+        const runs = inputs.numRuns || results.paths?.length || 1000;
+        const median = results.median;
+        const p10 = results.percentile10;
+        const p90 = results.percentile90;
+
+        let narrative = `
+            <div class="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-4 mb-6 border border-indigo-200">
+                <h3 class="text-lg font-semibold mb-3 text-indigo-800">🎯 Understanding Your Monte Carlo Analysis</h3>
+                <div class="space-y-3 text-sm text-gray-700">
+                    <p class="leading-relaxed">
+                        <strong>What is Monte Carlo Simulation?</strong><br>
+                        Think of this as running your retirement plan ${runs.toLocaleString()} times with different market conditions.
+                        Each simulation uses realistic but random investment returns based on historical market data. This shows you the range of possible outcomes for your retirement.
+                    </p>
+
+                    <div class="grid md:grid-cols-2 gap-4 mt-4">
+                        <div class="bg-white rounded p-3 border">
+                            <strong class="text-blue-600">Success Rate: ${successRate.toFixed(1)}%</strong>
+                            <p class="mt-1 text-xs">
+                                ${this.getSuccessRateExplanation(successRate)}
+                            </p>
+                        </div>
+                        <div class="bg-white rounded p-3 border">
+                            <strong class="text-green-600">Median Outcome: ${formatCurrency(median)}</strong>
+                            <p class="mt-1 text-xs">
+                                In half of the simulations, you end up with more than this amount. In the other half, you have less.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        return narrative;
+    }
+
+    generateFanChartExplanation(inputs) {
+        return `
+            <div class="bg-blue-50 rounded-lg p-3 mb-4 text-sm">
+                <h4 class="font-semibold mb-2 text-blue-800">📊 How to Read the Fan Chart</h4>
+                <ul class="space-y-1 text-gray-700">
+                    <li><strong class="text-blue-600">Blue Line (Median):</strong> The "typical" outcome - half of simulations are above this line, half below.</li>
+                    <li><strong class="text-gray-600">Blue Shaded Area:</strong> Shows the range where 80% of outcomes fall (10th to 90th percentile).</li>
+                    <li><strong class="text-green-600">Green Shaded Area:</strong> Shows where 50% of outcomes fall (25th to 75th percentile) - the most likely range.</li>
+                    <li><strong>What it means:</strong> The wider the fan, the more uncertainty. Narrow fans suggest more predictable outcomes.</li>
+                </ul>
+                <div class="mt-2 p-2 bg-blue-100 rounded text-xs">
+                    💡 <strong>Pro tip:</strong> Look at age ${inputs.retirementAge + 10} to see how your portfolio might look 10 years into retirement.
+                </div>
+            </div>
+        `;
+    }
+
+    generateHistogramExplanation(results) {
+        const median = results.median;
+        const success = results.successRate * 100;
+
+        return `
+            <div class="bg-purple-50 rounded-lg p-3 mb-4 text-sm">
+                <h4 class="font-semibold mb-2 text-purple-800">📈 How to Read the Distribution Chart</h4>
+                <div class="space-y-2 text-gray-700">
+                    <p><strong>Each bar shows:</strong> How many simulations ended with that final balance range.</p>
+                    <p><strong>Taller bars:</strong> More common outcomes. <strong>Shorter bars:</strong> Less likely outcomes.</p>
+                    <div class="grid grid-cols-2 gap-2 mt-3">
+                        <div class="bg-white rounded p-2 border">
+                            <div class="font-medium text-purple-600">Peak of Distribution</div>
+                            <div class="text-xs">Shows the most common final balance range</div>
+                        </div>
+                        <div class="bg-white rounded p-2 border">
+                            <div class="font-medium text-green-600">${success.toFixed(0)}% Success Rate</div>
+                            <div class="text-xs">Percentage of bars to the right of $0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2 p-2 bg-purple-100 rounded text-xs">
+                    💡 <strong>What to look for:</strong> A distribution shifted right (toward positive balances) indicates a robust retirement plan.
+                </div>
+            </div>
+        `;
+    }
+
+    getSuccessRateExplanation(successRate) {
+        if (successRate >= 90) {
+            return "Excellent! Your plan succeeds in almost all market scenarios. You have a very robust retirement strategy.";
+        } else if (successRate >= 80) {
+            return "Very good! Your plan works in most scenarios. Some minor tweaks could improve confidence.";
+        } else if (successRate >= 70) {
+            return "Solid foundation, but there's room for improvement. Consider increasing contributions or extending your retirement age slightly.";
+        } else if (successRate >= 60) {
+            return "Your plan faces some challenges in difficult market conditions. Significant adjustments may be needed.";
+        } else {
+            return "Your plan struggles in many scenarios. Major changes to contributions, retirement age, or expenses are likely needed.";
+        }
+    }
+
     // Display optimization strategies
     displayOptimizationStrategies(result, inputs) {
         const optimizationContent = $('optimizationContent');
@@ -1197,6 +1295,9 @@ class RetirementCalculatorApp {
 
             const results = await this.simulator.runMonteCarloSimulation(inputs, runs, progressCallback);
 
+            // Store results for Risk Analysis tab
+            this.currentMonteCarloResults = results;
+
             // Update Monte Carlo results display
             const mcResults = $('monteCarloResults');
             if (mcResults) {
@@ -1206,6 +1307,40 @@ class RetirementCalculatorApp {
                 safeSetText('mcMedian', formatCurrency(results.median));
                 safeSetText('mc10th', formatCurrency(results.percentile10));
                 safeSetText('mcConfidence', `${(results.successRate * 100).toFixed(0)}%`);
+            }
+
+            // Add narrative explanation
+            const narrativeContainer = $('monteCarloNarrative');
+            if (narrativeContainer) {
+                narrativeContainer.innerHTML = this.generateMonteCarloNarrative(results, inputs);
+                narrativeContainer.classList.remove('hidden');
+            }
+
+            // Add chart explanations
+            const fanChartContainer = $('fanChartContainer');
+            if (fanChartContainer) {
+                const existingExplanation = fanChartContainer.querySelector('.chart-explanation');
+                if (existingExplanation) {
+                    existingExplanation.remove();
+                }
+
+                const explanationDiv = document.createElement('div');
+                explanationDiv.className = 'chart-explanation';
+                explanationDiv.innerHTML = this.generateFanChartExplanation(inputs);
+                fanChartContainer.insertBefore(explanationDiv, fanChartContainer.firstChild);
+            }
+
+            const histChartContainer = $('histChartContainer');
+            if (histChartContainer) {
+                const existingExplanation = histChartContainer.querySelector('.chart-explanation');
+                if (existingExplanation) {
+                    existingExplanation.remove();
+                }
+
+                const explanationDiv = document.createElement('div');
+                explanationDiv.className = 'chart-explanation';
+                explanationDiv.innerHTML = this.generateHistogramExplanation(results);
+                histChartContainer.insertBefore(explanationDiv, histChartContainer.firstChild);
             }
 
             // Render Monte Carlo charts
