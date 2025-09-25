@@ -1584,18 +1584,26 @@ class RetirementCalculatorApp {
                 this.updateRiskProfile(inputs);
             }, 300));
 
-            // Show tooltip on hover/focus
-            riskTolerance.addEventListener('mouseenter', () => {
-                this.showRiskToleranceTooltip();
+            // Show tooltip on hover/focus - enhanced for all browsers including Edge
+            riskTolerance.addEventListener('mouseenter', (e) => {
+                this.showRiskToleranceTooltip(e);
             });
-            riskTolerance.addEventListener('mouseleave', () => {
-                this.hideRiskToleranceTooltip();
+            riskTolerance.addEventListener('mouseleave', (e) => {
+                this.hideRiskToleranceTooltip(e);
             });
-            riskTolerance.addEventListener('focus', () => {
-                this.showRiskToleranceTooltip();
+            riskTolerance.addEventListener('focus', (e) => {
+                this.showRiskToleranceTooltip(e);
             });
-            riskTolerance.addEventListener('blur', () => {
-                this.hideRiskToleranceTooltip();
+            riskTolerance.addEventListener('blur', (e) => {
+                this.hideRiskToleranceTooltip(e);
+            });
+
+            // Additional events for better Edge support
+            riskTolerance.addEventListener('pointerenter', (e) => {
+                this.showRiskToleranceTooltip(e);
+            });
+            riskTolerance.addEventListener('pointerleave', (e) => {
+                this.hideRiskToleranceTooltip(e);
             });
 
             // Initialize display
@@ -1726,17 +1734,31 @@ class RetirementCalculatorApp {
         }
     }
 
-    showRiskToleranceTooltip() {
+    showRiskToleranceTooltip(event) {
         const tooltip = $('riskToleranceTooltip');
         if (tooltip) {
+            // Force show tooltip for all browsers
             tooltip.classList.remove('hidden');
+            tooltip.style.display = 'block';
+            tooltip.style.opacity = '1';
+
+            // Ensure the description is updated
+            const riskTolerance = $('riskTolerance');
+            if (riskTolerance) {
+                this.updateRiskToleranceDisplay(riskTolerance.value);
+            }
         }
     }
 
-    hideRiskToleranceTooltip() {
+    hideRiskToleranceTooltip(event) {
         const tooltip = $('riskToleranceTooltip');
         if (tooltip) {
-            tooltip.classList.add('hidden');
+            // Use a small delay to allow for smooth transitions
+            setTimeout(() => {
+                tooltip.classList.add('hidden');
+                tooltip.style.display = '';
+                tooltip.style.opacity = '';
+            }, 150);
         }
     }
 
