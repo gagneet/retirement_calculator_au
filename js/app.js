@@ -519,10 +519,10 @@ class RetirementCalculatorApp {
                                 <div>$${cashFlowAnalysis.expenses.living.monthlyTotal.toFixed(0)}</div>
                                 <div class="text-gray-500">${cashFlowAnalysis.expenses.breakdown.livingDescription}</div>
                             </div>
-                            ${cashFlowAnalysis.expenses.childcare.monthlyTotal > 0 ? `
+                            ${cashFlowAnalysis.expenses.dependents.monthlyTotal > 0 ? `
                                 <div class="bg-white rounded p-2 border">
-                                    <div class="font-medium">Childcare</div>
-                                    <div>$${cashFlowAnalysis.expenses.childcare.monthlyTotal.toFixed(0)}</div>
+                                    <div class="font-medium">Dependents</div>
+                                    <div>$${cashFlowAnalysis.expenses.dependents.monthlyTotal.toFixed(0)}</div>
                                     <div class="text-gray-500">${cashFlowAnalysis.expenses.breakdown.childcareDescription}</div>
                                 </div>
                             ` : ''}
@@ -1454,10 +1454,10 @@ class RetirementCalculatorApp {
             strategies.push('Consider refinancing or downsizing to reduce mortgage burden');
         }
 
-        // Childcare optimization
-        if (expenses.childcare && expenses.childcare.monthlyTotal > 2000) {
-            strategies.push('Review childcare subsidies and tax benefits to optimize costs');
-            strategies.push('Consider family daycare or nanny sharing options');
+        // Dependent cost optimization
+        if (expenses.dependents && expenses.dependents.monthlyTotal > 2000) {
+            strategies.push('Review dependent care subsidies and tax benefits to optimize costs');
+            strategies.push('Consider family daycare, nanny sharing, or support from extended family');
         }
 
         // General expense strategies
@@ -3032,6 +3032,22 @@ class RetirementCalculatorApp {
 
     // Enhanced Dependent Calculations Setup
     setupDependentCalculations() {
+        // Setup collapsible dependent details
+        const totalDependentsCountField = $('totalDependentsCount');
+        const dependentDetailsSection = $('dependentDetailsSection');
+
+        if (totalDependentsCountField && dependentDetailsSection) {
+            totalDependentsCountField.addEventListener('input', () => {
+                const count = parseInt(totalDependentsCountField.value) || 0;
+                if (count > 0) {
+                    dependentDetailsSection.classList.remove('hidden');
+                } else {
+                    dependentDetailsSection.classList.add('hidden');
+                }
+                this.calculateDependentCosts();
+            });
+        }
+
         const dependentFields = [
             'childrenUnder5', 'childrenUnder5Percent',
             'childrenPrimary', 'childrenPrimaryPercent',

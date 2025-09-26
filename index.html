@@ -522,8 +522,20 @@
                             </div>
                         </div>
 
-                        <!-- Enhanced Dependent Categories with Contribution % -->
-                        <div class="mt-2 space-y-3 p-4 border rounded-lg bg-gray-50">
+
+                        <!-- Simple dependent count input -->
+                        <div class="mt-2">
+                            <label for="totalDependentsCount" class="block text-sm font-medium text-gray-700">Number of Financial Dependents</label>
+                            <input type="number" id="totalDependentsCount" value="0" min="0" max="20" class="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Enter a number greater than 0 to see detailed breakdown options</p>
+                        </div>
+
+                        <!-- Enhanced Dependent Categories with Contribution % (collapsible) -->
+                        <div id="dependentDetailsSection" class="mt-4 space-y-3 p-4 border rounded-lg bg-gray-50 hidden">
+                            <div class="mb-3 pb-2 border-b border-gray-300">
+                                <h4 class="text-sm font-semibold text-gray-800">Dependent Breakdown by Category</h4>
+                                <p class="text-xs text-gray-600">Specify count and your contribution percentage for each category</p>
+                            </div>
                             <!-- Children 0-5 years -->
                             <div class="grid grid-cols-12 gap-2 items-center">
                                 <div class="col-span-6">
