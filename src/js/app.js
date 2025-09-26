@@ -1066,7 +1066,7 @@ class RetirementCalculatorApp {
             title: "Superannuation Contribution Strategies",
             description: "Tax-effective super contributions can significantly boost retirement savings.",
             implementation: "Salary sacrifice to $30K annual cap (concessional). Consider spouse contributions and government co-contributions.",
-            benefit: "Tax savings of 19-32.5% on contributions, plus compound growth in tax-sheltered environment."
+            benefit: "Tax savings of 16-30% on contributions, plus compound growth in tax-sheltered environment."
         });
 
         if (inputs.yourCurrentAge >= 50) {
@@ -1650,6 +1650,201 @@ class RetirementCalculatorApp {
             this.isCalculating = false;
             updateProgress(0);
         }
+    }
+
+    // Generate Personalized Suggestions for the new Suggestions tab
+    async generatePersonalizedSuggestions() {
+        if (this.isCalculating) return;
+        this.isCalculating = true;
+
+        try {
+            const inputs = this.collectInputs();
+
+            // Show loading state
+            const loadingDiv = $('suggestionsLoading');
+            const buttonDiv = $('generateSuggestionsBtn');
+            if (loadingDiv) loadingDiv.classList.remove('hidden');
+            if (buttonDiv) buttonDiv.style.opacity = '0.5';
+
+            updateProgress(10, 'Analyzing your financial situation...');
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Use the RecommendationEngine with our enhanced scenarios
+            const recommendationEngine = new RecommendationEngine(this.simulator, inputs);
+
+            updateProgress(30, 'Running baseline calculation...');
+            const baselineResults = await this.simulator.runMonteCarloSimulation(inputs, 1000);
+
+            updateProgress(50, 'Generating actionable suggestions...');
+            const scenarios = await recommendationEngine.generateRecommendations(baselineResults);
+
+            updateProgress(80, 'Categorizing suggestions...');
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Categorize scenarios for the suggestions UI
+            const categorizedSuggestions = this.categorizeSuggestionsForUI(scenarios);
+
+            updateProgress(95, 'Displaying suggestions...');
+            this.displayCategorizedSuggestions(categorizedSuggestions);
+
+            updateProgress(100, 'Suggestions generated successfully!');
+            showNotification(`Generated ${scenarios.length} personalized suggestions across ${Object.keys(categorizedSuggestions).length} categories.`, 'success');
+
+        } catch (error) {
+            console.error('Generate Suggestions error:', error);
+            showNotification('Error generating suggestions: ' + error.message, 'error');
+        } finally {
+            this.isCalculating = false;
+            updateProgress(0);
+
+            // Hide loading state
+            const loadingDiv = $('suggestionsLoading');
+            const buttonDiv = $('generateSuggestionsBtn');
+            if (loadingDiv) loadingDiv.classList.add('hidden');
+            if (buttonDiv) buttonDiv.style.opacity = '1';
+        }
+    }
+
+    // Categorize suggestions for the new UI structure
+    categorizeSuggestionsForUI(scenarios) {
+        const categories = {
+            property: [],
+            income: [],
+            investment: [],
+            timing: [],
+            mortgage: [],
+            insurance: []
+        };
+
+        scenarios.forEach(scenario => {
+            // Categorize based on scenario name and content
+            const name = scenario.name.toLowerCase();
+
+            if (name.includes('property') || name.includes('sell') || name.includes('home') || name.includes('downsize')) {
+                categories.property.push(scenario);
+            } else if (name.includes('salary') || name.includes('lean') || name.includes('income') || name.includes('boost')) {
+                categories.income.push(scenario);
+            } else if (name.includes('franking') || name.includes('investment') || name.includes('stock') || name.includes('equity') || name.includes('allocation')) {
+                categories.investment.push(scenario);
+            } else if (name.includes('retire') || name.includes('partner') || name.includes('timing') || name.includes('years')) {
+                categories.timing.push(scenario);
+            } else if (name.includes('mortgage') || name.includes('refinance') || name.includes('accelerate') || name.includes('payment')) {
+                categories.mortgage.push(scenario);
+            } else if (name.includes('insurance') || name.includes('tpd') || name.includes('death') || name.includes('disability')) {
+                categories.insurance.push(scenario);
+            } else {
+                // Default to investment category
+                categories.investment.push(scenario);
+            }
+        });
+
+        return categories;
+    }
+
+    // Display categorized suggestions in the new UI
+    displayCategorizedSuggestions(categories) {
+        // Property suggestions
+        this.populateSuggestionCategory('propertySuggestions', categories.property, 'property');
+
+        // Income suggestions
+        this.populateSuggestionCategory('incomeSuggestions', categories.income, 'income');
+
+        // Investment suggestions
+        this.populateSuggestionCategory('investmentSuggestions', categories.investment, 'investment');
+
+        // Timing suggestions
+        this.populateSuggestionCategory('timingSuggestions', categories.timing, 'timing');
+
+        // Mortgage suggestions
+        this.populateSuggestionCategory('mortgageSuggestions', categories.mortgage, 'mortgage');
+
+        // Insurance suggestions
+        this.populateSuggestionCategory('insuranceSuggestions', categories.insurance, 'insurance');
+
+        // Show the what-if comparison section if we have suggestions
+        const totalSuggestions = Object.values(categories).reduce((sum, cat) => sum + cat.length, 0);
+        if (totalSuggestions > 0) {
+            const whatIfDiv = $('whatIfComparison');
+            if (whatIfDiv) whatIfDiv.classList.remove('hidden');
+        }
+    }
+
+    // Populate a specific suggestion category
+    populateSuggestionCategory(elementId, suggestions, categoryType) {
+        const container = $(elementId);
+        if (!container) return;
+
+        if (suggestions.length === 0) {
+            container.innerHTML = `
+                <div class="text-sm text-gray-500 italic">
+                    No specific suggestions for this category based on your current situation.
+                </div>
+            `;
+            return;
+        }
+
+        // Sort by potential impact (if available)
+        suggestions.sort((a, b) => {
+            if (a.medianBalanceDiff && b.medianBalanceDiff) {
+                return b.medianBalanceDiff - a.medianBalanceDiff;
+            }
+            return 0;
+        });
+
+        // Take top 3 suggestions per category to avoid overwhelm
+        const topSuggestions = suggestions.slice(0, 3);
+
+        container.innerHTML = topSuggestions.map(suggestion => `
+            <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div class="flex justify-between items-start mb-2">
+                    <h4 class="font-semibold text-sm text-gray-800">${suggestion.name}</h4>
+                    <span class="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                        ${suggestion.feasibility || 'Action Required'}
+                    </span>
+                </div>
+
+                <p class="text-xs text-gray-600 mb-3">${suggestion.description}</p>
+
+                ${suggestion.factorsChanged && suggestion.factorsChanged.length > 0 ? `
+                    <div class="text-xs text-gray-500 mb-3">
+                        <strong>Key Changes:</strong>
+                        <ul class="mt-1 ml-3 list-disc space-y-0.5">
+                            ${suggestion.factorsChanged.slice(0, 2).map(factor => `<li>${factor}</li>`).join('')}
+                            ${suggestion.factorsChanged.length > 2 ? `<li class="italic">...and ${suggestion.factorsChanged.length - 2} more</li>` : ''}
+                        </ul>
+                    </div>
+                ` : ''}
+
+                <div class="flex justify-between items-center">
+                    ${suggestion.medianBalanceDiff ? `
+                        <span class="text-xs font-medium ${suggestion.medianBalanceDiff > 0 ? 'text-green-600' : 'text-red-600'}">
+                            Impact: ${suggestion.medianBalanceDiff > 0 ? '+' : ''}${formatCurrency(suggestion.medianBalanceDiff)}
+                        </span>
+                    ` : '<span class="text-xs text-gray-400">Impact: Calculating...</span>'}
+
+                    <button
+                        class="text-xs px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+                        onclick="app.applySuggestion('${suggestion.name.replace(/'/g, "\\'")}')"
+                    >
+                        Try This →
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Apply a suggestion to the form inputs
+    applySuggestion(suggestionName) {
+        // This would need to store the modifications from the suggestion
+        // For now, show a notification about the feature
+        showNotification(`"Try This" feature coming soon! For now, you can manually adjust the inputs based on the suggestion: ${suggestionName}`, 'info');
+
+        // TODO: Implement actual suggestion application
+        // This would involve:
+        // 1. Find the suggestion by name
+        // 2. Apply its modifications to the form inputs
+        // 3. Trigger a recalculation
+        // 4. Show the what-if comparison
     }
 
     displayRecommendations(recommendations) {
@@ -2406,10 +2601,10 @@ class RetirementCalculatorApp {
             const totalSalary = safeGetValue('yourSalary', 0) + safeGetValue('partnerSalary', 0);
             let marginalRate = 0;
 
-            if (totalSalary > 180000) marginalRate = 45;
-            else if (totalSalary > 120000) marginalRate = 37;
-            else if (totalSalary > 45000) marginalRate = 32.5;
-            else if (totalSalary > 18200) marginalRate = 19;
+            if (totalSalary > 190000) marginalRate = 45;
+            else if (totalSalary > 135000) marginalRate = 37;
+            else if (totalSalary > 45000) marginalRate = 30;
+            else if (totalSalary > 18200) marginalRate = 16;
 
             const cgtRate = marginalRate * 0.5; // 50% discount
             safeSetValue('capitalGainsTaxRate', cgtRate);
@@ -2434,6 +2629,12 @@ class RetirementCalculatorApp {
         const btnGenerateRecommendations = $('btnGenerateRecommendations');
         if (btnGenerateRecommendations) {
             btnGenerateRecommendations.addEventListener('click', () => this.runRecommendationEngine());
+        }
+
+        // Generate Suggestions button
+        const btnGenerateSuggestions = $('generateSuggestionsBtn');
+        if (btnGenerateSuggestions) {
+            btnGenerateSuggestions.addEventListener('click', () => this.generatePersonalizedSuggestions());
         }
 
         // Monte Carlo button

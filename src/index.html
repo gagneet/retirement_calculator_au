@@ -1271,6 +1271,7 @@
     <div class="mt-8 bg-white rounded-lg shadow-md">
         <div class="flex border-b flex-wrap">
             <button class="tab-button active" onclick="showTab('summary')">Enhanced Summary</button>
+            <button class="tab-button" onclick="showTab('suggestions')">💡 Suggestions</button>
             <button class="tab-button" onclick="showTab('recommendations')">AI Recommendations</button>
             <button class="tab-button" onclick="showTab('projection')">Year-by-Year</button>
             <button class="tab-button" onclick="showTab('property')">Property Analysis</button>
@@ -1305,6 +1306,116 @@
             </p>
             <div id="recommendationsContainer" class="space-y-4">
                 <!-- Recommendations will be populated here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Suggestions Tab Content -->
+        <div id="suggestions-tab" class="tab-content p-6">
+            <h2 class="text-2xl font-semibold mb-4">💡 Actionable Suggestions & What-If Analysis</h2>
+            <p class="text-gray-600 mb-6">
+                Based on your financial situation, here are specific actions you can take to optimize your retirement outcome.
+                Each suggestion shows the potential impact and includes a "Try This" button to see exactly how it affects your projections.
+            </p>
+
+            <!-- Action Categories -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <!-- Property Optimization -->
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-blue-900 mb-3">🏠 Property Strategy</h3>
+                    <div id="propertySuggestions" class="space-y-3">
+                        <!-- Property suggestions will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Income & Salary Optimization -->
+                <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-green-900 mb-3">💰 Income & Career Strategy</h3>
+                    <div id="incomeSuggestions" class="space-y-3">
+                        <!-- Income suggestions will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Investment Optimization -->
+                <div class="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-purple-900 mb-3">📈 Investment Strategy</h3>
+                    <div id="investmentSuggestions" class="space-y-3">
+                        <!-- Investment suggestions will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Retirement Timing -->
+                <div class="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-orange-900 mb-3">⏰ Retirement Timing</h3>
+                    <div id="timingSuggestions" class="space-y-3">
+                        <!-- Timing suggestions will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Mortgage & Debt Strategy -->
+                <div class="bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-red-900 mb-3">🏦 Mortgage & Debt Strategy</h3>
+                    <div id="mortgageSuggestions" class="space-y-3">
+                        <!-- Mortgage suggestions will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Insurance & Protection -->
+                <div class="bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-teal-900 mb-3">🛡️ Insurance & Protection</h3>
+                    <div id="insuranceSuggestions" class="space-y-3">
+                        <!-- Insurance suggestions will be populated by JavaScript -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Generate Suggestions Button -->
+            <div class="mt-8 text-center">
+                <button id="generateSuggestionsBtn" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-lg shadow-md transition-all duration-300 transform hover:scale-105">
+                    ✨ Generate Personalized Suggestions
+                </button>
+                <p class="text-sm text-gray-600 mt-2">
+                    This will analyze your current situation and provide specific, actionable recommendations
+                </p>
+            </div>
+
+            <!-- Suggestions Loading State -->
+            <div id="suggestionsLoading" class="hidden mt-8 text-center">
+                <div class="inline-flex items-center px-4 py-2 text-sm text-indigo-600">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Analyzing your financial situation and generating personalized suggestions...
+                </div>
+            </div>
+
+            <!-- What-If Scenario Comparison -->
+            <div id="whatIfComparison" class="hidden mt-8">
+                <h3 class="text-xl font-semibold mb-4">📊 What-If Scenario Comparison</h3>
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <h4 class="font-semibold text-gray-700">Current Plan</h4>
+                            <div id="currentPlanMetrics" class="mt-2">
+                                <!-- Current plan metrics -->
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <h4 class="font-semibold text-indigo-700">Suggested Plan</h4>
+                            <div id="suggestedPlanMetrics" class="mt-2">
+                                <!-- Suggested plan metrics -->
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <h4 class="font-semibold text-green-700">Improvement</h4>
+                            <div id="improvementMetrics" class="mt-2">
+                                <!-- Improvement metrics -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

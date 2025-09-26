@@ -51,7 +51,7 @@ export const ENHANCED_CONFIG = {
         "100minus": age => Math.max(20, Math.min(70, 100 - age))
     },
     
-    // Australian tax brackets (2024-25)
+    // Australian tax brackets (2025-26)
     TAX_BRACKETS: [
         { min: 0, max: 18200, rate: 0 },
         { min: 18201, max: 45000, rate: 0.16 },

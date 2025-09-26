@@ -552,7 +552,7 @@ export class DecisionSupportEngine {
 
     calculateFamilyTrustBenefits(grossIncome, totalAssets) {
         // Simplified calculation - actual would require detailed tax modeling
-        const highMarginalRate = grossIncome > 180000 ? 0.47 : grossIncome > 120000 ? 0.39 : 0.325;
+        const highMarginalRate = grossIncome > 190000 ? 0.47 : grossIncome > 135000 ? 0.39 : 0.32;
         const trustTaxRate = 0.30; // Company tax rate for undistributed income
         const estimatedInvestmentIncome = totalAssets * 0.04; // 4% return
         const potentialSaving = Math.max(0, (highMarginalRate - trustTaxRate) * estimatedInvestmentIncome);

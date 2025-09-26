@@ -82,6 +82,11 @@ class RecommendationEngine {
         scenarios = scenarios.concat(this._analyzeInvestmentProperty(baselineResults));
         scenarios = scenarios.concat(this._analyzeHomeOwnership(baselineResults));
         scenarios = scenarios.concat(this._analyzeContributions(baselineResults));
+        scenarios = scenarios.concat(this._analyzeMortgageAcceleration(baselineResults));
+        scenarios = scenarios.concat(this._analyzeSalaryProgression(baselineResults));
+        scenarios = scenarios.concat(this._analyzeFrankingCreditsOptimization(baselineResults));
+        scenarios = scenarios.concat(this._analyzeEnhancedPropertyTiming(baselineResults));
+        scenarios = scenarios.concat(this._analyzePartnerRetirementTiming(baselineResults));
         scenarios = scenarios.concat(this._analyzeInvestmentStrategy(baselineResults));
         scenarios = scenarios.concat(this._analyzeRetirementAge(baselineResults));
         scenarios = scenarios.concat(this._analyzeWidowWidowerScenarios(baselineResults));
@@ -436,7 +441,7 @@ class RecommendationEngine {
                         factorsChanged: [
                             `Monthly super increase: $${additionalMonthly} (within disposable income)`,
                             `Annual super boost: $${additionalContrib.toLocaleString()}`,
-                            `Tax savings: ~$${Math.round(additionalContrib * 0.325).toLocaleString()}`,
+                            `Tax savings: ~$${Math.round(additionalContrib * 0.30).toLocaleString()}`,
                             `Remaining disposable income: $${Math.round(monthlyDisposableIncome - additionalMonthly)}/month`,
                             `Uses ${Math.round(availableRoom - additionalContrib).toLocaleString()} of concessional cap room`
                         ]
@@ -537,6 +542,729 @@ class RecommendationEngine {
         }
 
         return scenarios;
+    }
+
+    /**
+     * Analyzes enhanced property timing scenarios with granular year-by-year analysis.
+     * @param {Object} baselineResults - The results from the baseline simulation.
+     * @returns {Array<Object>} A list of scenarios to test.
+     */
+    _analyzeEnhancedPropertyTiming(baselineResults) {
+        const scenarios = [];
+        if (!this.baseInputs.hasInvestmentProperty) {
+            return scenarios;
+        }
+
+        const currentAge = this.baseInputs.yourCurrentAge;
+        const retirementAge = this.baseInputs.retirementAge;
+        const yearsToRetirement = retirementAge - currentAge;
+        const propertyValue = this.baseInputs.investmentPropertyValue || 600000;
+        const propertyLoan = this.baseInputs.investmentPropertyLoan || 0;
+        const weeklyRent = this.baseInputs.weeklyRentalIncome || 500;
+        const annualRent = weeklyRent * 52;
+        const netEquity = propertyValue - propertyLoan;
+
+        // Enhanced granular timing analysis - test selling every year from now until retirement+5
+        const sellYearOptions = [];
+
+        // Immediate sale (current year)
+        sellYearOptions.push({
+            years: 1,
+            label: "Sell Investment Property Now",
+            description: "Immediate sale to improve cash flow and diversify investments",
+            rationale: "Convert illiquid property to liquid investments for better flexibility"
+        });
+
+        // Pre-retirement strategic timing (2, 3, 5 years before retirement)
+        [2, 3, 5].forEach(yearsBefore => {
+            const sellYear = Math.max(1, yearsToRetirement - yearsBefore);
+            if (sellYear > 1 && sellYear < yearsToRetirement) {
+                sellYearOptions.push({
+                    years: sellYear,
+                    label: `Sell ${yearsBefore} Years Before Retirement`,
+                    description: `Strategic sale at age ${currentAge + sellYear} to optimize pre-retirement positioning`,
+                    rationale: `Allows time to optimize asset allocation before retirement`
+                });
+            }
+        });
+
+        // At retirement timing
+        if (yearsToRetirement > 1) {
+            sellYearOptions.push({
+                years: yearsToRetirement,
+                label: "Sell at Retirement",
+                description: `Sell when you retire at age ${retirementAge} for maximum capital growth`,
+                rationale: "Standard strategy - maximize growth then convert to retirement income"
+            });
+        }
+
+        // Post-retirement strategic timing (3, 5, 10 years after retirement)
+        [3, 5, 10].forEach(yearsAfter => {
+            const sellYear = yearsToRetirement + yearsAfter;
+            if (sellYear <= 25) { // Don't project too far out
+                sellYearOptions.push({
+                    years: sellYear,
+                    label: `Sell ${yearsAfter} Years After Retirement`,
+                    description: `Hold for rental income in early retirement, sell at age ${retirementAge + yearsAfter}`,
+                    rationale: "Income-first strategy with later capital access"
+                });
+            }
+        });
+
+        // Generate scenarios for each timing option
+        sellYearOptions.forEach(option => {
+            const projectedValue = this.simulator.calculatePropertyValue(
+                propertyValue,
+                this.baseInputs.propertyGrowthRate,
+                option.years
+            );
+            const projectedEquity = projectedValue - propertyLoan; // Simplified - no principal paydown
+            const cumulativeRent = annualRent * option.years;
+            const totalReturn = projectedEquity + cumulativeRent - netEquity;
+            const annualizedReturn = Math.pow((projectedEquity + cumulativeRent) / propertyValue, 1/option.years) - 1;
+
+            scenarios.push({
+                name: option.label,
+                description: `${option.description}. ${option.rationale}.`,
+                modifications: {
+                    sellPropertyYears: option.years
+                },
+                feasibility: option.years <= 2 ? "Immediate Action" : option.years <= yearsToRetirement ? "Pre-Retirement Strategy" : "Post-Retirement Strategy",
+                factorsChanged: [
+                    `Sale year: ${option.years} (age ${currentAge + option.years})`,
+                    `Projected property value: ${formatCurrency(projectedValue)}`,
+                    `Estimated net proceeds: ${formatCurrency(projectedEquity)}`,
+                    `Cumulative rental income: ${formatCurrency(cumulativeRent)}`,
+                    `Total property return: ${formatCurrency(totalReturn)} (${(annualizedReturn * 100).toFixed(1)}% p.a.)`,
+                    option.rationale
+                ]
+            });
+        });
+
+        return scenarios;
+    }
+
+    /**
+     * Analyzes scenarios related to partner retirement timing optimization.
+     * @param {Object} baselineResults - The results from the baseline simulation.
+     * @returns {Array<Object>} A list of scenarios to test.
+     */
+    _analyzePartnerRetirementTiming(baselineResults) {
+        const scenarios = [];
+        const partnerCurrentAge = this.baseInputs.partnerCurrentAge;
+        const partnerRetirementAge = this.baseInputs.partnerRetirementAge;
+        const partnerSalary = this.baseInputs.partnerSalary;
+        const yourRetirementAge = this.baseInputs.retirementAge;
+
+        // Only analyze if there's a partner with income
+        if (!partnerCurrentAge || partnerCurrentAge === 0 || !partnerSalary || partnerSalary === 0) {
+            return scenarios;
+        }
+
+        const successRate = baselineResults.successRate;
+        const partnerYearsToRetirement = partnerRetirementAge - partnerCurrentAge;
+
+        // Scenario 1: Partner retires 2 years later
+        if (partnerRetirementAge < 67 && successRate < 0.90) {
+            const delayedRetirementAge = Math.min(70, partnerRetirementAge + 2);
+            const extraWorkingYears = delayedRetirementAge - partnerRetirementAge;
+            const extraContributions = partnerSalary * extraWorkingYears;
+            const superContributions = extraContributions * 0.12; // Super guarantee
+
+            scenarios.push({
+                name: "Partner Retires 2 Years Later",
+                description: `Partner works until age ${delayedRetirementAge} instead of ${partnerRetirementAge} to significantly improve household retirement security.`,
+                modifications: {
+                    partnerRetirementAge: delayedRetirementAge
+                },
+                feasibility: "Career Extension Required",
+                factorsChanged: [
+                    `Partner retirement age: ${partnerRetirementAge} → ${delayedRetirementAge}`,
+                    `Extra working years: ${extraWorkingYears}`,
+                    `Additional salary: ${formatCurrency(extraContributions)}`,
+                    `Additional super contributions: ${formatCurrency(superContributions)}`,
+                    `Improves success rate from ${(successRate * 100).toFixed(0)}%`,
+                    "Consider: health, career sustainability, lifestyle preferences"
+                ]
+            });
+        }
+
+        // Scenario 2: Partner retires 4 years later (more significant impact)
+        if (partnerRetirementAge < 65 && successRate < 0.80) {
+            const delayedRetirementAge = Math.min(70, partnerRetirementAge + 4);
+            const extraWorkingYears = delayedRetirementAge - partnerRetirementAge;
+            const extraContributions = partnerSalary * extraWorkingYears;
+            const superContributions = extraContributions * 0.12;
+            const compoundBenefit = extraContributions * 1.3; // Rough estimate of compound effect
+
+            scenarios.push({
+                name: "Partner Retires 4 Years Later",
+                description: `Partner extends career to age ${delayedRetirementAge} for maximum financial security - particularly valuable given current success rate of ${(successRate * 100).toFixed(0)}%.`,
+                modifications: {
+                    partnerRetirementAge: delayedRetirementAge
+                },
+                feasibility: "Major Career Extension",
+                factorsChanged: [
+                    `Partner retirement age: ${partnerRetirementAge} → ${delayedRetirementAge}`,
+                    `Extra working years: ${extraWorkingYears}`,
+                    `Additional salary: ${formatCurrency(extraContributions)}`,
+                    `Additional super contributions: ${formatCurrency(superContributions)}`,
+                    `Total benefit with compound growth: ~${formatCurrency(compoundBenefit)}`,
+                    "Major improvement to retirement success probability",
+                    "Consider: significant lifestyle impact, health implications"
+                ]
+            });
+        }
+
+        // Scenario 3: Partner retires earlier but at same time as main person
+        if (partnerRetirementAge > yourRetirementAge && partnerYearsToRetirement > 2) {
+            const synchronizedAge = yourRetirementAge;
+            const earlyYears = partnerRetirementAge - synchronizedAge;
+            const lostContributions = partnerSalary * earlyYears;
+
+            scenarios.push({
+                name: "Synchronized Retirement Ages",
+                description: `Partner retires at same time as you (age ${synchronizedAge}) instead of working until ${partnerRetirementAge} - lifestyle vs financial trade-off.`,
+                modifications: {
+                    partnerRetirementAge: synchronizedAge
+                },
+                feasibility: "Lifestyle Choice",
+                factorsChanged: [
+                    `Partner retirement age: ${partnerRetirementAge} → ${synchronizedAge}`,
+                    `Retire together for synchronized lifestyle`,
+                    `Reduced income: ${formatCurrency(lostContributions)} over ${earlyYears} years`,
+                    "Benefits: shared retirement experiences, travel together",
+                    "Consider: financial impact on overall retirement security"
+                ]
+            });
+        }
+
+        // Scenario 4: Staggered retirement (partner retires first)
+        if (partnerCurrentAge > this.baseInputs.yourCurrentAge + 3 && partnerRetirementAge > 60) {
+            const staggeredAge = Math.max(60, partnerRetirementAge - 2);
+            const earlyYears = partnerRetirementAge - staggeredAge;
+
+            scenarios.push({
+                name: "Partner Retires First (Staggered)",
+                description: `Partner retires at age ${staggeredAge}, ${earlyYears} years before originally planned, to provide household support and flexibility.`,
+                modifications: {
+                    partnerRetirementAge: staggeredAge
+                },
+                feasibility: "Household Strategy",
+                factorsChanged: [
+                    `Partner retires ${earlyYears} years early`,
+                    "Provides household support during your peak earning years",
+                    "Flexibility for family responsibilities",
+                    "Partner available for health issues, grandchildren, etc.",
+                    "Primary earner continues building retirement funds",
+                    "Consider: reduced household income during transition"
+                ]
+            });
+        }
+
+        return scenarios;
+    }
+
+    /**
+     * Analyzes scenarios related to mortgage acceleration and optimization.
+     * @param {Object} baselineResults - The results from the baseline simulation.
+     * @returns {Array<Object>} A list of scenarios to test.
+     */
+    _analyzeMortgageAcceleration(baselineResults) {
+        const scenarios = [];
+        const cashFlowAnalysis = this.simulator.calculateCashFlowAnalysis(this.baseInputs);
+        const monthlyDisposableIncome = cashFlowAnalysis.cashFlow.monthlyDisposableIncome;
+        const mortgageBalance = this.baseInputs.mortgageBalance;
+        const mortgagePayment = this.baseInputs.monthlyMortgagePayment;
+        const mortgageRate = this.baseInputs.mortgageRate;
+        const currentAge = this.baseInputs.yourCurrentAge;
+        const retirementAge = this.baseInputs.retirementAge;
+
+        if (mortgageBalance > 0 && mortgagePayment > 0) {
+            // Scenario 1: Accelerate mortgage with extra $200-500/month
+            const extraPaymentOptions = [200, 350, 500].filter(amount => amount <= monthlyDisposableIncome * 0.6);
+
+            extraPaymentOptions.forEach(extraPayment => {
+                // Calculate years saved with extra payments
+                const yearsSaved = this.calculateYearsSavedWithExtraPayments(
+                    mortgageBalance,
+                    mortgagePayment,
+                    mortgageRate / 12,
+                    extraPayment
+                );
+                const interestSaved = this.calculateInterestSaved(mortgageBalance, mortgagePayment, mortgageRate / 12, extraPayment);
+
+                scenarios.push({
+                    name: `Accelerate Mortgage with Extra $${extraPayment}/month`,
+                    description: `Pay additional $${extraPayment} monthly towards mortgage principal to pay off loan ${yearsSaved.toFixed(1)} years earlier and save ${formatCurrency(interestSaved)} in interest.`,
+                    modifications: {
+                        monthlyStockContribution: Math.max(0, this.baseInputs.monthlyStockContribution - extraPayment),
+                        monthlyMortgagePayment: mortgagePayment + extraPayment
+                    },
+                    feasibility: extraPayment <= monthlyDisposableIncome * 0.4 ? "Easily Affordable" : "Requires budgeting",
+                    factorsChanged: [
+                        `Extra payment: $${extraPayment}/month`,
+                        `Mortgage paid off ${yearsSaved.toFixed(1)} years earlier`,
+                        `Total interest saved: ${formatCurrency(interestSaved)}`,
+                        `Frees up ${formatCurrency(mortgagePayment + extraPayment)}/month from age ${Math.round(currentAge + (30 - yearsSaved))}`,
+                        `Guaranteed return equivalent to ${(mortgageRate * 100).toFixed(2)}% tax-free`,
+                        "Trade-off: Less money for share investments initially"
+                    ]
+                });
+            });
+
+            // Scenario 2: Compare mortgage vs investment strategy
+            if (monthlyDisposableIncome > 300) {
+                const investmentAmount = Math.min(500, monthlyDisposableIncome * 0.5);
+                const mortgageVsInvestmentAnalysis = this.analyzeMortgageVsInvestment(
+                    mortgageRate, this.baseInputs.investmentReturn, investmentAmount
+                );
+
+                scenarios.push({
+                    name: `Invest Extra $${investmentAmount} Instead of Paying Down Mortgage`,
+                    description: `Compare investing $${investmentAmount}/month vs paying down mortgage. ${mortgageVsInvestmentAnalysis.recommendation}.`,
+                    modifications: {
+                        monthlyStockContribution: this.baseInputs.monthlyStockContribution + investmentAmount
+                    },
+                    feasibility: "Standard Strategy",
+                    factorsChanged: [
+                        `Additional monthly investment: $${investmentAmount}`,
+                        `Mortgage rate: ${(mortgageRate * 100).toFixed(2)}% (guaranteed return)`,
+                        `Expected investment return: ${(this.baseInputs.investmentReturn * 100).toFixed(1)}% (variable)`,
+                        mortgageVsInvestmentAnalysis.analysis,
+                        "Higher liquidity with investments vs home equity",
+                        "Consider: tax implications, risk tolerance, flexibility needs"
+                    ]
+                });
+            }
+
+            // Scenario 3: Refinancing opportunity analysis
+            const currentRate = mortgageRate * 100;
+            if (currentRate > 6.5) { // Above average 2025 rates
+                const potentialNewRate = 6.2; // Current competitive rate
+                const rateSaving = currentRate - potentialNewRate;
+                const monthlySavings = (mortgageBalance * (rateSaving / 100)) / 12;
+
+                scenarios.push({
+                    name: "Refinance Mortgage for Lower Interest Rate",
+                    description: `Your current rate of ${currentRate.toFixed(2)}% is above market average. Refinancing could save ${formatCurrency(monthlySavings)}/month.`,
+                    modifications: {
+                        mortgageRate: potentialNewRate / 100,
+                        monthlyMortgagePayment: mortgagePayment - monthlySavings,
+                        monthlyStockContribution: this.baseInputs.monthlyStockContribution + monthlySavings * 0.8
+                    },
+                    feasibility: "Refinancing Process Required",
+                    factorsChanged: [
+                        `Interest rate reduction: ${currentRate.toFixed(2)}% → ${potentialNewRate.toFixed(2)}%`,
+                        `Monthly payment savings: ${formatCurrency(monthlySavings)}`,
+                        `Annual savings: ${formatCurrency(monthlySavings * 12)}`,
+                        `Extra for investments: ${formatCurrency(monthlySavings * 0.8)}/month`,
+                        `Break-even period: ~2-3 years (including refinancing costs)`,
+                        "Consider: refinancing fees, loan-to-value ratio, credit assessment"
+                    ]
+                });
+            }
+
+            // Scenario 4: Mortgage completion by specific target (e.g., 10 years)
+            const targetYears = 10;
+            if (targetYears < 25) { // Only if reasonable
+                const requiredPayment = this.calculatePaymentForTargetYears(
+                    mortgageBalance, mortgageRate / 12, targetYears * 12
+                );
+                const extraNeeded = requiredPayment - mortgagePayment;
+
+                if (extraNeeded > 0 && extraNeeded <= monthlyDisposableIncome) {
+                    scenarios.push({
+                        name: `Pay Off Mortgage in Exactly ${targetYears} Years`,
+                        description: `Increase payments by ${formatCurrency(extraNeeded)}/month to completely pay off mortgage in ${targetYears} years, freeing up all housing costs for retirement savings.`,
+                        modifications: {
+                            monthlyMortgagePayment: requiredPayment,
+                            monthlyStockContribution: Math.max(0, this.baseInputs.monthlyStockContribution - extraNeeded)
+                        },
+                        feasibility: extraNeeded <= monthlyDisposableIncome * 0.5 ? "Achievable" : "Aggressive",
+                        factorsChanged: [
+                            `Extra monthly payment required: ${formatCurrency(extraNeeded)}`,
+                            `Mortgage completed in exactly ${targetYears} years`,
+                            `From age ${currentAge + targetYears}: ${formatCurrency(mortgagePayment + extraNeeded)}/month freed up`,
+                            `${retirementAge - currentAge - targetYears} years of mortgage-free living before retirement`,
+                            "Massive boost to retirement savings capacity in final working years",
+                            "Consider: opportunity cost vs investment returns"
+                        ]
+                    });
+                }
+            }
+        }
+
+        return scenarios;
+    }
+
+    /**
+     * Calculate years saved with extra mortgage payments
+     */
+    calculateYearsSavedWithExtraPayments(balance, monthlyPayment, monthlyRate, extraPayment) {
+        if (monthlyRate === 0) return 0;
+
+        // Original loan term
+        const originalMonths = -Math.log(1 - (balance * monthlyRate) / monthlyPayment) / Math.log(1 + monthlyRate);
+
+        // New loan term with extra payments
+        const newMonthlyPayment = monthlyPayment + extraPayment;
+        const newMonths = -Math.log(1 - (balance * monthlyRate) / newMonthlyPayment) / Math.log(1 + monthlyRate);
+
+        return Math.max(0, (originalMonths - newMonths) / 12);
+    }
+
+    /**
+     * Calculate total interest saved with extra payments
+     */
+    calculateInterestSaved(balance, monthlyPayment, monthlyRate, extraPayment) {
+        if (monthlyRate === 0) return 0;
+
+        const originalMonths = -Math.log(1 - (balance * monthlyRate) / monthlyPayment) / Math.log(1 + monthlyRate);
+        const originalTotalPaid = monthlyPayment * originalMonths;
+
+        const newMonthlyPayment = monthlyPayment + extraPayment;
+        const newMonths = -Math.log(1 - (balance * monthlyRate) / newMonthlyPayment) / Math.log(1 + monthlyRate);
+        const newTotalPaid = newMonthlyPayment * newMonths;
+
+        return Math.max(0, originalTotalPaid - newTotalPaid);
+    }
+
+    /**
+     * Calculate required payment for target loan term
+     */
+    calculatePaymentForTargetYears(balance, monthlyRate, targetMonths) {
+        if (monthlyRate === 0) return balance / targetMonths;
+
+        return balance * (monthlyRate * Math.pow(1 + monthlyRate, targetMonths)) /
+               (Math.pow(1 + monthlyRate, targetMonths) - 1);
+    }
+
+    /**
+     * Analyze mortgage vs investment decision
+     */
+    analyzeMortgageVsInvestment(mortgageRate, expectedInvestmentReturn, amount) {
+        const rateDifference = expectedInvestmentReturn - mortgageRate;
+        const ratePercentage = rateDifference * 100;
+
+        if (rateDifference > 0.02) { // Investment return > mortgage rate + 2%
+            return {
+                recommendation: "Current rates favor investing over mortgage acceleration",
+                analysis: `Investment expected return (${(expectedInvestmentReturn * 100).toFixed(1)}%) exceeds mortgage rate (${(mortgageRate * 100).toFixed(2)}%) by ${ratePercentage.toFixed(1)}%`
+            };
+        } else if (rateDifference < -0.01) { // Mortgage rate > investment return + 1%
+            return {
+                recommendation: "Current rates favor paying down mortgage first",
+                analysis: `Mortgage rate (${(mortgageRate * 100).toFixed(2)}%) exceeds expected investment return (${(expectedInvestmentReturn * 100).toFixed(1)}%) - guaranteed savings`
+            };
+        } else {
+            return {
+                recommendation: "Rates are close - consider risk tolerance and liquidity needs",
+                analysis: `Small difference between mortgage rate (${(mortgageRate * 100).toFixed(2)}%) and investment return (${(expectedInvestmentReturn * 100).toFixed(1)}%)`
+            };
+        }
+    }
+
+    /**
+     * Analyzes scenarios related to salary progression and optimization.
+     * @param {Object} baselineResults - The results from the baseline simulation.
+     * @returns {Array<Object>} A list of scenarios to test.
+     */
+    _analyzeSalaryProgression(baselineResults) {
+        const scenarios = [];
+        const currentAge = this.baseInputs.yourCurrentAge;
+        const retirementAge = this.baseInputs.retirementAge;
+        const currentSalary = this.baseInputs.yourSalary;
+        const partnerSalary = this.baseInputs.partnerSalary || 0;
+        const totalCurrentIncome = currentSalary + partnerSalary;
+        const yearsToRetirement = retirementAge - currentAge;
+
+        // Scenario 1: Salary boost every 3 years (career progression)
+        const currentGrowthRate = this.baseInputs.salaryGrowthRate;
+        const enhancedGrowthRate = Math.min(currentGrowthRate + 1.5, 8); // Add 1.5% but cap at 8%
+        const cyclicBoosts = Math.floor(yearsToRetirement / 3); // Number of 3-year cycles
+
+        if (cyclicBoosts > 0) {
+            scenarios.push({
+                name: "Strategic Salary Boosts Every 3 Years",
+                description: `Target ${enhancedGrowthRate.toFixed(1)}% annual salary growth through strategic career moves every 3 years - ${cyclicBoosts} opportunities before retirement.`,
+                modifications: {
+                    salaryGrowthRate: enhancedGrowthRate
+                },
+                feasibility: "Requires Active Career Planning",
+                factorsChanged: [
+                    `Salary growth: ${currentGrowthRate.toFixed(1)}% → ${enhancedGrowthRate.toFixed(1)}% annually`,
+                    `${cyclicBoosts} strategic career moves (promotions/job changes) over ${yearsToRetirement} years`,
+                    `Extra 1.5% growth = ${formatCurrency(totalCurrentIncome * 0.015)} more per year initially`,
+                    `Compounds over ${yearsToRetirement} years to retirement`,
+                    `Actions: skill development, networking, performance excellence, strategic job changes`,
+                    "Consider: industry growth prospects, skill marketability"
+                ]
+            });
+        }
+
+        // Scenario 2: One-time significant salary boost (promotion/job change)
+        const salaryBoostOptions = [0.15, 0.25, 0.35]; // 15%, 25%, 35% boosts
+        const timingOptions = [2, 5]; // In 2 or 5 years
+
+        salaryBoostOptions.forEach(boostPercent => {
+            timingOptions.forEach(years => {
+                if (years < yearsToRetirement) {
+                    const boostAmount = totalCurrentIncome * boostPercent;
+                    const cumulativeImpact = boostAmount * (yearsToRetirement - years);
+                    const superImpact = cumulativeImpact * 0.12; // Super guarantee benefit
+
+                    scenarios.push({
+                        name: `${(boostPercent * 100).toFixed(0)}% Salary Boost in ${years} Years`,
+                        description: `Target a major career move in ${years} years for a ${(boostPercent * 100).toFixed(0)}% salary increase - ${formatCurrency(boostAmount)} annually.`,
+                        modifications: {
+                            // This would require custom simulation logic for delayed salary boost
+                            salaryGrowthRate: currentGrowthRate + (boostPercent * 100) / yearsToRetirement
+                        },
+                        feasibility: boostPercent <= 0.25 ? "Achievable with planning" : "Requires significant career change",
+                        factorsChanged: [
+                            `One-time boost: ${formatCurrency(boostAmount)} annually from year ${years}`,
+                            `Cumulative extra earnings: ${formatCurrency(cumulativeImpact)}`,
+                            `Additional super contributions: ${formatCurrency(superImpact)}`,
+                            `Higher capacity for investments from increased salary`,
+                            "Strategies: major promotion, industry change, executive role, consulting",
+                            "Consider: job market conditions, skills development timeline"
+                        ]
+                    });
+                }
+            });
+        });
+
+        // Scenario 3: Adjust lean years timing for optimal earnings
+        const currentLeanStart = this.baseInputs.leanYearsStart;
+        const currentLeanReduction = this.baseInputs.leanYearsReduction;
+
+        if (currentLeanStart > 0 && currentLeanReduction > 0) {
+            // Delay lean years by 2-4 years to maximize peak earning period
+            [2, 4].forEach(delayYears => {
+                const newLeanStart = Math.max(0, currentLeanStart - delayYears);
+                if (newLeanStart >= 0) {
+                    const extraFullSalaryYears = delayYears;
+                    const extraEarnings = totalCurrentIncome * extraFullSalaryYears;
+
+                    scenarios.push({
+                        name: `Delay Lean Years by ${delayYears} Years`,
+                        description: `Push lean years from ${currentLeanStart} to ${newLeanStart} years before retirement to maximize peak earning potential.`,
+                        modifications: {
+                            leanYearsStart: newLeanStart
+                        },
+                        feasibility: "Career/Health Dependent",
+                        factorsChanged: [
+                            `Lean years timing: ${currentLeanStart} → ${newLeanStart} years before retirement`,
+                            `Extra full salary years: ${extraFullSalaryYears}`,
+                            `Additional earnings: ${formatCurrency(extraEarnings)}`,
+                            `Higher super contributions during peak earning years`,
+                            "Maintains full work intensity longer for maximum savings",
+                            "Consider: work-life balance, health sustainability, burnout risk"
+                        ]
+                    });
+                }
+            });
+
+            // Reduce lean years impact (less severe income reduction)
+            const reducedImpact = Math.max(5, currentLeanReduction - 10); // Reduce by 10% but minimum 5%
+            if (reducedImpact < currentLeanReduction) {
+                const extraIncomePercent = currentLeanReduction - reducedImpact;
+                const extraAnnualIncome = totalCurrentIncome * (extraIncomePercent / 100);
+                const leanYearsDuration = Math.max(2, currentLeanStart); // Assume lean years last 2+ years
+                const totalExtraIncome = extraAnnualIncome * leanYearsDuration;
+
+                scenarios.push({
+                    name: `Reduce Lean Years Impact to ${reducedImpact}%`,
+                    description: `Maintain ${extraIncomePercent}% more income during lean years through part-time consulting, flexible work, or gradual retirement.`,
+                    modifications: {
+                        leanYearsReduction: reducedImpact
+                    },
+                    feasibility: "Flexible Work Arrangement",
+                    factorsChanged: [
+                        `Income reduction: ${currentLeanReduction}% → ${reducedImpact}%`,
+                        `Extra ${extraIncomePercent}% income during pre-retirement years`,
+                        `Additional income: ${formatCurrency(extraAnnualIncome)}/year for ~${leanYearsDuration} years`,
+                        `Total extra earnings: ${formatCurrency(totalExtraIncome)}`,
+                        "Strategies: consulting, part-time roles, phased retirement",
+                        "Consider: skill marketability, industry demand, work flexibility"
+                    ]
+                });
+            }
+        }
+
+        return scenarios;
+    }
+
+    /**
+     * Analyzes scenarios related to franking credits optimization.
+     * @param {Object} baselineResults - The results from the baseline simulation.
+     * @returns {Array<Object>} A list of scenarios to test.
+     */
+    _analyzeFrankingCreditsOptimization(baselineResults) {
+        const scenarios = [];
+        const currentAge = this.baseInputs.yourCurrentAge;
+        const retirementAge = this.baseInputs.retirementAge;
+        const currentAustralianAllocation = this.baseInputs.australianEquityAllocation;
+        const currentDividendYield = this.baseInputs.dividendYield;
+        const currentFrankingRate = this.baseInputs.frankingRate;
+        const currentEquityAllocation = this.baseInputs.allocEquities;
+        const cashFlowAnalysis = this.simulator.calculateCashFlowAnalysis(this.baseInputs);
+        const monthlyDisposableIncome = cashFlowAnalysis.cashFlow.monthlyDisposableIncome;
+        const currentPortfolioValue = this.baseInputs.currentStocks + this.baseInputs.currentSavings;
+
+        // Scenario 1: Optimize Australian equity allocation for franking credits
+        if (currentAustralianAllocation < 50) {
+            const targetAustralianAllocation = Math.min(60, currentAustralianAllocation + 20);
+            const additionalFrankingBenefit = this.calculateFrankingCreditBenefit(
+                targetAustralianAllocation - currentAustralianAllocation,
+                currentEquityAllocation,
+                currentDividendYield,
+                currentFrankingRate,
+                currentPortfolioValue
+            );
+
+            scenarios.push({
+                name: `Increase Australian Equity to ${targetAustralianAllocation}% for Franking Credits`,
+                description: `Boost Australian equity allocation from ${currentAustralianAllocation}% to ${targetAustralianAllocation}% to maximize franking credit benefits.`,
+                modifications: {
+                    australianEquityAllocation: targetAustralianAllocation
+                },
+                feasibility: "Portfolio Rebalancing",
+                factorsChanged: [
+                    `Australian equity: ${currentAustralianAllocation}% → ${targetAustralianAllocation}%`,
+                    `Additional franking credits: ~${formatCurrency(additionalFrankingBenefit)}/year`,
+                    `Fully refundable in retirement phase (SMSF or low income)`,
+                    `Focus on ASX dividend champions: CBA, BHP, RIO, TLS, WBC`,
+                    `${targetAustralianAllocation - currentAustralianAllocation}% more exposure to ASX dividend stocks`,
+                    "Consider: home bias vs international diversification trade-off"
+                ]
+            });
+        }
+
+        // Scenario 2: Target high-franking dividend stocks
+        if (currentFrankingRate < 80) {
+            const targetFrankingRate = 85; // Target higher franking
+            const currentBenefit = this.calculateFrankingCreditBenefit(
+                currentAustralianAllocation, currentEquityAllocation, currentDividendYield, currentFrankingRate, currentPortfolioValue
+            );
+            const targetBenefit = this.calculateFrankingCreditBenefit(
+                currentAustralianAllocation, currentEquityAllocation, currentDividendYield, targetFrankingRate, currentPortfolioValue
+            );
+            const additionalBenefit = targetBenefit - currentBenefit;
+
+            scenarios.push({
+                name: `Target Fully Franked Dividend Stocks (${targetFrankingRate}% franking)`,
+                description: `Focus on fully franked dividend stocks to increase franking rate from ${currentFrankingRate}% to ${targetFrankingRate}% for maximum tax benefits.`,
+                modifications: {
+                    frankingRate: targetFrankingRate
+                },
+                feasibility: "Stock Selection Strategy",
+                factorsChanged: [
+                    `Franking rate: ${currentFrankingRate}% → ${targetFrankingRate}%`,
+                    `Additional franking benefit: ${formatCurrency(additionalBenefit)}/year`,
+                    "Target stocks: Big 4 banks (CBA, ANZ, WBC, NAB), Telstra, major miners",
+                    "Avoid: REITs (no franking), international companies, tech growth stocks",
+                    "Strategy: dividend aristocrats, consistent payout policies",
+                    "Consider: Growth vs income trade-off, sector concentration risk"
+                ]
+            });
+        }
+
+        // Scenario 3: Increase monthly investment for franking benefits
+        if (monthlyDisposableIncome > 200) {
+            const additionalMonthlyOptions = [200, 350, 500].filter(amount => amount <= monthlyDisposableIncome * 0.6);
+
+            additionalMonthlyOptions.forEach(additionalMonthly => {
+                const annualIncrease = additionalMonthly * 12;
+                const projectedPortfolioGrowth = annualIncrease * (retirementAge - currentAge); // Simplified
+                const frankingBenefitIncrease = this.calculateFrankingCreditBenefit(
+                    currentAustralianAllocation,
+                    currentEquityAllocation,
+                    currentDividendYield,
+                    currentFrankingRate,
+                    projectedPortfolioGrowth
+                );
+
+                scenarios.push({
+                    name: `Invest Extra $${additionalMonthly}/month in Franking Credit Stocks`,
+                    description: `Increase monthly investments by $${additionalMonthly}, strategically focused on high-franking Australian dividend stocks.`,
+                    modifications: {
+                        monthlyStockContribution: this.baseInputs.monthlyStockContribution + additionalMonthly,
+                        australianEquityAllocation: Math.min(65, currentAustralianAllocation + 5)
+                    },
+                    feasibility: additionalMonthly <= monthlyDisposableIncome * 0.4 ? "Easily Manageable" : "Requires budgeting",
+                    factorsChanged: [
+                        `Extra monthly investment: $${additionalMonthly}`,
+                        `Annual investment increase: ${formatCurrency(annualIncrease)}`,
+                        `Projected additional franking credits: ~${formatCurrency(frankingBenefitIncrease)}/year at maturity`,
+                        "Builds tax-effective retirement income stream",
+                        "Focus on ASX 200 dividend-paying blue chips",
+                        "Consider: Dollar-cost averaging benefits, dividend reinvestment"
+                    ]
+                });
+            });
+        }
+
+        // Scenario 4: Super vs external investment for franking credits optimization
+        const superContributionRoom = this.calculateSuperContributionRoom();
+        if (superContributionRoom > 5000 && monthlyDisposableIncome > 300) {
+            const additionalSuperAmount = Math.min(superContributionRoom, monthlyDisposableIncome * 12 * 0.4);
+            const marginalTaxRate = this.calculateMarginalTaxRate();
+            const taxSavings = additionalSuperAmount * (marginalTaxRate - 15) / 100; // Tax saving vs 15% super tax
+
+            scenarios.push({
+                name: `Salary Sacrifice $${Math.round(additionalSuperAmount/1000)}k for Franking Credits in Super`,
+                description: `Salary sacrifice ${formatCurrency(additionalSuperAmount)} to super for franking credit benefits at 15% tax rate vs your ${marginalTaxRate}% marginal rate.`,
+                modifications: {
+                    additionalSuperContributions: additionalSuperAmount / (this.baseInputs.yourSalary + this.baseInputs.partnerSalary)
+                },
+                feasibility: "Salary Packaging Required",
+                factorsChanged: [
+                    `Additional super contribution: ${formatCurrency(additionalSuperAmount)}`,
+                    `Tax savings: ${formatCurrency(taxSavings)} (${marginalTaxRate}% vs 15%)`,
+                    "Franking credits accumulate tax-free in super environment",
+                    "Full franking credit refunds in pension phase (age 60+)",
+                    `Uses ${formatCurrency(superContributionRoom - additionalSuperAmount)} of remaining concessional cap`,
+                    "Consider: Access restrictions until preservation age"
+                ]
+            });
+        }
+
+        return scenarios;
+    }
+
+    /**
+     * Calculate franking credit benefit from allocation changes
+     */
+    calculateFrankingCreditBenefit(australianAllocation, equityAllocation, dividendYield, frankingRate, portfolioValue = 100000) {
+        const australianEquityValue = portfolioValue * (equityAllocation / 100) * (australianAllocation / 100);
+        const grossDividends = australianEquityValue * (dividendYield / 100);
+        const frankedPortion = grossDividends * (frankingRate / 100);
+        const frankingCredits = frankedPortion * (0.30 / 0.70); // 30% corporate tax rate
+        return frankingCredits;
+    }
+
+    /**
+     * Calculate super contribution room remaining
+     */
+    calculateSuperContributionRoom() {
+        const totalIncome = this.baseInputs.yourSalary + this.baseInputs.partnerSalary;
+        const currentSuperContrib = totalIncome * this.baseInputs.superContributionRate;
+        const concessionalCap = 30000; // 2025 cap
+        return Math.max(0, concessionalCap - currentSuperContrib);
+    }
+
+    /**
+     * Calculate marginal tax rate for comparison
+     */
+    calculateMarginalTaxRate() {
+        const totalIncome = this.baseInputs.yourSalary + this.baseInputs.partnerSalary;
+        if (totalIncome <= 18200) return 0;
+        if (totalIncome <= 45000) return 16;  // Updated for 2025-26
+        if (totalIncome <= 135000) return 30; // Updated for 2025-26
+        if (totalIncome <= 190000) return 37; // Updated for 2025-26
+        return 45;
     }
 
     /**
