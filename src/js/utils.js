@@ -1117,14 +1117,31 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
         head: head,
         body: body,
         startY: 40,
-        theme: 'striped',
-        headStyles: { fillColor: [0, 71, 171], textColor: [255, 255, 255] },
-        styles: { fontSize: 8 },
+        theme: 'grid',
+        headStyles: {
+            fillColor: [0, 71, 171],
+            textColor: [255, 255, 255],
+            fontSize: 6,
+            fontStyle: 'bold'
+        },
+        styles: {
+            fontSize: 6,
+            cellPadding: 1,
+            halign: 'center'
+        },
         columnStyles: {
-            2: { halign: 'right' },
-            3: { halign: 'right' },
-            4: { halign: 'right' },
-            5: { halign: 'right' }
+            0: { halign: 'center', fillColor: [245, 245, 245] }, // Year - neutral
+            1: { halign: 'center', fillColor: [245, 245, 245] }, // Age - neutral
+            2: { halign: 'right', fillColor: [224, 242, 254] }, // Start Balance - light blue
+            3: { halign: 'right', fillColor: [191, 219, 254] }, // Non-Liquid Assets - blue
+            4: { halign: 'right', fillColor: [220, 252, 231] }, // Growth - light green
+            5: { halign: 'right', fillColor: [254, 226, 226] }, // Yearly Withdrawal - light red
+            6: { halign: 'right', fillColor: [187, 247, 208] }, // Property Income - green
+            7: { halign: 'right', fillColor: [252, 165, 165] }, // Healthcare - red
+            8: { halign: 'right', fillColor: [248, 113, 113] }, // Aged Care - darker red
+            9: { halign: 'right', fillColor: [134, 239, 172] }, // Pension Income - darker green
+            10: { halign: 'right', fillColor: [147, 197, 253] }, // End Balance - darker blue
+            11: { halign: 'right', fillColor: [96, 165, 250], fontStyle: 'bold' } // Total Net Worth - bold blue
         }
     });
 

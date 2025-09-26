@@ -94,3 +94,47 @@
 
   The exports now provide the complete financial projection data exactly as displayed in the web interface, giving users comprehensive year-by-year analysis in both Excel and PDF
   formats.
+
+  ✅ Font Size & Layout Improvements:
+
+  - Reduced font size from 8 to 6 points for both headers and body text
+  - Reduced cell padding to 1 for more compact layout
+  - Changed theme from 'striped' to 'grid' for better column separation
+  - Header font size reduced to 6 with bold styling to maintain readability
+
+  🎨 Color Coding System:
+
+  I've implemented a comprehensive color scheme that makes each column easily distinguishable:
+
+  Blue Shades - Asset Columns:
+
+  - Start Balance: Light blue (#E0F2FE)
+  - Non-Liquid Assets: Medium blue (#BFE3FE)
+  - End Balance: Darker blue (#93C5FD)
+  - Total Net Worth: Bold blue (#60A5FA) with bold font
+
+  Green Shades - Income Columns:
+
+  - Growth: Light green (#DCFCE7)
+  - Property Income: Medium green (#BBF7D0)
+  - Pension Income: Darker green (#86EFAC)
+
+  Red Shades - Expense Columns:
+
+  - Yearly Withdrawal: Light red (#FEE2E2)
+  - Healthcare: Medium red (#FCA5A5)
+  - Aged Care: Darker red (#F87171)
+
+  Neutral Gray - Info Columns:
+
+  - Year and Age: Light gray (#F5F5F5) for neutral information
+
+  📊 Visual Benefits:
+
+  1. Easy Scanning: Each column type is immediately identifiable by color family
+  2. Logical Grouping: Assets (blue), income (green), expenses (red) are visually grouped
+  3. No Text Wrapping: Smaller font ensures all content fits on single lines
+  4. Better Readability: Grid lines and color coding help users follow rows across all 12 columns
+  5. Emphasis on Key Metrics: Total Net Worth is bold and prominently colored
+
+  The PDF table will now be much more readable and professional-looking, with each row staying on a single line and clear visual differentiation between different types of financial data.
