@@ -914,7 +914,8 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
         styles: { fontSize: 10 }
     });
 
-    let yPos = doc.autoTable.previous.finalY + 20;
+    // Get the final Y position after the first table
+    let yPos = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 180;
 
     // --- Monte Carlo Analysis Section ---
     if (monteCarloResults) {
