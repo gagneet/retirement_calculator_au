@@ -768,11 +768,12 @@ export const exportToXLSX = (inputs, results, chartManager, app = null) => {
             'Year': d.year,
             'Age': ageDisplay,
             'Start Balance': d.startBalance,
+            'Non-Liquid Assets 🏘️': d.nonLiquidAssets || 0,
             'Growth': d.growth,
-            'Withdrawal': d.withdrawal,
-            'Healthcare Cost': d.healthcareCost,
-            'Aged Care Cost': d.agedCareCost,
+            'Yearly Withdrawal': d.withdrawal,
             'Property Income': d.propertyIncome || 0,
+            'Healthcare': d.healthcareCost,
+            'Aged Care': d.agedCareCost,
             'Pension Income': d.pensionIncome || 0,
             'End Balance': d.endBalance || 0,
             'Total Net Worth': (d.endBalance || 0) + (d.nonLiquidAssets || 0),
@@ -781,7 +782,7 @@ export const exportToXLSX = (inputs, results, chartManager, app = null) => {
     const ws_projection = XLSX.utils.json_to_sheet(projectionDataForSheet);
 
     // Format currency columns
-    const currencyColumns = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+    const currencyColumns = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
     currencyColumns.forEach(col => {
         for (let i = 1; i <= results.yearlyData.length; i++) {
             const cellRef = `${col}${i + 1}`;
@@ -1086,7 +1087,7 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
     doc.setTextColor(0);
     doc.text("Year-by-Year Analysis (First 25 Years)", 14, 32);
 
-    const head = [['Year', 'Age', 'Start Balance', 'Growth', 'Withdrawal', 'End Balance']];
+    const head = [['Year', 'Age', 'Start Balance', 'Non-Liquid Assets', 'Growth', 'Yearly Withdrawal', 'Property Income', 'Healthcare', 'Aged Care', 'Pension Income', 'End Balance', 'Total Net Worth']];
     const body = results.yearlyData.slice(0, 25).map(d => {
         // Format age display as "YourAge/PartnerAge" with '-' for deceased
         let ageDisplay = d.yourAge;
@@ -1100,9 +1101,15 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
             d.year,
             ageDisplay,
             formatCurrency(d.startBalance),
+            formatCurrency(d.nonLiquidAssets || 0),
             formatCurrency(d.growth),
             formatCurrency(d.withdrawal),
-            formatCurrency(d.endBalance)
+            formatCurrency(d.propertyIncome || 0),
+            formatCurrency(d.healthcareCost),
+            formatCurrency(d.agedCareCost),
+            formatCurrency(d.pensionIncome || 0),
+            formatCurrency(d.endBalance),
+            formatCurrency((d.endBalance || 0) + (d.nonLiquidAssets || 0))
         ];
     });
 

@@ -55,3 +55,42 @@
 
   The build completed successfully with no errors, and all enhancements are now integrated into the bundled application. Users will now have access to much more comprehensive PDF
   and XLSX reports that include all the detailed analysis previously only available in the web interface.
+
+
+  ✅ Updated XLSX Projection Sheet Columns:
+
+  The XLSX export now includes all 12 columns matching the UI exactly:
+
+  1. Year - Calendar year
+  2. Age - Formatted age display (YourAge/PartnerAge with '-' for deceased)
+  3. Start Balance - Beginning balance for the year (keeping as requested)
+  4. Non-Liquid Assets 🏘️ - Property and other non-liquid assets
+  5. Growth - Investment growth for the year
+  6. Yearly Withdrawal - Annual withdrawal amount
+  7. Property Income - Rental income from investment property
+  8. Healthcare - Healthcare costs
+  9. Aged Care - Aged care costs
+  10. Pension Income - Age pension income (keeping as requested)
+  11. End Balance - Final balance after all transactions
+  12. Total Net Worth - End Balance + Non-Liquid Assets
+
+  ✅ Updated PDF Year-by-Year Table:
+
+  The PDF export now includes the same comprehensive 12-column structure with proper formatting and currency display.
+
+  🔧 Technical Improvements:
+
+  - Currency Formatting: Extended to cover all 12 columns (A through L)
+  - Data Integrity: All values properly handle null/undefined cases with fallbacks
+  - Consistent Structure: Both XLSX and PDF now match the UI table exactly
+  - Emoji Support: Maintained emoji indicators in column headers for better visual identification
+
+  📊 Key Features:
+
+  - Complete Financial Picture: Shows both liquid and non-liquid assets progression
+  - Income Breakdown: Separate columns for property income and pension income
+  - Expense Detail: Individual columns for healthcare and aged care costs
+  - Net Worth Tracking: Total net worth calculation including all assets
+
+  The exports now provide the complete financial projection data exactly as displayed in the web interface, giving users comprehensive year-by-year analysis in both Excel and PDF
+  formats.
