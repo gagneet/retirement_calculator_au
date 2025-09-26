@@ -1676,10 +1676,18 @@ class RetirementCalculatorApp {
             const baselineResults = await this.simulator.runMonteCarloSimulation(inputs, 1000);
 
             updateProgress(50, 'Generating actionable suggestions...');
-            const scenarios = await recommendationEngine.generateRecommendations(baselineResults);
+            const scenarios = await recommendationEngine.generateRecommendations();
 
             updateProgress(80, 'Categorizing suggestions...');
             await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Debug: Log scenarios structure
+            console.log('Generated scenarios:', scenarios);
+            console.log('Scenarios length:', scenarios ? scenarios.length : 'scenarios is null/undefined');
+            if (scenarios && scenarios.length > 0) {
+                console.log('First scenario structure:', scenarios[0]);
+                console.log('First scenario keys:', Object.keys(scenarios[0]));
+            }
 
             // Categorize scenarios for the suggestions UI
             const categorizedSuggestions = this.categorizeSuggestionsForUI(scenarios);
@@ -1716,9 +1724,21 @@ class RetirementCalculatorApp {
             insurance: []
         };
 
+        // Safety check for scenarios array
+        if (!Array.isArray(scenarios)) {
+            console.warn('Scenarios is not an array:', scenarios);
+            return categories;
+        }
+
         scenarios.forEach(scenario => {
+            // Safety check for scenario structure
+            if (!scenario || (typeof scenario !== 'object')) {
+                console.warn('Invalid scenario object:', scenario);
+                return;
+            }
+
             // Categorize based on scenario name and content
-            const name = scenario.name.toLowerCase();
+            const name = (scenario.name || scenario.title || scenario.description || '').toLowerCase();
 
             if (name.includes('property') || name.includes('sell') || name.includes('home') || name.includes('downsize')) {
                 categories.property.push(scenario);
@@ -1797,15 +1817,15 @@ class RetirementCalculatorApp {
         container.innerHTML = topSuggestions.map(suggestion => `
             <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div class="flex justify-between items-start mb-2">
-                    <h4 class="font-semibold text-sm text-gray-800">${suggestion.name}</h4>
+                    <h4 class="font-semibold text-sm text-gray-800">${suggestion.name || suggestion.title || 'Suggestion'}</h4>
                     <span class="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
                         ${suggestion.feasibility || 'Action Required'}
                     </span>
                 </div>
 
-                <p class="text-xs text-gray-600 mb-3">${suggestion.description}</p>
+                <p class="text-xs text-gray-600 mb-3">${suggestion.description || 'No description available'}</p>
 
-                ${suggestion.factorsChanged && suggestion.factorsChanged.length > 0 ? `
+                ${suggestion.factorsChanged && Array.isArray(suggestion.factorsChanged) && suggestion.factorsChanged.length > 0 ? `
                     <div class="text-xs text-gray-500 mb-3">
                         <strong>Key Changes:</strong>
                         <ul class="mt-1 ml-3 list-disc space-y-0.5">
@@ -1824,7 +1844,7 @@ class RetirementCalculatorApp {
 
                     <button
                         class="text-xs px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
-                        onclick="app.applySuggestion('${suggestion.name.replace(/'/g, "\\'")}')"
+                        onclick="app.applySuggestion('${(suggestion.name || suggestion.title || 'Unknown').replace(/'/g, "\\'")}')"
                     >
                         Try This →
                     </button>

@@ -214,7 +214,7 @@ class RecommendationEngine {
 
             scenarios.push({
                 name: "Sell Investment Property Immediately",
-                description: `Property is negatively geared (costing $${Math.abs(netAnnualIncome).toLocaleString()}/year) while you have limited cash flow.`,
+                description: `Property is negatively geared (costing $${Math.abs(netAnnualIncome).toLocaleString()}/year) while you have limited cash flow. **Impact: POSITIVE** - Immediate cash flow relief of $${Math.round(monthlyCashFlowImprovement)}/month. **Risk: LOW** - Eliminates property management and concentration risk. **Timeline: Immediate (2025)** - Sale can occur within 30-90 days, providing instant financial relief.`,
                 modifications: {
                     hasInvestmentProperty: false,
                     currentStocks: this.baseInputs.currentStocks + saleProceeds
@@ -237,7 +237,7 @@ class RecommendationEngine {
 
             scenarios.push({
                 name: "Sell Investment Property at Retirement",
-                description: `Hold property for ${yearsToRetirement} years, then sell and invest proceeds for retirement income.`,
+                description: `Hold property for ${yearsToRetirement} years, then sell and invest proceeds for retirement income. **Impact: MODERATE POSITIVE** - Potential capital growth to $${projectedValue.toLocaleString()} by ${2025 + yearsToRetirement}. **Risk: MEDIUM** - Property market and rental income volatility over ${yearsToRetirement} years. **Timeline: ${2025 + yearsToRetirement}** - Maximizes capital appreciation while providing rental income until retirement.`,
                 modifications: { sellPropertyYears: yearsToRetirement },
                 feasibility: "Standard Strategy",
                 factorsChanged: [
@@ -257,7 +257,7 @@ class RecommendationEngine {
 
             scenarios.push({
                 name: "Sell Investment Property in 5 Years",
-                description: `Hold for medium term to capture more growth, then sell and reinvest proceeds.`,
+                description: `Hold for medium term to capture more growth, then sell and reinvest proceeds. **Impact: POSITIVE** - Estimated growth to $${fiveYearValue.toLocaleString()} by 2030. **Risk: MEDIUM** - 5-year property cycle exposure but reduces long-term market risk. **Timeline: 2030** - Balances growth potential with portfolio diversification timing.`,
                 modifications: { sellPropertyYears: 5 },
                 feasibility: "Medium-term Strategy",
                 factorsChanged: [
@@ -276,7 +276,7 @@ class RecommendationEngine {
             
             scenarios.push({
                 name: "Keep Investment Property Indefinitely",
-                description: `Property generates strong income ($${netAnnualIncome.toLocaleString()}/year) and you have sufficient cash flow to maintain it.`,
+                description: `Property generates strong income ($${netAnnualIncome.toLocaleString()}/year) and you have sufficient cash flow to maintain it. **Impact: HIGH POSITIVE** - Projected retirement income of $${Math.round(annualIncomeInRetirement).toLocaleString()}/year. **Risk: HIGH** - Long-term property market exposure and management burden. **Timeline: Indefinite** - Provides ongoing income stream but requires active management throughout retirement.`,
                 modifications: { sellPropertyYears: 0 },
                 feasibility: "Income-Focused Strategy",
                 factorsChanged: [
@@ -296,7 +296,7 @@ class RecommendationEngine {
 
             scenarios.push({
                 name: "Refinance Property to Improve Cash Flow",
-                description: `Extract $${refinanceAmount.toLocaleString()} equity and invest in income-producing assets to offset negative gearing.`,
+                description: `Extract $${refinanceAmount.toLocaleString()} equity and invest in income-producing assets to offset negative gearing. **Impact: POSITIVE** - Potential monthly income increase of $${monthlyIncome}. **Risk: MEDIUM** - Increases debt but diversifies income sources. **Timeline: 2025-2026** - Refinancing process takes 3-6 months to complete.`,
                 modifications: {
                     investmentPropertyLoan: propertyLoan + refinanceAmount,
                     currentStocks: this.baseInputs.currentStocks + refinanceAmount
@@ -673,7 +673,7 @@ class RecommendationEngine {
 
             scenarios.push({
                 name: "Partner Retires 2 Years Later",
-                description: `Partner works until age ${delayedRetirementAge} instead of ${partnerRetirementAge} to significantly improve household retirement security.`,
+                description: `Partner works until age ${delayedRetirementAge} instead of ${partnerRetirementAge} to significantly improve household retirement security. **Impact: HIGH POSITIVE** - Additional ${formatCurrency(extraContributions)} salary plus ${formatCurrency(superContributions)} super contributions. **Risk: MEDIUM** - Depends on health and job availability. **Timeline: ${2025 + (delayedRetirementAge - partnerCurrentAge)}** - Partner retirement delayed to ${2025 + (delayedRetirementAge - partnerCurrentAge)}, improving success rate from ${(successRate * 100).toFixed(0)}%.`,
                 modifications: {
                     partnerRetirementAge: delayedRetirementAge
                 },
@@ -699,7 +699,7 @@ class RecommendationEngine {
 
             scenarios.push({
                 name: "Partner Retires 4 Years Later",
-                description: `Partner extends career to age ${delayedRetirementAge} for maximum financial security - particularly valuable given current success rate of ${(successRate * 100).toFixed(0)}%.`,
+                description: `Partner extends career to age ${delayedRetirementAge} for maximum financial security - particularly valuable given current success rate of ${(successRate * 100).toFixed(0)}%. **Impact: VERY HIGH POSITIVE** - Total benefit with compound growth ~${formatCurrency(compoundBenefit)}. **Risk: HIGH** - Significant lifestyle impact and health considerations. **Timeline: ${2025 + (delayedRetirementAge - partnerCurrentAge)}** - Major career extension to ${2025 + (delayedRetirementAge - partnerCurrentAge)}, dramatically improving retirement security.`,
                 modifications: {
                     partnerRetirementAge: delayedRetirementAge
                 },
@@ -796,7 +796,7 @@ class RecommendationEngine {
 
                 scenarios.push({
                     name: `Accelerate Mortgage with Extra $${extraPayment}/month`,
-                    description: `Pay additional $${extraPayment} monthly towards mortgage principal to pay off loan ${yearsSaved.toFixed(1)} years earlier and save ${formatCurrency(interestSaved)} in interest.`,
+                    description: `Pay additional $${extraPayment} monthly towards mortgage principal to pay off loan ${yearsSaved.toFixed(1)} years earlier and save ${formatCurrency(interestSaved)} in interest. **Impact: HIGH POSITIVE** - Guaranteed savings of ${formatCurrency(interestSaved)} and debt freedom ${yearsSaved.toFixed(1)} years earlier. **Risk: LOW** - Guaranteed return equivalent to ${(mortgageRate * 100).toFixed(2)}% tax-free. **Timeline: ${Math.round(currentAge + (30 - yearsSaved))}** - Mortgage fully paid by age ${Math.round(currentAge + (30 - yearsSaved))}, freeing ${formatCurrency(mortgagePayment + extraPayment)}/month for retirement savings.`,
                     modifications: {
                         monthlyStockContribution: Math.max(0, this.baseInputs.monthlyStockContribution - extraPayment),
                         monthlyMortgagePayment: mortgagePayment + extraPayment
@@ -987,7 +987,7 @@ class RecommendationEngine {
         if (cyclicBoosts > 0) {
             scenarios.push({
                 name: "Strategic Salary Boosts Every 3 Years",
-                description: `Target ${enhancedGrowthRate.toFixed(1)}% annual salary growth through strategic career moves every 3 years - ${cyclicBoosts} opportunities before retirement.`,
+                description: `Target ${enhancedGrowthRate.toFixed(1)}% annual salary growth through strategic career moves every 3 years - ${cyclicBoosts} opportunities before retirement. **Impact: HIGH POSITIVE** - Extra ${formatCurrency(totalCurrentIncome * 0.015)} annually, compounding over ${yearsToRetirement} years. **Risk: MEDIUM** - Requires active career planning and market opportunities. **Timeline: 2026, 2029, 2032...** - Strategic moves every 3 years to maximize earning potential before retirement.`,
                 modifications: {
                     salaryGrowthRate: enhancedGrowthRate
                 },
@@ -1016,7 +1016,7 @@ class RecommendationEngine {
 
                     scenarios.push({
                         name: `${(boostPercent * 100).toFixed(0)}% Salary Boost in ${years} Years`,
-                        description: `Target a major career move in ${years} years for a ${(boostPercent * 100).toFixed(0)}% salary increase - ${formatCurrency(boostAmount)} annually.`,
+                        description: `Target a major career move in ${years} years for a ${(boostPercent * 100).toFixed(0)}% salary increase - ${formatCurrency(boostAmount)} annually. **Impact: HIGH POSITIVE** - Cumulative extra earnings of ${formatCurrency(cumulativeImpact)} plus ${formatCurrency(superImpact)} additional super. **Risk: ${boostPercent <= 0.25 ? 'MEDIUM' : 'HIGH'}** - Depends on market conditions and career opportunities. **Timeline: ${2025 + years}** - Strategic career move targeted for ${2025 + years}, benefiting remaining ${yearsToRetirement - years} working years.`,
                         modifications: {
                             // This would require custom simulation logic for delayed salary boost
                             salaryGrowthRate: currentGrowthRate + (boostPercent * 100) / yearsToRetirement
