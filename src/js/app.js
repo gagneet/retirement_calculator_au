@@ -8,6 +8,7 @@ import DecisionSupportEngine from './decision-support-engine.js';
 import MarketDataEngine from './market-data.js';
 import ChartManager from './charts.js';
 import { initializeTrustUI } from './trust-ui.js';
+import ThemeManager from './theme.js';
 import {
     $,
     safeGetValue,
@@ -38,6 +39,7 @@ class RetirementCalculatorApp {
         this.simulator = new RetirementSimulator();
         this.chartManager = new ChartManager();
         this.marketData = new MarketDataEngine();
+        this.themeManager = new ThemeManager();
         this.currentResults = null;
         this.isCalculating = false;
 

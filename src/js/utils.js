@@ -645,7 +645,7 @@ export const exportToCSV = (data, filename = 'retirement-projection.csv', inputs
     URL.revokeObjectURL(url);
 };
 
-export const exportToXLSX = (inputs, results, chartManager) => {
+export const exportToXLSX = (inputs, results, chartManager, app = null) => {
     if (!results) {
         showNotification('No results to export. Please run a calculation first.', 'warning');
         return;
@@ -657,6 +657,9 @@ export const exportToXLSX = (inputs, results, chartManager) => {
     }
 
     const wb = XLSX.utils.book_new();
+
+    // Get enhanced analysis data
+    const enhancedAnalysis = extractAnalysisData(inputs, results, app);
 
     // --- Summary Sheet ---
     const summaryData = [
@@ -771,27 +774,22 @@ export const exportToXLSX = (inputs, results, chartManager) => {
             'Aged Care Cost': d.agedCareCost,
             'Property Income': d.propertyIncome || 0,
             'Pension Income': d.pensionIncome || 0,
-            'End Balance': d.endBalance, // Placeholder it shall be replaced by formula
+            'End Balance': d.endBalance || 0,
+            'Total Net Worth': (d.endBalance || 0) + (d.nonLiquidAssets || 0),
         };
     });
     const ws_projection = XLSX.utils.json_to_sheet(projectionDataForSheet);
 
-    // Define column letter constants for maintainability
-    const COL_START_BALANCE = 'C';
-    const COL_GROWTH = 'D';
-    const COL_WITHDRAWAL = 'E';
-    const COL_HEALTHCARE_COST = 'F';
-    const COL_AGED_CARE_COST = 'G';
-    const COL_PROPERTY_INCOME = 'H';
-    const COL_PENSION_INCOME = 'I';
-
-    // Add formulas for the 'End Balance' column (column J)
-    for (let i = 0; i < results.yearlyData.length; i++) {
-        const rowIndex = i + 2; // 1-based index, plus header row
-        const formula = `${COL_START_BALANCE}${rowIndex}+${COL_GROWTH}${rowIndex}-${COL_WITHDRAWAL}${rowIndex}-${COL_HEALTHCARE_COST}${rowIndex}-${COL_AGED_CARE_COST}${rowIndex}+${COL_PROPERTY_INCOME}${rowIndex}+${COL_PENSION_INCOME}${rowIndex}`;
-        const cellRef = XLSX.utils.encode_cell({c: 9, r: i + 1}); // Column J
-        ws_projection[cellRef] = { f: formula, t: 'n', z: '$#,##0.00' };
-    }
+    // Format currency columns
+    const currencyColumns = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+    currencyColumns.forEach(col => {
+        for (let i = 1; i <= results.yearlyData.length; i++) {
+            const cellRef = `${col}${i + 1}`;
+            if (ws_projection[cellRef]) {
+                ws_projection[cellRef].z = '$#,##0.00';
+            }
+        }
+    });
     XLSX.utils.book_append_sheet(wb, ws_projection, 'Projection');
 
     // --- Charts Data Sheet ---
@@ -848,6 +846,9 @@ export const exportToXLSX = (inputs, results, chartManager) => {
     const ws_charts = XLSX.utils.aoa_to_sheet(chartData);
     XLSX.utils.book_append_sheet(wb, ws_charts, 'Charts Data');
 
+    // --- Enhanced Analysis Sheets ---
+    addEnhancedAnalysisToXLSX(wb, enhancedAnalysis);
+
     // --- Write file ---
     try {
         const filename = `Australian-Retirement-Analysis-${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -875,6 +876,7 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
 
     // Get additional analysis data from app if available
     const monteCarloResults = app?.currentMonteCarloResults || results.monteCarloResults || null;
+    const enhancedAnalysis = extractAnalysisData(inputs, results, app);
 
     // --- Title Page ---
     doc.setFontSize(24);
@@ -951,7 +953,7 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
             styles: { fontSize: 9 }
         });
 
-        yPos = doc.autoTable.previous.finalY + 15;
+        yPos = doc.lastAutoTable.finalY + 15;
     }
 
     // --- Risk Analysis Section ---
@@ -983,7 +985,7 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
         styles: { fontSize: 9 }
     });
 
-    yPos = doc.autoTable.previous.finalY + 15;
+    yPos = doc.lastAutoTable.finalY + 15;
 
     // --- Key Assumptions ---
     if (yPos > 200) {
@@ -1016,7 +1018,10 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
         styles: { fontSize: 9 }
     });
 
-    yPos = doc.autoTable.previous.finalY + 15;
+    yPos = doc.lastAutoTable.finalY + 15;
+
+    // --- Enhanced Analysis Sections ---
+    addEnhancedAnalysisToPDF(doc, enhancedAnalysis, yPos);
 
     // --- Charts Section ---
     doc.addPage();
@@ -1551,5 +1556,494 @@ export default {
     toggleTooltip,
     hideAllTooltips,
     adjustTooltipPosition,
-    addTooltipBottomStyles
+    addTooltipBottomStyles,
+    extractAnalysisData
 };
+
+// Helper function to extract all analysis data for exports
+function extractAnalysisData(inputs, results, app) {
+    const analysis = {
+        enhancedSummary: null,
+        riskAnalysis: null,
+        propertyAnalysis: null,
+        optimizationStrategies: null,
+        aiRecommendations: null,
+        scenarioComparisons: null
+    };
+
+    try {
+        // Enhanced Summary
+        analysis.enhancedSummary = {
+            financialReadiness: getFinancialReadiness(inputs, results),
+            keyMetrics: getKeyMetrics(inputs, results),
+            projectedOutcome: getProjectedOutcome(results)
+        };
+
+        // Risk Analysis
+        analysis.riskAnalysis = getRiskAnalysisData(inputs, results);
+
+        // Property Analysis (if applicable)
+        if (inputs.hasInvestmentProperty) {
+            analysis.propertyAnalysis = getPropertyAnalysisData(inputs, results);
+        }
+
+        // Optimization Strategies
+        analysis.optimizationStrategies = getOptimizationData(inputs, results, app);
+
+        // AI Recommendations (if available)
+        if (app?.currentRecommendations) {
+            analysis.aiRecommendations = app.currentRecommendations;
+        }
+
+        // Scenario Comparisons (if available)
+        if (app?.currentScenarioComparisons) {
+            analysis.scenarioComparisons = app.currentScenarioComparisons;
+        }
+
+    } catch (error) {
+        console.warn('Error extracting analysis data for export:', error);
+    }
+
+    return analysis;
+}
+
+// Helper functions for analysis data extraction
+function getFinancialReadiness(inputs, results) {
+    const totalAssets = results.totalFinancialAssets + (results.accessibleHomeEquity || 0);
+    const targetAmount = (inputs.yourSalary + inputs.partnerSalary) * 25; // 25x rule of thumb
+
+    return {
+        readinessScore: Math.min(100, (totalAssets / targetAmount) * 100),
+        totalAssets,
+        targetAmount,
+        gap: Math.max(0, targetAmount - totalAssets)
+    };
+}
+
+function getKeyMetrics(inputs, results) {
+    return {
+        savingsRate: inputs.percentIncomeSaved,
+        yearsToRetirement: inputs.retirementAge - inputs.yourCurrentAge,
+        projectedBalance: results.finalBalance,
+        successProbability: results.monteCarloResults?.successRate ? results.monteCarloResults.successRate * 100 : null
+    };
+}
+
+function getProjectedOutcome(results) {
+    const finalBalance = results.finalBalance;
+    let outcome = 'Unknown';
+
+    if (finalBalance > 500000) outcome = 'Excellent';
+    else if (finalBalance > 200000) outcome = 'Good';
+    else if (finalBalance > 0) outcome = 'Adequate';
+    else outcome = 'Needs Improvement';
+
+    return {
+        outcome,
+        finalBalance,
+        yearsOfFunding: finalBalance > 0 ? Math.floor(finalBalance / 50000) : 0
+    };
+}
+
+function getRiskAnalysisData(inputs, results) {
+    return {
+        riskTolerance: inputs.riskTolerance || 5,
+        emergencyFund: inputs.hasEmergencyFund,
+        highInterestDebt: inputs.hasDebt,
+        dependents: inputs.dependents || 0,
+        propertyConcentration: inputs.hasInvestmentProperty,
+        sequenceRisk: results.finalBalance <= 0 ? 'High' : 'Moderate'
+    };
+}
+
+function getPropertyAnalysisData(inputs, results) {
+    if (!inputs.hasInvestmentProperty) return null;
+
+    return {
+        currentValue: inputs.investmentPropertyValue,
+        outstandingLoan: inputs.investmentPropertyLoan,
+        equity: inputs.investmentPropertyValue - inputs.investmentPropertyLoan,
+        weeklyRent: inputs.weeklyRentalIncome,
+        annualReturn: (inputs.weeklyRentalIncome * 52) / inputs.investmentPropertyValue * 100,
+        sellStrategy: inputs.sellPropertyYears ? `Sell in ${inputs.sellPropertyYears} years` : 'Hold indefinitely'
+    };
+}
+
+function getOptimizationData(inputs, results, app) {
+    const strategies = [];
+
+    // Cash flow optimization
+    const monthlyIncome = (inputs.yourSalary + inputs.partnerSalary) / 12;
+    const monthlyExpenses = monthlyIncome * (1 - inputs.percentIncomeSaved);
+
+    if (inputs.percentIncomeSaved < 0.15) {
+        strategies.push({
+            category: 'Savings Rate',
+            recommendation: 'Increase savings rate to at least 15%',
+            impact: 'High',
+            priority: 1
+        });
+    }
+
+    if (inputs.riskTolerance && inputs.riskTolerance < 5 && inputs.yourCurrentAge < 50) {
+        strategies.push({
+            category: 'Risk Management',
+            recommendation: 'Consider increasing risk tolerance for higher long-term returns',
+            impact: 'Medium',
+            priority: 2
+        });
+    }
+
+    if (!inputs.hasEmergencyFund) {
+        strategies.push({
+            category: 'Emergency Fund',
+            recommendation: 'Establish 3-6 months emergency fund before increasing investments',
+            impact: 'High',
+            priority: 1
+        });
+    }
+
+    return strategies;
+}
+
+// Enhanced Analysis PDF Helper
+function addEnhancedAnalysisToPDF(doc, analysis, startY) {
+    let yPos = startY;
+
+    // Enhanced Summary Section
+    if (analysis.enhancedSummary) {
+        doc.addPage();
+        yPos = 20;
+
+        doc.setFontSize(18);
+        doc.setTextColor(0, 71, 171);
+        doc.text("Enhanced Financial Summary", 14, yPos);
+        yPos += 15;
+
+        const readiness = analysis.enhancedSummary.financialReadiness;
+        const enhancedSummaryBody = [
+            ['Financial Readiness Score', `${readiness.readinessScore.toFixed(1)}%`],
+            ['Total Assets at Retirement', formatCurrency(readiness.totalAssets)],
+            ['Target Amount (25x Rule)', formatCurrency(readiness.targetAmount)],
+            ['Funding Gap', readiness.gap > 0 ? formatCurrency(readiness.gap) : 'None'],
+            ['Projected Outcome', analysis.enhancedSummary.projectedOutcome.outcome],
+            ['Years of Funding', `${analysis.enhancedSummary.projectedOutcome.yearsOfFunding} years`]
+        ];
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Metric', 'Value']],
+            body: enhancedSummaryBody,
+            theme: 'striped',
+            headStyles: { fillColor: [0, 123, 191] },
+            styles: { fontSize: 10 }
+        });
+
+        yPos = doc.lastAutoTable.finalY + 15;
+    }
+
+    // Risk Analysis Section
+    if (analysis.riskAnalysis) {
+        if (yPos > 200) {
+            doc.addPage();
+            yPos = 20;
+        }
+
+        doc.setFontSize(16);
+        doc.setTextColor(0, 71, 171);
+        doc.text("Comprehensive Risk Analysis", 14, yPos);
+        yPos += 10;
+
+        const riskData = analysis.riskAnalysis;
+        const riskBody = [
+            ['Risk Tolerance (1-10)', riskData.riskTolerance],
+            ['Emergency Fund Available', riskData.emergencyFund ? 'Yes' : 'No'],
+            ['High-Interest Debt', riskData.highInterestDebt ? 'Yes - Higher Risk' : 'No'],
+            ['Financial Dependents', riskData.dependents],
+            ['Property Concentration Risk', riskData.propertyConcentration ? 'High' : 'Low'],
+            ['Sequence of Returns Risk', riskData.sequenceRisk]
+        ];
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Risk Factor', 'Assessment']],
+            body: riskBody,
+            theme: 'grid',
+            headStyles: { fillColor: [220, 53, 69] },
+            styles: { fontSize: 9 }
+        });
+
+        yPos = doc.lastAutoTable.finalY + 15;
+    }
+
+    // Property Analysis Section
+    if (analysis.propertyAnalysis) {
+        if (yPos > 180) {
+            doc.addPage();
+            yPos = 20;
+        }
+
+        doc.setFontSize(16);
+        doc.setTextColor(0, 71, 171);
+        doc.text("Investment Property Analysis", 14, yPos);
+        yPos += 10;
+
+        const propData = analysis.propertyAnalysis;
+        const propertyBody = [
+            ['Current Property Value', formatCurrency(propData.currentValue)],
+            ['Outstanding Loan', formatCurrency(propData.outstandingLoan)],
+            ['Current Equity', formatCurrency(propData.equity)],
+            ['Weekly Rental Income', formatCurrency(propData.weeklyRent)],
+            ['Annual Rental Yield', `${propData.annualReturn.toFixed(2)}%`],
+            ['Strategy', propData.sellStrategy]
+        ];
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Property Metric', 'Value']],
+            body: propertyBody,
+            theme: 'striped',
+            headStyles: { fillColor: [40, 167, 69] },
+            styles: { fontSize: 9 }
+        });
+
+        yPos = doc.lastAutoTable.finalY + 15;
+    }
+
+    // Optimization Strategies Section
+    if (analysis.optimizationStrategies && analysis.optimizationStrategies.length > 0) {
+        if (yPos > 160) {
+            doc.addPage();
+            yPos = 20;
+        }
+
+        doc.setFontSize(16);
+        doc.setTextColor(0, 71, 171);
+        doc.text("Optimization Strategies", 14, yPos);
+        yPos += 10;
+
+        const optimizationBody = analysis.optimizationStrategies.map(strategy => [
+            strategy.category,
+            strategy.recommendation,
+            strategy.impact,
+            `Priority ${strategy.priority}`
+        ]);
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Category', 'Recommendation', 'Impact', 'Priority']],
+            body: optimizationBody,
+            theme: 'grid',
+            headStyles: { fillColor: [255, 193, 7] },
+            styles: { fontSize: 8 }
+        });
+
+        yPos = doc.lastAutoTable.finalY + 15;
+    }
+
+    // AI Recommendations Section
+    if (analysis.aiRecommendations && analysis.aiRecommendations.length > 0) {
+        if (yPos > 160) {
+            doc.addPage();
+            yPos = 20;
+        }
+
+        doc.setFontSize(16);
+        doc.setTextColor(0, 71, 171);
+        doc.text("AI-Generated Recommendations", 14, yPos);
+        yPos += 10;
+
+        const aiBody = analysis.aiRecommendations.slice(0, 10).map(rec => [
+            rec.category || 'General',
+            rec.action || rec.recommendation || rec.title,
+            rec.priority || 'Medium',
+            rec.timing || 'As needed'
+        ]);
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Category', 'Recommendation', 'Priority', 'Timing']],
+            body: aiBody,
+            theme: 'striped',
+            headStyles: { fillColor: [111, 66, 193] },
+            styles: { fontSize: 8 }
+        });
+
+        yPos = doc.lastAutoTable.finalY + 15;
+    }
+
+    // Scenario Comparisons Section
+    if (analysis.scenarioComparisons && analysis.scenarioComparisons.length > 0) {
+        if (yPos > 160) {
+            doc.addPage();
+            yPos = 20;
+        }
+
+        doc.setFontSize(16);
+        doc.setTextColor(0, 71, 171);
+        doc.text("Scenario Comparisons", 14, yPos);
+        yPos += 10;
+
+        const scenarioBody = analysis.scenarioComparisons.slice(0, 8).map(scenario => [
+            scenario.name || 'Scenario',
+            formatCurrency(scenario.finalBalance || 0),
+            scenario.improvement ? `+${(scenario.improvement * 100).toFixed(1)}%` : 'N/A',
+            scenario.recommendation || 'Review scenario'
+        ]);
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Scenario', 'Final Balance', 'Improvement', 'Notes']],
+            body: scenarioBody,
+            theme: 'grid',
+            headStyles: { fillColor: [23, 162, 184] },
+            styles: { fontSize: 8 }
+        });
+    }
+}
+
+// Enhanced Analysis XLSX Helper
+function addEnhancedAnalysisToXLSX(wb, analysis) {
+    // Enhanced Summary Sheet
+    if (analysis.enhancedSummary) {
+        const readiness = analysis.enhancedSummary.financialReadiness;
+        const outcome = analysis.enhancedSummary.projectedOutcome;
+
+        const enhancedSummaryData = [
+            ['Enhanced Financial Summary', '', ''],
+            ['Metric', 'Value', 'Description'],
+            ['Financial Readiness Score', `${readiness.readinessScore.toFixed(1)}%`, '25x annual income rule'],
+            ['Total Assets at Retirement', readiness.totalAssets, 'All accessible financial assets'],
+            ['Target Amount (25x Rule)', readiness.targetAmount, 'Recommended retirement nest egg'],
+            ['Funding Gap', readiness.gap > 0 ? readiness.gap : 0, 'Amount still needed'],
+            ['Projected Outcome', outcome.outcome, 'Overall retirement readiness'],
+            ['Years of Funding', `${outcome.yearsOfFunding} years`, 'Based on $50K annual withdrawals'],
+            ['', '', ''],
+            ['Key Metrics', '', ''],
+            ['Current Savings Rate', `${(analysis.enhancedSummary.keyMetrics.savingsRate * 100).toFixed(1)}%`, 'Percentage of income saved'],
+            ['Years to Retirement', analysis.enhancedSummary.keyMetrics.yearsToRetirement, 'Time remaining to build wealth'],
+            ['Projected Final Balance', analysis.enhancedSummary.keyMetrics.projectedBalance, 'Deterministic calculation'],
+            ['Monte Carlo Success Rate',
+                analysis.enhancedSummary.keyMetrics.successProbability
+                ? `${analysis.enhancedSummary.keyMetrics.successProbability.toFixed(1)}%`
+                : 'Not calculated',
+                'Probability of success with market volatility']
+        ];
+
+        const ws_enhanced = XLSX.utils.aoa_to_sheet(enhancedSummaryData);
+        XLSX.utils.book_append_sheet(wb, ws_enhanced, 'Enhanced Summary');
+    }
+
+    // Risk Analysis Sheet
+    if (analysis.riskAnalysis) {
+        const risk = analysis.riskAnalysis;
+        const riskData = [
+            ['Comprehensive Risk Analysis', '', ''],
+            ['Risk Factor', 'Assessment', 'Impact'],
+            ['Risk Tolerance (1-10)', risk.riskTolerance, 'Higher tolerance allows more growth potential'],
+            ['Emergency Fund Available', risk.emergencyFund ? 'Yes' : 'No', 'Reduces need to sell investments in emergencies'],
+            ['High-Interest Debt', risk.highInterestDebt ? 'Yes - Higher Risk' : 'No', 'Debt payments reduce investment capacity'],
+            ['Financial Dependents', risk.dependents, 'More dependents increase financial responsibility'],
+            ['Property Concentration Risk', risk.propertyConcentration ? 'High' : 'Low', 'Diversification reduces overall portfolio risk'],
+            ['Sequence of Returns Risk', risk.sequenceRisk, 'Risk of poor early returns in retirement'],
+            ['', '', ''],
+            ['Risk Mitigation Strategies', '', ''],
+            ['Strategy', 'Description', 'Priority'],
+            ['Diversification', 'Spread investments across asset classes', 'High'],
+            ['Emergency Fund', 'Maintain 3-6 months expenses in cash', 'High'],
+            ['Debt Reduction', 'Pay down high-interest debt first', 'High'],
+            ['Regular Rebalancing', 'Maintain target asset allocation', 'Medium'],
+            ['Dollar Cost Averaging', 'Invest consistently regardless of market conditions', 'Medium']
+        ];
+
+        const ws_risk = XLSX.utils.aoa_to_sheet(riskData);
+        XLSX.utils.book_append_sheet(wb, ws_risk, 'Risk Analysis');
+    }
+
+    // Property Analysis Sheet
+    if (analysis.propertyAnalysis) {
+        const prop = analysis.propertyAnalysis;
+        const propertyData = [
+            ['Investment Property Analysis', '', ''],
+            ['Metric', 'Value', 'Notes'],
+            ['Current Property Value', prop.currentValue, 'Current market value'],
+            ['Outstanding Loan', prop.outstandingLoan, 'Remaining mortgage balance'],
+            ['Current Equity', prop.equity, 'Property value minus loan'],
+            ['Weekly Rental Income', prop.weeklyRent, 'Gross rental income'],
+            ['Annual Rental Yield', `${prop.annualReturn.toFixed(2)}%`, 'Gross rental yield'],
+            ['Strategy', prop.sellStrategy, 'Current exit strategy'],
+            ['', '', ''],
+            ['Property Investment Considerations', '', ''],
+            ['Factor', 'Description', 'Impact'],
+            ['Negative Gearing', 'Tax deductions on rental losses', 'Reduces taxable income'],
+            ['Capital Gains Tax', '50% discount after 12 months ownership', 'Reduces tax on sale'],
+            ['Depreciation Benefits', 'Building and fixture depreciation', 'Additional tax deductions'],
+            ['Maintenance Costs', 'Ongoing property maintenance', 'Reduces net returns'],
+            ['Vacancy Risk', 'Periods without tenants', 'Reduces rental income'],
+            ['Interest Rate Risk', 'Changes in mortgage rates', 'Affects cash flow']
+        ];
+
+        const ws_property = XLSX.utils.aoa_to_sheet(propertyData);
+        XLSX.utils.book_append_sheet(wb, ws_property, 'Property Analysis');
+    }
+
+    // Optimization Strategies Sheet
+    if (analysis.optimizationStrategies && analysis.optimizationStrategies.length > 0) {
+        const optimizationData = [
+            ['Optimization Strategies', '', '', ''],
+            ['Category', 'Recommendation', 'Impact', 'Priority'],
+            ...analysis.optimizationStrategies.map(strategy => [
+                strategy.category,
+                strategy.recommendation,
+                strategy.impact,
+                `Priority ${strategy.priority}`
+            ]),
+            ['', '', '', ''],
+            ['Additional Optimization Tips', '', '', ''],
+            ['Strategy', 'Description', 'Benefit', 'Difficulty'],
+            ['Salary Sacrifice', 'Contribute pre-tax salary to super', 'Tax savings + compounding', 'Easy'],
+            ['Spouse Contributions', 'Government co-contribution for low-income spouses', 'Free government money', 'Easy'],
+            ['Asset Allocation Review', 'Adjust risk/return profile annually', 'Optimized returns', 'Medium'],
+            ['Fee Minimization', 'Choose low-cost investment options', 'More money invested', 'Easy'],
+            ['Tax Loss Harvesting', 'Realize losses to offset gains', 'Reduced tax liability', 'Medium'],
+            ['Debt Recycling', 'Convert non-deductible to deductible debt', 'Tax deductions', 'Complex']
+        ];
+
+        const ws_optimization = XLSX.utils.aoa_to_sheet(optimizationData);
+        XLSX.utils.book_append_sheet(wb, ws_optimization, 'Optimization');
+    }
+
+    // AI Recommendations Sheet
+    if (analysis.aiRecommendations && analysis.aiRecommendations.length > 0) {
+        const aiData = [
+            ['AI-Generated Recommendations', '', '', ''],
+            ['Category', 'Recommendation', 'Priority', 'Timing'],
+            ...analysis.aiRecommendations.slice(0, 20).map(rec => [
+                rec.category || 'General',
+                rec.action || rec.recommendation || rec.title,
+                rec.priority || 'Medium',
+                rec.timing || 'As needed'
+            ])
+        ];
+
+        const ws_ai = XLSX.utils.aoa_to_sheet(aiData);
+        XLSX.utils.book_append_sheet(wb, ws_ai, 'AI Recommendations');
+    }
+
+    // Scenario Comparisons Sheet
+    if (analysis.scenarioComparisons && analysis.scenarioComparisons.length > 0) {
+        const scenarioData = [
+            ['Scenario Comparisons', '', '', ''],
+            ['Scenario', 'Final Balance', 'Improvement', 'Notes'],
+            ...analysis.scenarioComparisons.slice(0, 15).map(scenario => [
+                scenario.name || 'Scenario',
+                scenario.finalBalance || 0,
+                scenario.improvement ? `+${(scenario.improvement * 100).toFixed(1)}%` : 'N/A',
+                scenario.recommendation || 'Review scenario details'
+            ])
+        ];
+
+        const ws_scenarios = XLSX.utils.aoa_to_sheet(scenarioData);
+        XLSX.utils.book_append_sheet(wb, ws_scenarios, 'Scenario Compare');
+    }
+}
