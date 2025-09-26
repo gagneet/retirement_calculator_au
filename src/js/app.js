@@ -1823,7 +1823,7 @@ class RetirementCalculatorApp {
                     </span>
                 </div>
 
-                <p class="text-xs text-gray-600 mb-3">${suggestion.description || 'No description available'}</p>
+                <p class="text-xs text-gray-600 mb-3">${this.formatDescriptionHTML(suggestion.description) || 'No description available'}</p>
 
                 ${suggestion.factorsChanged && Array.isArray(suggestion.factorsChanged) && suggestion.factorsChanged.length > 0 ? `
                     <div class="text-xs text-gray-500 mb-3">
@@ -1865,6 +1865,17 @@ class RetirementCalculatorApp {
         // 2. Apply its modifications to the form inputs
         // 3. Trigger a recalculation
         // 4. Show the what-if comparison
+    }
+
+    // Format description text with markdown-style formatting to HTML
+    formatDescriptionHTML(description) {
+        if (!description) return '';
+
+        return description
+            .replace(/\*\*Impact: (.*?)\*\*/g, '<span class="inline-block px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-semibold mr-2">Impact: $1</span>')
+            .replace(/\*\*Risk: (.*?)\*\*/g, '<span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-semibold mr-2">Risk: $1</span>')
+            .replace(/\*\*Timeline: (.*?)\*\*/g, '<span class="inline-block px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-semibold">Timeline: $1</span>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Fallback for other bold text
     }
 
     displayRecommendations(recommendations) {
