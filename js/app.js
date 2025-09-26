@@ -47,6 +47,7 @@ class RetirementCalculatorApp {
         this.loadSavedInputs(); // Load saved inputs first
         this.setupEventListeners();
         this.setupAutoSave(); // Setup auto-save functionality
+        this.setupCashFlowUI(); // Setup cash flow validation and UI
         this.updateUIElements();
         initializeTrustUI(); // Initialize trust UI functionality
 
@@ -489,25 +490,25 @@ class RetirementCalculatorApp {
                         <div class="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                             <div class="bg-white rounded p-2 border">
                                 <div class="font-medium">Housing</div>
-                                <div>$${cashFlowAnalysis.expenses.housing.toFixed(0)}</div>
+                                <div>$${cashFlowAnalysis.expenses.housing.monthlyTotal.toFixed(0)}</div>
                                 <div class="text-gray-500">${cashFlowAnalysis.expenses.breakdown.housingDescription}</div>
                             </div>
                             <div class="bg-white rounded p-2 border">
                                 <div class="font-medium">Living</div>
-                                <div>$${cashFlowAnalysis.expenses.baseLiving.toFixed(0)}</div>
+                                <div>$${cashFlowAnalysis.expenses.living.monthlyTotal.toFixed(0)}</div>
                                 <div class="text-gray-500">${cashFlowAnalysis.expenses.breakdown.livingDescription}</div>
                             </div>
-                            ${cashFlowAnalysis.expenses.childcare > 0 ? `
+                            ${cashFlowAnalysis.expenses.childcare.monthlyTotal > 0 ? `
                                 <div class="bg-white rounded p-2 border">
                                     <div class="font-medium">Childcare</div>
-                                    <div>$${cashFlowAnalysis.expenses.childcare.toFixed(0)}</div>
+                                    <div>$${cashFlowAnalysis.expenses.childcare.monthlyTotal.toFixed(0)}</div>
                                     <div class="text-gray-500">${cashFlowAnalysis.expenses.breakdown.childcareDescription}</div>
                                 </div>
                             ` : ''}
-                            ${cashFlowAnalysis.expenses.familyExpenses > 0 ? `
+                            ${cashFlowAnalysis.expenses.familyExpenses.monthlyTotal > 0 ? `
                                 <div class="bg-white rounded p-2 border">
                                     <div class="font-medium">Family</div>
-                                    <div>$${cashFlowAnalysis.expenses.familyExpenses.toFixed(0)}</div>
+                                    <div>$${cashFlowAnalysis.expenses.familyExpenses.monthlyTotal.toFixed(0)}</div>
                                     <div class="text-gray-500">${cashFlowAnalysis.expenses.breakdown.familyDescription}</div>
                                 </div>
                             ` : ''}
@@ -1118,33 +1119,88 @@ class RetirementCalculatorApp {
         const optimizationContent = $('optimizationContent');
         if (!optimizationContent) return;
 
+        try {
+            // Enhanced cash flow analysis for prioritizing strategies
+            const cashFlowAnalysis = this.simulator.calculateCashFlowAnalysis(inputs);
+            console.log('Cash flow analysis result:', cashFlowAnalysis); // Debug log
+
+            if (!cashFlowAnalysis || !cashFlowAnalysis.cashFlow) {
+                console.error('Cash flow analysis failed - using fallback');
+                optimizationContent.innerHTML = '<div class="p-4 text-red-600">Cash flow analysis temporarily unavailable. Please try again.</div>';
+                return;
+            }
+
+            const monthlyDisposableIncome = cashFlowAnalysis.cashFlow.monthlyDisposableIncome || 0;
+            const savingsCapacity = cashFlowAnalysis.savingsAnalysis || {
+                canIncreaseSavings: monthlyDisposableIncome > 200,
+                hasStrongCapacity: monthlyDisposableIncome > 1000,
+                opportunities: []
+            };
+            console.log('Savings capacity:', savingsCapacity); // Debug log
+
+            // Prioritize strategies based on cash flow constraints
+            const cashFlowOptimization = this.analyzeCashFlowOptimization(cashFlowAnalysis, inputs);
+            const expenseOptimization = this.analyzeExpenseOptimization(cashFlowAnalysis, inputs);
+            const incomeOptimization = this.analyzeIncomeOptimization(savingsCapacity, inputs);
+
         const pensionOptimization = this.analyzePensionOptimization(result, inputs);
         const taxOptimization = this.analyzeTaxOptimization(inputs);
         const contributionOptimization = this.analyzeContributionOptimization(inputs);
         const allocationOptimization = this.analyzeAllocationOptimization(inputs);
 
         optimizationContent.innerHTML = `
+            <!-- Priority 1: Cash Flow Analysis -->
+            <div class="enhancement-highlight p-4 rounded-lg border-l-4 ${monthlyDisposableIncome < 500 ? 'border-red-500 bg-red-50' : monthlyDisposableIncome < 1000 ? 'border-yellow-500 bg-yellow-50' : 'border-green-500 bg-green-50'}">
+                <h3 class="text-lg font-semibold mb-3">Cash Flow Optimization (Priority #1)</h3>
+                <div class="mb-3 p-3 rounded ${monthlyDisposableIncome < 500 ? 'bg-red-100' : monthlyDisposableIncome < 1000 ? 'bg-yellow-100' : 'bg-green-100'}">
+                    <div class="text-sm font-medium">Current Monthly Disposable Income: <span class="font-bold">${formatCurrency(monthlyDisposableIncome * 12, 0, true)}/month</span></div>
+                    <div class="text-xs mt-1">Status: ${cashFlowAnalysis.cashFlow.status.charAt(0).toUpperCase() + cashFlowAnalysis.cashFlow.status.slice(1)} cash flow</div>
+                </div>
+                <div class="space-y-3 text-sm">
+                    ${cashFlowOptimization.map(strategy => `<div>• ${strategy}</div>`).join('')}
+                </div>
+            </div>
+
+            <!-- Priority 2: Expense vs Income Strategies -->
+            <div class="enhancement-highlight p-4 rounded-lg">
+                <h3 class="text-lg font-semibold mb-3">Expense vs Income Optimization</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="p-3 rounded ${savingsCapacity.canIncreaseSavings ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}">
+                        <h4 class="font-medium text-sm mb-2">Income Strategies</h4>
+                        <div class="space-y-2 text-xs">
+                            ${incomeOptimization.map(strategy => `<div>• ${strategy}</div>`).join('')}
+                        </div>
+                    </div>
+                    <div class="p-3 rounded bg-blue-50 border border-blue-200">
+                        <h4 class="font-medium text-sm mb-2">Expense Strategies</h4>
+                        <div class="space-y-2 text-xs">
+                            ${expenseOptimization.map(strategy => `<div>• ${strategy}</div>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="enhancement-highlight p-4 rounded-lg">
                 <h3 class="text-lg font-semibold mb-3">Age Pension Optimization</h3>
                 <div class="space-y-3 text-sm">
                     ${pensionOptimization.map(strategy => `<div>• ${strategy}</div>`).join('')}
                 </div>
             </div>
-            
+
             <div class="enhancement-highlight p-4 rounded-lg">
                 <h3 class="text-lg font-semibold mb-3">Tax Optimization</h3>
                 <div class="space-y-3 text-sm">
                     ${taxOptimization.map(strategy => `<div>• ${strategy}</div>`).join('')}
                 </div>
             </div>
-            
+
             <div class="enhancement-highlight p-4 rounded-lg">
                 <h3 class="text-lg font-semibold mb-3">Contribution Strategies</h3>
                 <div class="space-y-3 text-sm">
                     ${contributionOptimization.map(strategy => `<div>• ${strategy}</div>`).join('')}
                 </div>
             </div>
-            
+
             <div class="enhancement-highlight p-4 rounded-lg">
                 <h3 class="text-lg font-semibold mb-3">Asset Allocation Optimization</h3>
                 <div class="space-y-3 text-sm">
@@ -1152,6 +1208,15 @@ class RetirementCalculatorApp {
                 </div>
             </div>
         `;
+        } catch (error) {
+            console.error('Error in optimization display:', error);
+            optimizationContent.innerHTML = `
+                <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <h3 class="font-semibold text-red-800 mb-2">Optimization Analysis Unavailable</h3>
+                    <p class="text-sm text-red-600">There was an error analyzing your optimization strategies. Please check your inputs and try again.</p>
+                </div>
+            `;
+        }
     }
 
     // Analysis functions
@@ -1324,6 +1389,96 @@ class RetirementCalculatorApp {
         }
 
         strategies.push('Regular rebalancing maintains target allocations and harvests gains');
+
+        return strategies;
+    }
+
+    // Cash Flow Optimization Analysis
+    analyzeCashFlowOptimization(cashFlowAnalysis, inputs) {
+        const strategies = [];
+        const monthlyDisposableIncome = cashFlowAnalysis.cashFlow.monthlyDisposableIncome;
+        const status = cashFlowAnalysis.cashFlow.status;
+
+        if (status === 'stressed' || monthlyDisposableIncome < 200) {
+            strategies.push('🚨 Immediate action needed: Negative cash flow threatens retirement savings capacity');
+            if (cashFlowAnalysis.expenses.housing.mortgagePayment > 0) {
+                strategies.push('Consider downsizing or refinancing to reduce mortgage payments');
+            }
+            strategies.push('Review all discretionary spending to find immediate savings');
+        } else if (status === 'tight' || monthlyDisposableIncome < 500) {
+            strategies.push('⚠️ Limited capacity: Focus on expense optimization before increasing savings');
+            strategies.push('Small savings increases ($100-200/month) may be possible');
+        } else if (status === 'moderate' || monthlyDisposableIncome < 1000) {
+            strategies.push('✅ Moderate capacity: Balanced approach to savings and lifestyle');
+            strategies.push(`Consider increasing retirement savings by up to $${Math.round(monthlyDisposableIncome * 0.6)}/month`);
+        } else {
+            strategies.push('🎯 Strong capacity: Maximize retirement contributions while maintaining quality of life');
+            strategies.push(`You could comfortably increase savings by $${Math.round(monthlyDisposableIncome * 0.7)}/month`);
+        }
+
+        return strategies;
+    }
+
+    // Expense Optimization Analysis
+    analyzeExpenseOptimization(cashFlowAnalysis, inputs) {
+        const strategies = [];
+        const expenses = cashFlowAnalysis.expenses;
+        const monthlyNetIncome = cashFlowAnalysis.cashFlow.monthlyNetIncome;
+
+        // Housing optimization
+        if (expenses.housing.housingStressRatio > 0.3) {
+            strategies.push(`Housing costs (${(expenses.housing.housingStressRatio * 100).toFixed(0)}%) exceed recommended 30% of income`);
+        }
+        if (expenses.housing.mortgagePayment > monthlyNetIncome * 0.25) {
+            strategies.push('Consider refinancing or downsizing to reduce mortgage burden');
+        }
+
+        // Childcare optimization
+        if (expenses.childcare && expenses.childcare.monthlyTotal > 2000) {
+            strategies.push('Review childcare subsidies and tax benefits to optimize costs');
+            strategies.push('Consider family daycare or nanny sharing options');
+        }
+
+        // General expense strategies
+        strategies.push('Track spending for 3 months to identify reduction opportunities');
+        strategies.push('Review insurance policies annually for better rates');
+        strategies.push('Consolidate subscriptions and memberships to reduce ongoing costs');
+
+        if (cashFlowAnalysis.opportunities && cashFlowAnalysis.opportunities.length > 0) {
+            const topOpportunity = cashFlowAnalysis.opportunities[0];
+            strategies.push(`💡 ${topOpportunity.action} could save $${topOpportunity.monthlySavings || 200}/month`);
+        }
+
+        return strategies;
+    }
+
+    // Income Optimization Analysis
+    analyzeIncomeOptimization(savingsCapacity, inputs) {
+        const strategies = [];
+        const totalIncome = inputs.yourSalary + inputs.partnerSalary;
+
+        if (savingsCapacity.canIncreaseSavings) {
+            if (totalIncome > 100000) {
+                strategies.push('Salary sacrifice to superannuation for tax benefits');
+                strategies.push('Consider income splitting strategies if applicable');
+            }
+            strategies.push('Maximize employer superannuation matching contributions');
+            strategies.push('Review investment contributions for compound growth benefits');
+        } else {
+            strategies.push('⚠️ Limited savings capacity - focus on expense reduction first');
+            strategies.push('Consider side income or skill development for future income growth');
+            if (inputs.hasInvestmentProperty) {
+                strategies.push('Sell negatively geared property to improve cash flow');
+            }
+            if (inputs.currentStocks > 50000) {
+                strategies.push('Consider rebalancing investments for better cash flow');
+            }
+        }
+
+        // Career development strategies
+        if (inputs.yourCurrentAge < 55) {
+            strategies.push('Invest in professional development for income growth potential');
+        }
 
         return strategies;
     }
@@ -2700,6 +2855,158 @@ class RetirementCalculatorApp {
         });
 
         console.log('Auto-save setup completed for form inputs');
+    }
+
+    // Cash Flow Input Validation and UI Enhancement
+    validateCashFlowInputs(inputs) {
+        const validationResults = {
+            isValid: true,
+            warnings: [],
+            errors: [],
+            suggestions: []
+        };
+
+        // Validate income vs expenses logic
+        const totalIncome = inputs.yourSalary + inputs.partnerSalary;
+        const monthlyMortgage = inputs.monthlyMortgagePayment || 0;
+        const annualMortgage = monthlyMortgage * 12;
+
+        // Housing stress validation
+        if (annualMortgage > totalIncome * 0.3) {
+            validationResults.warnings.push({
+                field: 'monthlyMortgagePayment',
+                message: `Mortgage payments (${((annualMortgage / totalIncome) * 100).toFixed(0)}%) exceed recommended 30% of gross income`,
+                suggestion: 'Consider refinancing or downsizing to improve cash flow'
+            });
+        }
+
+        // Dependents validation
+        if (inputs.dependents > 0 && totalIncome < 80000) {
+            validationResults.warnings.push({
+                field: 'dependents',
+                message: `${inputs.dependents} dependents on $${totalIncome.toLocaleString()} income may limit retirement savings capacity`,
+                suggestion: 'Focus on expense optimization and government benefits'
+            });
+        }
+
+        // Healthcare cost validation
+        const expectedHealthcare = 2000 + (inputs.dependents * 1000) + (inputs.yourCurrentAge > 50 ? 2000 : 0);
+        if (inputs.currentHealthcareCosts < expectedHealthcare * 0.7) {
+            validationResults.suggestions.push({
+                field: 'currentHealthcareCosts',
+                message: `Healthcare costs may be underestimated. Consider increasing to $${expectedHealthcare.toLocaleString()}`,
+                suggestion: 'Review actual medical, dental, and insurance expenses'
+            });
+        }
+
+        // Savings validation
+        const currentSavingsRate = inputs.percentIncomeSaved;
+        if (currentSavingsRate > 0.25 && monthlyMortgage > totalIncome / 12 * 0.25) {
+            validationResults.warnings.push({
+                field: 'percentIncomeSaved',
+                message: 'High savings rate combined with high mortgage may create cash flow stress',
+                suggestion: 'Verify this savings rate is sustainable with current expenses'
+            });
+        }
+
+        return validationResults;
+    }
+
+    // Enhanced UI feedback for cash flow inputs
+    setupCashFlowUI() {
+        const keyFields = ['yourSalary', 'partnerSalary', 'monthlyMortgagePayment', 'dependents', 'currentHealthcareCosts'];
+
+        keyFields.forEach(fieldId => {
+            const element = $(fieldId);
+            if (element) {
+                element.addEventListener('blur', () => {
+                    this.validateAndDisplayCashFlowFeedback();
+                });
+            }
+        });
+
+        // Add cash flow status indicator to the page
+        this.addCashFlowStatusIndicator();
+    }
+
+    validateAndDisplayCashFlowFeedback() {
+        const inputs = this.collectInputs();
+        const validation = this.validateCashFlowInputs(inputs);
+        const cashFlowAnalysis = this.simulator.calculateCashFlowAnalysis(inputs);
+
+        // Update cash flow status indicator
+        this.updateCashFlowStatusIndicator(cashFlowAnalysis, validation);
+    }
+
+    addCashFlowStatusIndicator() {
+        // Add a cash flow status section to the Risk Profile section
+        const riskSection = $('riskTolerance')?.closest('.mb-6');
+        if (riskSection) {
+            const statusDiv = document.createElement('div');
+            statusDiv.id = 'cashFlowStatus';
+            statusDiv.className = 'mt-4 p-3 rounded-lg border';
+            statusDiv.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium">Cash Flow Status:</span>
+                    <span id="cashFlowStatusText" class="text-sm">Calculating...</span>
+                </div>
+                <div id="cashFlowDetails" class="mt-2 text-xs text-gray-600 hidden"></div>
+            `;
+            riskSection.appendChild(statusDiv);
+        }
+    }
+
+    updateCashFlowStatusIndicator(cashFlowAnalysis, validation) {
+        const statusDiv = $('cashFlowStatus');
+        const statusText = $('cashFlowStatusText');
+        const detailsDiv = $('cashFlowDetails');
+
+        if (!statusDiv || !statusText || !detailsDiv) return;
+
+        const status = cashFlowAnalysis.cashFlow.status;
+        const monthlyDisposable = cashFlowAnalysis.cashFlow.monthlyDisposableIncome;
+
+        // Update status colors and text
+        statusDiv.className = 'mt-4 p-3 rounded-lg border';
+        let statusColor = '';
+        let statusMessage = '';
+
+        switch (status) {
+            case 'excellent':
+                statusColor = 'border-green-500 bg-green-50';
+                statusMessage = `Excellent ($${Math.round(monthlyDisposable)}/month available)`;
+                break;
+            case 'good':
+                statusColor = 'border-blue-500 bg-blue-50';
+                statusMessage = `Good ($${Math.round(monthlyDisposable)}/month available)`;
+                break;
+            case 'moderate':
+                statusColor = 'border-yellow-500 bg-yellow-50';
+                statusMessage = `Moderate ($${Math.round(monthlyDisposable)}/month available)`;
+                break;
+            case 'tight':
+                statusColor = 'border-orange-500 bg-orange-50';
+                statusMessage = `Tight ($${Math.round(monthlyDisposable)}/month available)`;
+                break;
+            case 'stressed':
+                statusColor = 'border-red-500 bg-red-50';
+                statusMessage = `Stressed ($${Math.round(monthlyDisposable)}/month deficit)`;
+                break;
+        }
+
+        statusDiv.className += ` ${statusColor}`;
+        statusText.textContent = statusMessage;
+
+        // Show validation warnings
+        if (validation.warnings.length > 0 || validation.suggestions.length > 0) {
+            const allIssues = [...validation.warnings, ...validation.suggestions];
+            detailsDiv.innerHTML = allIssues.map(issue =>
+                `<div class="mb-1">⚠️ ${issue.message}</div>`
+            ).join('');
+            detailsDiv.classList.remove('hidden');
+        } else {
+            detailsDiv.classList.add('hidden');
+        }
     }
 
     // Cash Flow Analysis Helper Functions

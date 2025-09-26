@@ -847,52 +847,76 @@ export class RetirementSimulator {
             let baseIncomeNeeded;
 
             if (useRandomReturns) {
-                // Use realistic expense analysis instead of simple ASFA standard
-                const cashFlowAnalysis = this.calculateCashFlowAnalysis(inputs);
-                const currentExpenses = cashFlowAnalysis.expenses;
+                // Use realistic expense analysis with proper error handling
+                try {
+                    const cashFlowAnalysis = this.calculateCashFlowAnalysis(inputs);
+                    const currentExpenses = cashFlowAnalysis.expenses || {};
 
-                // Calculate retirement expenses (many costs reduce in retirement)
-                const retirementHousing = Math.max(
-                    currentExpenses.housing.monthlyTotal * 0.6, // Assume 40% reduction (no mortgage in many cases)
-                    currentExpenses.housing.monthlyTotal - (currentExpenses.housing.mortgagePayment || 0) // Or just remove mortgage
-                );
-                const retirementLiving = currentExpenses.living.monthlyTotal * 0.85; // 15% reduction in living costs
-                const retirementChildcare = 0; // No childcare in retirement
+                    // Safe expense extraction with fallbacks
+                    const housingExpense = currentExpenses.housing?.monthlyTotal || inputs.monthlyMortgagePayment || 3000;
+                    const livingExpense = currentExpenses.living?.monthlyTotal || 2500;
+                    const mortgagePayment = currentExpenses.housing?.mortgagePayment || inputs.monthlyMortgagePayment || 0;
 
-                const baseMonthlyExpenses = retirementHousing + retirementLiving + retirementChildcare;
-                const baseAnnualExpenses = baseMonthlyExpenses * 12;
+                    // Calculate retirement expenses (many costs reduce in retirement)
+                    const retirementHousing = Math.max(
+                        housingExpense * 0.6, // Assume 40% reduction (no mortgage in many cases)
+                        housingExpense - mortgagePayment // Or just remove mortgage
+                    );
+                    const retirementLiving = livingExpense * 0.85; // 15% reduction in living costs
+                    const retirementChildcare = 0; // No childcare in retirement
 
-                // Apply inflation to get expenses in retirement year
-                const expensesWithInflation = baseAnnualExpenses * Math.pow(1 + inputs.inflation, retirementYear);
+                    const baseMonthlyExpenses = retirementHousing + retirementLiving + retirementChildcare;
+                    const baseAnnualExpenses = baseMonthlyExpenses * 12;
 
-                // Add realistic randomization based on expense categories
-                const housingVariation = retirementHousing * 12 * (Math.random() - 0.5) * 0.3; // ±30% housing variation
-                const livingVariation = retirementLiving * 12 * (Math.random() - 0.5) * 0.4; // ±40% living variation
-                const discretionaryVariation = (Math.random() - 0.5) * 20000; // ±$10,000 discretionary spending
+                    // Apply inflation to get expenses in retirement year
+                    const expensesWithInflation = baseAnnualExpenses * Math.pow(1 + inputs.inflation, retirementYear);
 
-                baseIncomeNeeded = Math.max(
-                    expensesWithInflation + housingVariation + livingVariation + discretionaryVariation,
-                    inputs.asfaComfortable * 0.7 * Math.pow(1 + inputs.inflation, retirementYear) // Minimum safety floor at 70% ASFA
-                );
+                    // Add realistic randomization based on expense categories
+                    const housingVariation = retirementHousing * 12 * (Math.random() - 0.5) * 0.3; // ±30% housing variation
+                    const livingVariation = retirementLiving * 12 * (Math.random() - 0.5) * 0.4; // ±40% living variation
+                    const discretionaryVariation = (Math.random() - 0.5) * 20000; // ±$10,000 discretionary spending
+
+                    baseIncomeNeeded = Math.max(
+                        expensesWithInflation + housingVariation + livingVariation + discretionaryVariation,
+                        inputs.asfaComfortable * 0.7 * Math.pow(1 + inputs.inflation, retirementYear) // Minimum safety floor at 70% ASFA
+                    );
+                } catch (error) {
+                    console.warn('Cash flow analysis failed in Monte Carlo, using ASFA fallback:', error);
+                    // Fallback to enhanced ASFA with variation
+                    const asfaWithInflation = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear);
+                    const randomVariation = (Math.random() - 0.5) * 2 * 25000; // ±$25,000 fallback
+                    baseIncomeNeeded = Math.max(0, asfaWithInflation + randomVariation);
+                }
             } else {
-                // For deterministic runs, use more realistic baseline
-                const cashFlowAnalysis = this.calculateCashFlowAnalysis(inputs);
-                const currentExpenses = cashFlowAnalysis.expenses;
+                // For deterministic runs, use more realistic baseline with error handling
+                try {
+                    const cashFlowAnalysis = this.calculateCashFlowAnalysis(inputs);
+                    const currentExpenses = cashFlowAnalysis.expenses || {};
 
-                // Conservative retirement expense estimate
-                const retirementHousing = Math.max(
-                    currentExpenses.housing.monthlyTotal * 0.7, // 30% reduction
-                    currentExpenses.housing.monthlyTotal - (currentExpenses.housing.mortgagePayment || 0)
-                );
-                const retirementLiving = currentExpenses.living.monthlyTotal * 0.9; // 10% reduction
-                const baseMonthlyExpenses = retirementHousing + retirementLiving;
-                const baseAnnualExpenses = baseMonthlyExpenses * 12;
+                    // Safe expense extraction with fallbacks
+                    const housingExpense = currentExpenses.housing?.monthlyTotal || inputs.monthlyMortgagePayment || 3000;
+                    const livingExpense = currentExpenses.living?.monthlyTotal || 2500;
+                    const mortgagePayment = currentExpenses.housing?.mortgagePayment || inputs.monthlyMortgagePayment || 0;
 
-                // Apply inflation
-                baseIncomeNeeded = Math.max(
-                    baseAnnualExpenses * Math.pow(1 + inputs.inflation, retirementYear),
-                    inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear) // Keep ASFA as minimum
-                );
+                    // Conservative retirement expense estimate
+                    const retirementHousing = Math.max(
+                        housingExpense * 0.7, // 30% reduction
+                        housingExpense - mortgagePayment
+                    );
+                    const retirementLiving = livingExpense * 0.9; // 10% reduction
+                    const baseMonthlyExpenses = retirementHousing + retirementLiving;
+                    const baseAnnualExpenses = baseMonthlyExpenses * 12;
+
+                    // Apply inflation
+                    baseIncomeNeeded = Math.max(
+                        baseAnnualExpenses * Math.pow(1 + inputs.inflation, retirementYear),
+                        inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear) // Keep ASFA as minimum
+                    );
+                } catch (error) {
+                    console.warn('Cash flow analysis failed in deterministic calculation, using ASFA fallback:', error);
+                    // Fallback to standard ASFA calculation
+                    baseIncomeNeeded = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear);
+                }
             }
 
             const totalCostWithHealthcare = baseIncomeNeeded + healthcareCost + agedCareCost;
@@ -1407,19 +1431,21 @@ export class RetirementSimulator {
             },
             expenses: expenses,
             cashFlow: {
-                monthlyDisposable: monthlyDisposableIncome,
+                monthlyDisposableIncome: monthlyDisposableIncome,
+                monthlyDisposable: monthlyDisposableIncome, // Keep both for compatibility
                 annualDisposable: annualDisposableIncome,
                 disposablePercent: (annualDisposableIncome / netIncome) * 100,
                 status: this.getCashFlowStatus(monthlyDisposableIncome),
-                housingStressRatio: (expenses.housing / (netIncome / 12)) * 100
+                housingStressRatio: (expenses.housing.monthlyTotal / (netIncome / 12))
             },
             constraints: {
                 maxMonthlySavings: Math.max(0, monthlyDisposableIncome),
                 maxAnnualSavings: Math.max(0, annualDisposableIncome),
                 minExpenseReduction: monthlyDisposableIncome < 0 ? Math.abs(monthlyDisposableIncome) : 0,
-                isHousingStressed: (expenses.housing / (netIncome / 12)) > 0.30
+                isHousingStressed: (expenses.housing.monthlyTotal / (netIncome / 12)) > 0.30
             },
-            opportunities: savingsAnalysis
+            savingsAnalysis: savingsAnalysis, // This is what app.js expects
+            opportunities: savingsAnalysis // Keep this for backwards compatibility
         };
     }
 
@@ -1478,10 +1504,20 @@ export class RetirementSimulator {
         const totalMonthly = baseLivingExpenses + housingCosts + childcareCosts + familyExpenses;
 
         return {
-            baseLiving: baseLivingExpenses,
-            housing: housingCosts,
-            childcare: childcareCosts,
-            familyExpenses: familyExpenses,
+            housing: {
+                monthlyTotal: housingCosts,
+                mortgagePayment: inputs.monthlyMortgagePayment || 0,
+                housingStressRatio: housingCosts / (netIncome / 12)
+            },
+            living: {
+                monthlyTotal: baseLivingExpenses
+            },
+            childcare: {
+                monthlyTotal: childcareCosts
+            },
+            familyExpenses: {
+                monthlyTotal: familyExpenses
+            },
             totalMonthly: totalMonthly,
             totalAnnual: totalMonthly * 12,
             breakdown: {
@@ -1641,7 +1677,22 @@ export class RetirementSimulator {
             });
         }
 
-        return opportunities;
+        // Analyze savings capacity based on disposable income
+        const canIncreaseSavings = monthlyDisposableIncome > 200;
+        const hasStrongCapacity = monthlyDisposableIncome > 1000;
+        const hasTightCapacity = monthlyDisposableIncome < 500;
+
+        return {
+            canIncreaseSavings,
+            hasStrongCapacity,
+            hasTightCapacity,
+            monthlyCapacity: monthlyDisposableIncome,
+            opportunities,
+            status: monthlyDisposableIncome < 0 ? 'deficit' :
+                   monthlyDisposableIncome < 200 ? 'critical' :
+                   monthlyDisposableIncome < 500 ? 'tight' :
+                   monthlyDisposableIncome < 1000 ? 'moderate' : 'strong'
+        };
     }
 
     /**
