@@ -1546,14 +1546,44 @@ export class RetirementSimulator {
      */
     calculateHousingCosts(inputs, homeValue, netIncome) {
         const monthlyNetIncome = netIncome / 12;
+        let totalHousingCosts = 0;
 
-        if (homeValue > 0) {
-            // Current reality: Australians pay 46.2% of income on mortgage (2025 data)
-            return monthlyNetIncome * 0.462;
+        // 1. Primary residence mortgage payment (actual user input)
+        if (inputs.monthlyMortgagePayment && inputs.monthlyMortgagePayment > 0) {
+            totalHousingCosts += inputs.monthlyMortgagePayment;
+        } else if (homeValue > 0) {
+            // Fallback: estimate based on 46.2% of income if no mortgage payment provided
+            totalHousingCosts += monthlyNetIncome * 0.462;
         } else {
-            // Assume renting - typically 25-35% of income
-            return monthlyNetIncome * 0.30;
+            // Renting: typically 25-35% of income
+            totalHousingCosts += monthlyNetIncome * 0.30;
         }
+
+        // 2. Investment property costs (if applicable)
+        if (inputs.hasInvestmentProperty && inputs.investmentPropertyLoan > 0) {
+            // Calculate investment property mortgage payment
+            const loanAmount = inputs.investmentPropertyLoan;
+            const annualRate = inputs.investmentPropertyRate || 0.062; // Default 6.2%
+            const monthlyRate = annualRate / 12;
+            const loanTermYears = 30; // Standard Australian mortgage term
+            const numPayments = loanTermYears * 12;
+
+            if (monthlyRate > 0 && loanAmount > 0) {
+                // Standard mortgage payment formula
+                const investmentMortgagePayment = loanAmount *
+                    (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
+                    (Math.pow(1 + monthlyRate, numPayments) - 1);
+
+                totalHousingCosts += investmentMortgagePayment;
+
+                // Subtract rental income (weekly rent × 4.33 for monthly)
+                const weeklyRent = inputs.weeklyRentalIncome || 0;
+                const monthlyRentalIncome = weeklyRent * 4.33;
+                totalHousingCosts -= monthlyRentalIncome;
+            }
+        }
+
+        return Math.max(0, totalHousingCosts); // Ensure non-negative
     }
 
     /**
@@ -1802,10 +1832,41 @@ export class RetirementSimulator {
     }
 
     getHousingDescription(inputs, homeValue) {
-        if (homeValue > 0) {
-            return `Mortgage payments (46.2% of income - current Australian average)`;
+        const components = [];
+
+        // Primary residence
+        if (inputs.monthlyMortgagePayment && inputs.monthlyMortgagePayment > 0) {
+            components.push(`Home mortgage: $${inputs.monthlyMortgagePayment.toFixed(0)}/month`);
+        } else if (homeValue > 0) {
+            components.push(`Home mortgage (estimated at 46.2% of income)`);
+        } else {
+            components.push(`Rental payments (30% of income)`);
         }
-        return 'Rental payments (30% of income)';
+
+        // Investment property
+        if (inputs.hasInvestmentProperty && inputs.investmentPropertyLoan > 0) {
+            const loanAmount = inputs.investmentPropertyLoan;
+            const annualRate = inputs.investmentPropertyRate || 0.062;
+            const monthlyRate = annualRate / 12;
+            const numPayments = 30 * 12; // 30 years
+
+            if (monthlyRate > 0 && loanAmount > 0) {
+                const investmentMortgagePayment = loanAmount *
+                    (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
+                    (Math.pow(1 + monthlyRate, numPayments) - 1);
+
+                components.push(`Investment property mortgage: $${investmentMortgagePayment.toFixed(0)}/month`);
+
+                // Rental income
+                const weeklyRent = inputs.weeklyRentalIncome || 0;
+                if (weeklyRent > 0) {
+                    const monthlyRentalIncome = weeklyRent * 4.33;
+                    components.push(`Less rental income: -$${monthlyRentalIncome.toFixed(0)}/month`);
+                }
+            }
+        }
+
+        return components.join(', ');
     }
 
     getChildcareDescription(dependents) {
