@@ -1,6 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Cache-clearing script
+    <script>
+        (function() {
+            // Check if the cache has already been cleared in this session
+            if (!sessionStorage.getItem('cacheCleared')) {
+                // Clear localStorage
+                localStorage.clear();
+
+                // Clear cookies
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i];
+                    const eqPos = cookie.indexOf("=");
+                    const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                }
+
+                // Mark cache as cleared for this session
+                sessionStorage.setItem('cacheCleared', 'true');
+
+                // Force a hard reload
+                location.reload(true);
+            }
+        })();
+    </script>
+    -->
+
     <!-- Google Analytics - Silent loading with background retry -->
     <script>
         // Load Google Analytics with silent failure and retry mechanism
@@ -484,17 +511,194 @@
                     </div>
                     <div>
                         <div class="label-with-tooltip">
-                            <label for="dependents" class="text-sm font-medium text-gray-700">Financial Dependents</label>
+                            <label class="text-sm font-medium text-gray-700">Financial Dependents</label>
                             <div class="tooltip">
                                 <span class="tooltip-icon" aria-label="Dependents information">i</span>
                                 <span class="tooltiptext">
                                     <strong>Financial Dependents</strong>
-                                    Number of people relying on your income (children, elderly parents). More dependents reduce risk tolerance as you need more stable income sources.
-                                    <div class="tooltip-example">Example: 2 school-age children requiring education funding</div>
+                                    People relying on your income with varying costs and contribution levels. Specify your percentage contribution - others may include: government support (NDIS, Age Pension), other family members, child support, charity assistance, or the dependent's own resources.
+                                    <div class="tooltip-example">Example: Elderly parent in home care - you pay 30%, government covers 50%, other siblings contribute 20%</div>
                                 </span>
                             </div>
                         </div>
-                        <input type="number" id="dependents" value="2" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+
+
+                        <!-- Simple dependent count input -->
+                        <div class="mt-2">
+                            <label for="totalDependentsCount" class="block text-sm font-medium text-gray-700">Number of Financial Dependents</label>
+                            <input type="number" id="totalDependentsCount" value="0" min="0" max="20" class="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Enter a number greater than 0 to see detailed breakdown options</p>
+                        </div>
+
+                        <!-- Dependent Summary (when collapsed) -->
+                        <div id="dependentSummarySection" class="mt-4 p-3 border rounded-lg bg-blue-50 hidden cursor-pointer" onclick="showDependentDetails()">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h4 class="text-sm font-semibold text-gray-800">Financial Dependents Summary</h4>
+                                    <div id="dependentSummaryText" class="text-xs text-gray-600 mt-1">Click to edit categories</div>
+                                </div>
+                                <div class="text-xs text-blue-600 font-medium">Edit ✏️</div>
+                            </div>
+                        </div>
+
+                        <!-- Enhanced Dependent Categories with Contribution % (collapsible) -->
+                        <div id="dependentDetailsSection" class="mt-4 space-y-3 p-4 border rounded-lg bg-gray-50 hidden">
+                            <div class="mb-3 pb-2 border-b border-gray-300 flex justify-between items-center">
+                                <div>
+                                    <h4 class="text-sm font-semibold text-gray-800">Dependent Breakdown by Category</h4>
+                                    <p class="text-xs text-gray-600">Specify count and your contribution percentage for each category</p>
+                                </div>
+                                <div class="flex gap-3">
+                                    <button type="button" onclick="showAllCategories()" class="text-xs text-gray-600 hover:text-gray-800 font-medium">
+                                        Show All
+                                    </button>
+                                    <button type="button" onclick="collapseDependentDetails()" class="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                                        Collapse ↑
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Children 0-5 years -->
+                            <div id="childrenUnder5Row" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
+                                <div class="col-span-6">
+                                    <label class="text-sm font-medium text-gray-700">Children (0-5 years)</label>
+                                    <p class="text-xs text-gray-500">Childcare ~$135/day</p>
+                                </div>
+                                <div class="col-span-2 text-center">
+                                    <label class="text-xs text-gray-600">Count</label>
+                                    <input type="number" id="childrenUnder5" value="0" min="0" max="10" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-3 text-center">
+                                    <label class="text-xs text-gray-600">Your %</label>
+                                    <input type="number" id="childrenUnder5Percent" value="70" min="0" max="100" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-1 text-xs text-gray-500">%</div>
+                            </div>
+
+                            <!-- Children 6-12 years -->
+                            <div id="childrenPrimaryRow" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
+                                <div class="col-span-6">
+                                    <label class="text-sm font-medium text-gray-700">Children (6-12 years)</label>
+                                    <p class="text-xs text-gray-500">School, activities ~$800/month</p>
+                                </div>
+                                <div class="col-span-2 text-center">
+                                    <input type="number" id="childrenPrimary" value="0" min="0" max="10" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-3 text-center">
+                                    <input type="number" id="childrenPrimaryPercent" value="70" min="0" max="100" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-1 text-xs text-gray-500">%</div>
+                            </div>
+
+                            <!-- Teenagers 13-18 years -->
+                            <div id="teenagersRow" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
+                                <div class="col-span-6">
+                                    <label class="text-sm font-medium text-gray-700">Teenagers (13-18 years)</label>
+                                    <p class="text-xs text-gray-500">Technology, activities ~$600/month</p>
+                                </div>
+                                <div class="col-span-2 text-center">
+                                    <input type="number" id="teenagers" value="0" min="0" max="10" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-3 text-center">
+                                    <input type="number" id="teenagersPercent" value="80" min="0" max="100" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-1 text-xs text-gray-500">%</div>
+                            </div>
+
+                            <!-- Adult children with disabilities -->
+                            <div id="adultDisabledRow" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
+                                <div class="col-span-6">
+                                    <label class="text-sm font-medium text-gray-700">Adult Children with Disabilities</label>
+                                    <p class="text-xs text-gray-500">NDIS covers most, your extras</p>
+                                </div>
+                                <div class="col-span-2 text-center">
+                                    <input type="number" id="adultDisabled" value="0" min="0" max="10" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-3 text-center">
+                                    <input type="number" id="adultDisabledPercent" value="20" min="0" max="100" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-1 text-xs text-gray-500">%</div>
+                            </div>
+
+                            <!-- Elderly parents - independent -->
+                            <div id="elderlyIndependentRow" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
+                                <div class="col-span-6">
+                                    <label class="text-sm font-medium text-gray-700">Elderly Parents - Independent</label>
+                                    <p class="text-xs text-gray-500">Occasional support ~$200/month</p>
+                                </div>
+                                <div class="col-span-2 text-center">
+                                    <input type="number" id="elderlyIndependent" value="0" min="0" max="10" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-3 text-center">
+                                    <input type="number" id="elderlyIndependentPercent" value="50" min="0" max="100" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-1 text-xs text-gray-500">%</div>
+                            </div>
+
+                            <!-- Elderly parents - home care -->
+                            <div id="elderlyHomeCareRow" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
+                                <div class="col-span-6">
+                                    <label class="text-sm font-medium text-gray-700">Elderly Parents - Home Care</label>
+                                    <p class="text-xs text-gray-500">Gov't pays most, extras ~$400/month</p>
+                                </div>
+                                <div class="col-span-2 text-center">
+                                    <input type="number" id="elderlyHomeCare" value="0" min="0" max="10" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-3 text-center">
+                                    <input type="number" id="elderlyHomeCarePercent" value="30" min="0" max="100" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-1 text-xs text-gray-500">%</div>
+                            </div>
+
+                            <!-- Elderly parents - residential care -->
+                            <div id="elderlyResidentialRow" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
+                                <div class="col-span-6">
+                                    <label class="text-sm font-medium text-gray-700">Elderly Parents - Residential Care</label>
+                                    <p class="text-xs text-gray-500">High cost, often shared among siblings</p>
+                                </div>
+                                <div class="col-span-2 text-center">
+                                    <input type="number" id="elderlyResidential" value="0" min="0" max="10" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-3 text-center">
+                                    <input type="number" id="elderlyResidentialPercent" value="40" min="0" max="100" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-1 text-xs text-gray-500">%</div>
+                            </div>
+
+                            <!-- Other dependents -->
+                            <div id="otherDependentsRow" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
+                                <div class="col-span-6">
+                                    <label class="text-sm font-medium text-gray-700">Other Dependents</label>
+                                    <p class="text-xs text-gray-500">Siblings, relatives, etc.</p>
+                                </div>
+                                <div class="col-span-2 text-center">
+                                    <input type="number" id="otherDependents" value="0" min="0" max="10" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-3 text-center">
+                                    <input type="number" id="otherDependentsPercent" value="60" min="0" max="100" class="w-full rounded border-gray-300 text-sm">
+                                </div>
+                                <div class="col-span-1 text-xs text-gray-500">%</div>
+                            </div>
+
+                            <!-- Total calculation display -->
+                            <div class="pt-3 border-t border-gray-300 bg-white p-2 rounded">
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span class="font-medium text-gray-700">Total Dependents:</span>
+                                        <span id="totalDependents" class="font-bold text-blue-600 ml-1">2</span>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-gray-700">Your Monthly Cost:</span>
+                                        <span id="yourMonthlyCost" class="font-bold text-red-600 ml-1">$960</span>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">
+                                    <div>Total system cost: <span id="totalSystemCost">$1,200/month</span> | Your share: <span id="yourSharePercent">80%</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden field for backward compatibility -->
+                        <input type="hidden" id="dependents" value="2">
                     </div>
                 </div>
             </div>
@@ -1145,7 +1349,7 @@
         <!-- Risk Analysis Tab -->
         <div id="riskAnalysis-tab" class="tab-content p-6">
             <h2 class="text-2xl font-semibold mb-4">Risk Analysis</h2>
-            <div id="riskAnalysisContent" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div id="riskAnalysisContent" class="w-full">
                 <!-- Risk analysis will be populated -->
             </div>
         </div>
@@ -1179,12 +1383,15 @@
                 </div>
             </div>
 
+            <!-- Monte Carlo Narrative Explanation -->
+            <div id="monteCarloNarrative" class="hidden"></div>
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
+                <div id="fanChartContainer">
                     <h3 class="text-lg font-semibold mb-2">Portfolio Balance Over Time</h3>
                     <canvas id="fanChart"></canvas>
                 </div>
-                <div>
+                <div id="histChartContainer">
                     <h3 class="text-lg font-semibold mb-2">Final Balance Distribution</h3>
                     <canvas id="histChart"></canvas>
                 </div>
@@ -1315,23 +1522,23 @@
                 <div>
                     <h3 class="font-semibold text-gray-900 mb-3">Key Features</h3>
                     <ul class="text-sm text-gray-600 space-y-1">
-                        <li>• Superannuation growth projections</li>
-                        <li>• Age pension eligibility calculator</li>
-                        <li>• Investment property analysis</li>
-                        <li>• Healthcare & aged care costs</li>
-                        <li>• Monte Carlo risk simulation</li>
-                        <li>• Dynamic asset allocation</li>
+                        <li>Superannuation growth projections</li>
+                        <li>Age pension eligibility calculator</li>
+                        <li>Investment property analysis</li>
+                        <li>Healthcare & aged care costs</li>
+                        <li>Monte Carlo risk simulation</li>
+                        <li>Dynamic asset allocation</li>
                     </ul>
                 </div>
                 <div>
                     <h3 class="font-semibold text-gray-900 mb-3">Australian Standards</h3>
                     <ul class="text-sm text-gray-600 space-y-1">
-                        <li>• Current 2024-25 tax brackets</li>
-                        <li>• Latest ASFA retirement standards</li>
-                        <li>• Services Australia pension rules</li>
-                        <li>• Capital gains tax calculations</li>
-                        <li>• Franking credits included</li>
-                        <li>• Negative gearing modeling</li>
+                        <li>Current 2025-26 tax brackets</li>
+                        <li>Latest ASFA retirement standards</li>
+                        <li>Services Australia pension rules</li>
+                        <li>Capital gains tax calculations</li>
+                        <li>Franking credits included</li>
+                        <li>Negative gearing modeling</li>
                     </ul>
                 </div>
             </div>

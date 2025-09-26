@@ -24,52 +24,276 @@ export class RetirementSimulator {
         };
     }
 
-    // Risk profiling calculations
+    // Enhanced Risk profiling calculations with dynamic factors
     calculateRiskCapacity(inputs) {
         let score = 50; // Base score
 
-        // Age factor (younger = higher capacity)
+        // Age factor with exponential time horizon weighting
         const age = inputs.yourCurrentAge;
-        if (age < 35) score += 25;
-        else if (age < 50) score += 15;
-        else if (age < 65) score += 5;
-        else score -= 10;
+        const yearsToRetirement = Math.max(1, inputs.retirementAge - age);
+        const timeHorizonFactor = Math.min(30, Math.pow(yearsToRetirement / 10, 1.2) * 10);
+        score += timeHorizonFactor;
 
-        // Income stability
+        // Portfolio-to-income ratio analysis
         const totalIncome = inputs.yourSalary + inputs.partnerSalary;
-        if (totalIncome > 200000) score += 20;
+        const currentAssets = inputs.yourCurrentSuper + inputs.partnerCurrentSuper +
+                            inputs.currentSavings + inputs.currentStocks;
+        const portfolioToIncomeRatio = totalIncome > 0 ? currentAssets / totalIncome : 0;
+
+        if (portfolioToIncomeRatio > 10) score += 25; // Very high capacity
+        else if (portfolioToIncomeRatio > 5) score += 20;
+        else if (portfolioToIncomeRatio > 3) score += 15;
+        else if (portfolioToIncomeRatio > 1) score += 10;
+        else if (portfolioToIncomeRatio > 0.5) score += 5;
+        else score -= 10; // Low asset base relative to income
+
+        // Enhanced income stability scoring
+        if (totalIncome > 300000) score += 25;
+        else if (totalIncome > 200000) score += 20;
+        else if (totalIncome > 150000) score += 15;
         else if (totalIncome > 100000) score += 10;
+        else if (totalIncome > 75000) score += 8;
         else if (totalIncome > 50000) score += 5;
+        else score -= 5;
 
-        // Emergency fund
+        // Emergency fund with graduated scoring
         const emergencyFund = inputs.hasEmergencyFund;
-        if (emergencyFund === 'full') score += 15;
-        else if (emergencyFund === 'partial') score += 10;
-        else if (emergencyFund === 'minimal') score += 5;
-        else score -= 15;
+        if (emergencyFund === 'full') score += 20; // 6+ months
+        else if (emergencyFund === 'partial') score += 12; // 3-6 months
+        else if (emergencyFund === 'minimal') score += 5; // 1-3 months
+        else score -= 20; // No emergency fund
 
-        // Debt burden
+        // Enhanced debt burden analysis
         const debtLevel = inputs.hasDebt;
-        if (debtLevel === 'none') score += 15;
-        else if (debtLevel === 'minimal') score += 5;
-        else if (debtLevel === 'moderate') score -= 10;
-        else score -= 20;
+        if (debtLevel === 'none') score += 20;
+        else if (debtLevel === 'minimal') score += 8; // <10% of income
+        else if (debtLevel === 'moderate') score -= 12; // 10-30% of income
+        else score -= 25; // >30% of income
 
-        // Dependents
-        score -= inputs.dependents * 5;
+        // Dependents with scaled impact
+        const dependentPenalty = Math.min(inputs.dependents * 7, 25); // Cap penalty
+        score -= dependentPenalty;
+
+        // Healthcare cost buffer (age-based)
+        if (age > 55) {
+            const healthcareFactor = inputs.hasEmergencyFund === 'full' ? 5 : -10;
+            score += healthcareFactor;
+        }
 
         return clamp(score, 0, 100);
     }
 
-    calculateRiskRequirement(inputs) {
-        const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+    calculateRiskRequirement(inputs, monteCarloResults = null) {
+        const yearsToRetirement = Math.max(1, inputs.retirementAge - inputs.yourCurrentAge);
         const targetAssets = inputs.asfaComfortable * 25; // 4% rule estimate
-        const currentAssets = inputs.yourCurrentSuper + inputs.partnerCurrentSuper + inputs.currentSavings + inputs.currentStocks;
+        const currentAssets = inputs.yourCurrentSuper + inputs.partnerCurrentSuper +
+                            inputs.currentSavings + inputs.currentStocks;
 
-        const required = (targetAssets / currentAssets - 1) / yearsToRetirement * 100;
-        const riskRequired = clamp((required - 3) * 10, 0, 100); // 3% risk-free rate
+        // Base calculation using required return approach
+        const growthNeeded = targetAssets / Math.max(1, currentAssets);
+        const requiredAnnualReturn = Math.pow(growthNeeded, 1 / yearsToRetirement) - 1;
+        const riskFreeRate = 0.03; // 3% assumed risk-free rate
+        const excessReturnNeeded = Math.max(0, requiredAnnualReturn - riskFreeRate);
 
-        return riskRequired;
+        let baseRiskScore = Math.min(100, excessReturnNeeded * 1000); // Scale to 0-100
+
+        // Enhanced risk requirement from Monte Carlo results if available
+        if (monteCarloResults && monteCarloResults.successRate !== undefined) {
+            const successRate = monteCarloResults.successRate;
+
+            // Adjust risk requirement based on success probability
+            if (successRate < 0.5) {
+                baseRiskScore += 30; // Need much higher risk for low success rate
+            } else if (successRate < 0.7) {
+                baseRiskScore += 20; // Moderate increase needed
+            } else if (successRate < 0.85) {
+                baseRiskScore += 10; // Slight increase needed
+            } else if (successRate > 0.95) {
+                baseRiskScore = Math.max(0, baseRiskScore - 15); // Can afford less risk
+            }
+
+            // Factor in shortfall analysis
+            if (monteCarloResults.medianBalance && monteCarloResults.medianBalance < 0) {
+                const shortfallMagnitude = Math.abs(monteCarloResults.medianBalance);
+                const shortfallPenalty = Math.min(25, shortfallMagnitude / targetAssets * 50);
+                baseRiskScore += shortfallPenalty;
+            }
+
+            // Consider portfolio depletion probability
+            if (monteCarloResults.depletionProbability && monteCarloResults.depletionProbability > 0.3) {
+                baseRiskScore += monteCarloResults.depletionProbability * 30;
+            }
+        }
+
+        // Adjust for age - older individuals may need lower risk despite requirements
+        const age = inputs.yourCurrentAge;
+        if (age > 55) {
+            const ageAdjustment = Math.min(15, (age - 55) * 0.8);
+            baseRiskScore = Math.max(0, baseRiskScore - ageAdjustment);
+        }
+
+        return clamp(baseRiskScore, 0, 100);
+    }
+
+    // Intelligent risk alignment assessment with specific recommendations
+    analyzeRiskAlignment(capacity, tolerance, requirement, inputs, monteCarloResults = null) {
+        const capacityTolerance = Math.abs(capacity - tolerance);
+        const capacityRequirement = Math.abs(capacity - requirement);
+        const toleranceRequirement = Math.abs(tolerance - requirement);
+        const maxDifference = Math.max(capacityTolerance, capacityRequirement, toleranceRequirement);
+
+        let assessment = {
+            alignment: 'well-aligned',
+            severity: 'low',
+            recommendations: [],
+            riskWarnings: [],
+            opportunities: []
+        };
+
+        // Determine alignment severity
+        if (maxDifference > 40) {
+            assessment.alignment = 'severely-misaligned';
+            assessment.severity = 'high';
+        } else if (maxDifference > 25) {
+            assessment.alignment = 'moderately-misaligned';
+            assessment.severity = 'medium';
+        } else if (maxDifference > 15) {
+            assessment.alignment = 'slightly-misaligned';
+            assessment.severity = 'low';
+        }
+
+        // Capacity vs Tolerance analysis
+        if (capacity > tolerance + 20) {
+            assessment.recommendations.push({
+                type: 'tolerance-education',
+                priority: 'medium',
+                title: 'Consider Increasing Risk Tolerance',
+                description: `Your financial capacity (${capacity}%) is significantly higher than your comfort level (${tolerance}%). You may be missing growth opportunities due to conservative preferences.`,
+                action: 'Review investment education materials and consider gradually increasing equity allocation.'
+            });
+        } else if (tolerance > capacity + 20) {
+            assessment.riskWarnings.push({
+                type: 'capacity-constraint',
+                priority: 'high',
+                title: 'Risk Tolerance Exceeds Capacity',
+                description: `Your desired risk level (${tolerance}%) may be too aggressive given your financial capacity (${capacity}%).`,
+                action: 'Build emergency fund, reduce debt, or lower risk expectations to match financial reality.'
+            });
+        }
+
+        // Requirement vs Capacity/Tolerance analysis
+        if (requirement > Math.max(capacity, tolerance) + 15) {
+            assessment.riskWarnings.push({
+                type: 'goal-mismatch',
+                priority: 'high',
+                title: 'Goals Require Higher Risk Than Comfortable',
+                description: `Achieving your retirement goals requires ${requirement}% risk level, but your capacity (${capacity}%) or tolerance (${tolerance}%) may limit this.`,
+                action: 'Consider extending retirement age, increasing contributions, or moderating lifestyle goals.'
+            });
+        } else if (requirement < Math.min(capacity, tolerance) - 20) {
+            assessment.opportunities.push({
+                type: 'conservative-opportunity',
+                priority: 'low',
+                title: 'Conservative Strategy May Be Sufficient',
+                description: `Your goals only require ${requirement}% risk level, well below your capacity (${capacity}%) and tolerance (${tolerance}%).`,
+                action: 'Consider more conservative allocation or explore additional financial goals.'
+            });
+        }
+
+        // Monte Carlo specific insights
+        if (monteCarloResults) {
+            if (monteCarloResults.successRate < 0.6) {
+                assessment.riskWarnings.push({
+                    type: 'low-success-rate',
+                    priority: 'high',
+                    title: 'Low Retirement Success Probability',
+                    description: `Monte Carlo analysis shows only ${(monteCarloResults.successRate * 100).toFixed(0)}% chance of meeting goals.`,
+                    action: 'Increase contributions, extend retirement age, or consider more aggressive allocation if capacity allows.'
+                });
+            }
+
+            if (monteCarloResults.sequenceRisk && monteCarloResults.sequenceRisk > 0.3) {
+                assessment.riskWarnings.push({
+                    type: 'sequence-risk',
+                    priority: 'medium',
+                    title: 'High Sequence of Returns Risk',
+                    description: 'Early retirement years show vulnerability to market downturns.',
+                    action: 'Consider bond tent strategy or delayed retirement to reduce sequence risk.'
+                });
+            }
+        }
+
+        // Age-specific recommendations
+        const age = inputs.yourCurrentAge;
+        const yearsToRetirement = inputs.retirementAge - age;
+
+        if (yearsToRetirement < 10 && tolerance > 70) {
+            assessment.recommendations.push({
+                type: 'pre-retirement-derisking',
+                priority: 'medium',
+                title: 'Consider Pre-Retirement De-Risking',
+                description: `With ${yearsToRetirement} years to retirement, high risk tolerance may need adjustment.`,
+                action: 'Gradually reduce equity allocation as retirement approaches (bond tent strategy).'
+            });
+        }
+
+        if (age < 40 && capacity > 70 && tolerance < 50) {
+            assessment.opportunities.push({
+                type: 'young-conservative',
+                priority: 'medium',
+                title: 'Time Horizon Advantage Underutilized',
+                description: 'Your young age and high capacity suggest you can afford more growth-oriented investments.',
+                action: 'Consider education on long-term investing benefits and dollar-cost averaging.'
+            });
+        }
+
+        return assessment;
+    }
+
+    // Risk scenario analysis for stress testing
+    calculateRiskScenarios(inputs, monteCarloResults) {
+        const scenarios = [];
+
+        // Market crash scenario (2008 GFC style)
+        scenarios.push({
+            name: 'Market Crash',
+            description: '40% portfolio decline in first retirement year',
+            impact: 'High negative impact on early retirement cash flows',
+            probability: '~10-15% chance in any given decade',
+            mitigation: 'Maintain 2-3 years of expenses in cash/bonds'
+        });
+
+        // High inflation scenario
+        scenarios.push({
+            name: 'High Inflation',
+            description: '6%+ annual inflation for extended period',
+            impact: 'Erodes purchasing power, especially healthcare costs',
+            probability: '~20% based on historical patterns',
+            mitigation: 'Include inflation-protected securities (TIPS) and real assets'
+        });
+
+        // Longevity risk
+        const lifeExpectancy = Math.max(inputs.yourLifespan, inputs.partnerLifespan);
+        if (lifeExpectancy > 90) {
+            scenarios.push({
+                name: 'Longevity Risk',
+                description: `Living to ${lifeExpectancy}+ requires 30+ year portfolio`,
+                impact: 'Portfolio must last longer than typical assumptions',
+                probability: '25-30% chance of one spouse living to 90+',
+                mitigation: 'Annuities for longevity insurance, maintain equity exposure'
+            });
+        }
+
+        // Healthcare cost explosion
+        scenarios.push({
+            name: 'Healthcare Costs',
+            description: 'Healthcare inflation exceeds 7% annually',
+            impact: 'Significant drain on retirement resources',
+            probability: '~40% based on recent trends',
+            mitigation: 'Health savings accounts, aged care insurance, healthy lifestyle'
+        });
+
+        return scenarios;
     }
 
     // Dynamic allocation calculations
@@ -395,15 +619,24 @@ export class RetirementSimulator {
         const propertyHistory = [];
 
         // Pre-retirement simulation
-        const simulationEndYear = Math.max(yearsToRetirement, inputs.yourLifespan - inputs.yourCurrentAge, inputs.partnerLifespan - inputs.partnerCurrentAge);
+        const simulationEndYear = inputs.isSingleCalculation ?
+            Math.max(yearsToRetirement, inputs.yourLifespan - inputs.yourCurrentAge) :
+            Math.max(yearsToRetirement, inputs.yourLifespan - inputs.yourCurrentAge, inputs.partnerLifespan - inputs.partnerCurrentAge);
 
         for (let year = 1; year <= simulationEndYear; year++) {
             const yourCurrentAge = inputs.yourCurrentAge + year;
-            const partnerCurrentAge = inputs.partnerCurrentAge + year;
+            const partnerCurrentAge = inputs.isSingleCalculation ? 0 : inputs.partnerCurrentAge + year;
 
-            // Stop simulation if both have passed away
-            if (yourCurrentAge > inputs.yourLifespan && partnerCurrentAge > inputs.partnerLifespan) {
-                break;
+            // Stop simulation based on single vs couple status
+            if (inputs.isSingleCalculation) {
+                if (yourCurrentAge > inputs.yourLifespan) {
+                    break;
+                }
+            } else {
+                // Stop simulation if both have passed away
+                if (yourCurrentAge > inputs.yourLifespan && partnerCurrentAge > inputs.partnerLifespan) {
+                    break;
+                }
             }
 
             // Dynamic allocation
@@ -569,14 +802,24 @@ export class RetirementSimulator {
         for (let i = 0; i < yearsInRetirement; i++) {
             const retirementYear = yearsToRetirement + i;
             const yourCurrentAge = inputs.yourCurrentAge + retirementYear;
-            const partnerCurrentAge = inputs.partnerCurrentAge + retirementYear;
+            const partnerCurrentAge = inputs.isSingleCalculation ? 0 : inputs.partnerCurrentAge + retirementYear;
 
-            // Check if both partners have passed away
-            if (yourCurrentAge > inputs.yourLifespan && partnerCurrentAge > inputs.partnerLifespan) {
-                break;
+            // Check if simulation should end based on single vs couple status
+            if (inputs.isSingleCalculation) {
+                if (yourCurrentAge > inputs.yourLifespan) {
+                    break;
+                }
+            } else {
+                // Check if both partners have passed away
+                if (yourCurrentAge > inputs.yourLifespan && partnerCurrentAge > inputs.partnerLifespan) {
+                    break;
+                }
             }
 
-            const isCouple = yourCurrentAge <= inputs.yourLifespan && partnerCurrentAge <= inputs.partnerLifespan;
+            // Determine couple status: must not be single calculation AND both partners must be alive
+            const isCouple = !inputs.isSingleCalculation &&
+                           yourCurrentAge <= inputs.yourLifespan &&
+                           partnerCurrentAge <= inputs.partnerLifespan;
 
             // Dynamic allocation in retirement
             const allocation = inputs.useGlidePath ?
@@ -619,14 +862,80 @@ export class RetirementSimulator {
                 propertyEquity = currentValue - remainingLoan;
             }
 
-            // Calculate base income with randomization (+/- $25,000)
-            const asfaWithInflation = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear);
-            let baseIncomeNeeded = asfaWithInflation;
+            // Enhanced realistic expense calculation using cash flow analysis
+            let baseIncomeNeeded;
 
-            // Add randomization if using Monte Carlo simulation
             if (useRandomReturns) {
-                const randomVariation = (Math.random() - 0.5) * 2 * 25000; // +/- $25,000
-                baseIncomeNeeded = Math.max(0, asfaWithInflation + randomVariation);
+                // Use realistic expense analysis with proper error handling
+                try {
+                    const cashFlowAnalysis = this.calculateCashFlowAnalysis(inputs);
+                    const currentExpenses = cashFlowAnalysis.expenses || {};
+
+                    // Safe expense extraction with fallbacks
+                    const housingExpense = currentExpenses.housing?.monthlyTotal || inputs.monthlyMortgagePayment || 3000;
+                    const livingExpense = currentExpenses.living?.monthlyTotal || 2500;
+                    const mortgagePayment = currentExpenses.housing?.mortgagePayment || inputs.monthlyMortgagePayment || 0;
+
+                    // Calculate retirement expenses (many costs reduce in retirement)
+                    const retirementHousing = Math.max(
+                        housingExpense * 0.6, // Assume 40% reduction (no mortgage in many cases)
+                        housingExpense - mortgagePayment // Or just remove mortgage
+                    );
+                    const retirementLiving = livingExpense * 0.85; // 15% reduction in living costs
+                    const retirementChildcare = 0; // No childcare in retirement
+
+                    const baseMonthlyExpenses = retirementHousing + retirementLiving + retirementChildcare;
+                    const baseAnnualExpenses = baseMonthlyExpenses * 12;
+
+                    // Apply inflation to get expenses in retirement year
+                    const expensesWithInflation = baseAnnualExpenses * Math.pow(1 + inputs.inflation, retirementYear);
+
+                    // Add realistic randomization based on expense categories
+                    const housingVariation = retirementHousing * 12 * (Math.random() - 0.5) * 0.3; // ±30% housing variation
+                    const livingVariation = retirementLiving * 12 * (Math.random() - 0.5) * 0.4; // ±40% living variation
+                    const discretionaryVariation = (Math.random() - 0.5) * 20000; // ±$10,000 discretionary spending
+
+                    baseIncomeNeeded = Math.max(
+                        expensesWithInflation + housingVariation + livingVariation + discretionaryVariation,
+                        inputs.asfaComfortable * 0.7 * Math.pow(1 + inputs.inflation, retirementYear) // Minimum safety floor at 70% ASFA
+                    );
+                } catch (error) {
+                    console.warn('Cash flow analysis failed in Monte Carlo, using ASFA fallback:', error);
+                    // Fallback to enhanced ASFA with variation
+                    const asfaWithInflation = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear);
+                    const randomVariation = (Math.random() - 0.5) * 2 * 25000; // ±$25,000 fallback
+                    baseIncomeNeeded = Math.max(0, asfaWithInflation + randomVariation);
+                }
+            } else {
+                // For deterministic runs, use more realistic baseline with error handling
+                try {
+                    const cashFlowAnalysis = this.calculateCashFlowAnalysis(inputs);
+                    const currentExpenses = cashFlowAnalysis.expenses || {};
+
+                    // Safe expense extraction with fallbacks
+                    const housingExpense = currentExpenses.housing?.monthlyTotal || inputs.monthlyMortgagePayment || 3000;
+                    const livingExpense = currentExpenses.living?.monthlyTotal || 2500;
+                    const mortgagePayment = currentExpenses.housing?.mortgagePayment || inputs.monthlyMortgagePayment || 0;
+
+                    // Conservative retirement expense estimate
+                    const retirementHousing = Math.max(
+                        housingExpense * 0.7, // 30% reduction
+                        housingExpense - mortgagePayment
+                    );
+                    const retirementLiving = livingExpense * 0.9; // 10% reduction
+                    const baseMonthlyExpenses = retirementHousing + retirementLiving;
+                    const baseAnnualExpenses = baseMonthlyExpenses * 12;
+
+                    // Apply inflation
+                    baseIncomeNeeded = Math.max(
+                        baseAnnualExpenses * Math.pow(1 + inputs.inflation, retirementYear),
+                        inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear) // Keep ASFA as minimum
+                    );
+                } catch (error) {
+                    console.warn('Cash flow analysis failed in deterministic calculation, using ASFA fallback:', error);
+                    // Fallback to standard ASFA calculation
+                    baseIncomeNeeded = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear);
+                }
             }
 
             const totalCostWithHealthcare = baseIncomeNeeded + healthcareCost + agedCareCost;
@@ -1109,6 +1418,484 @@ export class RetirementSimulator {
                 }
             }
         ];
+    }
+
+    // ========== CASH FLOW ANALYSIS ENGINE ==========
+
+    /**
+     * Comprehensive cash flow analysis based on Australian household expense data
+     * @param {Object} inputs - User financial inputs
+     * @returns {Object} Detailed cash flow breakdown and constraints
+     */
+    calculateCashFlowAnalysis(inputs) {
+        const grossIncome = (inputs.yourSalary || 0) + (inputs.partnerSalary || 0);
+        const netIncome = this.calculateNetIncome(grossIncome, inputs);
+
+        // Calculate comprehensive expenses
+        const expenses = this.calculateHouseholdExpenses(inputs, netIncome);
+
+        // Calculate available cash flow
+        const monthlyDisposableIncome = netIncome / 12 - expenses.totalMonthly;
+        const annualDisposableIncome = monthlyDisposableIncome * 12;
+
+        // Calculate savings constraints and opportunities
+        const savingsAnalysis = this.analyzeSavingsCapacity(inputs, monthlyDisposableIncome, expenses);
+
+        return {
+            income: {
+                grossAnnual: grossIncome,
+                netAnnual: netIncome,
+                netMonthly: netIncome / 12,
+                taxRate: ((grossIncome - netIncome) / grossIncome) * 100
+            },
+            expenses: expenses,
+            cashFlow: {
+                monthlyDisposableIncome: monthlyDisposableIncome,
+                monthlyDisposable: monthlyDisposableIncome, // Keep both for compatibility
+                annualDisposable: annualDisposableIncome,
+                disposablePercent: (annualDisposableIncome / netIncome) * 100,
+                status: this.getCashFlowStatus(monthlyDisposableIncome),
+                housingStressRatio: (expenses.housing.monthlyTotal / (netIncome / 12))
+            },
+            constraints: {
+                maxMonthlySavings: Math.max(0, monthlyDisposableIncome),
+                maxAnnualSavings: Math.max(0, annualDisposableIncome),
+                minExpenseReduction: monthlyDisposableIncome < 0 ? Math.abs(monthlyDisposableIncome) : 0,
+                isHousingStressed: (expenses.housing.monthlyTotal / (netIncome / 12)) > 0.30
+            },
+            savingsAnalysis: savingsAnalysis, // This is what app.js expects
+            opportunities: savingsAnalysis // Keep this for backwards compatibility
+        };
+    }
+
+    /**
+     * Calculate net income after tax and Medicare levy
+     * @param {number} grossIncome - Gross annual income
+     * @param {Object} inputs - User inputs for tax calculations
+     * @returns {number} Net annual income
+     */
+    calculateNetIncome(grossIncome, inputs) {
+        // Australian tax brackets 2024-25
+        const taxBrackets = [
+            { min: 0, max: 18200, rate: 0 },
+            { min: 18201, max: 45000, rate: 0.19 },
+            { min: 45001, max: 120000, rate: 0.325 },
+            { min: 120001, max: 180000, rate: 0.37 },
+            { min: 180001, max: Infinity, rate: 0.45 }
+        ];
+
+        let tax = 0;
+        for (const bracket of taxBrackets) {
+            if (grossIncome > bracket.min) {
+                const taxableAtThisBracket = Math.min(grossIncome, bracket.max) - bracket.min + 1;
+                tax += taxableAtThisBracket * bracket.rate;
+            }
+        }
+
+        // Medicare levy (2%)
+        const medicareLevy = grossIncome * 0.02;
+
+        return grossIncome - tax - medicareLevy;
+    }
+
+    /**
+     * Calculate comprehensive household expenses based on ABS data and user inputs
+     * @param {Object} inputs - User financial inputs
+     * @param {number} netIncome - Net annual income
+     * @returns {Object} Detailed expense breakdown
+     */
+    calculateHouseholdExpenses(inputs, netIncome) {
+        const dependents = inputs.dependents || 0;
+        const homeValue = inputs.homeValue || 0;
+
+        // Base living expenses (2025 ABS data)
+        const baseLivingExpenses = this.calculateBaseLivingExpenses(dependents);
+
+        // Housing costs
+        const housingCosts = this.calculateHousingCosts(inputs, homeValue, netIncome);
+
+        // Enhanced dependent costs using detailed breakdown
+        const dependentCosts = this.calculateEnhancedDependentCosts(inputs);
+
+        // Other family-related expenses
+        const familyExpenses = this.calculateFamilyExpenses(dependents);
+
+        const totalMonthly = baseLivingExpenses + housingCosts + dependentCosts + familyExpenses;
+
+        return {
+            housing: {
+                monthlyTotal: housingCosts,
+                mortgagePayment: inputs.monthlyMortgagePayment || 0,
+                housingStressRatio: housingCosts / (netIncome / 12)
+            },
+            living: {
+                monthlyTotal: baseLivingExpenses
+            },
+            dependents: {
+                monthlyTotal: dependentCosts,
+                breakdown: this.getDependentCostBreakdown(inputs)
+            },
+            familyExpenses: {
+                monthlyTotal: familyExpenses
+            },
+            totalMonthly: totalMonthly,
+            totalAnnual: totalMonthly * 12,
+            breakdown: {
+                livingDescription: this.getLivingExpenseDescription(dependents),
+                housingDescription: this.getHousingDescription(inputs, homeValue),
+                childcareDescription: this.getChildcareDescription(dependents),
+                familyDescription: this.getFamilyExpenseDescription(dependents)
+            }
+        };
+    }
+
+    /**
+     * Calculate base living expenses using ABS household expenditure data
+     */
+    calculateBaseLivingExpenses(dependents) {
+        // ABS 2025 data: Single person $2,835/month, couple $4,118/month, +$630 per child
+        const baseCouple = 4118; // Base for couple
+        const perChild = 630; // Additional cost per child
+
+        return baseCouple + (dependents * perChild);
+    }
+
+    /**
+     * Calculate housing costs including mortgage or rent
+     */
+    calculateHousingCosts(inputs, homeValue, netIncome) {
+        const monthlyNetIncome = netIncome / 12;
+        let totalHousingCosts = 0;
+
+        // 1. Primary residence mortgage payment (actual user input)
+        if (inputs.monthlyMortgagePayment && inputs.monthlyMortgagePayment > 0) {
+            totalHousingCosts += inputs.monthlyMortgagePayment;
+        } else if (homeValue > 0) {
+            // Fallback: estimate based on 46.2% of income if no mortgage payment provided
+            totalHousingCosts += monthlyNetIncome * 0.462;
+        } else {
+            // Renting: typically 25-35% of income
+            totalHousingCosts += monthlyNetIncome * 0.30;
+        }
+
+        // 2. Investment property costs (if applicable)
+        if (inputs.hasInvestmentProperty && inputs.investmentPropertyLoan > 0) {
+            // Calculate investment property mortgage payment
+            const loanAmount = inputs.investmentPropertyLoan;
+            const annualRate = inputs.investmentPropertyRate || 0.062; // Default 6.2%
+            const monthlyRate = annualRate / 12;
+            const loanTermYears = 30; // Standard Australian mortgage term
+            const numPayments = loanTermYears * 12;
+
+            if (monthlyRate > 0 && loanAmount > 0) {
+                // Standard mortgage payment formula
+                const investmentMortgagePayment = loanAmount *
+                    (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
+                    (Math.pow(1 + monthlyRate, numPayments) - 1);
+
+                totalHousingCosts += investmentMortgagePayment;
+
+                // Subtract rental income (weekly rent × 4.33 for monthly)
+                const weeklyRent = inputs.weeklyRentalIncome || 0;
+                const monthlyRentalIncome = weeklyRent * 4.33;
+                totalHousingCosts -= monthlyRentalIncome;
+            }
+        }
+
+        return Math.max(0, totalHousingCosts); // Ensure non-negative
+    }
+
+    /**
+     * Calculate childcare costs based on current Australian rates
+     */
+    calculateChildcareCosts(dependents) {
+        if (dependents === 0) return 0;
+
+        // 2025 data: $135/day average, assuming 5 days/week for working parents
+        const dailyCost = 135;
+        const daysPerWeek = 5;
+        const weeksPerYear = 48; // Account for holidays
+        const annualPerChild = dailyCost * daysPerWeek * weeksPerYear;
+
+        // Assume government subsidy reduces cost by 30-50% on average
+        const subsidyRate = 0.40;
+        const netAnnualPerChild = annualPerChild * (1 - subsidyRate);
+
+        return (netAnnualPerChild * Math.min(dependents, 2)) / 12; // Assume max 2 in childcare simultaneously
+    }
+
+    /**
+     * Calculate additional family expenses (education, activities, larger vehicle, etc.)
+     */
+    calculateFamilyExpenses(dependents) {
+        if (dependents === 0) return 0;
+
+        // Additional costs: larger vehicle, activities, education, medical, clothing
+        const perChildMonthly = 200; // Conservative estimate for additional family costs
+        return dependents * perChildMonthly;
+    }
+
+    /**
+     * Calculate enhanced dependent costs using detailed breakdown
+     */
+    calculateEnhancedDependentCosts(inputs) {
+        if (!inputs.dependentDetails) {
+            // Fallback to old method if detailed data not available
+            return this.calculateChildcareCosts(inputs.dependents || 0);
+        }
+
+        const details = inputs.dependentDetails;
+        const monthlyCosts = {
+            childrenUnder5: 2835, // $135/day × 21 days/month (after 40% government subsidy)
+            childrenPrimary: 800,  // School, activities, after-school care
+            teenagers: 600,        // Technology, activities, pre-independence
+            adultDisabled: 500,    // Your portion after NDIS covers most
+            elderlyIndependent: 200, // Occasional support
+            elderlyHomeCare: 400,   // Your extras beyond government support
+            elderlyResidential: 1500, // Your portion of residential care
+            otherDependents: 300    // Variable support
+        };
+
+        let totalMonthlyCost = 0;
+
+        Object.keys(monthlyCosts).forEach(category => {
+            const count = details[category] || 0;
+            const percent = details[category + 'Percent'] || 0;
+
+            if (count > 0 && percent > 0) {
+                const categoryCost = count * monthlyCosts[category] * (percent / 100);
+                totalMonthlyCost += categoryCost;
+            }
+        });
+
+        return totalMonthlyCost;
+    }
+
+    /**
+     * Get detailed breakdown of dependent costs for display
+     */
+    getDependentCostBreakdown(inputs) {
+        if (!inputs.dependentDetails) {
+            return { summary: 'Childcare and basic support costs' };
+        }
+
+        const details = inputs.dependentDetails;
+        const breakdown = {};
+        const categories = {
+            childrenUnder5: 'Childcare (under 5)',
+            childrenPrimary: 'School age children (6-12)',
+            teenagers: 'Teenagers (13-18)',
+            adultDisabled: 'Adult children with disabilities',
+            elderlyIndependent: 'Independent elderly parents',
+            elderlyHomeCare: 'Elderly parents (home care)',
+            elderlyResidential: 'Elderly parents (residential care)',
+            otherDependents: 'Other dependents'
+        };
+
+        Object.keys(categories).forEach(category => {
+            const count = details[category] || 0;
+            const percent = details[category + 'Percent'] || 0;
+
+            if (count > 0) {
+                breakdown[categories[category]] = {
+                    count: count,
+                    yourContribution: `${percent}%`,
+                    category: category
+                };
+            }
+        });
+
+        return breakdown;
+    }
+
+    /**
+     * Analyze savings capacity and identify opportunities
+     */
+    analyzeSavingsCapacity(inputs, monthlyDisposableIncome, expenses) {
+        const opportunities = [];
+        const homeValue = inputs.homeValue || 0;
+        const investmentProperty = inputs.hasInvestmentProperty;
+
+        if (monthlyDisposableIncome < 0) {
+            // Negative cash flow - need drastic action
+            opportunities.push({
+                type: 'critical',
+                title: 'Immediate Action Required',
+                description: `Monthly shortfall of $${Math.abs(monthlyDisposableIncome).toFixed(0)}`,
+                suggestions: [
+                    'Consider downsizing home to reduce mortgage payments',
+                    'Reduce childcare costs (part-time work arrangement)',
+                    'Sell non-essential assets',
+                    'Debt consolidation or refinancing'
+                ]
+            });
+        } else if (monthlyDisposableIncome < 500) {
+            // Tight cash flow
+            opportunities.push({
+                type: 'tight',
+                title: 'Limited Savings Capacity',
+                description: `Only $${monthlyDisposableIncome.toFixed(0)} available monthly`,
+                suggestions: [
+                    'Focus on small, consistent contributions',
+                    'Optimize current expenses before increasing savings',
+                    'Consider government incentives (super co-contributions)',
+                    'Build emergency fund first ($1,000-2,000)'
+                ]
+            });
+        } else if (monthlyDisposableIncome < 1500) {
+            // Moderate cash flow
+            opportunities.push({
+                type: 'moderate',
+                title: 'Moderate Savings Potential',
+                description: `$${monthlyDisposableIncome.toFixed(0)} available for savings/investments`,
+                suggestions: [
+                    'Balanced approach: emergency fund + retirement savings',
+                    'Consider salary sacrificing to super',
+                    'Start small with ETF investments ($200-500/month)',
+                    'Optimize asset allocation'
+                ]
+            });
+        } else {
+            // Good cash flow
+            opportunities.push({
+                type: 'good',
+                title: 'Strong Savings Capacity',
+                description: `$${monthlyDisposableIncome.toFixed(0)} available for wealth building`,
+                suggestions: [
+                    'Maximize concessional super contributions',
+                    'Diversify investments (stocks, bonds, property)',
+                    'Consider investment property or REITs',
+                    'Tax-effective investing strategies'
+                ]
+            });
+        }
+
+        // Asset liquidation opportunities
+        if (homeValue > 500000) {
+            const downsizingSavings = this.calculateDownsizingSavings(homeValue);
+            opportunities.push({
+                type: 'asset_strategy',
+                title: 'Home Downsizing Opportunity',
+                description: `Release $${downsizingSavings.equity.toFixed(0)} equity, save $${downsizingSavings.monthlyReduction.toFixed(0)}/month`,
+                suggestions: [
+                    'Downsize to smaller property',
+                    'Move to lower-cost area',
+                    'Consider apartment vs house',
+                    'Release equity for investments'
+                ]
+            });
+        }
+
+        if (investmentProperty) {
+            opportunities.push({
+                type: 'asset_strategy',
+                title: 'Investment Property Strategy',
+                description: 'Consider selling vs holding based on cash flow needs',
+                suggestions: [
+                    'Sell if generating negative cash flow',
+                    'Use equity to improve cash flow',
+                    'Compare property vs share returns',
+                    'Consider REIT alternative'
+                ]
+            });
+        }
+
+        // Analyze savings capacity based on disposable income
+        const canIncreaseSavings = monthlyDisposableIncome > 200;
+        const hasStrongCapacity = monthlyDisposableIncome > 1000;
+        const hasTightCapacity = monthlyDisposableIncome < 500;
+
+        return {
+            canIncreaseSavings,
+            hasStrongCapacity,
+            hasTightCapacity,
+            monthlyCapacity: monthlyDisposableIncome,
+            opportunities,
+            status: monthlyDisposableIncome < 0 ? 'deficit' :
+                   monthlyDisposableIncome < 200 ? 'critical' :
+                   monthlyDisposableIncome < 500 ? 'tight' :
+                   monthlyDisposableIncome < 1000 ? 'moderate' : 'strong'
+        };
+    }
+
+    /**
+     * Calculate potential savings from downsizing home
+     */
+    calculateDownsizingSavings(currentHomeValue) {
+        const downsizeValue = currentHomeValue * 0.65; // Assume 35% reduction in home value
+        const equityRelease = currentHomeValue * 0.35; // Assume some equity release
+        const currentMortgagePayment = (currentHomeValue * 0.04) / 12; // Rough estimate
+        const newMortgagePayment = (downsizeValue * 0.04) / 12;
+        const monthlyReduction = currentMortgagePayment - newMortgagePayment;
+
+        return {
+            equity: equityRelease,
+            monthlyReduction: monthlyReduction
+        };
+    }
+
+    /**
+     * Get cash flow status description
+     */
+    getCashFlowStatus(monthlyDisposable) {
+        if (monthlyDisposable < 0) return 'Critical - Spending exceeds income';
+        if (monthlyDisposable < 500) return 'Tight - Limited flexibility';
+        if (monthlyDisposable < 1500) return 'Moderate - Some savings capacity';
+        return 'Good - Strong savings potential';
+    }
+
+    // Description helper methods
+    getLivingExpenseDescription(dependents) {
+        if (dependents === 0) return 'Couple base living expenses (food, utilities, transport, etc.)';
+        return `Family living expenses for ${dependents} dependents (food, utilities, transport, etc.)`;
+    }
+
+    getHousingDescription(inputs, homeValue) {
+        const components = [];
+
+        // Primary residence
+        if (inputs.monthlyMortgagePayment && inputs.monthlyMortgagePayment > 0) {
+            components.push(`Home mortgage: $${inputs.monthlyMortgagePayment.toFixed(0)}/month`);
+        } else if (homeValue > 0) {
+            components.push(`Home mortgage (estimated at 46.2% of income)`);
+        } else {
+            components.push(`Rental payments (30% of income)`);
+        }
+
+        // Investment property
+        if (inputs.hasInvestmentProperty && inputs.investmentPropertyLoan > 0) {
+            const loanAmount = inputs.investmentPropertyLoan;
+            const annualRate = inputs.investmentPropertyRate || 0.062;
+            const monthlyRate = annualRate / 12;
+            const numPayments = 30 * 12; // 30 years
+
+            if (monthlyRate > 0 && loanAmount > 0) {
+                const investmentMortgagePayment = loanAmount *
+                    (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
+                    (Math.pow(1 + monthlyRate, numPayments) - 1);
+
+                components.push(`Investment property mortgage: $${investmentMortgagePayment.toFixed(0)}/month`);
+
+                // Rental income
+                const weeklyRent = inputs.weeklyRentalIncome || 0;
+                if (weeklyRent > 0) {
+                    const monthlyRentalIncome = weeklyRent * 4.33;
+                    components.push(`Less rental income: -$${monthlyRentalIncome.toFixed(0)}/month`);
+                }
+            }
+        }
+
+        return components.join(', ');
+    }
+
+    getChildcareDescription(dependents) {
+        if (dependents === 0) return 'No childcare costs';
+        return `Childcare for ${Math.min(dependents, 2)} children ($135/day average, 5 days/week, after subsidies)`;
+    }
+
+    getFamilyExpenseDescription(dependents) {
+        if (dependents === 0) return 'No additional family expenses';
+        return `Additional family costs (activities, education, medical, larger vehicle, clothing)`;
     }
 }
 
