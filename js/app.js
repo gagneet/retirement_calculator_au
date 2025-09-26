@@ -433,11 +433,26 @@ class RetirementCalculatorApp {
         const riskAnalysisContent = $('riskAnalysisContent');
         if (!riskAnalysisContent) return;
 
-        // Generate comprehensive cash flow analysis
-        const cashFlowAnalysis = this.simulator.calculateCashFlowAnalysis(inputs);
-
-        // Calculate enhanced risk metrics with cash flow constraints
-        const capacity = this.simulator.calculateRiskCapacity(inputs);
+        // Generate comprehensive cash flow analysis with error handling
+        let cashFlowAnalysis;
+        try {
+            cashFlowAnalysis = this.simulator.calculateCashFlowAnalysis(inputs);
+            if (!cashFlowAnalysis || !cashFlowAnalysis.cashFlow) {
+                throw new Error('Invalid cash flow analysis result');
+            }
+        } catch (error) {
+            console.error('Cash flow analysis failed:', error);
+            // Provide fallback data structure
+            cashFlowAnalysis = {
+                cashFlow: { 
+                    monthlyDisposable: 0, 
+                    status: 'unknown',
+                    housingStressRatio: 0.3 
+                },
+                expenses: { totalMonthly: 0 },
+                opportunities: []
+            };
+        }
         const tolerance = inputs.riskTolerance * 10;
 
         // Pass Monte Carlo results for dynamic requirement calculation
