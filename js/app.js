@@ -3017,12 +3017,34 @@ class RetirementCalculatorApp {
         // Dependents validation
         if (inputs.dependents > 0 && totalIncome < 80000) {
             validationResults.warnings.push({
-                field: 'dependents',
-                message: `${inputs.dependents} dependents on $${totalIncome.toLocaleString()} income may limit retirement savings capacity`,
-                suggestion: 'Focus on expense optimization and government benefits'
-            });
+    analyzeExpenseOptimization(cashFlowAnalysis, inputs) {
+        const strategies = [];
+        const expenses = cashFlowAnalysis.expenses || {};
+        const monthlyNetIncome = cashFlowAnalysis.income?.netMonthly || 0;
+
+        // Housing cost optimization
+        if (expenses.housing && expenses.housing.mortgagePayment > monthlyNetIncome * 0.25) {
+            strategies.push('Consider refinancing or downsizing to reduce mortgage burden');
         }
 
+        // Dependent cost optimization
+        if (expenses.dependents && expenses.dependents.monthlyTotal > 2000) {
+            strategies.push('Review dependent care subsidies and tax benefits to optimize costs');
+            strategies.push('Consider family daycare, nanny sharing, or support from extended family');
+        }
+
+        // General expense strategies
+        strategies.push('Track spending for 3 months to identify reduction opportunities');
+        strategies.push('Review insurance policies annually for better rates');
+        strategies.push('Consolidate subscriptions and memberships to reduce ongoing costs');
+
+        if (cashFlowAnalysis.opportunities && cashFlowAnalysis.opportunities.length > 0) {
+            const topOpportunity = cashFlowAnalysis.opportunities[0];
+            strategies.push(`💡 ${topOpportunity.action || topOpportunity.title} could save $${topOpportunity.monthlySavings || 200}/month`);
+        }
+
+        return strategies;
+    }
         // Healthcare cost validation
         const expectedHealthcare = 2000 + (inputs.dependents * 1000) + (inputs.yourCurrentAge > 50 ? 2000 : 0);
         if (inputs.currentHealthcareCosts < expectedHealthcare * 0.7) {
