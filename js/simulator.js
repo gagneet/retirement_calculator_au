@@ -619,15 +619,24 @@ export class RetirementSimulator {
         const propertyHistory = [];
 
         // Pre-retirement simulation
-        const simulationEndYear = Math.max(yearsToRetirement, inputs.yourLifespan - inputs.yourCurrentAge, inputs.partnerLifespan - inputs.partnerCurrentAge);
+        const simulationEndYear = inputs.isSingleCalculation ?
+            Math.max(yearsToRetirement, inputs.yourLifespan - inputs.yourCurrentAge) :
+            Math.max(yearsToRetirement, inputs.yourLifespan - inputs.yourCurrentAge, inputs.partnerLifespan - inputs.partnerCurrentAge);
 
         for (let year = 1; year <= simulationEndYear; year++) {
             const yourCurrentAge = inputs.yourCurrentAge + year;
-            const partnerCurrentAge = inputs.partnerCurrentAge + year;
+            const partnerCurrentAge = inputs.isSingleCalculation ? 0 : inputs.partnerCurrentAge + year;
 
-            // Stop simulation if both have passed away
-            if (yourCurrentAge > inputs.yourLifespan && partnerCurrentAge > inputs.partnerLifespan) {
-                break;
+            // Stop simulation based on single vs couple status
+            if (inputs.isSingleCalculation) {
+                if (yourCurrentAge > inputs.yourLifespan) {
+                    break;
+                }
+            } else {
+                // Stop simulation if both have passed away
+                if (yourCurrentAge > inputs.yourLifespan && partnerCurrentAge > inputs.partnerLifespan) {
+                    break;
+                }
             }
 
             // Dynamic allocation
@@ -793,14 +802,24 @@ export class RetirementSimulator {
         for (let i = 0; i < yearsInRetirement; i++) {
             const retirementYear = yearsToRetirement + i;
             const yourCurrentAge = inputs.yourCurrentAge + retirementYear;
-            const partnerCurrentAge = inputs.partnerCurrentAge + retirementYear;
+            const partnerCurrentAge = inputs.isSingleCalculation ? 0 : inputs.partnerCurrentAge + retirementYear;
 
-            // Check if both partners have passed away
-            if (yourCurrentAge > inputs.yourLifespan && partnerCurrentAge > inputs.partnerLifespan) {
-                break;
+            // Check if simulation should end based on single vs couple status
+            if (inputs.isSingleCalculation) {
+                if (yourCurrentAge > inputs.yourLifespan) {
+                    break;
+                }
+            } else {
+                // Check if both partners have passed away
+                if (yourCurrentAge > inputs.yourLifespan && partnerCurrentAge > inputs.partnerLifespan) {
+                    break;
+                }
             }
 
-            const isCouple = yourCurrentAge <= inputs.yourLifespan && partnerCurrentAge <= inputs.partnerLifespan;
+            // Determine couple status: must not be single calculation AND both partners must be alive
+            const isCouple = !inputs.isSingleCalculation &&
+                           yourCurrentAge <= inputs.yourLifespan &&
+                           partnerCurrentAge <= inputs.partnerLifespan;
 
             // Dynamic allocation in retirement
             const allocation = inputs.useGlidePath ?

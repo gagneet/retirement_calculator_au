@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Partner Logic</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .field { margin: 10px 0; }
+        label { display: inline-block; width: 200px; }
+        input { width: 100px; margin-left: 10px; }
+        .results { margin: 20px 0; padding: 10px; background: #f5f5f5; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Test Partner Field Logic</h1>
+
+    <div class="field">
+        <label>User Age (mandatory):</label>
+        <input type="number" id="yourCurrentAge" value="45">
+    </div>
+
+    <div class="field">
+        <label>Partner Age:</label>
+        <input type="number" id="partnerCurrentAge" value="" placeholder="Leave blank to test">
+    </div>
+
+    <div class="field">
+        <label>Partner Salary:</label>
+        <input type="text" id="partnerSalary" value="" placeholder="Test with values">
+    </div>
+
+    <div class="field">
+        <label>Partner Super:</label>
+        <input type="text" id="partnerCurrentSuper" value="" placeholder="Test with values">
+    </div>
+
+    <div class="field">
+        <label>Partner Retirement Age:</label>
+        <input type="number" id="partnerRetirementAge" value="" placeholder="Auto-filled">
+    </div>
+
+    <div class="field">
+        <label>Partner Lifespan:</label>
+        <input type="number" id="partnerLifespan" value="" placeholder="Auto-filled">
+    </div>
+
+    <button onclick="testLogic()">Test Logic</button>
+
+    <div class="results" id="results"></div>
+
+    <script type="module">
+        import { $ } from './js/utils.js';
+
+        // Simple test function
+        window.testLogic = function() {
+            const results = document.getElementById('results');
+
+            try {
+                // Test partner field dependency logic (simplified version)
+                const partnerAgeInput = $('partnerCurrentAge');
+                const partnerAge = partnerAgeInput.value.trim();
+                const isPartnerAgeEmpty = partnerAge === '' || partnerAge === '0';
+
+                const partnerFields = ['partnerRetirementAge', 'partnerLifespan', 'partnerSalary', 'partnerCurrentSuper'];
+
+                // Check if any partner fields have values
+                const partnerSalaryValue = $('partnerSalary').value.trim();
+                const partnerSuperValue = $('partnerCurrentSuper').value.trim();
+                const hasPartnerData = partnerSalaryValue !== '' || partnerSuperValue !== '';
+
+                const userAge = parseInt($('yourCurrentAge').value) || 45;
+
+                let finalPartnerAge = 0;
+                if (!isPartnerAgeEmpty) {
+                    finalPartnerAge = parseInt(partnerAge);
+                } else if (hasPartnerData) {
+                    finalPartnerAge = userAge; // Use user age when partner age is blank
+                }
+
+                const isSingleCalculation = finalPartnerAge === 0;
+
+                results.innerHTML = `
+                    <h3>Test Results:</h3>
+                    <p><strong>Partner Age Input:</strong> "${partnerAge}" (Empty: ${isPartnerAgeEmpty})</p>
+                    <p><strong>Has Partner Data:</strong> ${hasPartnerData}</p>
+                    <p><strong>Final Partner Age for Calculations:</strong> ${finalPartnerAge}</p>
+                    <p><strong>Calculation Type:</strong> ${isSingleCalculation ? 'Single' : 'Couple'}</p>
+                    <p><strong>User Age:</strong> ${userAge}</p>
+
+                    <h4>Scenario Analysis:</h4>
+                    ${isSingleCalculation ?
+                        '<p class="success">✓ Single person retirement calculation</p>' :
+                        '<p class="success">✓ Couple retirement calculation (partner age: ' + finalPartnerAge + ')</p>'
+                    }
+                `;
+
+            } catch (error) {
+                results.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        };
+
+        // Auto-test on load
+        setTimeout(() => {
+            testLogic();
+        }, 500);
+    </script>
+</body>
+</html>

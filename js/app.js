@@ -65,14 +65,42 @@ class RetirementCalculatorApp {
     collectInputs() {
         const config = ENHANCED_CONFIG.DEFAULTS;
 
+        // Get raw partner values
+        const partnerAgeInput = $('partnerCurrentAge');
+        const partnerAgeValue = partnerAgeInput ? partnerAgeInput.value.trim() : '';
+        const isPartnerAgeEmpty = partnerAgeValue === '' || partnerAgeValue === '0';
+
+        // Get user age for partner calculations
+        const userAge = safeGetValue('yourCurrentAge', config.personal.yourCurrentAge);
+
+        // Check if any partner fields have values (excluding age)
+        const partnerSalaryValue = $('partnerSalary') ? $('partnerSalary').value.trim() : '';
+        const partnerSuperValue = $('partnerCurrentSuper') ? $('partnerCurrentSuper').value.trim() : '';
+        const partnerRetirementValue = $('partnerRetirementAge') ? $('partnerRetirementAge').value.trim() : '';
+        const partnerLifespanValue = $('partnerLifespan') ? $('partnerLifespan').value.trim() : '';
+
+        const hasPartnerData = partnerSalaryValue !== '' || partnerSuperValue !== '' ||
+                              partnerRetirementValue !== '' || partnerLifespanValue !== '';
+
+        // Determine final partner age to use in calculations
+        let finalPartnerAge = 0;
+        if (!isPartnerAgeEmpty) {
+            // Partner age is provided - use it
+            finalPartnerAge = safeGetValue('partnerCurrentAge', 0);
+        } else if (hasPartnerData) {
+            // Partner age is blank but other partner data exists - use user age
+            finalPartnerAge = userAge;
+        }
+        // If no partner age and no partner data, finalPartnerAge stays 0 (single calculation)
+
         return {
             // Personal details
-            yourCurrentAge: safeGetValue('yourCurrentAge', config.personal.yourCurrentAge),
-            partnerCurrentAge: safeGetValue('partnerCurrentAge', config.personal.partnerCurrentAge),
+            yourCurrentAge: userAge,
+            partnerCurrentAge: finalPartnerAge,
             retirementAge: safeGetValue('retirementAge', config.personal.retirementAge),
-            partnerRetirementAge: safeGetValue('partnerRetirementAge', config.personal.partnerRetirementAge),
+            partnerRetirementAge: finalPartnerAge > 0 ? safeGetValue('partnerRetirementAge', config.personal.partnerRetirementAge) : 0,
             yourLifespan: safeGetValue('yourLifespan', config.personal.yourLifespan),
-            partnerLifespan: safeGetValue('partnerLifespan', config.personal.partnerLifespan),
+            partnerLifespan: finalPartnerAge > 0 ? safeGetValue('partnerLifespan', config.personal.partnerLifespan) : 0,
 
             // Risk profile
             riskTolerance: safeGetValue('riskTolerance', config.risk.riskTolerance),
@@ -102,9 +130,9 @@ class RetirementCalculatorApp {
 
             // Financial details
             yourSalary: safeGetValue('yourSalary', config.financial.yourSalary),
-            partnerSalary: safeGetValue('partnerSalary', config.financial.partnerSalary),
+            partnerSalary: finalPartnerAge > 0 ? safeGetValue('partnerSalary', 0) : 0,
             yourCurrentSuper: safeGetValue('yourCurrentSuper', config.financial.yourCurrentSuper),
-            partnerCurrentSuper: safeGetValue('partnerCurrentSuper', config.financial.partnerCurrentSuper),
+            partnerCurrentSuper: finalPartnerAge > 0 ? safeGetValue('partnerCurrentSuper', 0) : 0,
             currentSavings: safeGetValue('currentSavings', config.financial.currentSavings),
             currentStocks: safeGetValue('currentStocks', config.financial.currentStocks),
             monthlyStockContribution: safeGetValue('monthlyStockContribution', config.financial.monthlyStockContribution),
@@ -181,7 +209,10 @@ class RetirementCalculatorApp {
             enableShocks: safeGetChecked('enableShocks', config.simulation.enableShocks),
             shockProbability: safeGetValue('shockProbability', config.simulation.shockProbability) / 100,
             shockMagnitude: safeGetValue('shockMagnitude', config.simulation.shockMagnitude) / 100,
-            numRuns: safeGetValue('numRuns', config.simulation.numRuns)
+            numRuns: safeGetValue('numRuns', config.simulation.numRuns),
+
+            // Partnership status for calculations
+            isSingleCalculation: finalPartnerAge === 0
         };
     }
 
@@ -2522,6 +2553,9 @@ class RetirementCalculatorApp {
             }
         });
 
+        // Partner field dependency logic
+        this.setupPartnerFieldDependencies();
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey || e.metaKey) {
@@ -2541,6 +2575,67 @@ class RetirementCalculatorApp {
                 }
             }
         });
+    }
+
+    // Setup partner field dependencies
+    setupPartnerFieldDependencies() {
+        const partnerAgeField = $('partnerCurrentAge');
+        const partnerFields = [
+            'partnerRetirementAge',
+            'partnerLifespan',
+            'partnerSalary',
+            'partnerCurrentSuper'
+        ];
+
+        if (!partnerAgeField) return;
+
+        // Function to handle partner field clearing
+        const handlePartnerDependencies = () => {
+            const partnerAge = partnerAgeField.value.trim();
+            const isPartnerAgeEmpty = partnerAge === '' || partnerAge === '0';
+
+            partnerFields.forEach(fieldId => {
+                const field = $(fieldId);
+                if (field) {
+                    if (isPartnerAgeEmpty) {
+                        // Clear field values but keep them enabled
+                        field.value = '';
+                        // Add subtle styling to indicate dependency
+                        field.style.backgroundColor = '#fafafa';
+                        field.style.borderColor = '#d1d5db';
+                    } else {
+                        // Restore normal styling when partner age is provided
+                        field.style.backgroundColor = '';
+                        field.style.borderColor = '';
+
+                        // If field is empty after age is entered, set reasonable defaults
+                        if (field.value.trim() === '') {
+                            switch (fieldId) {
+                                case 'partnerRetirementAge':
+                                    field.value = '60';
+                                    break;
+                                case 'partnerLifespan':
+                                    field.value = '99';
+                                    break;
+                                case 'partnerSalary':
+                                    field.value = '0';
+                                    break;
+                                case 'partnerCurrentSuper':
+                                    field.value = '0';
+                                    break;
+                            }
+                        }
+                    }
+                }
+            });
+        };
+
+        // Set up event listener on partner age field
+        partnerAgeField.addEventListener('input', handlePartnerDependencies);
+        partnerAgeField.addEventListener('blur', handlePartnerDependencies);
+
+        // Run on initial load
+        setTimeout(handlePartnerDependencies, 100);
     }
 
     // Initial calculation
