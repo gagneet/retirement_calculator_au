@@ -3781,25 +3781,36 @@ function fallbackMode() {
 
 export default RetirementCalculatorApp;
 
-// Auto-initialize when loaded
-document.addEventListener('DOMContentLoaded', () => {
-    const app = new RetirementCalculatorApp();
-    window.app = app;
-    window.RetirementCalculatorApp = RetirementCalculatorApp;
+// Auto-initialize when loaded - prevent double initialization
+function initializeApp() {
+    // Prevent double initialization
+    if (window.app && window.app.isInitialized) {
+        console.log('App already initialized, skipping...');
+        return;
+    }
 
-    app.init();
-    console.log('✅ Australian Retirement Calculator loaded successfully');
-});
+    try {
+        const app = new RetirementCalculatorApp();
+        window.app = app;
+        window.RetirementCalculatorApp = RetirementCalculatorApp;
 
-// Also try immediate initialization in case DOM is already loaded
+        if (typeof app.init === 'function') {
+            app.init();
+            app.isInitialized = true;
+            console.log('✅ Australian Retirement Calculator loaded successfully');
+        } else {
+            console.error('App init method not found');
+        }
+    } catch (error) {
+        console.error('Failed to initialize app:', error);
+    }
+}
+
+// Initialize based on DOM state
 if (document.readyState === 'loading') {
     // DOM is still loading, wait for DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
     // DOM is already loaded, initialize immediately
-    const app = new RetirementCalculatorApp();
-    window.app = app;
-    window.RetirementCalculatorApp = RetirementCalculatorApp;
-
-    app.init();
-    console.log('✅ Australian Retirement Calculator loaded successfully');
+    initializeApp();
 }

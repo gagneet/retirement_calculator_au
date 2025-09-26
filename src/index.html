@@ -1689,20 +1689,7 @@
     </footer>
 </div>
 
-<!-- Main application script -->
-<script type="module">
-    import RetirementCalculatorApp from './js/app.js';
-
-    // Initialize the app and make it globally available
-    const app = new RetirementCalculatorApp();
-    window.app = app;
-    window.RetirementCalculatorApp = RetirementCalculatorApp;
-
-    // Initialize the application
-    app.init();
-
-    console.log('✅ Australian Retirement Calculator loaded successfully');
-</script>
+<!-- Webpack will inject the bundled script here -->
 
 <!-- Error handling and loading timeout -->
 <script>
