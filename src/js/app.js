@@ -3780,3 +3780,26 @@ function fallbackMode() {
 }
 
 export default RetirementCalculatorApp;
+
+// Auto-initialize when loaded
+document.addEventListener('DOMContentLoaded', () => {
+    const app = new RetirementCalculatorApp();
+    window.app = app;
+    window.RetirementCalculatorApp = RetirementCalculatorApp;
+
+    app.init();
+    console.log('✅ Australian Retirement Calculator loaded successfully');
+});
+
+// Also try immediate initialization in case DOM is already loaded
+if (document.readyState === 'loading') {
+    // DOM is still loading, wait for DOMContentLoaded
+} else {
+    // DOM is already loaded, initialize immediately
+    const app = new RetirementCalculatorApp();
+    window.app = app;
+    window.RetirementCalculatorApp = RetirementCalculatorApp;
+
+    app.init();
+    console.log('✅ Australian Retirement Calculator loaded successfully');
+}
