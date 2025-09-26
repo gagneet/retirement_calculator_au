@@ -1436,13 +1436,16 @@ class RetirementCalculatorApp {
 
     // Expense Optimization Analysis
     analyzeExpenseOptimization(cashFlowAnalysis, inputs) {
-        const strategies = [];
-        const expenses = cashFlowAnalysis.expenses;
-        const monthlyNetIncome = cashFlowAnalysis.cashFlow.monthlyNetIncome;
-
-        // Housing optimization
-        if (expenses.housing.housingStressRatio > 0.3) {
-            strategies.push(`Housing costs (${(expenses.housing.housingStressRatio * 100).toFixed(0)}%) exceed recommended 30% of income`);
+            optimizationContent.innerHTML = `
+                <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <h3 class="font-semibold text-red-800 mb-2">Optimization Analysis Unavailable</h3>
+                    <p class="text-sm text-red-600">There was an error analyzing your optimization strategies: ${error.message || 'Unknown error'}. Please check your inputs and try again.</p>
+                    <details class="mt-2">
+                        <summary class="text-xs text-red-500 cursor-pointer">Technical Details</summary>
+                        <pre class="text-xs text-red-400 mt-1">${error.stack || error.toString()}</pre>
+                    </details>
+                </div>
+            `;
         }
         if (expenses.housing.mortgagePayment > monthlyNetIncome * 0.25) {
             strategies.push('Consider refinancing or downsizing to reduce mortgage burden');
