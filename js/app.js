@@ -48,6 +48,7 @@ class RetirementCalculatorApp {
         this.setupEventListeners();
         this.setupAutoSave(); // Setup auto-save functionality
         this.setupCashFlowUI(); // Setup cash flow validation and UI
+        this.setupDependentCalculations(); // Setup enhanced dependent calculations
         this.updateUIElements();
         initializeTrustUI(); // Initialize trust UI functionality
 
@@ -78,6 +79,26 @@ class RetirementCalculatorApp {
             hasEmergencyFund: safeGetSelectValue('hasEmergencyFund', config.risk.hasEmergencyFund),
             hasDebt: safeGetSelectValue('hasDebt', config.risk.hasDebt),
             dependents: safeGetValue('dependents', config.risk.dependents),
+
+            // Enhanced dependent details
+            dependentDetails: {
+                childrenUnder5: safeGetValue('childrenUnder5', 0),
+                childrenUnder5Percent: safeGetValue('childrenUnder5Percent', 70),
+                childrenPrimary: safeGetValue('childrenPrimary', 0),
+                childrenPrimaryPercent: safeGetValue('childrenPrimaryPercent', 70),
+                teenagers: safeGetValue('teenagers', 2),
+                teenagersPercent: safeGetValue('teenagersPercent', 80),
+                adultDisabled: safeGetValue('adultDisabled', 0),
+                adultDisabledPercent: safeGetValue('adultDisabledPercent', 20),
+                elderlyIndependent: safeGetValue('elderlyIndependent', 0),
+                elderlyIndependentPercent: safeGetValue('elderlyIndependentPercent', 50),
+                elderlyHomeCare: safeGetValue('elderlyHomeCare', 0),
+                elderlyHomeCarePercent: safeGetValue('elderlyHomeCarePercent', 30),
+                elderlyResidential: safeGetValue('elderlyResidential', 0),
+                elderlyResidentialPercent: safeGetValue('elderlyResidentialPercent', 40),
+                otherDependents: safeGetValue('otherDependents', 0),
+                otherDependentsPercent: safeGetValue('otherDependentsPercent', 60)
+            },
 
             // Financial details
             yourSalary: safeGetValue('yourSalary', config.financial.yourSalary),
@@ -3006,6 +3027,92 @@ class RetirementCalculatorApp {
             detailsDiv.classList.remove('hidden');
         } else {
             detailsDiv.classList.add('hidden');
+        }
+    }
+
+    // Enhanced Dependent Calculations Setup
+    setupDependentCalculations() {
+        const dependentFields = [
+            'childrenUnder5', 'childrenUnder5Percent',
+            'childrenPrimary', 'childrenPrimaryPercent',
+            'teenagers', 'teenagersPercent',
+            'adultDisabled', 'adultDisabledPercent',
+            'elderlyIndependent', 'elderlyIndependentPercent',
+            'elderlyHomeCare', 'elderlyHomeCarePercent',
+            'elderlyResidential', 'elderlyResidentialPercent',
+            'otherDependents', 'otherDependentsPercent'
+        ];
+
+        // Add event listeners to all dependent fields
+        dependentFields.forEach(fieldId => {
+            const element = $(fieldId);
+            if (element) {
+                element.addEventListener('input', () => {
+                    this.calculateDependentCosts();
+                });
+            }
+        });
+
+        // Initial calculation
+        this.calculateDependentCosts();
+    }
+
+    calculateDependentCosts() {
+        // Monthly cost estimates based on 2025 Australian data
+        const monthlyCosts = {
+            childrenUnder5: 2835, // $135/day × 21 days/month
+            childrenPrimary: 800,  // School, activities, after-school care
+            teenagers: 600,        // Technology, activities, pre-independence
+            adultDisabled: 500,    // Your portion after NDIS covers most
+            elderlyIndependent: 200, // Occasional support
+            elderlyHomeCare: 400,   // Your extras beyond government support
+            elderlyResidential: 1500, // Your portion of residential care
+            otherDependents: 300    // Variable support
+        };
+
+        let totalDependents = 0;
+        let totalSystemCost = 0;
+        let yourMonthlyCost = 0;
+
+        // Calculate costs for each category
+        Object.keys(monthlyCosts).forEach(category => {
+            const countField = $(category);
+            const percentField = $(category + 'Percent');
+
+            if (countField && percentField) {
+                const count = parseInt(countField.value) || 0;
+                const percent = parseInt(percentField.value) || 0;
+
+                totalDependents += count;
+                const categorySystemCost = count * monthlyCosts[category];
+                const categoryYourCost = categorySystemCost * (percent / 100);
+
+                totalSystemCost += categorySystemCost;
+                yourMonthlyCost += categoryYourCost;
+            }
+        });
+
+        // Calculate overall percentage
+        const yourSharePercent = totalSystemCost > 0 ? (yourMonthlyCost / totalSystemCost * 100) : 0;
+
+        // Update display elements
+        const totalDependentsEl = $('totalDependents');
+        const yourMonthlyCostEl = $('yourMonthlyCost');
+        const totalSystemCostEl = $('totalSystemCost');
+        const yourSharePercentEl = $('yourSharePercent');
+        const hiddenDependentsField = $('dependents');
+
+        if (totalDependentsEl) totalDependentsEl.textContent = totalDependents;
+        if (yourMonthlyCostEl) yourMonthlyCostEl.textContent = `$${Math.round(yourMonthlyCost).toLocaleString()}`;
+        if (totalSystemCostEl) totalSystemCostEl.textContent = `$${Math.round(totalSystemCost).toLocaleString()}/month`;
+        if (yourSharePercentEl) yourSharePercentEl.textContent = `${Math.round(yourSharePercent)}%`;
+
+        // Update hidden field for backward compatibility
+        if (hiddenDependentsField) hiddenDependentsField.value = totalDependents;
+
+        // Update cash flow status if needed
+        if (this.validateAndDisplayCashFlowFeedback) {
+            this.validateAndDisplayCashFlowFeedback();
         }
     }
 

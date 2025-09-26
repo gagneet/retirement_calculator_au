@@ -1495,13 +1495,13 @@ export class RetirementSimulator {
         // Housing costs
         const housingCosts = this.calculateHousingCosts(inputs, homeValue, netIncome);
 
-        // Childcare costs
-        const childcareCosts = this.calculateChildcareCosts(dependents);
+        // Enhanced dependent costs using detailed breakdown
+        const dependentCosts = this.calculateEnhancedDependentCosts(inputs);
 
         // Other family-related expenses
         const familyExpenses = this.calculateFamilyExpenses(dependents);
 
-        const totalMonthly = baseLivingExpenses + housingCosts + childcareCosts + familyExpenses;
+        const totalMonthly = baseLivingExpenses + housingCosts + dependentCosts + familyExpenses;
 
         return {
             housing: {
@@ -1512,8 +1512,9 @@ export class RetirementSimulator {
             living: {
                 monthlyTotal: baseLivingExpenses
             },
-            childcare: {
-                monthlyTotal: childcareCosts
+            dependents: {
+                monthlyTotal: dependentCosts,
+                breakdown: this.getDependentCostBreakdown(inputs)
             },
             familyExpenses: {
                 monthlyTotal: familyExpenses
@@ -1583,6 +1584,79 @@ export class RetirementSimulator {
         // Additional costs: larger vehicle, activities, education, medical, clothing
         const perChildMonthly = 200; // Conservative estimate for additional family costs
         return dependents * perChildMonthly;
+    }
+
+    /**
+     * Calculate enhanced dependent costs using detailed breakdown
+     */
+    calculateEnhancedDependentCosts(inputs) {
+        if (!inputs.dependentDetails) {
+            // Fallback to old method if detailed data not available
+            return this.calculateChildcareCosts(inputs.dependents || 0);
+        }
+
+        const details = inputs.dependentDetails;
+        const monthlyCosts = {
+            childrenUnder5: 2835, // $135/day × 21 days/month (after 40% government subsidy)
+            childrenPrimary: 800,  // School, activities, after-school care
+            teenagers: 600,        // Technology, activities, pre-independence
+            adultDisabled: 500,    // Your portion after NDIS covers most
+            elderlyIndependent: 200, // Occasional support
+            elderlyHomeCare: 400,   // Your extras beyond government support
+            elderlyResidential: 1500, // Your portion of residential care
+            otherDependents: 300    // Variable support
+        };
+
+        let totalMonthlyCost = 0;
+
+        Object.keys(monthlyCosts).forEach(category => {
+            const count = details[category] || 0;
+            const percent = details[category + 'Percent'] || 0;
+
+            if (count > 0 && percent > 0) {
+                const categoryCost = count * monthlyCosts[category] * (percent / 100);
+                totalMonthlyCost += categoryCost;
+            }
+        });
+
+        return totalMonthlyCost;
+    }
+
+    /**
+     * Get detailed breakdown of dependent costs for display
+     */
+    getDependentCostBreakdown(inputs) {
+        if (!inputs.dependentDetails) {
+            return { summary: 'Childcare and basic support costs' };
+        }
+
+        const details = inputs.dependentDetails;
+        const breakdown = {};
+        const categories = {
+            childrenUnder5: 'Childcare (under 5)',
+            childrenPrimary: 'School age children (6-12)',
+            teenagers: 'Teenagers (13-18)',
+            adultDisabled: 'Adult children with disabilities',
+            elderlyIndependent: 'Independent elderly parents',
+            elderlyHomeCare: 'Elderly parents (home care)',
+            elderlyResidential: 'Elderly parents (residential care)',
+            otherDependents: 'Other dependents'
+        };
+
+        Object.keys(categories).forEach(category => {
+            const count = details[category] || 0;
+            const percent = details[category + 'Percent'] || 0;
+
+            if (count > 0) {
+                breakdown[categories[category]] = {
+                    count: count,
+                    yourContribution: `${percent}%`,
+                    category: category
+                };
+            }
+        });
+
+        return breakdown;
     }
 
     /**

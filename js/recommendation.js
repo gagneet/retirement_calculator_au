@@ -84,6 +84,7 @@ class RecommendationEngine {
         scenarios = scenarios.concat(this._analyzeContributions(baselineResults));
         scenarios = scenarios.concat(this._analyzeInvestmentStrategy(baselineResults));
         scenarios = scenarios.concat(this._analyzeRetirementAge(baselineResults));
+        scenarios = scenarios.concat(this._analyzeWidowWidowerScenarios(baselineResults));
 
         // Remove duplicate scenarios if any
         const uniqueScenarios = Array.from(new Map(scenarios.map(s => [s.name, s])).values());
@@ -620,6 +621,126 @@ class RecommendationEngine {
                     `${extension} extra years of salary and super contributions`,
                     `${extension} fewer years of retirement to fund`,
                     `Significantly more compound growth time`
+                ]
+            });
+        }
+
+        return scenarios;
+    }
+
+    /**
+     * Analyzes widow/widower scenarios for comprehensive retirement planning.
+     * @param {Object} baselineResults - The results from the baseline simulation.
+     * @returns {Array<Object>} A list of scenarios to test.
+     */
+    _analyzeWidowWidowerScenarios(baselineResults) {
+        const scenarios = [];
+        const currentAge = this.baseInputs.yourCurrentAge;
+        const partnerCurrentAge = this.baseInputs.partnerCurrentAge;
+        const retirementAge = this.baseInputs.retirementAge;
+
+        // Only analyze if there's a partner (couples scenario)
+        if (!partnerCurrentAge || partnerCurrentAge === 0) {
+            return scenarios;
+        }
+
+        const totalIncome = this.baseInputs.yourSalary + this.baseInputs.partnerSalary;
+        const totalSuper = this.baseInputs.yourCurrentSuper + this.baseInputs.partnerCurrentSuper;
+
+        // Scenario 1: Partner dies at age 70 (before full retirement)
+        if (retirementAge < 70) {
+            const remainingIncome = this.baseInputs.yourSalary; // Only your salary
+            const incomeReduction = (this.baseInputs.partnerSalary / totalIncome) * 100;
+            const survivorSuper = totalSuper * 1.15; // Death benefits typically include insurance
+
+            scenarios.push({
+                name: "Partner Dies at Age 70 (Pre-Retirement)",
+                description: `Plan for partner passing before retirement. Income drops ${incomeReduction.toFixed(0)}% but you inherit superannuation death benefits.`,
+                modifications: {
+                    partnerSalary: 0,
+                    partnerCurrentSuper: 0,
+                    yourCurrentSuper: survivorSuper,
+                    partnerLifespan: 70
+                },
+                feasibility: "Life Insurance Critical",
+                factorsChanged: [
+                    `Household income reduces by ${incomeReduction.toFixed(0)}% (${formatCurrency(this.baseInputs.partnerSalary)})`,
+                    `Superannuation death benefits: ${formatCurrency(survivorSuper - this.baseInputs.yourCurrentSuper)}`,
+                    `14-week bereavement payment from Centrelink`,
+                    `Single person Age Pension thresholds apply`,
+                    `Reduced living expenses but loss of economies of scale`
+                ]
+            });
+        }
+
+        // Scenario 2: You die early, partner continues alone
+        const partnerIncome = this.baseInputs.partnerSalary;
+        if (partnerIncome > 30000) { // Partner has meaningful income to continue
+            const partnerIncomeReduction = (this.baseInputs.yourSalary / totalIncome) * 100;
+            const partnerSurvivorSuper = totalSuper * 1.15;
+
+            scenarios.push({
+                name: "You Die at Age 70, Partner Survives",
+                description: `Partner continues alone with ${(100 - partnerIncomeReduction).toFixed(0)}% of household income plus death benefits.`,
+                modifications: {
+                    yourSalary: 0,
+                    yourCurrentSuper: 0,
+                    partnerCurrentSuper: partnerSurvivorSuper,
+                    yourLifespan: 70
+                },
+                feasibility: "Life Insurance Important",
+                factorsChanged: [
+                    `Partner's income: ${formatCurrency(partnerIncome)} (${(100 - partnerIncomeReduction).toFixed(0)}% of household)`,
+                    `Partner inherits super death benefits: ${formatCurrency(partnerSurvivorSuper - this.baseInputs.partnerCurrentSuper)}`,
+                    `Single person living costs and pension thresholds`,
+                    `Partner may need to work longer or reduce retirement lifestyle`,
+                    `Home ownership becomes more important for security`
+                ]
+            });
+        }
+
+        // Scenario 3: Early widowhood at age 60 (more common scenario)
+        if (currentAge < 60) {
+            const earlyWidowSuper = totalSuper * 1.2; // Higher insurance payouts typically
+            const yearsToRetirement = retirementAge - 60;
+
+            scenarios.push({
+                name: "Widowed at Age 60",
+                description: `Partner dies at 60, leaving you to navigate pre-retirement years alone with death benefits.`,
+                modifications: {
+                    partnerSalary: 0,
+                    partnerCurrentSuper: 0,
+                    yourCurrentSuper: earlyWidowSuper,
+                    partnerLifespan: 60,
+                    yourCurrentAge: 60 // Model from age 60 onwards
+                },
+                feasibility: "Requires Comprehensive Life Insurance",
+                factorsChanged: [
+                    `Immediate loss of partner's income: ${formatCurrency(this.baseInputs.partnerSalary)}`,
+                    `Death benefit payout: ${formatCurrency(earlyWidowSuper - this.baseInputs.yourCurrentSuper)}`,
+                    `${yearsToRetirement} years to rebuild financial position before retirement`,
+                    `May qualify for widow allowance if eligible (women born before July 1955)`,
+                    `Critical to have emergency fund and adequate life insurance coverage`
+                ]
+            });
+        }
+
+        // Scenario 4: Late-life widowhood at age 80 (in retirement)
+        const retirementYears = 80 - retirementAge;
+        if (retirementYears > 0) {
+            scenarios.push({
+                name: "Widowed at Age 80 (In Retirement)",
+                description: `Partner dies during retirement. Single person pension thresholds apply, but reduced living costs.`,
+                modifications: {
+                    partnerLifespan: 80
+                },
+                feasibility: "Estate Planning Important",
+                factorsChanged: [
+                    `Change from couple to single Age Pension rate`,
+                    `Reduced living expenses (single person household)`,
+                    `Full access to home equity if needed`,
+                    `Higher risk of aged care requirements`,
+                    `Estate planning becomes critical for remaining assets`
                 ]
             });
         }
