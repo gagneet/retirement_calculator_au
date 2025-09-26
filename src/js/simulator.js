@@ -1322,33 +1322,51 @@ export class RetirementSimulator {
         };
     }
 
-    // Calculate risk-adjusted score for scenario ranking
-    calculateRiskAdjustedScore(scenario) {
-        // Weight success rate more heavily than final balance
-        const successWeight = 0.6;
-        const balanceWeight = 0.4;
+    // Calculate risk-adjusted score for scenario ranking (0-100 scale)
+    calculateRiskAdjustedScore(scenario, baseScenario = null) {
+        if (!baseScenario) {
+            // Standalone scoring (0-100)
+            const successWeight = 0.7;
+            const balanceWeight = 0.3;
 
-        const normalizedSuccess = scenario.successRate * 100;
-        const normalizedBalance = Math.min(100, (scenario.medianBalance / 1000000) * 20);
+            const normalizedSuccess = Math.min(100, scenario.successRate * 100);
+            const normalizedBalance = Math.min(100, (scenario.medianBalance / 500000) * 100);
 
-        return (successWeight * normalizedSuccess) + (balanceWeight * normalizedBalance);
+            return Math.round((successWeight * normalizedSuccess) + (balanceWeight * normalizedBalance));
+        } else {
+            // Relative scoring compared to baseline
+            const successDiff = (scenario.successRate - baseScenario.successRate) * 100;
+            const balanceDiff = ((scenario.medianBalance - baseScenario.medianBalance) / baseScenario.medianBalance) * 100;
+
+            // Base score of 50, adjusted by differences
+            let score = 50;
+            score += successDiff * 0.7; // Success rate changes weighted heavily
+            score += balanceDiff * 0.3; // Balance changes weighted less
+
+            return Math.round(Math.max(0, Math.min(100, score)));
+        }
     }
 
     // Generate recommendation text for scenario comparison
     generateScenarioRecommendation(scenario, baseScenario) {
         const successDiff = scenario.successRate - baseScenario.successRate;
         const balanceDiff = scenario.medianBalance - baseScenario.medianBalance;
+        const balancePercentDiff = (balanceDiff / baseScenario.medianBalance) * 100;
 
-        if (successDiff > 0.05 && balanceDiff > 50000) {
-            return "Strongly recommended - significantly better outcomes";
-        } else if (successDiff > 0.02 && balanceDiff > 0) {
-            return "Recommended - improved success rate and balance";
-        } else if (successDiff > 0 && balanceDiff > -100000) {
-            return "Consider - slightly better success rate";
-        } else if (successDiff < -0.05 || balanceDiff < -200000) {
-            return "Not recommended - significantly worse outcomes";
+        if (successDiff > 0.05 && balancePercentDiff > 10) {
+            return `+${(successDiff * 100).toFixed(1)}% success, +${balancePercentDiff.toFixed(1)}% balance vs Current Plan`;
+        } else if (successDiff > 0.02 && balancePercentDiff > 5) {
+            return `+${(successDiff * 100).toFixed(1)}% success, +${balancePercentDiff.toFixed(1)}% balance vs Current Plan`;
+        } else if (successDiff > 0.01) {
+            return `+${(successDiff * 100).toFixed(1)}% success vs Current Plan`;
+        } else if (successDiff < -0.05 || balancePercentDiff < -15) {
+            return `${(successDiff * 100).toFixed(1)}% success, ${balancePercentDiff.toFixed(1)}% balance vs Current Plan`;
+        } else if (Math.abs(successDiff) < 0.01 && Math.abs(balancePercentDiff) < 5) {
+            return "Similar to Current Plan";
         } else {
-            return "Neutral - minimal difference in outcomes";
+            const successSign = successDiff >= 0 ? '+' : '';
+            const balanceSign = balancePercentDiff >= 0 ? '+' : '';
+            return `${successSign}${(successDiff * 100).toFixed(1)}% success, ${balanceSign}${balancePercentDiff.toFixed(1)}% balance vs Current Plan`;
         }
     }
 
