@@ -12,19 +12,19 @@
             console.log('Starting module test...');
 
             // Test config import
-            import { ENHANCED_CONFIG } from './js/config.js';
+            import { ENHANCED_CONFIG } from '../js/config.js';
             console.log('✅ Config loaded:', ENHANCED_CONFIG ? 'OK' : 'FAIL');
 
             // Test utils import
-            import { $, safeGetValue } from './js/utils.js';
+            import { $, safeGetValue } from '../js/utils.js';
             console.log('✅ Utils loaded:', $ ? 'OK' : 'FAIL');
 
             // Test simulator import
-            import RetirementSimulator from './js/simulator.js';
+            import RetirementSimulator from '../js/simulator.js';
             console.log('✅ Simulator loaded:', RetirementSimulator ? 'OK' : 'FAIL');
 
             // Test app import
-            import RetirementCalculatorApp from './js/app.js';
+            import RetirementCalculatorApp from '../js/app.js';
             console.log('✅ App loaded:', RetirementCalculatorApp ? 'OK' : 'FAIL');
 
             document.getElementById('status').innerHTML = '✅ All modules loaded successfully!';
