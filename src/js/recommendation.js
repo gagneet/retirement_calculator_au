@@ -85,7 +85,6 @@ class RecommendationEngine {
         scenarios = scenarios.concat(this._analyzeInvestmentStrategy(baselineResults));
         scenarios = scenarios.concat(this._analyzeRetirementAge(baselineResults));
         scenarios = scenarios.concat(this._analyzeWidowWidowerScenarios(baselineResults));
-        scenarios = scenarios.concat(this._analyzeInsuranceScenarios(baselineResults));
 
         // Remove duplicate scenarios if any
         const uniqueScenarios = Array.from(new Map(scenarios.map(s => [s.name, s])).values());
@@ -836,129 +835,130 @@ class RecommendationEngine {
     }
 
     /**
-     * Analyzes insurance scenarios for what-if analysis using research-based timing
+     * Provides hidden insurance coverage recommendations based on what-if analysis
+     * This doesn't create visible scenarios but provides coverage amount suggestions
      * @param {Object} baselineResults - The results from the baseline simulation
-     * @returns {Array<Object>} A list of insurance scenarios to test
+     * @returns {Object} Insurance coverage recommendations with amounts
      */
-    _analyzeInsuranceScenarios(baselineResults) {
-        const scenarios = [];
+    generateInsuranceRecommendations(baselineResults) {
         const successRate = baselineResults.successRate;
         const currentAge = this.baseInputs.yourCurrentAge;
         const retirementAge = this.baseInputs.retirementAge;
         const yearsToRetirement = retirementAge - currentAge;
 
-        // Only recommend insurance scenarios if success rate is below 90% or high-impact timing applies
-        if (successRate >= 0.9 && yearsToRetirement > 20) {
-            return scenarios; // Low priority if already very secure
-        }
-
         // Default insurance amounts from research
         const defaultTPD = 250000;
         const defaultDeath = 280000;
+        const totalHouseholdIncome = this.baseInputs.yourSalary + (this.baseInputs.partnerSalary || 0);
 
-        // Critical timing scenarios based on research
-        const criticalTimings = [
-            { years: 2, label: "2 years before retirement", inRetirement: false },
-            { years: 3, label: "3 years after retirement", inRetirement: true }
+        // Calculate recommended coverage based on research
+        const recommendedDeathCover = Math.max(totalHouseholdIncome * 5, 400000); // 5x income or $400k min
+        const recommendedTPDCover = Math.max(totalHouseholdIncome * 3, 300000); // 3x income or $300k min
+
+        const recommendations = {
+            currentCoverage: {
+                death: defaultDeath,
+                tpd: defaultTPD
+            },
+            recommendedCoverage: {
+                death: recommendedDeathCover,
+                tpd: recommendedTPDCover
+            },
+            gaps: {
+                death: Math.max(0, recommendedDeathCover - defaultDeath),
+                tpd: Math.max(0, recommendedTPDCover - defaultTPD)
+            },
+            priority: this.calculateInsurancePriority(successRate, yearsToRetirement),
+            scenarios: this.calculateInsuranceWhatIfImpacts(baselineResults),
+            costBenefit: this.calculateInsuranceCostBenefit(recommendedDeathCover, recommendedTPDCover, totalHouseholdIncome)
+        };
+
+        return recommendations;
+    }
+
+    /**
+     * Calculate insurance priority based on financial situation
+     */
+    calculateInsurancePriority(successRate, yearsToRetirement) {
+        if (successRate < 0.70) return "Critical - Low retirement success rate";
+        if (successRate < 0.85 && yearsToRetirement < 10) return "High - Near retirement with moderate risk";
+        if (yearsToRetirement < 5) return "High - Critical sequence-of-returns period";
+        if (successRate < 0.90) return "Medium - Some financial risk present";
+        return "Low - Strong financial position";
+    }
+
+    /**
+     * Calculate what-if impact scenarios for insurance
+     */
+    calculateInsuranceWhatIfImpacts(baselineResults) {
+        const impacts = [];
+        const currentAge = this.baseInputs.yourCurrentAge;
+        const retirementAge = this.baseInputs.retirementAge;
+        const totalHouseholdIncome = this.baseInputs.yourSalary + (this.baseInputs.partnerSalary || 0);
+
+        // Critical timing periods based on research
+        const criticalPeriods = [
+            { age: retirementAge - 2, description: "2 years before retirement (sequence-of-returns risk)" },
+            { age: retirementAge + 3, description: "3 years after retirement (early retirement vulnerability)" }
         ];
 
-        criticalTimings.forEach(timing => {
-            // Skip if timing doesn't apply
-            if (!timing.inRetirement && timing.years > yearsToRetirement) {
-                return;
-            }
-
-            const triggerAge = timing.inRetirement ?
-                retirementAge + timing.years :
-                retirementAge - timing.years;
-
-            if (triggerAge < currentAge || triggerAge > 90) {
-                return;
-            }
-
-            // High-impact TPD scenario - you affected
-            if (successRate < 0.80 || timing.years <= 5) { // Only for higher risk scenarios
-                scenarios.push({
-                    name: `TPD Impact Analysis (${timing.label})`,
-                    description: `What-if analysis: You become TPD ${timing.label}. Shows importance of adequate insurance coverage.`,
-                    modifications: {
-                        // Simulate insurance benefit injection
-                        currentStocks: this.baseInputs.currentStocks + defaultTPD,
-                        // Reduce primary income to zero from trigger age
-                        yourSalary: triggerAge > currentAge ? this.baseInputs.yourSalary : 0,
-                        monthlyStockContribution: 0,
-                        // Increase healthcare costs
-                        currentHealthcareCosts: (this.baseInputs.currentHealthcareCosts || 12000) + 35000
-                    },
-                    feasibility: "Insurance What-If Analysis",
-                    riskLevel: timing.riskLevel || "critical",
-                    factorsChanged: [
-                        `TPD insurance benefit: ${formatCurrency(defaultTPD)}`,
-                        `Complete loss of your income: ${formatCurrency(this.baseInputs.yourSalary)}`,
-                        `Additional care costs: $35,000/year`,
-                        `No further investment contributions possible`,
-                        `Demonstrates critical need for adequate TPD coverage`
-                    ]
+        criticalPeriods.forEach(period => {
+            if (period.age > currentAge && period.age < 90) {
+                // TPD Impact
+                impacts.push({
+                    scenario: `TPD at age ${period.age}`,
+                    description: period.description,
+                    requiredCoverage: {
+                        immediate: totalHouseholdIncome * 2, // 2 years of income for transition
+                        ongoing: 35000, // Annual care costs
+                        recommended: Math.max(totalHouseholdIncome * 3, 300000)
+                    }
                 });
-            }
 
-            // High-impact Death scenario - you affected (only if partner exists)
-            if (this.baseInputs.partnerSalary > 0 && (successRate < 0.85 || timing.years <= 3)) {
-                scenarios.push({
-                    name: `Death Benefit Analysis (${timing.label})`,
-                    description: `What-if analysis: You pass away ${timing.label}. Partner continues with death benefits and reduced expenses.`,
-                    modifications: {
-                        // Insurance benefit to investment portfolio
-                        currentStocks: this.baseInputs.currentStocks + defaultDeath,
-                        // Loss of primary income
-                        yourSalary: 0,
-                        monthlyStockContribution: 0,
-                        // Switch to single calculation
-                        isSingleCalculation: true,
-                        // Reduced living expenses (75% of couple expenses)
-                        asfaComfortable: (this.baseInputs.asfaComfortable || 70000) * 0.75
-                    },
-                    feasibility: "Insurance What-If Analysis",
-                    riskLevel: timing.riskLevel || "critical",
-                    factorsChanged: [
-                        `Death benefit: ${formatCurrency(defaultDeath)}`,
-                        `Partner loses your income: ${formatCurrency(this.baseInputs.yourSalary)}`,
-                        `Single person living expenses (25% reduction)`,
-                        `Single Age Pension rates apply`,
-                        `Highlights importance of life insurance adequacy`
-                    ]
-                });
+                // Death Impact (if partner exists)
+                if (this.baseInputs.partnerSalary > 0) {
+                    const survivorIncome = this.baseInputs.partnerSalary;
+                    const incomeGap = totalHouseholdIncome - survivorIncome;
+
+                    impacts.push({
+                        scenario: `Death at age ${period.age}`,
+                        description: period.description,
+                        requiredCoverage: {
+                            incomeReplacement: incomeGap * 5, // 5 years income replacement
+                            debt: this.baseInputs.mortgageBalance || 0,
+                            recommended: Math.max(totalHouseholdIncome * 5, 400000)
+                        }
+                    });
+                }
             }
         });
 
-        // Add insurance adequacy analysis if current coverage seems insufficient
-        const totalHouseholdIncome = this.baseInputs.yourSalary + (this.baseInputs.partnerSalary || 0);
-        const recommendedDeathCover = totalHouseholdIncome * 5; // 5x income rule of thumb
-        const recommendedTPDCover = totalHouseholdIncome * 3; // 3x income for TPD
+        return impacts;
+    }
 
-        if (successRate < 0.80 && recommendedDeathCover > defaultDeath) {
-            scenarios.push({
-                name: "Enhanced Life Insurance Coverage",
-                description: `Increase life insurance to ${formatCurrency(recommendedDeathCover)} (5x household income) for better family protection.`,
-                modifications: {
-                    // Simulate higher death benefit in critical scenario
-                    currentStocks: this.baseInputs.currentStocks + recommendedDeathCover,
-                    yourSalary: 0,
-                    isSingleCalculation: true,
-                    asfaComfortable: (this.baseInputs.asfaComfortable || 70000) * 0.75
-                },
-                feasibility: "Insurance Strategy Review",
-                factorsChanged: [
-                    `Enhanced death benefit: ${formatCurrency(recommendedDeathCover)}`,
-                    `vs current typical coverage: ${formatCurrency(defaultDeath)}`,
-                    `Additional protection: ${formatCurrency(recommendedDeathCover - defaultDeath)}`,
-                    `Consider: Review super fund insurance vs standalone policy`,
-                    `Higher premiums but significantly better family security`
-                ]
-            });
-        }
+    /**
+     * Calculate insurance cost-benefit analysis
+     */
+    calculateInsuranceCostBenefit(deathCover, tpdCover, householdIncome) {
+        const currentAge = this.baseInputs.yourCurrentAge;
 
-        return scenarios;
+        // Rough premium estimates (varies significantly by health, occupation, etc.)
+        const deathPremiumRate = currentAge < 40 ? 0.0008 : currentAge < 50 ? 0.0015 : 0.0025;
+        const tpdPremiumRate = currentAge < 40 ? 0.0012 : currentAge < 50 ? 0.0020 : 0.0035;
+
+        const estimatedAnnualPremiums = {
+            death: deathCover * deathPremiumRate,
+            tpd: tpdCover * tpdPremiumRate,
+            total: (deathCover * deathPremiumRate) + (tpdCover * tpdPremiumRate)
+        };
+
+        return {
+            estimatedAnnualPremiums,
+            premiumAsPercentOfIncome: (estimatedAnnualPremiums.total / householdIncome) * 100,
+            recommendation: estimatedAnnualPremiums.total / householdIncome < 0.02 ?
+                "Affordable - less than 2% of income" :
+                "Consider term life vs super fund insurance for cost efficiency"
+        };
     }
 
     /**

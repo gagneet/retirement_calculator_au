@@ -1666,69 +1666,79 @@ export class RetirementSimulator {
                 modifications: {}
             },
             {
-                name: "Sell Property at Retirement",
-                description: "Sell investment property when you retire and invest proceeds",
+                name: "Market Crash in First Retirement Year",
+                description: "Simulate a 40% portfolio decline in your first year of retirement (like 2008 GFC)",
                 modifications: {
-                    sellPropertyYears: baseInputs.retirementAge - baseInputs.yourCurrentAge,
-                    hasInvestmentProperty: baseInputs.hasInvestmentProperty
+                    // This will be handled by the stress testing functionality
+                    enableShocks: true,
+                    shockProbability: 1.0, // Guaranteed to happen
+                    shockMagnitude: -0.4, // 40% decline
+                    shockYear: 1 // First year of retirement
                 }
             },
             {
-                name: "Sell Property in 5 Years",
-                description: "Sell investment property in 5 years and invest proceeds",
-                modifications: {
-                    sellPropertyYears: 5,
-                    hasInvestmentProperty: baseInputs.hasInvestmentProperty
-                }
-            },
-            {
-                name: "Keep Property Forever",
-                description: "Hold investment property throughout retirement",
-                modifications: {
-                    sellPropertyYears: 0, // Never sell
-                    hasInvestmentProperty: baseInputs.hasInvestmentProperty
-                }
-            },
-            {
-                name: "Downsize Family Home",
-                description: "Downsize family home at retirement for extra funds",
-                modifications: {
-                    planToDownsize: true
-                }
-            },
-            {
-                name: "Conservative Allocation",
-                description: "Use more conservative investment allocation",
-                modifications: {
-                    allocEquities: Math.max(30, baseInputs.allocEquities - 20),
-                    allocBonds: Math.min(60, baseInputs.allocBonds + 15),
-                    allocCash: Math.min(20, baseInputs.allocCash + 5)
-                }
-            },
-            {
-                name: "Aggressive Allocation",
-                description: "Use more aggressive investment allocation",
-                modifications: {
-                    allocEquities: Math.min(90, baseInputs.allocEquities + 20),
-                    allocBonds: Math.max(5, baseInputs.allocBonds - 15),
-                    allocCash: Math.max(5, baseInputs.allocCash - 5)
-                }
-            },
-            {
-                name: "Retire 2 Years Later",
-                description: "Work 2 additional years before retiring",
+                name: "Retire 2 Years Later than Planned",
+                description: `Work until age ${baseInputs.retirementAge + 2} instead of ${baseInputs.retirementAge} (adds 2 years of contributions and growth)`,
                 modifications: {
                     retirementAge: baseInputs.retirementAge + 2,
-                    partnerRetirementAge: baseInputs.partnerRetirementAge + 2
+                    partnerRetirementAge: (baseInputs.partnerRetirementAge || baseInputs.retirementAge) + 2
+                }
+            },
+            {
+                name: "Early Retirement at 60",
+                description: "Retire at 60 with reduced superannuation access and no Age Pension until 67",
+                modifications: {
+                    retirementAge: 60,
+                    partnerRetirementAge: 60,
+                    // Early retirees face higher expenses due to no Age Pension
+                    asfaComfortable: (baseInputs.asfaComfortable || 70000) * 1.2
+                }
+            },
+            {
+                name: "High Healthcare Cost Scenario",
+                description: "Healthcare costs inflate at 7% annually instead of 6.5% (based on recent Australian trends)",
+                modifications: {
+                    healthcareInflation: 7.0 // Up from default 6.5%
+                }
+            },
+            {
+                name: "Live to 95 (Longevity Risk)",
+                description: "Plan for both partners living to 95 (25-30% chance based on Australian statistics)",
+                modifications: {
+                    yourLifespan: 95,
+                    partnerLifespan: 95
+                }
+            },
+            {
+                name: "Economic Stagflation Period",
+                description: "10 years of high inflation (4%) with low investment returns (3% real returns)",
+                modifications: {
+                    inflation: 0.04, // 4% inflation
+                    investmentReturn: 0.07, // 7% nominal = 3% real return
+                    propertyGrowthRate: 2.0 // Property underperforms in stagflation
+                }
+            },
+            {
+                name: "Conservative Portfolio (30/50/20)",
+                description: "Use defensive allocation: 30% equities, 50% bonds, 20% cash for market uncertainty",
+                modifications: {
+                    allocEquities: 30,
+                    allocBonds: 50,
+                    allocCash: 20,
+                    useGlidePath: false
+                }
+            },
+            {
+                name: "Downsize Home at Retirement",
+                description: "Sell family home and downsize to release equity for retirement income",
+                modifications: {
+                    planToDownsize: true
                 }
             }
         ];
 
-        // Add insurance scenarios for comprehensive what-if analysis
-        const insuranceScenarios = this.generateInsuranceScenarios(baseInputs);
-
-        // Return combined scenarios - standard scenarios first, then insurance scenarios grouped
-        return [...standardScenarios, ...insuranceScenarios];
+        // Insurance scenarios are now handled as hidden recommendations, not visible scenarios
+        return standardScenarios;
     }
 
     // ========== CASH FLOW ANALYSIS ENGINE ==========
