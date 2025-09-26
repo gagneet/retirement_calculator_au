@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# Disallow development and temporary files
+Disallow: /python/
+Disallow: /*.py$
+Disallow: /generate_favicons.py
+Disallow: /node_modules/
+Disallow: /.git/
+Disallow: /.DS_Store
+Disallow: /temp/
+Disallow: /tmp/
+
+# Allow important assets
+Allow: /assets/
+Allow: /css/
+Allow: /js/
+Allow: /favicon.ico
+Allow: /site.webmanifest
+
+# Sitemap location
+Sitemap: https://retirement.gagneet.com/sitemap.xml

@@ -243,7 +243,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js" integrity="sha512-+EeCylkt9WHJk5tGJxYdecHOcXFRME7qnbsfeMsdQL6NUPYm2+uGFmyleEqsmVoap/f3dN/sc3BX9t9kHXkHHg==" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.2/jspdf.plugin.autotable.min.js" integrity="sha512-JizZOUNesiGhMcp9fsA/9W31FOat6QysBM8hSj6ir8iIANIUJ2mhko7Lo1+j0ErftmJ8SebMZLm9iielKjeIEQ==" crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
+    <!-- The stylesheet will be injected automatically by Webpack -->
 
     <!-- Prevent flash of unstyled content -->
     <script>
@@ -1485,7 +1485,7 @@
                         <div class="text-sm text-blue-800 space-y-2">
                             <p><strong>Success Rate:</strong> Percentage of 1,000+ simulations where your money lasted through your expected lifespan. Higher is better. Arrows show improvement (↗) or decline (↘) vs Current Plan.</p>
                             <p><strong>Median Balance:</strong> The middle result from Monte Carlo simulations at your expected lifespan age. This accounts for market volatility and represents the most likely outcome. Calculated using historical market returns and modern portfolio theory.</p>
-                            <p><strong>Risk Score:</strong> For Current Plan: Overall quality (0-100) based on success rate and balance adequacy. For alternatives: Relative performance vs Current Plan (50=same, >50=better, <50=worse).</p>
+                            <p><strong>Risk Score:</strong> For Current Plan: Overall quality (0-100) based on success rate and balance adequacy. For alternatives: Relative performance vs Current Plan (50=same, &gt;50=better, &lt;50=worse).</p>
                             <p><strong>Recommendation:</strong> Shows percentage improvements (+) or declines (-) in success rate and balance compared to your Current Plan baseline.</p>
                         </div>
                     </div>
@@ -1578,17 +1578,7 @@
     </footer>
 </div>
 
-<!-- Load JavaScript modules -->
-<script type="module" src="js/utils.js"></script>
-<script type="module" src="js/theme.js"></script>
-<script type="module" src="js/config.js"></script>
-<script type="module" src="js/trust-ui.js"></script>
-<script type="module" src="js/simulator.js"></script>
-<script type="module" src="js/recommendation.js"></script>
-<script type="module" src="js/decision-support-engine.js"></script>
-<script type="module" src="js/market-data.js"></script>
-<script type="module" src="js/charts.js"></script>
-<script type="module" src="js/app.js"></script>
+<!-- Webpack will inject the bundled script here -->
 
 <!-- Error handling and loading timeout -->
 <script>

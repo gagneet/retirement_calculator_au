@@ -238,10 +238,7 @@ class ThemeManager {
     }
 }
 
-// Initialize theme manager when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    window.themeManager = new ThemeManager();
-});
+// Theme manager will be initialized by the main app
 
 // Export for module usage
 // if (typeof module !== 'undefined' && module.exports) {
