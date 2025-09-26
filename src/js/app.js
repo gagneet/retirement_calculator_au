@@ -2105,6 +2105,345 @@ class RetirementCalculatorApp {
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Fallback for other bold text
     }
 
+    // Generate overseas retirement scenarios
+    async generateOverseasScenarios() {
+        try {
+            // Show loading state
+            const loadingDiv = $('overseasScenariosLoading');
+            const resultsDiv = $('overseasScenariosResults');
+            const placeholderDiv = $('overseasScenariosPlaceholder');
+            const button = $('generateOverseasScenarios');
+
+            if (loadingDiv) loadingDiv.classList.remove('hidden');
+            if (resultsDiv) resultsDiv.classList.add('hidden');
+            if (placeholderDiv) placeholderDiv.classList.add('hidden');
+            if (button) button.disabled = true;
+
+            // Collect overseas configuration inputs
+            const overseasConfig = this.collectOverseasConfig();
+            const baseInputs = this.collectInputs();
+
+            // Generate scenarios based on configuration
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing time
+            const scenarios = this.generateOverseasScenariosData(overseasConfig, baseInputs);
+
+            // Update status banner
+            this.updateOverseasStatus(overseasConfig, scenarios);
+
+            // Display scenarios
+            this.displayOverseasScenarios(scenarios);
+
+            // Hide loading and show results
+            if (loadingDiv) loadingDiv.classList.add('hidden');
+            if (resultsDiv) resultsDiv.classList.remove('hidden');
+            if (button) button.disabled = false;
+
+            showNotification(`Generated ${scenarios.length} overseas retirement scenarios`, 'success');
+
+        } catch (error) {
+            console.error('Error generating overseas scenarios:', error);
+            showNotification(`Error generating overseas scenarios: ${error.message}`, 'error');
+
+            // Hide loading on error
+            const loadingDiv = $('overseasScenariosLoading');
+            const button = $('generateOverseasScenarios');
+            if (loadingDiv) loadingDiv.classList.add('hidden');
+            if (button) button.disabled = false;
+        }
+    }
+
+    // Collect overseas configuration from form inputs
+    collectOverseasConfig() {
+        return {
+            country: safeGetValue('overseasCountry', ''),
+            departureAge: parseInt(safeGetValue('overseasAge', 65)),
+            returnFrequency: safeGetValue('returnFrequency', 'annually'),
+            maintainResidency: safeGetValue('maintainResidency', false, 'checked'),
+            propertyStrategy: safeGetValue('propertyStrategy', 'keep-personal'),
+            trustBeneficiaries: safeGetValue('trustBeneficiaries', 'you-only'),
+            superAccess: safeGetValue('superAccess', 'pension-mode'),
+            estimatedLivingCosts: parseFloat(safeGetValue('estimatedLivingCosts', 60000))
+        };
+    }
+
+    // Generate overseas scenarios data based on configuration
+    generateOverseasScenariosData(config, baseInputs) {
+        const scenarios = [];
+        const currentAge = baseInputs.yourCurrentAge;
+        const retirementAge = baseInputs.retirementAge;
+
+        // Country-specific data
+        const countryData = this.getCountryData(config.country);
+
+        // Scenario 1: Depart at retirement vs current plan
+        scenarios.push({
+            title: `Retire to ${countryData.displayName} at Age ${config.departureAge}`,
+            description: `Move to ${countryData.displayName} at age ${config.departureAge} with ${config.returnFrequency.replace('_', ' ')} visits to Australia.`,
+            impact: this.calculateOverseasImpact(config, baseInputs, 'retirement-departure'),
+            agePensionStatus: this.calculateAgePensionImpact(config, baseInputs),
+            taxImplications: this.calculateTaxImplications(config, baseInputs),
+            riskLevel: config.maintainResidency ? 'MEDIUM' : 'HIGH',
+            timeline: `${2025 + (config.departureAge - currentAge)}`,
+            keyFactors: [
+                `Living costs: $${config.estimatedLivingCosts.toLocaleString()}/year`,
+                `Age pension: ${this.calculateAgePensionImpact(config, baseInputs)}`,
+                `Tax residency: ${config.maintainResidency ? 'Australian' : countryData.displayName}`,
+                `Property: ${config.propertyStrategy.replace('-', ' ')}`,
+                `Healthcare: ${countryData.healthcareNotes}`
+            ]
+        });
+
+        // Scenario 2: Property strategy impact
+        if (baseInputs.hasInvestmentProperty) {
+            scenarios.push({
+                title: `${config.propertyStrategy === 'transfer-trust' ? 'Trust Structure' : 'Property Sale'} Strategy`,
+                description: `${config.propertyStrategy === 'transfer-trust' ?
+                    'Transfer properties to family trust before departure to optimize tax and Centrelink treatment' :
+                    'Sell investment property before/after departure to optimize capital gains tax'}`,
+                impact: this.calculatePropertyStrategyImpact(config, baseInputs),
+                agePensionStatus: config.propertyStrategy === 'transfer-trust' ? 'May be attributed to you' : 'Reduced asset test impact',
+                taxImplications: this.calculatePropertyTaxImpact(config, baseInputs),
+                riskLevel: config.propertyStrategy === 'transfer-trust' ? 'HIGH' : 'MEDIUM',
+                timeline: `${2025 + Math.max(0, config.departureAge - currentAge - 2)}`,
+                keyFactors: [
+                    `Current property value: $${baseInputs.investmentPropertyValue?.toLocaleString() || 'N/A'}`,
+                    `Strategy: ${config.propertyStrategy.replace('-', ' ')}`,
+                    `CGT timing: ${config.propertyStrategy.includes('before') ? 'Before departure' : 'After residency change'}`,
+                    `Centrelink impact: ${config.propertyStrategy === 'sell-before' ? 'Significant asset reduction' : 'Complex attribution rules'}`,
+                    `Trust beneficiaries: ${config.trustBeneficiaries.replace('-', ' ')}`
+                ]
+            });
+        }
+
+        // Scenario 3: Superannuation strategy
+        scenarios.push({
+            title: `${config.superAccess === 'pension-mode' ? 'Pension Payments' : 'Lump Sum'} Superannuation Strategy`,
+            description: `Access superannuation via ${config.superAccess.replace('-', ' ')} ${config.superAccess === 'pension-mode' ? 'while living overseas' : 'before departure'}`,
+            impact: this.calculateSuperStrategyImpact(config, baseInputs),
+            agePensionStatus: config.superAccess === 'full-lump' ? 'Better asset test position' : 'Deemed income applies',
+            taxImplications: this.calculateSuperTaxImpact(config, baseInputs),
+            riskLevel: config.superAccess === 'pension-mode' ? 'LOW' : 'MEDIUM',
+            timeline: config.superAccess === 'pension-mode' ? 'Ongoing from retirement' : 'Before departure',
+            keyFactors: [
+                `Total super: $${(baseInputs.yourCurrentSuper + baseInputs.partnerCurrentSuper).toLocaleString()}`,
+                `Access strategy: ${config.superAccess.replace('-', ' ')}`,
+                `Tax treatment: ${config.maintainResidency ? 'Australian tax resident' : 'May be taxed as non-resident'}`,
+                `Age pension impact: ${config.superAccess === 'full-lump' ? 'Reduces assets test' : 'Ongoing deemed income'}`,
+                `Currency risk: ${config.superAccess === 'pension-mode' ? 'Ongoing AUD exposure' : 'One-time conversion'}`
+            ]
+        });
+
+        // Scenario 4: Tax residency impact
+        scenarios.push({
+            title: `${config.maintainResidency ? 'Maintain' : 'Cease'} Australian Tax Residency`,
+            description: `${config.maintainResidency ?
+                'Keep Australian tax residency and pay tax on worldwide income' :
+                'Become non-resident and only pay Australian tax on Australian-source income'}`,
+            impact: this.calculateResidencyImpact(config, baseInputs),
+            agePensionStatus: config.maintainResidency ? 'No residency issues' : 'Must meet portability rules',
+            taxImplications: this.calculateResidencyTaxImpact(config, baseInputs),
+            riskLevel: config.maintainResidency ? 'LOW' : 'HIGH',
+            timeline: 'Determined at departure',
+            keyFactors: [
+                `Australian tax: ${config.maintainResidency ? 'All income taxed' : 'Only Australian-source income'}`,
+                `${countryData.displayName} tax: ${config.maintainResidency ? 'May create double taxation' : 'Becomes primary tax residence'}`,
+                `Age pension: ${config.maintainResidency ? 'Full portability if eligible' : 'Subject to portability limits'}`,
+                `Investment income: ${config.maintainResidency ? 'Taxed in Australia' : 'Withholding tax applies'}`,
+                `Professional advice: Essential for complex tax planning`
+            ]
+        });
+
+        // Scenario 5: Return frequency impact
+        if (config.returnFrequency !== 'never') {
+            scenarios.push({
+                title: `${config.returnFrequency.charAt(0).toUpperCase() + config.returnFrequency.slice(1)} Return Pattern`,
+                description: `Maintain ${config.returnFrequency} visits to Australia to ${config.returnFrequency === 'seasonal' ? 'potentially maintain tax residency' : 'stay connected but likely be non-resident'}`,
+                impact: this.calculateReturnFrequencyImpact(config, baseInputs),
+                agePensionStatus: this.calculateReturnPensionImpact(config.returnFrequency),
+                taxImplications: this.calculateReturnTaxImpact(config.returnFrequency),
+                riskLevel: config.returnFrequency === 'seasonal' ? 'MEDIUM' : 'LOW',
+                timeline: 'Annual pattern',
+                keyFactors: [
+                    `Time in Australia: ${this.getReturnTimeDescription(config.returnFrequency)}`,
+                    `Tax residency: ${config.returnFrequency === 'seasonal' ? 'May maintain if other factors support' : 'Likely non-resident'}`,
+                    `Age pension: ${config.returnFrequency === 'seasonal' ? 'May avoid portability limits' : 'Subject to overseas limits'}`,
+                    `Travel costs: Budget for regular flights and accommodation`,
+                    `Healthcare: Maintain Medicare access during Australian visits`
+                ]
+            });
+        }
+
+        return scenarios;
+    }
+
+    // Get country-specific data
+    getCountryData(country) {
+        const countryMap = {
+            'portugal': { displayName: 'Portugal', healthcareNotes: 'Public healthcare available', taxTreaty: true },
+            'spain': { displayName: 'Spain', healthcareNotes: 'EU healthcare reciprocity', taxTreaty: true },
+            'italy': { displayName: 'Italy', healthcareNotes: 'Regional healthcare systems', taxTreaty: true },
+            'usa': { displayName: 'United States', healthcareNotes: 'Private insurance essential', taxTreaty: true },
+            'canada': { displayName: 'Canada', healthcareNotes: 'Provincial healthcare systems', taxTreaty: true },
+            'newzealand': { displayName: 'New Zealand', healthcareNotes: 'Reciprocal healthcare agreement', taxTreaty: true },
+            'india': { displayName: 'India', healthcareNotes: 'Private insurance recommended', taxTreaty: true },
+            'thailand': { displayName: 'Thailand', healthcareNotes: 'Expat health insurance needed', taxTreaty: false },
+            'philippines': { displayName: 'Philippines', healthcareNotes: 'Private healthcare advisable', taxTreaty: false },
+            'malaysia': { displayName: 'Malaysia', healthcareNotes: 'MM2H healthcare benefits', taxTreaty: true },
+            'other': { displayName: 'Selected Country', healthcareNotes: 'Research local healthcare', taxTreaty: false }
+        };
+        return countryMap[country] || countryMap['other'];
+    }
+
+    // Calculate various impacts (placeholder implementations)
+    calculateOverseasImpact(config, baseInputs, type) {
+        const costDiff = baseInputs.currentSavings * 0.1; // Simplified calculation
+        return config.estimatedLivingCosts < 80000 ? 'POSITIVE' : 'NEUTRAL';
+    }
+
+    calculateAgePensionImpact(config, baseInputs) {
+        if (config.returnFrequency === 'seasonal') return 'May maintain full pension';
+        if (config.returnFrequency === 'never') return 'Outside Australia rate applies';
+        return 'Portability rules apply after 26 weeks';
+    }
+
+    calculateTaxImplications(config, baseInputs) {
+        if (config.maintainResidency) return 'Australian tax on worldwide income';
+        return 'Non-resident withholding tax on Australian income';
+    }
+
+    calculatePropertyStrategyImpact(config, baseInputs) {
+        if (config.propertyStrategy === 'sell-before') return 'POSITIVE';
+        if (config.propertyStrategy === 'transfer-trust') return 'COMPLEX';
+        return 'NEUTRAL';
+    }
+
+    calculatePropertyTaxImpact(config, baseInputs) {
+        if (config.propertyStrategy.includes('sell')) return 'Capital gains tax implications';
+        return 'Ongoing rental income tax obligations';
+    }
+
+    calculateSuperStrategyImpact(config, baseInputs) {
+        const totalSuper = baseInputs.yourCurrentSuper + baseInputs.partnerCurrentSuper;
+        return totalSuper > 500000 ? 'HIGH POSITIVE' : 'POSITIVE';
+    }
+
+    calculateSuperTaxImpact(config, baseInputs) {
+        if (config.superAccess === 'pension-mode') return 'Ongoing pension tax treatment';
+        return 'Lump sum tax treatment applies';
+    }
+
+    calculateResidencyImpact(config, baseInputs) {
+        return config.maintainResidency ? 'NEUTRAL' : 'HIGH POSITIVE';
+    }
+
+    calculateResidencyTaxImpact(config, baseInputs) {
+        if (config.maintainResidency) return 'Pay Australian tax on all income';
+        return 'Only Australian-source income taxed in Australia';
+    }
+
+    calculateReturnFrequencyImpact(config, baseInputs) {
+        const travelCosts = config.returnFrequency === 'seasonal' ? 20000 : 10000;
+        return travelCosts < baseInputs.currentSavings * 0.05 ? 'NEUTRAL' : 'NEGATIVE';
+    }
+
+    calculateReturnPensionImpact(frequency) {
+        if (frequency === 'seasonal') return 'May maintain full rate';
+        if (frequency === 'quarterly') return 'Portability may apply';
+        return 'Overseas rate likely';
+    }
+
+    calculateReturnTaxImpact(frequency) {
+        if (frequency === 'seasonal') return 'May remain tax resident';
+        return 'Likely non-resident treatment';
+    }
+
+    getReturnTimeDescription(frequency) {
+        const descriptions = {
+            'annually': '3-4 weeks per year',
+            'biannually': '6-8 weeks total per year',
+            'quarterly': '3-4 months per year',
+            'seasonal': '6 months each year'
+        };
+        return descriptions[frequency] || 'Varies';
+    }
+
+    // Update overseas status banner
+    updateOverseasStatus(config, scenarios) {
+        const pensionStatus = $('overseasPensionStatus');
+        const taxStatus = $('overseasTaxStatus');
+        const assetStatus = $('overseasAssetStatus');
+
+        if (pensionStatus) {
+            pensionStatus.textContent = this.calculateAgePensionImpact(config, this.collectInputs());
+        }
+        if (taxStatus) {
+            taxStatus.textContent = config.maintainResidency ? 'Australian resident' : 'Non-resident likely';
+        }
+        if (assetStatus) {
+            assetStatus.textContent = config.propertyStrategy === 'transfer-trust' ? 'Trust structure' : 'Personal ownership';
+        }
+    }
+
+    // Display overseas scenarios in the UI
+    displayOverseasScenarios(scenarios) {
+        const container = $('overseasScenariosResults');
+        if (!container) return;
+
+        const grid = container.querySelector('.grid');
+        if (!grid) return;
+
+        grid.innerHTML = scenarios.map(scenario => `
+            <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex justify-between items-start mb-3">
+                    <h4 class="font-semibold text-gray-900">${scenario.title}</h4>
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${
+                        scenario.riskLevel === 'LOW' ? 'bg-green-100 text-green-800' :
+                        scenario.riskLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                    }">
+                        Risk: ${scenario.riskLevel}
+                    </span>
+                </div>
+
+                <p class="text-sm text-gray-600 mb-4">${scenario.description}</p>
+
+                <div class="space-y-3 mb-4">
+                    <div>
+                        <span class="text-xs font-medium text-gray-700">Impact:</span>
+                        <span class="text-xs ml-2 px-2 py-1 rounded ${
+                            scenario.impact === 'POSITIVE' || scenario.impact === 'HIGH POSITIVE' || scenario.impact === 'VERY HIGH POSITIVE'
+                                ? 'bg-green-100 text-green-800' :
+                            scenario.impact === 'NEGATIVE' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                        }">${scenario.impact}</span>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-medium text-gray-700">Age Pension:</span>
+                        <span class="text-xs ml-2 text-gray-600">${scenario.agePensionStatus}</span>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-medium text-gray-700">Tax:</span>
+                        <span class="text-xs ml-2 text-gray-600">${scenario.taxImplications}</span>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-medium text-gray-700">Timeline:</span>
+                        <span class="text-xs ml-2 px-2 py-1 bg-purple-100 text-purple-800 rounded">${scenario.timeline}</span>
+                    </div>
+                </div>
+
+                <div class="border-t pt-3">
+                    <span class="text-xs font-medium text-gray-700 mb-2 block">Key Factors:</span>
+                    <ul class="text-xs text-gray-600 space-y-1">
+                        ${scenario.keyFactors.map(factor => `<li>• ${factor}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+        `).join('');
+    }
+
     displayRecommendations(recommendations) {
         const container = $('recommendationsContainer');
         if (!container) return;
@@ -2893,6 +3232,12 @@ class RetirementCalculatorApp {
         const btnGenerateSuggestions = $('generateSuggestionsBtn');
         if (btnGenerateSuggestions) {
             btnGenerateSuggestions.addEventListener('click', () => this.generatePersonalizedSuggestions());
+        }
+
+        // Generate Overseas Scenarios button
+        const btnGenerateOverseasScenarios = $('generateOverseasScenarios');
+        if (btnGenerateOverseasScenarios) {
+            btnGenerateOverseasScenarios.addEventListener('click', () => this.generateOverseasScenarios());
         }
 
         // Monte Carlo button

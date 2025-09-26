@@ -1278,6 +1278,7 @@
             <button class="tab-button" onclick="showTab('riskAnalysis')">Risk Analysis</button>
             <button class="tab-button" onclick="showTab('charts')">Advanced Charts</button>
             <button class="tab-button" onclick="showTab('optimization')">Optimization</button>
+            <button class="tab-button" onclick="showTab('overseas')">🌍 Overseas</button>
             <button class="tab-button" onclick="showTab('scenarios')">Scenario Compare</button>
         </div>
 
@@ -1552,6 +1553,167 @@
 
             <div id="optimizationContent" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Optimization strategies will be populated -->
+            </div>
+        </div>
+
+        <!-- Overseas Retirement Tab -->
+        <div id="overseas-tab" class="tab-content p-6">
+            <h2 class="text-2xl font-semibold mb-4">🌍 Overseas Retirement Planning</h2>
+
+            <!-- Overseas Planning Status Banner -->
+            <div id="overseasBanner" class="mb-6 p-4 rounded-lg border-l-4 border-blue-500 bg-blue-50">
+                <h3 class="font-semibold text-blue-900">Overseas Retirement Analysis</h3>
+                <div class="mt-2 text-sm text-blue-800">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <div class="font-medium">Age Pension Eligibility</div>
+                            <div id="overseasPensionStatus" class="text-xs text-gray-600 mt-1">Calculate to assess</div>
+                        </div>
+                        <div>
+                            <div class="font-medium">Tax Residency Impact</div>
+                            <div id="overseasTaxStatus" class="text-xs text-gray-600 mt-1">Depends on location</div>
+                        </div>
+                        <div>
+                            <div class="font-medium">Asset Structure</div>
+                            <div id="overseasAssetStatus" class="text-xs text-gray-600 mt-1">Trust vs personal</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overseas Configuration -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white p-6 rounded-lg border">
+                    <h3 class="text-lg font-semibold mb-4">Overseas Residence Plans</h3>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label for="overseasCountry" class="block text-sm font-medium text-gray-700">Retirement Destination</label>
+                            <select id="overseasCountry" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="">Select Country...</option>
+                                <option value="portugal">Portugal</option>
+                                <option value="spain">Spain</option>
+                                <option value="italy">Italy</option>
+                                <option value="usa">United States</option>
+                                <option value="canada">Canada</option>
+                                <option value="newzealand">New Zealand</option>
+                                <option value="india">India</option>
+                                <option value="thailand">Thailand</option>
+                                <option value="philippines">Philippines</option>
+                                <option value="malaysia">Malaysia</option>
+                                <option value="other">Other Country</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="overseasAge" class="block text-sm font-medium text-gray-700">Age When Moving Overseas</label>
+                            <input type="number" id="overseasAge" min="55" max="90" value="65" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+
+                        <div>
+                            <label for="returnFrequency" class="block text-sm font-medium text-gray-700">Return to Australia Frequency</label>
+                            <select id="returnFrequency" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="never">Never (permanent move)</option>
+                                <option value="annually">Once per year (3-4 weeks)</option>
+                                <option value="biannually">Twice per year (6-8 weeks total)</option>
+                                <option value="quarterly">Every 3 months (3-4 months per year)</option>
+                                <option value="seasonal">6 months each (seasonal)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="maintainResidency" class="flex items-center">
+                                <input type="checkbox" id="maintainResidency" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">Maintain Australian Tax Residency</span>
+                            </label>
+                            <p class="mt-1 text-xs text-gray-500">Complex decision affecting tax on all income sources</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg border">
+                    <h3 class="text-lg font-semibold mb-4">Asset Structure Strategy</h3>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label for="propertyStrategy" class="block text-sm font-medium text-gray-700">Property Strategy</label>
+                            <select id="propertyStrategy" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="keep-personal">Keep in Personal Names</option>
+                                <option value="transfer-trust">Transfer to Family Trust</option>
+                                <option value="sell-before">Sell Before Departure</option>
+                                <option value="sell-after">Sell After Establishing Overseas Residency</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="trustBeneficiaries" class="block text-sm font-medium text-gray-700">Trust Beneficiaries (if using trust)</label>
+                            <select id="trustBeneficiaries" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="you-only">Yourself Only</option>
+                                <option value="you-partner">You and Partner</option>
+                                <option value="family">Extended Family</option>
+                                <option value="australian-residents">Australian Resident Children</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="superAccess" class="block text-sm font-medium text-gray-700">Superannuation Access Strategy</label>
+                            <select id="superAccess" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="pension-mode">Pension Mode (Regular Payments)</option>
+                                <option value="partial-lump">Partial Lump Sum Before Departure</option>
+                                <option value="full-lump">Full Lump Sum Before Departure</option>
+                                <option value="mixed">Mixed Strategy</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="estimatedLivingCosts" class="block text-sm font-medium text-gray-700">Estimated Annual Living Costs Overseas</label>
+                            <input type="number" id="estimatedLivingCosts" step="1000" value="60000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">In Australian dollars (consider healthcare, housing, lifestyle)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overseas Scenarios Analysis -->
+            <div class="bg-white p-6 rounded-lg border">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Overseas Retirement Scenarios</h3>
+                    <button id="generateOverseasScenarios" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors">
+                        Generate Scenarios
+                    </button>
+                </div>
+
+                <div id="overseasScenariosLoading" class="hidden text-center py-8">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+                    <p class="mt-4 text-gray-600">Analyzing overseas retirement scenarios...</p>
+                </div>
+
+                <div id="overseasScenariosResults" class="hidden">
+                    <!-- Scenarios will be populated here -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Scenario cards will be added dynamically -->
+                    </div>
+                </div>
+
+                <div id="overseasScenariosPlaceholder" class="text-center py-12 text-gray-500">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V17a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">No Scenarios Generated</h3>
+                    <p class="mt-1 text-sm text-gray-500">Click "Generate Scenarios" to analyze overseas retirement options</p>
+                </div>
+            </div>
+
+            <!-- Important Considerations -->
+            <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <h4 class="font-semibold text-amber-900 mb-2">⚠️ Important Considerations</h4>
+                <div class="text-sm text-amber-800 space-y-1">
+                    <p>• <strong>Age Pension:</strong> Requires Australian residence history and may be reduced overseas</p>
+                    <p>• <strong>Tax Treaties:</strong> May provide relief from double taxation depending on destination</p>
+                    <p>• <strong>Healthcare:</strong> Medicare may not cover overseas treatment - consider insurance</p>
+                    <p>• <strong>Superannuation:</strong> Access rules remain the same regardless of residency</p>
+                    <p>• <strong>Professional Advice:</strong> Complex area requiring tax and legal expertise</p>
+                </div>
             </div>
         </div>
 
