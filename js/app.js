@@ -48,6 +48,7 @@ class RetirementCalculatorApp {
         this.setupEventListeners();
         this.setupAutoSave(); // Setup auto-save functionality
         this.setupCashFlowUI(); // Setup cash flow validation and UI
+        this.setupDependentCalculations(); // Setup enhanced dependent calculations
         this.updateUIElements();
         initializeTrustUI(); // Initialize trust UI functionality
 
@@ -78,6 +79,26 @@ class RetirementCalculatorApp {
             hasEmergencyFund: safeGetSelectValue('hasEmergencyFund', config.risk.hasEmergencyFund),
             hasDebt: safeGetSelectValue('hasDebt', config.risk.hasDebt),
             dependents: safeGetValue('dependents', config.risk.dependents),
+
+            // Enhanced dependent details
+            dependentDetails: {
+                childrenUnder5: safeGetValue('childrenUnder5', 0),
+                childrenUnder5Percent: safeGetValue('childrenUnder5Percent', 70),
+                childrenPrimary: safeGetValue('childrenPrimary', 0),
+                childrenPrimaryPercent: safeGetValue('childrenPrimaryPercent', 70),
+                teenagers: safeGetValue('teenagers', 0),
+                teenagersPercent: safeGetValue('teenagersPercent', 80),
+                adultDisabled: safeGetValue('adultDisabled', 0),
+                adultDisabledPercent: safeGetValue('adultDisabledPercent', 20),
+                elderlyIndependent: safeGetValue('elderlyIndependent', 0),
+                elderlyIndependentPercent: safeGetValue('elderlyIndependentPercent', 50),
+                elderlyHomeCare: safeGetValue('elderlyHomeCare', 0),
+                elderlyHomeCarePercent: safeGetValue('elderlyHomeCarePercent', 30),
+                elderlyResidential: safeGetValue('elderlyResidential', 0),
+                elderlyResidentialPercent: safeGetValue('elderlyResidentialPercent', 40),
+                otherDependents: safeGetValue('otherDependents', 0),
+                otherDependentsPercent: safeGetValue('otherDependentsPercent', 60)
+            },
 
             // Financial details
             yourSalary: safeGetValue('yourSalary', config.financial.yourSalary),
@@ -513,10 +534,10 @@ class RetirementCalculatorApp {
                                 <div>$${cashFlowAnalysis.expenses.living.monthlyTotal.toFixed(0)}</div>
                                 <div class="text-gray-500">${cashFlowAnalysis.expenses.breakdown.livingDescription}</div>
                             </div>
-                            ${cashFlowAnalysis.expenses.childcare.monthlyTotal > 0 ? `
+                            ${cashFlowAnalysis.expenses.dependents.monthlyTotal > 0 ? `
                                 <div class="bg-white rounded p-2 border">
-                                    <div class="font-medium">Childcare</div>
-                                    <div>$${cashFlowAnalysis.expenses.childcare.monthlyTotal.toFixed(0)}</div>
+                                    <div class="font-medium">Dependents</div>
+                                    <div>$${cashFlowAnalysis.expenses.dependents.monthlyTotal.toFixed(0)}</div>
                                     <div class="text-gray-500">${cashFlowAnalysis.expenses.breakdown.childcareDescription}</div>
                                 </div>
                             ` : ''}
@@ -1168,7 +1189,7 @@ class RetirementCalculatorApp {
             <div class="enhancement-highlight p-4 rounded-lg border-l-4 ${monthlyDisposableIncome < 500 ? 'border-red-500 bg-red-50' : monthlyDisposableIncome < 1000 ? 'border-yellow-500 bg-yellow-50' : 'border-green-500 bg-green-50'}">
                 <h3 class="text-lg font-semibold mb-3">Cash Flow Optimization (Priority #1)</h3>
                 <div class="mb-3 p-3 rounded ${monthlyDisposableIncome < 500 ? 'bg-red-100' : monthlyDisposableIncome < 1000 ? 'bg-yellow-100' : 'bg-green-100'}">
-                    <div class="text-sm font-medium">Current Monthly Disposable Income: <span class="font-bold">${formatCurrency(monthlyDisposableIncome * 12, 0, true)}/month</span></div>
+                    <div class="text-sm font-medium">Current Monthly Disposable Income: <span class="font-bold">${formatCurrency(monthlyDisposableIncome, 0, true)}/month</span></div>
                     <div class="text-xs mt-1">Status: ${cashFlowAnalysis.cashFlow.status.charAt(0).toUpperCase() + cashFlowAnalysis.cashFlow.status.slice(1)} cash flow</div>
                 </div>
                 <div class="space-y-3 text-sm">
@@ -1451,10 +1472,10 @@ class RetirementCalculatorApp {
             strategies.push('Consider refinancing or downsizing to reduce mortgage burden');
         }
 
-        // Childcare optimization
-        if (expenses.childcare && expenses.childcare.monthlyTotal > 2000) {
-            strategies.push('Review childcare subsidies and tax benefits to optimize costs');
-            strategies.push('Consider family daycare or nanny sharing options');
+        // Dependent cost optimization
+        if (expenses.dependents && expenses.dependents.monthlyTotal > 2000) {
+            strategies.push('Review dependent care subsidies and tax benefits to optimize costs');
+            strategies.push('Consider family daycare, nanny sharing, or support from extended family');
         }
 
         // General expense strategies
@@ -3024,6 +3045,202 @@ class RetirementCalculatorApp {
             detailsDiv.classList.remove('hidden');
         } else {
             detailsDiv.classList.add('hidden');
+        }
+    }
+
+    // Enhanced Dependent Calculations Setup
+    setupDependentCalculations() {
+        // Setup collapsible dependent details
+        const totalDependentsCountField = $('totalDependentsCount');
+        const dependentDetailsSection = $('dependentDetailsSection');
+        const dependentSummarySection = $('dependentSummarySection');
+
+        if (totalDependentsCountField && dependentDetailsSection) {
+            totalDependentsCountField.addEventListener('input', () => {
+                const count = parseInt(totalDependentsCountField.value) || 0;
+                if (count > 0) {
+                    dependentDetailsSection.classList.remove('hidden');
+                    if (dependentSummarySection) {
+                        dependentSummarySection.classList.add('hidden');
+                    }
+                } else {
+                    dependentDetailsSection.classList.add('hidden');
+                    if (dependentSummarySection) {
+                        dependentSummarySection.classList.add('hidden');
+                    }
+                }
+                this.calculateDependentCosts();
+            });
+        }
+
+        // Setup global collapse/expand functions
+        window.showDependentDetails = () => {
+            if (dependentDetailsSection) {
+                dependentDetailsSection.classList.remove('hidden');
+            }
+            if (dependentSummarySection) {
+                dependentSummarySection.classList.add('hidden');
+            }
+        };
+
+        window.collapseDependentDetails = () => {
+            if (dependentDetailsSection) {
+                dependentDetailsSection.classList.add('hidden');
+            }
+            if (dependentSummarySection) {
+                dependentSummarySection.classList.remove('hidden');
+            }
+            this.updateDependentSummary();
+        };
+
+        window.showAllCategories = () => {
+            const categories = [
+                'childrenUnder5', 'childrenPrimary', 'teenagers', 'adultDisabled',
+                'elderlyIndependent', 'elderlyHomeCare', 'elderlyResidential', 'otherDependents'
+            ];
+            categories.forEach(category => {
+                const rowElement = $(category + 'Row');
+                if (rowElement) {
+                    rowElement.classList.remove('hidden');
+                }
+            });
+        };
+
+        const dependentFields = [
+            'childrenUnder5', 'childrenUnder5Percent',
+            'childrenPrimary', 'childrenPrimaryPercent',
+            'teenagers', 'teenagersPercent',
+            'adultDisabled', 'adultDisabledPercent',
+            'elderlyIndependent', 'elderlyIndependentPercent',
+            'elderlyHomeCare', 'elderlyHomeCarePercent',
+            'elderlyResidential', 'elderlyResidentialPercent',
+            'otherDependents', 'otherDependentsPercent'
+        ];
+
+        // Add event listeners to all dependent fields
+        dependentFields.forEach(fieldId => {
+            const element = $(fieldId);
+            if (element) {
+                element.addEventListener('input', () => {
+                    this.calculateDependentCosts();
+                    this.showOnlyPopulatedCategories();
+                    this.updateDependentSummary();
+                });
+            }
+        });
+
+        // Initial calculation
+        this.calculateDependentCosts();
+    }
+
+    updateDependentSummary() {
+        const categories = [
+            { id: 'childrenUnder5', name: 'Children (0-5)' },
+            { id: 'childrenPrimary', name: 'Children (6-12)' },
+            { id: 'teenagers', name: 'Teenagers (13-18)' },
+            { id: 'adultDisabled', name: 'Adult Disabled' },
+            { id: 'elderlyIndependent', name: 'Elderly Independent' },
+            { id: 'elderlyHomeCare', name: 'Elderly Home Care' },
+            { id: 'elderlyResidential', name: 'Elderly Residential' },
+            { id: 'otherDependents', name: 'Other Dependents' }
+        ];
+
+        const populatedCategories = [];
+        categories.forEach(category => {
+            const count = parseInt(safeGetValue(category.id, 0)) || 0;
+            const percent = parseInt(safeGetValue(category.id + 'Percent', 0)) || 0;
+            if (count > 0 && percent > 0) {
+                populatedCategories.push(`${count} ${category.name} (${percent}%)`);
+            }
+        });
+
+        const summaryTextEl = $('dependentSummaryText');
+        if (summaryTextEl) {
+            if (populatedCategories.length > 0) {
+                summaryTextEl.textContent = populatedCategories.join(', ');
+            } else {
+                summaryTextEl.textContent = 'No dependents configured - Click to add';
+            }
+        }
+    }
+
+    showOnlyPopulatedCategories() {
+        const categories = [
+            'childrenUnder5', 'childrenPrimary', 'teenagers', 'adultDisabled',
+            'elderlyIndependent', 'elderlyHomeCare', 'elderlyResidential', 'otherDependents'
+        ];
+
+        categories.forEach(category => {
+            const count = parseInt(safeGetValue(category, 0)) || 0;
+            const percent = parseInt(safeGetValue(category + 'Percent', 0)) || 0;
+            const rowElement = $(category + 'Row');
+
+            if (rowElement) {
+                if (count > 0 && percent > 0) {
+                    rowElement.classList.remove('hidden');
+                } else {
+                    rowElement.classList.add('hidden');
+                }
+            }
+        });
+    }
+
+    calculateDependentCosts() {
+        // Monthly cost estimates based on 2025 Australian data
+        const monthlyCosts = {
+            childrenUnder5: 2835, // $135/day × 21 days/month
+            childrenPrimary: 800,  // School, activities, after-school care
+            teenagers: 600,        // Technology, activities, pre-independence
+            adultDisabled: 500,    // Your portion after NDIS covers most
+            elderlyIndependent: 200, // Occasional support
+            elderlyHomeCare: 400,   // Your extras beyond government support
+            elderlyResidential: 1500, // Your portion of residential care
+            otherDependents: 300    // Variable support
+        };
+
+        let totalDependents = 0;
+        let totalSystemCost = 0;
+        let yourMonthlyCost = 0;
+
+        // Calculate costs for each category
+        Object.keys(monthlyCosts).forEach(category => {
+            const countField = $(category);
+            const percentField = $(category + 'Percent');
+
+            if (countField && percentField) {
+                const count = parseInt(countField.value) || 0;
+                const percent = parseInt(percentField.value) || 0;
+
+                totalDependents += count;
+                const categorySystemCost = count * monthlyCosts[category];
+                const categoryYourCost = categorySystemCost * (percent / 100);
+
+                totalSystemCost += categorySystemCost;
+                yourMonthlyCost += categoryYourCost;
+            }
+        });
+
+        // Calculate overall percentage
+        const yourSharePercent = totalSystemCost > 0 ? (yourMonthlyCost / totalSystemCost * 100) : 0;
+
+        // Update display elements
+        const totalDependentsEl = $('totalDependents');
+        const yourMonthlyCostEl = $('yourMonthlyCost');
+        const totalSystemCostEl = $('totalSystemCost');
+        const yourSharePercentEl = $('yourSharePercent');
+        const hiddenDependentsField = $('dependents');
+
+        if (totalDependentsEl) totalDependentsEl.textContent = totalDependents;
+        if (yourMonthlyCostEl) yourMonthlyCostEl.textContent = `$${Math.round(yourMonthlyCost).toLocaleString()}`;
+        if (totalSystemCostEl) totalSystemCostEl.textContent = `$${Math.round(totalSystemCost).toLocaleString()}/month`;
+        if (yourSharePercentEl) yourSharePercentEl.textContent = `${Math.round(yourSharePercent)}%`;
+
+        // Update hidden field for backward compatibility
+        if (hiddenDependentsField) hiddenDependentsField.value = totalDependents;
+
+        // Update cash flow status if needed
+        if (this.validateAndDisplayCashFlowFeedback) {
+            this.validateAndDisplayCashFlowFeedback();
         }
     }
 

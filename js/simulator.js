@@ -1495,13 +1495,13 @@ export class RetirementSimulator {
         // Housing costs
         const housingCosts = this.calculateHousingCosts(inputs, homeValue, netIncome);
 
-        // Childcare costs
-        const childcareCosts = this.calculateChildcareCosts(dependents);
+        // Enhanced dependent costs using detailed breakdown
+        const dependentCosts = this.calculateEnhancedDependentCosts(inputs);
 
         // Other family-related expenses
         const familyExpenses = this.calculateFamilyExpenses(dependents);
 
-        const totalMonthly = baseLivingExpenses + housingCosts + childcareCosts + familyExpenses;
+        const totalMonthly = baseLivingExpenses + housingCosts + dependentCosts + familyExpenses;
 
         return {
             housing: {
@@ -1512,8 +1512,9 @@ export class RetirementSimulator {
             living: {
                 monthlyTotal: baseLivingExpenses
             },
-            childcare: {
-                monthlyTotal: childcareCosts
+            dependents: {
+                monthlyTotal: dependentCosts,
+                breakdown: this.getDependentCostBreakdown(inputs)
             },
             familyExpenses: {
                 monthlyTotal: familyExpenses
@@ -1545,14 +1546,44 @@ export class RetirementSimulator {
      */
     calculateHousingCosts(inputs, homeValue, netIncome) {
         const monthlyNetIncome = netIncome / 12;
+        let totalHousingCosts = 0;
 
-        if (homeValue > 0) {
-            // Current reality: Australians pay 46.2% of income on mortgage (2025 data)
-            return monthlyNetIncome * 0.462;
+        // 1. Primary residence mortgage payment (actual user input)
+        if (inputs.monthlyMortgagePayment && inputs.monthlyMortgagePayment > 0) {
+            totalHousingCosts += inputs.monthlyMortgagePayment;
+        } else if (homeValue > 0) {
+            // Fallback: estimate based on 46.2% of income if no mortgage payment provided
+            totalHousingCosts += monthlyNetIncome * 0.462;
         } else {
-            // Assume renting - typically 25-35% of income
-            return monthlyNetIncome * 0.30;
+            // Renting: typically 25-35% of income
+            totalHousingCosts += monthlyNetIncome * 0.30;
         }
+
+        // 2. Investment property costs (if applicable)
+        if (inputs.hasInvestmentProperty && inputs.investmentPropertyLoan > 0) {
+            // Calculate investment property mortgage payment
+            const loanAmount = inputs.investmentPropertyLoan;
+            const annualRate = inputs.investmentPropertyRate || 0.062; // Default 6.2%
+            const monthlyRate = annualRate / 12;
+            const loanTermYears = 30; // Standard Australian mortgage term
+            const numPayments = loanTermYears * 12;
+
+            if (monthlyRate > 0 && loanAmount > 0) {
+                // Standard mortgage payment formula
+                const investmentMortgagePayment = loanAmount *
+                    (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
+                    (Math.pow(1 + monthlyRate, numPayments) - 1);
+
+                totalHousingCosts += investmentMortgagePayment;
+
+                // Subtract rental income (weekly rent × 4.33 for monthly)
+                const weeklyRent = inputs.weeklyRentalIncome || 0;
+                const monthlyRentalIncome = weeklyRent * 4.33;
+                totalHousingCosts -= monthlyRentalIncome;
+            }
+        }
+
+        return Math.max(0, totalHousingCosts); // Ensure non-negative
     }
 
     /**
@@ -1583,6 +1614,79 @@ export class RetirementSimulator {
         // Additional costs: larger vehicle, activities, education, medical, clothing
         const perChildMonthly = 200; // Conservative estimate for additional family costs
         return dependents * perChildMonthly;
+    }
+
+    /**
+     * Calculate enhanced dependent costs using detailed breakdown
+     */
+    calculateEnhancedDependentCosts(inputs) {
+        if (!inputs.dependentDetails) {
+            // Fallback to old method if detailed data not available
+            return this.calculateChildcareCosts(inputs.dependents || 0);
+        }
+
+        const details = inputs.dependentDetails;
+        const monthlyCosts = {
+            childrenUnder5: 2835, // $135/day × 21 days/month (after 40% government subsidy)
+            childrenPrimary: 800,  // School, activities, after-school care
+            teenagers: 600,        // Technology, activities, pre-independence
+            adultDisabled: 500,    // Your portion after NDIS covers most
+            elderlyIndependent: 200, // Occasional support
+            elderlyHomeCare: 400,   // Your extras beyond government support
+            elderlyResidential: 1500, // Your portion of residential care
+            otherDependents: 300    // Variable support
+        };
+
+        let totalMonthlyCost = 0;
+
+        Object.keys(monthlyCosts).forEach(category => {
+            const count = details[category] || 0;
+            const percent = details[category + 'Percent'] || 0;
+
+            if (count > 0 && percent > 0) {
+                const categoryCost = count * monthlyCosts[category] * (percent / 100);
+                totalMonthlyCost += categoryCost;
+            }
+        });
+
+        return totalMonthlyCost;
+    }
+
+    /**
+     * Get detailed breakdown of dependent costs for display
+     */
+    getDependentCostBreakdown(inputs) {
+        if (!inputs.dependentDetails) {
+            return { summary: 'Childcare and basic support costs' };
+        }
+
+        const details = inputs.dependentDetails;
+        const breakdown = {};
+        const categories = {
+            childrenUnder5: 'Childcare (under 5)',
+            childrenPrimary: 'School age children (6-12)',
+            teenagers: 'Teenagers (13-18)',
+            adultDisabled: 'Adult children with disabilities',
+            elderlyIndependent: 'Independent elderly parents',
+            elderlyHomeCare: 'Elderly parents (home care)',
+            elderlyResidential: 'Elderly parents (residential care)',
+            otherDependents: 'Other dependents'
+        };
+
+        Object.keys(categories).forEach(category => {
+            const count = details[category] || 0;
+            const percent = details[category + 'Percent'] || 0;
+
+            if (count > 0) {
+                breakdown[categories[category]] = {
+                    count: count,
+                    yourContribution: `${percent}%`,
+                    category: category
+                };
+            }
+        });
+
+        return breakdown;
     }
 
     /**
@@ -1728,10 +1832,41 @@ export class RetirementSimulator {
     }
 
     getHousingDescription(inputs, homeValue) {
-        if (homeValue > 0) {
-            return `Mortgage payments (46.2% of income - current Australian average)`;
+        const components = [];
+
+        // Primary residence
+        if (inputs.monthlyMortgagePayment && inputs.monthlyMortgagePayment > 0) {
+            components.push(`Home mortgage: $${inputs.monthlyMortgagePayment.toFixed(0)}/month`);
+        } else if (homeValue > 0) {
+            components.push(`Home mortgage (estimated at 46.2% of income)`);
+        } else {
+            components.push(`Rental payments (30% of income)`);
         }
-        return 'Rental payments (30% of income)';
+
+        // Investment property
+        if (inputs.hasInvestmentProperty && inputs.investmentPropertyLoan > 0) {
+            const loanAmount = inputs.investmentPropertyLoan;
+            const annualRate = inputs.investmentPropertyRate || 0.062;
+            const monthlyRate = annualRate / 12;
+            const numPayments = 30 * 12; // 30 years
+
+            if (monthlyRate > 0 && loanAmount > 0) {
+                const investmentMortgagePayment = loanAmount *
+                    (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
+                    (Math.pow(1 + monthlyRate, numPayments) - 1);
+
+                components.push(`Investment property mortgage: $${investmentMortgagePayment.toFixed(0)}/month`);
+
+                // Rental income
+                const weeklyRent = inputs.weeklyRentalIncome || 0;
+                if (weeklyRent > 0) {
+                    const monthlyRentalIncome = weeklyRent * 4.33;
+                    components.push(`Less rental income: -$${monthlyRentalIncome.toFixed(0)}/month`);
+                }
+            }
+        }
+
+        return components.join(', ');
     }
 
     getChildcareDescription(dependents) {
