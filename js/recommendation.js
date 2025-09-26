@@ -267,9 +267,12 @@ class RecommendationEngine {
         // Scenario 4: Keep property indefinitely (if strong positive cash flow)
         if (netAnnualIncome > 10000 && monthlyDisposableIncome > 800) {
             const annualIncomeInRetirement = netAnnualIncome * 1.5; // Assume rent growth over time
-
-            scenarios.push({
-                name: "Keep Investment Property Indefinitely",
+                        modifications: { 
+                            // Store as absolute amount for clearer integration
+                            additionalSuperContributions: additionalContrib,
+                            // Also store as ratio for percentage-based calculations
+                            additionalSuperContributionsRatio: additionalContrib / totalIncome 
+                        },
                 description: `Property generates strong income ($${netAnnualIncome.toLocaleString()}/year) and you have sufficient cash flow to maintain it.`,
                 modifications: { sellPropertyYears: 0 },
                 feasibility: "Income-Focused Strategy",
