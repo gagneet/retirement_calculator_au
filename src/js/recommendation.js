@@ -1582,7 +1582,7 @@ class RecommendationEngine {
 
             if (currentTPD < recommendedTPD * 0.6) {
                 scenarios.push({
-                    title: "Increase TPD Coverage to 6x Annual Income",
+                    name: "Increase TPD Coverage to 6x Annual Income",
                     category: "Insurance",
                     description: `Current TPD: $${currentTPD.toLocaleString()}, Recommended: $${recommendedTPD.toLocaleString()}. **Impact: CRITICAL** - Protect against permanent disability. **Risk: HIGH without cover** - Family financial devastation. **Timeline: Immediate (2025)**`,
                     modifications: {
@@ -1609,7 +1609,7 @@ class RecommendationEngine {
 
             if (currentLife < recommendedLife * 0.6) {
                 scenarios.push({
-                    title: "Optimize Life Insurance Coverage",
+                    name: "Optimize Life Insurance Coverage",
                     category: "Insurance",
                     description: `Current Life: $${currentLife.toLocaleString()}, Recommended: $${recommendedLife.toLocaleString()}. **Impact: CRITICAL** - Protect family's financial future. **Risk: EXTREME without cover** - Family poverty upon death. **Timeline: Immediate (2025)**`,
                     modifications: {
@@ -1629,7 +1629,7 @@ class RecommendationEngine {
 
             if (currentIP < recommendedIP * 0.7) {
                 scenarios.push({
-                    title: "Add Comprehensive Income Protection",
+                    name: "Add Comprehensive Income Protection",
                     category: "Insurance",
                     description: `Protect 75% of income ($${(recommendedIP/12).toLocaleString()}/month) if unable to work. **Impact: CRITICAL** - Maintain lifestyle during illness/injury. **Risk: HIGH without cover** - Cannot meet expenses. **Timeline: Immediate (2025)**`,
                     modifications: {
@@ -1652,7 +1652,7 @@ class RecommendationEngine {
 
             if (partnerCurrentLife < partnerRecommendedLife * 0.6) {
                 scenarios.push({
-                    title: "Review Partner Life Insurance Coverage",
+                    name: "Review Partner Life Insurance Coverage",
                     category: "Insurance",
                     description: `Partner life: $${partnerCurrentLife.toLocaleString()}, Recommended: $${partnerRecommendedLife.toLocaleString()}. **Impact: IMPORTANT** - Dual protection strategy essential. **Risk: MEDIUM** - Partial family protection gap. **Timeline: Within 3 months (2025)**`,
                     modifications: {
@@ -1669,7 +1669,7 @@ class RecommendationEngine {
         if (annualIncome > 70000 && totalAssets < 800000) {
             const recommendedTrauma = Math.min(annualIncome * 3, 750000);
             scenarios.push({
-                title: "Consider Trauma/Critical Illness Cover",
+                name: "Consider Trauma/Critical Illness Cover",
                 category: "Insurance",
                 description: `Add $${recommendedTrauma.toLocaleString()} trauma cover for 38 critical conditions. **Impact: IMPORTANT** - Lump sum for treatment and recovery. **Risk: MEDIUM** - Medical debt and income loss. **Timeline: Annual review (2025)**`,
                 modifications: {
@@ -1686,7 +1686,7 @@ class RecommendationEngine {
         if (currentLife > 300000 && totalSuper > 150000) {
             const superInsuranceOptimization = Math.min(currentLife * 0.6, 400000);
             scenarios.push({
-                title: "Optimize Insurance Through Superannuation",
+                name: "Optimize Insurance Through Superannuation",
                 category: "Insurance",
                 description: `Move $${superInsuranceOptimization.toLocaleString()} life cover inside super for tax benefits. **Impact: POSITIVE** - Reduce premiums by 25-35%. **Risk: LOW** - Structured within regulated super. **Timeline: Next renewal (2025-2026)**`,
                 modifications: {
