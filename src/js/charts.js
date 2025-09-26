@@ -7,22 +7,43 @@ export class ChartManager {
         this.charts = {};
     }
 
+    // Destroy all charts
+    destroyAllCharts() {
+        Object.keys(this.charts).forEach(chartId => {
+            this.destroyChart(chartId);
+        });
+        this.charts = {};
+    }
+
     // Destroy the existing chart if it exists
     destroyChart(chartId) {
-        if (this.charts[chartId]) {
-            try {
-                this.charts[chartId].destroy();
-
-                // Additional cleanup to ensure canvas is properly released
-                const canvas = document.getElementById(chartId);
-                if (canvas) {
-                    const ctx = canvas.getContext('2d');
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+        try {
+            // First, try to get chart from Chart.js global registry
+            const canvas = document.getElementById(chartId);
+            if (canvas) {
+                const existingChart = Chart.getChart(canvas);
+                if (existingChart) {
+                    existingChart.destroy();
                 }
-            } catch (error) {
-                console.warn(`Error destroying chart ${chartId}:`, error);
             }
-            delete this.charts[chartId];
+
+            // Also destroy from our local registry
+            if (this.charts[chartId]) {
+                try {
+                    this.charts[chartId].destroy();
+                } catch (error) {
+                    console.warn(`Error destroying local chart ${chartId}:`, error);
+                }
+                delete this.charts[chartId];
+            }
+
+            // Additional cleanup to ensure canvas is properly released
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        } catch (error) {
+            console.warn(`Error in destroyChart for ${chartId}:`, error);
         }
     }
 
@@ -32,6 +53,13 @@ export class ChartManager {
 
         const canvas = document.getElementById('fanChart');
         if (!canvas) return;
+
+        // Double-check for any existing chart on this canvas
+        const existingChart = Chart.getChart(canvas);
+        if (existingChart) {
+            console.warn('Found existing chart on fanChart canvas, destroying it');
+            existingChart.destroy();
+        }
 
         const ctx = canvas.getContext('2d');
         const years = results.yearlyData.map(d => d.age);
@@ -100,6 +128,13 @@ export class ChartManager {
 
         const canvas = document.getElementById('fanChart');
         if (!canvas || !paths || paths.length === 0) return;
+
+        // Double-check for any existing chart on this canvas
+        const existingChart = Chart.getChart(canvas);
+        if (existingChart) {
+            console.warn('Found existing chart on fanChart canvas, destroying it');
+            existingChart.destroy();
+        }
 
         // Ensure canvas is properly reset
         try {
