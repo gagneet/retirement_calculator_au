@@ -1060,7 +1060,17 @@ export const saveToLocalStorage = (key, data) => {
 export const loadFromLocalStorage = (key, defaultValue = null) => {
     try {
         const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : defaultValue;
+        if (!item) return defaultValue;
+
+        // Try to parse as JSON first
+        try {
+            return JSON.parse(item);
+        } catch (parseError) {
+            // If JSON parsing fails, return the raw string value
+            // This handles legacy values that were stored as plain strings
+            console.warn(`localStorage value for '${key}' is not valid JSON, using raw value:`, item);
+            return item;
+        }
     } catch (error) {
         console.warn('Failed to load from localStorage:', error);
         return defaultValue;

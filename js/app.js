@@ -506,6 +506,7 @@ class RetirementCalculatorApp {
             };
         }
         const tolerance = inputs.riskTolerance * 10;
+        const capacity = this.simulator.calculateRiskCapacity(inputs);
 
         // Pass Monte Carlo results for dynamic requirement calculation
         const monteCarloResults = this.currentMonteCarloResults || result.monteCarloResults || {};
@@ -1488,38 +1489,37 @@ class RetirementCalculatorApp {
 
     // Expense Optimization Analysis
     analyzeExpenseOptimization(cashFlowAnalysis, inputs) {
-            optimizationContent.innerHTML = `
-                <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <h3 class="font-semibold text-red-800 mb-2">Optimization Analysis Unavailable</h3>
-                    <p class="text-sm text-red-600">There was an error analyzing your optimization strategies: ${error.message || 'Unknown error'}. Please check your inputs and try again.</p>
-                    <details class="mt-2">
-                        <summary class="text-xs text-red-500 cursor-pointer">Technical Details</summary>
-                        <pre class="text-xs text-red-400 mt-1">${error.stack || error.toString()}</pre>
-                    </details>
-                </div>
-            `;
-        }
-        if (expenses.housing.mortgagePayment > monthlyNetIncome * 0.25) {
-            strategies.push('Consider refinancing or downsizing to reduce mortgage burden');
-        }
+        try {
+            const strategies = [];
+            const expenses = cashFlowAnalysis.expenses || {};
+            const monthlyNetIncome = cashFlowAnalysis.monthlyNetIncome || cashFlowAnalysis.income?.netMonthly || 0;
 
-        // Dependent cost optimization
-        if (expenses.dependents && expenses.dependents.monthlyTotal > 2000) {
-            strategies.push('Review dependent care subsidies and tax benefits to optimize costs');
-            strategies.push('Consider family daycare, nanny sharing, or support from extended family');
+            // Housing cost optimization
+            if (expenses.housing && expenses.housing.mortgagePayment > monthlyNetIncome * 0.25) {
+                strategies.push('Consider refinancing or downsizing to reduce mortgage burden');
+            }
+
+            // Dependent cost optimization
+            if (expenses.dependents && expenses.dependents.monthlyTotal > 2000) {
+                strategies.push('Review dependent care subsidies and tax benefits to optimize costs');
+                strategies.push('Consider family daycare, nanny sharing, or support from extended family');
+            }
+
+            // General expense strategies
+            strategies.push('Track spending for 3 months to identify reduction opportunities');
+            strategies.push('Review insurance policies annually for better rates');
+            strategies.push('Consolidate subscriptions and memberships to reduce ongoing costs');
+
+            if (cashFlowAnalysis.opportunities && cashFlowAnalysis.opportunities.length > 0) {
+                const topOpportunity = cashFlowAnalysis.opportunities[0];
+                strategies.push(`💡 ${topOpportunity.action || topOpportunity.title} could save $${topOpportunity.monthlySavings || 200}/month`);
+            }
+
+            return strategies;
+        } catch (error) {
+            console.error('Error in analyzeExpenseOptimization:', error);
+            return ['Unable to generate expense optimization strategies at this time.'];
         }
-
-        // General expense strategies
-        strategies.push('Track spending for 3 months to identify reduction opportunities');
-        strategies.push('Review insurance policies annually for better rates');
-        strategies.push('Consolidate subscriptions and memberships to reduce ongoing costs');
-
-        if (cashFlowAnalysis.opportunities && cashFlowAnalysis.opportunities.length > 0) {
-            const topOpportunity = cashFlowAnalysis.opportunities[0];
-            strategies.push(`💡 ${topOpportunity.action} could save $${topOpportunity.monthlySavings || 200}/month`);
-        }
-
-        return strategies;
     }
 
     // Income Optimization Analysis
@@ -2659,6 +2659,7 @@ class RetirementCalculatorApp {
             // Fallback for cases where DOM isn't fully ready
             document.addEventListener('DOMContentLoaded', handlePartnerDependencies);
         }
+    }
 
     // Initial calculation
     performInitialCalculation() {
@@ -3021,34 +3022,11 @@ class RetirementCalculatorApp {
         // Dependents validation
         if (inputs.dependents > 0 && totalIncome < 80000) {
             validationResults.warnings.push({
-    analyzeExpenseOptimization(cashFlowAnalysis, inputs) {
-        const strategies = [];
-        const expenses = cashFlowAnalysis.expenses || {};
-        const monthlyNetIncome = cashFlowAnalysis.income?.netMonthly || 0;
-
-        // Housing cost optimization
-        if (expenses.housing && expenses.housing.mortgagePayment > monthlyNetIncome * 0.25) {
-            strategies.push('Consider refinancing or downsizing to reduce mortgage burden');
+                field: 'dependents',
+                message: `Supporting ${inputs.dependents} dependents on $${totalIncome.toLocaleString()} income may be financially challenging`,
+                suggestion: 'Consider strategies to increase income or reduce dependent-related costs'
+            });
         }
-
-        // Dependent cost optimization
-        if (expenses.dependents && expenses.dependents.monthlyTotal > 2000) {
-            strategies.push('Review dependent care subsidies and tax benefits to optimize costs');
-            strategies.push('Consider family daycare, nanny sharing, or support from extended family');
-        }
-
-        // General expense strategies
-        strategies.push('Track spending for 3 months to identify reduction opportunities');
-        strategies.push('Review insurance policies annually for better rates');
-        strategies.push('Consolidate subscriptions and memberships to reduce ongoing costs');
-
-        if (cashFlowAnalysis.opportunities && cashFlowAnalysis.opportunities.length > 0) {
-            const topOpportunity = cashFlowAnalysis.opportunities[0];
-            strategies.push(`💡 ${topOpportunity.action || topOpportunity.title} could save $${topOpportunity.monthlySavings || 200}/month`);
-        }
-
-        return strategies;
-    }
         // Healthcare cost validation
         const expectedHealthcare = 2000 + (inputs.dependents * 1000) + (inputs.yourCurrentAge > 50 ? 2000 : 0);
         if (inputs.currentHealthcareCosts < expectedHealthcare * 0.7) {
