@@ -12,6 +12,13 @@ export class ChartManager {
         if (this.charts[chartId]) {
             try {
                 this.charts[chartId].destroy();
+
+                // Additional cleanup to ensure canvas is properly released
+                const canvas = document.getElementById(chartId);
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
             } catch (error) {
                 console.warn(`Error destroying chart ${chartId}:`, error);
             }
@@ -28,6 +35,11 @@ export class ChartManager {
 
         const ctx = canvas.getContext('2d');
         const years = results.yearlyData.map(d => d.age);
+
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js is not loaded');
+            return;
+        }
 
         this.charts.fanChart = new Chart(ctx, {
             type: 'line',
@@ -89,6 +101,14 @@ export class ChartManager {
         const canvas = document.getElementById('fanChart');
         if (!canvas || !paths || paths.length === 0) return;
 
+        // Ensure canvas is properly reset
+        try {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        } catch (error) {
+            console.warn('Error clearing canvas:', error);
+        }
+
         // Set reasonable canvas size to prevent overflow
         canvas.style.maxHeight = '400px';
         canvas.style.maxWidth = '100%';
@@ -106,6 +126,11 @@ export class ChartManager {
             p90.push(percentile(balancesAtYear, 0.9));
             p25.push(percentile(balancesAtYear, 0.25));
             p75.push(percentile(balancesAtYear, 0.75));
+        }
+
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js is not loaded');
+            return;
         }
 
         this.charts.fanChart = new Chart(ctx, {
