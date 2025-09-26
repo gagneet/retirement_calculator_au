@@ -1843,11 +1843,7 @@ class RetirementCalculatorApp {
                 ` : ''}
 
                 <div class="flex justify-between items-center">
-                    ${suggestion.medianBalanceDiff ? `
-                        <span class="text-xs font-medium ${suggestion.medianBalanceDiff > 0 ? 'text-green-600' : 'text-red-600'}">
-                            Impact: ${suggestion.medianBalanceDiff > 0 ? '+' : ''}${formatCurrency(suggestion.medianBalanceDiff)}
-                        </span>
-                    ` : '<span class="text-xs text-gray-400">Impact: Calculating...</span>'}
+                    ${this.getImpactDisplay(suggestion)}
 
                     <button
                         class="text-xs px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
@@ -2103,6 +2099,90 @@ class RetirementCalculatorApp {
             .replace(/\*\*Risk: (.*?)\*\*/g, '<span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-semibold mr-2">Risk: $1</span>')
             .replace(/\*\*Timeline: (.*?)\*\*/g, '<span class="inline-block px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-semibold">Timeline: $1</span>')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Fallback for other bold text
+    }
+
+    // Get appropriate impact display based on scenario type
+    getImpactDisplay(suggestion) {
+        const name = suggestion.name || suggestion.title || '';
+
+        // For retirement timing scenarios, show success rate improvement
+        if (name.includes('Retires') || name.includes('Retirement Age')) {
+            if (suggestion.successRate && this.baseResult && this.baseResult.successRate) {
+                const successImprovement = suggestion.successRate - this.baseResult.successRate;
+                const isPositive = successImprovement > 0;
+                return `<span class="text-xs font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}">
+                    Success Rate: ${isPositive ? '+' : ''}${(successImprovement * 100).toFixed(1)}%
+                </span>`;
+            }
+        }
+
+        // For mortgage acceleration scenarios, show interest savings instead of balance difference
+        if (name.includes('Accelerate Mortgage') || name.includes('Extra $')) {
+            // Extract interest savings from description if available
+            const description = suggestion.description || '';
+            const savingsMatch = description.match(/save\s+([^s]+)\s+in interest/i);
+            if (savingsMatch) {
+                return `<span class="text-xs font-medium text-green-600">
+                    Interest Saved: ${savingsMatch[1].trim()}
+                </span>`;
+            }
+        }
+
+        // For salary/career scenarios, show success rate improvement if available
+        if (name.includes('Salary') || name.includes('Strategic') || name.includes('Boost')) {
+            if (suggestion.successRate && this.baseResult && this.baseResult.successRate) {
+                const successImprovement = suggestion.successRate - this.baseResult.successRate;
+                const isPositive = successImprovement > 0;
+                return `<span class="text-xs font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}">
+                    Success Rate: ${isPositive ? '+' : ''}${(successImprovement * 100).toFixed(1)}%
+                </span>`;
+            }
+        }
+
+        // For property scenarios with positive descriptions but negative balance diff, show cash flow impact
+        if ((name.includes('Property') || name.includes('Sell') || name.includes('Keep')) &&
+            suggestion.description && suggestion.description.includes('POSITIVE') &&
+            suggestion.medianBalanceDiff && suggestion.medianBalanceDiff < 0) {
+
+            // Extract cash flow improvement from description
+            const description = suggestion.description || '';
+            const cashFlowMatch = description.match(/(\$[\d,]+)\/month/);
+            const incomeMatch = description.match(/income.*(\$[\d,]+)\/year/);
+
+            if (cashFlowMatch) {
+                return `<span class="text-xs font-medium text-green-600">
+                    Cash Flow: +${cashFlowMatch[1]}/month
+                </span>`;
+            } else if (incomeMatch) {
+                return `<span class="text-xs font-medium text-green-600">
+                    Annual Income: ${incomeMatch[1]}
+                </span>`;
+            }
+        }
+
+        // For scenarios with explicitly positive descriptions but negative medianBalanceDiff,
+        // show success rate if available to avoid confusion
+        if (suggestion.description &&
+            (suggestion.description.includes('HIGH POSITIVE') || suggestion.description.includes('VERY HIGH POSITIVE')) &&
+            suggestion.medianBalanceDiff && suggestion.medianBalanceDiff < 0 &&
+            suggestion.successRate && this.baseResult && this.baseResult.successRate) {
+
+            const successImprovement = suggestion.successRate - this.baseResult.successRate;
+            const isPositive = successImprovement > 0;
+            return `<span class="text-xs font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}">
+                Success Rate: ${isPositive ? '+' : ''}${(successImprovement * 100).toFixed(1)}%
+            </span>`;
+        }
+
+        // For other scenarios, use the traditional balance difference
+        if (suggestion.medianBalanceDiff) {
+            const isPositive = suggestion.medianBalanceDiff > 0;
+            return `<span class="text-xs font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}">
+                Impact: ${isPositive ? '+' : ''}${formatCurrency(suggestion.medianBalanceDiff)}
+            </span>`;
+        }
+
+        return '<span class="text-xs text-gray-400">Impact: Calculating...</span>';
     }
 
     // Generate overseas retirement scenarios
@@ -3077,6 +3157,13 @@ class RetirementCalculatorApp {
 
         const canvas = $('scenarioComparisonChart');
         if (!canvas) return;
+
+        // Double-check for any existing chart on this canvas
+        const existingChart = Chart.getChart(canvas);
+        if (existingChart) {
+            console.warn('Found existing chart on scenarioComparisonChart canvas, destroying it');
+            existingChart.destroy();
+        }
 
         const ctx = canvas.getContext('2d');
 

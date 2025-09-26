@@ -90,6 +90,7 @@ class RecommendationEngine {
         scenarios = scenarios.concat(this._analyzeInvestmentStrategy(baselineResults));
         scenarios = scenarios.concat(this._analyzeRetirementAge(baselineResults));
         scenarios = scenarios.concat(this._analyzeWidowWidowerScenarios(baselineResults));
+        scenarios = scenarios.concat(this._analyzeInsuranceStrategies(baselineResults));
 
         // Remove duplicate scenarios if any
         const uniqueScenarios = Array.from(new Map(scenarios.map(s => [s.name, s])).values());
@@ -1556,6 +1557,145 @@ class RecommendationEngine {
                     `Higher risk of aged care requirements`,
                     `Estate planning becomes critical for remaining assets`
                 ]
+            });
+        }
+
+        return scenarios;
+    }
+
+    /**
+     * Analyzes insurance strategies and generates visible scenarios for all users
+     * @param {Object} baselineResults - The results from the baseline simulation
+     * @returns {Array} Array of insurance-related scenarios with recommendations
+     */
+    _analyzeInsuranceStrategies(baselineResults) {
+        const scenarios = [];
+        const inputs = this.baseInputs;
+        const annualIncome = (inputs.yourSalary || 0) + (inputs.partnerSalary || 0);
+        const totalSuper = (inputs.yourCurrentSuper || 0) + (inputs.partnerCurrentSuper || 0);
+        const totalAssets = totalSuper + (inputs.yourOtherAssets || 0) + (inputs.partnerOtherAssets || 0);
+
+        // TPD Coverage Analysis - Universal for all income earners
+        if (annualIncome > 30000) {
+            const recommendedTPD = Math.min(annualIncome * 6, 2000000);
+            const currentTPD = inputs.yourTPDCover || 250000; // Default super TPD
+
+            if (currentTPD < recommendedTPD * 0.6) {
+                scenarios.push({
+                    title: "Increase TPD Coverage to 6x Annual Income",
+                    category: "Insurance",
+                    description: `Current TPD: $${currentTPD.toLocaleString()}, Recommended: $${recommendedTPD.toLocaleString()}. **Impact: CRITICAL** - Protect against permanent disability. **Risk: HIGH without cover** - Family financial devastation. **Timeline: Immediate (2025)**`,
+                    modifications: {
+                        yourTPDCover: recommendedTPD
+                    },
+                    reasoning: "TPD should cover 6x annual income to replace lost earning capacity and cover care costs",
+                    priority: "Critical",
+                    impact: "Protection"
+                });
+            }
+        }
+
+        // Life Insurance Analysis - Universal for all with dependents or debt
+        const mortgage = inputs.yourMortgage || 0;
+        const hasFinancialDependents = (inputs.partnerSalary > 0) || mortgage > 0 || (inputs.yourCurrentAge < 50);
+
+        if (hasFinancialDependents && annualIncome > 25000) {
+            const recommendedLife = Math.max(
+                mortgage + (annualIncome * 8),
+                totalAssets * 0.4,
+                400000
+            );
+            const currentLife = inputs.yourLifeInsurance || 280000; // Default super life cover
+
+            if (currentLife < recommendedLife * 0.6) {
+                scenarios.push({
+                    title: "Optimize Life Insurance Coverage",
+                    category: "Insurance",
+                    description: `Current Life: $${currentLife.toLocaleString()}, Recommended: $${recommendedLife.toLocaleString()}. **Impact: CRITICAL** - Protect family's financial future. **Risk: EXTREME without cover** - Family poverty upon death. **Timeline: Immediate (2025)**`,
+                    modifications: {
+                        yourLifeInsurance: recommendedLife
+                    },
+                    reasoning: "Life insurance should cover mortgage plus 8x income for comprehensive family protection",
+                    priority: "Critical",
+                    impact: "Protection"
+                });
+            }
+        }
+
+        // Income Protection Analysis - Universal for all income earners
+        if (annualIncome > 35000) {
+            const recommendedIP = Math.min(annualIncome * 0.75, 180000); // 75% of income, monthly cap applies
+            const currentIP = inputs.yourIncomeProtection || 0;
+
+            if (currentIP < recommendedIP * 0.7) {
+                scenarios.push({
+                    title: "Add Comprehensive Income Protection",
+                    category: "Insurance",
+                    description: `Protect 75% of income ($${(recommendedIP/12).toLocaleString()}/month) if unable to work. **Impact: CRITICAL** - Maintain lifestyle during illness/injury. **Risk: HIGH without cover** - Cannot meet expenses. **Timeline: Immediate (2025)**`,
+                    modifications: {
+                        yourIncomeProtection: recommendedIP
+                    },
+                    reasoning: "Income protection maintains cash flow during temporary disability periods",
+                    priority: "High",
+                    impact: "Protection"
+                });
+            }
+        }
+
+        // Partner Insurance Analysis - Universal for dual-income couples
+        if (inputs.partnerSalary && inputs.partnerSalary > 25000) {
+            const partnerRecommendedLife = Math.max(
+                mortgage * 0.5 + (inputs.partnerSalary * 6),
+                250000
+            );
+            const partnerCurrentLife = inputs.partnerLifeInsurance || 280000;
+
+            if (partnerCurrentLife < partnerRecommendedLife * 0.6) {
+                scenarios.push({
+                    title: "Review Partner Life Insurance Coverage",
+                    category: "Insurance",
+                    description: `Partner life: $${partnerCurrentLife.toLocaleString()}, Recommended: $${partnerRecommendedLife.toLocaleString()}. **Impact: IMPORTANT** - Dual protection strategy essential. **Risk: MEDIUM** - Partial family protection gap. **Timeline: Within 3 months (2025)**`,
+                    modifications: {
+                        partnerLifeInsurance: partnerRecommendedLife
+                    },
+                    reasoning: "Both partners need appropriate life insurance for complete family financial security",
+                    priority: "Medium",
+                    impact: "Protection"
+                });
+            }
+        }
+
+        // Trauma/Critical Illness Analysis - Universal for higher income earners
+        if (annualIncome > 70000 && totalAssets < 800000) {
+            const recommendedTrauma = Math.min(annualIncome * 3, 750000);
+            scenarios.push({
+                title: "Consider Trauma/Critical Illness Cover",
+                category: "Insurance",
+                description: `Add $${recommendedTrauma.toLocaleString()} trauma cover for 38 critical conditions. **Impact: IMPORTANT** - Lump sum for treatment and recovery. **Risk: MEDIUM** - Medical debt and income loss. **Timeline: Annual review (2025)**`,
+                modifications: {
+                    yourTraumaCover: recommendedTrauma
+                },
+                reasoning: "Trauma cover provides lump sum for critical illness treatment and recovery time without depleting retirement savings",
+                priority: "Medium",
+                impact: "Protection"
+            });
+        }
+
+        // Insurance Optimization within Super - Universal optimization strategy
+        const currentLife = inputs.yourLifeInsurance || 280000;
+        if (currentLife > 300000 && totalSuper > 150000) {
+            const superInsuranceOptimization = Math.min(currentLife * 0.6, 400000);
+            scenarios.push({
+                title: "Optimize Insurance Through Superannuation",
+                category: "Insurance",
+                description: `Move $${superInsuranceOptimization.toLocaleString()} life cover inside super for tax benefits. **Impact: POSITIVE** - Reduce premiums by 25-35%. **Risk: LOW** - Structured within regulated super. **Timeline: Next renewal (2025-2026)**`,
+                modifications: {
+                    yourLifeInsurance: currentLife - superInsuranceOptimization,
+                    yourSuperInsuranceCover: superInsuranceOptimization
+                },
+                reasoning: "Insurance through super is tax-deductible from super balance and typically 25-35% cheaper than retail policies",
+                priority: "Medium",
+                impact: "Cost Savings"
             });
         }
 
