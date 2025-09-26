@@ -52,6 +52,7 @@ class RetirementCalculatorApp {
         this.setupAutoSave(); // Setup auto-save functionality
         this.setupCashFlowUI(); // Setup cash flow validation and UI
         this.setupDependentCalculations(); // Setup enhanced dependent calculations
+        this.addSuggestionStyles(); // Add CSS styles for suggestion modifications
         this.updateUIElements();
         initializeTrustUI(); // Initialize trust UI functionality
 
@@ -1660,6 +1661,9 @@ class RetirementCalculatorApp {
         try {
             const inputs = this.collectInputs();
 
+            // Store original inputs for undo functionality
+            this.originalInputs = { ...inputs };
+
             // Show loading state
             const loadingDiv = $('suggestionsLoading');
             const buttonDiv = $('generateSuggestionsBtn');
@@ -1677,6 +1681,9 @@ class RetirementCalculatorApp {
 
             updateProgress(50, 'Generating actionable suggestions...');
             const scenarios = await recommendationEngine.generateRecommendations();
+
+            // Store scenarios for Try This functionality
+            this.lastGeneratedSuggestions = scenarios;
 
             updateProgress(80, 'Categorizing suggestions...');
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -1855,16 +1862,236 @@ class RetirementCalculatorApp {
 
     // Apply a suggestion to the form inputs
     applySuggestion(suggestionName) {
-        // This would need to store the modifications from the suggestion
-        // For now, show a notification about the feature
-        showNotification(`"Try This" feature coming soon! For now, you can manually adjust the inputs based on the suggestion: ${suggestionName}`, 'info');
+        if (!this.lastGeneratedSuggestions) {
+            showNotification('Please generate suggestions first', 'error');
+            return;
+        }
 
-        // TODO: Implement actual suggestion application
-        // This would involve:
-        // 1. Find the suggestion by name
-        // 2. Apply its modifications to the form inputs
-        // 3. Trigger a recalculation
-        // 4. Show the what-if comparison
+        // Find the suggestion by name
+        const suggestion = this.lastGeneratedSuggestions.find(s =>
+            (s.name || s.title || '') === suggestionName
+        );
+
+        if (!suggestion || !suggestion.modifications) {
+            showNotification(`Suggestion "${suggestionName}" not found or has no modifications`, 'error');
+            return;
+        }
+
+        try {
+            // Apply modifications to form inputs
+            const applied = this.applyModificationsToForm(suggestion.modifications);
+
+            if (applied > 0) {
+                showNotification(`Applied suggestion: "${suggestionName}". Modified ${applied} field(s). Running calculation...`, 'success');
+
+                // Show which tab has the suggestion tab and scroll to it if needed
+                this.highlightModifiedFields(suggestion.modifications);
+
+                // Automatically trigger recalculation
+                setTimeout(() => {
+                    this.calculateRetirement(true);
+                    showNotification(`Calculation complete! View results in the "📊 Results" tab.`, 'info');
+                }, 1000); // Small delay to let user see the field changes
+
+                // Show undo button
+                this.showUndoButton();
+            } else {
+                showNotification(`No applicable modifications found for: "${suggestionName}"`, 'warning');
+            }
+        } catch (error) {
+            console.error('Error applying suggestion:', error);
+            showNotification(`Error applying suggestion: ${error.message}`, 'error');
+        }
+    }
+
+    // Apply modifications object to form fields
+    applyModificationsToForm(modifications) {
+        let appliedCount = 0;
+        const fieldMap = this.getFormFieldMapping();
+
+        Object.entries(modifications).forEach(([key, value]) => {
+            const fieldId = fieldMap[key];
+            if (fieldId) {
+                const input = $(fieldId);
+                if (input) {
+                    // Handle different input types
+                    if (input.type === 'checkbox') {
+                        input.checked = Boolean(value);
+                    } else if (input.tagName === 'SELECT') {
+                        input.value = value;
+                    } else {
+                        input.value = value;
+                    }
+
+                    // Trigger any change events to update dependent fields
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                    appliedCount++;
+
+                    // Add visual indicator that field was modified
+                    input.classList.add('suggestion-modified');
+                    setTimeout(() => input.classList.remove('suggestion-modified'), 3000);
+                }
+            }
+        });
+
+        return appliedCount;
+    }
+
+    // Map modification keys to form field IDs
+    getFormFieldMapping() {
+        return {
+            // Personal fields
+            'yourCurrentAge': 'yourCurrentAge',
+            'partnerCurrentAge': 'partnerCurrentAge',
+            'retirementAge': 'retirementAge',
+            'partnerRetirementAge': 'partnerRetirementAge',
+            'yourLifespan': 'yourLifespan',
+            'partnerLifespan': 'partnerLifespan',
+
+            // Financial fields
+            'yourSalary': 'yourSalary',
+            'partnerSalary': 'partnerSalary',
+            'yourCurrentSuper': 'yourCurrentSuper',
+            'partnerCurrentSuper': 'partnerCurrentSuper',
+            'currentSavings': 'currentSavings',
+            'currentStocks': 'currentStocks',
+            'monthlyStockContribution': 'monthlyStockContribution',
+            'percentIncomeSaved': 'percentIncomeSaved',
+            'salaryGrowthRate': 'salaryGrowthRate',
+            'additionalSuperContributions': 'additionalSuperContributions',
+
+            // Property fields
+            'homeValue': 'homeValue',
+            'mortgageBalance': 'mortgageBalance',
+            'mortgageRate': 'mortgageRate',
+            'monthlyMortgagePayment': 'monthlyMortgagePayment',
+            'planToDownsize': 'planToDownsize',
+            'hasInvestmentProperty': 'hasInvestmentProperty',
+            'investmentPropertyValue': 'investmentPropertyValue',
+            'investmentPropertyLoan': 'investmentPropertyLoan',
+            'investmentPropertyRate': 'investmentPropertyRate',
+            'weeklyRentalIncome': 'weeklyRentalIncome',
+            'annualPropertyExpenses': 'annualPropertyExpenses',
+            'propertyGrowthRate': 'propertyGrowthRate',
+            'sellPropertyYears': 'sellPropertyYears',
+            'capitalGainsTaxRate': 'capitalGainsTaxRate',
+
+            // Investment fields
+            'australianEquityAllocation': 'australianEquityAllocation',
+            'frankingRate': 'frankingRate',
+
+            // Lean years fields
+            'leanYearsStart': 'leanYearsStart',
+            'leanYearsReduction': 'leanYearsReduction'
+        };
+    }
+
+    // Highlight modified fields visually
+    highlightModifiedFields(modifications) {
+        const fieldMap = this.getFormFieldMapping();
+
+        Object.keys(modifications).forEach(key => {
+            const fieldId = fieldMap[key];
+            if (fieldId) {
+                const input = $(fieldId);
+                if (input) {
+                    // Scroll to first modified field
+                    if (Object.keys(modifications)[0] === key) {
+                        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }
+        });
+    }
+
+    // Add CSS styles for suggestion modifications
+    addSuggestionStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .suggestion-modified {
+                border: 2px solid #10B981 !important;
+                box-shadow: 0 0 10px rgba(16, 185, 129, 0.3) !important;
+                transition: all 0.3s ease !important;
+                animation: suggestModifiedPulse 0.5s ease-in-out;
+            }
+
+            @keyframes suggestModifiedPulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Show undo button for reverting suggestion changes
+    showUndoButton() {
+        // Remove existing undo button if present
+        const existingUndo = $('undoSuggestionBtn');
+        if (existingUndo) existingUndo.remove();
+
+        // Create undo button
+        const undoButton = document.createElement('button');
+        undoButton.id = 'undoSuggestionBtn';
+        undoButton.className = 'fixed bottom-4 right-4 px-4 py-2 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700 transition-colors z-50';
+        undoButton.innerHTML = '↶ Undo Changes';
+        undoButton.onclick = () => this.undoSuggestionChanges();
+
+        document.body.appendChild(undoButton);
+
+        // Auto-hide after 10 seconds
+        setTimeout(() => {
+            if ($('undoSuggestionBtn')) {
+                $('undoSuggestionBtn').remove();
+            }
+        }, 10000);
+    }
+
+    // Undo suggestion changes and restore original inputs
+    undoSuggestionChanges() {
+        if (!this.originalInputs) {
+            showNotification('No original inputs to restore', 'warning');
+            return;
+        }
+
+        try {
+            const fieldMap = this.getFormFieldMapping();
+            let restoredCount = 0;
+
+            // Restore all form fields to original values
+            Object.entries(this.originalInputs).forEach(([key, value]) => {
+                const fieldId = fieldMap[key] || key; // Try direct mapping first, then key as ID
+                const input = $(fieldId);
+
+                if (input) {
+                    if (input.type === 'checkbox') {
+                        input.checked = Boolean(value);
+                    } else if (input.tagName === 'SELECT') {
+                        input.value = value;
+                    } else {
+                        input.value = value;
+                    }
+
+                    // Trigger change events
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                    restoredCount++;
+
+                    // Add visual indicator
+                    input.classList.add('suggestion-modified');
+                    setTimeout(() => input.classList.remove('suggestion-modified'), 2000);
+                }
+            });
+
+            // Remove undo button
+            const undoButton = $('undoSuggestionBtn');
+            if (undoButton) undoButton.remove();
+
+            showNotification(`Restored ${restoredCount} fields to original values. Click "Calculate Enhanced Projection" if needed.`, 'success');
+
+        } catch (error) {
+            console.error('Error undoing changes:', error);
+            showNotification(`Error undoing changes: ${error.message}`, 'error');
+        }
     }
 
     // Format description text with markdown-style formatting to HTML
@@ -3805,13 +4032,9 @@ function initializeApp() {
         window.app = app;
         window.RetirementCalculatorApp = RetirementCalculatorApp;
 
-        if (typeof app.init === 'function') {
-            app.init();
-            app.isInitialized = true;
-            console.log('✅ Australian Retirement Calculator loaded successfully');
-        } else {
-            console.error('App init method not found');
-        }
+        // The app auto-initializes in constructor, so just mark as initialized
+        app.isInitialized = true;
+        console.log('✅ Australian Retirement Calculator loaded successfully');
     } catch (error) {
         console.error('Failed to initialize app:', error);
     }
