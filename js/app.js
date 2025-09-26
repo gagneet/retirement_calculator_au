@@ -86,7 +86,7 @@ class RetirementCalculatorApp {
                 childrenUnder5Percent: safeGetValue('childrenUnder5Percent', 70),
                 childrenPrimary: safeGetValue('childrenPrimary', 0),
                 childrenPrimaryPercent: safeGetValue('childrenPrimaryPercent', 70),
-                teenagers: safeGetValue('teenagers', 2),
+                teenagers: safeGetValue('teenagers', 0),
                 teenagersPercent: safeGetValue('teenagersPercent', 80),
                 adultDisabled: safeGetValue('adultDisabled', 0),
                 adultDisabledPercent: safeGetValue('adultDisabledPercent', 20),
@@ -1174,7 +1174,7 @@ class RetirementCalculatorApp {
             <div class="enhancement-highlight p-4 rounded-lg border-l-4 ${monthlyDisposableIncome < 500 ? 'border-red-500 bg-red-50' : monthlyDisposableIncome < 1000 ? 'border-yellow-500 bg-yellow-50' : 'border-green-500 bg-green-50'}">
                 <h3 class="text-lg font-semibold mb-3">Cash Flow Optimization (Priority #1)</h3>
                 <div class="mb-3 p-3 rounded ${monthlyDisposableIncome < 500 ? 'bg-red-100' : monthlyDisposableIncome < 1000 ? 'bg-yellow-100' : 'bg-green-100'}">
-                    <div class="text-sm font-medium">Current Monthly Disposable Income: <span class="font-bold">${formatCurrency(monthlyDisposableIncome * 12, 0, true)}/month</span></div>
+                    <div class="text-sm font-medium">Current Monthly Disposable Income: <span class="font-bold">${formatCurrency(monthlyDisposableIncome, 0, true)}/month</span></div>
                     <div class="text-xs mt-1">Status: ${cashFlowAnalysis.cashFlow.status.charAt(0).toUpperCase() + cashFlowAnalysis.cashFlow.status.slice(1)} cash flow</div>
                 </div>
                 <div class="space-y-3 text-sm">
