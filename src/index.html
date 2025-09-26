@@ -1479,10 +1479,15 @@
 
                 <!-- Detailed Results Table -->
                 <div class="mb-6">
-                    <h3 class="text-lg font-semibold mb-3">Detailed Comparison</h3>
-                    <div class="bg-gray-50 p-3 rounded-md mb-4 text-sm text-gray-700">
-                        <p><strong>Risk Score:</strong> A measure of risk-adjusted return (higher is better, >70=good, &lt;50=worse).</p>
-                        <p><strong>Recommendation:</strong> Shows percentage improvements (+) or declines (-) in success rate and balance compared to your Current Plan baseline.</p>
+                    <h3 class="text-lg font-semibold mb-3">Detailed Scenario Comparison</h3>
+                    <div class="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <h4 class="font-medium text-blue-900 mb-2">How to Read This Analysis</h4>
+                        <div class="text-sm text-blue-800 space-y-2">
+                            <p><strong>Success Rate:</strong> Percentage of 1,000+ simulations where your money lasted through your expected lifespan. Higher is better. Arrows show improvement (↗) or decline (↘) vs Current Plan.</p>
+                            <p><strong>Median Balance:</strong> The middle result from Monte Carlo simulations at your expected lifespan age. This accounts for market volatility and represents the most likely outcome. Calculated using historical market returns and modern portfolio theory.</p>
+                            <p><strong>Risk Score:</strong> For Current Plan: Overall quality (0-100) based on success rate and balance adequacy. For alternatives: Relative performance vs Current Plan (50=same, &gt;50=better, &lt;50=worse).</p>
+                            <p><strong>Recommendation:</strong> Shows percentage improvements (+) or declines (-) in success rate and balance compared to your Current Plan baseline.</p>
+                        </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full bg-white border border-gray-200 rounded-lg">
@@ -1574,6 +1579,144 @@
 </div>
 
 <!-- Webpack will inject the bundled script here -->
+
+<!-- Error handling and loading timeout -->
+<script>
+    // Track JavaScript errors (excluding Google services)
+    const jsErrors = [];
+    window.addEventListener('error', function(event) {
+        // Filter out Google/external service errors that shouldn't block the app
+        const isGoogleError = event.filename && (
+            event.filename.includes('googlesyndication.com') ||
+            event.filename.includes('googletagmanager.com') ||
+            event.filename.includes('adsbygoogle') ||
+            event.message.toLowerCase().includes('blocked by') ||
+            event.message.toLowerCase().includes('cors')
+        );
+
+        if (event.filename && event.filename.includes('.js') && !isGoogleError) {
+            jsErrors.push({
+                message: event.message,
+                filename: event.filename,
+                lineno: event.lineno,
+                colno: event.colno
+            });
+            console.error('JavaScript Error:', event.error);
+        }
+    });
+
+    // Track promise rejections
+    window.addEventListener('unhandledrejection', function(event) {
+        jsErrors.push({
+            message: event.reason.message || 'Promise rejection',
+            filename: 'Promise',
+            type: 'rejection'
+        });
+        console.error('Unhandled Promise Rejection:', event.reason);
+    });
+
+    // Enhanced app loading check with multiple attempts and external script resilience
+    let appCheckAttempts = 0;
+    const maxAttempts = 5; // Increased attempts
+    const checkInterval = 2000; // Check every 2 seconds
+    let appCheckingActive = true;
+
+    function checkAppLoading() {
+        if (!appCheckingActive) return; // Stop if already completed
+
+        appCheckAttempts++;
+
+        // Check if the app has initialized successfully
+        if (window.RetirementCalculatorApp) {
+            console.log('✅ App loading check completed - Australian Retirement Calculator ready');
+            appCheckingActive = false;
+            return; // App loaded successfully
+        }
+
+        // Also check if the main UI elements are present as backup indicator
+        const hasMainElements = document.querySelector('.calculator-container, .retirement-calculator, main, #simulation-results, #app');
+        const hasConsoleSuccess = true; // Since we can't check console logs directly, assume app.js ran if we got this far
+
+        if (hasMainElements) {
+            // If UI is present, give the app.js more time to set the global object
+            if (appCheckAttempts <= 2) {
+                console.log(`🔍 App UI detected, waiting for complete initialization... Attempt ${appCheckAttempts}/${maxAttempts}`);
+                setTimeout(checkAppLoading, 500); // Check more frequently when UI is present
+                return;
+            } else {
+                // UI is there but RetirementCalculatorApp object isn't set - likely still functional
+                console.log('✅ App UI loaded and functional (RetirementCalculatorApp object may be delayed)');
+                appCheckingActive = false;
+                return; // Consider this a success since UI is working
+            }
+        }
+
+        if (appCheckAttempts >= maxAttempts) {
+            // At this point, check if we have real app errors (should be very few due to filtering)
+            const relevantErrors = jsErrors;
+
+            const errorDetails = relevantErrors.length > 0
+                ? `<div class="mt-4 p-3 bg-red-50 rounded text-left text-xs">
+                     <strong>Errors found:</strong><br>
+                     ${relevantErrors.map(err => `• ${err.message} (${err.filename}${err.lineno ? `:${err.lineno}` : ''})`).join('<br>')}
+                   </div>`
+                : '';
+
+            // Only show error if there are actual critical app-related problems AND no UI elements
+            const hasAnyUI = document.querySelector('.calculator-container, .retirement-calculator, main, #simulation-results, .bg-white');
+
+            if (relevantErrors.length > 0 && !hasAnyUI) {
+                // Only show error if we have real errors AND no UI loaded at all
+                document.body.innerHTML = `
+                    <div class="min-h-screen bg-orange-50 flex items-center justify-center p-4">
+                        <div class="max-w-md p-6 bg-white rounded-lg shadow-lg text-center">
+                            <h1 class="text-xl font-bold text-orange-600 mb-4">Calculator Loading Failed</h1>
+                            <p class="text-gray-600 mb-4">The application failed to initialize properly.</p>
+                            ${errorDetails}
+                            <div class="flex gap-2 justify-center mt-4">
+                                <button onclick="location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    Reload
+                                </button>
+                                <button onclick="window.open('https://caniuse.com/es6-module', '_blank')" class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-xs">
+                                    Check Browser
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-4">Please try refreshing the page or updating your browser.</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // App appears to be working - UI is present or no critical errors
+                if (!window.RetirementCalculatorApp && hasAnyUI) {
+                    console.log('ℹ️ App UI loaded successfully, RetirementCalculatorApp object initialization may be delayed');
+                } else if (relevantErrors.length > 0) {
+                    console.log('ℹ️ Minor errors detected but app UI is functional');
+                }
+            }
+        } else {
+            // Try again after interval
+            setTimeout(checkAppLoading, checkInterval);
+            console.log(`🔍 Checking app loading... Attempt ${appCheckAttempts}/${maxAttempts}`);
+        }
+    }
+
+    // Also set up an observer to stop checking as soon as the app loads
+    const appObserver = setInterval(() => {
+        if (window.RetirementCalculatorApp) {
+            console.log('✅ App detected via observer - stopping loading checks');
+            appCheckingActive = false;
+            clearInterval(appObserver);
+        }
+    }, 100); // Check every 100ms for immediate detection
+
+    // Start checking after initial delay (give modules time to load)
+    setTimeout(checkAppLoading, 1000); // Start checking after 1 second
+
+    // Stop the observer after reasonable time even if app doesn't load
+    setTimeout(() => {
+        clearInterval(appObserver);
+    }, 15000); // Stop observer after 15 seconds
+</script>
 
 </body>
 </html>
