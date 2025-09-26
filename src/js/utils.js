@@ -721,7 +721,31 @@ export const exportToXLSX = (inputs, results, chartManager) => {
         ['Results', 'Accessible Home Equity', formatCurrency(results.accessibleHomeEquity)],
         ['Results', 'Property Equity', formatCurrency(results.propertyEquity)],
         ['Results', 'Total Assets at Retirement', formatCurrency(results.totalFinancialAssets + results.accessibleHomeEquity)],
-        ['Results', 'Final Balance at end of Lifespan', formatCurrency(results.finalBalance)]
+        ['Results', 'Final Balance at end of Lifespan', formatCurrency(results.finalBalance)],
+
+        ['--- MONTE CARLO RESULTS ---', '---', '---']
+    );
+
+    if (monteCarloResults) {
+        summaryData.push(
+            ['Monte Carlo', 'Number of Simulations', monteCarloResults.runs || '1,000'],
+            ['Monte Carlo', 'Success Rate', formatPercent(monteCarloResults.successRate)],
+            ['Monte Carlo', 'Median Final Balance', formatCurrency(monteCarloResults.median)],
+            ['Monte Carlo', '10th Percentile (Worst Case)', formatCurrency(monteCarloResults.percentile10 || 0)],
+            ['Monte Carlo', '90th Percentile (Best Case)', formatCurrency(monteCarloResults.percentile90 || 0)],
+            ['Monte Carlo', 'Probability of Running Out', formatPercent(1 - monteCarloResults.successRate)]
+        );
+    } else {
+        summaryData.push(['Monte Carlo', 'Status', 'Analysis not run - use Monte Carlo button in app']);
+    }
+
+    summaryData.push(
+        ['--- RISK ANALYSIS ---', '---', '---'],
+        ['Risk', 'Emergency Fund Available', inputs.hasEmergencyFund ? 'Yes' : 'No'],
+        ['Risk', 'High-Interest Debt', inputs.hasDebt ? 'Yes - Higher Risk' : 'No'],
+        ['Risk', 'Financial Dependents', inputs.dependents || 0],
+        ['Risk', 'Property Concentration', inputs.hasInvestmentProperty ? 'High - Significant Property Exposure' : 'Low - Diversified Portfolio'],
+        ['Risk', 'Sequence of Returns Risk', results.finalBalance > 0 ? 'Moderate' : 'High - Early losses could deplete portfolio']
     );
 
     const ws_summary = XLSX.utils.aoa_to_sheet(summaryData);
@@ -826,15 +850,16 @@ export const exportToXLSX = (inputs, results, chartManager) => {
 
     // --- Write file ---
     try {
-        XLSX.writeFile(wb, 'Australian-Couple-Retirement-Report.xlsx');
-        showNotification('XLSX report generated successfully', 'success');
+        const filename = `Australian-Retirement-Analysis-${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        showNotification('Comprehensive XLSX analysis generated successfully', 'success');
     } catch (error) {
         console.error('Error generating XLSX file:', error);
         showNotification('Failed to generate XLSX report. Please try again.', 'error');
     }
 };
 
-export const exportToPDF = (inputs, results, chartManager) => {
+export const exportToPDF = (inputs, results, chartManager, app = null) => {
     if (!results) {
         showNotification('No results to export. Please run a calculation first.', 'warning');
         return;
@@ -848,71 +873,187 @@ export const exportToPDF = (inputs, results, chartManager) => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // --- Title ---
-    doc.setFontSize(22);
-    doc.text("Enhanced Retirement Report", 14, 22);
+    // Get additional analysis data from app if available
+    const monteCarloResults = app?.currentMonteCarloResults || results.monteCarloResults || null;
 
-    // --- Summary Table ---
-    doc.setFontSize(16);
-    doc.text("Summary", 14, 35);
+    // --- Title Page ---
+    doc.setFontSize(24);
+    doc.setTextColor(0, 71, 171);
+    doc.text("Australian Retirement Strategy", 14, 30);
+    doc.text("Comprehensive Analysis Report", 14, 42);
+
+    // Date and disclaimer
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-AU')}`, 14, 58);
+    doc.text("This report is for informational purposes only and does not constitute financial advice.", 14, 65);
+    doc.text("Please consult with a licensed financial adviser before making investment decisions.", 14, 72);
+
+    // --- Executive Summary ---
+    doc.setFontSize(18);
+    doc.setTextColor(0);
+    doc.text("Executive Summary", 14, 90);
 
     const summaryBody = [
-        ['Your Current Age', inputs.yourCurrentAge],
-        ['Partners Current Age', inputs.partnerCurrentAge],
-        ['Your Retirement Age', inputs.retirementAge],
-        ['Total Assets at Retirement', formatCurrency(results.totalFinancialAssets + results.accessibleHomeEquity)],
-        ['Projected Final Balance', formatCurrency(results.finalBalance)],
-        ['Success Rate (Monte Carlo)', results.mcSuccessRate ? formatPercent(results.mcSuccessRate) : 'N/A'],
-        ['Mortgage Rate', formatPercent(inputs.mortgageRate, 2)],
-        ['Investment Property Rate', formatPercent(inputs.investmentPropertyRate, 2)],
-        ['Property Growth Rate', formatPercent(inputs.propertyGrowthRate, 2)],
-        ['Capital Gains Tax Rate', formatPercent(inputs.capitalGainsTaxRate, 2)],
-        ['Healthcare Inflation', formatPercent(inputs.healthcareInflation, 2)],
-        ['Aged Care Probability', formatPercent(inputs.agedCareProbability, 0)],
-        ['Inflation', formatPercent(inputs.inflation, 2)],
-        ['Investment Return', formatPercent(inputs.investmentReturn, 2)],
-        ['Return Decline Rate', formatPercent(inputs.returnDeclineRate, 2)],
-        ['Savings Return', formatPercent(inputs.savingsReturn, 2)],
-        ['Super Return', formatPercent(inputs.superReturn, 2)],
-        ['Salary Growth Rate', formatPercent(inputs.salaryGrowthRate, 2)],
-        ['Lean Years Reduction', formatPercent(inputs.leanYearsReduction, 2)],
-        ['Australian Equity Allocation', formatPercent(inputs.australianEquityAllocation, 2)],
-        ['Dividend Yield', formatPercent(inputs.dividendYield, 2)],
-        ['Franking Rate', formatPercent(inputs.frankingRate, 2)],
-        ['Return Volatility', formatPercent(inputs.returnVolatility, 2)],
-        ['Shock Probability', formatPercent(inputs.shockProbability, 2)],
-        ['Shock Magnitude', formatPercent(inputs.shockMagnitude, 2)]
+        ['Your Current Age', `${inputs.yourCurrentAge} years`],
+        ['Partner\'s Current Age', `${inputs.partnerCurrentAge} years`],
+        ['Retirement Age', `${inputs.retirementAge} years`],
+        ['Total Financial Assets at Retirement', formatCurrency(results.totalFinancialAssets)],
+        ['Accessible Home Equity', formatCurrency(results.accessibleHomeEquity || 0)],
+        ['Projected Final Balance (Deterministic)', formatCurrency(results.finalBalance)],
+        ['Monte Carlo Success Rate', monteCarloResults?.successRate ? formatPercent(monteCarloResults.successRate) : 'Analysis not run'],
+        ['Monte Carlo Median Balance', monteCarloResults?.median ? formatCurrency(monteCarloResults.median) : 'N/A']
     ];
 
     doc.autoTable({
-        startY: 40,
-        head: [['Parameter', 'Value']],
+        startY: 95,
+        head: [['Key Metric', 'Value']],
         body: summaryBody,
-        theme: 'grid',
-        headStyles: { fillColor: [41, 128, 185] }
+        theme: 'striped',
+        headStyles: { fillColor: [0, 71, 171], textColor: [255, 255, 255] },
+        styles: { fontSize: 10 }
     });
 
-    let yPos = doc.autoTable.previous.finalY + 15;
+    let yPos = doc.autoTable.previous.finalY + 20;
 
-    // --- Charts ---
+    // --- Monte Carlo Analysis Section ---
+    if (monteCarloResults) {
+        if (yPos > 200) {
+            doc.addPage();
+            yPos = 20;
+        }
+
+        doc.setFontSize(16);
+        doc.setTextColor(0, 71, 171);
+        doc.text("Monte Carlo Simulation Results", 14, yPos);
+        yPos += 10;
+
+        doc.setFontSize(10);
+        doc.setTextColor(0);
+        doc.text(`Based on ${monteCarloResults.runs || '1,000'} simulations accounting for market volatility`, 14, yPos);
+        yPos += 10;
+
+        const mcBody = [
+            ['Success Rate', `${(monteCarloResults.successRate * 100).toFixed(1)}%`],
+            ['Median Final Balance', formatCurrency(monteCarloResults.median)],
+            ['10th Percentile (Worst Case)', formatCurrency(monteCarloResults.percentile10 || 0)],
+            ['90th Percentile (Best Case)', formatCurrency(monteCarloResults.percentile90 || 0)],
+            ['Probability of Running Out', `${((1 - monteCarloResults.successRate) * 100).toFixed(1)}%`]
+        ];
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Monte Carlo Metric', 'Result']],
+            body: mcBody,
+            theme: 'grid',
+            headStyles: { fillColor: [0, 71, 171] },
+            styles: { fontSize: 9 }
+        });
+
+        yPos = doc.autoTable.previous.finalY + 15;
+    }
+
+    // --- Risk Analysis Section ---
+    if (yPos > 180) {
+        doc.addPage();
+        yPos = 20;
+    }
+
+    doc.setFontSize(16);
+    doc.setTextColor(0, 71, 171);
+    doc.text("Risk Analysis", 14, yPos);
+    yPos += 10;
+
+    const riskBody = [
+        ['Risk Tolerance (1-10)', inputs.riskTolerance || 'Not specified'],
+        ['Emergency Fund Available', inputs.hasEmergencyFund ? 'Yes' : 'No'],
+        ['High-Interest Debt', inputs.hasDebt ? 'Yes - Higher risk' : 'No'],
+        ['Financial Dependents', inputs.dependents || 0],
+        ['Property Concentration Risk', inputs.hasInvestmentProperty ? 'High - Significant property exposure' : 'Low - Diversified portfolio'],
+        ['Sequence of Returns Risk', results.finalBalance > 0 ? 'Moderate' : 'High - Early losses could deplete portfolio']
+    ];
+
+    doc.autoTable({
+        startY: yPos,
+        head: [['Risk Factor', 'Assessment']],
+        body: riskBody,
+        theme: 'striped',
+        headStyles: { fillColor: [220, 53, 69], textColor: [255, 255, 255] },
+        styles: { fontSize: 9 }
+    });
+
+    yPos = doc.autoTable.previous.finalY + 15;
+
+    // --- Key Assumptions ---
+    if (yPos > 200) {
+        doc.addPage();
+        yPos = 20;
+    }
+
+    doc.setFontSize(16);
+    doc.setTextColor(0, 71, 171);
+    doc.text("Key Assumptions", 14, yPos);
+    yPos += 10;
+
+    const assumptionsBody = [
+        ['Inflation Rate', formatPercent(inputs.inflation, 2)],
+        ['Investment Return', formatPercent(inputs.investmentReturn, 2)],
+        ['Super Return', formatPercent(inputs.superReturn, 2)],
+        ['Property Growth Rate', formatPercent(inputs.propertyGrowthRate, 2)],
+        ['Healthcare Inflation', formatPercent(inputs.healthcareInflation, 2)],
+        ['Salary Growth Rate', formatPercent(inputs.salaryGrowthRate, 2)],
+        ['Australian Equity Allocation', formatPercent(inputs.australianEquityAllocation, 2)],
+        ['Return Volatility', formatPercent(inputs.returnVolatility, 2)]
+    ];
+
+    doc.autoTable({
+        startY: yPos,
+        head: [['Assumption', 'Rate']],
+        body: assumptionsBody,
+        theme: 'grid',
+        headStyles: { fillColor: [108, 117, 125] },
+        styles: { fontSize: 9 }
+    });
+
+    yPos = doc.autoTable.previous.finalY + 15;
+
+    // --- Charts Section ---
+    doc.addPage();
+    yPos = 20;
+
+    doc.setFontSize(18);
+    doc.setTextColor(0, 71, 171);
+    doc.text("Visual Analysis", 14, yPos);
+    yPos += 15;
+
     const addChartToPDF = (chartId, title) => {
         const chart = chartManager.charts[chartId];
         if (chart) {
-            if (yPos > 180) { // Check if there's enough space for the chart
+            if (yPos > 170) {
                 doc.addPage();
                 yPos = 20;
             }
             doc.setFontSize(14);
+            doc.setTextColor(0);
             doc.text(title, 14, yPos);
             yPos += 8;
-            const imgData = chart.toBase64Image('image/jpeg', 0.9);
-            doc.addImage(imgData, 'JPEG', 14, yPos, 180, 100);
-            yPos += 105;
+            try {
+                const imgData = chart.toBase64Image('image/jpeg', 0.8);
+                doc.addImage(imgData, 'JPEG', 14, yPos, 180, 90);
+                yPos += 100;
+            } catch (error) {
+                console.warn(`Could not export chart ${chartId}:`, error);
+                doc.setFontSize(10);
+                doc.setTextColor(150);
+                doc.text(`Chart not available for export: ${title}`, 14, yPos + 20);
+                yPos += 40;
+            }
         }
     };
 
-    addChartToPDF('fanChart', 'Portfolio Balance Projection');
-    addChartToPDF('histChart', 'Final Balance Distribution');
+    // Add available charts
+    addChartToPDF('fanChart', 'Portfolio Balance Projection (Fan Chart)');
+    addChartToPDF('histChart', 'Final Balance Distribution (Histogram)');
 
     // The code references inputs.useGlidePath but this property is not visible in the summary data structure.
     // Verify that this property exists in the 'inputs' object or handle the case where it might be undefined.
@@ -921,16 +1062,26 @@ export const exportToPDF = (inputs, results, chartManager) => {
         addChartToPDF('allocationChart', 'Asset Allocation Over Time');
     }
     if (inputs.hasInvestmentProperty) {
-        addChartToPDF('propertyChart', 'Property vs. Portfolio Growth');
+        addChartToPDF('propertyChart', 'Property vs. Portfolio Comparison');
     }
 
-    // --- Projection Table ---
+    // Add Monte Carlo fan chart if available
+    if (monteCarloResults) {
+        addChartToPDF('mcFanChart', 'Monte Carlo Projection Paths');
+    }
+
+    // --- Detailed Projections ---
     doc.addPage();
-    doc.setFontSize(16);
-    doc.text("Year-by-Year Projection (First 30 Years)", 14, 22);
+    doc.setFontSize(18);
+    doc.setTextColor(0, 71, 171);
+    doc.text("Detailed Financial Projections", 14, 20);
+
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text("Year-by-Year Analysis (First 25 Years)", 14, 32);
 
     const head = [['Year', 'Age', 'Start Balance', 'Growth', 'Withdrawal', 'End Balance']];
-    const body = results.yearlyData.slice(0, 30).map(d => {
+    const body = results.yearlyData.slice(0, 25).map(d => {
         // Format age display as "YourAge/PartnerAge" with '-' for deceased
         let ageDisplay = d.yourAge;
         if (d.partnerAge !== undefined) {
@@ -952,15 +1103,34 @@ export const exportToPDF = (inputs, results, chartManager) => {
     doc.autoTable({
         head: head,
         body: body,
-        startY: 30,
+        startY: 40,
         theme: 'striped',
-        headStyles: { fillColor: [41, 128, 185] }
+        headStyles: { fillColor: [0, 71, 171], textColor: [255, 255, 255] },
+        styles: { fontSize: 8 },
+        columnStyles: {
+            2: { halign: 'right' },
+            3: { halign: 'right' },
+            4: { halign: 'right' },
+            5: { halign: 'right' }
+        }
     });
+
+    // --- Footer Section ---
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Page ${i} of ${pageCount}`, 14, 285);
+        doc.text('Australian Retirement Calculator - Comprehensive Analysis', 105, 285, { align: 'center' });
+        doc.text(new Date().toLocaleDateString('en-AU'), 180, 285);
+    }
 
     // --- Save PDF ---
     try {
-        doc.save('Australian-Couple-Retirement-Report.pdf');
-        showNotification('PDF report generated successfully', 'success');
+        const filename = `Australian-Retirement-Analysis-${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(filename);
+        showNotification('Comprehensive PDF report generated successfully', 'success');
     } catch (error) {
         console.error('Error generating PDF file:', error);
         showNotification('Failed to generate PDF report. Please try again.', 'error');

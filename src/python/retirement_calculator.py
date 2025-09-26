@@ -21,12 +21,11 @@ investment properties, healthcare, aged care, and market dynamics.
 
 """
 
-import math
 import random
 import statistics
 import json
 import csv
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Dict, Any, List
 from datetime import datetime, date
 from dataclasses import dataclass
 # import numpy as np  # Optional dependency - falls back to standard library
