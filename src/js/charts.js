@@ -192,7 +192,7 @@ export class ChartManager {
         });
     }
 
-    // Final balance histogram
+    // Final balance histogram with enhanced negative axis display
     renderHistogram(outcomes) {
         this.destroyChart('histChart');
 
@@ -210,18 +210,45 @@ export class ChartManager {
         const validOutcomes = outcomes.filter(v => !isNaN(v) && isFinite(v));
         if (validOutcomes.length === 0) return;
 
-        const maxVal = Math.max(...validOutcomes);
-        const minVal = Math.min(...validOutcomes);
-        const range = Math.max(1, maxVal - minVal); // avoid divide by zero
+        const actualMaxVal = Math.max(...validOutcomes);
+        const actualMinVal = Math.min(...validOutcomes);
+
+        // Always include zero in the range to show negative axis context
+        // This gives users better understanding of where the distribution lies relative to zero
+        const maxVal = Math.max(actualMaxVal, 0);
+        const minVal = Math.min(actualMinVal, -100000); // Always show at least -$100k for context
+
+        const range = Math.max(1, maxVal - minVal);
         const binSize = range / bins;
         const histogram = new Array(bins).fill(0);
 
+        // Populate histogram bins with actual data
         validOutcomes.forEach(val => {
             const idx = Math.min(Math.floor((val - minVal) / binSize), bins - 1);
-            histogram[idx]++;
+            if (idx >= 0) {  // Only count values that fall within our extended range
+                histogram[idx]++;
+            }
         });
 
+        // Create labels for all bins including negative ones
         const labels = histogram.map((_, i) => formatCurrency(minVal + i * binSize));
+
+        // Color code bars: red for negative balances, blue for positive balances, yellow for near-zero
+        const backgroundColors = histogram.map((_, i) => {
+            const binValue = minVal + i * binSize;
+            if (binValue < -50000) return 'rgba(239, 68, 68, 0.7)';      // Red for significant losses
+            if (binValue < 0) return 'rgba(251, 146, 60, 0.7)';         // Orange for minor losses
+            if (binValue < 100000) return 'rgba(34, 197, 94, 0.6)';     // Green for modest gains
+            return 'rgba(99, 102, 241, 0.6)';                           // Blue for strong gains
+        });
+
+        const borderColors = histogram.map((_, i) => {
+            const binValue = minVal + i * binSize;
+            if (binValue < -50000) return 'rgba(239, 68, 68, 1)';
+            if (binValue < 0) return 'rgba(251, 146, 60, 1)';
+            if (binValue < 100000) return 'rgba(34, 197, 94, 1)';
+            return 'rgba(99, 102, 241, 1)';
+        });
 
         this.charts.histChart = new Chart(ctx, {
             type: 'bar',
@@ -230,8 +257,8 @@ export class ChartManager {
                 datasets: [{
                     label: 'Number of Simulations',
                     data: histogram,
-                    backgroundColor: 'rgba(99, 102, 241, 0.6)',
-                    borderColor: 'rgba(99, 102, 241, 1)',
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColors,
                     borderWidth: 1
                 }]
             },
@@ -242,20 +269,71 @@ export class ChartManager {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Distribution of Final Portfolio Balances'
+                        text: 'Final Portfolio Balance Distribution (Including Negative Scenarios)'
                     },
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const binValue = minVal + context.dataIndex * binSize;
+                                if (binValue < 0) {
+                                    return 'Portfolio depleted - may need adjustments';
+                                } else if (binValue < 100000) {
+                                    return 'Low balance - monitor closely';
+                                } else {
+                                    return 'Healthy retirement balance';
+                                }
+                            }
+                        }
+                    }
                 },
                 scales: {
                     x: {
                         title: { display: true, text: 'Final Balance (AUD)' },
-                        ticks: { maxRotation: 45 }
+                        ticks: {
+                            maxRotation: 45,
+                            callback: function(value, index) {
+                                // Show fewer labels for better readability
+                                if (index % 3 === 0) return this.getLabelForValue(value);
+                                return '';
+                            }
+                        }
                     },
                     y: {
                         title: { display: true, text: 'Number of Simulations' },
                         beginAtZero: true
                     }
-                }
+                },
+                // Add a vertical line at zero for reference
+                plugins: [{
+                    id: 'zeroLine',
+                    afterDraw: (chart) => {
+                        const ctx = chart.ctx;
+                        const chartArea = chart.chartArea;
+
+                        // Calculate x position for zero value
+                        const zeroPosition = minVal + (0 - minVal);
+                        const xPosition = chartArea.left + (zeroPosition / range) * (chartArea.right - chartArea.left);
+
+                        // Only draw the line if zero is visible in our range
+                        if (xPosition >= chartArea.left && xPosition <= chartArea.right) {
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.moveTo(xPosition, chartArea.top);
+                            ctx.lineTo(xPosition, chartArea.bottom);
+                            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                            ctx.setLineDash([5, 5]);
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                            ctx.restore();
+
+                            // Add zero label
+                            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                            ctx.font = '12px Arial';
+                            ctx.fillText('$0', xPosition - 10, chartArea.top - 5);
+                        }
+                    }
+                }]
             }
         });
     }

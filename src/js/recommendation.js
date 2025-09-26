@@ -85,6 +85,7 @@ class RecommendationEngine {
         scenarios = scenarios.concat(this._analyzeInvestmentStrategy(baselineResults));
         scenarios = scenarios.concat(this._analyzeRetirementAge(baselineResults));
         scenarios = scenarios.concat(this._analyzeWidowWidowerScenarios(baselineResults));
+        scenarios = scenarios.concat(this._analyzeInsuranceScenarios(baselineResults));
 
         // Remove duplicate scenarios if any
         const uniqueScenarios = Array.from(new Map(scenarios.map(s => [s.name, s])).values());
@@ -305,6 +306,92 @@ class RecommendationEngine {
                     `Maintains property exposure with better cash flow`
                 ]
             });
+        }
+
+        // === INSURANCE CONSIDERATIONS FOR PROPERTY STRATEGY ===
+
+        // Scenario 6: Property liquidation if TPD occurs (insurance impact analysis)
+        if (netEquity > 300000 && (netAnnualIncome < 0 || monthlyDisposableIncome < 800)) {
+            const tpdBenefit = 250000; // Default TPD insurance
+            const emergencySaleProceeds = netEquity * 0.90; // Quick sale discount
+            const totalEmergencyFunds = tpdBenefit + emergencySaleProceeds;
+
+            scenarios.push({
+                name: "Property Liquidation Strategy for TPD Protection",
+                description: `What-if: TPD occurs and property needs quick sale. Combined insurance benefit and property liquidation provides substantial funds.`,
+                modifications: {
+                    hasInvestmentProperty: false,
+                    currentStocks: this.baseInputs.currentStocks + emergencySaleProceeds + tpdBenefit,
+                    yourSalary: 0, // TPD means no income
+                    monthlyStockContribution: 0,
+                    currentHealthcareCosts: (this.baseInputs.currentHealthcareCosts || 12000) + 35000 // TPD care costs
+                },
+                feasibility: "Insurance What-If Analysis",
+                factorsChanged: [
+                    `TPD insurance benefit: ${formatCurrency(tpdBenefit)}`,
+                    `Emergency property sale proceeds: ${formatCurrency(emergencySaleProceeds)}`,
+                    `Total emergency funds: ${formatCurrency(totalEmergencyFunds)}`,
+                    `Eliminates property management burden during disability`,
+                    `Provides liquid assets for care and living expenses`,
+                    `Consider: Adequate insurance vs keeping illiquid property`
+                ]
+            });
+        }
+
+        // Scenario 7: Property retention with enhanced insurance (death benefit analysis)
+        if (netEquity > 200000 && this.baseInputs.partnerSalary > 0) {
+            const enhancedDeathBenefit = 500000; // Enhanced life insurance
+            const ongoingPropertyIncome = netAnnualIncome > 0 ? netAnnualIncome : Math.abs(netAnnualIncome) * -1;
+
+            scenarios.push({
+                name: "Keep Property with Enhanced Life Insurance",
+                description: `What-if: You die early but partner keeps property. Enhanced life insurance covers negative gearing and provides income.`,
+                modifications: {
+                    sellPropertyYears: 0, // Keep property
+                    currentStocks: this.baseInputs.currentStocks + enhancedDeathBenefit,
+                    yourSalary: 0, // Death means no primary income
+                    monthlyStockContribution: 0,
+                    isSingleCalculation: true,
+                    asfaComfortable: (this.baseInputs.asfaComfortable || 70000) * 0.75 // Single person expenses
+                },
+                feasibility: "Enhanced Insurance Strategy",
+                factorsChanged: [
+                    `Enhanced death benefit: ${formatCurrency(enhancedDeathBenefit)}`,
+                    `Property continues generating income: ${formatCurrency(Math.abs(ongoingPropertyIncome))}/year`,
+                    `Partner keeps family wealth in property + shares`,
+                    `Insurance covers property holding costs if negative geared`,
+                    `Property provides inflation hedge for long-term wealth`,
+                    `Consider: Higher life insurance premiums vs property benefits`
+                ]
+            });
+        }
+
+        // Scenario 8: Property concentration risk with insurance gap analysis
+        if (netEquity > 400000) {
+            const concentrationRisk = (netEquity / (netEquity + this.baseInputs.currentStocks + this.baseInputs.currentSavings)) * 100;
+            const recommendedInsurance = netEquity * 0.8; // 80% of property value for protection
+
+            if (concentrationRisk > 50) {
+                scenarios.push({
+                    name: "Address Property Concentration Risk with Insurance",
+                    description: `${concentrationRisk.toFixed(0)}% of wealth in property creates concentration risk. Enhanced insurance protects against forced sale scenarios.`,
+                    modifications: {
+                        // Simulate enhanced insurance benefit
+                        currentStocks: this.baseInputs.currentStocks + recommendedInsurance,
+                        yourSalary: 0, // Worst case scenario - loss of income
+                        isSingleCalculation: true
+                    },
+                    feasibility: "Risk Management Strategy",
+                    factorsChanged: [
+                        `Property concentration risk: ${concentrationRisk.toFixed(0)}% of total wealth`,
+                        `Recommended insurance coverage: ${formatCurrency(recommendedInsurance)}`,
+                        `Protects against forced property sale in crisis`,
+                        `Provides liquidity alternative to property equity`,
+                        `Insurance premiums vs potential property losses`,
+                        `Consider: Gradual property diversification + adequate insurance`
+                    ]
+                });
+            }
         }
 
         return scenarios;
@@ -741,6 +828,132 @@ class RecommendationEngine {
                     `Full access to home equity if needed`,
                     `Higher risk of aged care requirements`,
                     `Estate planning becomes critical for remaining assets`
+                ]
+            });
+        }
+
+        return scenarios;
+    }
+
+    /**
+     * Analyzes insurance scenarios for what-if analysis using research-based timing
+     * @param {Object} baselineResults - The results from the baseline simulation
+     * @returns {Array<Object>} A list of insurance scenarios to test
+     */
+    _analyzeInsuranceScenarios(baselineResults) {
+        const scenarios = [];
+        const successRate = baselineResults.successRate;
+        const currentAge = this.baseInputs.yourCurrentAge;
+        const retirementAge = this.baseInputs.retirementAge;
+        const yearsToRetirement = retirementAge - currentAge;
+
+        // Only recommend insurance scenarios if success rate is below 90% or high-impact timing applies
+        if (successRate >= 0.9 && yearsToRetirement > 20) {
+            return scenarios; // Low priority if already very secure
+        }
+
+        // Default insurance amounts from research
+        const defaultTPD = 250000;
+        const defaultDeath = 280000;
+
+        // Critical timing scenarios based on research
+        const criticalTimings = [
+            { years: 2, label: "2 years before retirement", inRetirement: false },
+            { years: 3, label: "3 years after retirement", inRetirement: true }
+        ];
+
+        criticalTimings.forEach(timing => {
+            // Skip if timing doesn't apply
+            if (!timing.inRetirement && timing.years > yearsToRetirement) {
+                return;
+            }
+
+            const triggerAge = timing.inRetirement ?
+                retirementAge + timing.years :
+                retirementAge - timing.years;
+
+            if (triggerAge < currentAge || triggerAge > 90) {
+                return;
+            }
+
+            // High-impact TPD scenario - you affected
+            if (successRate < 0.80 || timing.years <= 5) { // Only for higher risk scenarios
+                scenarios.push({
+                    name: `TPD Impact Analysis (${timing.label})`,
+                    description: `What-if analysis: You become TPD ${timing.label}. Shows importance of adequate insurance coverage.`,
+                    modifications: {
+                        // Simulate insurance benefit injection
+                        currentStocks: this.baseInputs.currentStocks + defaultTPD,
+                        // Reduce primary income to zero from trigger age
+                        yourSalary: triggerAge > currentAge ? this.baseInputs.yourSalary : 0,
+                        monthlyStockContribution: 0,
+                        // Increase healthcare costs
+                        currentHealthcareCosts: (this.baseInputs.currentHealthcareCosts || 12000) + 35000
+                    },
+                    feasibility: "Insurance What-If Analysis",
+                    riskLevel: timing.riskLevel || "critical",
+                    factorsChanged: [
+                        `TPD insurance benefit: ${formatCurrency(defaultTPD)}`,
+                        `Complete loss of your income: ${formatCurrency(this.baseInputs.yourSalary)}`,
+                        `Additional care costs: $35,000/year`,
+                        `No further investment contributions possible`,
+                        `Demonstrates critical need for adequate TPD coverage`
+                    ]
+                });
+            }
+
+            // High-impact Death scenario - you affected (only if partner exists)
+            if (this.baseInputs.partnerSalary > 0 && (successRate < 0.85 || timing.years <= 3)) {
+                scenarios.push({
+                    name: `Death Benefit Analysis (${timing.label})`,
+                    description: `What-if analysis: You pass away ${timing.label}. Partner continues with death benefits and reduced expenses.`,
+                    modifications: {
+                        // Insurance benefit to investment portfolio
+                        currentStocks: this.baseInputs.currentStocks + defaultDeath,
+                        // Loss of primary income
+                        yourSalary: 0,
+                        monthlyStockContribution: 0,
+                        // Switch to single calculation
+                        isSingleCalculation: true,
+                        // Reduced living expenses (75% of couple expenses)
+                        asfaComfortable: (this.baseInputs.asfaComfortable || 70000) * 0.75
+                    },
+                    feasibility: "Insurance What-If Analysis",
+                    riskLevel: timing.riskLevel || "critical",
+                    factorsChanged: [
+                        `Death benefit: ${formatCurrency(defaultDeath)}`,
+                        `Partner loses your income: ${formatCurrency(this.baseInputs.yourSalary)}`,
+                        `Single person living expenses (25% reduction)`,
+                        `Single Age Pension rates apply`,
+                        `Highlights importance of life insurance adequacy`
+                    ]
+                });
+            }
+        });
+
+        // Add insurance adequacy analysis if current coverage seems insufficient
+        const totalHouseholdIncome = this.baseInputs.yourSalary + (this.baseInputs.partnerSalary || 0);
+        const recommendedDeathCover = totalHouseholdIncome * 5; // 5x income rule of thumb
+        const recommendedTPDCover = totalHouseholdIncome * 3; // 3x income for TPD
+
+        if (successRate < 0.80 && recommendedDeathCover > defaultDeath) {
+            scenarios.push({
+                name: "Enhanced Life Insurance Coverage",
+                description: `Increase life insurance to ${formatCurrency(recommendedDeathCover)} (5x household income) for better family protection.`,
+                modifications: {
+                    // Simulate higher death benefit in critical scenario
+                    currentStocks: this.baseInputs.currentStocks + recommendedDeathCover,
+                    yourSalary: 0,
+                    isSingleCalculation: true,
+                    asfaComfortable: (this.baseInputs.asfaComfortable || 70000) * 0.75
+                },
+                feasibility: "Insurance Strategy Review",
+                factorsChanged: [
+                    `Enhanced death benefit: ${formatCurrency(recommendedDeathCover)}`,
+                    `vs current typical coverage: ${formatCurrency(defaultDeath)}`,
+                    `Additional protection: ${formatCurrency(recommendedDeathCover - defaultDeath)}`,
+                    `Consider: Review super fund insurance vs standalone policy`,
+                    `Higher premiums but significantly better family security`
                 ]
             });
         }

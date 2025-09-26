@@ -1370,9 +1370,296 @@ export class RetirementSimulator {
         }
     }
 
-    // Pre-built scenario templates
+    // Insurance scenario modeling for what-if analysis based on research-optimal timing
+    generateInsuranceScenarios(baseInputs) {
+        const scenarios = [];
+        const currentAge = baseInputs.yourCurrentAge;
+        const retirementAge = baseInputs.retirementAge;
+        const yearsToRetirement = retirementAge - currentAge;
+
+        // Australian insurance defaults based on research (super fund averages)
+        const insuranceAmounts = {
+            defaultTPD: 250000,      // Typical super fund TPD coverage
+            defaultDeath: 280000,    // Typical super fund death coverage
+            highTPD: 500000,         // Higher coverage scenario
+            highDeath: 600000        // Higher coverage scenario
+        };
+
+        // Research-based critical timing scenarios
+        const timings = [
+            {
+                years: 2,
+                label: "2 years before retirement",
+                inRetirement: false,
+                riskLevel: "critical",
+                description: "Critical sequence-of-returns risk period"
+            },
+            {
+                years: 10,
+                label: "10 years before retirement",
+                inRetirement: false,
+                riskLevel: "high",
+                description: "Peak earning years with significant recovery time"
+            },
+            {
+                years: 20,
+                label: "20 years before retirement",
+                inRetirement: false,
+                riskLevel: "moderate",
+                description: "Long-term impact assessment period"
+            },
+            {
+                years: 3,
+                label: "3 years after retirement",
+                inRetirement: true,
+                riskLevel: "critical",
+                description: "Early retirement vulnerability period"
+            },
+            {
+                years: 15,
+                label: "15 years after retirement",
+                inRetirement: true,
+                riskLevel: "high",
+                description: "Healthcare cost escalation period"
+            }
+        ];
+
+        timings.forEach(timing => {
+            // Skip scenarios that are not applicable (e.g., if retirement is less than timing years away)
+            if (!timing.inRetirement && timing.years > yearsToRetirement) {
+                return;
+            }
+
+            const triggerAge = timing.inRetirement ?
+                retirementAge + timing.years :
+                retirementAge - timing.years;
+
+            // Only create scenarios for ages that are realistic
+            if (triggerAge < currentAge || triggerAge > 95) {
+                return;
+            }
+
+            // TPD Scenarios - Partner affected
+            scenarios.push({
+                name: `Partner TPD (${timing.label})`,
+                description: `Partner becomes totally permanently disabled ${timing.label} - ${timing.description}`,
+                type: 'insurance',
+                category: 'tpd',
+                timing: timing,
+                riskImpact: timing.riskLevel,
+                insuranceEvent: {
+                    type: 'tpd',
+                    affectedPerson: 'partner',
+                    triggerAge: triggerAge,
+                    benefit: insuranceAmounts.defaultTPD,
+                    ongoingCare: true,
+                    careAnnualCost: 35000, // Estimated ongoing care costs per research
+                    incomeImpact: 1.0,     // Complete loss of partner income
+                    expenseIncrease: 0.15  // 15% increase in household expenses for care
+                }
+            });
+
+            // TPD Scenarios - Primary person affected
+            scenarios.push({
+                name: `Your TPD (${timing.label})`,
+                description: `You become totally permanently disabled ${timing.label} - ${timing.description}`,
+                type: 'insurance',
+                category: 'tpd',
+                timing: timing,
+                riskImpact: timing.riskLevel,
+                insuranceEvent: {
+                    type: 'tpd',
+                    affectedPerson: 'primary',
+                    triggerAge: triggerAge,
+                    benefit: insuranceAmounts.defaultTPD,
+                    ongoingCare: true,
+                    careAnnualCost: 35000,
+                    incomeImpact: 1.0,     // Complete loss of primary income
+                    expenseIncrease: 0.15
+                }
+            });
+
+            // Death Scenarios - Partner affected
+            scenarios.push({
+                name: `Partner Death (${timing.label})`,
+                description: `Partner passes away ${timing.label} - ${timing.description}`,
+                type: 'insurance',
+                category: 'death',
+                timing: timing,
+                riskImpact: timing.riskLevel,
+                insuranceEvent: {
+                    type: 'death',
+                    affectedPerson: 'partner',
+                    triggerAge: triggerAge,
+                    benefit: insuranceAmounts.defaultDeath,
+                    ongoingCare: false,
+                    incomeImpact: 1.0,       // Complete loss of partner income
+                    expenseReduction: 0.25,  // 25% reduction in living expenses (single vs couple)
+                    emotionalImpact: true
+                }
+            });
+
+            // Death Scenarios - Primary person affected
+            scenarios.push({
+                name: `Your Death (${timing.label})`,
+                description: `You pass away ${timing.label} - ${timing.description}`,
+                type: 'insurance',
+                category: 'death',
+                timing: timing,
+                riskImpact: timing.riskLevel,
+                insuranceEvent: {
+                    type: 'death',
+                    affectedPerson: 'primary',
+                    triggerAge: triggerAge,
+                    benefit: insuranceAmounts.defaultDeath,
+                    ongoingCare: false,
+                    incomeImpact: 1.0,       // Complete loss of primary income
+                    expenseReduction: 0.25,  // 25% reduction in living expenses
+                    emotionalImpact: true
+                }
+            });
+        });
+
+        return scenarios;
+    }
+
+    // Apply insurance event impacts to simulation inputs
+    applyInsuranceEvent(inputs, insuranceEvent, currentYear, currentAge) {
+        const modifications = { ...inputs };
+
+        if (currentAge >= insuranceEvent.triggerAge) {
+            // Insurance event has occurred - apply financial impacts
+
+            if (insuranceEvent.type === 'tpd') {
+                // Add insurance benefit to investment portfolio
+                modifications.currentStocks = (modifications.currentStocks || 0) + insuranceEvent.benefit;
+
+                // Income impact
+                if (insuranceEvent.affectedPerson === 'primary') {
+                    modifications.yourSalary = modifications.yourSalary * (1 - insuranceEvent.incomeImpact);
+                    modifications.monthlyStockContribution = 0; // Can't contribute while disabled
+                } else if (insuranceEvent.affectedPerson === 'partner') {
+                    modifications.partnerSalary = modifications.partnerSalary * (1 - insuranceEvent.incomeImpact);
+                }
+
+                // Ongoing care costs
+                if (insuranceEvent.ongoingCare) {
+                    modifications.currentHealthcareCosts = (modifications.currentHealthcareCosts || 12000) + insuranceEvent.careAnnualCost;
+                }
+
+                // Expense increases for care and support
+                if (insuranceEvent.expenseIncrease) {
+                    modifications.asfaComfortable = (modifications.asfaComfortable || 70000) * (1 + insuranceEvent.expenseIncrease);
+                }
+
+            } else if (insuranceEvent.type === 'death') {
+                // Add insurance benefit to portfolio
+                modifications.currentStocks = (modifications.currentStocks || 0) + insuranceEvent.benefit;
+
+                // Complete income loss
+                if (insuranceEvent.affectedPerson === 'primary') {
+                    modifications.yourSalary = 0;
+                    modifications.monthlyStockContribution = 0;
+                    modifications.isSingleCalculation = true;
+                } else if (insuranceEvent.affectedPerson === 'partner') {
+                    modifications.partnerSalary = 0;
+                    modifications.isSingleCalculation = true;
+                }
+
+                // Expense reduction for single person household
+                if (insuranceEvent.expenseReduction) {
+                    const currentASFA = modifications.asfaComfortable || 70000;
+                    modifications.asfaComfortable = currentASFA * (1 - insuranceEvent.expenseReduction);
+                }
+
+                // Adjust age pension calculations for single status
+                modifications.pensionAssetThreshold = this.config.SINGLE_ASSET_THRESHOLD;
+                modifications.pensionAssetLimit = this.config.SINGLE_ASSET_LIMIT;
+                modifications.pensionIncomeThreshold = this.config.SINGLE_INCOME_THRESHOLD;
+                modifications.agePensionMax = this.config.SINGLE_PENSION_MAX;
+            }
+        }
+
+        return modifications;
+    }
+
+    // Enhanced Monte Carlo with insurance scenario integration
+    async runMonteCarloWithInsurance(inputs, runs, insuranceEvent, progressCallback) {
+        const outcomes = [];
+        const paths = [];
+        const insuranceOutcomes = [];
+
+        for (let i = 0; i < runs; i++) {
+            // Apply insurance event if provided
+            let simulationInputs = inputs;
+            if (insuranceEvent) {
+                // Determine if insurance event occurs in this simulation
+                const eventYear = insuranceEvent.triggerAge - inputs.yourCurrentAge;
+                simulationInputs = this.applyInsuranceEvent(inputs, insuranceEvent, eventYear, insuranceEvent.triggerAge);
+            }
+
+            const result = this.simulateRetirement(simulationInputs, true);
+            outcomes.push(result.finalBalance);
+            paths.push(result.balances);
+
+            if (insuranceEvent) {
+                insuranceOutcomes.push({
+                    finalBalance: result.finalBalance,
+                    benefitReceived: insuranceEvent.benefit,
+                    eventTriggered: true,
+                    impactOnOutcome: result.finalBalance - (await this.simulateRetirement(inputs, true)).finalBalance
+                });
+            }
+
+            if (progressCallback && i % 100 === 0) {
+                await progressCallback(i, runs);
+            }
+        }
+
+        outcomes.sort((a, b) => a - b);
+
+        // Enhanced statistics including insurance impact analysis
+        const medianOutcome = median(outcomes);
+        const successfulOutcomes = outcomes.filter(o => o > 0);
+        const failureRate = (runs - successfulOutcomes.length) / runs;
+
+        const percentiles = {};
+        [5, 10, 25, 50, 75, 90, 95].forEach(p => {
+            const index = Math.floor((p / 100) * outcomes.length);
+            percentiles[`p${p}`] = outcomes[Math.min(index, outcomes.length - 1)];
+        });
+
+        const result = {
+            outcomes,
+            paths,
+            successRate: successfulOutcomes.length / runs,
+            failureRate,
+            median: medianOutcome,
+            mean: outcomes.reduce((sum, val) => sum + val, 0) / outcomes.length,
+            percentiles,
+            shortfallRisk: failureRate,
+            tailRisk: percentiles.p5,
+            downside: outcomes.filter(o => o < medianOutcome).length / runs
+        };
+
+        // Add insurance-specific analysis if applicable
+        if (insuranceEvent && insuranceOutcomes.length > 0) {
+            result.insuranceAnalysis = {
+                averageImpact: insuranceOutcomes.reduce((sum, o) => sum + o.impactOnOutcome, 0) / insuranceOutcomes.length,
+                benefitAmount: insuranceEvent.benefit,
+                eventType: insuranceEvent.type,
+                affectedPerson: insuranceEvent.affectedPerson,
+                triggerAge: insuranceEvent.triggerAge
+            };
+        }
+
+        return result;
+    }
+
+    // Pre-built scenario templates with insurance scenarios
     getCommonScenarios(baseInputs) {
-        return [
+        // Get standard scenarios
+        const standardScenarios = [
             {
                 name: "Current Plan",
                 description: "Your current retirement strategy",
@@ -1436,6 +1723,12 @@ export class RetirementSimulator {
                 }
             }
         ];
+
+        // Add insurance scenarios for comprehensive what-if analysis
+        const insuranceScenarios = this.generateInsuranceScenarios(baseInputs);
+
+        // Return combined scenarios - standard scenarios first, then insurance scenarios grouped
+        return [...standardScenarios, ...insuranceScenarios];
     }
 
     // ========== CASH FLOW ANALYSIS ENGINE ==========
