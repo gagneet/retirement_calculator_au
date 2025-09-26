@@ -92,28 +92,94 @@ class RecommendationEngine {
     }
 
     /**
-     * Analyzes scenarios related to selling the primary home (downsizing).
+     * Analyzes scenarios related to selling the primary home with cash flow analysis.
      * @param {Object} baselineResults - The results from the baseline simulation.
      * @returns {Array<Object>} A list of scenarios to test.
      */
     _analyzeHomeOwnership(baselineResults) {
         const scenarios = [];
         const successRate = baselineResults.successRate;
-        const { planToDownsize, homeValue } = this.baseInputs;
+        const { planToDownsize, homeValue, mortgageBalance } = this.baseInputs;
 
-        // Condition: Not already planning to downsize, home is valuable, and success rate can be improved.
-        if (!planToDownsize && homeValue > 1000000 && successRate < 0.85) {
+        // Get cash flow analysis to understand mortgage payment impact
+        const cashFlowAnalysis = this.simulator.calculateCashFlowAnalysis(this.baseInputs);
+        const monthlyHousingCost = cashFlowAnalysis.expenses.housing.monthlyTotal;
+        const monthlyMortgage = cashFlowAnalysis.expenses.housing.mortgagePayment;
+        const netHomeEquity = homeValue - (mortgageBalance || 0);
+
+        // Scenario 1: Standard downsizing if high value home and poor success rate
+        if (!planToDownsize && homeValue > 800000 && successRate < 0.85) {
+            const downsizeProceeds = netHomeEquity * 0.6; // Assume 60% of equity unlocked
+            const monthlyIncome = Math.round((downsizeProceeds * 0.05) / 12); // 5% withdrawal rate
+
             scenarios.push({
                 name: "Downsize Home at Retirement",
-                description: "Sell your current home and move to a less expensive one at retirement, unlocking equity to invest.",
-                modifications: { planToDownsize: true }
+                description: `Sell $${homeValue.toLocaleString()} home and downsize, unlocking $${downsizeProceeds.toLocaleString()} for retirement investments.`,
+                modifications: { planToDownsize: true },
+                feasibility: "Major Lifestyle Change",
+                factorsChanged: [
+                    `Home equity unlocked: $${downsizeProceeds.toLocaleString()}`,
+                    `Potential monthly income: $${monthlyIncome}`,
+                    `Reduced ongoing housing costs`,
+                    `Increased retirement investment base`,
+                    `May require location/size adjustment`
+                ]
             });
         }
+
+        // Scenario 2: Early downsizing if high mortgage payments relative to income
+        if (!planToDownsize && mortgageBalance > 200000 && monthlyMortgage > cashFlowAnalysis.cashFlow.monthlyNetIncome * 0.3) {
+            const earlyDownsizeProceeds = netHomeEquity * 0.4; // Conservative early downsize
+            const mortgageReduction = mortgageBalance * 0.7; // Assume reduce mortgage by 70%
+            const monthlyCashFlowImprovement = monthlyMortgage * 0.7;
+
+            scenarios.push({
+                name: "Early Home Downsizing for Cash Flow",
+                description: `Downsize now to reduce mortgage burden ($${monthlyMortgage}/month) and improve cash flow by $${monthlyCashFlowImprovement}/month.`,
+                modifications: {
+                    homeValue: homeValue * 0.6,
+                    mortgageBalance: mortgageBalance * 0.3,
+                    currentStocks: this.baseInputs.currentStocks + earlyDownsizeProceeds
+                },
+                feasibility: "Significant Lifestyle Change",
+                factorsChanged: [
+                    `Mortgage payment reduction: $${monthlyMortgage} → $${Math.round(monthlyMortgage * 0.3)}/month`,
+                    `Monthly cash flow improvement: $${monthlyCashFlowImprovement}`,
+                    `Additional investment capital: $${earlyDownsizeProceeds.toLocaleString()}`,
+                    `Annual savings capacity increase: $${(monthlyCashFlowImprovement * 12).toLocaleString()}`,
+                    `Reduces housing stress ratio significantly`
+                ]
+            });
+        }
+
+        // Scenario 3: Reverse mortgage if very high value home but poor cash flow
+        if (homeValue > 1200000 && cashFlowAnalysis.cashFlow.status === 'stressed' && this.baseInputs.yourCurrentAge > 55) {
+            const reverseMortgageAmount = Math.min(homeValue * 0.3, 500000); // 30% of value or $500k max
+            const monthlyIncome = Math.round(reverseMortgageAmount / 12 / 10); // Spread over 10 years
+
+            scenarios.push({
+                name: "Reverse Mortgage for Cash Flow",
+                description: `Use reverse mortgage to unlock $${reverseMortgageAmount.toLocaleString()} from your high-value home while staying put.`,
+                modifications: {
+                    currentStocks: this.baseInputs.currentStocks + reverseMortgageAmount,
+                    mortgageBalance: (mortgageBalance || 0) + reverseMortgageAmount
+                },
+                feasibility: "Complex Financial Product",
+                factorsChanged: [
+                    `Home equity accessed: $${reverseMortgageAmount.toLocaleString()}`,
+                    `Monthly cash flow boost: $${monthlyIncome}`,
+                    `No monthly repayments required`,
+                    `Interest compounds against home value`,
+                    `Allows staying in family home`
+                ]
+            });
+        }
+
         return scenarios;
     }
 
     /**
-     * Analyzes scenarios related to the investment property.
+     * Analyzes scenarios related to the investment property with cash flow considerations.
      * @returns {Array<Object>} A list of scenarios to test.
      */
     _analyzeInvestmentProperty() {
@@ -123,126 +189,361 @@ class RecommendationEngine {
         }
 
         const yearsToRetirement = this.baseInputs.retirementAge - this.baseInputs.yourCurrentAge;
+        const propertyValue = this.baseInputs.investmentPropertyValue || 600000;
+        const propertyLoan = this.baseInputs.investmentPropertyLoan || 0;
+        const weeklyRent = this.baseInputs.weeklyRentalIncome || 500;
+        const annualRent = weeklyRent * 52;
+        const annualExpenses = this.baseInputs.annualPropertyExpenses || 5000;
+        const netAnnualIncome = annualRent - annualExpenses;
+        const netEquity = propertyValue - propertyLoan;
 
-        // Scenario 1: Sell property at retirement
-        if (yearsToRetirement > 0) {
+        // Get cash flow analysis to understand property's impact on overall finances
+        const cashFlowAnalysis = this.simulator.calculateCashFlowAnalysis(this.baseInputs);
+        const monthlyDisposableIncome = cashFlowAnalysis.cashFlow.monthlyDisposableIncome;
+
+        // Scenario 1: Sell property immediately if negative gearing is straining cash flow
+        if (netAnnualIncome < 0 && monthlyDisposableIncome < 500) {
+            const saleProceeds = netEquity * 0.95; // Account for selling costs
+            const monthlyCashFlowImprovement = Math.abs(netAnnualIncome) / 12;
+
+            scenarios.push({
+                name: "Sell Investment Property Immediately",
+                description: `Property is negatively geared (costing $${Math.abs(netAnnualIncome).toLocaleString()}/year) while you have limited cash flow.`,
+                modifications: {
+                    hasInvestmentProperty: false,
+                    currentStocks: this.baseInputs.currentStocks + saleProceeds
+                },
+                feasibility: "Immediate Cash Flow Relief",
+                factorsChanged: [
+                    `Eliminates negative gearing cost: $${Math.abs(netAnnualIncome).toLocaleString()}/year`,
+                    `Monthly cash flow improvement: $${Math.round(monthlyCashFlowImprovement)}`,
+                    `Sale proceeds for diversified investments: $${saleProceeds.toLocaleString()}`,
+                    `Reduces investment concentration risk`,
+                    `Eliminates property management burden`
+                ]
+            });
+        }
+
+        // Scenario 2: Sell property at retirement (standard strategy)
+        if (yearsToRetirement > 0 && yearsToRetirement < 15) {
+            const projectedValue = propertyValue * Math.pow(1.04, yearsToRetirement); // 4% growth assumption
+            const projectedEquity = projectedValue - propertyLoan; // Assume no principal paydown for simplicity
+
             scenarios.push({
                 name: "Sell Investment Property at Retirement",
-                description: `Sell the investment property in ${yearsToRetirement} years (at retirement) and invest the proceeds.`,
-                modifications: { sellPropertyYears: yearsToRetirement }
+                description: `Hold property for ${yearsToRetirement} years, then sell and invest proceeds for retirement income.`,
+                modifications: { sellPropertyYears: yearsToRetirement },
+                feasibility: "Standard Strategy",
+                factorsChanged: [
+                    `Projected sale value: $${projectedValue.toLocaleString()}`,
+                    `Estimated net proceeds: $${projectedEquity.toLocaleString()}`,
+                    `${yearsToRetirement} years of rental income first`,
+                    `Capital gains tax on growth portion`,
+                    `Converts to diversified retirement income`
+                ]
             });
         }
 
-        // Scenario 2: Sell property 5 years from now
-        scenarios.push({
-            name: "Sell Investment Property in 5 Years",
-            description: "Sell the investment property in 5 years and invest the proceeds, potentially capturing growth sooner.",
-            modifications: { sellPropertyYears: 5 }
-        });
+        // Scenario 3: Sell property in 5 years (if strong cash flow allows waiting)
+        if (monthlyDisposableIncome > 1000 && netAnnualIncome > -5000) {
+            const fiveYearValue = propertyValue * Math.pow(1.04, 5);
+            const fiveYearEquity = fiveYearValue - propertyLoan;
 
-        // Scenario 3: Sell property at age 75
-        const yearsToAge75 = 75 - this.baseInputs.yourCurrentAge;
-        if (yearsToAge75 > 0) {
             scenarios.push({
-                name: "Sell Investment Property at Age 75",
-                description: "Hold the property into retirement and sell at age 75, benefiting from rental income for longer.",
-                modifications: { sellPropertyYears: yearsToAge75 }
+                name: "Sell Investment Property in 5 Years",
+                description: `Hold for medium term to capture more growth, then sell and reinvest proceeds.`,
+                modifications: { sellPropertyYears: 5 },
+                feasibility: "Medium-term Strategy",
+                factorsChanged: [
+                    `5-year projected value: $${fiveYearValue.toLocaleString()}`,
+                    `Estimated net proceeds: $${fiveYearEquity.toLocaleString()}`,
+                    `Captures moderate capital appreciation`,
+                    `Reduces CGT holding period risk`,
+                    `Earlier access to diversified investments`
+                ]
             });
         }
 
-        // Scenario 4: Keep property indefinitely
-        scenarios.push({
-            name: "Keep Investment Property Indefinitely",
-            description: "Retain the investment property throughout retirement for ongoing rental income.",
-            modifications: { sellPropertyYears: 0 } // 0 means never sell in the simulator
-        });
+        // Scenario 4: Keep property indefinitely (if strong positive cash flow)
+        if (netAnnualIncome > 10000 && monthlyDisposableIncome > 800) {
+            const annualIncomeInRetirement = netAnnualIncome * 1.5; // Assume rent growth over time
+
+            scenarios.push({
+                name: "Keep Investment Property Indefinitely",
+                description: `Property generates strong income ($${netAnnualIncome.toLocaleString()}/year) and you have sufficient cash flow to maintain it.`,
+                modifications: { sellPropertyYears: 0 },
+                feasibility: "Income-Focused Strategy",
+                factorsChanged: [
+                    `Current annual net income: $${netAnnualIncome.toLocaleString()}`,
+                    `Projected retirement income: $${Math.round(annualIncomeInRetirement).toLocaleString()}/year`,
+                    `Maintains capital growth potential`,
+                    `Provides inflation-linked income stream`,
+                    `Requires ongoing property management`
+                ]
+            });
+        }
+
+        // Scenario 5: Partial refinancing to improve cash flow (if equity available)
+        if (netAnnualIncome < 0 && netEquity > 200000 && monthlyDisposableIncome < 1000) {
+            const refinanceAmount = Math.min(netEquity * 0.3, 150000);
+            const monthlyIncome = Math.round((refinanceAmount * 0.05) / 12); // 5% yield assumption
+
+            scenarios.push({
+                name: "Refinance Property to Improve Cash Flow",
+                description: `Extract $${refinanceAmount.toLocaleString()} equity and invest in income-producing assets to offset negative gearing.`,
+                modifications: {
+                    investmentPropertyLoan: propertyLoan + refinanceAmount,
+                    currentStocks: this.baseInputs.currentStocks + refinanceAmount
+                },
+                feasibility: "Financial Restructure",
+                factorsChanged: [
+                    `Extract property equity: $${refinanceAmount.toLocaleString()}`,
+                    `Invest in diversified income assets`,
+                    `Potential monthly income offset: $${monthlyIncome}`,
+                    `Reduces negative gearing impact`,
+                    `Maintains property exposure with better cash flow`
+                ]
+            });
+        }
 
         return scenarios;
     }
 
     /**
-     * Analyzes scenarios related to increasing contributions.
+     * Analyzes scenarios related to increasing contributions with realistic cash flow constraints.
      * @param {Object} baselineResults - The results from the baseline simulation.
      * @returns {Array<Object>} A list of scenarios to test.
      */
     _analyzeContributions(baselineResults) {
         const scenarios = [];
-        if (baselineResults.successRate > 0.95) return scenarios; // Already in great shape
 
-        // Scenario 1: Increase monthly savings/investments
-        const increasedContribution = this.baseInputs.monthlyStockContribution + 500;
-        scenarios.push({
-            name: "Increase Monthly Investments by $500",
-            description: `Boost your monthly investment contributions to ${formatCurrency(increasedContribution)} to accelerate asset growth.`,
-            modifications: { monthlyStockContribution: increasedContribution }
-        });
+        // First, analyze actual cash flow using the simulator's cash flow analysis
+        const cashFlowAnalysis = this.simulator.calculateCashFlowAnalysis(this.baseInputs);
+        const monthlyDisposableIncome = cashFlowAnalysis.cashFlow.monthlyDisposableIncome;
+        const savingsCapacity = cashFlowAnalysis.savingsAnalysis;
 
-        // Scenario 2: Make additional super contributions (simplified)
-        // A more complex implementation would check concessional/non-concessional caps.
-        // For now, we simulate a simple increase in the savings rate, assuming it goes to super.
-        const increasedSavingsRate = this.baseInputs.percentIncomeSaved * 1.25; // Increase by 25%
-        scenarios.push({
-            name: "Increase Savings Rate",
-            description: `Increase your savings rate from ${formatPercent(this.baseInputs.percentIncomeSaved, 1)} to ${formatPercent(increasedSavingsRate, 1)} of your post-tax income.`,
-            modifications: { percentIncomeSaved: increasedSavingsRate }
-        });
+        const totalIncome = this.baseInputs.yourSalary + this.baseInputs.partnerSalary;
+        const currentSavingsRate = this.baseInputs.percentIncomeSaved;
+        const superGuarantee = 0.12; // 12% super guarantee
+
+        // Only suggest contribution increases if there is actual capacity
+        if (savingsCapacity.canIncreaseSavings) {
+
+            // Scenario 1: Salary sacrifice additional super (based on actual capacity)
+            const maxConcessional = 30000; // 2025 concessional cap
+            const currentSuperContrib = totalIncome * superGuarantee;
+            const availableRoom = Math.max(0, maxConcessional - currentSuperContrib);
+
+            if (availableRoom > 1000 && monthlyDisposableIncome > 200) {
+                // Base additional contribution on actual disposable income, not theoretical percentages
+                const maxAffordable = Math.min(monthlyDisposableIncome * 0.5, availableRoom / 12); // 50% of disposable or cap room
+                const additionalMonthly = Math.max(100, Math.round(maxAffordable / 50) * 50); // Round to $50 increments, minimum $100
+                const additionalContrib = additionalMonthly * 12;
+
+                if (additionalContrib > 500) {
+                    scenarios.push({
+                        name: "Salary Sacrifice to Super (Cash Flow Optimized)",
+                        description: `Based on your disposable income of $${Math.round(monthlyDisposableIncome)}/month, salary sacrifice $${additionalContrib.toLocaleString()} annually.`,
+                        modifications: { additionalSuperContributions: additionalContrib / totalIncome },
+                        feasibility: savingsCapacity.hasStrongCapacity ? "Easily Affordable" : "Manageable",
+                        factorsChanged: [
+                            `Monthly super increase: $${additionalMonthly} (within disposable income)`,
+                            `Annual super boost: $${additionalContrib.toLocaleString()}`,
+                            `Tax savings: ~$${Math.round(additionalContrib * 0.325).toLocaleString()}`,
+                            `Remaining disposable income: $${Math.round(monthlyDisposableIncome - additionalMonthly)}/month`,
+                            `Uses ${Math.round(availableRoom - additionalContrib).toLocaleString()} of concessional cap room`
+                        ]
+                    });
+                }
+            }
+
+            // Scenario 2: Increase monthly investments (realistic based on cash flow)
+            const currentMonthly = this.baseInputs.monthlyStockContribution || 0;
+            const affordableIncrease = Math.min(monthlyDisposableIncome * 0.6, 1000); // 60% of disposable or $1000 max
+            const additionalMonthly = Math.max(100, Math.round(affordableIncrease / 100) * 100); // Round to $100, minimum $100
+
+            if (additionalMonthly > 0 && monthlyDisposableIncome > additionalMonthly) {
+                const newMonthly = currentMonthly + additionalMonthly;
+                scenarios.push({
+                    name: `Increase Monthly Investments by $${additionalMonthly}`,
+                    description: `Boost monthly investments from $${currentMonthly} to $${newMonthly} based on your available cash flow.`,
+                    modifications: { monthlyStockContribution: newMonthly },
+                    feasibility: additionalMonthly <= monthlyDisposableIncome * 0.4 ? "Comfortable" : "Tight but manageable",
+                    factorsChanged: [
+                        `Monthly investments: $${currentMonthly} → $${newMonthly}`,
+                        `Uses $${additionalMonthly} of $${Math.round(monthlyDisposableIncome)} disposable income`,
+                        `Annual investment increase: $${(additionalMonthly * 12).toLocaleString()}`,
+                        `Compounds over ${this.baseInputs.retirementAge - this.baseInputs.yourCurrentAge} years to retirement`,
+                        `Remaining monthly buffer: $${Math.round(monthlyDisposableIncome - additionalMonthly)}`
+                    ]
+                });
+            }
+
+        } else {
+            // If no savings capacity, suggest alternative strategies
+
+            // Asset sale scenarios for generating investment capacity
+            if (this.baseInputs.hasInvestmentProperty || this.baseInputs.currentStocks > 50000) {
+
+                if (this.baseInputs.hasInvestmentProperty) {
+                    const propertyValue = this.baseInputs.investmentPropertyValue || 600000;
+                    const propertyLoan = this.baseInputs.investmentPropertyLoan || 0;
+                    const netProceeds = propertyValue - propertyLoan;
+                    const additionalMonthly = Math.round((netProceeds * 0.05) / 12); // 5% withdrawal rate monthly
+
+                    scenarios.push({
+                        name: "Sell Investment Property for Super Boost",
+                        description: `With limited cash flow ($${Math.round(monthlyDisposableIncome)}/month), sell investment property to fund retirement savings.`,
+                        modifications: { hasInvestmentProperty: false, currentStocks: this.baseInputs.currentStocks + netProceeds },
+                        feasibility: "Major Financial Restructure",
+                        factorsChanged: [
+                            `Eliminates property management and loan payments`,
+                            `Adds $${netProceeds.toLocaleString()} to investment portfolio`,
+                            `Potential monthly income boost: $${additionalMonthly}`,
+                            `Removes property concentration risk`,
+                            `Increases liquidity for retirement needs`
+                        ]
+                    });
+                }
+
+                if (this.baseInputs.currentStocks > 100000) {
+                    const rebalanceAmount = this.baseInputs.currentStocks * 0.2; // 20% of current stocks
+
+                    scenarios.push({
+                        name: "Rebalance Investments to Super",
+                        description: `Transfer $${rebalanceAmount.toLocaleString()} from taxable investments to superannuation for tax efficiency.`,
+                        modifications: {
+                            currentStocks: this.baseInputs.currentStocks - rebalanceAmount,
+                            additionalSuperContributions: Math.min(rebalanceAmount / totalIncome, 0.1) // Cap at 10% of income
+                        },
+                        feasibility: "Tax Optimization Strategy",
+                        factorsChanged: [
+                            `Reduces taxable investment balance by $${rebalanceAmount.toLocaleString()}`,
+                            `Increases super contributions significantly`,
+                            `Improves tax efficiency (super vs. taxable)`,
+                            `No change to monthly cash flow requirements`,
+                            `Better asset protection in super environment`
+                        ]
+                    });
+                }
+            }
+
+            // Expense reduction scenarios
+            if (cashFlowAnalysis.opportunities && cashFlowAnalysis.opportunities.length > 0) {
+                const topOpportunity = cashFlowAnalysis.opportunities[0];
+                const monthlySavings = topOpportunity.monthlySavings || 200;
+
+                scenarios.push({
+                    name: "Optimize Expenses to Increase Savings",
+                    description: `${topOpportunity.description} to free up $${monthlySavings}/month for retirement savings.`,
+                    modifications: { monthlyStockContribution: (this.baseInputs.monthlyStockContribution || 0) + monthlySavings },
+                    feasibility: "Lifestyle Adjustment Required",
+                    factorsChanged: [
+                        `${topOpportunity.action}`,
+                        `Monthly savings increase: $${monthlySavings}`,
+                        `Annual additional investments: $${(monthlySavings * 12).toLocaleString()}`,
+                        `Improves long-term financial security`,
+                        `May require budgeting discipline`
+                    ]
+                });
+            }
+        }
 
         return scenarios;
     }
 
     /**
      * Analyzes scenarios related to investment strategy (asset allocation).
+     * @param {Object} baselineResults - The results from the baseline simulation.
      * @returns {Array<Object>} A list of scenarios to test.
      */
-    _analyzeInvestmentStrategy() {
+    _analyzeInvestmentStrategy(baselineResults) {
         const scenarios = [];
         const currentEquities = this.baseInputs.allocEquities;
+        const currentBonds = this.baseInputs.allocBonds;
+        const currentCash = this.baseInputs.allocCash;
+        const age = this.baseInputs.yourCurrentAge;
+        const yearsToRetirement = this.baseInputs.retirementAge - age;
 
-        // Scenario 1: More aggressive allocation
-        if (currentEquities < 80) {
-            let newEquities = Math.min(90, currentEquities + 15);
-            let newBonds = Math.max(5, this.baseInputs.allocBonds - 10);
-            let newCash = Math.max(5, this.baseInputs.allocCash - 5);
-            const total = newEquities + newBonds + newCash;
-            if (total !== 100) {
-                newEquities = Math.round((newEquities / total) * 100);
-                newBonds = Math.round((newBonds / total) * 100);
-                newCash = 100 - newEquities - newBonds;
-            }
+        // Always test allocation scenarios for comparison
+
+        // Scenario 1: Age-appropriate aggressive allocation (if currently conservative)
+        if (currentEquities < 70 && yearsToRetirement > 10) {
+            const targetEquities = Math.min(85, Math.max(70, 110 - age)); // Rule of 110
+            const newEquities = Math.min(90, targetEquities);
+            const newBonds = Math.max(5, Math.round((100 - newEquities) * 0.8));
+            const newCash = 100 - newEquities - newBonds;
+
             scenarios.push({
-                name: "Adopt a More Aggressive Strategy",
-                description: "Increase equity allocation by 15% for potentially higher long-term returns, accepting higher volatility.",
+                name: "Age-Appropriate Aggressive Strategy",
+                description: `Increase equity allocation to ${newEquities}% based on your age (${age}) and ${yearsToRetirement} years to retirement.`,
                 modifications: {
                     useGlidePath: false,
                     allocEquities: newEquities,
                     allocBonds: newBonds,
                     allocCash: newCash
-                }
+                },
+                factorsChanged: [
+                    `Equity allocation: ${currentEquities}% → ${newEquities}%`,
+                    `Bond allocation: ${currentBonds}% → ${newBonds}%`,
+                    `Cash allocation: ${currentCash}% → ${newCash}%`,
+                    `Expected higher returns with more volatility`,
+                    `Suitable for ${yearsToRetirement}+ year time horizon`
+                ]
             });
         }
 
-        // Scenario 2: More conservative allocation
-        if (currentEquities > 30) {
-            let newEquities = Math.max(20, currentEquities - 15);
-            let newBonds = Math.min(70, this.baseInputs.allocBonds + 10);
-            let newCash = Math.min(20, this.baseInputs.allocCash + 5);
-            const total = newEquities + newBonds + newCash;
-            if (total !== 100) {
-                newEquities = Math.round((newEquities / total) * 100);
-                newBonds = Math.round((newBonds / total) * 100);
-                newCash = 100 - newEquities - newBonds;
-            }
+        // Scenario 2: Conservative pre-retirement allocation (if approaching retirement)
+        if (currentEquities > 50 && yearsToRetirement <= 10) {
+            const targetEquities = Math.max(40, 70 - (10 - yearsToRetirement) * 5); // Reduce as retirement approaches
+            const newEquities = targetEquities;
+            const newBonds = Math.min(50, Math.round((100 - newEquities) * 0.7));
+            const newCash = 100 - newEquities - newBonds;
+
             scenarios.push({
-                name: "Adopt a More Conservative Strategy",
-                description: "Decrease equity allocation by 15% to reduce portfolio risk, potentially lowering long-term returns.",
+                name: "Pre-Retirement Conservative Strategy",
+                description: `Reduce equity allocation to ${newEquities}% to lower volatility as retirement approaches.`,
                 modifications: {
                     useGlidePath: false,
                     allocEquities: newEquities,
                     allocBonds: newBonds,
                     allocCash: newCash
-                }
+                },
+                factorsChanged: [
+                    `Equity allocation: ${currentEquities}% → ${newEquities}%`,
+                    `Bond allocation: ${currentBonds}% → ${newBonds}%`,
+                    `Cash allocation: ${currentCash}% → ${newCash}%`,
+                    `Lower volatility reduces sequence-of-returns risk`,
+                    `More stable near-term returns for retirement`
+                ]
             });
         }
+
+        // Scenario 3: Balanced approach (if currently at extremes)
+        if (currentEquities < 40 || currentEquities > 80) {
+            const balancedEquities = 60;
+            const balancedBonds = 30;
+            const balancedCash = 10;
+
+            scenarios.push({
+                name: "Balanced 60/30/10 Strategy",
+                description: `Adopt a balanced approach with ${balancedEquities}% equities, ${balancedBonds}% bonds, ${balancedCash}% cash.`,
+                modifications: {
+                    useGlidePath: false,
+                    allocEquities: balancedEquities,
+                    allocBonds: balancedBonds,
+                    allocCash: balancedCash
+                },
+                factorsChanged: [
+                    `Equity allocation: ${currentEquities}% → ${balancedEquities}%`,
+                    `Bond allocation: ${currentBonds}% → ${balancedBonds}%`,
+                    `Cash allocation: ${currentCash}% → ${balancedCash}%`,
+                    `Moderate risk/return profile`,
+                    `Good balance for most age groups`
+                ]
+            });
+        }
+
         return scenarios;
     }
 
@@ -253,29 +554,76 @@ class RecommendationEngine {
      */
     _analyzeRetirementAge(baselineResults) {
         const scenarios = [];
-        if (baselineResults.successRate > 0.90) return scenarios; // No need to delay if already successful
+        const currentAge = this.baseInputs.yourCurrentAge;
+        const retirementAge = this.baseInputs.retirementAge;
+        const partnerRetirementAge = this.baseInputs.partnerRetirementAge;
+        const yearsToRetirement = retirementAge - currentAge;
 
-        // Scenario 1: Retire 2 years later
-        scenarios.push({
-            name: "Retire 2 Years Later",
-            description: "Work for an additional 2 years to allow for more contributions and investment growth.",
-            modifications: {
-                retirementAge: this.baseInputs.retirementAge + 2,
-                partnerRetirementAge: this.baseInputs.partnerRetirementAge + 2
-            }
-        });
+        // Always test retirement age scenarios for comparison, not just if success rate is low
 
-        // Scenario 2: Retire 5 years later (if success rate is poor)
-        if (baselineResults.successRate < 0.6) {
+        // Scenario 1: Retire 2 years later (if not already near max working age)
+        if (retirementAge < 68) {
+            const newRetirementAge = Math.min(70, retirementAge + 2);
+            const newPartnerAge = Math.min(70, partnerRetirementAge + 2);
             scenarios.push({
-                name: "Retire 5 Years Later",
-                description: "Working for an additional 5 years can significantly improve your retirement outcome.",
+                name: "Retire 2 Years Later",
+                description: `Extend retirement from age ${retirementAge} to ${newRetirementAge}. Extra working years provide more contributions and compound growth.`,
                 modifications: {
-                    retirementAge: this.baseInputs.retirementAge + 5,
-                    partnerRetirementAge: this.baseInputs.partnerRetirementAge + 5
-                }
+                    retirementAge: newRetirementAge,
+                    partnerRetirementAge: newPartnerAge
+                },
+                factorsChanged: [
+                    `Your retirement age: ${retirementAge} → ${newRetirementAge}`,
+                    `Partner retirement age: ${partnerRetirementAge} → ${newPartnerAge}`,
+                    `Extra super contributions for ${newRetirementAge - retirementAge} years`,
+                    `Delayed drawdown allows more compound growth`
+                ]
             });
         }
+
+        // Scenario 2: Retire 2 years earlier (if currently planning to work past 65)
+        if (retirementAge > 62) {
+            const newRetirementAge = Math.max(60, retirementAge - 2);
+            const newPartnerAge = Math.max(60, partnerRetirementAge - 2);
+            scenarios.push({
+                name: "Retire 2 Years Earlier",
+                description: `Bring forward retirement from age ${retirementAge} to ${newRetirementAge}. Earlier retirement but less time for accumulation.`,
+                modifications: {
+                    retirementAge: newRetirementAge,
+                    partnerRetirementAge: newPartnerAge
+                },
+                factorsChanged: [
+                    `Your retirement age: ${retirementAge} → ${newRetirementAge}`,
+                    `Partner retirement age: ${partnerRetirementAge} → ${newPartnerAge}`,
+                    `Fewer super contribution years`,
+                    `Earlier drawdown reduces compound growth`,
+                    `Longer retirement period to fund`
+                ]
+            });
+        }
+
+        // Scenario 3: Major extension for poor success rates
+        if (baselineResults.successRate < 0.7 && retirementAge < 67) {
+            const extension = yearsToRetirement > 10 ? 5 : 3; // Smaller extension if close to retirement
+            const newRetirementAge = Math.min(70, retirementAge + extension);
+            const newPartnerAge = Math.min(70, partnerRetirementAge + extension);
+            scenarios.push({
+                name: `Retire ${extension} Years Later`,
+                description: `With ${(baselineResults.successRate * 100).toFixed(0)}% success rate, working ${extension} extra years significantly improves outcomes.`,
+                modifications: {
+                    retirementAge: newRetirementAge,
+                    partnerRetirementAge: newPartnerAge
+                },
+                factorsChanged: [
+                    `Your retirement age: ${retirementAge} → ${newRetirementAge}`,
+                    `Partner retirement age: ${partnerRetirementAge} → ${newPartnerAge}`,
+                    `${extension} extra years of salary and super contributions`,
+                    `${extension} fewer years of retirement to fund`,
+                    `Significantly more compound growth time`
+                ]
+            });
+        }
+
         return scenarios;
     }
 
@@ -347,6 +695,8 @@ class RecommendationEngine {
         let title = scenario.name;
         let summary = "";
         let impact = "neutral";
+        let feasibility = scenario.feasibility || "Standard Strategy"; // Get feasibility from scenario
+        let factorsChanged = scenario.factorsChanged || []; // Get detailed factors
 
         if (successDiff > 0.05) impact = "high-positive";
         else if (successDiff > 0) impact = "positive";
@@ -357,10 +707,10 @@ class RecommendationEngine {
         if (scenario.name.includes("Property")) {
             category = "Investment Property";
             summary = this._formatPropertyRecommendation(scenario, baseResult);
-        } else if (scenario.name.includes("Downsize")) {
+        } else if (scenario.name.includes("Downsize") || scenario.name.includes("Home")) {
             category = "Home Ownership";
             summary = this._formatDownsizeRecommendation(scenario, baseResult);
-        } else if (scenario.name.includes("Increase") || scenario.name.includes("Savings Rate")) {
+        } else if (scenario.name.includes("Increase") || scenario.name.includes("Savings Rate") || scenario.name.includes("Super") || scenario.name.includes("Optimize Expenses")) {
             category = "Contributions";
             summary = this._formatContributionRecommendation(scenario, baseResult);
         } else if (scenario.name.includes("Strategy")) {
@@ -373,11 +723,18 @@ class RecommendationEngine {
             summary = `This strategy changes your success rate by ${formatPercent(successDiff, 1)} and median final balance by ${formatCurrency(balanceDiff)}.`;
         }
 
+        // Enhanced summary with feasibility and cash flow considerations
+        if (feasibility && feasibility !== "Standard Strategy") {
+            summary += ` Feasibility: ${feasibility}.`;
+        }
+
         return {
             title,
             category,
             summary,
             impact,
+            feasibility,
+            factorsChanged,
             successRate: scenario.successRate,
             medianBalance: scenario.medianBalance,
             successRateDiff: successDiff,

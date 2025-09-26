@@ -432,7 +432,10 @@ class RetirementCalculatorApp {
         const riskAnalysisContent = $('riskAnalysisContent');
         if (!riskAnalysisContent) return;
 
-        // Calculate enhanced risk metrics
+        // Generate comprehensive cash flow analysis
+        const cashFlowAnalysis = this.simulator.calculateCashFlowAnalysis(inputs);
+
+        // Calculate enhanced risk metrics with cash flow constraints
         const capacity = this.simulator.calculateRiskCapacity(inputs);
         const tolerance = inputs.riskTolerance * 10;
 
@@ -440,13 +443,93 @@ class RetirementCalculatorApp {
         const monteCarloResults = this.currentMonteCarloResults || result.monteCarloResults || {};
         const requirement = this.simulator.calculateRiskRequirement(inputs, monteCarloResults);
 
-        // Generate age-based and Australian-specific recommendations
-        const ageRecommendations = this.generateAgeBasedRecommendations(inputs, capacity, tolerance);
-        const diversificationSuggestions = this.generateDiversificationSuggestions(inputs, result);
-        const australianOpportunities = this.generateAustralianInvestmentOpportunities(inputs, monteCarloResults);
+        // Generate cash flow-aware recommendations
+        const ageRecommendations = this.generateAgeBasedRecommendations(inputs, capacity, tolerance, cashFlowAnalysis);
+        const diversificationSuggestions = this.generateDiversificationSuggestions(inputs, result, cashFlowAnalysis);
+        const australianOpportunities = this.generateAustralianInvestmentOpportunities(inputs, monteCarloResults, cashFlowAnalysis);
 
         riskAnalysisContent.innerHTML = `
             <div class="space-y-6">
+                <!-- Cash Flow Reality Check Section -->
+                <div class="p-4 rounded-lg border ${this.getCashFlowStatusColor(cashFlowAnalysis.cashFlow.status)}">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800">
+                        💰 Cash Flow Reality Check
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="text-center">
+                            <div class="text-xs text-gray-600">Monthly After Expenses</div>
+                            <div class="text-xl font-bold ${cashFlowAnalysis.cashFlow.monthlyDisposable >= 0 ? 'text-green-600' : 'text-red-600'}">
+                                ${cashFlowAnalysis.cashFlow.monthlyDisposable >= 0 ? '+' : ''}$${cashFlowAnalysis.cashFlow.monthlyDisposable.toFixed(0)}
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs text-gray-600">Housing Stress Ratio</div>
+                            <div class="text-lg font-bold ${cashFlowAnalysis.constraints.isHousingStressed ? 'text-red-600' : 'text-green-600'}">
+                                ${cashFlowAnalysis.cashFlow.housingStressRatio.toFixed(1)}%
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs text-gray-600">Max Monthly Savings</div>
+                            <div class="text-lg font-bold text-blue-600">
+                                $${cashFlowAnalysis.constraints.maxMonthlySavings.toFixed(0)}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-sm text-gray-700 mb-3">
+                        <strong>Status:</strong> ${cashFlowAnalysis.cashFlow.status}
+                        ${cashFlowAnalysis.constraints.isHousingStressed ? ' • <span class="text-red-600 font-medium">Housing Stressed</span>' : ''}
+                    </div>
+
+                    <!-- Expense Breakdown -->
+                    <details class="mb-3">
+                        <summary class="cursor-pointer text-sm font-medium text-blue-600 hover:text-blue-800">
+                            View Expense Breakdown ($${(cashFlowAnalysis.expenses.totalMonthly).toFixed(0)}/month)
+                        </summary>
+                        <div class="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                            <div class="bg-white rounded p-2 border">
+                                <div class="font-medium">Housing</div>
+                                <div>$${cashFlowAnalysis.expenses.housing.toFixed(0)}</div>
+                                <div class="text-gray-500">${cashFlowAnalysis.expenses.breakdown.housingDescription}</div>
+                            </div>
+                            <div class="bg-white rounded p-2 border">
+                                <div class="font-medium">Living</div>
+                                <div>$${cashFlowAnalysis.expenses.baseLiving.toFixed(0)}</div>
+                                <div class="text-gray-500">${cashFlowAnalysis.expenses.breakdown.livingDescription}</div>
+                            </div>
+                            ${cashFlowAnalysis.expenses.childcare > 0 ? `
+                                <div class="bg-white rounded p-2 border">
+                                    <div class="font-medium">Childcare</div>
+                                    <div>$${cashFlowAnalysis.expenses.childcare.toFixed(0)}</div>
+                                    <div class="text-gray-500">${cashFlowAnalysis.expenses.breakdown.childcareDescription}</div>
+                                </div>
+                            ` : ''}
+                            ${cashFlowAnalysis.expenses.familyExpenses > 0 ? `
+                                <div class="bg-white rounded p-2 border">
+                                    <div class="font-medium">Family</div>
+                                    <div>$${cashFlowAnalysis.expenses.familyExpenses.toFixed(0)}</div>
+                                    <div class="text-gray-500">${cashFlowAnalysis.expenses.breakdown.familyDescription}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </details>
+
+                    <!-- Cash Flow Opportunities -->
+                    ${cashFlowAnalysis.opportunities.length > 0 ? `
+                        <div class="space-y-2">
+                            ${cashFlowAnalysis.opportunities.map(opp => `
+                                <div class="bg-white rounded p-3 border border-l-4 ${this.getCashFlowOpportunityColor(opp.type)}">
+                                    <div class="font-medium text-sm">${opp.title}</div>
+                                    <div class="text-xs text-gray-600 mt-1">${opp.description}</div>
+                                    <ul class="text-xs text-gray-600 mt-2 ml-3">
+                                        ${opp.suggestions.map(suggestion => `<li class="list-disc">${suggestion}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+
                 <!-- Top Section: Risk Profile and Immediate Actions -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Risk Profile with Visual Sliders -->
@@ -1367,7 +1450,13 @@ class RetirementCalculatorApp {
             <div class="recommendation-card p-4 rounded-lg border-l-4 ${impactColors[rec.impact]}">
                 <div class="flex justify-between items-start">
                     <div>
-                        <span class="text-xs font-semibold uppercase text-gray-500">${rec.category}</span>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-xs font-semibold uppercase text-gray-500">${rec.category}</span>
+                            ${rec.feasibility && rec.feasibility !== 'Standard Strategy' ?
+                                `<span class="text-xs px-2 py-1 rounded ${rec.feasibility.includes('Easily') || rec.feasibility.includes('Comfortable') ? 'bg-green-100 text-green-700' :
+                                  rec.feasibility.includes('Major') || rec.feasibility.includes('Complex') ? 'bg-red-100 text-red-700' :
+                                  'bg-yellow-100 text-yellow-700'}">${rec.feasibility}</span>` : ''}
+                        </div>
                         <h4 class="font-bold text-lg text-gray-800">${rec.title}</h4>
                     </div>
                     <div class="text-right">
@@ -1378,8 +1467,17 @@ class RetirementCalculatorApp {
                     </div>
                 </div>
                 <p class="mt-2 text-sm text-gray-700">${rec.summary}</p>
+                ${rec.factorsChanged && rec.factorsChanged.length > 0 ? `
+                    <div class="mt-3 text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                        <strong>What Changes:</strong>
+                        <ul class="mt-1 ml-3 list-disc space-y-0.5">
+                            ${rec.factorsChanged.slice(0, 4).map(factor => `<li>${factor}</li>`).join('')}
+                            ${rec.factorsChanged.length > 4 ? `<li class="text-gray-400">...and ${rec.factorsChanged.length - 4} more changes</li>` : ''}
+                        </ul>
+                    </div>
+                ` : ''}
                 <div class="mt-2 text-right text-xs text-gray-600">
-                    Median Balance Change: 
+                    Median Balance Change:
                     <span class="font-medium ${rec.medianBalanceDiff > 0 ? 'text-green-600' : 'text-red-600'}">
                         ${rec.medianBalanceDiff > 0 ? '+' : ''}${formatCurrency(rec.medianBalanceDiff)}
                     </span>
@@ -2602,6 +2700,29 @@ class RetirementCalculatorApp {
         });
 
         console.log('Auto-save setup completed for form inputs');
+    }
+
+    // Cash Flow Analysis Helper Functions
+    getCashFlowStatusColor(status) {
+        const colorMap = {
+            'excellent': 'border-green-500 bg-green-50',
+            'good': 'border-blue-500 bg-blue-50',
+            'moderate': 'border-yellow-500 bg-yellow-50',
+            'tight': 'border-orange-500 bg-orange-50',
+            'stressed': 'border-red-500 bg-red-50'
+        };
+        return colorMap[status] || colorMap['moderate'];
+    }
+
+    getCashFlowOpportunityColor(type) {
+        const colorMap = {
+            'immediate': 'border-l-green-500',
+            'short_term': 'border-l-blue-500',
+            'medium_term': 'border-l-yellow-500',
+            'long_term': 'border-l-purple-500',
+            'major_change': 'border-l-red-500'
+        };
+        return colorMap[type] || colorMap['medium_term'];
     }
 }
 

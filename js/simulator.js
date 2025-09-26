@@ -843,14 +843,56 @@ export class RetirementSimulator {
                 propertyEquity = currentValue - remainingLoan;
             }
 
-            // Calculate base income with randomization (+/- $25,000)
-            const asfaWithInflation = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear);
-            let baseIncomeNeeded = asfaWithInflation;
+            // Enhanced realistic expense calculation using cash flow analysis
+            let baseIncomeNeeded;
 
-            // Add randomization if using Monte Carlo simulation
             if (useRandomReturns) {
-                const randomVariation = (Math.random() - 0.5) * 2 * 25000; // +/- $25,000
-                baseIncomeNeeded = Math.max(0, asfaWithInflation + randomVariation);
+                // Use realistic expense analysis instead of simple ASFA standard
+                const cashFlowAnalysis = this.calculateCashFlowAnalysis(inputs);
+                const currentExpenses = cashFlowAnalysis.expenses;
+
+                // Calculate retirement expenses (many costs reduce in retirement)
+                const retirementHousing = Math.max(
+                    currentExpenses.housing.monthlyTotal * 0.6, // Assume 40% reduction (no mortgage in many cases)
+                    currentExpenses.housing.monthlyTotal - (currentExpenses.housing.mortgagePayment || 0) // Or just remove mortgage
+                );
+                const retirementLiving = currentExpenses.living.monthlyTotal * 0.85; // 15% reduction in living costs
+                const retirementChildcare = 0; // No childcare in retirement
+
+                const baseMonthlyExpenses = retirementHousing + retirementLiving + retirementChildcare;
+                const baseAnnualExpenses = baseMonthlyExpenses * 12;
+
+                // Apply inflation to get expenses in retirement year
+                const expensesWithInflation = baseAnnualExpenses * Math.pow(1 + inputs.inflation, retirementYear);
+
+                // Add realistic randomization based on expense categories
+                const housingVariation = retirementHousing * 12 * (Math.random() - 0.5) * 0.3; // ±30% housing variation
+                const livingVariation = retirementLiving * 12 * (Math.random() - 0.5) * 0.4; // ±40% living variation
+                const discretionaryVariation = (Math.random() - 0.5) * 20000; // ±$10,000 discretionary spending
+
+                baseIncomeNeeded = Math.max(
+                    expensesWithInflation + housingVariation + livingVariation + discretionaryVariation,
+                    inputs.asfaComfortable * 0.7 * Math.pow(1 + inputs.inflation, retirementYear) // Minimum safety floor at 70% ASFA
+                );
+            } else {
+                // For deterministic runs, use more realistic baseline
+                const cashFlowAnalysis = this.calculateCashFlowAnalysis(inputs);
+                const currentExpenses = cashFlowAnalysis.expenses;
+
+                // Conservative retirement expense estimate
+                const retirementHousing = Math.max(
+                    currentExpenses.housing.monthlyTotal * 0.7, // 30% reduction
+                    currentExpenses.housing.monthlyTotal - (currentExpenses.housing.mortgagePayment || 0)
+                );
+                const retirementLiving = currentExpenses.living.monthlyTotal * 0.9; // 10% reduction
+                const baseMonthlyExpenses = retirementHousing + retirementLiving;
+                const baseAnnualExpenses = baseMonthlyExpenses * 12;
+
+                // Apply inflation
+                baseIncomeNeeded = Math.max(
+                    baseAnnualExpenses * Math.pow(1 + inputs.inflation, retirementYear),
+                    inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear) // Keep ASFA as minimum
+                );
             }
 
             const totalCostWithHealthcare = baseIncomeNeeded + healthcareCost + agedCareCost;
@@ -1333,6 +1375,322 @@ export class RetirementSimulator {
                 }
             }
         ];
+    }
+
+    // ========== CASH FLOW ANALYSIS ENGINE ==========
+
+    /**
+     * Comprehensive cash flow analysis based on Australian household expense data
+     * @param {Object} inputs - User financial inputs
+     * @returns {Object} Detailed cash flow breakdown and constraints
+     */
+    calculateCashFlowAnalysis(inputs) {
+        const grossIncome = (inputs.yourSalary || 0) + (inputs.partnerSalary || 0);
+        const netIncome = this.calculateNetIncome(grossIncome, inputs);
+
+        // Calculate comprehensive expenses
+        const expenses = this.calculateHouseholdExpenses(inputs, netIncome);
+
+        // Calculate available cash flow
+        const monthlyDisposableIncome = netIncome / 12 - expenses.totalMonthly;
+        const annualDisposableIncome = monthlyDisposableIncome * 12;
+
+        // Calculate savings constraints and opportunities
+        const savingsAnalysis = this.analyzeSavingsCapacity(inputs, monthlyDisposableIncome, expenses);
+
+        return {
+            income: {
+                grossAnnual: grossIncome,
+                netAnnual: netIncome,
+                netMonthly: netIncome / 12,
+                taxRate: ((grossIncome - netIncome) / grossIncome) * 100
+            },
+            expenses: expenses,
+            cashFlow: {
+                monthlyDisposable: monthlyDisposableIncome,
+                annualDisposable: annualDisposableIncome,
+                disposablePercent: (annualDisposableIncome / netIncome) * 100,
+                status: this.getCashFlowStatus(monthlyDisposableIncome),
+                housingStressRatio: (expenses.housing / (netIncome / 12)) * 100
+            },
+            constraints: {
+                maxMonthlySavings: Math.max(0, monthlyDisposableIncome),
+                maxAnnualSavings: Math.max(0, annualDisposableIncome),
+                minExpenseReduction: monthlyDisposableIncome < 0 ? Math.abs(monthlyDisposableIncome) : 0,
+                isHousingStressed: (expenses.housing / (netIncome / 12)) > 0.30
+            },
+            opportunities: savingsAnalysis
+        };
+    }
+
+    /**
+     * Calculate net income after tax and Medicare levy
+     * @param {number} grossIncome - Gross annual income
+     * @param {Object} inputs - User inputs for tax calculations
+     * @returns {number} Net annual income
+     */
+    calculateNetIncome(grossIncome, inputs) {
+        // Australian tax brackets 2024-25
+        const taxBrackets = [
+            { min: 0, max: 18200, rate: 0 },
+            { min: 18201, max: 45000, rate: 0.19 },
+            { min: 45001, max: 120000, rate: 0.325 },
+            { min: 120001, max: 180000, rate: 0.37 },
+            { min: 180001, max: Infinity, rate: 0.45 }
+        ];
+
+        let tax = 0;
+        for (const bracket of taxBrackets) {
+            if (grossIncome > bracket.min) {
+                const taxableAtThisBracket = Math.min(grossIncome, bracket.max) - bracket.min + 1;
+                tax += taxableAtThisBracket * bracket.rate;
+            }
+        }
+
+        // Medicare levy (2%)
+        const medicareLevy = grossIncome * 0.02;
+
+        return grossIncome - tax - medicareLevy;
+    }
+
+    /**
+     * Calculate comprehensive household expenses based on ABS data and user inputs
+     * @param {Object} inputs - User financial inputs
+     * @param {number} netIncome - Net annual income
+     * @returns {Object} Detailed expense breakdown
+     */
+    calculateHouseholdExpenses(inputs, netIncome) {
+        const dependents = inputs.dependents || 0;
+        const homeValue = inputs.homeValue || 0;
+
+        // Base living expenses (2025 ABS data)
+        const baseLivingExpenses = this.calculateBaseLivingExpenses(dependents);
+
+        // Housing costs
+        const housingCosts = this.calculateHousingCosts(inputs, homeValue, netIncome);
+
+        // Childcare costs
+        const childcareCosts = this.calculateChildcareCosts(dependents);
+
+        // Other family-related expenses
+        const familyExpenses = this.calculateFamilyExpenses(dependents);
+
+        const totalMonthly = baseLivingExpenses + housingCosts + childcareCosts + familyExpenses;
+
+        return {
+            baseLiving: baseLivingExpenses,
+            housing: housingCosts,
+            childcare: childcareCosts,
+            familyExpenses: familyExpenses,
+            totalMonthly: totalMonthly,
+            totalAnnual: totalMonthly * 12,
+            breakdown: {
+                livingDescription: this.getLivingExpenseDescription(dependents),
+                housingDescription: this.getHousingDescription(inputs, homeValue),
+                childcareDescription: this.getChildcareDescription(dependents),
+                familyDescription: this.getFamilyExpenseDescription(dependents)
+            }
+        };
+    }
+
+    /**
+     * Calculate base living expenses using ABS household expenditure data
+     */
+    calculateBaseLivingExpenses(dependents) {
+        // ABS 2025 data: Single person $2,835/month, couple $4,118/month, +$630 per child
+        const baseCouple = 4118; // Base for couple
+        const perChild = 630; // Additional cost per child
+
+        return baseCouple + (dependents * perChild);
+    }
+
+    /**
+     * Calculate housing costs including mortgage or rent
+     */
+    calculateHousingCosts(inputs, homeValue, netIncome) {
+        const monthlyNetIncome = netIncome / 12;
+
+        if (homeValue > 0) {
+            // Current reality: Australians pay 46.2% of income on mortgage (2025 data)
+            return monthlyNetIncome * 0.462;
+        } else {
+            // Assume renting - typically 25-35% of income
+            return monthlyNetIncome * 0.30;
+        }
+    }
+
+    /**
+     * Calculate childcare costs based on current Australian rates
+     */
+    calculateChildcareCosts(dependents) {
+        if (dependents === 0) return 0;
+
+        // 2025 data: $135/day average, assuming 5 days/week for working parents
+        const dailyCost = 135;
+        const daysPerWeek = 5;
+        const weeksPerYear = 48; // Account for holidays
+        const annualPerChild = dailyCost * daysPerWeek * weeksPerYear;
+
+        // Assume government subsidy reduces cost by 30-50% on average
+        const subsidyRate = 0.40;
+        const netAnnualPerChild = annualPerChild * (1 - subsidyRate);
+
+        return (netAnnualPerChild * Math.min(dependents, 2)) / 12; // Assume max 2 in childcare simultaneously
+    }
+
+    /**
+     * Calculate additional family expenses (education, activities, larger vehicle, etc.)
+     */
+    calculateFamilyExpenses(dependents) {
+        if (dependents === 0) return 0;
+
+        // Additional costs: larger vehicle, activities, education, medical, clothing
+        const perChildMonthly = 200; // Conservative estimate for additional family costs
+        return dependents * perChildMonthly;
+    }
+
+    /**
+     * Analyze savings capacity and identify opportunities
+     */
+    analyzeSavingsCapacity(inputs, monthlyDisposableIncome, expenses) {
+        const opportunities = [];
+        const homeValue = inputs.homeValue || 0;
+        const investmentProperty = inputs.hasInvestmentProperty;
+
+        if (monthlyDisposableIncome < 0) {
+            // Negative cash flow - need drastic action
+            opportunities.push({
+                type: 'critical',
+                title: 'Immediate Action Required',
+                description: `Monthly shortfall of $${Math.abs(monthlyDisposableIncome).toFixed(0)}`,
+                suggestions: [
+                    'Consider downsizing home to reduce mortgage payments',
+                    'Reduce childcare costs (part-time work arrangement)',
+                    'Sell non-essential assets',
+                    'Debt consolidation or refinancing'
+                ]
+            });
+        } else if (monthlyDisposableIncome < 500) {
+            // Tight cash flow
+            opportunities.push({
+                type: 'tight',
+                title: 'Limited Savings Capacity',
+                description: `Only $${monthlyDisposableIncome.toFixed(0)} available monthly`,
+                suggestions: [
+                    'Focus on small, consistent contributions',
+                    'Optimize current expenses before increasing savings',
+                    'Consider government incentives (super co-contributions)',
+                    'Build emergency fund first ($1,000-2,000)'
+                ]
+            });
+        } else if (monthlyDisposableIncome < 1500) {
+            // Moderate cash flow
+            opportunities.push({
+                type: 'moderate',
+                title: 'Moderate Savings Potential',
+                description: `$${monthlyDisposableIncome.toFixed(0)} available for savings/investments`,
+                suggestions: [
+                    'Balanced approach: emergency fund + retirement savings',
+                    'Consider salary sacrificing to super',
+                    'Start small with ETF investments ($200-500/month)',
+                    'Optimize asset allocation'
+                ]
+            });
+        } else {
+            // Good cash flow
+            opportunities.push({
+                type: 'good',
+                title: 'Strong Savings Capacity',
+                description: `$${monthlyDisposableIncome.toFixed(0)} available for wealth building`,
+                suggestions: [
+                    'Maximize concessional super contributions',
+                    'Diversify investments (stocks, bonds, property)',
+                    'Consider investment property or REITs',
+                    'Tax-effective investing strategies'
+                ]
+            });
+        }
+
+        // Asset liquidation opportunities
+        if (homeValue > 500000) {
+            const downsizingSavings = this.calculateDownsizingSavings(homeValue);
+            opportunities.push({
+                type: 'asset_strategy',
+                title: 'Home Downsizing Opportunity',
+                description: `Release $${downsizingSavings.equity.toFixed(0)} equity, save $${downsizingSavings.monthlyReduction.toFixed(0)}/month`,
+                suggestions: [
+                    'Downsize to smaller property',
+                    'Move to lower-cost area',
+                    'Consider apartment vs house',
+                    'Release equity for investments'
+                ]
+            });
+        }
+
+        if (investmentProperty) {
+            opportunities.push({
+                type: 'asset_strategy',
+                title: 'Investment Property Strategy',
+                description: 'Consider selling vs holding based on cash flow needs',
+                suggestions: [
+                    'Sell if generating negative cash flow',
+                    'Use equity to improve cash flow',
+                    'Compare property vs share returns',
+                    'Consider REIT alternative'
+                ]
+            });
+        }
+
+        return opportunities;
+    }
+
+    /**
+     * Calculate potential savings from downsizing home
+     */
+    calculateDownsizingSavings(currentHomeValue) {
+        const downsizeValue = currentHomeValue * 0.65; // Assume 35% reduction in home value
+        const equityRelease = currentHomeValue * 0.35; // Assume some equity release
+        const currentMortgagePayment = (currentHomeValue * 0.04) / 12; // Rough estimate
+        const newMortgagePayment = (downsizeValue * 0.04) / 12;
+        const monthlyReduction = currentMortgagePayment - newMortgagePayment;
+
+        return {
+            equity: equityRelease,
+            monthlyReduction: monthlyReduction
+        };
+    }
+
+    /**
+     * Get cash flow status description
+     */
+    getCashFlowStatus(monthlyDisposable) {
+        if (monthlyDisposable < 0) return 'Critical - Spending exceeds income';
+        if (monthlyDisposable < 500) return 'Tight - Limited flexibility';
+        if (monthlyDisposable < 1500) return 'Moderate - Some savings capacity';
+        return 'Good - Strong savings potential';
+    }
+
+    // Description helper methods
+    getLivingExpenseDescription(dependents) {
+        if (dependents === 0) return 'Couple base living expenses (food, utilities, transport, etc.)';
+        return `Family living expenses for ${dependents} dependents (food, utilities, transport, etc.)`;
+    }
+
+    getHousingDescription(inputs, homeValue) {
+        if (homeValue > 0) {
+            return `Mortgage payments (46.2% of income - current Australian average)`;
+        }
+        return 'Rental payments (30% of income)';
+    }
+
+    getChildcareDescription(dependents) {
+        if (dependents === 0) return 'No childcare costs';
+        return `Childcare for ${Math.min(dependents, 2)} children ($135/day average, 5 days/week, after subsidies)`;
+    }
+
+    getFamilyExpenseDescription(dependents) {
+        if (dependents === 0) return 'No additional family expenses';
+        return `Additional family costs (activities, education, medical, larger vehicle, clothing)`;
     }
 }
 
