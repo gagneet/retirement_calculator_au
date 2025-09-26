@@ -3035,18 +3035,58 @@ class RetirementCalculatorApp {
         // Setup collapsible dependent details
         const totalDependentsCountField = $('totalDependentsCount');
         const dependentDetailsSection = $('dependentDetailsSection');
+        const dependentSummarySection = $('dependentSummarySection');
 
         if (totalDependentsCountField && dependentDetailsSection) {
             totalDependentsCountField.addEventListener('input', () => {
                 const count = parseInt(totalDependentsCountField.value) || 0;
                 if (count > 0) {
                     dependentDetailsSection.classList.remove('hidden');
+                    if (dependentSummarySection) {
+                        dependentSummarySection.classList.add('hidden');
+                    }
                 } else {
                     dependentDetailsSection.classList.add('hidden');
+                    if (dependentSummarySection) {
+                        dependentSummarySection.classList.add('hidden');
+                    }
                 }
                 this.calculateDependentCosts();
             });
         }
+
+        // Setup global collapse/expand functions
+        window.showDependentDetails = () => {
+            if (dependentDetailsSection) {
+                dependentDetailsSection.classList.remove('hidden');
+            }
+            if (dependentSummarySection) {
+                dependentSummarySection.classList.add('hidden');
+            }
+        };
+
+        window.collapseDependentDetails = () => {
+            if (dependentDetailsSection) {
+                dependentDetailsSection.classList.add('hidden');
+            }
+            if (dependentSummarySection) {
+                dependentSummarySection.classList.remove('hidden');
+            }
+            this.updateDependentSummary();
+        };
+
+        window.showAllCategories = () => {
+            const categories = [
+                'childrenUnder5', 'childrenPrimary', 'teenagers', 'adultDisabled',
+                'elderlyIndependent', 'elderlyHomeCare', 'elderlyResidential', 'otherDependents'
+            ];
+            categories.forEach(category => {
+                const rowElement = $(category + 'Row');
+                if (rowElement) {
+                    rowElement.classList.remove('hidden');
+                }
+            });
+        };
 
         const dependentFields = [
             'childrenUnder5', 'childrenUnder5Percent',
@@ -3065,12 +3105,66 @@ class RetirementCalculatorApp {
             if (element) {
                 element.addEventListener('input', () => {
                     this.calculateDependentCosts();
+                    this.showOnlyPopulatedCategories();
+                    this.updateDependentSummary();
                 });
             }
         });
 
         // Initial calculation
         this.calculateDependentCosts();
+    }
+
+    updateDependentSummary() {
+        const categories = [
+            { id: 'childrenUnder5', name: 'Children (0-5)' },
+            { id: 'childrenPrimary', name: 'Children (6-12)' },
+            { id: 'teenagers', name: 'Teenagers (13-18)' },
+            { id: 'adultDisabled', name: 'Adult Disabled' },
+            { id: 'elderlyIndependent', name: 'Elderly Independent' },
+            { id: 'elderlyHomeCare', name: 'Elderly Home Care' },
+            { id: 'elderlyResidential', name: 'Elderly Residential' },
+            { id: 'otherDependents', name: 'Other Dependents' }
+        ];
+
+        const populatedCategories = [];
+        categories.forEach(category => {
+            const count = parseInt(safeGetValue(category.id, 0)) || 0;
+            const percent = parseInt(safeGetValue(category.id + 'Percent', 0)) || 0;
+            if (count > 0 && percent > 0) {
+                populatedCategories.push(`${count} ${category.name} (${percent}%)`);
+            }
+        });
+
+        const summaryTextEl = $('dependentSummaryText');
+        if (summaryTextEl) {
+            if (populatedCategories.length > 0) {
+                summaryTextEl.textContent = populatedCategories.join(', ');
+            } else {
+                summaryTextEl.textContent = 'No dependents configured - Click to add';
+            }
+        }
+    }
+
+    showOnlyPopulatedCategories() {
+        const categories = [
+            'childrenUnder5', 'childrenPrimary', 'teenagers', 'adultDisabled',
+            'elderlyIndependent', 'elderlyHomeCare', 'elderlyResidential', 'otherDependents'
+        ];
+
+        categories.forEach(category => {
+            const count = parseInt(safeGetValue(category, 0)) || 0;
+            const percent = parseInt(safeGetValue(category + 'Percent', 0)) || 0;
+            const rowElement = $(category + 'Row');
+
+            if (rowElement) {
+                if (count > 0 && percent > 0) {
+                    rowElement.classList.remove('hidden');
+                } else {
+                    rowElement.classList.add('hidden');
+                }
+            }
+        });
     }
 
     calculateDependentCosts() {

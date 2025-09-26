@@ -530,14 +530,35 @@
                             <p class="mt-1 text-xs text-gray-500">Enter a number greater than 0 to see detailed breakdown options</p>
                         </div>
 
+                        <!-- Dependent Summary (when collapsed) -->
+                        <div id="dependentSummarySection" class="mt-4 p-3 border rounded-lg bg-blue-50 hidden cursor-pointer" onclick="showDependentDetails()">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h4 class="text-sm font-semibold text-gray-800">Financial Dependents Summary</h4>
+                                    <div id="dependentSummaryText" class="text-xs text-gray-600 mt-1">Click to edit categories</div>
+                                </div>
+                                <div class="text-xs text-blue-600 font-medium">Edit ✏️</div>
+                            </div>
+                        </div>
+
                         <!-- Enhanced Dependent Categories with Contribution % (collapsible) -->
                         <div id="dependentDetailsSection" class="mt-4 space-y-3 p-4 border rounded-lg bg-gray-50 hidden">
-                            <div class="mb-3 pb-2 border-b border-gray-300">
-                                <h4 class="text-sm font-semibold text-gray-800">Dependent Breakdown by Category</h4>
-                                <p class="text-xs text-gray-600">Specify count and your contribution percentage for each category</p>
+                            <div class="mb-3 pb-2 border-b border-gray-300 flex justify-between items-center">
+                                <div>
+                                    <h4 class="text-sm font-semibold text-gray-800">Dependent Breakdown by Category</h4>
+                                    <p class="text-xs text-gray-600">Specify count and your contribution percentage for each category</p>
+                                </div>
+                                <div class="flex gap-3">
+                                    <button type="button" onclick="showAllCategories()" class="text-xs text-gray-600 hover:text-gray-800 font-medium">
+                                        Show All
+                                    </button>
+                                    <button type="button" onclick="collapseDependentDetails()" class="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                                        Collapse ↑
+                                    </button>
+                                </div>
                             </div>
                             <!-- Children 0-5 years -->
-                            <div class="grid grid-cols-12 gap-2 items-center">
+                            <div id="childrenUnder5Row" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
                                 <div class="col-span-6">
                                     <label class="text-sm font-medium text-gray-700">Children (0-5 years)</label>
                                     <p class="text-xs text-gray-500">Childcare ~$135/day</p>
@@ -554,7 +575,7 @@
                             </div>
 
                             <!-- Children 6-12 years -->
-                            <div class="grid grid-cols-12 gap-2 items-center">
+                            <div id="childrenPrimaryRow" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
                                 <div class="col-span-6">
                                     <label class="text-sm font-medium text-gray-700">Children (6-12 years)</label>
                                     <p class="text-xs text-gray-500">School, activities ~$800/month</p>
@@ -569,7 +590,7 @@
                             </div>
 
                             <!-- Teenagers 13-18 years -->
-                            <div class="grid grid-cols-12 gap-2 items-center">
+                            <div id="teenagersRow" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
                                 <div class="col-span-6">
                                     <label class="text-sm font-medium text-gray-700">Teenagers (13-18 years)</label>
                                     <p class="text-xs text-gray-500">Technology, activities ~$600/month</p>
@@ -584,7 +605,7 @@
                             </div>
 
                             <!-- Adult children with disabilities -->
-                            <div class="grid grid-cols-12 gap-2 items-center">
+                            <div id="adultDisabledRow" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
                                 <div class="col-span-6">
                                     <label class="text-sm font-medium text-gray-700">Adult Children with Disabilities</label>
                                     <p class="text-xs text-gray-500">NDIS covers most, your extras</p>
@@ -599,7 +620,7 @@
                             </div>
 
                             <!-- Elderly parents - independent -->
-                            <div class="grid grid-cols-12 gap-2 items-center">
+                            <div id="elderlyIndependentRow" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
                                 <div class="col-span-6">
                                     <label class="text-sm font-medium text-gray-700">Elderly Parents - Independent</label>
                                     <p class="text-xs text-gray-500">Occasional support ~$200/month</p>
@@ -614,7 +635,7 @@
                             </div>
 
                             <!-- Elderly parents - home care -->
-                            <div class="grid grid-cols-12 gap-2 items-center">
+                            <div id="elderlyHomeCareRow" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
                                 <div class="col-span-6">
                                     <label class="text-sm font-medium text-gray-700">Elderly Parents - Home Care</label>
                                     <p class="text-xs text-gray-500">Gov't pays most, extras ~$400/month</p>
@@ -629,7 +650,7 @@
                             </div>
 
                             <!-- Elderly parents - residential care -->
-                            <div class="grid grid-cols-12 gap-2 items-center">
+                            <div id="elderlyResidentialRow" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
                                 <div class="col-span-6">
                                     <label class="text-sm font-medium text-gray-700">Elderly Parents - Residential Care</label>
                                     <p class="text-xs text-gray-500">High cost, often shared among siblings</p>
@@ -644,7 +665,7 @@
                             </div>
 
                             <!-- Other dependents -->
-                            <div class="grid grid-cols-12 gap-2 items-center">
+                            <div id="otherDependentsRow" class="grid grid-cols-12 gap-2 items-center dependent-category-row">
                                 <div class="col-span-6">
                                     <label class="text-sm font-medium text-gray-700">Other Dependents</label>
                                     <p class="text-xs text-gray-500">Siblings, relatives, etc.</p>
