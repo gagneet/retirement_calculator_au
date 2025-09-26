@@ -485,11 +485,26 @@ class RetirementCalculatorApp {
         const riskAnalysisContent = $('riskAnalysisContent');
         if (!riskAnalysisContent) return;
 
-        // Generate comprehensive cash flow analysis
-        const cashFlowAnalysis = this.simulator.calculateCashFlowAnalysis(inputs);
-
-        // Calculate enhanced risk metrics with cash flow constraints
-        const capacity = this.simulator.calculateRiskCapacity(inputs);
+        // Generate comprehensive cash flow analysis with error handling
+        let cashFlowAnalysis;
+        try {
+            cashFlowAnalysis = this.simulator.calculateCashFlowAnalysis(inputs);
+            if (!cashFlowAnalysis || !cashFlowAnalysis.cashFlow) {
+                throw new Error('Invalid cash flow analysis result');
+            }
+        } catch (error) {
+            console.error('Cash flow analysis failed:', error);
+            // Provide fallback data structure
+            cashFlowAnalysis = {
+                cashFlow: { 
+                    monthlyDisposable: 0, 
+                    status: 'unknown',
+                    housingStressRatio: 0.3 
+                },
+                expenses: { totalMonthly: 0 },
+                opportunities: []
+            };
+        }
         const tolerance = inputs.riskTolerance * 10;
 
         // Pass Monte Carlo results for dynamic requirement calculation
@@ -1473,13 +1488,16 @@ class RetirementCalculatorApp {
 
     // Expense Optimization Analysis
     analyzeExpenseOptimization(cashFlowAnalysis, inputs) {
-        const strategies = [];
-        const expenses = cashFlowAnalysis.expenses;
-        const monthlyNetIncome = cashFlowAnalysis.cashFlow.monthlyNetIncome;
-
-        // Housing optimization
-        if (expenses.housing.housingStressRatio > 0.3) {
-            strategies.push(`Housing costs (${(expenses.housing.housingStressRatio * 100).toFixed(0)}%) exceed recommended 30% of income`);
+            optimizationContent.innerHTML = `
+                <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <h3 class="font-semibold text-red-800 mb-2">Optimization Analysis Unavailable</h3>
+                    <p class="text-sm text-red-600">There was an error analyzing your optimization strategies: ${error.message || 'Unknown error'}. Please check your inputs and try again.</p>
+                    <details class="mt-2">
+                        <summary class="text-xs text-red-500 cursor-pointer">Technical Details</summary>
+                        <pre class="text-xs text-red-400 mt-1">${error.stack || error.toString()}</pre>
+                    </details>
+                </div>
+            `;
         }
         if (expenses.housing.mortgagePayment > monthlyNetIncome * 0.25) {
             strategies.push('Consider refinancing or downsizing to reduce mortgage burden');
