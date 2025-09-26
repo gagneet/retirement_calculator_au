@@ -1,3 +1,4 @@
+import '../css/styles.css';
 // js/app.js - Main Application Controller
 
 import { ENHANCED_CONFIG } from './config.js';
