@@ -2154,30 +2154,50 @@ class RetirementCalculatorApp {
         const container = $('scenarioSummaryCards');
         if (!container) return;
 
-        // Find best and worst scenarios
-        const bestSuccess = scenarios.reduce((best, scenario) =>
-            scenario.successRate > best.successRate ? scenario : best);
-        const bestBalance = scenarios.reduce((best, scenario) =>
-            scenario.medianBalance > best.medianBalance ? scenario : best);
-        const worstScenario = scenarios.reduce((worst, scenario) =>
-            scenario.successRate < worst.successRate ? scenario : worst);
+        const currentPlan = scenarios[0]; // Current Plan is always first
+        const alternativeScenarios = scenarios.slice(1);
+
+        // Find best alternative scenario (excluding current plan)
+        let bestAlternative = null;
+        let worstAlternative = null;
+
+        if (alternativeScenarios.length > 0) {
+            bestAlternative = alternativeScenarios.reduce((best, scenario) => {
+                const bestScore = (best.successRate * 0.7) + ((best.medianBalance / currentPlan.medianBalance) * 0.3);
+                const scenarioScore = (scenario.successRate * 0.7) + ((scenario.medianBalance / currentPlan.medianBalance) * 0.3);
+                return scenarioScore > bestScore ? scenario : best;
+            });
+
+            worstAlternative = alternativeScenarios.reduce((worst, scenario) =>
+                scenario.successRate < worst.successRate ? scenario : worst);
+        }
 
         container.innerHTML = `
-            <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <h4 class="font-semibold text-green-900">Best Success Rate</h4>
-                <div class="text-2xl font-bold text-green-700">${formatPercent(bestSuccess.successRate)}</div>
-                <div class="text-sm text-green-600">${bestSuccess.name}</div>
-            </div>
             <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 class="font-semibold text-blue-900">Highest Balance</h4>
-                <div class="text-2xl font-bold text-blue-700">${formatCurrency(bestBalance.medianBalance)}</div>
-                <div class="text-sm text-blue-600">${bestBalance.name}</div>
+                <h4 class="font-semibold text-blue-900">Your Current Plan</h4>
+                <div class="text-lg font-bold text-blue-700">${formatPercent(currentPlan.successRate)} Success</div>
+                <div class="text-sm text-blue-600">${formatCurrency(currentPlan.medianBalance)} median balance</div>
             </div>
-            <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <h4 class="font-semibold text-yellow-900">Riskiest Option</h4>
-                <div class="text-2xl font-bold text-yellow-700">${formatPercent(worstScenario.successRate)}</div>
-                <div class="text-sm text-yellow-600">${worstScenario.name}</div>
+            ${bestAlternative ? `
+            <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h4 class="font-semibold text-green-900">Best Alternative</h4>
+                <div class="text-lg font-bold text-green-700">${formatPercent(bestAlternative.successRate)} Success</div>
+                <div class="text-sm text-green-600">${bestAlternative.name}</div>
+                <div class="text-xs text-green-500 mt-1">
+                    ${((bestAlternative.successRate - currentPlan.successRate) * 100).toFixed(1)}% vs Current Plan
+                </div>
             </div>
+            ` : ''}
+            ${worstAlternative ? `
+            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h4 class="font-semibold text-red-900">Riskiest Alternative</h4>
+                <div class="text-lg font-bold text-red-700">${formatPercent(worstAlternative.successRate)} Success</div>
+                <div class="text-sm text-red-600">${worstAlternative.name}</div>
+                <div class="text-xs text-red-500 mt-1">
+                    ${((worstAlternative.successRate - currentPlan.successRate) * 100).toFixed(1)}% vs Current Plan
+                </div>
+            </div>
+            ` : ''}
         `;
     }
 
@@ -2185,10 +2205,27 @@ class RetirementCalculatorApp {
         const tableBody = $('scenarioComparisonTable');
         if (!tableBody) return;
 
+        const baseScenario = scenarios[0]; // Current Plan is always first
+
         tableBody.innerHTML = scenarios.map((scenario, index) => {
-            const riskScore = this.simulator.calculateRiskAdjustedScore(scenario);
-            const recommendation = index === 0 ? 'Baseline' :
-                this.simulator.generateScenarioRecommendation(scenario, scenarios[0]);
+            const riskScore = index === 0 ?
+                this.simulator.calculateRiskAdjustedScore(scenario) :
+                this.simulator.calculateRiskAdjustedScore(scenario, baseScenario);
+
+            const recommendation = index === 0 ? 'Current Plan (Baseline)' :
+                this.simulator.generateScenarioRecommendation(scenario, baseScenario);
+
+            // Calculate difference indicators
+            let successRateIndicator = '';
+            let balanceIndicator = '';
+
+            if (index > 0) {
+                const successDiff = scenario.successRate - baseScenario.successRate;
+                const balanceDiff = scenario.medianBalance - baseScenario.medianBalance;
+
+                successRateIndicator = successDiff > 0.01 ? '↗️' : successDiff < -0.01 ? '↘️' : '→';
+                balanceIndicator = balanceDiff > 10000 ? '↗️' : balanceDiff < -10000 ? '↘️' : '→';
+            }
 
             return `
                 <tr class="${index === 0 ? 'bg-blue-50' : 'hover:bg-gray-50'}">
@@ -2197,26 +2234,40 @@ class RetirementCalculatorApp {
                         ${index === 0 ? '<span class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Baseline</span>' : ''}
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <span class="font-semibold ${scenario.successRate >= 0.7 ? 'text-green-600' : 'text-red-600'}">
-                            ${formatPercent(scenario.successRate)}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 text-center font-semibold">
-                        ${formatCurrency(scenario.medianBalance)}
+                        <div class="flex items-center justify-center space-x-1">
+                            <span class="font-semibold ${scenario.successRate >= 0.7 ? 'text-green-600' : scenario.successRate >= 0.5 ? 'text-yellow-600' : 'text-red-600'}">
+                                ${formatPercent(scenario.successRate)}
+                            </span>
+                            ${successRateIndicator ? `<span class="text-xs">${successRateIndicator}</span>` : ''}
+                        </div>
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <span class="px-2 py-1 rounded text-xs font-medium ${
-                riskScore >= 70 ? 'bg-green-100 text-green-800' :
-                    riskScore >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
+                        <div class="flex items-center justify-center space-x-1">
+                            <span class="font-semibold">
+                                ${formatCurrency(scenario.medianBalance)}
+                            </span>
+                            ${balanceIndicator ? `<span class="text-xs">${balanceIndicator}</span>` : ''}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <div class="flex flex-col items-center">
+                            <span class="px-2 py-1 rounded text-xs font-medium ${
+                index === 0 ? 'bg-blue-100 text-blue-800' :
+                    riskScore >= 60 ? 'bg-green-100 text-green-800' :
+                        riskScore >= 40 ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
             }">
-                            ${riskScore.toFixed(0)}
-                        </span>
+                                ${riskScore}
+                            </span>
+                            <span class="text-xs text-gray-500 mt-1">
+                                ${index === 0 ? 'Quality' : 'vs Base'}
+                            </span>
+                        </div>
                     </td>
                     <td class="px-4 py-3 text-center text-sm ${
-                recommendation.includes('Strongly recommended') ? 'text-green-600 font-semibold' :
-                    recommendation.includes('Recommended') ? 'text-blue-600' :
-                        recommendation.includes('Not recommended') ? 'text-red-600' :
+                index === 0 ? 'text-blue-600 font-medium' :
+                    recommendation.includes('+') && (recommendation.includes('success') || recommendation.includes('balance')) ? 'text-green-600 font-medium' :
+                        recommendation.includes('-') ? 'text-red-600' :
                             'text-gray-600'
             }">
                         ${recommendation}
@@ -2318,10 +2369,10 @@ class RetirementCalculatorApp {
                 exportToCSV(csvData, 'enhanced-retirement-projection.csv', this.collectInputs());
                 break;
             case 'xlsx':
-                exportToXLSX(this.collectInputs(), this.currentResults, this.chartManager);
+                exportToXLSX(this.collectInputs(), this.currentResults, this.chartManager, this);
                 break;
             case 'pdf':
-                exportToPDF(this.collectInputs(), this.currentResults, this.chartManager);
+                exportToPDF(this.collectInputs(), this.currentResults, this.chartManager, this);
                 break;
             default:
                 showNotification(`Invalid export type: ${exportType}`, 'error');
