@@ -1,3 +1,5 @@
+import { saveToLocalStorage, loadFromLocalStorage } from './utils.js';
+
 /**
  * Theme Management System
  * Handles light/dark mode toggle with smooth transitions and persistence
@@ -29,7 +31,7 @@ class ThemeManager {
      * Get stored theme from localStorage
      */
     getStoredTheme() {
-        return localStorage.getItem('retirement-calc-theme');
+        return loadFromLocalStorage('retirement-calc-theme');
     }
 
     /**
@@ -44,7 +46,7 @@ class ThemeManager {
      * Store theme preference
      */
     storeTheme(theme) {
-        localStorage.setItem('retirement-calc-theme', theme);
+        saveToLocalStorage('retirement-calc-theme', theme);
     }
 
     /**
