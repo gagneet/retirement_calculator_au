@@ -1873,7 +1873,7 @@ class RetirementCalculatorApp {
         );
 
         if (!suggestion || !suggestion.modifications) {
-            showNotification(`Suggestion "${suggestionName}" not found or has no modifications`, 'error');
+            showNotification(`This "${suggestionName}" is for informational purposes. The functionality to automatically apply this change is currently under development.`, 'info');
             return;
         }
 
@@ -2096,7 +2096,7 @@ class RetirementCalculatorApp {
 
     // Format description text with markdown-style formatting to HTML
     formatDescriptionHTML(description) {
-        if (!description) return '';
+        if (!description) return 'No description available.';
 
         return description
             .replace(/\*\*Impact: (.*?)\*\*/g, '<span class="inline-block px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-semibold mr-2">Impact: $1</span>')

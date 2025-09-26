@@ -273,7 +273,7 @@ class RecommendationEngine {
         // Scenario 4: Keep property indefinitely (if strong positive cash flow)
         if (netAnnualIncome > 10000 && monthlyDisposableIncome > 800) {
             const annualIncomeInRetirement = netAnnualIncome * 1.5; // Assume rent growth over time
-            
+
             scenarios.push({
                 name: "Keep Investment Property Indefinitely",
                 description: `Property generates strong income ($${netAnnualIncome.toLocaleString()}/year) and you have sufficient cash flow to maintain it. **Impact: HIGH POSITIVE** - Projected retirement income of $${Math.round(annualIncomeInRetirement).toLocaleString()}/year. **Risk: HIGH** - Long-term property market exposure and management burden. **Timeline: Indefinite** - Provides ongoing income stream but requires active management throughout retirement.`,
@@ -937,7 +937,7 @@ class RecommendationEngine {
         if (monthlyRate === 0) return balance / targetMonths;
 
         return balance * (monthlyRate * Math.pow(1 + monthlyRate, targetMonths)) /
-               (Math.pow(1 + monthlyRate, targetMonths) - 1);
+            (Math.pow(1 + monthlyRate, targetMonths) - 1);
     }
 
     /**
@@ -1755,7 +1755,7 @@ class RecommendationEngine {
 
         let category = "General";
         let title = scenario.name;
-        let summary = "";
+        let description = "";
         let impact = "neutral";
         let feasibility = scenario.feasibility || "Standard Strategy"; // Get feasibility from scenario
         let factorsChanged = scenario.factorsChanged || []; // Get detailed factors
@@ -1768,32 +1768,33 @@ class RecommendationEngine {
         // Categorize and format based on scenario name
         if (scenario.name.includes("Property")) {
             category = "Investment Property";
-            summary = this._formatPropertyRecommendation(scenario, baseResult);
+            description = this._formatPropertyRecommendation(scenario, baseResult);
         } else if (scenario.name.includes("Downsize") || scenario.name.includes("Home")) {
             category = "Home Ownership";
-            summary = this._formatDownsizeRecommendation(scenario, baseResult);
+            description = this._formatDownsizeRecommendation(scenario, baseResult);
         } else if (scenario.name.includes("Increase") || scenario.name.includes("Savings Rate") || scenario.name.includes("Super") || scenario.name.includes("Optimize Expenses")) {
             category = "Contributions";
-            summary = this._formatContributionRecommendation(scenario, baseResult);
+            description = this._formatContributionRecommendation(scenario, baseResult);
         } else if (scenario.name.includes("Strategy")) {
             category = "Investment Strategy";
-            summary = this._formatAllocationRecommendation(scenario, baseResult);
+            description = this._formatAllocationRecommendation(scenario, baseResult);
         } else if (scenario.name.includes("Retire")) {
             category = "Retirement Age";
-            summary = this._formatRetirementAgeRecommendation(scenario, baseResult);
+            description = this._formatRetirementAgeRecommendation(scenario, baseResult);
         } else {
-            summary = `This strategy changes your success rate by ${formatPercent(successDiff, 1)} and median final balance by ${formatCurrency(balanceDiff)}.`;
+            description = `This strategy changes your success rate by ${formatPercent(successDiff, 1)} and median final balance by ${formatCurrency(balanceDiff)}.`;
         }
 
         // Enhanced summary with feasibility and cash flow considerations
         if (feasibility && feasibility !== "Standard Strategy") {
-            summary += ` Feasibility: ${feasibility}.`;
+            description += ` Feasibility: ${feasibility}.`;
         }
 
         return {
             title,
             category,
-            summary,
+            description: scenario.description || description,
+            modifications: scenario.modifications,
             impact,
             feasibility,
             factorsChanged,
