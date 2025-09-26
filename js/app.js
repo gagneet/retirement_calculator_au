@@ -2652,9 +2652,13 @@ class RetirementCalculatorApp {
         partnerAgeField.addEventListener('input', handlePartnerDependencies);
         partnerAgeField.addEventListener('blur', handlePartnerDependencies);
 
-        // Run on initial load
-        setTimeout(handlePartnerDependencies, 100);
-    }
+        // Run immediately if elements exist, otherwise wait for DOM ready
+        if (partnerAgeField && partnerFields.every(id => $(id))) {
+            handlePartnerDependencies();
+        } else {
+            // Fallback for cases where DOM isn't fully ready
+            document.addEventListener('DOMContentLoaded', handlePartnerDependencies);
+        }
 
     // Initial calculation
     performInitialCalculation() {
