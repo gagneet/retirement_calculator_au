@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="successGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <linearGradient id="warningGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Title -->
+  <text x="600" y="40" font-family="Arial, sans-serif" font-size="28" font-weight="bold" text-anchor="middle" fill="#1f2937">
+    Australian Retirement Calculator Workflow
+  </text>
+
+  <!-- Phase 1: Data Collection -->
+  <g id="phase1" transform="translate(50, 80)">
+    <rect x="0" y="0" width="200" height="120" rx="12" fill="url(#primaryGradient)" filter="url(#shadow)"/>
+    <circle cx="100" cy="35" r="18" fill="white" opacity="0.9"/>
+    <text x="100" y="42" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#4f46e5">1</text>
+    <text x="100" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">DATA INPUT</text>
+    <text x="100" y="85" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">• Personal Details</text>
+    <text x="100" y="98" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">• Financial Assets</text>
+    <text x="100" y="111" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">• Income & Expenses</text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <g transform="translate(270, 130)">
+    <path d="M 0 10 L 40 10 L 35 5 M 40 10 L 35 15" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  </g>
+
+  <!-- Phase 2: Risk Assessment -->
+  <g id="phase2" transform="translate(320, 80)">
+    <rect x="0" y="0" width="200" height="120" rx="12" fill="url(#warningGradient)" filter="url(#shadow)"/>
+    <circle cx="100" cy="35" r="18" fill="white" opacity="0.9"/>
+    <text x="100" y="42" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#d97706">2</text>
+    <text x="100" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">RISK PROFILING</text>
+    <text x="100" y="85" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">• Risk Capacity</text>
+    <text x="100" y="98" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">• Risk Tolerance</text>
+    <text x="100" y="111" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">• Risk Requirement</text>
+  </g>
+
+  <!-- Arrow 2 -->
+  <g transform="translate(540, 130)">
+    <path d="M 0 10 L 40 10 L 35 5 M 40 10 L 35 15" stroke="#64748b" stroke-width="2" fill="none"/>
+  </g>
+
+  <!-- Phase 3: Analysis Engine -->
+  <g id="phase3" transform="translate(590, 80)">
+    <rect x="0" y="0" width="200" height="120" rx="12" fill="url(#primaryGradient)" filter="url(#shadow)"/>
+    <circle cx="100" cy="35" r="18" fill="white" opacity="0.9"/>
+    <text x="100" y="42" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#4f46e5">3</text>
+    <text x="100" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">ANALYSIS</text>
+    <text x="100" y="85" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">• Monte Carlo Simulation</text>
+    <text x="100" y="98" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">• AI Recommendations</text>
+    <text x="100" y="111" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">• Market Analysis</text>
+  </g>
+
+  <!-- Arrow 3 -->
+  <g transform="translate(810, 130)">
+    <path d="M 0 10 L 40 10 L 35 5 M 40 10 L 35 15" stroke="#64748b" stroke-width="2" fill="none"/>
+  </g>
+
+  <!-- Phase 4: Results -->
+  <g id="phase4" transform="translate(860, 80)">
+    <rect x="0" y="0" width="200" height="120" rx="12" fill="url(#successGradient)" filter="url(#shadow)"/>
+    <circle cx="100" cy="35" r="18" fill="white" opacity="0.9"/>
+    <text x="100" y="42" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#059669">4</text>
+    <text x="100" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">RESULTS</text>
+    <text x="100" y="85" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">• Charts & Projections</text>
+    <text x="100" y="98" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">• Success Probability</text>
+    <text x="100" y="111" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">• Recommendations</text>
+  </g>
+
+  <!-- Detailed Analysis Section -->
+  <text x="600" y="250" font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2937">
+    Key Analysis Components
+  </text>
+
+  <!-- Monte Carlo Simulation -->
+  <g id="montecarlo" transform="translate(100, 280)">
+    <rect x="0" y="0" width="300" height="160" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" filter="url(#shadow)"/>
+    <text x="150" y="25" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#4f46e5">Monte Carlo Simulation</text>
+
+    <!-- Simulation visualization -->
+    <g transform="translate(20, 40)">
+      <path d="M 20 80 Q 60 60 100 70 T 180 65 T 260 60" stroke="#10b981" stroke-width="2" fill="none" opacity="0.8"/>
+      <path d="M 20 90 Q 60 70 100 80 T 180 75 T 260 70" stroke="#3b82f6" stroke-width="2" fill="none" opacity="0.6"/>
+      <path d="M 20 100 Q 60 80 100 90 T 180 85 T 260 80" stroke="#8b5cf6" stroke-width="2" fill="none" opacity="0.4"/>
+      <path d="M 20 110 Q 60 90 100 100 T 180 95 T 260 90" stroke="#f59e0b" stroke-width="2" fill="none" opacity="0.6"/>
+      <path d="M 20 120 Q 60 100 100 110 T 180 105 T 260 100" stroke="#ef4444" stroke-width="2" fill="none" opacity="0.8"/>
+    </g>
+
+    <text x="20" y="130" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">• 1,000+ scenarios</text>
+    <text x="20" y="145" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">• Market volatility modeling</text>
+  </g>
+
+  <!-- AI Recommendations -->
+  <g id="ai-recommendations" transform="translate(450, 280)">
+    <rect x="0" y="0" width="300" height="160" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" filter="url(#shadow)"/>
+    <text x="150" y="25" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#7c3aed">AI Recommendations</text>
+
+    <!-- Brain/AI icon -->
+    <g transform="translate(120, 40)">
+      <circle cx="30" cy="30" r="25" fill="url(#primaryGradient)" opacity="0.2"/>
+      <path d="M 15 25 Q 30 10 45 25 Q 45 40 30 40 Q 15 40 15 25" fill="url(#primaryGradient)" opacity="0.8"/>
+      <circle cx="25" cy="30" r="2" fill="white"/>
+      <circle cx="35" cy="30" r="2" fill="white"/>
+    </g>
+
+    <text x="20" y="90" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">• 8 Strategic Areas</text>
+    <text x="20" y="105" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">• Property Analysis</text>
+    <text x="20" y="120" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">• Super Optimization</text>
+    <text x="20" y="135" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">• Trust Structures</text>
+    <text x="20" y="150" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">• Risk Management</text>
+  </g>
+
+  <!-- Export Options -->
+  <g id="export-options" transform="translate(800, 280)">
+    <rect x="0" y="0" width="300" height="160" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" filter="url(#shadow)"/>
+    <text x="150" y="25" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#059669">Export & Reports</text>
+
+    <!-- Document icons -->
+    <g transform="translate(50, 40)">
+      <rect x="10" y="10" width="25" height="35" rx="3" fill="#dc2626" opacity="0.8"/>
+      <text x="22.5" y="30" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" fill="white">PDF</text>
+
+      <rect x="50" y="10" width="25" height="35" rx="3" fill="#10b981" opacity="0.8"/>
+      <text x="62.5" y="30" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" fill="white">XLS</text>
+
+      <rect x="90" y="10" width="25" height="35" rx="3" fill="#3b82f6" opacity="0.8"/>
+      <text x="102.5" y="30" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" fill="white">CSV</text>
+    </g>
+
+    <text x="20" y="100" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">• Professional reports</text>
+    <text x="20" y="115" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">• Excel workbooks</text>
+    <text x="20" y="130" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">• Chart images</text>
+    <text x="20" y="145" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">• Data export</text>
+  </g>
+
+  <!-- Feature Highlights -->
+  <text x="600" y="500" font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#1f2937">
+    Australian-Specific Features
+  </text>
+
+  <!-- Australian Features -->
+  <g id="aus-features" transform="translate(200, 520)">
+    <!-- Superannuation -->
+    <g>
+      <rect x="0" y="0" width="200" height="80" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+      <text x="100" y="20" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#92400e">Superannuation</text>
+      <text x="10" y="40" font-family="Arial, sans-serif" font-size="10" fill="#92400e">• 12% Guarantee Rate</text>
+      <text x="10" y="55" font-family="Arial, sans-serif" font-size="10" fill="#92400e">• Tax-free after 60</text>
+      <text x="10" y="70" font-family="Arial, sans-serif" font-size="10" fill="#92400e">• Contribution caps</text>
+    </g>
+
+    <!-- Age Pension -->
+    <g transform="translate(220, 0)">
+      <rect x="0" y="0" width="200" height="80" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1"/>
+      <text x="100" y="20" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#1e40af">Age Pension</text>
+      <text x="10" y="40" font-family="Arial, sans-serif" font-size="10" fill="#1e40af">• Asset test</text>
+      <text x="10" y="55" font-family="Arial, sans-serif" font-size="10" fill="#1e40af">• Income test</text>
+      <text x="10" y="70" font-family="Arial, sans-serif" font-size="10" fill="#1e40af">• 2025 rates</text>
+    </g>
+
+    <!-- Property Market -->
+    <g transform="translate(440, 0)">
+      <rect x="0" y="0" width="200" height="80" rx="8" fill="#dcfce7" stroke="#10b981" stroke-width="1"/>
+      <text x="100" y="20" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#065f46">Property Analysis</text>
+      <text x="10" y="40" font-family="Arial, sans-serif" font-size="10" fill="#065f46">• CGT discount (50%)</text>
+      <text x="10" y="55" font-family="Arial, sans-serif" font-size="10" fill="#065f46">• Negative gearing</text>
+      <text x="10" y="70" font-family="Arial, sans-serif" font-size="10" fill="#065f46">• Market cycles</text>
+    </g>
+  </g>
+
+  <!-- Healthcare & Aged Care -->
+  <g id="healthcare" transform="translate(300, 620)">
+    <rect x="0" y="0" width="600" height="80" rx="8" fill="#fef2f2" stroke="#ef4444" stroke-width="1"/>
+    <text x="300" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#991b1b">Healthcare & Aged Care Planning</text>
+
+    <g transform="translate(50, 35)">
+      <text x="0" y="15" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">• Healthcare inflation: 6.5% vs general 2.9%</text>
+      <text x="0" y="30" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">• Aged care probability modeling (65% chance)</text>
+      <text x="250" y="15" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">• Average aged care cost: $75,000/year</text>
+      <text x="250" y="30" font-family="Arial, sans-serif" font-size="10" fill="#991b1b">• Private health insurance considerations</text>
+    </g>
+  </g>
+
+  <!-- Time Estimates -->
+  <g id="time-estimates" transform="translate(50, 730)">
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1f2937">Estimated Time Requirements:</text>
+    <text x="0" y="25" font-family="Arial, sans-serif" font-size="12" fill="#6b7280">Data Input: 10-15 minutes</text>
+    <text x="200" y="25" font-family="Arial, sans-serif" font-size="12" fill="#6b7280">Analysis: 2-5 minutes (automated)</text>
+    <text x="450" y="25" font-family="Arial, sans-serif" font-size="12" fill="#6b7280">Review Results: 15-30 minutes</text>
+    <text x="750" y="25" font-family="Arial, sans-serif" font-size="12" fill="#6b7280">Total: 30-50 minutes</text>
+  </g>
+
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+</svg>

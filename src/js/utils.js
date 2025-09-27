@@ -1178,6 +1178,140 @@ export const exportToJSON = (data, filename = 'retirement-data.json') => {
     URL.revokeObjectURL(url);
 };
 
+// User Data Export/Import Functionality
+export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
+    const exportData = {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        scenarioName: scenarioName,
+        userData: inputs,
+        metadata: {
+            calculatorVersion: '2024.1',
+            description: 'Australian Retirement Calculator - User Input Data',
+            fields: Object.keys(inputs).length,
+            note: 'This file contains only your input data, no calculation results. Your privacy is protected.'
+        }
+    };
+
+    const timestamp = new Date().toISOString().slice(0, 16).replace(/[:.]/g, '-');
+    const filename = `retirement-inputs-${timestamp}.json`;
+
+    const jsonContent = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showNotification('Your retirement data has been exported successfully!', 'success');
+    return filename;
+};
+
+export const importUserData = () => {
+    return new Promise((resolve, reject) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) {
+                reject('No file selected');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+
+                    // Validate file structure
+                    if (!data.userData || !data.version) {
+                        reject('Invalid retirement calculator data file format');
+                        return;
+                    }
+
+                    // Check version compatibility
+                    if (data.version !== '1.0') {
+                        showNotification('File version may not be fully compatible. Import will be attempted.', 'warning');
+                    }
+
+                    showNotification(`Successfully imported: ${data.scenarioName || 'Retirement Data'}`, 'success');
+                    resolve({
+                        userData: data.userData,
+                        scenarioName: data.scenarioName,
+                        exportDate: data.exportDate,
+                        metadata: data.metadata
+                    });
+
+                } catch (err) {
+                    reject('Invalid JSON file format. Please check your file.');
+                }
+            };
+
+            reader.onerror = () => {
+                reject('Error reading file. Please try again.');
+            };
+
+            reader.readAsText(file);
+        };
+
+        input.click();
+    });
+};
+
+export const populateFormFromData = (userData) => {
+    let fieldsPopulated = 0;
+    let fieldsSkipped = 0;
+
+    Object.entries(userData).forEach(([key, value]) => {
+        try {
+            // Handle different input types appropriately
+            if (key === 'dependentDetails' && typeof value === 'object') {
+                // Handle nested dependent details object
+                Object.entries(value).forEach(([detailKey, detailValue]) => {
+                    const element = $(detailKey);
+                    if (element) {
+                        element.value = detailValue;
+                        fieldsPopulated++;
+                    }
+                });
+            } else {
+                const element = $(key);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = value;
+                    } else if (element.type === 'select-one') {
+                        element.value = value;
+                    } else {
+                        // Handle percentage values (convert back from decimal)
+                        if (key.includes('Rate') || key.includes('inflation') || key.includes('Return') ||
+                            key.includes('percentIncomeSaved') || key.includes('Volatility')) {
+                            element.value = (value * 100).toFixed(2);
+                        } else {
+                            element.value = value;
+                        }
+                    }
+                    fieldsPopulated++;
+                } else {
+                    fieldsSkipped++;
+                }
+            }
+        } catch (error) {
+            fieldsSkipped++;
+            console.warn(`Could not populate field ${key}:`, error);
+        }
+    });
+
+    showNotification(
+        `Import complete: ${fieldsPopulated} fields updated${fieldsSkipped > 0 ? `, ${fieldsSkipped} fields skipped` : ''}`,
+        fieldsSkipped > 0 ? 'warning' : 'success'
+    );
+
+    return { fieldsPopulated, fieldsSkipped };
+};
+
 // Tab management utilities
 export const showTab = (tabName, scrollToTab = false) => {
     // Hide all tab contents
@@ -1566,6 +1700,9 @@ export default {
     exportToCSV,
     exportToXLSX,
     exportToPDF,
+    exportUserData,
+    importUserData,
+    populateFormFromData,
     showTab,
     updateProgress,
     saveToLocalStorage,

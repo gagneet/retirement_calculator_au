@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Use - Australian Retirement Calculator | Complete Guide</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Complete step-by-step guide on how to use the Australian Retirement Calculator. Learn about all features including Monte Carlo simulation, AI recommendations, and comprehensive retirement planning.">
+    <meta name="keywords" content="retirement calculator guide, how to use, Australian retirement planning, Monte Carlo simulation tutorial, superannuation calculator help">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Chart.js for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Interactive features and animated demo -->
+    <script src="js/howto-interactive.js"></script>
+    <script src="js/animated-demo.js"></script>
+
+    <!-- Custom styles -->
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .feature-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border-left-color: #4f46e5;
+        }
+        .step-number {
+            background: linear-gradient(45deg, #4f46e5, #7c3aed);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+        .workflow-diagram {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+        .process-step {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .process-step:hover {
+            border-color: #4f46e5;
+            transform: scale(1.05);
+        }
+        .process-arrow {
+            color: #64748b;
+            font-size: 1.5rem;
+        }
+        .interactive-demo {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1rem 0;
+        }
+        .demo-input {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 0.5rem;
+            margin: 0.25rem;
+            transition: border-color 0.3s ease;
+        }
+        .demo-input:focus {
+            border-color: #4f46e5;
+            outline: none;
+        }
+        .progress-bar {
+            background: #e2e8f0;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            border: 2px solid #e2e8f0;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .tab-button.active {
+            background: #4f46e5;
+            color: white;
+            border-color: #4f46e5;
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1f2937;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 4px;
+            white-space: nowrap;
+            z-index: 1000;
+            font-size: 0.875rem;
+        }
+        .animation-container {
+            position: relative;
+            height: 300px;
+            background: #f8fafc;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        .animation-step {
+            position: absolute;
+            background: #4f46e5;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 1s ease;
+            opacity: 0;
+        }
+        .animation-step.active {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4">
+                    <i class="fas fa-graduation-cap mr-3"></i>
+                    How to Use the Australian Retirement Calculator
+                </h1>
+                <p class="text-xl md:text-2xl opacity-90 mb-6">
+                    Complete step-by-step guide to mastering your retirement planning
+                </p>
+                <div class="flex justify-center space-x-4">
+                    <a href="index.html" class="bg-white text-indigo-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
+                        <i class="fas fa-calculator mr-2"></i>Open Calculator
+                    </a>
+                    <button onclick="scrollToSection('quick-start')" class="border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-indigo-600 transition">
+                        <i class="fas fa-rocket mr-2"></i>Quick Start
+                    </button>
+                </div>
+                <div class="mt-4">
+                    <p class="text-lg opacity-90">
+                        📖 Complete interactive guide • 🎮 Live demos • 🎬 Animated walkthrough
+                    </p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-center space-x-1 py-3 overflow-x-auto">
+                <button onclick="scrollToSection('quick-start')" class="tab-button rounded-l-lg">Quick Start</button>
+                <button onclick="scrollToSection('features')" class="tab-button">Features</button>
+                <button onclick="scrollToSection('step-by-step')" class="tab-button">Step-by-Step</button>
+                <button onclick="scrollToSection('workflow')" class="tab-button">Workflow</button>
+                <button onclick="scrollToSection('advanced')" class="tab-button">Advanced</button>
+                <button onclick="scrollToSection('troubleshooting')" class="tab-button rounded-r-lg">Help</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Quick Start Section -->
+        <section id="quick-start" class="mb-12">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-bolt text-yellow-500 mr-3"></i>Quick Start Guide
+                </h2>
+                <p class="text-xl text-gray-600">Get started in 3 simple steps</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6 mb-8">
+                <div class="feature-card bg-white rounded-lg p-6 shadow-lg">
+                    <div class="flex items-center mb-4">
+                        <div class="step-number">1</div>
+                        <h3 class="text-xl font-semibold">Enter Your Details</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Fill in your current age, income, superannuation balance, and financial goals.</p>
+                    <div class="interactive-demo">
+                        <label class="block text-sm font-medium mb-1">Try it: Current Age</label>
+                        <input type="number" class="demo-input w-full" placeholder="e.g., 35" min="18" max="80">
+                    </div>
+                </div>
+
+                <div class="feature-card bg-white rounded-lg p-6 shadow-lg">
+                    <div class="flex items-center mb-4">
+                        <div class="step-number">2</div>
+                        <h3 class="text-xl font-semibold">Run Analysis</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Click "Generate AI Recommendations" to get comprehensive retirement analysis.</p>
+                    <button class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-magic mr-2"></i>Generate AI Recommendations
+                    </button>
+                </div>
+
+                <div class="feature-card bg-white rounded-lg p-6 shadow-lg">
+                    <div class="flex items-center mb-4">
+                        <div class="step-number">3</div>
+                        <h3 class="text-xl font-semibold">Review Results</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Explore charts, recommendations, and export your retirement plan.</p>
+                    <div class="space-y-2">
+                        <div class="bg-green-100 text-green-800 px-3 py-1 rounded text-sm">✓ Monte Carlo Analysis</div>
+                        <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded text-sm">✓ AI Recommendations</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Overview -->
+        <section id="features" class="mb-12">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-star text-yellow-500 mr-3"></i>Key Features
+                </h2>
+                <p class="text-xl text-gray-600">Comprehensive retirement planning tools at your fingertips</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Monte Carlo Simulation -->
+                <div class="feature-card bg-white rounded-lg p-6 shadow-lg">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-chart-line text-4xl text-blue-600 mb-3"></i>
+                        <h3 class="text-xl font-semibold">Monte Carlo Simulation</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Run thousands of scenarios to understand your retirement probability and risk.</p>
+                    <ul class="text-sm text-gray-500 space-y-1">
+                        <li>• 1,000-10,000 simulation runs</li>
+                        <li>• Market volatility modeling</li>
+                        <li>• Success probability analysis</li>
+                        <li>• Fan chart visualizations</li>
+                    </ul>
+                </div>
+
+                <!-- AI Recommendations -->
+                <div class="feature-card bg-white rounded-lg p-6 shadow-lg">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-robot text-4xl text-purple-600 mb-3"></i>
+                        <h3 class="text-xl font-semibold">AI Recommendations</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Get personalized recommendations across 8 strategic areas of retirement planning.</p>
+                    <ul class="text-sm text-gray-500 space-y-1">
+                        <li>• Home ownership strategy</li>
+                        <li>• Investment property timing</li>
+                        <li>• Superannuation optimization</li>
+                        <li>• Trust structures analysis</li>
+                    </ul>
+                </div>
+
+                <!-- Property Analysis -->
+                <div class="feature-card bg-white rounded-lg p-6 shadow-lg">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-home text-4xl text-green-600 mb-3"></i>
+                        <h3 class="text-xl font-semibold">Property Analysis</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Comprehensive investment property modeling with market cycle data.</p>
+                    <ul class="text-sm text-gray-500 space-y-1">
+                        <li>• Keep vs sell analysis</li>
+                        <li>• Cash flow projections</li>
+                        <li>• Market cycle integration</li>
+                        <li>• CGT implications</li>
+                    </ul>
+                </div>
+
+                <!-- Age Pension Calculator -->
+                <div class="feature-card bg-white rounded-lg p-6 shadow-lg">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-shield-alt text-4xl text-indigo-600 mb-3"></i>
+                        <h3 class="text-xl font-semibold">Age Pension Calculator</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Accurate Australian Age Pension calculations with asset and income tests.</p>
+                    <ul class="text-sm text-gray-500 space-y-1">
+                        <li>• 2025 pension rates</li>
+                        <li>• Asset test calculations</li>
+                        <li>• Income test modeling</li>
+                        <li>• Deeming rate applications</li>
+                    </ul>
+                </div>
+
+                <!-- Risk Analysis -->
+                <div class="feature-card bg-white rounded-lg p-6 shadow-lg">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-balance-scale text-4xl text-red-600 mb-3"></i>
+                        <h3 class="text-xl font-semibold">Risk Profiling</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Three-dimensional risk assessment: capacity, tolerance, and requirement.</p>
+                    <ul class="text-sm text-gray-500 space-y-1">
+                        <li>• Risk capacity calculation</li>
+                        <li>• Tolerance questionnaire</li>
+                        <li>• Required risk analysis</li>
+                        <li>• Asset allocation guidance</li>
+                    </ul>
+                </div>
+
+                <!-- Export & Reporting -->
+                <div class="feature-card bg-white rounded-lg p-6 shadow-lg">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-file-export text-4xl text-orange-600 mb-3"></i>
+                        <h3 class="text-xl font-semibold">Export & Reporting</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Professional reports in multiple formats for sharing with advisors.</p>
+                    <ul class="text-sm text-gray-500 space-y-1">
+                        <li>• PDF comprehensive reports</li>
+                        <li>• Excel workbooks</li>
+                        <li>• CSV data export</li>
+                        <li>• Chart image downloads</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Step-by-Step Guide -->
+        <section id="step-by-step" class="mb-12">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-list-ol text-blue-500 mr-3"></i>Detailed Step-by-Step Guide
+                </h2>
+                <p class="text-xl text-gray-600">Complete walkthrough of every feature</p>
+            </div>
+
+            <!-- Tabbed Interface -->
+            <div class="bg-white rounded-lg shadow-lg">
+                <div class="border-b border-gray-200">
+                    <div class="flex space-x-1 p-1">
+                        <button onclick="showGuideTab('basic')" class="guide-tab-button active px-4 py-2 rounded-lg font-medium">Basic Setup</button>
+                        <button onclick="showGuideTab('advanced-features')" class="guide-tab-button px-4 py-2 rounded-lg font-medium">Advanced Features</button>
+                        <button onclick="showGuideTab('analysis')" class="guide-tab-button px-4 py-2 rounded-lg font-medium">Analysis Tools</button>
+                        <button onclick="showGuideTab('export')" class="guide-tab-button px-4 py-2 rounded-lg font-medium">Export & Share</button>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <!-- Basic Setup Tab -->
+                    <div id="basic-tab" class="guide-tab-content">
+                        <h3 class="text-2xl font-semibold mb-6">Basic Setup</h3>
+
+                        <div class="space-y-6">
+                            <div class="flex items-start">
+                                <div class="step-number">1</div>
+                                <div class="flex-1">
+                                    <h4 class="text-xl font-semibold mb-2">Personal Information</h4>
+                                    <p class="text-gray-600 mb-3">Enter your current age, partner's age (if applicable), and planned retirement age.</p>
+                                    <div class="interactive-demo grid md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Your Current Age</label>
+                                            <input type="number" class="demo-input w-full" placeholder="35" min="18" max="80">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Partner's Age</label>
+                                            <input type="number" class="demo-input w-full" placeholder="33" min="18" max="80">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Retirement Age</label>
+                                            <input type="number" class="demo-input w-full" placeholder="65" min="55" max="80">
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 p-3 bg-blue-50 rounded-lg">
+                                        <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                                        <span class="text-sm text-blue-800">Tip: The calculator uses Australian preservation ages and pension eligibility rules.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start">
+                                <div class="step-number">2</div>
+                                <div class="flex-1">
+                                    <h4 class="text-xl font-semibold mb-2">Financial Assets</h4>
+                                    <p class="text-gray-600 mb-3">Enter your current superannuation, savings, and investment balances.</p>
+                                    <div class="interactive-demo grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1 tooltip" data-tooltip="Your current super balance from statements">
+                                                Your Superannuation <i class="fas fa-question-circle text-gray-400"></i>
+                                            </label>
+                                            <input type="number" class="demo-input w-full" placeholder="150,000">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1 tooltip" data-tooltip="Cash savings, term deposits, and bank accounts">
+                                                Current Savings <i class="fas fa-question-circle text-gray-400"></i>
+                                            </label>
+                                            <input type="number" class="demo-input w-full" placeholder="50,000">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start">
+                                <div class="step-number">3</div>
+                                <div class="flex-1">
+                                    <h4 class="text-xl font-semibold mb-2">Income Details</h4>
+                                    <p class="text-gray-600 mb-3">Provide your current salary and savings rate for accurate projections.</p>
+                                    <div class="interactive-demo grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Annual Salary</label>
+                                            <input type="number" class="demo-input w-full" placeholder="80,000">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Savings Rate (%)</label>
+                                            <input type="range" class="w-full" min="0" max="50" value="15" oninput="updateSavingsDisplay(this.value)">
+                                            <div class="text-center text-sm text-gray-600 mt-1">
+                                                <span id="savings-display">15%</span> of income saved
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Features Tab -->
+                    <div id="advanced-features-tab" class="guide-tab-content" style="display: none;">
+                        <h3 class="text-2xl font-semibold mb-6">Advanced Features</h3>
+
+                        <div class="space-y-6">
+                            <div class="flex items-start">
+                                <div class="step-number">1</div>
+                                <div class="flex-1">
+                                    <h4 class="text-xl font-semibold mb-2">Investment Property Modeling</h4>
+                                    <p class="text-gray-600 mb-3">Add your investment property details for comprehensive cash flow analysis.</p>
+
+                                    <div class="workflow-diagram">
+                                        <div class="grid md:grid-cols-4 gap-4 items-center">
+                                            <div class="process-step">
+                                                <i class="fas fa-home text-2xl text-blue-600 mb-2"></i>
+                                                <div class="font-medium">Property Value</div>
+                                                <div class="text-sm text-gray-500">Current market value</div>
+                                            </div>
+                                            <div class="process-arrow text-center">
+                                                <i class="fas fa-arrow-right"></i>
+                                            </div>
+                                            <div class="process-step">
+                                                <i class="fas fa-dollar-sign text-2xl text-green-600 mb-2"></i>
+                                                <div class="font-medium">Rental Income</div>
+                                                <div class="text-sm text-gray-500">Weekly rental</div>
+                                            </div>
+                                            <div class="process-step">
+                                                <i class="fas fa-chart-line text-2xl text-purple-600 mb-2"></i>
+                                                <div class="font-medium">Cash Flow</div>
+                                                <div class="text-sm text-gray-500">Net result</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="interactive-demo grid md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Property Value ($)</label>
+                                            <input type="number" class="demo-input w-full" placeholder="600,000" oninput="updatePropertyDemo()">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Weekly Rent ($)</label>
+                                            <input type="number" class="demo-input w-full" placeholder="500" oninput="updatePropertyDemo()">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Annual Expenses ($)</label>
+                                            <input type="number" class="demo-input w-full" placeholder="8,000" oninput="updatePropertyDemo()">
+                                        </div>
+                                    </div>
+                                    <div id="property-result" class="mt-3 p-3 bg-green-50 rounded-lg text-sm">
+                                        <i class="fas fa-calculator text-green-600 mr-2"></i>
+                                        <span class="text-green-800">Annual net cash flow: $18,000 (positive)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start">
+                                <div class="step-number">2</div>
+                                <div class="flex-1">
+                                    <h4 class="text-xl font-semibold mb-2">Trust Structures</h4>
+                                    <p class="text-gray-600 mb-3">Analyze the benefits of trust structures for tax optimization.</p>
+
+                                    <div class="grid md:grid-cols-2 gap-6">
+                                        <div class="bg-blue-50 p-4 rounded-lg">
+                                            <h5 class="font-semibold text-blue-800 mb-2">Family Trust Benefits</h5>
+                                            <ul class="text-sm text-blue-700 space-y-1">
+                                                <li>• Income distribution flexibility</li>
+                                                <li>• Tax optimization opportunities</li>
+                                                <li>• Asset protection benefits</li>
+                                                <li>• Succession planning</li>
+                                            </ul>
+                                        </div>
+                                        <div class="bg-purple-50 p-4 rounded-lg">
+                                            <h5 class="font-semibold text-purple-800 mb-2">SMSF Considerations</h5>
+                                            <ul class="text-sm text-purple-700 space-y-1">
+                                                <li>• Direct property investment</li>
+                                                <li>• Lower tax rates in retirement</li>
+                                                <li>• Greater investment control</li>
+                                                <li>• Estate planning benefits</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analysis Tools Tab -->
+                    <div id="analysis-tab" class="guide-tab-content" style="display: none;">
+                        <h3 class="text-2xl font-semibold mb-6">Analysis Tools</h3>
+
+                        <div class="space-y-6">
+                            <div class="flex items-start">
+                                <div class="step-number">1</div>
+                                <div class="flex-1">
+                                    <h4 class="text-xl font-semibold mb-2">Monte Carlo Simulation</h4>
+                                    <p class="text-gray-600 mb-3">Run probabilistic analysis to understand your retirement risks and opportunities.</p>
+
+                                    <!-- Animation Container -->
+                                    <div class="animation-container">
+                                        <div id="mc-step-1" class="animation-step" style="top: 20px; left: 20px;">
+                                            Input Parameters
+                                        </div>
+                                        <div id="mc-step-2" class="animation-step" style="top: 60px; left: 200px;">
+                                            Random Variables
+                                        </div>
+                                        <div id="mc-step-3" class="animation-step" style="top: 100px; left: 380px;">
+                                            1000+ Simulations
+                                        </div>
+                                        <div id="mc-step-4" class="animation-step" style="top: 140px; left: 560px;">
+                                            Statistical Analysis
+                                        </div>
+                                        <div id="mc-step-5" class="animation-step" style="top: 180px; left: 350px;">
+                                            Results & Charts
+                                        </div>
+                                    </div>
+
+                                    <div class="grid md:grid-cols-3 gap-4 mt-4">
+                                        <div class="text-center">
+                                            <div class="text-2xl font-bold text-green-600">85%</div>
+                                            <div class="text-sm text-gray-600">Success Rate</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-2xl font-bold text-blue-600">$2.1M</div>
+                                            <div class="text-sm text-gray-600">Median Final Balance</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-2xl font-bold text-purple-600">12%</div>
+                                            <div class="text-sm text-gray-600">Average Return</div>
+                                        </div>
+                                    </div>
+
+                                    <button onclick="startMCAnimation()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                                        <i class="fas fa-play mr-2"></i>Simulate Monte Carlo Process
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start">
+                                <div class="step-number">2</div>
+                                <div class="flex-1">
+                                    <h4 class="text-xl font-semibold mb-2">Risk Analysis</h4>
+                                    <p class="text-gray-600 mb-3">Understanding your three-dimensional risk profile.</p>
+
+                                    <div class="grid md:grid-cols-3 gap-4">
+                                        <div class="bg-blue-50 p-4 rounded-lg">
+                                            <h5 class="font-semibold text-blue-800 mb-2">
+                                                <i class="fas fa-wallet mr-2"></i>Risk Capacity
+                                            </h5>
+                                            <p class="text-sm text-blue-700 mb-2">Your ability to take risk based on:</p>
+                                            <ul class="text-xs text-blue-600 space-y-1">
+                                                <li>• Age and time horizon</li>
+                                                <li>• Income stability</li>
+                                                <li>• Asset base</li>
+                                                <li>• Emergency funds</li>
+                                            </ul>
+                                        </div>
+                                        <div class="bg-green-50 p-4 rounded-lg">
+                                            <h5 class="font-semibold text-green-800 mb-2">
+                                                <i class="fas fa-heart mr-2"></i>Risk Tolerance
+                                            </h5>
+                                            <p class="text-sm text-green-700 mb-2">Your comfort with volatility:</p>
+                                            <ul class="text-xs text-green-600 space-y-1">
+                                                <li>• Emotional comfort</li>
+                                                <li>• Sleep-at-night factor</li>
+                                                <li>• Previous experience</li>
+                                                <li>• Behavioral preferences</li>
+                                            </ul>
+                                        </div>
+                                        <div class="bg-red-50 p-4 rounded-lg">
+                                            <h5 class="font-semibold text-red-800 mb-2">
+                                                <i class="fas fa-target mr-2"></i>Risk Requirement
+                                            </h5>
+                                            <p class="text-sm text-red-700 mb-2">Risk needed to meet goals:</p>
+                                            <ul class="text-xs text-red-600 space-y-1">
+                                                <li>• Retirement income target</li>
+                                                <li>• Current savings rate</li>
+                                                <li>• Time to retirement</li>
+                                                <li>• Return assumptions</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Export & Share Tab -->
+                    <div id="export-tab" class="guide-tab-content" style="display: none;">
+                        <h3 class="text-2xl font-semibold mb-6">Export & Share</h3>
+
+                        <div class="space-y-6">
+                            <div class="flex items-start">
+                                <div class="step-number">1</div>
+                                <div class="flex-1">
+                                    <h4 class="text-xl font-semibold mb-2">Export Options</h4>
+                                    <p class="text-gray-600 mb-3">Choose from multiple export formats for different use cases.</p>
+
+                                    <div class="grid md:grid-cols-2 gap-6">
+                                        <div class="bg-red-50 p-4 rounded-lg">
+                                            <div class="flex items-center mb-3">
+                                                <i class="fas fa-file-pdf text-2xl text-red-600 mr-3"></i>
+                                                <h5 class="font-semibold text-red-800">PDF Report</h5>
+                                            </div>
+                                            <p class="text-sm text-red-700 mb-2">Professional report with:</p>
+                                            <ul class="text-xs text-red-600 space-y-1">
+                                                <li>• Executive summary</li>
+                                                <li>• Comprehensive recommendations</li>
+                                                <li>• Charts and visualizations</li>
+                                                <li>• Implementation timeline</li>
+                                            </ul>
+                                        </div>
+
+                                        <div class="bg-green-50 p-4 rounded-lg">
+                                            <div class="flex items-center mb-3">
+                                                <i class="fas fa-file-excel text-2xl text-green-600 mr-3"></i>
+                                                <h5 class="font-semibold text-green-800">Excel Workbook</h5>
+                                            </div>
+                                            <p class="text-sm text-green-700 mb-2">Detailed spreadsheet with:</p>
+                                            <ul class="text-xs text-green-600 space-y-1">
+                                                <li>• Year-by-year projections</li>
+                                                <li>• Multiple scenario tabs</li>
+                                                <li>• Editable assumptions</li>
+                                                <li>• Custom calculations</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-4 grid md:grid-cols-3 gap-4">
+                                        <button class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                                            <i class="fas fa-file-pdf mr-2"></i>Export PDF
+                                        </button>
+                                        <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                                            <i class="fas fa-file-excel mr-2"></i>Export Excel
+                                        </button>
+                                        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                                            <i class="fas fa-file-csv mr-2"></i>Export CSV
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start">
+                                <div class="step-number">2</div>
+                                <div class="flex-1">
+                                    <h4 class="text-xl font-semibold mb-2">Sharing with Advisors</h4>
+                                    <p class="text-gray-600 mb-3">Professional formats suitable for financial advisor consultations.</p>
+
+                                    <div class="bg-blue-50 p-4 rounded-lg">
+                                        <h5 class="font-semibold text-blue-800 mb-2">
+                                            <i class="fas fa-handshake mr-2"></i>Advisor Meeting Checklist
+                                        </h5>
+                                        <ul class="text-sm text-blue-700 space-y-1">
+                                            <li>✓ Export comprehensive PDF report</li>
+                                            <li>✓ Include Monte Carlo analysis results</li>
+                                            <li>✓ Highlight key recommendations</li>
+                                            <li>✓ Prepare questions about implementation</li>
+                                            <li>✓ Discuss risk profile alignment</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Workflow Diagram -->
+        <section id="workflow" class="mb-12">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-sitemap text-green-500 mr-3"></i>Retirement Planning Workflow
+                </h2>
+                <p class="text-xl text-gray-600">Visual guide to the complete planning process</p>
+            </div>
+
+            <div class="workflow-diagram bg-white rounded-lg shadow-lg p-8">
+                <div class="grid md:grid-cols-5 gap-4 items-center text-center">
+                    <div class="process-step cursor-pointer" onclick="highlightStep(1)">
+                        <i class="fas fa-user-plus text-3xl text-blue-600 mb-3"></i>
+                        <h4 class="font-semibold mb-2">1. Data Input</h4>
+                        <p class="text-sm text-gray-600">Personal & financial details</p>
+                    </div>
+
+                    <div class="process-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+
+                    <div class="process-step cursor-pointer" onclick="highlightStep(2)">
+                        <i class="fas fa-cogs text-3xl text-green-600 mb-3"></i>
+                        <h4 class="font-semibold mb-2">2. Analysis</h4>
+                        <p class="text-sm text-gray-600">Monte Carlo & AI recommendations</p>
+                    </div>
+
+                    <div class="process-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+
+                    <div class="process-step cursor-pointer" onclick="highlightStep(3)">
+                        <i class="fas fa-chart-bar text-3xl text-purple-600 mb-3"></i>
+                        <h4 class="font-semibold mb-2">3. Results</h4>
+                        <p class="text-sm text-gray-600">Charts & projections</p>
+                    </div>
+                </div>
+
+                <div class="mt-8 grid md:grid-cols-3 gap-4 items-center text-center">
+                    <div class="process-step cursor-pointer" onclick="highlightStep(4)">
+                        <i class="fas fa-lightbulb text-3xl text-yellow-600 mb-3"></i>
+                        <h4 class="font-semibold mb-2">4. Optimization</h4>
+                        <p class="text-sm text-gray-600">Refine strategy & scenarios</p>
+                    </div>
+
+                    <div class="process-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+
+                    <div class="process-step cursor-pointer" onclick="highlightStep(5)">
+                        <i class="fas fa-rocket text-3xl text-red-600 mb-3"></i>
+                        <h4 class="font-semibold mb-2">5. Implementation</h4>
+                        <p class="text-sm text-gray-600">Execute recommendations</p>
+                    </div>
+                </div>
+
+                <!-- Step Details -->
+                <div id="step-details" class="mt-8 p-6 bg-gray-50 rounded-lg" style="display: none;">
+                    <div id="step-content"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Advanced Tips -->
+        <section id="advanced" class="mb-12">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-graduation-cap text-purple-500 mr-3"></i>Advanced Tips & Tricks
+                </h2>
+                <p class="text-xl text-gray-600">Master the calculator with these expert techniques</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-indigo-800">
+                        <i class="fas fa-magic mr-2"></i>Scenario Modeling
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="border-l-4 border-blue-500 pl-4">
+                            <h4 class="font-medium text-blue-800">Test Different Retirement Ages</h4>
+                            <p class="text-sm text-gray-600">Compare retiring at 62, 65, and 67 to see the impact on your finances.</p>
+                        </div>
+                        <div class="border-l-4 border-green-500 pl-4">
+                            <h4 class="font-medium text-green-800">Vary Your Savings Rate</h4>
+                            <p class="text-sm text-gray-600">See how increasing savings by 5% affects your retirement timeline.</p>
+                        </div>
+                        <div class="border-l-4 border-purple-500 pl-4">
+                            <h4 class="font-medium text-purple-800">Property Strategy Comparison</h4>
+                            <p class="text-sm text-gray-600">Model keeping vs selling investment property at different ages.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-green-800">
+                        <i class="fas fa-bullseye mr-2"></i>Optimization Strategies
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="border-l-4 border-red-500 pl-4">
+                            <h4 class="font-medium text-red-800">Superannuation Maximization</h4>
+                            <p class="text-sm text-gray-600">Use salary sacrifice and spouse contributions to optimize tax benefits.</p>
+                        </div>
+                        <div class="border-l-4 border-yellow-500 pl-4">
+                            <h4 class="font-medium text-yellow-800">Asset Allocation Timing</h4>
+                            <p class="text-sm text-gray-600">Adjust risk levels as you approach retirement for better outcomes.</p>
+                        </div>
+                        <div class="border-l-4 border-indigo-500 pl-4">
+                            <h4 class="font-medium text-indigo-800">Healthcare Cost Planning</h4>
+                            <p class="text-sm text-gray-600">Factor in 6.5% healthcare inflation vs 2.9% general inflation.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Chart Demo -->
+            <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-chart-line mr-2"></i>Interactive Chart Demo
+                </h3>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Adjust Savings Rate to See Impact:</label>
+                    <input type="range" id="savings-slider" class="w-full" min="5" max="40" value="15" oninput="updateDemoChart(this.value)">
+                    <div class="flex justify-between text-sm text-gray-500 mt-1">
+                        <span>5%</span>
+                        <span id="current-savings">15%</span>
+                        <span>40%</span>
+                    </div>
+                </div>
+                <canvas id="demo-chart" width="400" height="200"></canvas>
+            </div>
+
+            <!-- Animated Video Demo -->
+            <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-video mr-2"></i>Animated Calculator Walkthrough
+                </h3>
+                <p class="text-gray-600 mb-4">Watch an animated demonstration of the complete retirement planning process:</p>
+                <div class="flex justify-center">
+                    <canvas id="animated-demo" class="border-2 border-gray-200 rounded-lg"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Troubleshooting -->
+        <section id="troubleshooting" class="mb-12">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-tools text-orange-500 mr-3"></i>Troubleshooting & FAQ
+                </h2>
+                <p class="text-xl text-gray-600">Common questions and solutions</p>
+            </div>
+
+            <div class="space-y-4">
+                <!-- FAQ Items -->
+                <div class="bg-white rounded-lg shadow-lg">
+                    <button class="w-full text-left p-6 focus:outline-none" onclick="toggleFAQ('faq1')">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold">Why are my Monte Carlo results different each time?</h3>
+                            <i id="faq1-icon" class="fas fa-chevron-down transform transition-transform"></i>
+                        </div>
+                    </button>
+                    <div id="faq1-content" class="hidden px-6 pb-6">
+                        <p class="text-gray-600">Monte Carlo simulation uses random variables to model market uncertainty. Each run produces different results by design - this shows the range of possible outcomes. The key metrics to focus on are the success rate and median results across all simulations.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg">
+                    <button class="w-full text-left p-6 focus:outline-none" onclick="toggleFAQ('faq2')">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold">How accurate are the Age Pension calculations?</h3>
+                            <i id="faq2-icon" class="fas fa-chevron-down transform transition-transform"></i>
+                        </div>
+                    </button>
+                    <div id="faq2-content" class="hidden px-6 pb-6">
+                        <p class="text-gray-600">The calculator uses current 2025 Age Pension rates and applies both asset and income tests correctly. However, pension rules can change over time, and individual circumstances may affect eligibility. Always verify with Services Australia or a qualified advisor.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg">
+                    <button class="w-full text-left p-6 focus:outline-none" onclick="toggleFAQ('faq3')">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold">Can I save my calculations and return later?</h3>
+                            <i id="faq3-icon" class="fas fa-chevron-down transform transition-transform"></i>
+                        </div>
+                    </button>
+                    <div id="faq3-content" class="hidden px-6 pb-6">
+                        <p class="text-gray-600">Yes! The calculator automatically saves your inputs in your browser's local storage. Your data will be restored when you return. You can also export your complete analysis as PDF or Excel files for permanent storage.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg">
+                    <button class="w-full text-left p-6 focus:outline-none" onclick="toggleFAQ('faq4')">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold">What if I have multiple investment properties?</h3>
+                            <i id="faq4-icon" class="fas fa-chevron-down transform transition-transform"></i>
+                        </div>
+                    </button>
+                    <div id="faq4-content" class="hidden px-6 pb-6">
+                        <p class="text-gray-600">Currently, the calculator models one investment property. For multiple properties, you can combine their values and cash flows, or run separate analyses for different property strategies. A future update will support multiple property modeling.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-4 text-center">
+            <h3 class="text-2xl font-semibold mb-4">Ready to Plan Your Retirement?</h3>
+            <p class="text-gray-300 mb-6">Start using the Australian Retirement Calculator today and take control of your financial future.</p>
+            <div class="flex justify-center space-x-4">
+                <a href="index.html" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
+                    <i class="fas fa-calculator mr-2"></i>Open Calculator
+                </a>
+                <a href="contact.html" class="border-2 border-gray-400 text-gray-300 px-6 py-3 rounded-lg font-semibold hover:bg-gray-700 transition">
+                    <i class="fas fa-envelope mr-2"></i>Contact Support
+                </a>
+            </div>
+            <div class="mt-8 text-sm text-gray-400">
+                <p>&copy; 2025 Australian Retirement Calculator. Educational tool for retirement planning guidance.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Interactive functionality
+        function scrollToSection(sectionId) {
+            document.getElementById(sectionId).scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
+        function showGuideTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.guide-tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+
+            // Remove active class from all buttons
+            document.querySelectorAll('.guide-tab-button').forEach(btn => {
+                btn.classList.remove('active', 'bg-indigo-600', 'text-white');
+                btn.classList.add('text-gray-600', 'hover:bg-gray-100');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + '-tab').style.display = 'block';
+
+            // Add active class to clicked button
+            event.target.classList.add('active', 'bg-indigo-600', 'text-white');
+            event.target.classList.remove('text-gray-600', 'hover:bg-gray-100');
+        }
+
+        function updateSavingsDisplay(value) {
+            document.getElementById('savings-display').textContent = value + '%';
+        }
+
+        function updatePropertyDemo() {
+            const propertyValue = parseInt(document.querySelector('input[placeholder="600,000"]').value) || 600000;
+            const weeklyRent = parseInt(document.querySelector('input[placeholder="500"]').value) || 500;
+            const annualExpenses = parseInt(document.querySelector('input[placeholder="8,000"]').value) || 8000;
+
+            const annualRent = weeklyRent * 52;
+            const netCashFlow = annualRent - annualExpenses;
+
+            const resultElement = document.getElementById('property-result');
+            const isPositive = netCashFlow > 0;
+
+            resultElement.className = `mt-3 p-3 rounded-lg text-sm ${isPositive ? 'bg-green-50' : 'bg-red-50'}`;
+            resultElement.innerHTML = `
+                <i class="fas fa-calculator ${isPositive ? 'text-green-600' : 'text-red-600'} mr-2"></i>
+                <span class="${isPositive ? 'text-green-800' : 'text-red-800'}">
+                    Annual net cash flow: $${netCashFlow.toLocaleString()} (${isPositive ? 'positive' : 'negative'})
+                </span>
+            `;
+        }
+
+        function startMCAnimation() {
+            const steps = ['mc-step-1', 'mc-step-2', 'mc-step-3', 'mc-step-4', 'mc-step-5'];
+            let currentStep = 0;
+
+            // Reset all steps
+            steps.forEach(step => {
+                document.getElementById(step).classList.remove('active');
+            });
+
+            // Animate each step
+            const interval = setInterval(() => {
+                if (currentStep < steps.length) {
+                    document.getElementById(steps[currentStep]).classList.add('active');
+                    currentStep++;
+                } else {
+                    clearInterval(interval);
+                }
+            }, 800);
+        }
+
+        function highlightStep(stepNumber) {
+            const stepDetails = {
+                1: {
+                    title: "Data Input Phase",
+                    content: "Enter your personal information, financial assets, income details, and retirement goals. The calculator validates inputs and provides helpful guidance."
+                },
+                2: {
+                    title: "Analysis Phase",
+                    content: "Run Monte Carlo simulations and generate AI recommendations across 8 strategic areas including superannuation, property, and trust structures."
+                },
+                3: {
+                    title: "Results Phase",
+                    content: "Review comprehensive charts, projections, and detailed recommendations. Understand your retirement probability and required actions."
+                },
+                4: {
+                    title: "Optimization Phase",
+                    content: "Test different scenarios, adjust parameters, and refine your strategy based on the analysis results and recommendations."
+                },
+                5: {
+                    title: "Implementation Phase",
+                    content: "Export professional reports, share with advisors, and begin implementing the recommended retirement strategy."
+                }
+            };
+
+            const details = stepDetails[stepNumber];
+            const detailsContainer = document.getElementById('step-details');
+            const contentContainer = document.getElementById('step-content');
+
+            contentContainer.innerHTML = `
+                <h4 class="text-xl font-semibold mb-3 text-indigo-800">${details.title}</h4>
+                <p class="text-gray-700">${details.content}</p>
+            `;
+
+            detailsContainer.style.display = 'block';
+        }
+
+        function toggleFAQ(faqId) {
+            const content = document.getElementById(faqId + '-content');
+            const icon = document.getElementById(faqId + '-icon');
+
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+            }
+        }
+
+        // Initialize demo chart
+        function initDemoChart() {
+            const ctx = document.getElementById('demo-chart').getContext('2d');
+            window.demoChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Age 35', 'Age 45', 'Age 55', 'Age 65'],
+                    datasets: [{
+                        label: 'Retirement Balance',
+                        data: [150000, 450000, 850000, 1500000],
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + (value / 1000) + 'K';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateDemoChart(savingsRate) {
+            document.getElementById('current-savings').textContent = savingsRate + '%';
+
+            // Update chart data based on savings rate
+            const multiplier = savingsRate / 15; // Base rate is 15%
+            const newData = [150000, 450000 * multiplier, 850000 * multiplier, 1500000 * multiplier];
+
+            window.demoChart.data.datasets[0].data = newData;
+            window.demoChart.update();
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initDemoChart();
+
+            // Set first guide tab as active
+            document.querySelector('.guide-tab-button').classList.add('active', 'bg-indigo-600', 'text-white');
+        });
+    </script>
+</body>
+</html>

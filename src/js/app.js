@@ -23,6 +23,9 @@ import {
     exportToCSV,
     exportToXLSX,
     exportToPDF,
+    exportUserData,
+    importUserData,
+    populateFormFromData,
     showTab,
     debounce,
     showNotification,
@@ -3261,6 +3264,39 @@ class RetirementCalculatorApp {
         }
     }
 
+    // User Data Export/Import functionality
+    async exportUserInputs() {
+        const inputs = this.collectInputs();
+        const scenarioName = prompt('Enter a name for this scenario:', 'My Retirement Plan') || 'My Retirement Plan';
+        exportUserData(inputs, scenarioName);
+    }
+
+    async importUserInputs() {
+        try {
+            const importedData = await importUserData();
+
+            // Populate the form with imported data
+            const result = populateFormFromData(importedData.userData);
+
+            // Trigger currency and percentage input formatting
+            initializeCurrencyInputs();
+            initializePercentageInputs();
+
+            // Update risk profile and allocation displays
+            setTimeout(() => {
+                const inputs = this.collectInputs();
+                this.updateRiskProfile(inputs);
+                this.updateRecommendedAllocation(inputs);
+
+                // Optionally trigger a calculation
+                this.calculateRetirement(false);
+            }, 100);
+
+        } catch (error) {
+            showNotification(error, 'error');
+        }
+    }
+
     // UI update functions
     updateUIElements() {
         // Investment property section toggle
@@ -3348,7 +3384,12 @@ class RetirementCalculatorApp {
         // Scenario comparison button
         const btnScenarioComparison = $('btnScenarioComparison');
         if (btnScenarioComparison) {
-            btnScenarioComparison.addEventListener('click', () => this.initializeScenarioComparison());
+            btnScenarioComparison.addEventListener('click', () => {
+                // Save current inputs before navigating
+                this.saveInputs();
+                // Navigate to comparison page
+                window.location.href = 'comparison.html';
+            });
         }
 
         // Reset to defaults button
@@ -3408,6 +3449,24 @@ class RetirementCalculatorApp {
                 e.preventDefault();
                 this.exportResults('pdf');
                 exportDropdown.classList.add('hidden');
+            });
+        }
+
+        // User Data Import/Export buttons
+        const btnExportUserData = $('btnExportUserData');
+        const btnImportUserData = $('btnImportUserData');
+
+        if (btnExportUserData) {
+            btnExportUserData.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.exportUserInputs();
+            });
+        }
+
+        if (btnImportUserData) {
+            btnImportUserData.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.importUserInputs();
             });
         }
 
@@ -3892,10 +3951,45 @@ class RetirementCalculatorApp {
             'investmentPropertyInTrust': config.trust.investmentPropertyInTrust,
             'stocksInTrust': config.trust.stocksInTrust,
 
-            // Additional defaults for fields that might not be in config
-            'useGlidePath': true,
-            'glidePathRule': '110minus',
-            'enableShocks': false
+            // Healthcare
+            'currentHealthcareCosts': config.healthcare.currentHealthcareCosts,
+            'healthcareInflation': config.healthcare.healthcareInflation,
+            'agedCareProbability': config.healthcare.agedCareProbability,
+            'agedCareStartAge': config.healthcare.agedCareStartAge,
+            'agedCareDuration': config.healthcare.agedCareDuration,
+            'agedCareAnnualCost': config.healthcare.agedCareAnnualCost,
+
+            // Economic
+            'inflation': config.economic.inflation,
+            'investmentReturn': config.economic.investmentReturn,
+            'returnDeclineRate': config.economic.returnDeclineRate,
+            'savingsReturn': config.economic.savingsReturn,
+            'superReturn': config.economic.superReturn,
+            'useGlidePath': config.allocation.useGlidePath,
+            'glidePathRule': config.allocation.glidePathRule,
+            'australianEquityAllocation': config.allocation.australianEquityAllocation,
+            'dividendYield': config.allocation.dividendYield,
+            'frankingRate': config.allocation.frankingRate,
+            'frankingCreditBenefit': config.allocation.frankingCreditBenefit,
+
+            // Salary Progression
+            'salaryGrowthRate': config.economic.salaryGrowthRate,
+            'leanYearsStart': config.economic.leanYearsStart,
+            'leanYearsReduction': config.economic.leanYearsReduction,
+
+            // Pension System
+            'asfaComfortable': config.pension.asfaComfortable,
+            'agePensionMax': config.pension.agePensionMax,
+            'pensionAssetThreshold': config.pension.pensionAssetThreshold,
+            'pensionAssetLimit': config.pension.pensionAssetLimit,
+            'pensionIncomeThreshold': config.pension.pensionIncomeThreshold,
+
+            // Simulation
+            'numRuns': config.simulation.numRuns,
+            'returnVolatility': config.simulation.returnVolatility,
+            'enableShocks': config.simulation.enableShocks,
+            'shockProbability': config.simulation.shockProbability,
+            'shockMagnitude': config.simulation.shockMagnitude
         };
 
         return defaultMap[inputId];

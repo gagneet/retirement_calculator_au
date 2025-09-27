@@ -9,9 +9,10 @@ module.exports = {
   mode: 'production',
   entry: {
     main: './src/js/app.js',
+    comparison: './src/js/comparison.js',
   },
   output: {
-    filename: 'bundle.[contenthash].js',
+    filename: '[name].[contenthash].js',
     path: path.resolve(__dirname, 'dist'),
     clean: true,
   },
@@ -54,6 +55,9 @@ module.exports = {
         { from: 'src/contact/feedback_server.py', to: 'contact/feedback_server.py' },
         { from: 'src/contact/simple_feedback_server.py', to: 'contact/simple_feedback_server.py' },
         { from: 'src/contact/start_feedback_server.sh', to: 'contact/start_feedback_server.sh' },
+        // HOW-TO page supporting files
+        { from: 'src/js/howto-interactive.js', to: 'js/howto-interactive.js' },
+        { from: 'src/js/animated-demo.js', to: 'js/animated-demo.js' },
       ],
     }),
     new MiniCssExtractPlugin({
@@ -78,6 +82,16 @@ module.exports = {
       template: './src/terms.html',
       filename: 'terms.html',
       chunks: [], // No JS needed for this page
+    }),
+    new HtmlWebpackPlugin({
+      template: './src/comparison.html',
+      filename: 'comparison.html',
+      chunks: ['comparison'], // Include comparison JS
+    }),
+    new HtmlWebpackPlugin({
+      template: './src/how-to-use.html',
+      filename: 'how-to-use.html',
+      chunks: [], // No webpack JS chunks needed - uses CDN and inline scripts
     }),
   ],
 };
