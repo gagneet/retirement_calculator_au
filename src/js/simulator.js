@@ -1,6 +1,7 @@
 // js/simulator.js - Financial Simulation Engine with Investment Property Support
 
 import { ENHANCED_CONFIG } from './config.js';
+import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import {
     calculatePostTaxIncome,
     calculateLoanBalance,
@@ -92,7 +93,7 @@ export class RetirementSimulator {
         // Base calculation using required return approach
         const growthNeeded = targetAssets / Math.max(1, currentAssets);
         const requiredAnnualReturn = Math.pow(growthNeeded, 1 / yearsToRetirement) - 1;
-        const riskFreeRate = 0.03; // 3% assumed risk-free rate
+        const riskFreeRate = ENHANCED_FINANCIAL_CONFIG.riskAssessment.RISK_FREE_RATE.value;
         const excessReturnNeeded = Math.max(0, requiredAnnualReturn - riskFreeRate);
 
         let baseRiskScore = Math.min(100, excessReturnNeeded * 1000); // Scale to 0-100
@@ -571,8 +572,14 @@ export class RetirementSimulator {
             const rateRegime = getCurrentRateRegime(year + 2024);
 
             const equityReturn = marketReturn;
-            const bondReturn = Math.max(-0.15, rateRegime.rate + randomNormal(0, 0.04));
-            const cashReturn = Math.max(0.001, rateRegime.rate - 0.01);
+            // Use user's base return scaled for bonds/cash, then add interest rate environment adjustments
+            const baseBondReturn = baseReturn * 0.6; // User's expected bond return (60% of equity expectation)
+            const baseCashReturn = baseReturn * 0.3; // User's expected cash return (30% of equity expectation)
+
+            // Add interest rate regime adjustments to user's base expectations
+            const rateAdjustment = (rateRegime.rate - 0.045); // Adjust vs normal rate (4.5%)
+            const bondReturn = Math.max(-0.15, baseBondReturn + rateAdjustment * 0.5 + randomNormal(0, 0.04));
+            const cashReturn = Math.max(0.001, baseCashReturn + rateAdjustment * 0.8);
 
             return (allocations.equity / 100) * equityReturn +
                 (allocations.bonds / 100) * bondReturn +
@@ -991,6 +998,15 @@ export class RetirementSimulator {
                 );
             }
 
+            // Apply stress scenario if provided (for retirement phase)
+            if (stressScenario && stressScenario.isRetirementTimed && i < stressScenario.duration) {
+                if (stressScenario.equityReturn !== undefined) {
+                    actualReturn = (allocation.equity / 100) * stressScenario.equityReturn +
+                        (allocation.bonds / 100) * (stressScenario.bondReturn || 0.02) +
+                        (allocation.cash / 100) * 0.01;
+                }
+            }
+
             // Monthly withdrawal simulation
             const monthlyReturn = Math.pow(1 + actualReturn, 1/12) - 1;
             const monthlyWithdrawal = netWithdrawalNeeded / 12;
@@ -1102,6 +1118,9 @@ export class RetirementSimulator {
         const successfulOutcomes = outcomes.filter(o => o > 0);
         const failureRate = (runs - successfulOutcomes.length) / runs;
 
+        // Handle edge case where median might be undefined or null
+        const safeMedianOutcome = (medianOutcome !== undefined && medianOutcome !== null) ? medianOutcome : 0;
+
         // Calculate percentiles more robustly
         const percentiles = {};
         [5, 10, 25, 50, 75, 90, 95].forEach(p => {
@@ -1129,7 +1148,7 @@ export class RetirementSimulator {
             propertyOutcomes,
             successRate: successfulOutcomes.length / runs,
             failureRate,
-            median: medianOutcome,
+            median: safeMedianOutcome,
             mean: outcomes.reduce((sum, val) => sum + val, 0) / outcomes.length,
             percentiles,
             medianReturnsByYear,
@@ -1267,15 +1286,32 @@ export class RetirementSimulator {
             // Create modified inputs for this scenario
             const scenarioInputs = { ...baseInputs, ...scenario.modifications };
 
+            // Extract stress scenario if present
+            const stressScenario = scenarioInputs._stressScenario || null;
+            if (stressScenario) {
+                delete scenarioInputs._stressScenario; // Remove from inputs to avoid confusion
+
+                // Adjust stress scenario for retirement timing if needed
+                if (stressScenario.startYear === 'retirement') {
+                    // This will be handled in the simulation based on retirement year detection
+                    stressScenario.isRetirementTimed = true;
+                }
+            }
+
             if (progressCallback) {
                 await progressCallback(i, scenarios.length, `Running scenario: ${scenario.name}`);
             }
 
             // Run Monte Carlo simulation for this scenario
+            // Note: Monte Carlo currently doesn't support stress scenarios, so it ignores them
             const mcResult = await this.runMonteCarloSimulation(scenarioInputs, 1000, null);
 
-            // Run deterministic simulation for comparison
-            const deterministicResult = this.simulateRetirement(scenarioInputs, false);
+            // Run deterministic simulation for comparison with stress scenario
+            const deterministicResult = this.simulateRetirement(scenarioInputs, false, stressScenario);
+
+            // For scenarios with stress scenarios, use deterministic results for median balance
+            // since Monte Carlo doesn't handle stress scenarios properly
+            const effectiveMedianBalance = stressScenario ? deterministicResult.finalBalance : mcResult.median;
 
             results.push({
                 name: scenario.name,
@@ -1284,7 +1320,7 @@ export class RetirementSimulator {
                 monteCarloResult: mcResult,
                 deterministicResult: deterministicResult,
                 successRate: mcResult.successRate,
-                medianBalance: mcResult.median,
+                medianBalance: effectiveMedianBalance,
                 finalBalance: deterministicResult.finalBalance,
                 totalAssets: deterministicResult.totalFinancialAssets
             });
@@ -1669,13 +1705,16 @@ export class RetirementSimulator {
             },
             {
                 name: "Market Crash in First Retirement Year",
-                description: "Simulate a 40% portfolio decline in your first year of retirement (like 2008 GFC)",
+                description: `Simulate a ${Math.abs((baseInputs.shockMagnitude || -0.4) * 100).toFixed(0)}% portfolio decline in your first year of retirement (using your shock settings)`,
                 modifications: {
-                    // This will be handled by the stress testing functionality
-                    enableShocks: true,
-                    shockProbability: 1.0, // Guaranteed to happen
-                    shockMagnitude: -0.4, // 40% decline
-                    shockYear: 1 // First year of retirement
+                    // Use stress scenario instead of random shocks for guaranteed market crash
+                    _stressScenario: {
+                        name: 'market_crash_first_year',
+                        equityReturn: baseInputs.shockMagnitude || -0.4, // User's shock magnitude or -40%
+                        bondReturn: -0.05, // Bonds also decline slightly in major crisis
+                        duration: 1, // Only first year of retirement
+                        startYear: 'retirement' // Start at retirement
+                    }
                 }
             },
             {
@@ -1698,9 +1737,9 @@ export class RetirementSimulator {
             },
             {
                 name: "High Healthcare Cost Scenario",
-                description: "Healthcare costs inflate at 7% annually instead of 6.5% (based on recent Australian trends)",
+                description: `Healthcare costs inflate at 7.5% annually instead of ${(baseInputs.healthcareInflation || 6.1).toFixed(1)}% (stress test based on historical spikes)`,
                 modifications: {
-                    healthcareInflation: 7.0 // Up from default 6.5%
+                    healthcareInflation: 7.5 // Stress test - significantly higher than user's baseline or current 6.1% ABS data
                 }
             },
             {
