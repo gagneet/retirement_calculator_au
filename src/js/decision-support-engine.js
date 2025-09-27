@@ -278,7 +278,7 @@ export class DecisionSupportEngine {
         }
 
         // Growth vs income strategy
-        const dividendFocus = this.inputs.dividendYield > 0.05;
+        const dividendFocus = this.inputs.dividendYield > 5;
         recommendations.push({
             category: "Stocks & Shares",
             priority: baseline.yearsToRetirement < 10 ? "high" : "medium",
@@ -286,7 +286,7 @@ export class DecisionSupportEngine {
             timing: "Current strategy adjustment",
             expectedBenefit: "Stable income in retirement",
             recommendation: dividendFocus ?
-                `Current dividend yield of ${formatPercent(this.inputs.dividendYield)} provides good income. Consider maintaining this strategy.` :
+                `Current dividend yield of ${this.inputs.dividendYield.toFixed(1)}% provides good income. Consider maintaining this strategy.` :
                 `Consider increasing allocation to dividend-paying stocks for retirement income.`,
             confidence: 0.8
         });
@@ -409,8 +409,8 @@ export class DecisionSupportEngine {
         const investmentScenarios = [
             { description: "Increase monthly investments by $500", monthlyIncrease: 500 },
             { description: "Increase monthly investments by $1000", monthlyIncrease: 1000 },
-            { description: "Increase savings rate by 5%", savingsRateIncrease: 0.05 },
-            { description: "Increase savings rate by 10%", savingsRateIncrease: 0.10 }
+            { description: "Increase the amount you save from income by 5%", savingsRateIncrease: 0.05 },
+            { description: "Increase the amount you save from income by 10%", savingsRateIncrease: 0.10 }
         ];
 
         for (const scenario of investmentScenarios) {
@@ -454,7 +454,7 @@ export class DecisionSupportEngine {
         const currentAge = this.inputs.yourCurrentAge;
 
         // Concessional contribution optimization (2025 cap: $30,000)
-        const currentConcessional = grossIncome * 0.12; // Super Guarantee
+        const currentConcessional = grossIncome * ENHANCED_CONFIG.SUPER_GUARANTEE_RATE; // Super Guarantee
         const additionalConcessionalCapacity = 30000 - currentConcessional;
 
         if (additionalConcessionalCapacity > 0 && grossIncome > 80000) {
@@ -610,14 +610,17 @@ export class DecisionSupportEngine {
     // Additional analysis methods
     analyzeHealthcarePlanning(baseline) {
         const yearsToRetirement = baseline.yearsToRetirement;
+        const healthcareInflation = this.inputs.healthcareInflation || 6.5;
+        const generalInflation = this.inputs.inflation * 100 || 2.9;
+
         if (yearsToRetirement < 20) {
             return {
                 category: "Healthcare Planning",
                 priority: "high",
                 action: "Plan for healthcare cost inflation",
                 timing: "Retirement planning",
-                expectedBenefit: "Better prepared for 6.5% annual healthcare inflation",
-                recommendation: "Healthcare costs inflate at 6.5% annually vs 2.9% general inflation. Factor this into your retirement budget and consider health insurance options.",
+                expectedBenefit: `Better prepared for ${healthcareInflation}% annual healthcare inflation`,
+                recommendation: `Healthcare costs inflate at ${healthcareInflation}% annually vs ${generalInflation.toFixed(1)}% general inflation. Factor this into your retirement budget and consider health insurance options.`,
                 confidence: 0.9
             };
         }
@@ -691,7 +694,7 @@ export class DecisionSupportEngine {
     }
 
     projectSuperBalance(currentBalance, years) {
-        const growthRate = 0.07; // 7% annual growth assumption
+        const growthRate = this.inputs.superReturn; // Use user's super return assumption
         const contributions = 30000; // Annual concessional contributions
 
         let projectedBalance = currentBalance;

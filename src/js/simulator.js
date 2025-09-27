@@ -1351,7 +1351,9 @@ export class RetirementSimulator {
     generateScenarioRecommendation(scenario, baseScenario) {
         const successDiff = scenario.successRate - baseScenario.successRate;
         const balanceDiff = scenario.medianBalance - baseScenario.medianBalance;
-        const balancePercentDiff = (balanceDiff / baseScenario.medianBalance) * 100;
+        // Protect against division by zero and extreme percentages
+        const balancePercentDiff = baseScenario.medianBalance > 1000 ?
+            Math.max(-95, Math.min(1000, (balanceDiff / baseScenario.medianBalance) * 100)) : 0;
 
         if (successDiff > 0.05 && balancePercentDiff > 10) {
             return `+${(successDiff * 100).toFixed(1)}% success, +${balancePercentDiff.toFixed(1)}% balance vs Current Plan`;
@@ -1715,7 +1717,7 @@ export class RetirementSimulator {
                 modifications: {
                     inflation: 0.04, // 4% inflation
                     investmentReturn: 0.07, // 7% nominal = 3% real return
-                    propertyGrowthRate: 2.0 // Property underperforms in stagflation
+                    propertyGrowthRate: 0.02 // 2% property growth - underperforms in stagflation
                 }
             },
             {
