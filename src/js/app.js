@@ -3454,7 +3454,6 @@ class RetirementCalculatorApp {
                     exportDropdown.classList.add('hidden');
                 }
             });
-
             $('btnExportCSV').addEventListener('click', (e) => {
                 e.preventDefault();
                 this.exportResults('csv');

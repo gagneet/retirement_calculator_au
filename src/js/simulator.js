@@ -1135,8 +1135,6 @@ export class RetirementSimulator {
         const successfulOutcomes = outcomes.filter(o => o > 0);
         const failureRate = (runs - successfulOutcomes.length) / runs;
 
-        // Handle edge case where median might be undefined or null
-        const safeMedianOutcome = (medianOutcome !== undefined && medianOutcome !== null) ? medianOutcome : 0;
 
         // Calculate percentiles more robustly
         const percentiles = {};
@@ -1165,7 +1163,7 @@ export class RetirementSimulator {
             propertyOutcomes,
             successRate: successfulOutcomes.length / runs,
             failureRate,
-            median: safeMedianOutcome,
+            median: medianOutcome,
             mean: outcomes.reduce((sum, val) => sum + val, 0) / outcomes.length,
             percentiles,
             medianReturnsByYear,
@@ -1328,7 +1326,14 @@ export class RetirementSimulator {
 
             // For scenarios with stress scenarios, use deterministic results for median balance
             // since Monte Carlo doesn't handle stress scenarios properly
-            const effectiveMedianBalance = stressScenario ? deterministicResult.finalBalance : mcResult.median;
+            let effectiveMedianBalance = stressScenario ? deterministicResult.finalBalance : mcResult.median;
+
+
+            // Ensure we never return undefined/null/NaN (but allow negative values)
+            if (effectiveMedianBalance === undefined || effectiveMedianBalance === null || isNaN(effectiveMedianBalance)) {
+                effectiveMedianBalance = deterministicResult.finalBalance || 0;
+            }
+
 
             results.push({
                 name: scenario.name,
@@ -1404,6 +1409,9 @@ export class RetirementSimulator {
     generateScenarioRecommendation(scenario, baseScenario) {
         const successDiff = scenario.successRate - baseScenario.successRate;
         const balanceDiff = scenario.medianBalance - baseScenario.medianBalance;
+
+        // Debug the calculation
+
         // Protect against division by zero and extreme percentages
         const balancePercentDiff = baseScenario.medianBalance > 1000 ?
             Math.max(-95, Math.min(1000, (balanceDiff / baseScenario.medianBalance) * 100)) : 0;
@@ -1728,7 +1736,7 @@ export class RetirementSimulator {
                     _stressScenario: {
                         name: 'market_crash_first_year',
                         equityReturn: baseInputs.shockMagnitude || -0.4, // User's shock magnitude or -40%
-                        bondReturn: -0.05, // Bonds also decline slightly in major crisis
+                        bondReturn: (baseInputs.shockMagnitude || -0.4) * 0.25, // Bonds decline proportionally less
                         duration: 1, // Only first year of retirement
                         startYear: 'retirement' // Start at retirement
                     }

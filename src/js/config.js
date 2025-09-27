@@ -219,23 +219,23 @@ export const ENHANCED_CONFIG = {
             currentSavings: 55000,
             currentStocks: 62000,
             monthlyStockContribution: 800,
-            percentIncomeSaved: 9  // Stored as percentage, will be divided by 100
+            percentIncomeSaved: 0.09  // 9% as decimal
         },
         property: {
             homeValue: 810000,
             mortgageBalance: 594000,
-            mortgageRate: 5.37,  // Stored as percentage, will be divided by 100
+            mortgageRate: 0.0537,  // 5.37% as decimal
             monthlyMortgagePayment: 3584,
             planToDownsize: true,
             hasInvestmentProperty: false,
             investmentPropertyValue: 550000,
             investmentPropertyLoan: 574000,
-            investmentPropertyRate: 6.2,  // Stored as percentage, will be divided by 100
+            investmentPropertyRate: 0.062,  // 6.2% as decimal
             weeklyRentalIncome: 554,
             annualPropertyExpenses: 9675,
             propertyGrowthRate: 4.5,  // Stored as percentage
             sellPropertyYears: 15,
-            capitalGainsTaxRate: 22.5  // Stored as percentage, will be divided by 100
+            capitalGainsTaxRate: 0.225  // 22.5% as decimal
         },
         healthcare: {
             currentHealthcareCosts: 3500,
@@ -248,12 +248,12 @@ export const ENHANCED_CONFIG = {
             agedCareAnnualCost: 75000
         },
         economic: {
-            inflation: 2.87,  // Stored as percentage, will be divided by 100
-            investmentReturn: 5.61,  // Stored as percentage, will be divided by 100
+            inflation: 0.0287,  // 2.87% as decimal
+            investmentReturn: 0.0561,  // 5.61% as decimal
             returnDeclineRate: 0.03,
-            savingsReturn: 1.40,  // Stored as percentage, will be divided by 100
-            superReturn: 8.75,  // Stored as percentage, will be divided by 100
-            salaryGrowthRate: 1.5,
+            savingsReturn: 0.0140,  // 1.40% as decimal
+            superReturn: 0.0875,  // 8.75% as decimal
+            salaryGrowthRate: 0.015,  // 1.5% as decimal
             leanYearsStart: 5,
             leanYearsReduction: 25
         },
@@ -287,10 +287,10 @@ export const ENHANCED_CONFIG = {
         },
         simulation: {
             numRuns: 5000,
-            returnVolatility: 12,  // Stored as percentage, will be divided by 100
+            returnVolatility: 0.12,  // 12% as decimal
             enableShocks: false,
-            shockProbability: 5,  // Stored as percentage, will be divided by 100
-            shockMagnitude: -25  // Stored as percentage, will be divided by 100
+            shockProbability: 0.05,  // 5% as decimal
+            shockMagnitude: -0.25  // -25% as decimal
         },
         pension: {
             asfaComfortable: 73875,
@@ -328,5 +328,4 @@ export const ENHANCED_CONFIG = {
     }
 };
 
-export { ENHANCED_CONFIG };
 export default ENHANCED_CONFIG;
