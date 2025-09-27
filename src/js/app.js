@@ -3,10 +3,7 @@ import '../css/styles.css';
 
 import { ENHANCED_CONFIG } from './config.js';
 import RetirementSimulator from './simulator.js';
-import RecommendationEngine from './recommendation.js';
-import DecisionSupportEngine from './decision-support-engine.js';
 import MarketDataEngine from './market-data.js';
-import ChartManager from './charts.js';
 import { initializeTrustUI } from './trust-ui.js';
 import ThemeManager from './theme.js';
 import {
@@ -20,9 +17,6 @@ import {
     formatCurrency,
     formatPercent,
     updateProgress,
-    exportToCSV,
-    exportToXLSX,
-    exportToPDF,
     exportUserData,
     importUserData,
     populateFormFromData,
@@ -40,7 +34,7 @@ import {
 class RetirementCalculatorApp {
     constructor() {
         this.simulator = new RetirementSimulator();
-        this.chartManager = new ChartManager();
+        this.chartManager = null; // Will be lazy-loaded
         this.marketData = new MarketDataEngine();
         this.themeManager = new ThemeManager();
         this.currentResults = null;
@@ -87,7 +81,7 @@ class RetirementCalculatorApp {
         const partnerLifespanValue = $('partnerLifespan') ? $('partnerLifespan').value.trim() : '';
 
         const hasPartnerData = partnerSalaryValue !== '' || partnerSuperValue !== '' ||
-                              partnerRetirementValue !== '' || partnerLifespanValue !== '';
+            partnerRetirementValue !== '' || partnerLifespanValue !== '';
 
         // Determine final partner age to use in calculations
         let finalPartnerAge = 0;
@@ -256,6 +250,14 @@ class RetirementCalculatorApp {
         }
     }
 
+    async getChartManager() {
+        if (!this.chartManager) {
+            const { default: ChartManager } = await import(/* webpackChunkName: "charts" */ './charts.js');
+            this.chartManager = new ChartManager();
+        }
+        return this.chartManager;
+    }
+
     // Main calculation function
     async calculateRetirement(shouldScrollToResults = true) {
         if (this.isCalculating) return;
@@ -277,7 +279,8 @@ class RetirementCalculatorApp {
             this.displayOptimizationStrategies(result, inputs);
 
             // Render charts
-            this.chartManager.renderCompleteAnalysis(result, inputs);
+            const chartManager = await this.getChartManager();
+            chartManager.renderCompleteAnalysis(result, inputs);
 
             // Show summary tab and conditionally scroll to results
             if (shouldScrollToResults) {
@@ -503,10 +506,10 @@ class RetirementCalculatorApp {
             console.error('Cash flow analysis failed:', error);
             // Provide fallback data structure
             cashFlowAnalysis = {
-                cashFlow: { 
-                    monthlyDisposable: 0, 
+                cashFlow: {
+                    monthlyDisposable: 0,
                     status: 'unknown',
-                    housingStressRatio: 0.3 
+                    housingStressRatio: 0.3
                 },
                 expenses: { totalMonthly: 0 },
                 opportunities: []
@@ -1218,12 +1221,12 @@ class RetirementCalculatorApp {
             const expenseOptimization = this.analyzeExpenseOptimization(cashFlowAnalysis, inputs);
             const incomeOptimization = this.analyzeIncomeOptimization(savingsCapacity, inputs);
 
-        const pensionOptimization = this.analyzePensionOptimization(result, inputs);
-        const taxOptimization = this.analyzeTaxOptimization(inputs);
-        const contributionOptimization = this.analyzeContributionOptimization(inputs);
-        const allocationOptimization = this.analyzeAllocationOptimization(inputs);
+            const pensionOptimization = this.analyzePensionOptimization(result, inputs);
+            const taxOptimization = this.analyzeTaxOptimization(inputs);
+            const contributionOptimization = this.analyzeContributionOptimization(inputs);
+            const allocationOptimization = this.analyzeAllocationOptimization(inputs);
 
-        optimizationContent.innerHTML = `
+            optimizationContent.innerHTML = `
             <!-- Priority 1: Cash Flow Analysis -->
             <div class="enhancement-highlight p-4 rounded-lg border-l-4 ${monthlyDisposableIncome < 500 ? 'border-red-500 bg-red-50' : monthlyDisposableIncome < 1000 ? 'border-yellow-500 bg-yellow-50' : 'border-green-500 bg-green-50'}">
                 <h3 class="text-lg font-semibold mb-3">Cash Flow Optimization (Priority #1)</h3>
@@ -1614,6 +1617,7 @@ class RetirementCalculatorApp {
             await new Promise(resolve => setTimeout(resolve, 0));
 
             // Use the new comprehensive decision support engine
+            const { default: DecisionSupportEngine } = await import(/* webpackChunkName: "decision-support" */ './decision-support-engine.js');
             const decisionEngine = new DecisionSupportEngine(this.simulator, inputs);
 
             // This is a long process, so provide detailed feedback
@@ -1641,6 +1645,7 @@ class RetirementCalculatorApp {
             // Fallback to basic recommendations if comprehensive fails
             try {
                 updateProgress(50, 'Falling back to basic recommendations...');
+                const { default: RecommendationEngine } = await import(/* webpackChunkName: "recommendation" */ './recommendation.js');
                 const basicEngine = new RecommendationEngine(this.simulator, this.collectInputs());
                 const basicRecommendations = await basicEngine.generateRecommendations();
                 this.displayRecommendations(basicRecommendations);
@@ -2480,10 +2485,10 @@ class RetirementCalculatorApp {
                 <div class="flex justify-between items-start mb-3">
                     <h4 class="font-semibold text-gray-900">${scenario.title}</h4>
                     <span class="px-2 py-1 text-xs font-semibold rounded-full ${
-                        scenario.riskLevel === 'LOW' ? 'bg-green-100 text-green-800' :
-                        scenario.riskLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                    }">
+            scenario.riskLevel === 'LOW' ? 'bg-green-100 text-green-800' :
+                scenario.riskLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+        }">
                         Risk: ${scenario.riskLevel}
                     </span>
                 </div>
@@ -2494,11 +2499,11 @@ class RetirementCalculatorApp {
                     <div>
                         <span class="text-xs font-medium text-gray-700">Impact:</span>
                         <span class="text-xs ml-2 px-2 py-1 rounded ${
-                            scenario.impact === 'POSITIVE' || scenario.impact === 'HIGH POSITIVE' || scenario.impact === 'VERY HIGH POSITIVE'
-                                ? 'bg-green-100 text-green-800' :
-                            scenario.impact === 'NEGATIVE' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                        }">${scenario.impact}</span>
+            scenario.impact === 'POSITIVE' || scenario.impact === 'HIGH POSITIVE' || scenario.impact === 'VERY HIGH POSITIVE'
+                ? 'bg-green-100 text-green-800' :
+                scenario.impact === 'NEGATIVE' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+        }">${scenario.impact}</span>
                     </div>
 
                     <div>
@@ -2556,9 +2561,9 @@ class RetirementCalculatorApp {
                         <div class="flex items-center gap-2 mb-1">
                             <span class="text-xs font-semibold uppercase text-gray-500">${rec.category}</span>
                             ${rec.feasibility && rec.feasibility !== 'Standard Strategy' ?
-                                `<span class="text-xs px-2 py-1 rounded ${rec.feasibility.includes('Easily') || rec.feasibility.includes('Comfortable') ? 'bg-green-100 text-green-700' :
-                                  rec.feasibility.includes('Major') || rec.feasibility.includes('Complex') ? 'bg-red-100 text-red-700' :
-                                  'bg-yellow-100 text-yellow-700'}">${rec.feasibility}</span>` : ''}
+            `<span class="text-xs px-2 py-1 rounded ${rec.feasibility.includes('Easily') || rec.feasibility.includes('Comfortable') ? 'bg-green-100 text-green-700' :
+                rec.feasibility.includes('Major') || rec.feasibility.includes('Complex') ? 'bg-red-100 text-red-700' :
+                    'bg-yellow-100 text-yellow-700'}">${rec.feasibility}</span>` : ''}
                         </div>
                         <h4 class="font-bold text-lg text-gray-800">${rec.title}</h4>
                     </div>
@@ -3225,7 +3230,7 @@ class RetirementCalculatorApp {
     }
 
     // Export functionality
-    exportResults(exportType) {
+    async exportResults(exportType) {
         if (!exportType) {
             showNotification('Export type must be specified.', 'warning');
             return;
@@ -3235,6 +3240,8 @@ class RetirementCalculatorApp {
             showNotification('No results to export. Please run a calculation first.', 'warning');
             return;
         }
+
+        const { exportToCSV, exportToXLSX, exportToPDF } = await import(/* webpackChunkName: "export-utils" */ './utils.js');
 
         switch (exportType) {
             case 'csv':
@@ -3254,10 +3261,12 @@ class RetirementCalculatorApp {
                 exportToCSV(csvData, 'enhanced-retirement-projection.csv', this.collectInputs());
                 break;
             case 'xlsx':
-                exportToXLSX(this.collectInputs(), this.currentResults, this.chartManager, this);
+                const chartManagerXLSX = await this.getChartManager();
+                exportToXLSX(this.collectInputs(), this.currentResults, chartManagerXLSX, this);
                 break;
             case 'pdf':
-                exportToPDF(this.collectInputs(), this.currentResults, this.chartManager, this);
+                const chartManagerPDF = await this.getChartManager();
+                exportToPDF(this.collectInputs(), this.currentResults, chartManagerPDF, this);
                 break;
             default:
                 showNotification(`Invalid export type: ${exportType}`, 'error');

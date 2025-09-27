@@ -433,3 +433,56 @@ How It Works
 The application is now running at http://localhost:8000 with the new collapsible Financial Dependents functionality fully operational. Users will see a much cleaner interface that only shows the detailed breakdown when they actually have dependents to configure.
 
 ---
+
+● ✅ Fixed Chart.js Canvas Reuse Error
+
+The Problem:
+Error in Monte Carlo simulation: Canvas is already in use. Chart with ID '6' must be destroyed before the canvas with ID 'fanChart' can be reused.
+
+This was occurring for multiple chart operations including Enhanced Calculations and Monte Carlo simulations.
+
+Root Cause:
+Chart.js maintains a global registry of all charts, and when charts aren't properly destroyed before creating new ones, it prevents canvas reuse. The issue was that our local
+chart destruction wasn't also checking Chart.js's global registry.
+
+The Comprehensive Solution:
+
+1. Enhanced Chart Destruction (destroyChart method):
+
+// Now checks BOTH Chart.js global registry AND local registry
+const existingChart = Chart.getChart(canvas);
+if (existingChart) {
+existingChart.destroy(); // Chart.js global cleanup
+}
+if (this.charts[chartId]) {
+this.charts[chartId].destroy(); // Local cleanup
+}
+
+2. Double-Safety Checks before chart creation:
+
+Added redundant checks in 3 key chart methods:
+- renderFanChart() - Basic portfolio projections
+- renderMonteCarloFanChart() - Monte Carlo simulations
+- createScenarioComparisonChart() - Scenario analysis
+
+3. Universal Chart Cleanup:
+
+- Added destroyAllCharts() method for complete cleanup when needed
+- Enhanced canvas clearing with ctx.clearRect()
+- Improved error handling with try-catch blocks
+
+4. Specific Fixes:
+
+- fanChart canvas: Used by both basic and Monte Carlo simulations - now properly managed
+- scenarioComparisonChart: Scenario analysis charts - proper cleanup added
+- All chart IDs: ID conflicts (2, 5, 6, 8) resolved through global registry cleanup
+
+Result:
+- No more canvas reuse errors for Monte Carlo simulations
+- No more chart ID conflicts during Enhanced Calculations
+- Robust chart lifecycle management prevents memory leaks
+- Better error handling with detailed console warnings for debugging
+
+The Chart.js canvas error should now be completely resolved! 🎯
+
+---
