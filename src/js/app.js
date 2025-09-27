@@ -159,9 +159,9 @@ class RetirementCalculatorApp {
             investmentPropertyRate: safeGetValue('investmentPropertyRate', config.property.investmentPropertyRate) / 100,
             weeklyRentalIncome: safeGetValue('weeklyRentalIncome', config.property.weeklyRentalIncome),
             annualPropertyExpenses: safeGetValue('annualPropertyExpenses', config.property.annualPropertyExpenses),
-            propertyGrowthRate: safeGetValue('propertyGrowthRate', config.property.propertyGrowthRate),
+            propertyGrowthRate: safeGetValue('propertyGrowthRate', config.property.propertyGrowthRate) / 100,
             sellPropertyYears: safeGetValue('sellPropertyYears', config.property.sellPropertyYears),
-            capitalGainsTaxRate: safeGetValue('capitalGainsTaxRate', config.property.capitalGainsTaxRate),
+            capitalGainsTaxRate: safeGetValue('capitalGainsTaxRate', config.property.capitalGainsTaxRate) / 100,
 
             // Healthcare & aged care
             currentHealthcareCosts: safeGetValue('currentHealthcareCosts', config.healthcare.currentHealthcareCosts),
@@ -178,7 +178,7 @@ class RetirementCalculatorApp {
             savingsReturn: safeGetValue('savingsReturn', config.economic.savingsReturn) / 100,
             superReturn: safeGetValue('superReturn', config.economic.superReturn) / 100,
             superContributionRate: ENHANCED_CONFIG.SUPER_GUARANTEE_RATE,
-            salaryGrowthRate: safeGetValue('salaryGrowthRate', config.economic.salaryGrowthRate),
+            salaryGrowthRate: safeGetValue('salaryGrowthRate', config.economic.salaryGrowthRate) / 100,
             leanYearsStart: safeGetValue('leanYearsStart', config.economic.leanYearsStart),
             leanYearsReduction: safeGetValue('leanYearsReduction', config.economic.leanYearsReduction),
 
@@ -188,7 +188,7 @@ class RetirementCalculatorApp {
             frankingCreditBenefit: safeGetValue('frankingCreditBenefit', config.allocation.frankingCreditBenefit),
             australianEquityAllocation: safeGetValue('australianEquityAllocation', config.allocation.australianEquityAllocation),
             dividendYield: safeGetValue('dividendYield', config.allocation.dividendYield),
-            frankingRate: safeGetValue('frankingRate', config.allocation.frankingRate),
+            frankingRate: safeGetValue('frankingRate', config.allocation.frankingRate) / 100,
             allocEquities: safeGetValue('allocEquities', config.allocation.allocEquities),
             allocBonds: safeGetValue('allocBonds', config.allocation.allocBonds),
             allocCash: safeGetValue('allocCash', config.allocation.allocCash),
@@ -3339,6 +3339,12 @@ class RetirementCalculatorApp {
 
     // Event listeners
     setupEventListeners() {
+        // Prevent duplicate event listener setup
+        if (this.eventListenersSetup) {
+            return;
+        }
+        this.eventListenersSetup = true;
+
         // Main calculation button
         const btnCalculate = $('btnCalculate');
         if (btnCalculate) {
@@ -3385,10 +3391,8 @@ class RetirementCalculatorApp {
         const btnScenarioComparison = $('btnScenarioComparison');
         if (btnScenarioComparison) {
             btnScenarioComparison.addEventListener('click', () => {
-                // Save current inputs before navigating
-                this.saveInputs();
-                // Navigate to comparison page
-                window.location.href = 'comparison.html';
+                // Initialize scenario comparison tab
+                this.initializeScenarioComparison();
             });
         }
 
@@ -4548,8 +4552,8 @@ export default RetirementCalculatorApp;
 // Auto-initialize when loaded - prevent double initialization
 function initializeApp() {
     // Prevent double initialization
-    if (window.app && window.app.isInitialized) {
-        console.log('App already initialized, skipping...');
+    if (window.app) {
+        console.log('App already exists, skipping initialization...');
         return;
     }
 

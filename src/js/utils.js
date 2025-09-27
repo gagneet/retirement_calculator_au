@@ -1286,8 +1286,12 @@ export const populateFormFromData = (userData) => {
                         element.value = value;
                     } else {
                         // Handle percentage values (convert back from decimal)
-                        if (key.includes('Rate') || key.includes('inflation') || key.includes('Return') ||
-                            key.includes('percentIncomeSaved') || key.includes('Volatility')) {
+                        const percentageFields = [
+                            'Rate', 'inflation', 'Return', 'percentIncomeSaved', 'Volatility',
+                            'Growth', 'Probability', 'Magnitude', 'franking'
+                        ];
+
+                        if (percentageFields.some(field => key.includes(field))) {
                             element.value = (value * 100).toFixed(2);
                         } else {
                             element.value = value;
