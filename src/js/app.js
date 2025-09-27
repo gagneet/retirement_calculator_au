@@ -2,6 +2,7 @@ import '../css/styles.css';
 // js/app.js - Main Application Controller
 
 import { ENHANCED_CONFIG } from './config.js';
+import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import RetirementSimulator from './simulator.js';
 import MarketDataEngine from './market-data.js';
 import { initializeTrustUI } from './trust-ui.js';
@@ -809,7 +810,7 @@ class RetirementCalculatorApp {
     generateDynamicRecommendations(capacity, tolerance, requirement, assessment, mcResults) {
         const recommendations = [];
 
-        if (mcResults.successRate && mcResults.successRate < 0.7) {
+        if (mcResults.successRate && mcResults.successRate < ENHANCED_FINANCIAL_CONFIG.riskAssessment.SUCCESS_RATE_THRESHOLDS.LOW.value) {
             recommendations.push('• Consider increasing contributions or extending retirement age to improve success probability');
         }
 
@@ -1335,9 +1336,9 @@ class RetirementCalculatorApp {
             yearsToSell
         );
 
-        const sellingCosts = futureValue * 0.06;
+        const sellingCosts = futureValue * ENHANCED_FINANCIAL_CONFIG.propertyInvestment.TRANSACTION_COSTS.SELLING_COSTS_PERCENT.value;
         const capitalGain = futureValue - currentValue;
-        const cgtPayable = capitalGain * 0.5 * (inputs.capitalGainsTaxRate / 100);
+        const cgtPayable = capitalGain * ENHANCED_FINANCIAL_CONFIG.australianSystem.CGT_DISCOUNT.value * (inputs.capitalGainsTaxRate / 100);
         const sellNetProceeds = futureValue - remainingLoan - sellingCosts - cgtPayable;
 
         const keepNetIncome = annualNetIncome * yearsToSell;

@@ -103,13 +103,14 @@ export class RetirementSimulator {
             const successRate = monteCarloResults.successRate;
 
             // Adjust risk requirement based on success probability
-            if (successRate < 0.5) {
+            const thresholds = ENHANCED_FINANCIAL_CONFIG.riskAssessment.SUCCESS_RATE_THRESHOLDS;
+            if (successRate < thresholds.CRITICAL.value) {
                 baseRiskScore += 30; // Need much higher risk for low success rate
-            } else if (successRate < 0.7) {
+            } else if (successRate < thresholds.LOW.value) {
                 baseRiskScore += 20; // Moderate increase needed
-            } else if (successRate < 0.85) {
+            } else if (successRate < thresholds.ACCEPTABLE.value) {
                 baseRiskScore += 10; // Slight increase needed
-            } else if (successRate > 0.95) {
+            } else if (successRate > thresholds.EXCELLENT.value) {
                 baseRiskScore = Math.max(0, baseRiskScore - 15); // Can afford less risk
             }
 
@@ -300,10 +301,13 @@ export class RetirementSimulator {
     // Dynamic allocation calculations
     calculateDynamicAllocation(age, glidePathRule) {
         const equityPercent = this.config.GLIDE_PATH_RULES[glidePathRule](age);
+        const allocConfig = ENHANCED_FINANCIAL_CONFIG.assetAllocation;
         return {
             equity: equityPercent,
-            bonds: Math.max(10, (100 - equityPercent) * 0.7),
-            cash: Math.max(5, (100 - equityPercent) * 0.3)
+            bonds: Math.max(allocConfig.MINIMUM_ALLOCATIONS.BOND_MIN.value,
+                          (100 - equityPercent) * allocConfig.DYNAMIC_ALLOCATION_RATIOS.BOND_WEIGHT.value),
+            cash: Math.max(allocConfig.MINIMUM_ALLOCATIONS.CASH_MIN.value,
+                          (100 - equityPercent) * allocConfig.DYNAMIC_ALLOCATION_RATIOS.CASH_WEIGHT.value)
         };
     }
 
@@ -321,7 +325,7 @@ export class RetirementSimulator {
         // Use user-provided dividend yield and franking rate
         const dividendYield = inputs.dividendYield / 100; // Convert percentage to decimal
         const frankingRate = inputs.frankingRate / 100;   // Convert percentage to decimal
-        const corporateTaxRate = 0.30;  // 30% Australian corporate tax rate
+        const corporateTaxRate = ENHANCED_FINANCIAL_CONFIG.australianSystem.CORPORATE_TAX_RATE.value;
 
         // Calculate gross dividend income from Australian equities
         const grossDividendIncome = australianEquityAllocation * dividendYield;
@@ -334,7 +338,8 @@ export class RetirementSimulator {
 
         // Total franking credit benefit depends on investor's marginal tax rate
         // Scale by user input (benefit factor)
-        const frankingCreditBenefit = frankingCredits * (inputs.frankingCreditBenefit / 1.2);
+        const frankingCreditBenefit = frankingCredits * (inputs.frankingCreditBenefit /
+            ENHANCED_FINANCIAL_CONFIG.australianSystem.FRANKING_CREDIT_ADJUSTMENT.value);
 
         return {
             australianEquityAllocation,
@@ -453,7 +458,8 @@ export class RetirementSimulator {
         const annualInterest = currentLoanBalance * inputs.investmentPropertyRate;
 
         // Calculate depreciation benefit (2.5% of building value, assume 80% of property is building)
-        const buildingValue = inputs.investmentPropertyValue * 0.8;
+        const buildingValue = inputs.investmentPropertyValue *
+            ENHANCED_FINANCIAL_CONFIG.propertyInvestment.VALUATION_ASSUMPTIONS.BUILDING_VALUE_RATIO.value;
         const depreciation = buildingValue * this.config.PROPERTY_COSTS.DEPRECIATION_RATE;
 
         return {
@@ -573,22 +579,31 @@ export class RetirementSimulator {
 
             const equityReturn = marketReturn;
             // Use user's base return scaled for bonds/cash, then add interest rate environment adjustments
-            const baseBondReturn = baseReturn * 0.6; // User's expected bond return (60% of equity expectation)
-            const baseCashReturn = baseReturn * 0.3; // User's expected cash return (30% of equity expectation)
+            const returnExpectations = ENHANCED_FINANCIAL_CONFIG.assetAllocation.RETURN_EXPECTATIONS;
+            const baseBondReturn = baseReturn * returnExpectations.BOND_MULTIPLIER.value;
+            const baseCashReturn = baseReturn * returnExpectations.CASH_MULTIPLIER.value;
 
             // Add interest rate regime adjustments to user's base expectations
-            const rateAdjustment = (rateRegime.rate - 0.045); // Adjust vs normal rate (4.5%)
-            const bondReturn = Math.max(-0.15, baseBondReturn + rateAdjustment * 0.5 + randomNormal(0, 0.04));
-            const cashReturn = Math.max(0.001, baseCashReturn + rateAdjustment * 0.8);
+            const normalRate = ENHANCED_FINANCIAL_CONFIG.assetAllocation.NORMAL_RATE_BASELINE.value;
+            const adjustmentFactors = ENHANCED_FINANCIAL_CONFIG.assetAllocation.RATE_ADJUSTMENT_FACTORS;
+            const returnLimits = ENHANCED_FINANCIAL_CONFIG.assetAllocation.RETURN_LIMITS;
+            const volatility = ENHANCED_FINANCIAL_CONFIG.monteCarlo.VOLATILITY_PARAMETERS.BOND_VOLATILITY.value;
+
+            const rateAdjustment = (rateRegime.rate - normalRate);
+            const bondReturn = Math.max(returnLimits.BOND_FLOOR.value,
+                baseBondReturn + rateAdjustment * adjustmentFactors.BOND_SENSITIVITY.value + randomNormal(0, volatility));
+            const cashReturn = Math.max(returnLimits.CASH_FLOOR.value,
+                baseCashReturn + rateAdjustment * adjustmentFactors.CASH_SENSITIVITY.value);
 
             return (allocations.equity / 100) * equityReturn +
                 (allocations.bonds / 100) * bondReturn +
                 (allocations.cash / 100) * cashReturn;
         } else {
             // Original calculation for deterministic scenarios
-            const equityReturn = this.getReturnForYear(baseReturn * 1.2, year, declineRate);
-            const bondReturn = this.getReturnForYear(baseReturn * 0.6, year, declineRate * 0.5);
-            const cashReturn = this.getReturnForYear(baseReturn * 0.3, year, 0);
+            const returnExpectations = ENHANCED_FINANCIAL_CONFIG.assetAllocation.RETURN_EXPECTATIONS;
+            const equityReturn = this.getReturnForYear(baseReturn * returnExpectations.EQUITY_MULTIPLIER.value, year, declineRate);
+            const bondReturn = this.getReturnForYear(baseReturn * returnExpectations.BOND_MULTIPLIER.value, year, declineRate * 0.5);
+            const cashReturn = this.getReturnForYear(baseReturn * returnExpectations.CASH_MULTIPLIER.value, year, 0);
 
             return (allocations.equity / 100) * equityReturn +
                 (allocations.bonds / 100) * bondReturn +
@@ -1737,17 +1752,17 @@ export class RetirementSimulator {
             },
             {
                 name: "High Healthcare Cost Scenario",
-                description: `Healthcare costs inflate at 7.5% annually instead of ${(baseInputs.healthcareInflation || 6.1).toFixed(1)}% (stress test based on historical spikes)`,
+                description: `Healthcare costs inflate at ${ENHANCED_FINANCIAL_CONFIG.stressTesting.HEALTHCARE_STRESS.HIGH_INFLATION_RATE.value}% annually instead of ${(baseInputs.healthcareInflation || 6.1).toFixed(1)}% (stress test based on historical spikes)`,
                 modifications: {
-                    healthcareInflation: 7.5 // Stress test - significantly higher than user's baseline or current 6.1% ABS data
+                    healthcareInflation: ENHANCED_FINANCIAL_CONFIG.stressTesting.HEALTHCARE_STRESS.HIGH_INFLATION_RATE.value
                 }
             },
             {
                 name: "Live to 95 (Longevity Risk)",
-                description: "Plan for both partners living to 95 (25-30% chance based on Australian statistics)",
+                description: `Plan for both partners living to ${ENHANCED_FINANCIAL_CONFIG.stressTesting.LONGEVITY_STRESS.EXTENDED_LIFESPAN.value} (25-30% chance based on Australian statistics)`,
                 modifications: {
-                    yourLifespan: 95,
-                    partnerLifespan: 95
+                    yourLifespan: ENHANCED_FINANCIAL_CONFIG.stressTesting.LONGEVITY_STRESS.EXTENDED_LIFESPAN.value,
+                    partnerLifespan: ENHANCED_FINANCIAL_CONFIG.stressTesting.LONGEVITY_STRESS.EXTENDED_LIFESPAN.value
                 }
             },
             {
@@ -1823,7 +1838,8 @@ export class RetirementSimulator {
                 maxMonthlySavings: Math.max(0, monthlyDisposableIncome),
                 maxAnnualSavings: Math.max(0, annualDisposableIncome),
                 minExpenseReduction: monthlyDisposableIncome < 0 ? Math.abs(monthlyDisposableIncome) : 0,
-                isHousingStressed: (expenses.housing.monthlyTotal / (netIncome / 12)) > 0.30
+                isHousingStressed: (expenses.housing.monthlyTotal / (netIncome / 12)) >
+                    ENHANCED_FINANCIAL_CONFIG.cashFlowAnalysis.FINANCIAL_STRESS_INDICATORS.HOUSING_STRESS_THRESHOLD.value
             },
             savingsAnalysis: savingsAnalysis, // This is what app.js expects
             opportunities: savingsAnalysis // Keep this for backwards compatibility
@@ -1915,9 +1931,10 @@ export class RetirementSimulator {
      * Calculate base living expenses using ABS household expenditure data
      */
     calculateBaseLivingExpenses(dependents) {
-        // ABS 2025 data: Single person $2,835/month, couple $4,118/month, +$630 per child
-        const baseCouple = 4118; // Base for couple
-        const perChild = 630; // Additional cost per child
+        // ABS 2025 data from centralized config
+        const expenses = ENHANCED_FINANCIAL_CONFIG.cashFlowAnalysis.BASE_LIVING_EXPENSES;
+        const baseCouple = expenses.COUPLE_BASE.value;
+        const perChild = expenses.PER_CHILD.value;
 
         return baseCouple + (dependents * perChild);
     }
@@ -1973,14 +1990,15 @@ export class RetirementSimulator {
     calculateChildcareCosts(dependents) {
         if (dependents === 0) return 0;
 
-        // 2025 data: $135/day average, assuming 5 days/week for working parents
-        const dailyCost = 135;
+        // Use centralized childcare config values
+        const childcare = ENHANCED_FINANCIAL_CONFIG.cashFlowAnalysis.CHILDCARE_COSTS;
+        const dailyCost = childcare.DAILY_RATE.value;
         const daysPerWeek = 5;
         const weeksPerYear = 48; // Account for holidays
         const annualPerChild = dailyCost * daysPerWeek * weeksPerYear;
 
-        // Assume government subsidy reduces cost by 30-50% on average
-        const subsidyRate = 0.40;
+        // Apply government subsidy
+        const subsidyRate = childcare.SUBSIDY_FACTOR.value;
         const netAnnualPerChild = annualPerChild * (1 - subsidyRate);
 
         return (netAnnualPerChild * Math.min(dependents, 2)) / 12; // Assume max 2 in childcare simultaneously
