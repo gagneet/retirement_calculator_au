@@ -353,9 +353,9 @@ export const calculateAustralianTax = (income, taxBrackets) => {
 };
 
 export const calculatePostTaxIncome = (preTaxSalary) => {
-    const taxConfig = ENHANCED_FINANCIAL_CONFIG.taxation;
-    const taxBrackets = taxConfig.ATO_TAX_BRACKETS;
-    const medicareLevy = taxConfig.MEDICARE_LEVY.value;
+    // Corrected the path to the tax brackets and hardcoded the missing Medicare levy.
+    const taxBrackets = ENHANCED_FINANCIAL_CONFIG.governmentData.ATO_TAX_BRACKETS_2025.brackets;
+    const medicareLevy = 0.02; // Hardcoded as it's missing from the config.
 
     const tax = calculateAustralianTax(preTaxSalary, taxBrackets);
     const levy = preTaxSalary * medicareLevy;

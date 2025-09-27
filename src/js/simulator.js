@@ -753,8 +753,8 @@ export class RetirementSimulator {
                 yearlyPostTaxIncome += calculatePostTaxIncome(taxableSalary);
 
                 let contribution = yourSalary * (inputs.employerSuperContribution / 100);
-                if (yourSalary > this.financialConfig.taxation.DIVISION_293_THRESHOLD.value) { // Division 293 Tax
-                    contribution *= (1 - this.financialConfig.taxation.DIVISION_293_TAX_RATE.value);
+                if (yourSalary > 250000) { // Division 293 Tax threshold hardcoded
+                    contribution *= (1 - 0.15); // Division 293 tax rate hardcoded
                 }
                 yearlySuperContribution += contribution;
             }
