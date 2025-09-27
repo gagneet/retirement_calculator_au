@@ -48,6 +48,79 @@ export const ENHANCED_FINANCIAL_CONFIG = {
         }
     },
 
+    // ===== GOVERNMENT DATA & THRESHOLDS =====
+    governmentData: {
+        _category: "Government Data & Thresholds",
+        _description: "Key rates and thresholds from ATO, Services Australia, etc.",
+        _lastResearched: "2025-01-15",
+        _sources: ["ATO", "Services Australia", "Department of Health"],
+
+        ATO_TAX_BRACKETS_2025: {
+            _description: "Income tax brackets for 2025-26",
+            brackets: [
+                { limit: 18200, rate: 0 },
+                { limit: 45000, rate: 0.19 },
+                { limit: 120000, rate: 0.30 },
+                { limit: 180000, rate: 0.37 },
+                { limit: Infinity, rate: 0.45 }
+            ],
+            source: "ATO",
+            isGovernmentSet: true
+        },
+
+        CENTRELINK_DEEMING_RATES_2025: {
+            _description: "Asset deeming rates for Age Pension income test for 2025-26",
+            lower_threshold_single: { value: 60400 },
+            lower_threshold_couple: { value: 100200 },
+            lower_rate: { value: 0.0025 },
+            upper_rate: { value: 0.0225 },
+            source: "Services Australia",
+            isGovernmentSet: true
+        },
+
+        WORK_BONUS: {
+            _description: "Centrelink Work Bonus rules",
+            max_accrual: { value: 11800 },
+            fortnightly_income_exemption: { value: 300 },
+            source: "Services Australia",
+            isGovernmentSet: true
+        },
+
+        RENT_ASSISTANCE_RATES_2025: {
+            _description: "Maximum fortnightly rent assistance rates",
+            single_max_rate: { value: 188.20 },
+            couple_max_rate: { value: 177.20 },
+            source: "Services Australia",
+            isGovernmentSet: true
+        },
+
+        COMMONWEALTH_SENIORS_HEALTH_CARD_THRESHOLDS_2025: {
+            _description: "Income test thresholds for CSHC",
+            single_threshold: { value: 95400 },
+            couple_threshold: { value: 152640 },
+            source: "Services Australia",
+            isGovernmentSet: true
+        },
+
+        PBS_SAFETY_NET_THRESHOLDS_2025: {
+            _description: "Pharmaceutical Benefits Scheme (PBS) Safety Net thresholds",
+            general: { value: 1647.90 },
+            concession: { value: 277.20 },
+            source: "Department of Health",
+            isGovernmentSet: true
+        },
+
+        AGED_CARE_MEANS_TEST_2025: {
+             _description: "Key figures for aged care means testing (DAP/DAC)",
+            income_free_area_single: { value: 32819.80 },
+            income_free_area_couple_each: { value: 32319.80 },
+            asset_free_area: { value: 59500 },
+            first_asset_threshold: { value: 201231.20 },
+            source: "My Aged Care",
+            isGovernmentSet: true
+        }
+    },
+
     // ===== RISK ASSESSMENT PARAMETERS =====
     riskAssessment: {
         _category: "Risk Assessment & Scoring",

@@ -766,6 +766,20 @@
                     <label for="partnerSalary" class="block text-sm font-medium text-gray-700">Partner's Annual Salary (pre-tax)</label>
                     <input type="text" id="partnerSalary" value="124500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
+
+                <!-- SARAH (High Earner) INPUTS -->
+                <div class="advanced-section enhancement-highlight p-4 rounded-lg mt-4">
+                    <h4 class="text-md font-semibold mb-3 text-indigo-800">High-Income & Super Details</h4>
+                    <div>
+                        <label for="employerSuperContribution" class="text-sm font-medium text-gray-700">Employer Super Contribution (%)</label>
+                        <input type="number" id="employerSuperContribution" value="12.0" step="0.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                        <p class="mt-1 text-xs text-gray-500">Usually the Superannuation Guarantee (SGC), but can be higher.</p>
+                    </div>
+                    <div>
+                        <label for="nonConcessionalContribution" class="text-sm font-medium text-gray-700">Annual Non-Concessional (After-Tax) Super Contribution</label>
+                        <input type="text" id="nonConcessionalContribution" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                </div>
                 <div>
                     <div class="label-with-tooltip">
                         <label for="yourCurrentSuper" class="text-sm font-medium text-gray-700">Your Current Superannuation</label>
@@ -921,6 +935,46 @@
                 </div>
             </div>
 
+            <!-- MARK & LISA (Property/Business) INPUTS -->
+            <div class="enhancement-highlight p-4 rounded-lg mt-4">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Business & Property Details</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label for="businessStructure" class="block text-sm font-medium text-gray-700">Business Structure</label>
+                        <select id="businessStructure" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                            <option value="none">None</option>
+                            <option value="sole_trader">Sole Trader</option>
+                            <option value="company">Company</option>
+                            <option value="trust">Trust</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="businessActiveAssetValue" class="block text-sm font-medium text-gray-700">Business Active Asset Value</label>
+                        <input type="text" id="businessActiveAssetValue" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="businessOwnership" class="block text-sm font-medium text-gray-700">Business Ownership (%)</label>
+                        <input type="number" id="businessOwnership" value="100" step="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="businessYearsHeld" class="block text-sm font-medium text-gray-700">Years Business Held</label>
+                        <input type="number" id="businessYearsHeld" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="numberOfProperties" class="block text-sm font-medium text-gray-700">Number of Investment Properties</label>
+                        <input type="number" id="numberOfProperties" value="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="propertyCashFlowStatus" class="block text-sm font-medium text-gray-700">Investment Property Cash Flow</label>
+                        <select id="propertyCashFlowStatus" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                            <option value="neutral">Neutral</option>
+                            <option value="positive">Positive</option>
+                            <option value="negative">Negative</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             <div class="enhancement-highlight p-4 rounded-lg mt-4">
                 <h3 class="text-lg font-medium text-gray-700 mb-3">Trust Structures</h3>
                 <div class="space-y-3">
@@ -1011,7 +1065,43 @@
                 </div>
             </div>
 
+            <!-- ROBERT (Late Starter) & JENNY (Pension Maximizer) INPUTS -->
             <div class="enhancement-highlight p-4 rounded-lg mt-4">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Retirement & Pension Details</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label for="totalSuperBalanceLastJune" class="block text-sm font-medium text-gray-700">Total Super Balance (last 30 June)</label>
+                        <input type="text" id="totalSuperBalanceLastJune" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                        <p class="mt-1 text-xs text-gray-500">Determines unused concessional cap carry-forward eligibility.</p>
+                    </div>
+                    <div>
+                        <label for="yearsTsbBelow500k" class="block text-sm font-medium text-gray-700">Years TSB was &lt; $500k</label>
+                        <input type="number" id="yearsTsbBelow500k" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="homeOwnershipStatus" class="block text-sm font-medium text-gray-700">Home Ownership Status</label>
+                        <select id="homeOwnershipStatus" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                            <option value="owner">Homeowner</option>
+                            <option value="non_owner">Non-homeowner</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="rentAmount" class="block text-sm font-medium text-gray-700">Weekly Rent (if non-homeowner)</label>
+                        <input type="text" id="rentAmount" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="partTimeWorkIncome" class="block text-sm font-medium text-gray-700">Annual Part-Time Work Income (in retirement)</label>
+                        <input type="text" id="partTimeWorkIncome" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                        <p class="mt-1 text-xs text-gray-500">Used to calculate Age Pension Work Bonus.</p>
+                    </div>
+                     <div>
+                        <label for="divorceSettlementTiming" class="block text-sm font-medium text-gray-700">Years Since Divorce Settlement</label>
+                        <input type="number" id="divorceSettlementTiming" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <div class="advanced-section">
                 <h3 class="text-lg font-medium text-gray-700 mb-3">Healthcare & Aged Care</h3>
                 <div class="space-y-3">
                     <div>
@@ -1339,15 +1429,13 @@
     <div class="mt-8 bg-white rounded-lg shadow-md">
         <div class="flex border-b flex-wrap">
             <button class="tab-button active" onclick="showTab('summary')">Enhanced Summary</button>
+                <button class="tab-button" onclick="showTab('health_check')">Health Check</button>
             <button class="tab-button" onclick="showTab('suggestions')">💡 Suggestions</button>
-            <button class="tab-button" onclick="showTab('recommendations')">AI Recommendations</button>
+                <button class="tab-button" onclick="showTab('risk_analysis_v2')">Risk Analysis</button>
+                <button class="tab-button" onclick="showTab('sensitivity_analysis')">Sensitivity Analysis</button>
+                <button class="tab-button" onclick="showTab('scenario_comparison_v2')">Scenario Comparison</button>
             <button class="tab-button" onclick="showTab('projection')">Year-by-Year</button>
-            <button class="tab-button" onclick="showTab('property')">Property Analysis</button>
-            <button class="tab-button" onclick="showTab('riskAnalysis')">Risk Analysis</button>
             <button class="tab-button" onclick="showTab('charts')">Advanced Charts</button>
-            <button class="tab-button" onclick="showTab('optimization')">Optimization</button>
-            <button class="tab-button" onclick="showTab('overseas')">🌍 Overseas</button>
-            <button class="tab-button" onclick="showTab('scenarios')">Scenario Compare</button>
         </div>
 
         <!-- Enhanced Summary Tab -->
@@ -1366,6 +1454,38 @@
                 </ul>
             </div>
         </div>
+
+            <!-- Health Check Tab -->
+            <div id="health_check-tab" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold mb-4">Retirement Readiness Scorecard</h2>
+                <div id="healthCheckDashboard">
+                    <!-- Health check dashboard will be populated here -->
+                </div>
+            </div>
+
+            <!-- Risk Analysis V2 Tab -->
+            <div id="risk_analysis_v2-tab" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold mb-4">Actionable Risk Analysis</h2>
+                <div id="actionableMonteCarloOutput">
+                    <!-- Actionable Monte Carlo output will be populated here -->
+                </div>
+            </div>
+
+            <!-- Sensitivity Analysis Tab -->
+            <div id="sensitivity_analysis-tab" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold mb-4">Sensitivity Analysis</h2>
+                <div id="sensitivityAnalysisTable">
+                    <!-- Sensitivity analysis table will be populated here -->
+                </div>
+            </div>
+
+            <!-- Scenario Comparison V2 Tab -->
+            <div id="scenario_comparison_v2-tab" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold mb-4">Visceral Scenario Comparison</h2>
+                <div id="visceralScenarioComparisonTable">
+                    <!-- Visceral scenario comparison table will be populated here -->
+                </div>
+            </div>
 
         <!-- AI Recommendations Tab Content -->
         <div id="recommendations-tab" class="tab-content p-6">

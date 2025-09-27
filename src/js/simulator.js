@@ -8,6 +8,8 @@ import {
     calculatePropertyCashFlow,
     calculateCGT,
     calculateAgePension,
+    calculateUnusedConcessionalCap,
+    calculateDownsizerContribution,
     randomNormal,
     median,
     regimeAwareReturn,
@@ -447,20 +449,21 @@ export class RetirementSimulator {
     calculatePropertyCashFlow(inputs, year = 0) {
         if (!inputs.hasInvestmentProperty) return null;
 
+        const numProperties = inputs.numberOfProperties || 1;
         const inflationRate = inputs.inflation;
-        const currentRental = inputs.weeklyRentalIncome * 52 * Math.pow(1 + inflationRate, year);
-        const currentExpenses = inputs.annualPropertyExpenses * Math.pow(1 + inflationRate, year);
+        const currentRental = (inputs.weeklyRentalIncome * numProperties) * 52 * Math.pow(1 + inflationRate, year);
+        const currentExpenses = (inputs.annualPropertyExpenses * numProperties) * Math.pow(1 + inflationRate, year);
 
         // Calculate interest cost
         const currentLoanBalance = this.calculatePropertyLoanBalance(
-            inputs.investmentPropertyLoan,
+            (inputs.investmentPropertyLoan * numProperties),
             inputs.investmentPropertyRate,
             year
         );
         const annualInterest = currentLoanBalance * inputs.investmentPropertyRate;
 
         // Calculate depreciation benefit (2.5% of building value, assume 80% of property is building)
-        const buildingValue = inputs.investmentPropertyValue *
+        const buildingValue = (inputs.investmentPropertyValue * numProperties) *
             this.financialConfig.propertyInvestment.VALUATION_ASSUMPTIONS.BUILDING_VALUE_RATIO.value;
         const depreciation = buildingValue * this.config.PROPERTY_COSTS.DEPRECIATION_RATE;
 
@@ -477,26 +480,30 @@ export class RetirementSimulator {
     calculatePropertySale(inputs, saleYear) {
         if (!inputs.hasInvestmentProperty) return null;
 
+        const numProperties = inputs.numberOfProperties || 1;
+        const totalPropertyValue = inputs.investmentPropertyValue * numProperties;
+        const totalPropertyLoan = inputs.investmentPropertyLoan * numProperties;
+
         //   The /100 was removed to standardize the interface - now all callers pass percentage values, and the method
         //   handles the conversion consistently in one place, which is better software engineering practice.
         const saleValue = this.calculatePropertyValue(
-            inputs.investmentPropertyValue,
+            totalPropertyValue,
             inputs.propertyGrowthRate,
             saleYear
         );
 
         const remainingLoan = this.calculatePropertyLoanBalance(
-            inputs.investmentPropertyLoan,
+            totalPropertyLoan,
             inputs.investmentPropertyRate,
             saleYear
         );
 
         const sellingCosts = saleValue * this.config.PROPERTY_COSTS.SELLING_COSTS_PERCENT;
 
-        const capitalGain = saleValue - inputs.investmentPropertyValue;
+        const capitalGain = saleValue - totalPropertyValue;
         const cgtPayable = calculateCGT(
             saleValue,
-            inputs.investmentPropertyValue,
+            totalPropertyValue,
             true, // Assume Australian resident
             saleYear,
             inputs.capitalGainsTaxRate / 100
@@ -511,7 +518,7 @@ export class RetirementSimulator {
             capitalGain,
             cgtPayable,
             netProceeds,
-            totalReturn: (capitalGain + netProceeds) / inputs.investmentPropertyValue
+            totalReturn: (capitalGain + netProceeds) / totalPropertyValue
         };
     }
 
@@ -733,16 +740,36 @@ export class RetirementSimulator {
 
             if (year <= yourYearsToWork) {
                 const yourSalary = this.getSalaryForYear(inputs.yourSalary, year, inputs);
-                yearlyPostTaxIncome += calculatePostTaxIncome(yourSalary, this.config.TAX_BRACKETS);
-                yearlySuperContribution += yourSalary * inputs.superContributionRate;
+                let taxableSalary = yourSalary;
+
+                // Handle one-off carry-forward concessional contribution in the first year
+                if (year === 1 && inputs.catchUpContributionAmount > 0) {
+                    const catchUpAmount = inputs.catchUpContributionAmount;
+                    taxableSalary -= catchUpAmount; // Reduce taxable income by the contribution amount
+                    const netCatchUpContribution = catchUpAmount * (1 - 0.15); // Apply 15% contributions tax
+                    yearlySuperContribution += netCatchUpContribution;
+                }
+
+                yearlyPostTaxIncome += calculatePostTaxIncome(taxableSalary);
+
+                let contribution = yourSalary * (inputs.employerSuperContribution / 100);
+                if (yourSalary > this.financialConfig.taxation.DIVISION_293_THRESHOLD.value) { // Division 293 Tax
+                    contribution *= (1 - this.financialConfig.taxation.DIVISION_293_TAX_RATE.value);
+                }
+                yearlySuperContribution += contribution;
             }
             if (year <= partnerYearsToWork) {
                 const partnerSalary = this.getSalaryForYear(inputs.partnerSalary, year, inputs);
-                yearlyPostTaxIncome += calculatePostTaxIncome(partnerSalary, this.config.TAX_BRACKETS);
-                yearlySuperContribution += partnerSalary * inputs.superContributionRate;
+                yearlyPostTaxIncome += calculatePostTaxIncome(partnerSalary);
+                let contribution = partnerSalary * (inputs.employerSuperContribution / 100);
+                if (partnerSalary > this.financialConfig.taxation.DIVISION_293_THRESHOLD.value) { // Division 293 Tax
+                    contribution *= (1 - this.financialConfig.taxation.DIVISION_293_TAX_RATE.value);
+                }
+                yearlySuperContribution += contribution;
             }
 
             futureSuper += yearlySuperContribution;
+            futureSuper += parseFloat(inputs.nonConcessionalContribution) || 0;
             futureSavings += yearlyPostTaxIncome * inputs.percentIncomeSaved;
             futureStocks += inputs.monthlyStockContribution * 12;
 
@@ -778,13 +805,14 @@ export class RetirementSimulator {
                             propertyReturn = inputs.propertyGrowthRate / 100;
                         }
 
+                        const numProperties = inputs.numberOfProperties || 1;
                         const currentValue = this.calculatePropertyValue(
-                            inputs.investmentPropertyValue,
+                            (inputs.investmentPropertyValue * numProperties),
                             propertyReturn * 100,  // Convert back to percentage for the method
                             year
                         );
                         const remainingLoan = this.calculatePropertyLoanBalance(
-                            inputs.investmentPropertyLoan,
+                            (inputs.investmentPropertyLoan * numProperties),
                             inputs.investmentPropertyRate,
                             year
                         );
@@ -811,7 +839,24 @@ export class RetirementSimulator {
             calculateLoanBalance(inputs.mortgageRate, yearsToRetirement, inputs.monthlyMortgagePayment, inputs.mortgageBalance)
         );
         const homeEquityAtRetirement = homeValueAtRetirement - mortgageBalanceAtRetirement;
-        const accessibleHomeEquity = inputs.planToDownsize ? homeEquityAtRetirement * this.config.HOME_EQUITY_ACCESS_RATE : 0;
+
+        let accessibleHomeEquity = 0;
+        if (inputs.planToDownsize) {
+            const { contribution, proceeds } = calculateDownsizerContribution(
+                homeEquityAtRetirement,
+                inputs.retirementAge,
+                inputs.isSingleCalculation
+            );
+            futureSuper += contribution;
+            accessibleHomeEquity = proceeds;
+        }
+
+        // Handle 15-Year Small Business CGT Exemption at retirement
+        if (inputs.businessStructure !== 'none' && inputs.businessYearsHeld >= 15) {
+            const cgtCap = 1705000; // ATO lifetime cap for 2023-24, should be in config
+            const potentialContribution = Math.min(inputs.businessActiveAssetValue, cgtCap);
+            futureSuper += potentialContribution; // Add tax-free contribution to super
+        }
 
         // Retirement phase simulation
         let currentBalance = futureSuper + futureSavings + futureStocks + accessibleHomeEquity;
@@ -873,13 +918,14 @@ export class RetirementSimulator {
                 }
 
                 // Update property equity for current retirement year
+                const numProperties = inputs.numberOfProperties || 1;
                 const currentValue = this.calculatePropertyValue(
-                    inputs.investmentPropertyValue,
+                    (inputs.investmentPropertyValue * numProperties),
                     inputs.propertyGrowthRate,
                     retirementYear
                 );
                 const remainingLoan = this.calculatePropertyLoanBalance(
-                    inputs.investmentPropertyLoan,
+                    (inputs.investmentPropertyLoan * numProperties),
                     inputs.investmentPropertyRate,
                     retirementYear
                 );
@@ -968,12 +1014,11 @@ export class RetirementSimulator {
             const assessableAssets = currentBalance + propertyEquity - (inputs.planToDownsize ? 0 : homeEquityAtRetirement);
             const pensionIncome = calculateAgePension(
                 assessableAssets,
-                propertyIncome,
+                propertyIncome, // This is other income, not from work
                 isCouple,
-                isCouple ? inputs.agePensionMax : this.config.SINGLE_PENSION_MAX,
-                isCouple ? inputs.pensionAssetThreshold : this.config.SINGLE_ASSET_THRESHOLD,
-                isCouple ? inputs.pensionAssetLimit : this.config.SINGLE_ASSET_LIMIT,
-                isCouple ? inputs.pensionIncomeThreshold : this.config.SINGLE_INCOME_THRESHOLD
+                inputs.homeOwnershipStatus,
+                inputs.partTimeWorkIncome,
+                inputs.rentAmount // This is weekly rent from the UI
             );
 
             const totalIncome = pensionIncome + propertyIncome;

@@ -1,4 +1,5 @@
 // js/utils.js - Utility Functions for Enhanced Retirement Calculator
+import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 
 // DOM manipulation utilities
 export const $ = (id) => document.getElementById(id);
@@ -338,27 +339,28 @@ export const calculateNPV = (cashFlows, discountRate) => {
 export const calculateAustralianTax = (income, taxBrackets) => {
     let tax = 0;
     let remainingIncome = income;
+    let lastMax = 0;
 
     for (const bracket of taxBrackets) {
-        if (remainingIncome <= 0) break;
-
-        const taxableInThisBracket = Math.min(
-            remainingIncome,
-            bracket.max - bracket.min
-        );
-
-        if (taxableInThisBracket > 0) {
-            tax += taxableInThisBracket * bracket.rate;
-            remainingIncome -= taxableInThisBracket;
+        if (remainingIncome > 0) {
+            const taxableInBracket = Math.min(remainingIncome, bracket.max - lastMax);
+            tax += taxableInBracket * bracket.rate;
+            remainingIncome -= taxableInBracket;
+            lastMax = bracket.max;
         }
     }
-
     return tax;
 };
 
-export const calculatePostTaxIncome = (preTaxSalary, taxBrackets) => {
+export const calculatePostTaxIncome = (preTaxSalary) => {
+    const taxConfig = ENHANCED_FINANCIAL_CONFIG.taxation;
+    const taxBrackets = taxConfig.ATO_TAX_BRACKETS;
+    const medicareLevy = taxConfig.MEDICARE_LEVY.value;
+
     const tax = calculateAustralianTax(preTaxSalary, taxBrackets);
-    return preTaxSalary - tax;
+    const levy = preTaxSalary * medicareLevy;
+
+    return preTaxSalary - tax - levy;
 };
 
 // Investment property utilities
@@ -380,6 +382,42 @@ export const calculateCGT = (salePrice, purchasePrice, isResident, holdingPeriod
     const taxableGain = discountApplies ? capitalGain * 0.5 : capitalGain;
 
     return taxableGain * marginalTaxRate;
+};
+
+/**
+ * Calculates the available unused concessional super contribution cap.
+ * Note: This is a simplified estimation and a full implementation would require historical contribution data.
+ */
+export const calculateUnusedConcessionalCap = (inputs) => {
+    if (inputs.totalSuperBalanceLastJune >= 500000) {
+        return 0;
+    }
+    const concessionalCap = 27500; // This should ideally be in the config
+    const yearsWithCap = Math.min(5, inputs.yearsTsbBelow500k);
+    const totalCapAvailable = yearsWithCap * concessionalCap;
+    // A simplified estimation assuming contributions matched the Superannuation Guarantee (SG) rate.
+    const estimatedContributions = yearsWithCap * (inputs.yourSalary * ENHANCED_FINANCIAL_CONFIG.australianSystem.SUPER_GUARANTEE_RATE.value);
+    return Math.max(0, totalCapAvailable - estimatedContributions);
+};
+
+/**
+ * Calculates the downsizer contribution amount and remaining proceeds from a home sale.
+ */
+export const calculateDownsizerContribution = (homeEquity, retirementAge, isSingle) => {
+    let contribution = 0;
+    // Assume 85% of home equity is released. This should be a configurable value.
+    const proceedsFromSale = homeEquity * 0.85;
+
+    // Eligibility for downsizer contribution starts at age 55.
+    if (retirementAge >= 55) {
+        const maxContribution = isSingle ? 300000 : 600000;
+        contribution = Math.min(proceedsFromSale, maxContribution);
+        const remainingProceeds = proceedsFromSale - contribution;
+        return { contribution, proceeds: remainingProceeds };
+    } else {
+        // Not eligible, all proceeds become liquid assets.
+        return { contribution: 0, proceeds: proceedsFromSale };
+    }
 };
 
 // Trust calculation utilities
@@ -496,27 +534,78 @@ export const getTrustRecommendations = (trustInputs, trustRules, pensionEligible
 };
 
 // Pension calculation utilities
-export const calculateAgePension = (assets, income, isCouple, maxPension, assetThreshold, assetLimit, incomeThreshold) => {
-    // Asset test
+export const calculateAgePension = (assets, income, isCouple, homeOwnershipStatus, partTimeWorkIncome = 0, weeklyRent = 0) => {
+    const centrelink = ENHANCED_FINANCIAL_CONFIG.centrelink;
+    const rates = isCouple ? centrelink.pensionRates.COUPLE : centrelink.pensionRates.SINGLE;
+    const assetTest = isCouple ? centrelink.assetTest.COUPLE : centrelink.assetTest.SINGLE;
+    const incomeTest = isCouple ? centrelink.incomeTest.COUPLE : centrelink.incomeTest.SINGLE;
+    const workBonus = centrelink.workBonus;
+    const rentAssistanceConfig = isCouple ? centrelink.rentAssistance.COUPLE : centrelink.rentAssistance.SINGLE;
+
+    const maxPension = rates.MAX_PENSION_PER_YEAR.value;
+    const assetThreshold = homeOwnershipStatus === 'owner' ? assetTest.ASSET_FREE_AREA_HOMEOWNER.value : assetTest.ASSET_FREE_AREA_NON_HOMEOWNER.value;
+    const assetLimit = homeOwnershipStatus === 'owner' ? assetTest.ASSET_LIMIT_HOMEOWNER.value : assetTest.ASSET_LIMIT_NON_HOMEOWNER.value;
+    const incomeThreshold = incomeTest.INCOME_FREE_AREA_PER_YEAR.value;
+
+    // --- Work Bonus Calculation ---
+    // Assumes the person has the max upfront credit and it can roll over.
+    const annualWorkIncome = partTimeWorkIncome;
+    const workBonusCredit = workBonus.UPFRONT_CREDIT.value + workBonus.ACCRUAL_PER_YEAR.value;
+    const assessableWorkIncome = Math.max(0, annualWorkIncome - workBonusCredit);
+
+    // --- Deeming Calculation for Financial Assets ---
+    // This is a simplified deeming calculation. A full implementation would need asset breakdown.
+    const deeming = centrelink.deemingRates;
+    const lowerThreshold = isCouple ? deeming.COUPLE_LOWER_THRESHOLD.value : deeming.SINGLE_LOWER_THRESHOLD.value;
+    let deemedIncome = 0;
+    if (assets <= lowerThreshold) {
+        deemedIncome = assets * deeming.LOWER_RATE.value;
+    } else {
+        deemedIncome = (lowerThreshold * deeming.LOWER_RATE.value) +
+                       ((assets - lowerThreshold) * deeming.UPPER_RATE.value);
+    }
+    const totalAssessableIncome = income + deemedIncome + assessableWorkIncome;
+
+
+    // --- Asset Test ---
     let pensionFromAssets = 0;
     if (assets <= assetThreshold) {
         pensionFromAssets = maxPension;
     } else if (assets < assetLimit) {
         const excessAssets = assets - assetThreshold;
-        const reduction = (excessAssets / 1000) * 3 * 26; // $3 per fortnight per $1000
+        const reduction = (excessAssets / 1000) * centrelink.assetTest.TAPER_RATE_PER_1000_PER_FN.value * 26;
         pensionFromAssets = Math.max(0, maxPension - reduction);
     }
 
-    // Income test
+    // --- Income Test ---
     let pensionFromIncome = maxPension;
-    const fortnightlyIncome = income / 26;
-    if (fortnightlyIncome > incomeThreshold) {
-        const excessIncome = fortnightlyIncome - incomeThreshold;
-        const reduction = excessIncome * 0.5 * 26; // 50 cents per dollar
+    if (totalAssessableIncome > incomeThreshold) {
+        const excessIncome = totalAssessableIncome - incomeThreshold;
+        const reduction = excessIncome * incomeTest.TAPER_RATE.value;
         pensionFromIncome = Math.max(0, maxPension - reduction);
     }
 
-    return Math.min(pensionFromAssets, pensionFromIncome);
+    const basePension = Math.min(pensionFromAssets, pensionFromIncome);
+
+    // --- Rent Assistance Calculation ---
+    let rentAssistance = 0;
+    if (homeOwnershipStatus === 'non_owner' && weeklyRent > 0 && basePension > 0) {
+        const annualRentPaid = weeklyRent * 52;
+        const rentThreshold = rentAssistanceConfig.RENT_THRESHOLD_PER_YEAR.value;
+        if (annualRentPaid > rentThreshold) {
+            const maxRentAssistance = rentAssistanceConfig.MAX_ASSISTANCE_PER_YEAR.value;
+            const assistancePayable = (annualRentPaid - rentThreshold) * rentAssistanceConfig.PAYMENT_RATE.value;
+            rentAssistance = Math.min(maxRentAssistance, assistancePayable);
+        }
+    }
+
+    // --- Commonwealth Seniors Health Card (CSHC) Eligibility ---
+    // This is a check, not a payment, but useful for suggestions.
+    const cshcThreshold = isCouple ? centrelink.cshc.COUPLE_INCOME_THRESHOLD.value : centrelink.cshc.SINGLE_INCOME_THRESHOLD.value;
+    const isEligibleForCSHC = totalAssessableIncome <= cshcThreshold;
+
+
+    return basePension + rentAssistance;
 };
 
 // Date and time utilities
@@ -1701,6 +1790,8 @@ export default {
     calculatePropertyTotalReturn,
     calculateCGT,
     calculateAgePension,
+    calculateUnusedConcessionalCap,
+    calculateDownsizerContribution,
     exportToCSV,
     exportToXLSX,
     exportToPDF,

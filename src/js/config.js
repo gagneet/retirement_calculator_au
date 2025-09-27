@@ -325,6 +325,26 @@ export const ENHANCED_CONFIG = {
         contributionEscalationCap: 0.03,
         defaultParticipation: true,
         lossFramingThreshold: 0.1
+    },
+
+    // Health Check Dashboard thresholds
+    HEALTH_CHECK: {
+        SAVINGS_RATE: {
+            GOOD: 10,
+            OK: 5
+        },
+        ASSET_ALLOCATION: {
+            GOOD: 10,
+            OK: 20
+        },
+        CONTRIBUTION_CAPS: {
+            GOOD: 5000,
+            OK: 15000,
+            CONCESSIONAL_CAP: 27500
+        },
+        TAX_EFFICIENCY: {
+            DIV293_THRESHOLD: 250000
+        }
     }
 };
 

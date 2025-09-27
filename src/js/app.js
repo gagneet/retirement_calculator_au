@@ -4,6 +4,7 @@ import '../css/styles.css';
 import { ENHANCED_CONFIG } from './config.js';
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import RetirementSimulator from './simulator.js';
+import { SuggestionEngine } from './suggestion-engine.js';
 import MarketDataEngine from './market-data.js';
 import { initializeTrustUI } from './trust-ui.js';
 import ThemeManager from './theme.js';
@@ -109,6 +110,26 @@ class RetirementCalculatorApp {
             hasEmergencyFund: safeGetSelectValue('hasEmergencyFund', config.risk.hasEmergencyFund),
             hasDebt: safeGetSelectValue('hasDebt', config.risk.hasDebt),
             dependents: safeGetValue('dependents', config.risk.dependents),
+
+            // High-income earner inputs
+            employerSuperContribution: safeGetValue('employerSuperContribution', 12.0) / 100,
+            nonConcessionalContribution: safeGetValue('nonConcessionalContribution', 0),
+
+            // Property & Business inputs
+            businessStructure: safeGetSelectValue('businessStructure', 'none'),
+            businessActiveAssetValue: safeGetValue('businessActiveAssetValue', 0),
+            businessOwnership: safeGetValue('businessOwnership', 100) / 100,
+            businessYearsHeld: safeGetValue('businessYearsHeld', 0),
+            numberOfProperties: safeGetValue('numberOfProperties', 1),
+            propertyCashFlowStatus: safeGetSelectValue('propertyCashFlowStatus', 'neutral'),
+
+            // Late starter & Pension maximizer inputs
+            totalSuperBalanceLastJune: safeGetValue('totalSuperBalanceLastJune', 0),
+            yearsTsbBelow500k: safeGetValue('yearsTsbBelow500k', 0),
+            homeOwnershipStatus: safeGetSelectValue('homeOwnershipStatus', 'owner'),
+            rentAmount: safeGetValue('rentAmount', 0),
+            partTimeWorkIncome: safeGetValue('partTimeWorkIncome', 0),
+            divorceSettlementTiming: safeGetValue('divorceSettlementTiming', 0),
 
             // Enhanced dependent details
             dependentDetails: {
@@ -270,13 +291,20 @@ class RetirementCalculatorApp {
             const result = this.simulator.simulateRetirement(inputs, false);
             this.currentResults = result;
 
+            // Run a mini Monte Carlo for the risk analysis panel
+            const monteCarloForAnalysis = await this.simulator.runMonteCarloSimulation(inputs, 500);
+            this.currentMonteCarloResults = monteCarloForAnalysis; // Also store it for other uses
+
             // Update UI
             this.updateRiskProfile(inputs);
             this.updateRecommendedAllocation(inputs);
             this.displaySummaryResults(result, inputs);
+            this.displayHealthCheckDashboard(result, inputs);
+            this.displayActionableRiskAnalysis(result, inputs, monteCarloForAnalysis);
+            this.displaySensitivityAnalysis(result, inputs);
+            this.displayVisceralScenarioComparison(result, inputs);
             this.displayYearByYearProjection(result);
             this.displayPropertyAnalysis(result, inputs);
-            this.displayRiskAnalysis(result, inputs);
             this.displayOptimizationStrategies(result, inputs);
 
             // Render charts
@@ -369,6 +397,178 @@ class RetirementCalculatorApp {
         // Enhanced recommendations
         const recommendations = this.generateEnhancedRecommendations(inputs, result);
         safeSetHTML('enhancedRecommendationsList', recommendations.map(r => `<li>${r}</li>`).join(''));
+    }
+
+    // Display Health Check Dashboard
+    displayHealthCheckDashboard(result, inputs) {
+        const container = $('healthCheckDashboard');
+        if (!container) return;
+
+        // Instantiate the suggestion engine with the latest data
+        const suggestionEngine = new SuggestionEngine(this.simulator, inputs, result);
+        const metrics = suggestionEngine.getHealthCheckMetrics();
+
+        const createMetricHTML = (title, metric) => {
+            const statusColor = metric.status === '🟢' ? 'border-green-500' : metric.status === '🟡' ? 'border-yellow-500' : 'border-red-500';
+            return `
+                <div class="p-4 bg-white rounded-lg border-l-4 ${statusColor}">
+                    <h4 class="font-semibold text-gray-700">${title}</h4>
+                    <p class="text-xl font-bold text-gray-800">${metric.status} ${metric.value}</p>
+                    <p class="text-xs text-gray-600 mt-1">${metric.text}</p>
+                </div>
+            `;
+        };
+
+        container.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                ${createMetricHTML('Savings Rate', metrics.savingsRate)}
+                ${createMetricHTML('Age Pension Optimized', metrics.pensionOptimization)}
+                ${createMetricHTML('Asset Allocation', metrics.assetAllocation)}
+                ${createMetricHTML('Contribution Caps', metrics.contributionCaps)}
+                ${createMetricHTML('Tax Efficiency', metrics.taxEfficiency)}
+                ${createMetricHTML('Risk Coverage', metrics.riskCoverage)}
+            </div>
+        `;
+    }
+
+    async displayActionableRiskAnalysis(result, inputs, monteCarloForAnalysis) {
+        const container = $('actionableMonteCarloOutput');
+        if (!container) return;
+
+        try {
+            const suggestionEngine = new SuggestionEngine(this.simulator, inputs, result);
+            const { riskAnalysis, topImprovements } = await suggestionEngine.generateActionableRiskAnalysis(monteCarloForAnalysis);
+
+            const riskAnalysisHTML = `
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-3">RISK ANALYSIS</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between items-center p-2 bg-blue-50 rounded">
+                            <span class="font-medium">Current Plan Success Rate:</span>
+                            <span class="font-bold text-lg ${riskAnalysis.successRate > 0.8 ? 'text-green-600' : riskAnalysis.successRate > 0.6 ? 'text-yellow-600' : 'text-red-600'}">${formatPercent(riskAnalysis.successRate)}</span>
+                        </div>
+                        <div class="p-2">
+                            <span>├─ In <strong>${riskAnalysis.depletionPercent.toFixed(0)}%</strong> of scenarios, you run out of money by age <strong>${riskAnalysis.depletionAge}</strong>.</span>
+                        </div>
+                        <div class="p-2">
+                            <span>└─ Key Vulnerability: <strong>${riskAnalysis.keyRisk}</strong>.</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const improvementsHTML = `
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-3 mt-6">TOP 3 IMPROVEMENTS</h3>
+                    <div class="space-y-4">
+                        ${topImprovements.map((imp, index) => `
+                            <div class="p-4 rounded-lg bg-gray-50 border border-gray-200 hover:shadow-sm transition-shadow">
+                                <h4 class="font-semibold text-gray-800">${index + 1}. ${imp.title}</h4>
+                                <div class="mt-2 grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2 text-xs">
+                                    <div class="text-green-600 font-semibold">
+                                        <span>Success: ${formatPercent(riskAnalysis.successRate, 0)} → ${formatPercent(imp.newSuccessRate, 0)}</span>
+                                        <span class="ml-1 font-bold">(+${formatPercent(imp.successRateChange, 0)})</span>
+                                    </div>
+                                    <div class="text-gray-700"><span class="font-medium">Cost:</span> ${imp.cost}</div>
+                                    <div class="text-gray-700"><span class="font-medium">Benefit:</span> ${imp.benefit}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = `
+                <div class="space-y-6">
+                    ${riskAnalysisHTML}
+                    ${topImprovements.length > 0 ? improvementsHTML : '<p class="text-sm text-gray-600 mt-4">No high-impact improvements found. Your plan is relatively robust.</p>'}
+                </div>
+            `;
+        } catch (error) {
+            console.error("Error generating actionable risk analysis:", error);
+            container.innerHTML = `<div class="p-4 bg-red-50 text-red-700 rounded">Error generating risk analysis. Please try again.</div>`;
+        }
+    }
+
+    async displaySensitivityAnalysis(result, inputs) {
+        const container = $('sensitivityAnalysisTable');
+        if (!container) return;
+
+        try {
+            const suggestionEngine = new SuggestionEngine(this.simulator, inputs, result);
+            const sensitivityResults = await suggestionEngine.generateSensitivityAnalysis();
+
+            const statusColors = ['border-red-500', 'border-orange-500', 'border-yellow-500', 'border-blue-500', 'border-green-500'];
+
+            if (sensitivityResults.length > 0) {
+                 container.innerHTML = `
+                    <div class="space-y-3">
+                        ${sensitivityResults.map((item, index) => `
+                            <div class="p-4 rounded-lg border-l-4 ${statusColors[index] || 'border-gray-400'} bg-gray-50">
+                                <h4 class="font-semibold text-gray-800 flex items-center">
+                                    <span class="text-lg font-bold mr-3">${index + 1}</span>
+                                    ${item.name}
+                                </h4>
+                                <p class="text-sm text-gray-600 mt-1 pl-8">${item.description}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `<p class="text-sm text-gray-600">Sensitivity analysis could not be generated.</p>`;
+            }
+        } catch (error) {
+            console.error("Error generating sensitivity analysis:", error);
+            container.innerHTML = `<div class="p-4 bg-red-50 text-red-700 rounded">Error generating sensitivity analysis.</div>`;
+        }
+    }
+
+    async displayVisceralScenarioComparison(result, inputs) {
+        const container = $('visceralScenarioComparisonTable');
+        if (!container) return;
+
+        try {
+            const suggestionEngine = new SuggestionEngine(this.simulator, inputs, result);
+            const scenarios = await suggestionEngine.generateVisceralScenarios(this.currentMonteCarloResults);
+
+            const getRowClass = (index, successRate) => {
+                if (index === 0) return 'bg-blue-50 font-semibold';
+                if (successRate < 0.7) return 'bg-red-50';
+                if (successRate > 0.9) return 'bg-green-50';
+                return 'bg-white';
+            };
+
+            container.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Scenario</th>
+                                <th class="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Success Rate</th>
+                                <th class="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Retirement Income</th>
+                                <th class="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Age Money Runs Out</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">What This Means</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            ${scenarios.map((scenario, index) => `
+                                <tr class="${getRowClass(index, scenario.successRate)}">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${scenario.name}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-800">${formatPercent(scenario.successRate)}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-800">${formatCurrency(scenario.retirementIncome)}/yr</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-800">${scenario.depletionAge}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${scenario.summary}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+        } catch (error) {
+            console.error("Error generating visceral scenario comparison:", error);
+            container.innerHTML = `<div class="p-4 bg-red-50 text-red-700 rounded">Error generating visceral scenarios.</div>`;
+        }
     }
 
     // Display year-by-year projection table
@@ -1606,56 +1806,36 @@ class RetirementCalculatorApp {
         return recommendations;
     }
 
-    // Enhanced Comprehensive Decision Support Engine
-    async runRecommendationEngine() {
+    // New Dynamic Suggestion Engine
+    async runSuggestionEngine() {
         if (this.isCalculating) return;
         this.isCalculating = true;
 
         try {
             const inputs = this.collectInputs();
+            const results = this.currentResults;
+            if (!results) {
+                showNotification('Please run a calculation first.', 'warning');
+                this.isCalculating = false;
+                return;
+            }
 
-            updateProgress(10, 'Initializing Comprehensive Decision Support Engine...');
+            updateProgress(10, 'Initializing Suggestion Engine...');
             await new Promise(resolve => setTimeout(resolve, 0));
 
-            // Use the new comprehensive decision support engine
-            const { default: DecisionSupportEngine } = await import(/* webpackChunkName: "decision-support" */ './decision-support-engine.js');
-            const decisionEngine = new DecisionSupportEngine(this.simulator, inputs);
+            const suggestionEngine = new SuggestionEngine(inputs, results);
+            const suggestions = suggestionEngine.generateSuggestions();
 
-            // This is a long process, so provide detailed feedback
-            updateProgress(20, 'Analyzing market conditions and property cycles...');
-            updateProgress(30, 'Running baseline Monte Carlo simulation...');
-            updateProgress(40, 'Evaluating home ownership strategies...');
-            updateProgress(50, 'Analyzing investment property timing...');
-            updateProgress(60, 'Optimizing stock and share strategies...');
-            updateProgress(70, 'Evaluating trust structures and tax benefits...');
-            updateProgress(80, 'Analyzing superannuation optimization...');
+            updateProgress(90, 'Formatting suggestions...');
+            this.displaySuggestions(suggestions);
 
-            const comprehensiveRecommendations = await decisionEngine.generateComprehensiveRecommendations();
-
-            updateProgress(90, 'Formatting comprehensive recommendations...');
-            this.displayComprehensiveRecommendations(comprehensiveRecommendations);
-
-            showTab('recommendations', true);
-            updateProgress(100, 'Comprehensive AI Recommendations Generated!');
-            showNotification('Successfully generated comprehensive AI recommendations covering all 8 strategic areas.', 'success');
+            showTab('suggestions', true);
+            updateProgress(100, 'Suggestions Generated!');
+            showNotification(`Successfully generated ${suggestions.length} suggestions.`, 'success');
 
         } catch (error) {
-            console.error('Comprehensive Recommendation Engine error:', error);
-            showNotification('Error generating comprehensive recommendations: ' + error.message, 'error');
-
-            // Fallback to basic recommendations if comprehensive fails
-            try {
-                updateProgress(50, 'Falling back to basic recommendations...');
-                const { default: RecommendationEngine } = await import(/* webpackChunkName: "recommendation" */ './recommendation.js');
-                const basicEngine = new RecommendationEngine(this.simulator, this.collectInputs());
-                const basicRecommendations = await basicEngine.generateRecommendations();
-                this.displayRecommendations(basicRecommendations);
-                showTab('recommendations', true);
-                showNotification('Generated basic recommendations (comprehensive engine had issues)', 'warning');
-            } catch (fallbackError) {
-                console.error('Fallback recommendation engine also failed:', fallbackError);
-                showNotification('Both comprehensive and basic recommendation engines failed', 'error');
-            }
+            console.error('Suggestion Engine error:', error);
+            showNotification('Error generating suggestions: ' + error.message, 'error');
         } finally {
             this.isCalculating = false;
             updateProgress(0);
@@ -1682,15 +1862,14 @@ class RetirementCalculatorApp {
             updateProgress(10, 'Analyzing your financial situation...');
             await new Promise(resolve => setTimeout(resolve, 100));
 
-            // Use the RecommendationEngine with our enhanced scenarios
-            const { default: RecommendationEngine } = await import(/* webpackChunkName: "recommendation" */ './recommendation.js');
-            const recommendationEngine = new RecommendationEngine(this.simulator, inputs);
+            // Use the SuggestionEngine for a unified approach
+            const suggestionEngine = new SuggestionEngine(this.simulator, inputs, this.currentResults);
 
             updateProgress(30, 'Running baseline calculation...');
             const baselineResults = await this.simulator.runMonteCarloSimulation(inputs, 1000);
 
             updateProgress(50, 'Generating actionable suggestions...');
-            const scenarios = await recommendationEngine.generateRecommendations();
+            const scenarios = await suggestionEngine.generateSuggestions();
 
             // Store scenarios for Try This functionality
             this.lastGeneratedSuggestions = scenarios;
@@ -2534,6 +2713,43 @@ class RetirementCalculatorApp {
         `).join('');
     }
 
+    displaySuggestions(suggestions) {
+        const container = $('suggestions-tab');
+        if (!container) return;
+
+        if (suggestions.length === 0) {
+            container.innerHTML = `
+                <div class="p-4 bg-green-50 text-green-800 rounded-lg">
+                    <h3 class="font-semibold">Your Plan Looks Solid!</h3>
+                    <p>Our analysis did not identify any high-impact strategies that would significantly improve your current plan.</p>
+                </div>
+            `;
+            return;
+        }
+
+        const priorityColors = {
+            'High': 'border-red-500 bg-red-50',
+            'Medium': 'border-yellow-500 bg-yellow-50',
+            'Low': 'border-blue-500 bg-blue-50'
+        };
+
+        container.innerHTML = suggestions.map(rec => `
+            <div class="recommendation-card p-4 rounded-lg border-l-4 ${priorityColors[rec.priority] || 'border-gray-300'} mb-4">
+                <div class="flex justify-between items-start">
+                    <h4 class="font-bold text-lg text-gray-800">${rec.title}</h4>
+                    <span class="text-xs px-2 py-1 ${priorityColors[rec.priority] ? priorityColors[rec.priority].replace('border-l-4', '').replace('bg-', 'bg-opacity-20 text-') : ''} rounded-full">${rec.priority} Priority</span>
+                </div>
+                <p class="mt-2 text-sm text-gray-700">${rec.description}</p>
+                <div class="mt-4">
+                    <strong class="text-sm font-semibold text-gray-900">Actionable Steps:</strong>
+                    <ul class="list-disc ml-5 mt-2 text-sm text-gray-700 space-y-2">
+                        ${(rec.actions || []).map(action => `<li>${action}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+        `).join('');
+    }
+
     displayRecommendations(recommendations) {
         const container = $('recommendationsContainer');
         if (!container) return;
@@ -3350,6 +3566,7 @@ class RetirementCalculatorApp {
 
     // Event listeners
     setupEventListeners() {
+        console.log('--- DEBUG: Setting up event listeners... ---'); // JULES DEBUG LOG
         console.log('setupEventListeners called!');
         // Prevent duplicate event listener setup
         if (this.eventListenersSetup) {
@@ -3367,7 +3584,7 @@ class RetirementCalculatorApp {
         // Recommendation Engine button
         const btnGenerateRecommendations = $('btnGenerateRecommendations');
         if (btnGenerateRecommendations) {
-            btnGenerateRecommendations.addEventListener('click', () => this.runRecommendationEngine());
+            btnGenerateRecommendations.addEventListener('click', () => this.runSuggestionEngine());
         }
 
         // Generate Suggestions button
