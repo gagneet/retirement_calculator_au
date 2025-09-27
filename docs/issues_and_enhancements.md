@@ -486,3 +486,82 @@ Result:
 The Chart.js canvas error should now be completely resolved! 🎯
 
 ---
+
+## ✅ Comprehensive Audit Results
+
+Issues Found & Fixed:
+
+1. AI Recommendations - Dividend Yield Threshold ❌➡️✅
+
+Location: /home/gagneet/retirement_calculator_au/src/js/decision-support-engine.js:281Issue: dividendYield > 0.05 (treating 4.5% as 0.045)Fix: dividendYield > 5 (correctly treats
+as percentage)
+
+2. Scenario Comparisons - Property Growth Rate ❌➡️✅
+
+Location: /home/gagneet/retirement_calculator_au/src/js/simulator.js:1720Issue: propertyGrowthRate: 2.0 (stored as percentage but should be decimal)Fix: propertyGrowthRate: 0.02
+(2% as decimal for calculations)
+
+3. AI Recommendations - Super Guarantee Rate ❌➡️✅
+
+Location: /home/gagneet/retirement_calculator_au/src/js/decision-support-engine.js:457Issue: Hardcoded 0.12 instead of using configFix: Uses ENHANCED_CONFIG.SUPER_GUARANTEE_RATE
+
+4. AI Recommendations - Super Return Rate ❌➡️✅
+
+Location: /home/gagneet/retirement_calculator_au/src/js/decision-support-engine.js:697Issue: Hardcoded 0.07 instead of user's inputFix: Uses this.inputs.superReturn (user's assumption)
+
+Verified Correct Usage:
+
+✅ All formatPercent() calls are correct
+
+- Used with decimal values (0.05 = 5%)
+- Market growth rates, improvement calculations, success rates all proper
+
+✅ Healthcare & General Inflation
+
+- healthcareInflation correctly used as percentage (3.82%)
+- inflation correctly converted with * 100 for display (2.9%)
+
+✅ Dividend Yield Display
+
+- Fixed to show 4.5% instead of 450.00%
+- Uses .toFixed(1)% instead of formatPercent()
+
+✅ Scenario Shock Values
+
+- shockProbability: 1.0 (100% as decimal) ✅
+- shockMagnitude: -0.4 (-40% as decimal) ✅
+- inflation: 0.04 (4% as decimal) ✅
+- investmentReturn: 0.07 (7% as decimal) ✅
+
+✅ Insurance Scenario Percentages
+
+- incomeImpact: 1.0 (100% income loss) ✅
+- expenseIncrease: 0.15 (15% increase) ✅
+- expenseReduction: 0.25 (25% reduction) ✅
+
+✅ Balance Percentage Calculations
+
+- Added protection against -100% displays
+- Capped at -95% to 1000% for realistic ranges
+
+Data Consistency Summary:
+
+Fields stored as DECIMALS (÷100):
+- Rates: mortgageRate, investmentPropertyRate, capitalGainsTaxRate, salaryGrowthRate
+- Returns: inflation, investmentReturn, savingsReturn, superReturn
+- Volatility: returnVolatility, shockProbability, shockMagnitude
+- Income: percentIncomeSaved, propertyGrowthRate, frankingRate
+
+Fields stored as PERCENTAGES (not ÷100):
+- Allocations: dividendYield, australianEquityAllocation, allocEquities, allocBonds, allocCash
+- Healthcare: healthcareInflation, agedCareProbability
+- Trust: trustAttributionPercentage
+
+All percentage values now correctly:
+
+✅ Use actual user input data instead of hardcoded defaults✅ Apply proper decimal/percentage conversions for calculations✅ Display percentages in human-readable format✅
+Maintain consistency between AI recommendations and scenario comparisons
+
+Your suggestions and scenario comparisons are now fully accurate and based on your exact input values!
+
+---
