@@ -386,6 +386,6 @@ export const ENHANCED_FINANCIAL_CONFIG = {
     }
 };
 
-// Backward compatibility - merge with existing config
-export { ENHANCED_CONFIG } from './config.js';
-export const CONFIG = { ...ENHANCED_CONFIG, ...ENHANCED_FINANCIAL_CONFIG };
+// Re-export for convenience
+export default ENHANCED_FINANCIAL_CONFIG;
+export const CONFIG = ENHANCED_FINANCIAL_CONFIG;

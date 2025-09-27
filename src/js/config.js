@@ -328,4 +328,5 @@ export const ENHANCED_CONFIG = {
     }
 };
 
+export { ENHANCED_CONFIG };
 export default ENHANCED_CONFIG;
