@@ -3350,8 +3350,10 @@ class RetirementCalculatorApp {
 
     // Event listeners
     setupEventListeners() {
+        console.log('setupEventListeners called!');
         // Prevent duplicate event listener setup
         if (this.eventListenersSetup) {
+            console.log('Event listeners already setup, returning');
             return;
         }
         this.eventListenersSetup = true;
@@ -3443,8 +3445,11 @@ class RetirementCalculatorApp {
         const btnExport = $('btnExport');
         const exportDropdown = $('exportDropdown');
 
+        console.log('Export button setup:', { btnExport: !!btnExport, exportDropdown: !!exportDropdown });
+
         if (btnExport && exportDropdown) {
             btnExport.addEventListener('click', (e) => {
+                console.log('Export button clicked!');
                 e.stopPropagation();
                 exportDropdown.classList.toggle('hidden');
             });
@@ -3477,6 +3482,7 @@ class RetirementCalculatorApp {
 
         if (btnExportUserData) {
             btnExportUserData.addEventListener('click', (e) => {
+                console.log('Export User Data clicked');
                 e.preventDefault();
                 this.exportUserInputs();
             });
@@ -3484,6 +3490,7 @@ class RetirementCalculatorApp {
 
         if (btnImportUserData) {
             btnImportUserData.addEventListener('click', (e) => {
+                console.log('Import User Data clicked');
                 e.preventDefault();
                 this.importUserInputs();
             });
