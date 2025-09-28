@@ -9,6 +9,8 @@ import MarketDataEngine from './market-data.js';
 import { initializeTrustUI } from './trust-ui.js';
 import ThemeManager from './theme.js';
 import OnboardingSystem from './onboarding.js';
+import ContextualIntelligenceSystem from './contextual-intelligence.js';
+import ScenarioMatrixEngine from './scenario-matrix.js';
 import {
     $,
     safeGetValue,
@@ -40,7 +42,10 @@ class RetirementCalculatorApp {
         this.chartManager = null; // Will be lazy-loaded
         this.marketData = new MarketDataEngine();
         this.themeManager = new ThemeManager();
+        this.contextualIntelligence = new ContextualIntelligenceSystem();
+        this.scenarioEngine = null; // Will be initialized when needed
         this.currentResults = null;
+        this.currentPersona = null;
         this.isCalculating = false;
         this.onboardingSystem = null;
 

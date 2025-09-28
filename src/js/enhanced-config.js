@@ -479,6 +479,362 @@ export const ENHANCED_FINANCIAL_CONFIG = {
             console.warn(`Metadata not found for ${category}.${key}`);
         }
         return null;
+    },
+
+    // ===== QUICK WINS CONFIGURATION =====
+    quickWins: {
+        _category: "Quick Wins Prioritization System",
+        _description: "Configuration for identifying and scoring quick win opportunities",
+
+        SCORING_WEIGHTS: {
+            TIME_TO_IMPLEMENT: {
+                value: 0.40,
+                description: "Weight for time to implement factor in Quick Win scoring"
+            },
+            FINANCIAL_IMPACT: {
+                value: 0.30,
+                description: "Weight for financial impact factor in Quick Win scoring"
+            },
+            IMPLEMENTATION_DIFFICULTY: {
+                value: 0.20,
+                description: "Weight for implementation difficulty factor in Quick Win scoring"
+            },
+            CONFIDENCE_LEVEL: {
+                value: 0.10,
+                description: "Weight for confidence level factor in Quick Win scoring"
+            }
+        },
+
+        TIME_THRESHOLDS: {
+            SAME_DAY: {
+                value: 30,
+                description: "Days threshold for same-day implementation (2 bonus points)",
+                unit: "days"
+            },
+            WITHIN_WEEK: {
+                value: 180,
+                description: "Days threshold for within-week implementation (1.5 bonus points)",
+                unit: "days"
+            },
+            WITHIN_MONTH: {
+                value: 365,
+                description: "Days threshold for within-month implementation (1 bonus point)",
+                unit: "days"
+            }
+        },
+
+        IMPACT_THRESHOLDS: {
+            HIGH_IMPACT: {
+                value: 50000,
+                description: "Dollar amount threshold for high impact classification",
+                unit: "AUD"
+            },
+            MEDIUM_IMPACT: {
+                value: 20000,
+                description: "Dollar amount threshold for medium impact classification",
+                unit: "AUD"
+            },
+            LOW_IMPACT: {
+                value: 5000,
+                description: "Dollar amount threshold for low impact classification",
+                unit: "AUD"
+            }
+        },
+
+        QUICK_WIN_THRESHOLD: {
+            value: 7.0,
+            description: "Minimum score (out of 10) to qualify as a Quick Win",
+            unit: "score"
+        },
+
+        CATEGORY_BONUSES: {
+            TAX_SUPER: {
+                value: 0.3,
+                description: "Bonus points for tax and superannuation optimizations"
+            },
+            INVESTMENT_OPTIMIZATION: {
+                value: 0.2,
+                description: "Bonus points for investment optimization strategies"
+            },
+            DEBT_MANAGEMENT: {
+                value: 0.4,
+                description: "Bonus points for debt management strategies"
+            }
+        },
+
+        ESTIMATES: {
+            EMPLOYER_SUPER_GAP_MULTIPLIER: {
+                value: 1.0,
+                description: "Multiplier for calculating employer super contribution gaps"
+            },
+            TAX_SAVINGS_MULTIPLIER: {
+                value: 0.2,
+                description: "Multiplier for estimating tax savings from concessional contributions"
+            },
+            DEBT_ELIMINATION_ESTIMATE: {
+                value: 25000,
+                description: "Estimated value for high-interest debt elimination benefit",
+                unit: "AUD"
+            },
+            EMERGENCY_FUND_VALUE: {
+                value: 15000,
+                description: "Estimated risk mitigation value of establishing emergency fund",
+                unit: "AUD"
+            },
+            FEE_AUDIT_SAVINGS: {
+                value: 30000,
+                description: "Estimated long-term savings from investment fee optimization",
+                unit: "AUD"
+            },
+            TAX_LOCATION_SAVINGS: {
+                value: 12000,
+                description: "Estimated annual tax savings from optimized asset location",
+                unit: "AUD"
+            }
+        }
+    },
+
+    // ===== SCENARIO ANALYSIS CONFIGURATION =====
+    scenarioAnalysis: {
+        _category: "Scenario Comparison Matrix System",
+        _description: "Configuration for scenario generation and analysis",
+
+        SIMULATION_PARAMETERS: {
+            MONTE_CARLO_RUNS: {
+                value: 1000,
+                description: "Number of Monte Carlo simulation runs per scenario"
+            },
+            MAX_SCENARIOS: {
+                value: 10,
+                description: "Maximum number of scenarios to analyze for performance"
+            }
+        },
+
+        SCORING_WEIGHTS: {
+            SUCCESS_RATE_WEIGHT: {
+                value: 50,
+                description: "Weight for success rate improvement in scenario scoring"
+            },
+            BALANCE_IMPROVEMENT_WEIGHT: {
+                value: 20,
+                description: "Weight for balance improvement in scenario scoring"
+            },
+            RISK_REDUCTION_WEIGHT: {
+                value: 15,
+                description: "Weight for risk reduction in scenario scoring"
+            },
+            FEASIBILITY_WEIGHT: {
+                value: 15,
+                description: "Weight for implementation feasibility in scenario scoring"
+            }
+        },
+
+        RISK_SCORE_WEIGHTS: {
+            FAILURE_RATE: {
+                value: 40,
+                description: "Weight for failure rate in risk scoring"
+            },
+            OUTCOME_VOLATILITY: {
+                value: 30,
+                description: "Weight for outcome volatility in risk scoring"
+            },
+            SHORTFALL_MAGNITUDE: {
+                value: 20,
+                description: "Weight for shortfall magnitude in risk scoring"
+            },
+            SEQUENCE_RISK: {
+                value: 10,
+                description: "Weight for sequence of returns risk in risk scoring"
+            }
+        },
+
+        OPPORTUNITY_SCORE_WEIGHTS: {
+            SUCCESS_RATE: {
+                value: 40,
+                description: "Weight for success rate in opportunity scoring"
+            },
+            UPSIDE_POTENTIAL: {
+                value: 30,
+                description: "Weight for upside potential in opportunity scoring"
+            },
+            FINAL_BALANCE: {
+                value: 20,
+                description: "Weight for final balance in opportunity scoring"
+            },
+            PENSION_OPTIMIZATION: {
+                value: 10,
+                description: "Weight for age pension optimization in opportunity scoring"
+            }
+        },
+
+        FEASIBILITY_PENALTIES: {
+            RETIREMENT_AGE_CHANGE: {
+                value: 2,
+                description: "Penalty points per year of retirement age change"
+            },
+            SAVINGS_RATE_CHANGE: {
+                value: 1.5,
+                description: "Penalty points per percentage point of savings rate change"
+            },
+            MAJOR_CASH_REQUIREMENT: {
+                value: 10,
+                description: "Penalty for scenarios requiring major cash outlay"
+            },
+            PROPERTY_PURCHASE: {
+                value: 15,
+                description: "Penalty for scenarios requiring property purchase"
+            },
+            LIFESTYLE_CHANGE: {
+                value: 8,
+                description: "Penalty for scenarios requiring lifestyle changes"
+            },
+            ALLOCATION_CHANGE: {
+                value: 5,
+                description: "Penalty for significant asset allocation changes"
+            }
+        },
+
+        AGE_BASED_SCENARIOS: {
+            YOUNG_PROFESSIONAL_THRESHOLD: {
+                value: 50,
+                description: "Age threshold for young professional scenarios",
+                unit: "years"
+            },
+            PRE_RETIREMENT_THRESHOLD: {
+                value: 60,
+                description: "Age threshold for pre-retirement scenarios",
+                unit: "years"
+            },
+            HIGH_INCOME_THRESHOLD: {
+                value: 180000,
+                description: "Income threshold for high-income specific scenarios",
+                unit: "AUD"
+            }
+        },
+
+        SCENARIO_MODIFICATIONS: {
+            AGGRESSIVE_EQUITY_ALLOCATION: {
+                value: 80,
+                description: "Equity percentage for aggressive growth scenarios",
+                unit: "percent"
+            },
+            CONSERVATIVE_EQUITY_ALLOCATION: {
+                value: 30,
+                description: "Equity percentage for conservative scenarios",
+                unit: "percent"
+            },
+            FIRE_SAVINGS_RATE: {
+                value: 30,
+                description: "Target savings rate for FIRE scenarios",
+                unit: "percent"
+            },
+            HIGH_HEALTHCARE_INFLATION: {
+                value: 8.0,
+                description: "Healthcare inflation rate for stress scenarios",
+                unit: "percent"
+            },
+            EXTENDED_LIFESPAN: {
+                value: 95,
+                description: "Extended lifespan for longevity risk scenarios",
+                unit: "years"
+            },
+            MARKET_STRESS_RETURN_REDUCTION: {
+                value: 0.02,
+                description: "Return reduction for market stress scenarios",
+                unit: "decimal"
+            }
+        }
+    },
+
+    // ===== CONTEXTUAL INTELLIGENCE CONFIGURATION =====
+    contextualIntelligence: {
+        _category: "Contextual Intelligence System",
+        _description: "Smart guidance and personalization configuration",
+
+        PERSONA_TRIGGERS: {
+            HIGH_EARNER_THRESHOLD: {
+                value: 150000,
+                description: "Combined income threshold to trigger high earner persona",
+                unit: "AUD"
+            },
+            BUSINESS_OWNER_THRESHOLD: {
+                value: 100000,
+                description: "Business asset threshold to trigger business owner persona",
+                unit: "AUD"
+            },
+            PROPERTY_INVESTOR_THRESHOLD: {
+                value: 1,
+                description: "Number of investment properties to trigger investor persona",
+                unit: "properties"
+            },
+            LATE_STARTER_AGE_THRESHOLD: {
+                value: 50,
+                description: "Age threshold to trigger late starter persona",
+                unit: "years"
+            },
+            LOW_SUPER_THRESHOLD: {
+                value: 100000,
+                description: "Super balance threshold for late starter classification",
+                unit: "AUD"
+            }
+        },
+
+        CONFIDENCE_SCORING: {
+            BASE_SCORE_PER_STEP: {
+                value: 15,
+                description: "Base confidence points awarded per completed onboarding step"
+            },
+            COMPLETE_PROFILE_BONUS: {
+                value: 20,
+                description: "Bonus points for completing full financial profile"
+            },
+            REALISTIC_GOALS_BONUS: {
+                value: 10,
+                description: "Bonus points for setting realistic retirement goals"
+            },
+            COMPREHENSIVE_PLANNING_BONUS: {
+                value: 15,
+                description: "Bonus points for comprehensive retirement planning approach"
+            }
+        },
+
+        GUIDANCE_THRESHOLDS: {
+            SUGGESTION_CONFIDENCE_THRESHOLD: {
+                value: 70,
+                description: "Minimum confidence score to show advanced suggestions"
+            },
+            SCENARIO_ANALYSIS_THRESHOLD: {
+                value: 80,
+                description: "Minimum confidence score to recommend scenario analysis"
+            },
+            BASIC_GUIDANCE_THRESHOLD: {
+                value: 40,
+                description: "Minimum confidence score for basic guidance display"
+            }
+        },
+
+        ALERT_TRIGGERS: {
+            LOW_SAVINGS_RATE: {
+                value: 5,
+                description: "Savings rate percentage below which to trigger savings alert",
+                unit: "percent"
+            },
+            HIGH_DEBT_RATIO: {
+                value: 0.3,
+                description: "Debt to income ratio above which to trigger debt alert",
+                unit: "ratio"
+            },
+            INSUFFICIENT_EMERGENCY_FUND: {
+                value: 3,
+                description: "Months of expenses below which to trigger emergency fund alert",
+                unit: "months"
+            },
+            LATE_RETIREMENT_START: {
+                value: 45,
+                description: "Age above which to trigger retirement planning urgency alert",
+                unit: "years"
+            }
+        }
     }
 };
 

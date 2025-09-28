@@ -28,13 +28,17 @@ export default class SuggestionEngine {
             // Clear any existing suggestions
             this.suggestions = [];
 
-        // 1. Generate specific, persona-based suggestions first
+        // 1. Generate Quick Wins first (highest priority)
+        const quickWins = this.generateQuickWins();
+        this.suggestions.push(...quickWins);
+
+        // 2. Generate specific, persona-based suggestions
         this.generateSuggestionsForSarah();
         this.generateSuggestionsForMarkAndLisa();
         this.generateSuggestionsForRobert();
         this.generateSuggestionsForJenny();
 
-        // 2. Run baseline simulation for deeper, scenario-based analysis
+        // 3. Run baseline simulation for deeper, scenario-based analysis
         const baseline = await this.runBaselineAnalysis();
         if (baseline) {
             const recommendationPromises = [
@@ -56,7 +60,7 @@ export default class SuggestionEngine {
             });
         }
 
-            // 3. Prioritize and return all collected suggestions
+            // 4. Prioritize and return all collected suggestions (Quick Wins will float to top)
             return this.prioritizeSuggestions();
         } catch (error) {
             console.error('Error generating suggestions:', error);
@@ -369,12 +373,207 @@ export default class SuggestionEngine {
         // Use a Set to remove duplicate suggestions based on title
         const uniqueSuggestions = Array.from(new Map(this.suggestions.map(s => [s.title, s])).values());
 
-        uniqueSuggestions.sort((a, b) => {
-            const aPriority = priorityOrder[a.priority] || 0;
-            const bPriority = priorityOrder[b.priority] || 0;
-            return bPriority - aPriority;
+        // Enhanced prioritization with Quick Wins scoring
+        const quickWinThreshold = ENHANCED_CONFIG.quickWins.QUICK_WIN_THRESHOLD.value;
+        const enhancedSuggestions = uniqueSuggestions.map(suggestion => {
+            const quickWinScore = this.calculateQuickWinScore(suggestion);
+            return {
+                ...suggestion,
+                quickWinScore,
+                isQuickWin: quickWinScore >= quickWinThreshold,
+                priorityScore: (priorityOrder[suggestion.priority] || 0) + (quickWinScore / 10)
+            };
         });
-        return uniqueSuggestions;
+
+        enhancedSuggestions.sort((a, b) => {
+            // First sort by Quick Wins (highest score first)
+            if (a.isQuickWin && !b.isQuickWin) return -1;
+            if (!a.isQuickWin && b.isQuickWin) return 1;
+
+            // Then by priority score (highest first)
+            return b.priorityScore - a.priorityScore;
+        });
+
+        return enhancedSuggestions;
+    }
+
+    // Calculate Quick Win Score (0-10) based on multiple factors
+    calculateQuickWinScore(suggestion) {
+        const config = ENHANCED_CONFIG.quickWins;
+        let score = 5; // Base score
+
+        // Time to implement (configurable weight)
+        if (suggestion.timeToImplement) {
+            const timeWeight = config.SCORING_WEIGHTS.TIME_TO_IMPLEMENT.value * 5; // Scale to 5 points max
+            if (suggestion.timeToImplement <= config.TIME_THRESHOLDS.SAME_DAY.value) {
+                score += timeWeight;
+            } else if (suggestion.timeToImplement <= config.TIME_THRESHOLDS.WITHIN_WEEK.value) {
+                score += timeWeight * 0.75;
+            } else if (suggestion.timeToImplement <= config.TIME_THRESHOLDS.WITHIN_MONTH.value) {
+                score += timeWeight * 0.5;
+            } else {
+                score += timeWeight * 0.25;
+            }
+        }
+
+        // Financial impact (configurable weight and thresholds)
+        if (suggestion.estimatedImpact) {
+            const impact = parseFloat(suggestion.estimatedImpact.replace(/[$,]/g, ''));
+            const impactWeight = config.SCORING_WEIGHTS.FINANCIAL_IMPACT.value * 5; // Scale to 5 points max
+
+            if (impact >= config.IMPACT_THRESHOLDS.HIGH_IMPACT.value) {
+                score += impactWeight;
+            } else if (impact >= config.IMPACT_THRESHOLDS.MEDIUM_IMPACT.value) {
+                score += impactWeight * 0.67;
+            } else if (impact >= config.IMPACT_THRESHOLDS.LOW_IMPACT.value) {
+                score += impactWeight * 0.33;
+            }
+        }
+
+        // Implementation difficulty (configurable weight)
+        if (suggestion.difficulty) {
+            const difficultyWeight = config.SCORING_WEIGHTS.IMPLEMENTATION_DIFFICULTY.value * 5; // Scale to 5 points max
+            switch (suggestion.difficulty.toLowerCase()) {
+                case 'very easy': score += difficultyWeight; break;
+                case 'easy': score += difficultyWeight * 0.7; break;
+                case 'moderate': score += difficultyWeight * 0.4; break;
+                case 'hard': score += difficultyWeight * 0.1; break;
+                default: score += difficultyWeight * 0.3;
+            }
+        }
+
+        // Confidence level (configurable weight)
+        if (suggestion.confidence) {
+            const confidenceWeight = config.SCORING_WEIGHTS.CONFIDENCE_LEVEL.value * 5; // Scale to 5 points max
+            score += (suggestion.confidence / 100) * confidenceWeight;
+        }
+
+        // Category-specific bonuses (configurable)
+        if (suggestion.category) {
+            switch (suggestion.category.toLowerCase()) {
+                case 'tax & super':
+                case 'superannuation':
+                    score += config.CATEGORY_BONUSES.TAX_SUPER.value;
+                    break;
+                case 'investment optimization':
+                    score += config.CATEGORY_BONUSES.INVESTMENT_OPTIMIZATION.value;
+                    break;
+                case 'debt management':
+                    score += config.CATEGORY_BONUSES.DEBT_MANAGEMENT.value;
+                    break;
+            }
+        }
+
+        return Math.min(10, Math.max(0, score));
+    }
+
+    // Generate Quick Wins specifically
+    generateQuickWins() {
+        const quickWins = [];
+        const config = ENHANCED_CONFIG.quickWins;
+        const superConfig = ENHANCED_CONFIG.australianSystem;
+        const { yourSalary, partnerSalary, yourCurrentSuper, partnerCurrentSuper,
+               currentSavings, employerSuperContribution, nonConcessionalContribution } = this.inputs;
+
+        // Quick Win 1: Maximize employer super matching
+        if (employerSuperContribution < (superConfig.SUPER_GUARANTEE_RATE.value * 100)) {
+            const gapPercent = (superConfig.SUPER_GUARANTEE_RATE.value * 100) - employerSuperContribution;
+            const gapAmount = (yourSalary + partnerSalary) * (gapPercent / 100);
+
+            quickWins.push({
+                category: 'Superannuation',
+                priority: 'High',
+                title: 'Maximize Employer Super Contributions',
+                description: `Your employer is only contributing ${employerSuperContribution}% super. The Super Guarantee is ${superConfig.SUPER_GUARANTEE_RATE.value * 100}% - you may be missing free money.`,
+                actions: ['Contact HR about super contributions', 'Verify your employment contract', 'Consider salary sacrifice'],
+                estimatedImpact: formatCurrency(gapAmount * config.ESTIMATES.EMPLOYER_SUPER_GAP_MULTIPLIER.value),
+                timeToImplement: config.TIME_THRESHOLDS.SAME_DAY.value / 4, // Quarter of same-day threshold
+                difficulty: 'Very Easy',
+                confidence: 95
+            });
+        }
+
+        // Quick Win 2: Use unused concessional cap
+        const unusedCap = calculateUnusedConcessionalCap(this.inputs);
+        const unusedThreshold = config.IMPACT_THRESHOLDS.LOW_IMPACT.value;
+        if (unusedCap > unusedThreshold) {
+            quickWins.push({
+                category: 'Tax & Super',
+                priority: 'High',
+                title: 'Utilize Unused Concessional Super Cap',
+                description: `You have ${formatCurrency(unusedCap)} unused concessional super cap. This is a 15% tax advantage vs your marginal rate.`,
+                actions: ['Set up salary sacrifice', 'Make personal deductible contribution', 'Consult financial advisor'],
+                estimatedImpact: formatCurrency(unusedCap * config.ESTIMATES.TAX_SAVINGS_MULTIPLIER.value),
+                timeToImplement: config.TIME_THRESHOLDS.WITHIN_WEEK.value / 13, // ~14 days
+                difficulty: 'Easy',
+                confidence: 90
+            });
+        }
+
+        // Quick Win 3: High-interest debt elimination
+        if (this.inputs.hasDebt === 'high' || this.inputs.hasDebt === 'moderate') {
+            quickWins.push({
+                category: 'Debt Management',
+                priority: 'High',
+                title: 'Prioritize High-Interest Debt Elimination',
+                description: 'High-interest debt (credit cards, personal loans) typically costs 15-25% annually - higher than investment returns.',
+                actions: ['List all debts by interest rate', 'Pay minimums + focus extra on highest rate', 'Consider debt consolidation'],
+                estimatedImpact: formatCurrency(config.ESTIMATES.DEBT_ELIMINATION_ESTIMATE.value),
+                timeToImplement: config.TIME_THRESHOLDS.SAME_DAY.value,
+                difficulty: 'Easy',
+                confidence: 85
+            });
+        }
+
+        // Quick Win 4: Emergency fund establishment
+        if (this.inputs.hasEmergencyFund === 'none' || this.inputs.hasEmergencyFund === 'minimal') {
+            quickWins.push({
+                category: 'Financial Security',
+                priority: 'Medium',
+                title: 'Build Emergency Fund',
+                description: 'Emergency fund prevents early super access and provides financial security. Aim for 3-6 months expenses.',
+                actions: ['Calculate monthly expenses', 'Set up automatic savings', 'Use high-interest savings account'],
+                estimatedImpact: formatCurrency(config.ESTIMATES.EMERGENCY_FUND_VALUE.value),
+                timeToImplement: config.TIME_THRESHOLDS.SAME_DAY.value,
+                difficulty: 'Easy',
+                confidence: 80
+            });
+        }
+
+        // Quick Win 5: Investment fee audit
+        quickWins.push({
+            category: 'Investment Optimization',
+            priority: 'Medium',
+            title: 'Audit Investment Fees',
+            description: 'High fees compound over time. Even 0.5% difference in fees can cost tens of thousands over decades.',
+            actions: ['Review super fund fees', 'Compare investment platform costs', 'Consider low-cost index funds'],
+            estimatedImpact: formatCurrency(config.ESTIMATES.FEE_AUDIT_SAVINGS.value),
+            timeToImplement: config.TIME_THRESHOLDS.WITHIN_WEEK.value / 13, // ~14 days
+            difficulty: 'Easy',
+            confidence: 75
+        });
+
+        // Quick Win 6: Tax-efficient investment allocation
+        const savingsThreshold = config.IMPACT_THRESHOLDS.HIGH_IMPACT.value;
+        if (currentSavings > savingsThreshold) {
+            quickWins.push({
+                category: 'Tax Optimization',
+                priority: 'Medium',
+                title: 'Optimize Asset Location for Tax',
+                description: 'Hold growth assets outside super for CGT discount, income-producing assets in super for tax efficiency.',
+                actions: ['Review current allocation', 'Move growth stocks outside super', 'Hold bonds/REITs in super'],
+                estimatedImpact: formatCurrency(config.ESTIMATES.TAX_LOCATION_SAVINGS.value),
+                timeToImplement: config.TIME_THRESHOLDS.SAME_DAY.value / 4, // ~7 days
+                difficulty: 'Moderate',
+                confidence: 70
+            });
+        }
+
+        // Calculate actual Quick Win scores for each suggestion
+        return quickWins.map(qw => ({
+            ...qw,
+            quickWinScore: this.calculateQuickWinScore(qw)
+        })).filter(qw => qw.quickWinScore >= config.QUICK_WIN_THRESHOLD.value);
     }
 
     async generateActionableRiskAnalysis(baselineResults) {
