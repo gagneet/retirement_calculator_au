@@ -1333,3 +1333,60 @@ select:focus {
 .risk-tolerance-slider:focus::-ms-thumb {
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
 }
+
+/* Default Values Highlighting System */
+.enhancement-highlight {
+    background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+    border: 2px solid #f59e0b;
+    box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.1), 0 2px 4px -1px rgba(245, 158, 11, 0.06);
+    position: relative;
+}
+
+.default-values-section {
+    background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+    border: 2px solid #f59e0b;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+    animation: pulse-highlight 2s ease-in-out infinite;
+    position: relative;
+}
+
+@keyframes pulse-highlight {
+    0%, 100% {
+        box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
+    }
+}
+
+.default-values-section::before {
+    content: "⚠️ Default Values";
+    position: absolute;
+    top: -12px;
+    left: 12px;
+    background: #f59e0b;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    z-index: 10;
+}
+
+/* Dark theme adjustments for highlighting */
+[data-theme="dark"] .enhancement-highlight {
+    background: linear-gradient(135deg, #451a03 0%, #78350f 100%);
+    border: 2px solid #fbbf24;
+    box-shadow: 0 4px 6px -1px rgba(251, 191, 36, 0.2), 0 2px 4px -1px rgba(251, 191, 36, 0.1);
+}
+
+[data-theme="dark"] .default-values-section {
+    background: linear-gradient(135deg, #451a03 0%, #78350f 100%);
+    border: 2px solid #fbbf24;
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+}
+
+[data-theme="dark"] .default-values-section::before {
+    background: #fbbf24;
+    color: #1f2937;
+}

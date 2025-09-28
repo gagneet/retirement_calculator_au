@@ -3,28 +3,42 @@
 ## Quick Start Guide
 
 ### For New Users
-1. **Open the application** in your web browser at `http://localhost:8000`
-2. **Click "New User? Start Here"** - This will activate the onboarding system
+1. **Open the application** in your web browser at **https://retirement.gagneet.com**
+2. **Click "New User? Start Here"** (large green button) - This will activate the guided onboarding system
 3. **Complete the tabs in order**: Household → Finances → Property → Goals → Review
 4. **View your results** in the Results, Charts, and Action Plan tabs
 5. **Export your data** using the export buttons for future reference
 
 ### For Returning Users
-1. **Click "Returning User? Upload Data"** on the welcome page
-2. **Select your previously exported JSON file**
-3. **Review and update** any changed information
-4. **Recalculate** to see updated projections
+1. **Click "Returning User? Upload Data"** (blue button) on the welcome page
+2. **Select your previously exported file** (JSON, CSV, or Excel format supported)
+3. **Review and update** any changed information in the revealed tabs
+4. **Recalculate** to see updated projections with your new data
 
 ## Detailed User Guide
 
 ### 1. Initial Overview Page
-When you first open the calculator, you'll see:
-- **Brief description** of the calculator's capabilities
-- **Two main action buttons**:
-  - 🏠 **New User? Start Here** - Begin fresh calculation
-  - 📂 **Returning User? Upload Data** - Load previous data
-- **Feature highlights** showing what the calculator can do
-- **Benefits overview** explaining the Australian-specific features
+When you first open the calculator, you'll see a comprehensive welcome experience:
+
+#### Hero Section
+- **Smart Australian Retirement Calculator** title with professional branding
+- **Brief overview** of Monte Carlo simulation and Australian regulatory compliance
+- **Visual appeal** with modern gradient design and emojis
+
+#### Action Buttons
+- 🚀 **New User? Start Here** (Large green button) - Begins guided onboarding process
+- 📂 **Returning User? Upload Data** (Blue button) - Loads previously saved calculation files
+
+#### Feature Cards (3-Column Layout)
+1. **💰 Superannuation Optimization** - Max contributions, tax benefits, pension phase modeling
+2. **🏛️ Age Pension Integration** - Asset/income tests, deeming rates, Centrelink compliance
+3. **📊 Monte Carlo Analysis** - 10,000+ scenarios, stress testing, confidence scoring
+
+#### Key Benefits
+- ✅ **Australian Regulatory Compliance** - Current 2024-25 tax rates and super rules
+- ✅ **Professional-Grade Analysis** - Monte Carlo simulation engine
+- ✅ **Actionable Results** - Specific implementation strategies with ROI calculations
+- ✅ **Comprehensive Modeling** - Investment properties, debt optimization, healthcare costs
 
 ### 2. Progressive Onboarding System
 

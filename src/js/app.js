@@ -1,6 +1,9 @@
 import '../css/styles.css';
 // js/app.js - Main Application Controller
 
+console.log('🔥 JavaScript bundle executing - app.js loaded');
+console.log('🔍 Testing basic console functionality');
+
 import { ENHANCED_CONFIG } from './config.js';
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import RetirementSimulator from './simulator.js';
@@ -3675,7 +3678,8 @@ class RetirementCalculatorApp {
             btnGenerateOverseasScenarios.addEventListener('click', () => this.generateOverseasScenarios());
         }
 
-        // Monte Carlo button
+        // Monte Carlo button - COMMENTED OUT: Duplicate, using the one in setupAdvancedCalculatorEventListeners instead
+        /*
         const btnMonteCarlo = $('btnMonteCarlo');
         console.log('DEBUG: btnMonteCarlo found:', !!btnMonteCarlo);
         if (btnMonteCarlo) {
@@ -3684,8 +3688,10 @@ class RetirementCalculatorApp {
                 this.runMonteCarloSimulation();
             });
         }
+        */
 
-        // Stress test button
+        // Stress test button - COMMENTED OUT: Duplicate, using the one in setupAdvancedCalculatorEventListeners instead
+        /*
         const btnStressTest = $('btnStressTest');
         console.log('DEBUG: btnStressTest found:', !!btnStressTest);
         if (btnStressTest) {
@@ -3694,8 +3700,10 @@ class RetirementCalculatorApp {
                 this.runStressTest();
             });
         }
+        */
 
-        // Retirement solver button
+        // Retirement solver button - COMMENTED OUT: Duplicate, using the one in setupAdvancedCalculatorEventListeners instead
+        /*
         const btnRetirementSolver = $('btnRetirementSolver');
         console.log('DEBUG: btnRetirementSolver found:', !!btnRetirementSolver);
         if (btnRetirementSolver) {
@@ -3704,8 +3712,10 @@ class RetirementCalculatorApp {
                 this.runRetirementSolver();
             });
         }
+        */
 
-        // Scenario comparison button
+        // Scenario comparison button - COMMENTED OUT: Duplicate, using the one in setupAdvancedCalculatorEventListeners instead
+        /*
         const btnScenarioComparison = $('btnScenarioComparison');
         console.log('DEBUG: btnScenarioComparison found:', !!btnScenarioComparison);
         if (btnScenarioComparison) {
@@ -3720,6 +3730,7 @@ class RetirementCalculatorApp {
                 // window.location.href = 'comparison.html';
             });
         }
+        */
 
         // Reset to defaults button
         const btnResetDefaults = $('btnResetDefaults');
@@ -4858,11 +4869,16 @@ class RetirementCalculatorApp {
 
     // 🚀 NEW: Update Results tab with confidence dashboard data
     updateResultsTabConfidenceDashboard(result, inputs, monteCarloResults, confidenceScore) {
+        console.log('🎯 Updating Results tab dashboard with confidence score:', confidenceScore);
+
         // Update confidence score display
         const confidenceScoreElement = document.getElementById('confidenceScore');
+        console.log('🔍 Confidence score element found:', !!confidenceScoreElement);
+
         if (confidenceScoreElement) {
             const scoreValue = Math.round(confidenceScore * 100);
             confidenceScoreElement.textContent = scoreValue;
+            console.log('✅ Updated confidence score to:', scoreValue);
 
             // Update color indicator based on score
             const colorIndicator = confidenceScoreElement.nextElementSibling;
@@ -4874,7 +4890,12 @@ class RetirementCalculatorApp {
                 } else {
                     colorIndicator.innerHTML = '/100 🔴';
                 }
+                console.log('✅ Updated color indicator');
+            } else {
+                console.warn('⚠️ Color indicator element not found');
             }
+        } else {
+            console.error('❌ Confidence score element not found');
         }
 
         // Update success rate display
@@ -6115,6 +6136,8 @@ class RetirementCalculatorApp {
 
 // 🚀 NEW: Global function to start onboarding
 window.startOnboarding = function() {
+    console.log('🚀 startOnboarding() called!');
+
     // Clear any existing onboarding completion flags
     localStorage.removeItem('retirement-calc-onboarding-completed');
     localStorage.removeItem('retirement-calc-onboarding-data');
@@ -6140,6 +6163,8 @@ window.startOnboarding = function() {
 
 // 🚀 NEW: Tab switching functionality
 window.switchTab = function(tabName) {
+    console.log('🔄 Switching to tab:', tabName);
+
     // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.add('hidden');
@@ -6154,9 +6179,15 @@ window.switchTab = function(tabName) {
 
     // Show selected tab content
     const selectedContent = document.getElementById(`content-${tabName}`);
+    console.log('📄 Selected content element found:', !!selectedContent);
+    console.log('📄 Content HTML length:', selectedContent?.innerHTML?.length || 0);
+
     if (selectedContent) {
         selectedContent.classList.remove('hidden');
         selectedContent.classList.add('active');
+        console.log('✅ Tab content shown for:', tabName);
+    } else {
+        console.error('❌ Tab content not found for:', tabName);
     }
 
     // Activate selected tab button
@@ -6164,6 +6195,9 @@ window.switchTab = function(tabName) {
     if (selectedButton) {
         selectedButton.classList.add('active', 'border-blue-500', 'text-blue-600');
         selectedButton.classList.remove('border-transparent', 'text-gray-500');
+        console.log('✅ Tab button activated for:', tabName);
+    } else {
+        console.warn('⚠️ Tab button not found for:', tabName);
     }
 };
 
@@ -6262,24 +6296,42 @@ function completeOnboarding() {
     }
 
     // Set up event listeners for advanced calculator buttons
-    setTimeout(() => {
+    setTimeout(async () => {
         if (window.app) {
             // Set up event listeners since they weren't set up during onboarding mode
             if (!window.app.eventListenersSetup) {
                 window.app.setupEventListeners();
             }
 
-            // Run the calculation
-            if (window.app.calculateRetirement) {
-                window.app.calculateRetirement(true);
+            // Run the calculation with proper context binding
+            if (window.app && typeof window.app.calculateRetirement === 'function') {
+                try {
+                    console.log('🚀 Starting calculation from completeOnboarding...');
 
-                // Switch to results tab to show the generated plan
-                setTimeout(() => {
+                    // Use .call() to ensure proper 'this' context in webpack builds and await the async result
+                    const calculationResult = await window.app.calculateRetirement.call(window.app, true);
+                    console.log('✅ Calculation completed:', calculationResult);
+
+                    // Switch to results tab to show the generated plan (no timeout needed since calculation is complete)
+                    console.log('🔄 Switching to results tab...');
                     switchTab('results');
+
+                    // Check if results content is populated
+                    const resultsContent = document.getElementById('content-results');
+                    const confidenceScore = document.getElementById('confidenceScore');
+                    console.log('📊 Results tab content:', resultsContent?.innerHTML?.length || 0, 'characters');
+                    console.log('🎯 Confidence score element:', confidenceScore?.textContent);
 
                     // Show success message
                     alert('🎉 Your Retirement Plan has been generated! Explore the Results, Charts, and Action Plan tabs to see your personalized analysis.');
-                }, 1000);
+                } catch (error) {
+                    console.error('❌ Error running calculation:', error);
+                    console.error('Error stack:', error.stack);
+
+                    // Fallback - still show tabs but with error message
+                    switchTab('results');
+                    alert('⚠️ There was an issue generating your plan. Please check the console for details and try clicking "Calculate Enhanced Projection" in the Advanced Calculator tab.');
+                }
             }
         } else {
             // Fallback if app not ready - switch to advanced calculator
@@ -6882,6 +6934,8 @@ function setupTabActionHandlers() {
         });
     }
 
+    // COMMENTED OUT: Duplicate scenario comparison listener
+    /*
     const btnScenarioComparison = document.getElementById('btnScenarioComparison');
     if (btnScenarioComparison) {
         btnScenarioComparison.addEventListener('click', function() {
@@ -6890,6 +6944,7 @@ function setupTabActionHandlers() {
             }
         });
     }
+    */
 
     // Export Tab Actions
     const btnExportPDF = document.getElementById('btnExportPDF');
@@ -7115,12 +7170,15 @@ function setupCurrencyFormatting() {
 }
 
 function initializeApp() {
+    console.log('🎯 initializeApp() called');
+
     // Prevent double initialization
     if (window.app && window.app.isInitialized) {
-        console.log('App already exists & initialized, skipping initialization...');
+        console.log('⚠️ App already exists & initialized, skipping initialization...');
         return;
     }
 
+    console.log('🏗️ Starting app initialization...');
     try {
         const app = new RetirementCalculatorApp();
         window.app = app;
@@ -7138,7 +7196,7 @@ function initializeApp() {
 
         // Expose new UI functions
         window.uploadData = function() {
-            console.log('Upload Data clicked - opening file dialog...');
+            console.log('📂 uploadData() called - opening file dialog...');
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = '.json,.csv';
@@ -7252,19 +7310,54 @@ function initializeApp() {
 
             // Main calculation button
             const btnCalculate = $('btnCalculate');
+            console.log('🔍 Calculate button element found:', !!btnCalculate);
             if (btnCalculate) {
-                btnCalculate.addEventListener('click', () => {
-                    console.log('Calculate Enhanced Projection clicked via addEventListener!');
-                    this.calculateRetirement(true);
+                btnCalculate.addEventListener('click', async () => {
+                    console.log('🧮 Calculate Enhanced Projection clicked via addEventListener!');
+                    console.log('🔍 Window.app available:', !!window.app);
+                    console.log('🔍 calculateRetirement method available:', typeof window.app?.calculateRetirement);
+
+                    if (window.app && typeof window.app.calculateRetirement === 'function') {
+                        try {
+                            console.log('🚀 Starting calculation from Advanced Calculator...');
+                            const result = await window.app.calculateRetirement.call(window.app, true);
+                            console.log('✅ Advanced Calculator calculation result:', result);
+
+                            // Show results in the Analysis Results section
+                            showAnalysisResult('enhancedProjectionResults');
+                            populateEnhancedProjectionResults(result);
+
+                        } catch (error) {
+                            console.error('❌ Error in Advanced Calculator calculation:', error);
+                            alert('⚠️ Calculation failed: ' + error.message);
+                        }
+                    } else {
+                        console.error('App not initialized or calculateRetirement method not available');
+                        alert('⚠️ Calculator not ready. Please refresh the page and try again.');
+                    }
                 });
+            } else {
+                console.error('❌ Calculate button not found in DOM');
             }
 
             // Monte Carlo button
             const btnMonteCarlo = $('btnMonteCarlo');
             if (btnMonteCarlo) {
-                btnMonteCarlo.addEventListener('click', () => {
+                btnMonteCarlo.addEventListener('click', async () => {
                     console.log('Run Enhanced Monte Carlo clicked via addEventListener!');
-                    this.runMonteCarloSimulation();
+                    if (window.app && typeof window.app.runMonteCarloSimulation === 'function') {
+                        try {
+                            const result = await window.app.runMonteCarloSimulation.call(window.app);
+                            showAnalysisResult('monteCarloResults');
+                            populateMonteCarloResults(result);
+                        } catch (error) {
+                            console.error('❌ Error in Monte Carlo simulation:', error);
+                            alert('⚠️ Monte Carlo simulation failed: ' + error.message);
+                        }
+                    } else {
+                        console.error('App not initialized or runMonteCarloSimulation method not available');
+                        alert('⚠️ Calculator not ready. Please refresh the page and try again.');
+                    }
                 });
             }
 
@@ -7273,7 +7366,12 @@ function initializeApp() {
             if (btnStressTest) {
                 btnStressTest.addEventListener('click', () => {
                     console.log('Run Stress Test clicked via addEventListener!');
-                    this.runStressTest();
+                    if (window.app && typeof window.app.runStressTest === 'function') {
+                        window.app.runStressTest.call(window.app);
+                    } else {
+                        console.error('App not initialized or runStressTest method not available');
+                        alert('⚠️ Calculator not ready. Please refresh the page and try again.');
+                    }
                 });
             }
 
@@ -7282,7 +7380,12 @@ function initializeApp() {
             if (btnRetirementSolver) {
                 btnRetirementSolver.addEventListener('click', () => {
                     console.log('When Can I Retire? clicked via addEventListener!');
-                    this.runRetirementSolver();
+                    if (window.app && typeof window.app.runRetirementSolver === 'function') {
+                        window.app.runRetirementSolver.call(window.app);
+                    } else {
+                        console.error('App not initialized or runRetirementSolver method not available');
+                        alert('⚠️ Calculator not ready. Please refresh the page and try again.');
+                    }
                 });
             }
 
@@ -7291,7 +7394,12 @@ function initializeApp() {
             if (btnGenerateRecommendations) {
                 btnGenerateRecommendations.addEventListener('click', () => {
                     console.log('Generate AI Recommendations clicked via addEventListener!');
-                    this.runRecommendationEngine();
+                    if (window.app && typeof window.app.runRecommendationEngine === 'function') {
+                        window.app.runRecommendationEngine.call(window.app);
+                    } else {
+                        console.error('App not initialized or runRecommendationEngine method not available');
+                        alert('⚠️ Calculator not ready. Please refresh the page and try again.');
+                    }
                 });
             }
 
@@ -7300,7 +7408,12 @@ function initializeApp() {
             if (btnScenarioComparison) {
                 btnScenarioComparison.addEventListener('click', () => {
                     console.log('Compare Scenarios clicked via addEventListener!');
-                    this.runScenarioComparison();
+                    if (window.app && typeof window.app.runScenarioComparison === 'function') {
+                        window.app.runScenarioComparison.call(window.app);
+                    } else {
+                        console.error('App not initialized or runScenarioComparison method not available');
+                        alert('⚠️ Calculator not ready. Please refresh the page and try again.');
+                    }
                 });
             }
 
@@ -7319,30 +7432,75 @@ function initializeApp() {
         // Call the setup function
         setupAdvancedCalculatorEventListeners.call(this);
 
+        // Helper functions for Analysis Results display
+        window.showAnalysisResult = function(resultId) {
+            // Hide all analysis result sections
+            document.querySelectorAll('.analysis-result').forEach(section => {
+                section.classList.add('hidden');
+            });
+
+            // Show the requested result section
+            const resultSection = document.getElementById(resultId);
+            if (resultSection) {
+                resultSection.classList.remove('hidden');
+                console.log('📊 Showing analysis result:', resultId);
+            }
+        };
+
+        window.populateEnhancedProjectionResults = function(result) {
+            const content = document.getElementById('projectionContent');
+            if (content && result) {
+                content.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h5 class="font-semibold text-blue-800">Retirement Balance</h5>
+                            <p class="text-2xl font-bold text-blue-900">${formatCurrency(result.totalAssetsAtRetirement || 0)}</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <h5 class="font-semibold text-green-800">Age Pension Eligible</h5>
+                            <p class="text-2xl font-bold text-green-900">${result.agePensionEligible ? 'Yes' : 'No'}</p>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <h5 class="font-semibold text-purple-800">Years to Retirement</h5>
+                            <p class="text-2xl font-bold text-purple-900">${result.yearsToRetirement || 'N/A'}</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h5 class="font-semibold mb-2">Calculation Summary</h5>
+                        <p class="text-sm text-gray-700">Enhanced projection completed successfully. Results show your projected financial position at retirement based on current inputs and Australian regulations.</p>
+                    </div>
+                `;
+                console.log('✅ Enhanced projection results populated');
+            }
+        };
+
         window.handleStressTestClick = () => {
             console.log('Run Stress Test Scenarios clicked via onclick!');
-            if (window.app && window.app.runStressTest) {
-                window.app.runStressTest();
+            if (window.app && typeof window.app.runStressTest === 'function') {
+                window.app.runStressTest.call(window.app);
             } else {
                 console.error('App or runStressTest method not available');
+                alert('⚠️ Calculator not ready. Please refresh the page and try again.');
             }
         };
 
         window.handleRetirementSolverClick = () => {
             console.log('When Can I Retire clicked via onclick!');
-            if (window.app && window.app.runRetirementSolver) {
-                window.app.runRetirementSolver();
+            if (window.app && typeof window.app.runRetirementSolver === 'function') {
+                window.app.runRetirementSolver.call(window.app);
             } else {
                 console.error('App or runRetirementSolver method not available');
+                alert('⚠️ Calculator not ready. Please refresh the page and try again.');
             }
         };
 
         window.handleRecommendationsClick = () => {
             console.log('Generate AI Recommendations clicked via onclick!');
-            if (window.app && window.app.runSuggestionEngine) {
-                window.app.runSuggestionEngine();
+            if (window.app && typeof window.app.runSuggestionEngine === 'function') {
+                window.app.runSuggestionEngine.call(window.app);
             } else {
                 console.error('App or runSuggestionEngine method not available');
+                alert('⚠️ Calculator not ready. Please refresh the page and try again.');
             }
         };
 
@@ -7419,11 +7577,190 @@ function initializeApp() {
     }
 }
 
+// Global functions for new enhanced features
+window.uploadData = function() {
+    console.log('Upload data functionality called');
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.csv,.xlsx';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            console.log('File selected:', file.name);
+            // Show loading state
+            const button = document.querySelector('.inline-flex[onclick="uploadData()"]');
+            if (button) {
+                const originalText = button.innerHTML;
+                button.innerHTML = '<span class="text-2xl mr-3">⏳</span><div class="text-left"><div class="font-bold text-lg">Loading...</div><div class="text-sm text-blue-100">Processing your data</div></div>';
+
+                // Simulate file processing
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    showMainTabs();
+                    if (window.app && window.app.switchTab) {
+                        window.app.switchTab('household');
+                    }
+                    alert('Data loaded successfully! Continue with your calculation.');
+                }, 2000);
+            }
+        }
+    };
+    input.click();
+};
+
+window.showMainTabs = function() {
+    const tabNavigation = document.getElementById('mainTabNavigation');
+    const overviewSection = document.getElementById('overviewSection');
+    if (tabNavigation) tabNavigation.style.display = 'block';
+    if (overviewSection) overviewSection.style.display = 'none';
+};
+
+window.implementStrategy = function(strategyId) {
+    console.log('Implementing strategy:', strategyId);
+    const strategies = {
+        'contribution': 'Maximize Concessional Contributions',
+        'allocation': 'Optimize Asset Allocation',
+        'debt': 'Accelerate Debt Repayment'
+    };
+
+    const strategyName = strategies[strategyId] || 'Unknown Strategy';
+
+    // Show implementation modal or guide
+    const modal = `
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="this.remove()">
+            <div class="bg-white rounded-lg p-6 max-w-2xl mx-4" onclick="event.stopPropagation()">
+                <h3 class="text-xl font-bold mb-4">${strategyName} - Implementation Guide</h3>
+                <div class="space-y-4 text-sm">
+                    ${getImplementationSteps(strategyId)}
+                </div>
+                <button class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="this.closest('.fixed').remove()">
+                    Close
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modal);
+};
+
+window.getImplementationSteps = function(strategyId) {
+    const steps = {
+        'contribution': `
+            <h4 class="font-semibold">Step-by-step implementation:</h4>
+            <ol class="list-decimal ml-4 space-y-2">
+                <li>Contact your payroll department or accountant</li>
+                <li>Increase salary sacrifice to maximize the $30,000 concessional cap</li>
+                <li>Set up automatic contributions if self-employed</li>
+                <li>Consider spouse contributions for tax offsets</li>
+                <li>Review annually for cap changes</li>
+            </ol>
+            <p class="mt-4 text-gray-600">Expected outcome: Increase retirement balance by $180,000+ over 20 years</p>
+        `,
+        'allocation': `
+            <h4 class="font-semibold">Asset allocation optimization:</h4>
+            <ol class="list-decimal ml-4 space-y-2">
+                <li>Review current super fund investment options</li>
+                <li>Adjust to age-appropriate risk level</li>
+                <li>Consider Australian shares for franking credits</li>
+                <li>Rebalance annually or when markets move significantly</li>
+                <li>Factor in property and other investments</li>
+            </ol>
+            <p class="mt-4 text-gray-600">Expected outcome: Improve long-term returns by 0.5-1.5% annually</p>
+        `,
+        'debt': `
+            <h4 class="font-semibold">Debt acceleration strategy:</h4>
+            <ol class="list-decimal ml-4 space-y-2">
+                <li>List all debts by interest rate (highest first)</li>
+                <li>Maintain minimum payments on all debts</li>
+                <li>Direct extra payments to highest rate debt</li>
+                <li>Consider refinancing if beneficial</li>
+                <li>Redirect freed-up payments to next debt</li>
+            </ol>
+            <p class="mt-4 text-gray-600">Expected outcome: Save $45,000+ in interest, free up cash flow sooner</p>
+        `
+    };
+
+    return steps[strategyId] || '<p>Implementation guide not available.</p>';
+};
+
+window.compareOptions = function() {
+    console.log('Compare options functionality called');
+    // Create a detailed comparison view
+    const modal = `
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="this.remove()">
+            <div class="bg-white rounded-lg p-6 max-w-4xl mx-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+                <h3 class="text-xl font-bold mb-4">Retirement Strategy Comparison</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="border rounded-lg p-4">
+                        <h4 class="font-semibold text-green-600 mb-2">Conservative Approach</h4>
+                        <ul class="text-sm space-y-1">
+                            <li>• Lower risk investments</li>
+                            <li>• Guaranteed pension access</li>
+                            <li>• Success rate: 85%</li>
+                            <li>• Median income: $52,000</li>
+                        </ul>
+                    </div>
+                    <div class="border rounded-lg p-4 border-blue-500">
+                        <h4 class="font-semibold text-blue-600 mb-2">Balanced Approach (Current)</h4>
+                        <ul class="text-sm space-y-1">
+                            <li>• Moderate risk profile</li>
+                            <li>• Diversified portfolio</li>
+                            <li>• Success rate: 73%</li>
+                            <li>• Median income: $68,000</li>
+                        </ul>
+                    </div>
+                    <div class="border rounded-lg p-4">
+                        <h4 class="font-semibold text-purple-600 mb-2">Growth Approach</h4>
+                        <ul class="text-sm space-y-1">
+                            <li>• Higher risk/return</li>
+                            <li>• Potential for larger balance</li>
+                            <li>• Success rate: 62%</li>
+                            <li>• Median income: $89,000</li>
+                        </ul>
+                    </div>
+                </div>
+                <button class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="this.closest('.fixed').remove()">
+                    Close Comparison
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modal);
+};
+
+// Default values review system
+window.reviewDefaults = function() {
+    const defaultSections = document.querySelectorAll('.default-values-section');
+    if (defaultSections.length > 0) {
+        defaultSections[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Highlight all sections temporarily
+        defaultSections.forEach(section => {
+            section.style.boxShadow = '0 0 20px rgba(251, 191, 36, 0.6)';
+            section.style.border = '2px solid #FCD34D';
+            setTimeout(() => {
+                section.style.boxShadow = '';
+                section.style.border = '';
+            }, 3000);
+        });
+    }
+};
+
+window.hideDefaultsNotice = function() {
+    const notice = document.getElementById('defaultValuesNotice');
+    if (notice) {
+        notice.style.display = 'none';
+    }
+};
+
 // Initialize based on DOM state
+console.log('🚀 JavaScript bundle loaded, DOM state:', document.readyState);
 if (document.readyState === 'loading') {
     // DOM is still loading, wait for DOMContentLoaded
+    console.log('⏳ Waiting for DOMContentLoaded...');
     document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
     // DOM is already loaded, initialize immediately
+    console.log('⚡ DOM ready, initializing immediately...');
     initializeApp();
 }

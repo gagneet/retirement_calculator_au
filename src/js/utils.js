@@ -156,7 +156,9 @@ export const initializeCurrencyInputs = () => {
         'trustNetAssets', 'trustAnnualDistributions',
         'currentHealthcareCosts', 'agedCareAnnualCost',
         'asfaComfortable', 'agePensionMax', 'pensionAssetThreshold',
-        'pensionAssetLimit', 'pensionIncomeThreshold'
+        'pensionAssetLimit', 'pensionIncomeThreshold',
+        // Additional Advanced Calculator currency fields that were missing
+        'businessActiveAssetValue'
     ];
 
     currencyFieldIds.forEach(id => {

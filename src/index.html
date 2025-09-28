@@ -1050,6 +1050,33 @@
 
             <!-- Advanced Calculator Tab (initially hidden) -->
             <div id="content-advanced" class="tab-content hidden p-6">
+                <!-- Default Values Notice -->
+                <div id="defaultValuesNotice" class="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">Review Default Values</h3>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <p>Some fields below use default values since they weren't set during onboarding. <strong>Highlighted sections</strong> show these defaults. Please review and adjust them for accurate calculations.</p>
+                            </div>
+                            <div class="mt-3">
+                                <div class="flex space-x-3">
+                                    <button id="reviewDefaultsBtn" type="button" onclick="reviewDefaults()" class="bg-yellow-100 px-3 py-1 rounded text-sm text-yellow-800 hover:bg-yellow-200 font-medium">
+                                        Review All Defaults
+                                    </button>
+                                    <button id="hideNoticeBtn" type="button" onclick="hideDefaultsNotice()" class="bg-transparent px-3 py-1 rounded text-sm text-yellow-600 hover:text-yellow-800">
+                                        Dismiss Notice
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Advanced Calculator Action Buttons - Two Rows -->
                 <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">Analysis Tools</h3>
@@ -1096,45 +1123,68 @@
                     </div>
                 </div>
 
-                <!-- Collapsible Tabs Navigation -->
+                <!-- Analysis Results Section - Shows results from Analysis Tools buttons -->
                 <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border">
                     <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-lg font-semibold text-gray-800">Analysis Sections</h3>
-                        <button id="toggleTabsVisibility" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                            Hide Tabs
+                        <h3 class="text-lg font-semibold text-gray-800">Analysis Results</h3>
+                        <button id="toggleResultsVisibility" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                            Hide Results
                         </button>
                     </div>
-                    <div id="analysisTabsContainer" class="grid grid-cols-2 md:grid-cols-5 gap-2">
-                        <button onclick="showTab('summary')" class="px-3 py-2 bg-blue-50 text-blue-700 rounded border hover:bg-blue-100 transition-colors text-sm font-medium tab-button">
-                            Enhanced Summary
-                        </button>
-                        <button onclick="showTab('health_check')" class="px-3 py-2 bg-green-50 text-green-700 rounded border hover:bg-green-100 transition-colors text-sm font-medium tab-button">
-                            Health Check
-                        </button>
-                        <button onclick="showTab('suggestions')" class="px-3 py-2 bg-purple-50 text-purple-700 rounded border hover:bg-purple-100 transition-colors text-sm font-medium tab-button">
-                            Suggestions
-                        </button>
-                        <button onclick="showTab('riskAnalysis')" class="px-3 py-2 bg-red-50 text-red-700 rounded border hover:bg-red-100 transition-colors text-sm font-medium tab-button">
-                            Risk Analysis
-                        </button>
-                        <button onclick="showTab('sensitivity_analysis')" class="px-3 py-2 bg-orange-50 text-orange-700 rounded border hover:bg-orange-100 transition-colors text-sm font-medium tab-button">
-                            Sensitivity Analysis
-                        </button>
-                        <button onclick="showTab('scenarios')" class="px-3 py-2 bg-pink-50 text-pink-700 rounded border hover:bg-pink-100 transition-colors text-sm font-medium tab-button">
-                            Scenarios Comparison
-                        </button>
-                        <button onclick="showTab('projection')" class="px-3 py-2 bg-teal-50 text-teal-700 rounded border hover:bg-teal-100 transition-colors text-sm font-medium tab-button">
-                            Year-by-Year
-                        </button>
-                        <button onclick="showTab('charts')" class="px-3 py-2 bg-indigo-50 text-indigo-700 rounded border hover:bg-indigo-100 transition-colors text-sm font-medium tab-button">
-                            Advanced Charts
-                        </button>
-                        <button onclick="showTab('overseas')" class="px-3 py-2 bg-gray-50 text-gray-700 rounded border hover:bg-gray-100 transition-colors text-sm font-medium tab-button">
-                            Overseas
-                        </button>
-                        <button onclick="showTab('scenarios')" class="px-3 py-2 bg-yellow-50 text-yellow-700 rounded border hover:bg-yellow-100 transition-colors text-sm font-medium tab-button">
-                            Scenarios
-                        </button>
+
+                    <!-- Results will be populated here when Analysis Tools buttons are clicked -->
+                    <div id="analysisResultsContainer" class="hidden">
+                        <div class="text-center text-gray-500 py-8">
+                            <p>Click any button in "Analysis Tools" above to see results here</p>
+                        </div>
+                    </div>
+
+                    <!-- Enhanced Projection Results -->
+                    <div id="enhancedProjectionResults" class="hidden analysis-result">
+                        <h4 class="text-lg font-semibold mb-4">📊 Enhanced Projection Results</h4>
+                        <div id="projectionContent" class="space-y-4">
+                            <!-- Content will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Monte Carlo Results -->
+                    <div id="monteCarloResults" class="hidden analysis-result">
+                        <h4 class="text-lg font-semibold mb-4">🎲 Monte Carlo Analysis Results</h4>
+                        <div id="monteCarloContent" class="space-y-4">
+                            <!-- Content will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Stress Test Results -->
+                    <div id="stressTestResults" class="hidden analysis-result">
+                        <h4 class="text-lg font-semibold mb-4">⚠️ Stress Test Results</h4>
+                        <div id="stressTestContent" class="space-y-4">
+                            <!-- Content will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Retirement Solver Results -->
+                    <div id="retirementSolverResults" class="hidden analysis-result">
+                        <h4 class="text-lg font-semibold mb-4">🎯 When Can I Retire? Results</h4>
+                        <div id="retirementSolverContent" class="space-y-4">
+                            <!-- Content will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- AI Recommendations Results -->
+                    <div id="aiRecommendationsResults" class="hidden analysis-result">
+                        <h4 class="text-lg font-semibold mb-4">🤖 AI Recommendations Results</h4>
+                        <div id="aiRecommendationsContent" class="space-y-4">
+                            <!-- Content will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Scenario Comparison Results -->
+                    <div id="scenarioComparisonResults" class="hidden analysis-result">
+                        <h4 class="text-lg font-semibold mb-4">📈 Scenario Comparison Results</h4>
+                        <div id="scenarioComparisonContent" class="space-y-4">
+                            <!-- Content will be populated by JavaScript -->
+                        </div>
                     </div>
                 </div>
 
@@ -1659,11 +1709,24 @@
             </div>
 
             <!-- MARK & LISA (Property/Business) INPUTS -->
-            <div class="enhancement-highlight p-4 rounded-lg mt-4">
-                <h3 class="text-lg font-medium text-gray-700 mb-3">Business & Property Details</h3>
+            <div class="enhancement-highlight default-values-section p-4 rounded-lg mt-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-medium text-gray-700">Business & Property Details</h3>
+                    <span class="bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Default Values - Review Needed</span>
+                </div>
                 <div class="space-y-3">
                     <div>
-                        <label for="businessStructure" class="block text-sm font-medium text-gray-700">Business Structure</label>
+                        <div class="label-with-tooltip">
+                            <label for="businessStructure" class="text-sm font-medium text-gray-700">Business Structure</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Business structure information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Business Structure</strong>
+                                    The legal structure affects taxation, asset protection and Age Pension means testing. Active business assets under $750K may be exempt from Age Pension asset test if you work 20+ hours/week.
+                                    <div class="tooltip-example">Example: Company structure provides asset protection but higher tax rates</div>
+                                </span>
+                            </div>
+                        </div>
                         <select id="businessStructure" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
                             <option value="none">None</option>
                             <option value="sole_trader">Sole Trader</option>
@@ -1672,23 +1735,73 @@
                         </select>
                     </div>
                     <div>
-                        <label for="businessActiveAssetValue" class="block text-sm font-medium text-gray-700">Business Active Asset Value</label>
+                        <div class="label-with-tooltip">
+                            <label for="businessActiveAssetValue" class="text-sm font-medium text-gray-700">Business Active Asset Value</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Business active asset information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Business Active Asset Value</strong>
+                                    Current market value of actively used business assets (equipment, stock, goodwill). Assets used in running the business may qualify for Age Pension exemption if you work 20+ hours weekly.
+                                    <div class="tooltip-example">Example: $300K restaurant equipment and stock</div>
+                                </span>
+                            </div>
+                        </div>
                         <input type="text" id="businessActiveAssetValue" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
                     </div>
                     <div>
-                        <label for="businessOwnership" class="block text-sm font-medium text-gray-700">Business Ownership (%)</label>
+                        <div class="label-with-tooltip">
+                            <label for="businessOwnership" class="text-sm font-medium text-gray-700">Business Ownership (%)</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Business ownership information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Business Ownership (%)</strong>
+                                    Your percentage ownership in the business. This affects how much of the business value is attributed to you for Age Pension means testing and tax purposes.
+                                    <div class="tooltip-example">Example: 50% ownership means 50% of business value counts toward your assets</div>
+                                </span>
+                            </div>
+                        </div>
                         <input type="number" id="businessOwnership" value="100" step="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
                     </div>
                     <div>
-                        <label for="businessYearsHeld" class="block text-sm font-medium text-gray-700">Years Business Held</label>
+                        <div class="label-with-tooltip">
+                            <label for="businessYearsHeld" class="text-sm font-medium text-gray-700">Years Business Held</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Business years held information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Years Business Held</strong>
+                                    How long you've owned the business. This may affect Capital Gains Tax discount (50% if held >12 months) and small business CGT concessions for retirement.
+                                    <div class="tooltip-example">Example: 15+ years may qualify for CGT retirement exemption</div>
+                                </span>
+                            </div>
+                        </div>
                         <input type="number" id="businessYearsHeld" value="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
                     </div>
                     <div>
-                        <label for="numberOfProperties" class="block text-sm font-medium text-gray-700">Number of Investment Properties</label>
+                        <div class="label-with-tooltip">
+                            <label for="numberOfProperties" class="text-sm font-medium text-gray-700">Number of Investment Properties</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Number of properties information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Number of Investment Properties</strong>
+                                    Total count of investment properties owned. Multiple properties increase rental income but also concentration risk and management complexity. All count toward Age Pension asset test.
+                                    <div class="tooltip-example">Example: 3 properties = higher income but more risk than diversified portfolio</div>
+                                </span>
+                            </div>
+                        </div>
                         <input type="number" id="numberOfProperties" value="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
                     </div>
                     <div>
-                        <label for="propertyCashFlowStatus" class="block text-sm font-medium text-gray-700">Investment Property Cash Flow</label>
+                        <div class="label-with-tooltip">
+                            <label for="propertyCashFlowStatus" class="text-sm font-medium text-gray-700">Investment Property Cash Flow</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Property cash flow information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Investment Property Cash Flow</strong>
+                                    Whether rental income covers all property expenses (positive), breaks even (neutral), or requires additional funds (negative/negatively geared). Negative gearing provides tax benefits.
+                                    <div class="tooltip-example">Example: Negative = $500/month out of pocket but tax deductions</div>
+                                </span>
+                            </div>
+                        </div>
                         <select id="propertyCashFlowStatus" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
                             <option value="neutral">Neutral</option>
                             <option value="positive">Positive</option>
@@ -1698,8 +1811,11 @@
                 </div>
             </div>
 
-            <div class="enhancement-highlight p-4 rounded-lg mt-4">
-                <h3 class="text-lg font-medium text-gray-700 mb-3">Trust Structures</h3>
+            <div class="enhancement-highlight default-values-section p-4 rounded-lg mt-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-medium text-gray-700">Trust Structures</h3>
+                    <span class="bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Default Values - Review Needed</span>
+                </div>
                 <div class="space-y-3">
                     <div class="p-3 bg-blue-50 rounded text-sm">
                         <p class="text-blue-800 mb-2"><strong>Important:</strong> Trust assets may be attributed to you for Age Pension means testing if you have control.</p>
