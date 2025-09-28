@@ -91,7 +91,7 @@ class RetirementCalculatorApp {
         const partnerLifespanValue = $('partnerLifespan') ? $('partnerLifespan').value.trim() : '';
 
         const hasPartnerData = partnerSalaryValue !== '' || partnerSuperValue !== '' ||
-                              partnerRetirementValue !== '' || partnerLifespanValue !== '';
+            partnerRetirementValue !== '' || partnerLifespanValue !== '';
 
         // Determine final partner age to use in calculations
         let finalPartnerAge = 0;
@@ -509,7 +509,7 @@ class RetirementCalculatorApp {
             const statusColors = ['border-red-500', 'border-orange-500', 'border-yellow-500', 'border-blue-500', 'border-green-500'];
 
             if (sensitivityResults.length > 0) {
-                 container.innerHTML = `
+                container.innerHTML = `
                     <div class="space-y-3">
                         ${sensitivityResults.map((item, index) => `
                             <div class="p-4 rounded-lg border-l-4 ${statusColors[index] || 'border-gray-400'} bg-gray-50">
@@ -2674,10 +2674,10 @@ class RetirementCalculatorApp {
                 <div class="flex justify-between items-start mb-3">
                     <h4 class="font-semibold text-gray-900">${scenario.title}</h4>
                     <span class="px-2 py-1 text-xs font-semibold rounded-full ${
-                        scenario.riskLevel === 'LOW' ? 'bg-green-100 text-green-800' :
-                        scenario.riskLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                    }">
+            scenario.riskLevel === 'LOW' ? 'bg-green-100 text-green-800' :
+                scenario.riskLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+        }">
                         Risk: ${scenario.riskLevel}
                     </span>
                 </div>
@@ -2688,11 +2688,11 @@ class RetirementCalculatorApp {
                     <div>
                         <span class="text-xs font-medium text-gray-700">Impact:</span>
                         <span class="text-xs ml-2 px-2 py-1 rounded ${
-                            scenario.impact === 'POSITIVE' || scenario.impact === 'HIGH POSITIVE' || scenario.impact === 'VERY HIGH POSITIVE'
-                                ? 'bg-green-100 text-green-800' :
-                            scenario.impact === 'NEGATIVE' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                        }">${scenario.impact}</span>
+            scenario.impact === 'POSITIVE' || scenario.impact === 'HIGH POSITIVE' || scenario.impact === 'VERY HIGH POSITIVE'
+                ? 'bg-green-100 text-green-800' :
+                scenario.impact === 'NEGATIVE' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+        }">${scenario.impact}</span>
                     </div>
 
                     <div>
@@ -2787,9 +2787,9 @@ class RetirementCalculatorApp {
                         <div class="flex items-center gap-2 mb-1">
                             <span class="text-xs font-semibold uppercase text-gray-500">${rec.category}</span>
                             ${rec.feasibility && rec.feasibility !== 'Standard Strategy' ?
-                                `<span class="text-xs px-2 py-1 rounded ${rec.feasibility.includes('Easily') || rec.feasibility.includes('Comfortable') ? 'bg-green-100 text-green-700' :
-                                  rec.feasibility.includes('Major') || rec.feasibility.includes('Complex') ? 'bg-red-100 text-red-700' :
-                                  'bg-yellow-100 text-yellow-700'}">${rec.feasibility}</span>` : ''}
+            `<span class="text-xs px-2 py-1 rounded ${rec.feasibility.includes('Easily') || rec.feasibility.includes('Comfortable') ? 'bg-green-100 text-green-700' :
+                rec.feasibility.includes('Major') || rec.feasibility.includes('Complex') ? 'bg-red-100 text-red-700' :
+                    'bg-yellow-100 text-yellow-700'}">${rec.feasibility}</span>` : ''}
                         </div>
                         <h4 class="font-bold text-lg text-gray-800">${rec.title}</h4>
                     </div>
