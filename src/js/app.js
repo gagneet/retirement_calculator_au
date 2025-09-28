@@ -5949,6 +5949,11 @@ window.nextOnboardingStep = function(currentStep) {
 
         // Switch to next step
         switchTab(`step${nextStep}`);
+
+        // Update review summary when entering step 5
+        if (nextStep === 5) {
+            updateReviewSummary();
+        }
     } else {
         // Onboarding complete - transfer to advanced calculator
         completeOnboarding();
@@ -6050,6 +6055,19 @@ function transferOnboardingToAdvanced() {
         if (partnerRetirementAge) {
             const field = document.getElementById('partnerRetirementAge');
             if (field) field.value = partnerRetirementAge;
+        }
+
+        // Transfer partner financial data
+        const partnerIncome = document.getElementById('onboarding-partnerIncome')?.value;
+        if (partnerIncome) {
+            const field = document.getElementById('partnerSalary');
+            if (field) field.value = parseCurrency(partnerIncome);
+        }
+
+        const partnerSuper = document.getElementById('onboarding-partnerSuper')?.value;
+        if (partnerSuper) {
+            const field = document.getElementById('partnerCurrentSuper');
+            if (field) field.value = parseCurrency(partnerSuper);
         }
     }
 
@@ -6201,10 +6219,35 @@ function updateReviewSummary() {
     const income = document.getElementById('onboarding-yourIncome')?.value || '-';
     const superBalance = document.getElementById('onboarding-yourSuper')?.value || '-';
     const savings = document.getElementById('onboarding-savings')?.value || '-';
+    const investments = document.getElementById('onboarding-investments')?.value || '-';
+
+    // Partner financial details
+    const partnerIncome = document.getElementById('onboarding-partnerIncome')?.value || '-';
+    const partnerSuper = document.getElementById('onboarding-partnerSuper')?.value || '-';
 
     document.getElementById('review-income').textContent = income;
-    document.getElementById('review-super').textContent = superBalance;
+    document.getElementById('review-super').textContent = superBalance.replace('Super', 'Superannuation');
     document.getElementById('review-savings').textContent = savings;
+
+    // Show/hide partner details if partner exists
+    const partnerFinanceSection = document.getElementById('partner-finance-section');
+    const partnerIncomeRow = document.getElementById('partner-income-row');
+    const partnerSuperRow = document.getElementById('partner-super-row');
+
+    if (hasPartner) {
+        if (partnerFinanceSection) partnerFinanceSection.style.display = 'flex';
+        if (partnerIncomeRow) partnerIncomeRow.style.display = 'flex';
+        if (partnerSuperRow) partnerSuperRow.style.display = 'flex';
+
+        if (document.getElementById('review-partnerIncome')) {
+            document.getElementById('review-partnerIncome').textContent = partnerIncome;
+            document.getElementById('review-partnerSuper').textContent = partnerSuper.replace('Super', 'Superannuation');
+        }
+    } else {
+        if (partnerFinanceSection) partnerFinanceSection.style.display = 'none';
+        if (partnerIncomeRow) partnerIncomeRow.style.display = 'none';
+        if (partnerSuperRow) partnerSuperRow.style.display = 'none';
+    }
 
     // Update property section
     const homeOwnership = document.querySelector('input[name="homeOwnership"]:checked')?.value;
@@ -6238,11 +6281,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hasPartnerCheckbox) {
         hasPartnerCheckbox.addEventListener('change', function() {
             const partnerDetails = document.getElementById('partnerDetails');
+            const partnerFinancialDetails = document.getElementById('partnerFinancialDetails');
+
             if (partnerDetails) {
                 if (this.checked) {
                     partnerDetails.classList.remove('hidden');
                 } else {
                     partnerDetails.classList.add('hidden');
+                }
+            }
+
+            if (partnerFinancialDetails) {
+                if (this.checked) {
+                    partnerFinancialDetails.classList.remove('hidden');
+                } else {
+                    partnerFinancialDetails.classList.add('hidden');
                 }
             }
         });
@@ -6431,8 +6484,8 @@ function setupTabActionHandlers() {
     const btnCalculateResults = document.getElementById('btnCalculateResults');
     if (btnCalculateResults) {
         btnCalculateResults.addEventListener('click', function() {
-            if (window.app && window.app.calculateResults) {
-                window.app.calculateResults();
+            if (window.app && window.app.calculateRetirement) {
+                window.app.calculateRetirement(true);
                 // Hide results placeholder
                 const placeholder = document.getElementById('resultsPlaceholder');
                 if (placeholder) placeholder.style.display = 'none';
@@ -6493,8 +6546,8 @@ function setupTabActionHandlers() {
     const btnGenerateSuggestions = document.getElementById('btnGenerateSuggestions');
     if (btnGenerateSuggestions) {
         btnGenerateSuggestions.addEventListener('click', function() {
-            if (window.app && window.app.generateSuggestions) {
-                window.app.generateSuggestions();
+            if (window.app && window.app.generateRecommendations) {
+                window.app.generateRecommendations();
                 // Hide suggestions placeholder
                 const suggestionsPlaceholder = document.getElementById('suggestionsPlaceholder');
                 if (suggestionsPlaceholder) suggestionsPlaceholder.style.display = 'none';
@@ -6524,8 +6577,8 @@ function setupTabActionHandlers() {
     const btnExportPDF = document.getElementById('btnExportPDF');
     if (btnExportPDF) {
         btnExportPDF.addEventListener('click', function() {
-            if (window.app && window.app.exportToPDF) {
-                window.app.exportToPDF();
+            if (window.app && window.app.exportResults) {
+                window.app.exportResults('pdf');
             }
         });
     }
@@ -6533,8 +6586,8 @@ function setupTabActionHandlers() {
     const btnExportExcel = document.getElementById('btnExportExcel');
     if (btnExportExcel) {
         btnExportExcel.addEventListener('click', function() {
-            if (window.app && window.app.exportToExcel) {
-                window.app.exportToExcel();
+            if (window.app && window.app.exportResults) {
+                window.app.exportResults('xlsx');
             }
         });
     }
@@ -6542,8 +6595,8 @@ function setupTabActionHandlers() {
     const btnExportCSV = document.getElementById('btnExportCSV');
     if (btnExportCSV) {
         btnExportCSV.addEventListener('click', function() {
-            if (window.app && window.app.exportToCSV) {
-                window.app.exportToCSV();
+            if (window.app && window.app.exportResults) {
+                window.app.exportResults('csv');
             }
         });
     }
@@ -6567,6 +6620,180 @@ function setupTabActionHandlers() {
             }
         });
     }
+
+    // Overseas Tab Actions
+    const btnGenerateOverseasScenarios = document.getElementById('btnGenerateOverseasScenarios');
+    if (btnGenerateOverseasScenarios) {
+        btnGenerateOverseasScenarios.addEventListener('click', function() {
+            if (window.app && window.app.generateOverseasScenarios) {
+                window.app.generateOverseasScenarios();
+                const placeholder = document.getElementById('overseasPlaceholder');
+                if (placeholder) placeholder.style.display = 'none';
+            }
+        });
+    }
+
+    const btnOverseasTaxAnalysis = document.getElementById('btnOverseasTaxAnalysis');
+    if (btnOverseasTaxAnalysis) {
+        btnOverseasTaxAnalysis.addEventListener('click', function() {
+            if (window.app && window.app.runOverseasTaxAnalysis) {
+                window.app.runOverseasTaxAnalysis();
+            }
+        });
+    }
+
+    const btnOverseasPensionCheck = document.getElementById('btnOverseasPensionCheck');
+    if (btnOverseasPensionCheck) {
+        btnOverseasPensionCheck.addEventListener('click', function() {
+            if (window.app && window.app.checkOverseasPension) {
+                window.app.checkOverseasPension();
+            }
+        });
+    }
+
+    // Scenarios Tab Actions
+    const btnCreateScenario = document.getElementById('btnCreateScenario');
+    if (btnCreateScenario) {
+        btnCreateScenario.addEventListener('click', function() {
+            if (window.app && window.app.createNewScenario) {
+                window.app.createNewScenario();
+            }
+        });
+    }
+
+    const btnCompareScenarios = document.getElementById('btnCompareScenarios');
+    if (btnCompareScenarios) {
+        btnCompareScenarios.addEventListener('click', function() {
+            if (window.app && window.app.compareScenarios) {
+                window.app.compareScenarios();
+                const placeholder = document.getElementById('scenariosPlaceholder');
+                if (placeholder) placeholder.style.display = 'none';
+            }
+        });
+    }
+
+    const btnAdvancedBuilder = document.getElementById('btnAdvancedBuilder');
+    if (btnAdvancedBuilder) {
+        btnAdvancedBuilder.addEventListener('click', function() {
+            window.open('comparison.html', '_blank');
+        });
+    }
+
+    // Clear Cache button
+    const btnClearCache = document.getElementById('clearCacheBtn');
+    if (btnClearCache) {
+        btnClearCache.addEventListener('click', function() {
+            if (window.app && window.app.clearCache) {
+                window.app.clearCache();
+            } else {
+                // Fallback clear cache functionality
+                if (confirm('Are you sure you want to clear the cache? This will reset all your inputs and reload the page.')) {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    location.reload();
+                }
+            }
+        });
+    }
+}
+
+// Currency and percentage formatting for inputs
+function setupCurrencyFormatting() {
+    // Currency fields that should be formatted with $ and commas
+    const currencyFields = [
+        'onboarding-yourIncome',
+        'onboarding-yourSuper',
+        'onboarding-savings',
+        'onboarding-investments',
+        'onboarding-partnerIncome',
+        'onboarding-partnerSuper',
+        'onboarding-homeValue',
+        'onboarding-mortgageBalance',
+        'onboarding-investmentPropertyValue',
+        'onboarding-investmentPropertyLoan',
+        'onboarding-weeklyRent',
+        'onboarding-propertyExpenses'
+    ];
+
+    currencyFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            // Format on blur (when user finishes editing)
+            field.addEventListener('blur', function() {
+                let value = this.value.replace(/[$,]/g, ''); // Remove existing formatting
+                if (value && !isNaN(value)) {
+                    // Format as currency with commas
+                    this.value = '$' + parseInt(value).toLocaleString();
+                }
+            });
+
+            // Allow typing without interference
+            field.addEventListener('focus', function() {
+                let value = this.value.replace(/[$,]/g, '');
+                if (value && !isNaN(value)) {
+                    this.value = value; // Show just numbers when editing
+                }
+            });
+        }
+    });
+
+    // Percentage fields that might exist
+    const percentageFields = [
+        'onboarding-riskTolerance'
+    ];
+
+    percentageFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field && field.type === 'range') {
+            // For range sliders, update display value
+            field.addEventListener('input', function() {
+                const display = document.getElementById(fieldId + 'Value');
+                if (display) {
+                    const value = parseInt(this.value);
+                    let label = 'Moderate';
+                    if (value <= 3) label = 'Conservative';
+                    else if (value >= 8) label = 'Aggressive';
+                    display.textContent = `${label} (${value})`;
+                }
+            });
+        }
+    });
+
+    // Enhanced risk tolerance slider for onboarding
+    const riskSlider = document.getElementById('onboarding-riskTolerance');
+    if (riskSlider) {
+        const updateRiskTooltip = () => {
+            const value = parseInt(riskSlider.value);
+            const display = document.getElementById('onboarding-riskValue');
+            const tooltip = document.getElementById('onboarding-riskTooltip');
+
+            let label, description, bgColor;
+
+            if (value <= 3) {
+                label = 'Conservative';
+                description = 'Conservative: Focus on capital preservation with lower volatility. Suitable for those near retirement or with low risk tolerance.';
+                bgColor = 'bg-green-50';
+            } else if (value <= 7) {
+                label = 'Moderate';
+                description = 'Moderate: Balanced mix of growth and stability. Suitable for long-term goals with moderate volatility tolerance.';
+                bgColor = 'bg-yellow-50';
+            } else {
+                label = 'Aggressive';
+                description = 'Aggressive: Growth-focused with higher volatility. Suitable for younger investors with long time horizons.';
+                bgColor = 'bg-red-50';
+            }
+
+            if (display) display.textContent = `${label} (${value})`;
+            if (tooltip) {
+                tooltip.textContent = description;
+                tooltip.className = `text-xs text-gray-600 mt-2 p-2 ${bgColor} rounded-lg`;
+            }
+        };
+
+        riskSlider.addEventListener('input', updateRiskTooltip);
+        riskSlider.addEventListener('change', updateRiskTooltip);
+        updateRiskTooltip(); // Initial update
+    }
 }
 
 function initializeApp() {
@@ -6589,6 +6816,9 @@ function initializeApp() {
 
         // Expose functions to window for onclick handlers
         window.completeOnboarding = completeOnboarding;
+
+        // Setup currency formatting for onboarding inputs
+        setupCurrencyFormatting();
 
         console.log('✅ Australian Retirement Calculator loaded successfully');
     } catch (error) {

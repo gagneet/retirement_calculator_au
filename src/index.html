@@ -470,6 +470,12 @@
                 <button id="tab-export" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('export')">
                     📁 Export
                 </button>
+                <button id="tab-overseas" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('overseas')">
+                    ✈️ Overseas
+                </button>
+                <button id="tab-scenarios" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('scenarios')">
+                    🔄 Scenarios
+                </button>
             </nav>
         </div>
 
@@ -498,12 +504,12 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Your Age</label>
-                                    <input type="number" id="onboarding-yourAge" min="18" max="100" value="39" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="39">
+                                    <input type="number" id="onboarding-yourAge" min="18" max="100" value="34" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="34">
                                     <p class="text-xs text-gray-500 mt-1">Current age in years</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Target Retirement Age</label>
-                                    <input type="number" id="onboarding-retirementAge" min="50" max="75" value="67" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="67">
+                                    <input type="number" id="onboarding-retirementAge" min="50" max="75" value="60" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="60">
                                     <p class="text-xs text-gray-500 mt-1">When you want to retire</p>
                                 </div>
                             </div>
@@ -518,11 +524,11 @@
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Partner's Age</label>
-                                            <input type="number" id="onboarding-partnerAge" min="18" max="100" value="41" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="41">
+                                            <input type="number" id="onboarding-partnerAge" min="18" max="100" value="29" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="29">
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Partner's Retirement Age</label>
-                                            <input type="number" id="onboarding-partnerRetirementAge" min="50" max="75" value="67" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="67">
+                                            <input type="number" id="onboarding-partnerRetirementAge" min="50" max="75" value="60" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="60">
                                         </div>
                                     </div>
                                 </div>
@@ -578,6 +584,21 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Investments (Stocks/ETFs)</label>
                                     <input type="text" id="onboarding-investments" value="$15,000" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$15,000">
+                                </div>
+                            </div>
+
+                            <!-- Partner Financial Details (show when partner checkbox is checked) -->
+                            <div id="partnerFinancialDetails" class="hidden space-y-4 p-4 bg-blue-50 rounded-lg">
+                                <h3 class="text-lg font-semibold text-blue-800 mb-4">Partner's Financial Information</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Partner's Annual Income</label>
+                                        <input type="text" id="onboarding-partnerIncome" value="$45,000" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$45,000">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Partner's Superannuation Balance</label>
+                                        <input type="text" id="onboarding-partnerSuper" value="$65,000" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$65,000">
+                                    </div>
                                 </div>
                             </div>
 
@@ -637,11 +658,11 @@
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Home Value</label>
-                                            <input type="text" id="onboarding-homeValue" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$800,000">
+                                            <input type="text" id="onboarding-homeValue" value="$800,000" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$800,000">
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Remaining Mortgage</label>
-                                            <input type="text" id="onboarding-mortgageBalance" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$300,000">
+                                            <input type="text" id="onboarding-mortgageBalance" value="$300,000" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$300,000">
                                         </div>
                                     </div>
                                 </div>
@@ -658,21 +679,21 @@
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Property Value</label>
-                                            <input type="text" id="onboarding-investmentPropertyValue" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$600,000">
+                                            <input type="text" id="onboarding-investmentPropertyValue" value="$600,000" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$600,000">
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Outstanding Loan</label>
-                                            <input type="text" id="onboarding-investmentPropertyLoan" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$400,000">
+                                            <input type="text" id="onboarding-investmentPropertyLoan" value="$400,000" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$400,000">
                                         </div>
                                     </div>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Weekly Rental Income</label>
-                                            <input type="text" id="onboarding-weeklyRent" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$450">
+                                            <input type="text" id="onboarding-weeklyRent" value="$450" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$450">
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Annual Property Expenses</label>
-                                            <input type="text" id="onboarding-propertyExpenses" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$8,000">
+                                            <input type="text" id="onboarding-propertyExpenses" value="$8,000" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$8,000">
                                         </div>
                                     </div>
                                 </div>
@@ -760,11 +781,14 @@
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-3">How comfortable are you with investment ups and downs?</label>
                                         <div class="relative">
-                                            <input type="range" id="onboarding-riskTolerance" min="1" max="10" value="6" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider">
+                                            <input type="range" id="onboarding-riskTolerance" min="1" max="10" value="6" class="w-full h-3 bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 rounded-lg appearance-none cursor-pointer risk-slider">
                                             <div class="flex justify-between text-xs text-gray-500 mt-2">
                                                 <span>Very Conservative</span>
                                                 <span class="font-semibold text-blue-700" id="onboarding-riskValue">Moderate (6)</span>
                                                 <span>Very Aggressive</span>
+                                            </div>
+                                            <div class="text-xs text-gray-600 mt-2 p-2 bg-blue-50 rounded-lg" id="onboarding-riskTooltip">
+                                                Moderate risk: Balanced mix of growth and stability. Suitable for long-term goals with moderate volatility tolerance.
                                             </div>
                                         </div>
                                     </div>
@@ -851,6 +875,17 @@
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Savings:</span>
                                     <span id="review-savings" class="font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between border-t pt-2 mt-2" id="partner-finance-section" style="display: none;">
+                                    <span class="text-gray-600 font-medium">Partner's Details:</span>
+                                </div>
+                                <div class="flex justify-between" id="partner-income-row" style="display: none;">
+                                    <span class="text-gray-600">Partner Income:</span>
+                                    <span id="review-partnerIncome" class="font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between" id="partner-super-row" style="display: none;">
+                                    <span class="text-gray-600">Partner Superannuation:</span>
+                                    <span id="review-partnerSuper" class="font-medium">-</span>
                                 </div>
                             </div>
                         </div>
@@ -2212,6 +2247,126 @@
         </div>
     </div>
 
+    <!-- Overseas Tab -->
+    <div id="content-overseas" class="tab-content hidden p-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3">✈️ Overseas Retirement Planning</h2>
+                <p class="text-lg text-gray-600">Analyze retiring abroad with Australian superannuation and age pension</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mb-8 flex flex-wrap gap-4">
+                <button id="btnGenerateOverseasScenarios" class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+                    <i class="fas fa-globe-americas mr-2"></i>
+                    Generate Overseas Scenarios
+                </button>
+                <button id="btnOverseasTaxAnalysis" class="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center">
+                    <i class="fas fa-calculator mr-2"></i>
+                    Tax Analysis
+                </button>
+                <button id="btnOverseasPensionCheck" class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center">
+                    <i class="fas fa-passport mr-2"></i>
+                    Pension Eligibility
+                </button>
+            </div>
+
+            <!-- Overseas Content Container -->
+            <div id="overseasContainer">
+                <!-- Overseas Planning Status Banner -->
+                <div id="overseasBanner" class="mb-6 p-4 rounded-lg border-l-4 border-blue-500 bg-blue-50">
+                    <h3 class="font-semibold text-blue-900">Overseas Retirement Analysis</h3>
+                    <div class="mt-2 text-sm text-blue-800">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <div class="font-medium">Age Pension Eligibility</div>
+                                <div id="overseasPensionStatus" class="text-xs text-gray-600 mt-1">Calculate to assess</div>
+                            </div>
+                            <div>
+                                <div class="font-medium">Tax Status</div>
+                                <div id="overseasTaxStatus" class="text-xs text-gray-600 mt-1">Depends on residency</div>
+                            </div>
+                            <div>
+                                <div class="font-medium">Asset Position</div>
+                                <div id="overseasAssetStatus" class="text-xs text-gray-600 mt-1">Review required</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuration and scenarios content will be populated here -->
+                <div id="overseasScenariosResults" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Scenario cards will be added dynamically -->
+                    </div>
+                </div>
+
+                <!-- Placeholder -->
+                <div id="overseasPlaceholder" class="text-center py-12 text-gray-500">
+                    <i class="fas fa-plane text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-medium text-gray-900">Overseas Analysis Ready</h3>
+                    <p class="text-gray-600 mt-2">Generate scenarios to analyze retiring abroad</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scenarios Tab -->
+    <div id="content-scenarios" class="tab-content hidden p-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3">🔄 Scenario Comparison</h2>
+                <p class="text-lg text-gray-600">Compare different retirement strategies side-by-side</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mb-8 flex flex-wrap gap-4">
+                <button id="btnCreateScenario" class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+                    <i class="fas fa-plus mr-2"></i>
+                    Create New Scenario
+                </button>
+                <button id="btnCompareScenarios" class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center">
+                    <i class="fas fa-balance-scale mr-2"></i>
+                    Compare Scenarios
+                </button>
+                <button id="btnAdvancedBuilder" class="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center">
+                    <i class="fas fa-tools mr-2"></i>
+                    Advanced Builder
+                </button>
+            </div>
+
+            <!-- Scenarios Container -->
+            <div id="scenariosContainer">
+                <!-- Advanced Comparison Link -->
+                <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-medium text-blue-900 mb-1">Advanced Scenario Builder</h3>
+                            <p class="text-sm text-blue-700">Create and compare custom scenarios with detailed parameter adjustments</p>
+                        </div>
+                        <a href="comparison.html" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+                            Launch Advanced Tool →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Scenario comparison results will be populated here -->
+                <div id="scenarioComparisonResults" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="scenarioSummaryCards">
+                        <!-- Summary cards will be populated -->
+                    </div>
+                </div>
+
+                <!-- Placeholder -->
+                <div id="scenariosPlaceholder" class="text-center py-12 text-gray-500">
+                    <i class="fas fa-random text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-medium text-gray-900">Scenario Analysis Ready</h3>
+                    <p class="text-gray-600 mt-2">Create and compare different retirement strategies</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Enhanced Results Section -->
     <div class="mt-8 bg-white rounded-lg shadow-md">
         <div class="flex border-b flex-wrap">
@@ -2779,123 +2934,124 @@
         </div>
     </div>
 
-    <!-- Comprehensive Site Footer -->
-    <footer class="bg-gray-900 text-white mt-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <!-- Main Footer Content -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+</div>
 
-                <!-- About Section -->
-                <div class="lg:col-span-1">
-                    <div class="flex items-center mb-4">
-                        <img src="assets/logo.svg" alt="Australian Retirement Calculator" class="h-8 w-auto mr-3">
-                        <span class="text-lg font-semibold">Retirement Calculator</span>
-                    </div>
-                    <p class="text-gray-400 text-sm leading-relaxed mb-4">
-                        Australia's most comprehensive retirement planning tool. Free, private, and designed specifically for the Australian financial system.
-                    </p>
-                    <div class="flex space-x-1">
-                        <span class="inline-block px-2 py-1 bg-green-600 text-xs rounded">✓ Free</span>
-                        <span class="inline-block px-2 py-1 bg-blue-600 text-xs rounded">✓ Private</span>
-                        <span class="inline-block px-2 py-1 bg-purple-600 text-xs rounded">✓ Australian</span>
-                    </div>
+<!-- Comprehensive Site Footer -->
+<footer class="bg-gray-900 text-white mt-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- Main Footer Content -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+
+            <!-- About Section -->
+            <div class="lg:col-span-1">
+                <div class="flex items-center mb-4">
+                    <img src="assets/logo.svg" alt="Australian Retirement Calculator" class="h-8 w-auto mr-3">
+                    <span class="text-lg font-semibold">Retirement Calculator</span>
                 </div>
-
-                <!-- Navigation Links -->
-                <div>
-                    <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Navigation</h3>
-                    <ul class="space-y-3">
-                        <li><a href="index.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-calculator w-4 mr-2"></i>Main Calculator
-                        </a></li>
-                        <li><a href="how-to-use.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-graduation-cap w-4 mr-2"></i>How to Use Guide
-                        </a></li>
-                        <li><a href="comparison.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-balance-scale w-4 mr-2"></i>Scenario Comparison
-                        </a></li>
-                        <li><a href="contact.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-envelope w-4 mr-2"></i>Feedback & Contact
-                        </a></li>
-                    </ul>
-                </div>
-
-                <!-- Key Features -->
-                <div>
-                    <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Key Features</h3>
-                    <ul class="space-y-3">
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-chart-line text-blue-400 w-4 mr-2"></i>Monte Carlo Simulation
-                        </li>
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-robot text-purple-400 w-4 mr-2"></i>AI Recommendations
-                        </li>
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-home text-green-400 w-4 mr-2"></i>Property Analysis
-                        </li>
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-shield-alt text-indigo-400 w-4 mr-2"></i>Age Pension Calculator
-                        </li>
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-file-export text-orange-400 w-4 mr-2"></i>Professional Reports
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Support & Legal -->
-                <div>
-                    <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Support & Legal</h3>
-                    <ul class="space-y-3">
-                        <li><a href="privacy.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-user-shield w-4 mr-2"></i>Privacy Policy
-                        </a></li>
-                        <li><a href="terms.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-file-contract w-4 mr-2"></i>Terms of Use
-                        </a></li>
-                        <li><button id="clearCacheBtn" class="text-gray-400 hover:text-white transition text-sm flex items-center text-left">
-                            <i class="fas fa-trash-alt w-4 mr-2"></i>Clear Cache
-                        </button></li>
-                    </ul>
-
-                    <!-- Quick Actions -->
-                    <div class="mt-6">
-                        <h4 class="text-white text-sm font-medium mb-3">Quick Start</h4>
-                        <div class="space-y-2">
-                            <button onclick="document.getElementById('yourCurrentAge')?.focus()" class="block text-xs text-blue-400 hover:text-blue-300 transition">→ Enter Your Details</button>
-                            <button onclick="document.getElementById('btnCalculateEnhanced')?.click()" class="block text-xs text-green-400 hover:text-green-300 transition">→ Run Analysis</button>
-                        </div>
-                    </div>
+                <p class="text-gray-400 text-sm leading-relaxed mb-4">
+                    Australia's most comprehensive retirement planning tool. Free, private, and designed specifically for the Australian financial system.
+                </p>
+                <div class="flex space-x-1">
+                    <span class="inline-block px-2 py-1 bg-green-600 text-xs rounded">✓ Free</span>
+                    <span class="inline-block px-2 py-1 bg-blue-600 text-xs rounded">✓ Private</span>
+                    <span class="inline-block px-2 py-1 bg-purple-600 text-xs rounded">✓ Australian</span>
                 </div>
             </div>
 
-            <!-- Bottom Bar -->
-            <div class="border-t border-gray-800 mt-8 pt-8">
-                <div class="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
-                    <div class="text-sm text-gray-400">
-                        <p>&copy; 2025 Australian Retirement Calculator. Educational tool for retirement planning guidance.</p>
-                    </div>
-                    <div class="flex items-center space-x-4 text-xs text-gray-500">
-                        <span>🇦🇺 Made for Australia</span>
-                        <span>•</span>
-                        <span>Updated for 2025 Tax Rules</span>
-                        <span>•</span>
-                        <span>Data Stays Local</span>
-                    </div>
-                </div>
+            <!-- Navigation Links -->
+            <div>
+                <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Navigation</h3>
+                <ul class="space-y-3">
+                    <li><a href="index.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
+                        <i class="fas fa-calculator w-4 mr-2"></i>Main Calculator
+                    </a></li>
+                    <li><a href="how-to-use.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
+                        <i class="fas fa-graduation-cap w-4 mr-2"></i>How to Use Guide
+                    </a></li>
+                    <li><a href="comparison.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
+                        <i class="fas fa-balance-scale w-4 mr-2"></i>Scenario Comparison
+                    </a></li>
+                    <li><a href="contact.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
+                        <i class="fas fa-envelope w-4 mr-2"></i>Feedback & Contact
+                    </a></li>
+                </ul>
+            </div>
 
-                <!-- Disclaimer -->
-                <div class="mt-6 p-4 bg-gray-800 rounded-lg">
-                    <p class="text-xs text-gray-400 leading-relaxed">
-                        <strong class="text-gray-300">Important Disclaimer:</strong> This calculator is for educational and planning purposes only.
-                        Results are estimates based on the inputs provided and should not be considered as financial advice.
-                        Australian tax laws, superannuation rules, and pension regulations are subject to change.
-                        Always consult with a qualified financial advisor for personalized retirement planning and investment advice.
-                    </p>
+            <!-- Key Features -->
+            <div>
+                <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Key Features</h3>
+                <ul class="space-y-3">
+                    <li class="text-gray-400 text-sm flex items-center">
+                        <i class="fas fa-chart-line text-blue-400 w-4 mr-2"></i>Monte Carlo Simulation
+                    </li>
+                    <li class="text-gray-400 text-sm flex items-center">
+                        <i class="fas fa-robot text-purple-400 w-4 mr-2"></i>AI Recommendations
+                    </li>
+                    <li class="text-gray-400 text-sm flex items-center">
+                        <i class="fas fa-home text-green-400 w-4 mr-2"></i>Property Analysis
+                    </li>
+                    <li class="text-gray-400 text-sm flex items-center">
+                        <i class="fas fa-shield-alt text-indigo-400 w-4 mr-2"></i>Age Pension Calculator
+                    </li>
+                    <li class="text-gray-400 text-sm flex items-center">
+                        <i class="fas fa-file-export text-orange-400 w-4 mr-2"></i>Professional Reports
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Support & Legal -->
+            <div>
+                <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Support & Legal</h3>
+                <ul class="space-y-3">
+                    <li><a href="privacy.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
+                        <i class="fas fa-user-shield w-4 mr-2"></i>Privacy Policy
+                    </a></li>
+                    <li><a href="terms.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
+                        <i class="fas fa-file-contract w-4 mr-2"></i>Terms of Use
+                    </a></li>
+                    <li><button id="clearCacheBtn" class="text-gray-400 hover:text-white transition text-sm flex items-center text-left">
+                        <i class="fas fa-trash-alt w-4 mr-2"></i>Clear Cache
+                    </button></li>
+                </ul>
+
+                <!-- Quick Actions -->
+                <div class="mt-6">
+                    <h4 class="text-white text-sm font-medium mb-3">Quick Start</h4>
+                    <div class="space-y-2">
+                        <button onclick="document.getElementById('yourCurrentAge')?.focus()" class="block text-xs text-blue-400 hover:text-blue-300 transition">→ Enter Your Details</button>
+                        <button onclick="document.getElementById('btnCalculateEnhanced')?.click()" class="block text-xs text-green-400 hover:text-green-300 transition">→ Run Analysis</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </footer>
-</div>
+
+        <!-- Bottom Bar -->
+        <div class="border-t border-gray-800 mt-8 pt-8">
+            <div class="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
+                <div class="text-sm text-gray-400">
+                    <p>&copy; 2025 Australian Retirement Calculator. Educational tool for retirement planning guidance.</p>
+                </div>
+                <div class="flex items-center space-x-4 text-xs text-gray-500">
+                    <span>🇦🇺 Made for Australia</span>
+                    <span>•</span>
+                    <span>Updated for 2025 Tax Rules</span>
+                    <span>•</span>
+                    <span>Data Stays Local</span>
+                </div>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="mt-6 p-4 bg-gray-800 rounded-lg">
+                <p class="text-xs text-gray-400 leading-relaxed">
+                    <strong class="text-gray-300">Important Disclaimer:</strong> This calculator is for educational and planning purposes only.
+                    Results are estimates based on the inputs provided and should not be considered as financial advice.
+                    Australian tax laws, superannuation rules, and pension regulations are subject to change.
+                    Always consult with a qualified financial advisor for personalized retirement planning and investment advice.
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
 
 <!-- Webpack will inject the bundled script here -->
 
