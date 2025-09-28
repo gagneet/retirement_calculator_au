@@ -365,16 +365,144 @@
         <h1 class="sr-only">Australian Retirement Calculator - Advanced Planning Tool</h1>
         <p class="text-lg text-gray-600">Advanced retirement planning with superannuation, age pension, healthcare costs, aged care, dynamic allocation, and investment property modeling</p>
 
-        <!-- Enhanced Onboarding Button -->
-        <div class="mt-6 mb-4 text-center">
-            <div class="inline-flex items-center bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 cursor-pointer" onclick="startOnboarding()">
-                <span class="text-2xl mr-3">🚀</span>
-                <div class="text-left">
-                    <div class="font-bold text-lg">New User? Start Here!</div>
-                    <div class="text-sm text-green-100">5-step guided setup with personalized recommendations</div>
+        <!-- Initial Overview Section -->
+        <div id="initialOverview" class="mb-8">
+            <!-- Hero Section -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-gray-900 mb-4">Australian Retirement Confidence Calculator</h1>
+                <p class="text-xl text-gray-600 mb-6">Discover your retirement confidence score and actionable strategies to secure your financial future</p>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <div class="inline-flex items-center bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 cursor-pointer" onclick="startOnboarding()">
+                        <span class="text-2xl mr-3">🚀</span>
+                        <div class="text-left">
+                            <div class="font-bold text-lg">New User? Start Here!</div>
+                            <div class="text-sm text-green-100">5-step guided setup with personalized recommendations</div>
+                        </div>
+                    </div>
+
+                    <div class="inline-flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 cursor-pointer" onclick="uploadData()">
+                        <span class="text-2xl mr-3">📂</span>
+                        <div class="text-left">
+                            <div class="font-bold text-lg">Returning User? Upload Data</div>
+                            <div class="text-sm text-blue-100">Load your previous calculation and continue planning</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <p class="text-xs text-gray-500 mt-2">Or use the tabs above to navigate manually</p>
+
+            <!-- Overview Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow-lg border-l-4 border-green-500">
+                    <div class="flex items-center mb-4">
+                        <div class="bg-green-100 rounded-lg p-3 mr-3">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900">Confidence Score</h3>
+                    </div>
+                    <p class="text-gray-600 text-sm">Get your personalized retirement confidence score based on 10,000+ Monte Carlo simulations using Australian financial rules.</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-lg border-l-4 border-blue-500">
+                    <div class="flex items-center mb-4">
+                        <div class="bg-blue-100 rounded-lg p-3 mr-3">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900">Quick Wins</h3>
+                    </div>
+                    <p class="text-gray-600 text-sm">Discover high-impact strategies to boost your retirement success rate, prioritized by return on investment.</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-lg border-l-4 border-purple-500">
+                    <div class="flex items-center mb-4">
+                        <div class="bg-purple-100 rounded-lg p-3 mr-3">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012 2v2M7 7h10"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900">Australian Compliant</h3>
+                    </div>
+                    <p class="text-gray-600 text-sm">Superannuation rules, Age Pension means testing, taxation, and all Australian retirement regulations built-in.</p>
+                </div>
+            </div>
+
+            <!-- Features List -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4 text-center">What You'll Discover</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex items-start">
+                        <div class="bg-green-100 rounded-full p-1 mr-3 mt-1">
+                            <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900">Your Success Rate</h4>
+                            <p class="text-sm text-gray-600">Probability your money will last through retirement</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="bg-green-100 rounded-full p-1 mr-3 mt-1">
+                            <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900">Age Pension Optimization</h4>
+                            <p class="text-sm text-gray-600">Strategies to maximize your Age Pension entitlement</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="bg-green-100 rounded-full p-1 mr-3 mt-1">
+                            <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900">Super Contribution Strategy</h4>
+                            <p class="text-sm text-gray-600">Optimal concessional and non-concessional contributions</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="bg-green-100 rounded-full p-1 mr-3 mt-1">
+                            <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900">Investment Property Analysis</h4>
+                            <p class="text-sm text-gray-600">Optimal timing for property sales and CGT strategies</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="bg-green-100 rounded-full p-1 mr-3 mt-1">
+                            <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900">Healthcare & Aged Care Planning</h4>
+                            <p class="text-sm text-gray-600">Comprehensive cost modeling and risk assessment</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="bg-green-100 rounded-full p-1 mr-3 mt-1">
+                            <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900">Scenario Comparison</h4>
+                            <p class="text-sm text-gray-600">Compare different retirement strategies side-by-side</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Quick Start Instructions -->
@@ -429,35 +557,24 @@
 
     <!-- Enhanced Tabbed Interface with Onboarding Flow -->
     <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-        <!-- Tab Navigation -->
-        <div class="border-b border-gray-200 bg-gray-50">
+        <!-- Tab Navigation - Initially Hidden -->
+        <div class="border-b border-gray-200 bg-gray-50" id="mainTabNavigation" style="display: none;">
             <nav class="flex flex-wrap gap-2 px-6 py-2" aria-label="Tabs">
-                <!-- Onboarding Steps (shown first for new users) -->
-                <button id="tab-step1" class="tab-button active py-3 px-4 border-b-2 border-blue-500 font-medium text-sm text-blue-600 whitespace-nowrap rounded-t-lg" onclick="switchTab('step1')">
-                    👥 1. Household
+                <button id="tab-step1" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('step1')">
+                    👥 Household
                 </button>
-                <button id="tab-step2" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-400 whitespace-nowrap rounded-t-lg" onclick="switchTab('step2')" disabled>
-                    💰 2. Finances
+                <button id="tab-step2" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('step2')">
+                    💰 Finances
                 </button>
-                <button id="tab-step3" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-400 whitespace-nowrap rounded-t-lg" onclick="switchTab('step3')" disabled>
-                    🏠 3. Property
+                <button id="tab-step3" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('step3')">
+                    🏠 Property
                 </button>
-                <button id="tab-step4" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-400 whitespace-nowrap rounded-t-lg" onclick="switchTab('step4')" disabled>
-                    🎯 4. Goals
+                <button id="tab-step4" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('step4')">
+                    🎯 Goals
                 </button>
-                <button id="tab-step5" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-400 whitespace-nowrap rounded-t-lg" onclick="switchTab('step5')" disabled>
-                    ✅ 5. Review
+                <button id="tab-step5" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('step5')">
+                    ✅ Review
                 </button>
-
-                <!-- Divider -->
-                <div class="border-l border-gray-300 mx-2"></div>
-
-                <!-- Advanced Calculator -->
-                <button id="tab-advanced" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('advanced')">
-                    📝 Advanced Calculator
-                </button>
-
-                <!-- Results & Analysis -->
                 <button id="tab-results" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('results')">
                     📊 Results
                 </button>
@@ -467,14 +584,8 @@
                 <button id="tab-suggestions" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('suggestions')">
                     💡 Action Plan
                 </button>
-                <button id="tab-export" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('export')">
-                    📁 Export
-                </button>
-                <button id="tab-overseas" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('overseas')">
-                    ✈️ Overseas
-                </button>
-                <button id="tab-scenarios" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('scenarios')">
-                    🔄 Scenarios
+                <button id="tab-advanced" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('advanced')">
+                    📝 Advanced Calculator
                 </button>
             </nav>
         </div>
@@ -945,40 +1056,40 @@
 
                     <!-- First Row - Primary Actions -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
-                        <button id="btnCalculate" onclick="handleCalculateClick()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                        <button id="btnCalculate" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
                             Calculate Enhanced Projection
                         </button>
-                        <button id="btnMonteCarlo" onclick="handleMonteCarloClick()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                        <button id="btnMonteCarlo" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
                             Run Enhanced Monte Carlo
                         </button>
-                        <button id="btnStressTest" onclick="handleStressTestClick()" class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
+                        <button id="btnStressTest" class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
                             Run Stress Test Scenarios
                         </button>
-                        <button id="btnRetirementSolver" onclick="handleRetirementSolverClick()" class="px-4 py-2 border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium">
+                        <button id="btnRetirementSolver" class="px-4 py-2 border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium">
                             When Can I Retire?
                         </button>
                     </div>
 
                     <!-- Second Row - Secondary Actions -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <button id="btnGenerateRecommendations" onclick="handleRecommendationsClick()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                        <button id="btnGenerateRecommendations" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
                             Generate AI Recommendations
                         </button>
-                        <button id="btnScenarioComparison" onclick="handleScenariosClick()" class="px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors font-medium">
+                        <button id="btnScenarioComparison" class="px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors font-medium">
                             Compare Scenarios
                         </button>
-                        <button id="btnResetDefaults" onclick="handleResetClick()" class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
+                        <button id="btnResetDefaults" class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
                             Reset to Defaults
                         </button>
                         <div class="relative inline-block" id="exportContainer">
-                            <button id="btnExport" onclick="handleExportClick()" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center">
+                            <button id="btnExport" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center">
                                 Export Enhanced Report <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                             </button>
                             <div id="exportDropdown" class="absolute bottom-full mb-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
                                 <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                                    <a href="#" id="btnExportCSV" onclick="handleExportCSVClick()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as CSV</a>
-                                    <a href="#" id="btnExportXLSX" onclick="handleExportXLSXClick()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as XLSX</a>
-                                    <a href="#" id="btnExportPDF" onclick="handleExportPDFClick()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as PDF</a>
+                                    <a href="#" id="btnExportCSV" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as CSV</a>
+                                    <a href="#" id="btnExportXLSX" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as XLSX</a>
+                                    <a href="#" id="btnExportPDF" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as PDF</a>
                                 </div>
                             </div>
                         </div>
@@ -2010,56 +2121,161 @@
         </div>
     </div>
 
-    <!-- Results Tab -->
+    <!-- Results Tab - RCE-3.1 Confidence Dashboard -->
     <div id="content-results" class="tab-content hidden p-6">
         <div class="max-w-7xl mx-auto">
-            <div class="mb-6">
-                <h2 class="text-3xl font-bold text-gray-900 mb-3">📊 Results & Analysis</h2>
-                <p class="text-lg text-gray-600">Comprehensive analysis of your retirement projections</p>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="mb-8 flex flex-wrap gap-4">
-                <button id="btnCalculateResults" class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center">
-                    <i class="fas fa-calculator mr-2"></i>
-                    Calculate Results
-                </button>
-                <button id="btnAdvancedAnalysis" class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center">
-                    <i class="fas fa-chart-area mr-2"></i>
-                    Advanced Analysis
-                </button>
-                <button id="btnHealthCheck" class="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center">
-                    <i class="fas fa-stethoscope mr-2"></i>
-                    Health Check
-                </button>
-            </div>
-
-            <!-- Results Container -->
-            <div id="resultsContainer" class="space-y-6">
-                <!-- Enhanced Summary Content -->
-                <div id="summaryResults" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6">
-                    <!-- Enhanced summary content will be populated by JavaScript -->
-                </div>
-                <div id="finalResult" class="mt-4 p-4 rounded-lg">
-                    <!-- Final result will be populated by JavaScript -->
-                </div>
-                <div id="enhancedRecommendations" class="mt-4 p-4 bg-green-50 rounded-lg">
-                    <h4 class="font-semibold text-green-900">AI-Powered Recommendations</h4>
-                    <ul id="enhancedRecommendationsList" class="list-disc ml-5 mt-2 text-sm text-green-800">
-                        <!-- Enhanced recommendations will be populated -->
-                    </ul>
+            <!-- Overview Screen (First thing user sees) -->
+            <div id="confidenceOverview" class="mb-8">
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-lg shadow-lg mb-8">
+                    <div class="text-center">
+                        <h2 class="text-2xl font-bold mb-2">YOUR RETIREMENT CONFIDENCE SCORE</h2>
+                        <div class="flex items-center justify-center mb-4">
+                            <div class="text-6xl font-bold mr-4" id="confidenceScore">73</div>
+                            <div class="text-2xl">/100 🟡</div>
+                        </div>
+                        <p class="text-lg opacity-90">Based on 10,000 Monte Carlo simulations</p>
+                    </div>
                 </div>
 
-                <!-- Health Check Dashboard -->
-                <div id="healthCheckDashboard" class="mt-6">
-                    <!-- Health check dashboard will be populated here -->
+                <!-- Retirement Summary Card -->
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-8 border-l-4 border-blue-500">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 text-center">RETIREMENT AT AGE <span id="retirementAge">67</span></h3>
+
+                    <!-- Success Rate Progress Bar -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-gray-700">Success Rate</span>
+                            <span class="text-sm font-medium text-gray-700" id="successRate">73%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-gradient-to-r from-green-400 to-blue-500 h-4 rounded-full transition-all duration-1000" id="successRateBar" style="width: 73%"></div>
+                        </div>
+                        <div class="mt-2 text-sm text-gray-600">
+                            <div class="flex justify-between">
+                                <span>✓ In <span id="successScenarios">73%</span> of scenarios, your money lasts to age <span id="targetAge">95</span></span>
+                                <span>⚠ In <span id="failureScenarios">27%</span> of scenarios, funds depleted by age <span id="depletionAge">82</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Your Retirement Income -->
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h4 class="font-bold text-gray-900 mb-4">YOUR RETIREMENT INCOME:</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Superannuation drawdown</span>
+                                    <span class="font-medium" id="superDrawdown">$42,800/year</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Age Pension (partial)</span>
+                                    <span class="font-medium" id="agePension">$15,600/year</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Investment property income</span>
+                                    <span class="font-medium" id="propertyIncome">$8,400/year</span>
+                                </div>
+                                <div class="flex justify-between border-t pt-3">
+                                    <span class="font-bold text-gray-900">TOTAL RETIREMENT INCOME</span>
+                                    <span class="font-bold text-lg" id="totalIncome">$66,800/year</span>
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Your goal (AFSA Comfortable):</span>
+                                    <span class="font-medium" id="incomeGoal">$73,875/year</span>
+                                </div>
+                                <div class="flex justify-between text-red-600">
+                                    <span class="font-medium">Shortfall:</span>
+                                    <span class="font-bold" id="incomeShortfall">-$7,075/year 🔴</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center mt-6">
+                        <button class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium" onclick="showDetailedProjections()">
+                            📊 See Detailed Projections
+                        </button>
+                        <button class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium" onclick="showImprovements()">
+                            🎯 Show Improvements
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Critical Insights -->
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-lg mb-8">
+                    <h4 class="text-lg font-bold text-amber-900 mb-4">⚠️ CRITICAL INSIGHTS</h4>
+                    <div id="criticalInsights" class="space-y-4">
+                        <div class="bg-white p-4 rounded-lg">
+                            <h5 class="font-semibold text-gray-900">1. You're $18,200 over Age Pension asset threshold</h5>
+                            <p class="text-gray-700 mt-2">→ Costing you $2,366/year in pension payments</p>
+                            <p class="text-blue-600 font-medium">→ Fix this: See "Quick Win #1" in Action Plan</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg">
+                            <h5 class="font-semibold text-gray-900">2. Underutilizing concessional contributions</h5>
+                            <p class="text-gray-700 mt-2">→ Using $15,500 of $30,000 cap (48% unused)</p>
+                            <p class="text-gray-700">→ Missing $3,900/year tax benefit</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg">
+                            <h5 class="font-semibold text-gray-900">3. Healthcare costs are your #1 risk factor</h5>
+                            <p class="text-gray-700 mt-2">→ In 18% of failure scenarios, medical expenses exceed budget by $180k</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Action Buttons -->
+                <div class="flex flex-wrap gap-4 justify-center">
+                    <button id="btnCalculateResults" class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                        Calculate Results
+                    </button>
+                    <button id="btnAdvancedAnalysis" class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4"></path>
+                        </svg>
+                        Advanced Analysis
+                    </button>
+                    <button id="btnHealthCheck" class="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Health Check
+                    </button>
+                </div>
+
+                <!-- Results Container for JavaScript Population -->
+                <div id="resultsContainer" class="space-y-6 mt-8">
+                    <!-- Enhanced Summary Content -->
+                    <div id="resultsTabSummary" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6">
+                        <!-- Enhanced summary content will be populated by JavaScript -->
+                    </div>
+                    <div id="resultsTabFinalResult" class="mt-4 p-4 rounded-lg">
+                        <!-- Final result will be populated by JavaScript -->
+                    </div>
+                    <div id="enhancedRecommendations" class="mt-4 p-4 bg-green-50 rounded-lg">
+                        <h4 class="font-semibold text-green-900">AI-Powered Recommendations</h4>
+                        <ul id="enhancedRecommendationsList" class="list-disc ml-5 mt-2 text-sm text-green-800">
+                            <!-- Enhanced recommendations will be populated -->
+                        </ul>
+                    </div>
+
+                    <!-- Health Check Dashboard -->
+                    <div id="healthCheckDashboard" class="mt-6">
+                        <!-- Health check dashboard will be populated here -->
+                    </div>
                 </div>
 
                 <!-- Placeholder when no data -->
-                <div id="resultsPlaceholder" class="text-center py-12 text-gray-500">
-                    <i class="fas fa-chart-line text-6xl text-gray-300 mb-4"></i>
+                <div id="resultsPlaceholder" class="text-center py-12 text-gray-500" style="display: none;">
+                    <svg class="w-24 h-24 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4"></path>
+                    </svg>
                     <h3 class="text-xl font-medium text-gray-900">Ready to Calculate</h3>
-                    <p class="text-gray-600 mt-2">Click "Calculate Results" to see your retirement projections</p>
+                    <p class="text-gray-600 mt-2">Click "Calculate Results" to see your retirement confidence score</p>
                 </div>
             </div>
         </div>
@@ -2091,47 +2307,102 @@
 
             <!-- Charts Container -->
             <div id="chartsContainer" class="space-y-6">
-                <!-- Existing chart content can be moved here -->
-                <div id="monteCarloResults" class="hidden mb-6">
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm mb-4">
-                        <div class="p-3 bg-blue-50 rounded text-center">
-                            <div class="font-semibold">Total Runs</div>
-                            <div id="mcRuns">-</div>
+                <!-- Income Breakdown Visualization - RCE-3.1.2 -->
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold text-gray-900">Income Sources Throughout Retirement</h3>
+                        <div class="flex items-center space-x-4 text-sm text-gray-600">
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 bg-blue-500 rounded mr-2"></div>
+                                <span>Super Drawdown</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 bg-green-500 rounded mr-2"></div>
+                                <span>Age Pension</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 bg-orange-500 rounded mr-2"></div>
+                                <span>Investment Income</span>
+                            </div>
                         </div>
-                        <div class="p-3 bg-green-50 rounded text-center">
-                            <div class="font-semibold">Success Rate</div>
-                            <div id="mcSuccessRate">-</div>
-                        </div>
-                        <div class="p-3 bg-gray-50 rounded text-center">
-                            <div class="font-semibold">Median Balance</div>
-                            <div id="mcMedian">-</div>
-                        </div>
-                        <div class="p-3 bg-purple-50 rounded text-center">
-                            <div class="font-semibold">10th Percentile</div>
-                            <div id="mc10th">-</div>
-                        </div>
-                        <div class="p-3 bg-yellow-50 rounded text-center">
-                            <div class="font-semibold">Confidence Score</div>
-                            <div id="mcConfidence">-</div>
+                    </div>
+
+                    <!-- Chart Canvas -->
+                    <div class="relative">
+                        <canvas id="incomeBreakdownChart" style="max-height: 400px;"></canvas>
+                    </div>
+
+                    <!-- Key Insights -->
+                    <div class="mt-6 bg-blue-50 rounded-lg p-4">
+                        <h4 class="font-semibold text-blue-900 mb-3">📊 Key Insights from Your Income Projection</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div id="superInsight" class="bg-white p-3 rounded">
+                                <div class="font-medium text-gray-900">Super Drawdown Period</div>
+                                <div class="text-gray-600 mt-1">Primary income source for <span class="font-medium text-blue-600" id="superYears">15 years</span></div>
+                            </div>
+                            <div id="pensionInsight" class="bg-white p-3 rounded">
+                                <div class="font-medium text-gray-900">Age Pension Growth</div>
+                                <div class="text-gray-600 mt-1">Increases as super depletes, reaching <span class="font-medium text-green-600" id="maxPension">$41,600/yr</span></div>
+                            </div>
+                            <div id="investmentInsight" class="bg-white p-3 rounded">
+                                <div class="font-medium text-gray-900">Investment Property</div>
+                                <div class="text-gray-600 mt-1">Provides steady <span class="font-medium text-orange-600" id="propertyYears">$18,200/yr</span> until age 70</div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Monte Carlo Results -->
+                <div id="monteCarloResults" class="hidden mb-6">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">Monte Carlo Simulation Results</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm mb-4">
+                            <div class="p-3 bg-blue-50 rounded text-center">
+                                <div class="font-semibold">Total Runs</div>
+                                <div id="mcRuns">-</div>
+                            </div>
+                            <div class="p-3 bg-green-50 rounded text-center">
+                                <div class="font-semibold">Success Rate</div>
+                                <div id="mcSuccessRate">-</div>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded text-center">
+                                <div class="font-semibold">Median Balance</div>
+                                <div id="mcMedian">-</div>
+                            </div>
+                            <div class="p-3 bg-purple-50 rounded text-center">
+                                <div class="font-semibold">10th Percentile</div>
+                                <div id="mc10th">-</div>
+                            </div>
+                            <div class="p-3 bg-yellow-50 rounded text-center">
+                                <div class="font-semibold">Confidence Score</div>
+                                <div id="mcConfidence">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="monteCarloNarrative" class="hidden"></div>
+
+                <!-- Chart Grid -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div id="fanChartContainer">
-                        <h3 class="text-lg font-semibold mb-2">Portfolio Balance Over Time</h3>
+                    <div id="fanChartContainer" class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">Portfolio Balance Over Time (Fan Chart)</h3>
+                        <div class="text-sm text-gray-600 mb-4">Shows potential balance ranges across different market scenarios</div>
                         <canvas id="fanChart"></canvas>
                     </div>
-                    <div id="histChartContainer">
-                        <h3 class="text-lg font-semibold mb-2">Final Balance Distribution</h3>
+                    <div id="histChartContainer" class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">Final Balance Distribution</h3>
+                        <div class="text-sm text-gray-600 mb-4">Probability distribution of your balance at life expectancy</div>
                         <canvas id="histChart"></canvas>
                     </div>
-                    <div>
-                        <h3 class="text-lg font-semibold mb-2">Asset Allocation Over Time</h3>
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">Asset Allocation Over Time</h3>
+                        <div class="text-sm text-gray-600 mb-4">How your investment mix changes as you age</div>
                         <canvas id="allocationChart"></canvas>
                     </div>
-                    <div>
-                        <h3 class="text-lg font-semibold mb-2">Property vs Portfolio Growth</h3>
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">Property vs Portfolio Growth</h3>
+                        <div class="text-sm text-gray-600 mb-4">Comparison of property value vs super/investment growth</div>
                         <canvas id="propertyChart"></canvas>
                     </div>
                 </div>
@@ -2159,75 +2430,285 @@
         </div>
     </div>
 
-    <!-- Suggestions Tab -->
+    <!-- Action Plan Tab - RCE-3.2 Quick Wins Module -->
     <div id="content-suggestions" class="tab-content hidden p-6">
         <div class="max-w-7xl mx-auto">
-            <div class="mb-6">
-                <h2 class="text-3xl font-bold text-gray-900 mb-3">💡 Action Plan & Suggestions</h2>
-                <p class="text-lg text-gray-600">Personalized recommendations and what-if scenarios</p>
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3">🎯 Your Retirement Action Plan</h2>
+                <p class="text-lg text-gray-600">High-impact strategies to boost your retirement success rate, prioritized by return on investment</p>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="mb-8 flex flex-wrap gap-4">
-                <button id="btnGenerateSuggestions" class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center">
-                    <i class="fas fa-lightbulb mr-2"></i>
-                    Generate AI Suggestions
-                </button>
-                <button id="btnQuickWins" class="px-6 py-3 bg-yellow-600 text-white font-medium rounded-lg hover:bg-yellow-700 transition-colors flex items-center">
-                    <i class="fas fa-bolt mr-2"></i>
-                    Quick Wins Analysis
-                </button>
-                <button id="btnScenarioComparison" class="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center">
-                    <i class="fas fa-balance-scale mr-2"></i>
-                    Compare Scenarios
+            <!-- Quick Wins Header -->
+            <div class="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6 rounded-lg shadow-lg mb-8">
+                <h3 class="text-2xl font-bold mb-2">🎯 YOUR TOP 3 QUICK WINS</h3>
+                <p class="text-lg opacity-90">Small changes with big impacts - prioritized by return</p>
+            </div>
+
+            <!-- Quick Win #1: Maximize Concessional Contributions -->
+            <div class="bg-white border-2 border-green-500 rounded-lg shadow-lg p-6 mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-xl font-bold text-green-900">#1 MAXIMIZE CONCESSIONAL CONTRIBUTIONS</h4>
+                    <button class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium" onclick="implementStrategy('maxContributions')">
+                        Implement This →
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div>
+                            <div class="text-sm font-medium text-gray-700">CURRENT:</div>
+                            <div class="text-lg" id="currentContributions">$15,500/year (48% of cap unused)</div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-gray-700">CHANGE TO:</div>
+                            <div class="text-lg text-green-600" id="newContributions">$30,000/year (+$14,500/year)</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-green-50 rounded-lg p-4">
+                        <h5 class="font-semibold text-green-900 mb-3">📈 IMPACT:</h5>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span>Success rate:</span>
+                                <span class="font-medium text-green-600" id="contributionSuccessRate">73% → 89% (+16%) ✓</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Retirement balance:</span>
+                                <span class="font-medium" id="contributionBalance">+$127,300</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Tax saving:</span>
+                                <span class="font-medium" id="contributionTaxSaving">$3,900/year (37% bracket)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Net cost:</span>
+                                <span class="font-medium" id="contributionNetCost">$9,030/year (after tax benefit)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 bg-gray-50 rounded-lg p-4">
+                    <h5 class="font-semibold text-gray-900 mb-3">HOW TO DO IT:</h5>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center">
+                            <input type="checkbox" class="mr-2">
+                            <span>Increase salary sacrifice by $558/fortnight</span>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" class="mr-2">
+                            <span>Contact payroll: "Please salary sacrifice $558/fn to super"</span>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" class="mr-2">
+                            <span>Monitor: Check payslip shows correct amount</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between text-sm text-gray-600">
+                        <span>⏱ Time to implement: 1 week</span>
+                        <span>💰 ROI: $14.08 gained per $1 contributed (over 28 years)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Win #2: Optimize Age Pension -->
+            <div class="bg-white border-2 border-blue-500 rounded-lg shadow-lg p-6 mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-xl font-bold text-blue-900">#2 OPTIMIZE AGE PENSION (ASSET TEST)</h4>
+                    <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium" onclick="implementStrategy('agePensionOptimization')">
+                        See Strategy →
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div>
+                            <div class="text-sm font-medium text-gray-700">CURRENT:</div>
+                            <div class="text-lg" id="currentAssets">Assets $673,200 (threshold: $655,000)</div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-gray-700">PROBLEM:</div>
+                            <div class="text-lg text-red-600" id="assetProblem">$18,200 over = losing $2,366/year pension</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <h5 class="font-semibold text-blue-900 mb-3">📈 IMPACT:</h5>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span>Age Pension:</span>
+                                <span class="font-medium text-blue-600" id="pensionIncrease">$15,600 → $18,460/year (+$2,860)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Lifetime benefit:</span>
+                                <span class="font-medium" id="lifetimeBenefit">$84,280 (age 67-95)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Success rate:</span>
+                                <span class="font-medium text-blue-600" id="pensionSuccessRate">73% → 78% (+5%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 bg-gray-50 rounded-lg p-4">
+                    <h5 class="font-semibold text-gray-900 mb-4">3 OPTIONS TO FIX:</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div class="bg-white p-4 rounded border-l-4 border-green-500">
+                            <h6 class="font-semibold text-gray-900">OPTION A: Gift $10,000/year to adult children</h6>
+                            <ul class="mt-2 space-y-1 text-gray-700">
+                                <li>• Year 1: Gift $10k (within gifting limit)</li>
+                                <li>• Year 2: Gift $10k (total $20k)</li>
+                                <li>• Reduces assets by $20k → gain $2,600/yr pension</li>
+                            </ul>
+                            <div class="mt-2 text-amber-600 text-xs">⚠️ 5-year deprivation period applies</div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded border-l-4 border-blue-500">
+                            <h6 class="font-semibold text-gray-900">OPTION B: Funeral bond $15,000 (exempt asset)</h6>
+                            <ul class="mt-2 space-y-1 text-gray-700">
+                                <li>• Purchase prepaid funeral bond</li>
+                                <li>• Not counted in asset test</li>
+                                <li>• Reduces assessable assets immediately</li>
+                            </ul>
+                            <div class="mt-2 text-green-600 text-xs">✓ No deprivation period</div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded border-l-4 border-purple-500">
+                            <h6 class="font-semibold text-gray-900">OPTION C: Home improvements $20,000</h6>
+                            <ul class="mt-2 space-y-1 text-gray-700">
+                                <li>• Kitchen/bathroom renovation</li>
+                                <li>• Principal residence exempt from asset test</li>
+                                <li>• Adds value to home, reduces assessable assets</li>
+                            </ul>
+                            <div class="mt-2 text-green-600 text-xs">✓ Immediate effect, no deprivation</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 flex justify-center space-x-4">
+                        <button class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm" onclick="compareOptions()">
+                            Compare All Options
+                        </button>
+                        <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm" onclick="calculateScenario()">
+                            Calculate My Scenario
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Win #3: Investment Property Strategy -->
+            <div class="bg-white border-2 border-orange-500 rounded-lg shadow-lg p-6 mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-xl font-bold text-orange-900">#3 DELAY INVESTMENT PROPERTY SALE</h4>
+                    <button class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium" onclick="implementStrategy('propertyTiming')">
+                        Model This →
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div>
+                            <div class="text-sm font-medium text-gray-700">CURRENT PLAN:</div>
+                            <div class="text-lg" id="currentPlan">Sell at age 70</div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-gray-700">SUGGESTED:</div>
+                            <div class="text-lg text-orange-600" id="suggestedPlan">Sell at age 75 (5 year delay)</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-orange-50 rounded-lg p-4">
+                        <h5 class="font-semibold text-orange-900 mb-3">📈 IMPACT:</h5>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span>Success rate:</span>
+                                <span class="font-medium text-orange-600" id="propertySuccessRate">73% → 84% (+11%)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Additional rent:</span>
+                                <span class="font-medium" id="additionalRent">5 years × $18,200 = $91,000</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Capital growth:</span>
+                                <span class="font-medium" id="capitalGrowth">+$87,000 (est. 3.5%/year)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Total benefit:</span>
+                                <span class="font-medium text-orange-600" id="totalBenefit">$178,000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h5 class="font-semibold text-gray-900 mb-3">WHY THIS WORKS:</h5>
+                        <ul class="space-y-1 text-sm text-gray-700">
+                            <li>• Positive cash flow: $18,200/year reduces drawdown</li>
+                            <li>• Delays super depletion by 3.2 years</li>
+                            <li>• Property appreciates while held</li>
+                            <li>• Age Pension increases as super depletes</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h5 class="font-semibold text-gray-900 mb-3">CONSIDERATION:</h5>
+                        <ul class="space-y-1 text-sm text-gray-700">
+                            <li class="text-amber-600">⚠️ Property management in late 70s - may need SMSF trustee</li>
+                            <li class="text-green-600">✓ Can sell earlier if health/capacity declines</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex justify-center space-x-4">
+                    <button class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm" onclick="runPropertyScenario()">
+                        Run Property Timing Scenario
+                    </button>
+                    <button class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm" onclick="showSensitivityAnalysis()">
+                        See Sensitivity Analysis
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Plan Summary -->
+            <div class="bg-gradient-to-r from-gray-50 to-blue-50 border border-gray-200 rounded-lg p-6">
+                <h4 class="text-lg font-bold text-gray-900 mb-4">📋 Implementation Priority</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-green-100 rounded-lg">
+                        <div class="text-2xl font-bold text-green-600" id="totalImpactSuccess">+21%</div>
+                        <div class="text-sm text-gray-700">Combined Success Rate Improvement</div>
+                    </div>
+                    <div class="text-center p-4 bg-blue-100 rounded-lg">
+                        <div class="text-2xl font-bold text-blue-600" id="totalImpactIncome">+$12,300</div>
+                        <div class="text-sm text-gray-700">Additional Annual Income</div>
+                    </div>
+                    <div class="text-center p-4 bg-purple-100 rounded-lg">
+                        <div class="text-2xl font-bold text-purple-600" id="totalImpactBalance">+$392k</div>
+                        <div class="text-sm text-gray-700">Combined Balance Improvement</div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-center">
+                    <button class="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all font-medium" onclick="exportActionPlan()">
+                        📄 Download Complete Action Plan
+                    </button>
+                </div>
+            </div>
+
+            <!-- Additional Strategies -->
+            <div class="mt-8">
+                <button class="w-full px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium" onclick="showAdditionalStrategies()">
+                    Show 7 More Improvement Strategies →
                 </button>
             </div>
 
-            <!-- Suggestions Container -->
-            <div id="suggestionsContainer">
-                <!-- AI Recommendations Section -->
-                <div id="recommendationsContainer" class="mb-8 space-y-4">
-                    <!-- Recommendations will be populated here by JavaScript -->
-                </div>
-
-                <!-- Existing suggestions content -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Property Optimization -->
-                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
-                        <h3 class="text-lg font-semibold text-blue-900 mb-3">🏠 Property Strategy</h3>
-                        <div id="propertySuggestions" class="space-y-3">
-                            <!-- Property suggestions will be populated by JavaScript -->
-                        </div>
-                    </div>
-                    <!-- Income & Salary Optimization -->
-                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
-                        <h3 class="text-lg font-semibold text-green-900 mb-3">💰 Income & Career Strategy</h3>
-                        <div id="incomeSuggestions" class="space-y-3">
-                            <!-- Income suggestions will be populated by JavaScript -->
-                        </div>
-                    </div>
-                    <!-- Investment Optimization -->
-                    <div class="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-lg p-6">
-                        <h3 class="text-lg font-semibold text-purple-900 mb-3">📈 Investment Strategy</h3>
-                        <div id="investmentSuggestions" class="space-y-3">
-                            <!-- Investment suggestions will be populated by JavaScript -->
-                        </div>
-                    </div>
-                    <!-- Retirement Timing -->
-                    <div class="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-lg p-6">
-                        <h3 class="text-lg font-semibold text-orange-900 mb-3">⏰ Retirement Timing</h3>
-                        <div id="timingSuggestions" class="space-y-3">
-                            <!-- Timing suggestions will be populated by JavaScript -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Placeholder when no suggestions -->
-                <div id="suggestionsPlaceholder" class="text-center py-12 text-gray-500">
-                    <i class="fas fa-magic text-6xl text-gray-300 mb-4"></i>
-                    <h3 class="text-xl font-medium text-gray-900">AI Suggestions Ready</h3>
-                    <p class="text-gray-600 mt-2">Generate personalized recommendations based on your financial profile</p>
-                </div>
+            <!-- Legacy Suggestions Container for JavaScript compatibility -->
+            <div id="suggestionsContainer" style="display: none;">
+                <div id="recommendationsContainer" class="mb-8 space-y-4"></div>
+                <div id="propertySuggestions" class="space-y-3"></div>
+                <div id="incomeSuggestions" class="space-y-3"></div>
+                <div id="investmentSuggestions" class="space-y-3"></div>
+                <div id="timingSuggestions" class="space-y-3"></div>
             </div>
         </div>
     </div>
@@ -2447,12 +2928,12 @@
             <div id="summaryResults" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6">
                 <!-- Enhanced summary content will be populated by JavaScript -->
             </div>
-            <div id="finalResult" class="mt-4 p-4 rounded-lg">
+            <div id="summaryTabFinalResult" class="mt-4 p-4 rounded-lg">
                 <!-- Final result will be populated by JavaScript -->
             </div>
-            <div id="enhancedRecommendations" class="mt-4 p-4 bg-green-50 rounded-lg">
+            <div id="summaryTabRecommendations" class="mt-4 p-4 bg-green-50 rounded-lg">
                 <h4 class="font-semibold text-green-900">AI-Powered Recommendations</h4>
-                <ul id="enhancedRecommendationsList" class="list-disc ml-5 mt-2 text-sm text-green-800">
+                <ul id="summaryTabRecommendationsList" class="list-disc ml-5 mt-2 text-sm text-green-800">
                     <!-- Enhanced recommendations will be populated -->
                 </ul>
             </div>
@@ -2461,7 +2942,7 @@
             <!-- Health Check Tab -->
             <div id="health_check-tab" class="tab-content p-6">
                 <h2 class="text-2xl font-semibold mb-4">Retirement Readiness Scorecard</h2>
-                <div id="healthCheckDashboard">
+                <div id="healthCheckTab">
                     <!-- Health check dashboard will be populated here -->
                 </div>
             </div>
@@ -2661,7 +3142,7 @@
         <div id="charts-tab" class="tab-content p-6">
             <h2 class="text-2xl font-semibold mb-4">Advanced Simulation Results</h2>
 
-            <div id="monteCarloResults" class="hidden mb-6">
+            <div id="chartsTabMonteCarloResults" class="hidden mb-6">
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm mb-4">
                     <div class="p-3 bg-blue-50 rounded text-center">
                         <div class="font-semibold">Total Runs</div>
