@@ -939,6 +939,94 @@
 
             <!-- Advanced Calculator Tab (initially hidden) -->
             <div id="content-advanced" class="tab-content hidden p-6">
+                <!-- Advanced Calculator Action Buttons - Two Rows -->
+                <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Analysis Tools</h3>
+
+                    <!-- First Row - Primary Actions -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                        <button id="btnCalculate" onclick="handleCalculateClick()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                            Calculate Enhanced Projection
+                        </button>
+                        <button id="btnMonteCarlo" onclick="handleMonteCarloClick()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                            Run Enhanced Monte Carlo
+                        </button>
+                        <button id="btnStressTest" onclick="handleStressTestClick()" class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
+                            Run Stress Test Scenarios
+                        </button>
+                        <button id="btnRetirementSolver" onclick="handleRetirementSolverClick()" class="px-4 py-2 border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium">
+                            When Can I Retire?
+                        </button>
+                    </div>
+
+                    <!-- Second Row - Secondary Actions -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <button id="btnGenerateRecommendations" onclick="handleRecommendationsClick()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                            Generate AI Recommendations
+                        </button>
+                        <button id="btnScenarioComparison" onclick="handleScenariosClick()" class="px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors font-medium">
+                            Compare Scenarios
+                        </button>
+                        <button id="btnResetDefaults" onclick="handleResetClick()" class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
+                            Reset to Defaults
+                        </button>
+                        <div class="relative inline-block" id="exportContainer">
+                            <button id="btnExport" onclick="handleExportClick()" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center">
+                                Export Enhanced Report <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <div id="exportDropdown" class="absolute bottom-full mb-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
+                                <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                    <a href="#" id="btnExportCSV" onclick="handleExportCSVClick()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as CSV</a>
+                                    <a href="#" id="btnExportXLSX" onclick="handleExportXLSXClick()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as XLSX</a>
+                                    <a href="#" id="btnExportPDF" onclick="handleExportPDFClick()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as PDF</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Collapsible Tabs Navigation -->
+                <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-lg font-semibold text-gray-800">Analysis Sections</h3>
+                        <button id="toggleTabsVisibility" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                            Hide Tabs
+                        </button>
+                    </div>
+                    <div id="analysisTabsContainer" class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                        <button onclick="showTab('summary')" class="px-3 py-2 bg-blue-50 text-blue-700 rounded border hover:bg-blue-100 transition-colors text-sm font-medium tab-button">
+                            Enhanced Summary
+                        </button>
+                        <button onclick="showTab('health_check')" class="px-3 py-2 bg-green-50 text-green-700 rounded border hover:bg-green-100 transition-colors text-sm font-medium tab-button">
+                            Health Check
+                        </button>
+                        <button onclick="showTab('suggestions')" class="px-3 py-2 bg-purple-50 text-purple-700 rounded border hover:bg-purple-100 transition-colors text-sm font-medium tab-button">
+                            Suggestions
+                        </button>
+                        <button onclick="showTab('riskAnalysis')" class="px-3 py-2 bg-red-50 text-red-700 rounded border hover:bg-red-100 transition-colors text-sm font-medium tab-button">
+                            Risk Analysis
+                        </button>
+                        <button onclick="showTab('sensitivity_analysis')" class="px-3 py-2 bg-orange-50 text-orange-700 rounded border hover:bg-orange-100 transition-colors text-sm font-medium tab-button">
+                            Sensitivity Analysis
+                        </button>
+                        <button onclick="showTab('scenarios')" class="px-3 py-2 bg-pink-50 text-pink-700 rounded border hover:bg-pink-100 transition-colors text-sm font-medium tab-button">
+                            Scenarios Comparison
+                        </button>
+                        <button onclick="showTab('projection')" class="px-3 py-2 bg-teal-50 text-teal-700 rounded border hover:bg-teal-100 transition-colors text-sm font-medium tab-button">
+                            Year-by-Year
+                        </button>
+                        <button onclick="showTab('charts')" class="px-3 py-2 bg-indigo-50 text-indigo-700 rounded border hover:bg-indigo-100 transition-colors text-sm font-medium tab-button">
+                            Advanced Charts
+                        </button>
+                        <button onclick="showTab('overseas')" class="px-3 py-2 bg-gray-50 text-gray-700 rounded border hover:bg-gray-100 transition-colors text-sm font-medium tab-button">
+                            Overseas
+                        </button>
+                        <button onclick="showTab('scenarios')" class="px-3 py-2 bg-yellow-50 text-yellow-700 rounded border hover:bg-yellow-100 transition-colors text-sm font-medium tab-button">
+                            Scenarios
+                        </button>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Column 1: Personal & Risk Profile -->
         <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
@@ -1799,123 +1887,10 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Column 4: Pension System & Simulation -->
-        <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4 border-b pb-2">Australian Pension System</h2>
-
-            <div class="space-y-4">
-                <div>
-                    <label for="asfaComfortable" class="block text-sm font-medium text-gray-700">ASFA Comfortable (Couple) p.a.</label>
-                    <input type="text" id="asfaComfortable" value="73875" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    <p class="mt-1 text-xs text-gray-500">March 2025: $73,875 comfortable, $48,184 modest</p>
-                </div>
-                <div>
-                    <label for="agePensionMax" class="block text-sm font-medium text-gray-700">Max Age Pension (Couple) p.a.</label>
-                    <input type="text" id="agePensionMax" value="45037" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                </div>
-                <div>
-                    <div class="label-with-tooltip">
-                        <label for="pensionAssetThreshold" class="text-sm font-medium text-gray-700">Pension Asset Threshold (Couple)</label>
-                        <div class="tooltip">
-                            <span class="tooltip-icon" aria-label="Asset threshold information">i</span>
-                            <span class="tooltiptext">
-                                <strong>Pension Asset Threshold (Couple)</strong>
-                                Asset value below which couples receive full age pension. Above this threshold, pension reduces by $3 per fortnight for every $1,000 in excess assets. Home is partially exempt.
-                                <div class="tooltip-example">Example: $500k assets = reduced age pension of ~$43k/year</div>
-                            </span>
-                        </div>
-                    </div>
-                    <input type="text" id="pensionAssetThreshold" value="470000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                </div>
-                <div>
-                    <label for="pensionAssetLimit" class="block text-sm font-medium text-gray-700">Pension Asset Limit (Couple)</label>
-                    <input type="text" id="pensionAssetLimit" value="1031000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                </div>
-                <div>
-                    <label for="pensionIncomeThreshold" class="block text-sm font-medium text-gray-700">Pension Income Threshold (p.f.)</label>
-                    <input type="text" id="pensionIncomeThreshold" value="372" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                </div>
-            </div>
-
-            <div class="enhancement-highlight p-4 rounded-lg mt-6">
-                <h3 class="text-lg font-medium text-gray-700 mb-3">Simulation Controls</h3>
-                <div class="space-y-3">
-                    <div>
-                        <label for="numRuns" class="block text-sm font-medium text-gray-700">Monte Carlo Runs</label>
-                        <input type="text" id="numRuns" value="5000" min="1000" step="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <div class="label-with-tooltip">
-                            <label for="returnVolatility" class="text-sm font-medium text-gray-700">Return Volatility (%)</label>
-                            <div class="tooltip">
-                                <span class="tooltip-icon" aria-label="Volatility information">i</span>
-                                <span class="tooltiptext">
-                                    <strong>Return Volatility (%)</strong>
-                                    Standard deviation of annual returns (risk measure). Conservative portfolios: 5-8%, Balanced: 10-15%, Growth: 15-20%. Higher volatility means more variable year-to-year returns.
-                                    <div class="tooltip-example">Example: 12% volatility means returns typically vary ±24% from average</div>
-                                </span>
-                            </div>
-                        </div>
-                        <input type="text" id="returnVolatility" value="12" min="1" max="50" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <label class="flex items-center">
-                            <input type="checkbox" id="enableShocks" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <span class="ml-2 text-sm text-gray-700">Enable Market Shocks</span>
-                        </label>
-                    </div>
-                    <div id="shockControls" class="hidden space-y-2">
-                        <div>
-                            <label for="shockProbability" class="block text-sm font-medium text-gray-700">Shock Probability (%)</label>
-                            <input type="text" id="shockProbability" value="5" min="0" max="20" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                        <div>
-                            <label for="shockMagnitude" class="block text-sm font-medium text-gray-700">Shock Magnitude (%)</label>
-                            <input type="text" id="shockMagnitude" value="-25" max="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-6 space-y-3">
-                <button id="btnCalculate" class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
-                    Calculate Enhanced Projection
-                </button>
-                <button id="btnMonteCarlo" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                    Run Enhanced Monte Carlo
-                </button>
-                <button id="btnStressTest" class="w-full px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
-                    Run Stress Test Scenarios
-                </button>
-                <button id="btnRetirementSolver" class="w-full px-4 py-2 border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium">
-                    When Can I Retire?
-                </button>
-                <button id="btnGenerateRecommendations" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
-                    Generate AI Recommendations
-                </button>
-                <button id="btnScenarioComparison" class="w-full px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors font-medium">
-                    Compare Scenarios
-                </button>
-                <button id="btnResetDefaults" class="w-full px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
-                    Reset to Defaults
-                </button>
-                <div class="relative inline-block w-full" id="exportContainer">
-                    <button id="btnExport" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center">
-                        Export Enhanced Report <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </button>
-                    <div id="exportDropdown" class="absolute bottom-full mb-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
-                        <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                            <a href="#" id="btnExportCSV" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as CSV</a>
-                            <a href="#" id="btnExportXLSX" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as XLSX</a>
-                            <a href="#" id="btnExportPDF" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as PDF</a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- User Data Import/Export Section -->
-                <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <!-- Save & Load Data Section -->
+            <div class="advanced-section mt-4">
+                <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <h4 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
@@ -1939,6 +1914,92 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Australian Pension System Section -->
+            <div class="advanced-section mt-4">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-4 border-b pb-2">Australian Pension System</h2>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label for="asfaComfortable" class="block text-sm font-medium text-gray-700">ASFA Comfortable (Couple) p.a.</label>
+                            <input type="text" id="asfaComfortable" value="73875" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">March 2025: $73,875 comfortable, $48,184 modest</p>
+                        </div>
+                        <div>
+                            <label for="agePensionMax" class="block text-sm font-medium text-gray-700">Max Age Pension (Couple) p.a.</label>
+                            <input type="text" id="agePensionMax" value="45037" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <div class="label-with-tooltip">
+                                <label for="pensionAssetThreshold" class="text-sm font-medium text-gray-700">Pension Asset Threshold (Couple)</label>
+                                <div class="tooltip">
+                                    <span class="tooltip-icon" aria-label="Asset threshold information">i</span>
+                                    <span class="tooltiptext">
+                                        <strong>Pension Asset Threshold (Couple)</strong>
+                                        Asset value below which couples receive full age pension. Above this threshold, pension reduces by $3 per fortnight for every $1,000 in excess assets. Home is partially exempt.
+                                        <div class="tooltip-example">Example: $500k assets = reduced age pension of ~$43k/year</div>
+                                    </span>
+                                </div>
+                            </div>
+                            <input type="text" id="pensionAssetThreshold" value="470000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="pensionAssetLimit" class="block text-sm font-medium text-gray-700">Pension Asset Limit (Couple)</label>
+                            <input type="text" id="pensionAssetLimit" value="1031000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="pensionIncomeThreshold" class="block text-sm font-medium text-gray-700">Pension Income Threshold (p.f.)</label>
+                            <input type="text" id="pensionIncomeThreshold" value="372" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+
+                    <div class="enhancement-highlight p-4 rounded-lg mt-6">
+                        <h3 class="text-lg font-medium text-gray-700 mb-3">Simulation Controls</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label for="numRuns" class="block text-sm font-medium text-gray-700">Monte Carlo Runs</label>
+                                <input type="text" id="numRuns" value="5000" min="1000" step="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <div class="label-with-tooltip">
+                                    <label for="returnVolatility" class="text-sm font-medium text-gray-700">Return Volatility (%)</label>
+                                    <div class="tooltip">
+                                        <span class="tooltip-icon" aria-label="Volatility information">i</span>
+                                        <span class="tooltiptext">
+                                            <strong>Return Volatility (%)</strong>
+                                            Standard deviation of annual returns (risk measure). Conservative portfolios: 5-8%, Balanced: 10-15%, Growth: 15-20%. Higher volatility means more variable year-to-year returns.
+                                            <div class="tooltip-example">Example: 12% volatility means returns typically vary ±24% from average</div>
+                                        </span>
+                                    </div>
+                                </div>
+                                <input type="text" id="returnVolatility" value="12" min="1" max="50" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="enableShocks" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <span class="ml-2 text-sm text-gray-700">Enable Market Shocks</span>
+                                </label>
+                            </div>
+                            <div id="shockControls" class="hidden space-y-2">
+                                <div>
+                                    <label for="shockProbability" class="block text-sm font-medium text-gray-700">Shock Probability (%)</label>
+                                    <input type="text" id="shockProbability" value="5" min="0" max="20" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+                                <div>
+                                    <label for="shockMagnitude" class="block text-sm font-medium text-gray-700">Shock Magnitude (%)</label>
+                                    <input type="text" id="shockMagnitude" value="-25" max="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 4: Additional Settings -->
+        <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">Additional Settings</h2>
 
             <div id="progressContainer" class="hidden mt-4">
                 <div class="w-full bg-gray-200 rounded-full h-3">

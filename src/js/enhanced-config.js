@@ -835,6 +835,195 @@ export const ENHANCED_FINANCIAL_CONFIG = {
                 unit: "years"
             }
         }
+    },
+
+    // ===== CENTRELINK / SERVICES AUSTRALIA CALCULATIONS =====
+    centrelink: {
+        _category: "Centrelink Pension Calculations",
+        _description: "Official rates and thresholds for Age Pension calculations",
+        _lastResearched: "2025-01-15",
+        _sources: ["Services Australia", "Australian Government"],
+
+        pensionRates: {
+            COUPLE: {
+                MAX_PENSION_PER_YEAR: {
+                    value: 45037,
+                    description: "Maximum Age Pension per year for couple (combined)",
+                    source: "Services Australia",
+                    unit: "AUD"
+                }
+            },
+            SINGLE: {
+                MAX_PENSION_PER_YEAR: {
+                    value: 28756,
+                    description: "Maximum Age Pension per year for single person",
+                    source: "Services Australia",
+                    unit: "AUD"
+                }
+            }
+        },
+
+        assetTest: {
+            COUPLE: {
+                ASSET_FREE_AREA_HOMEOWNER: {
+                    value: 470000,
+                    description: "Asset free area for couple homeowners",
+                    source: "Services Australia",
+                    unit: "AUD"
+                },
+                ASSET_FREE_AREA_NON_HOMEOWNER: {
+                    value: 693500,
+                    description: "Asset free area for couple non-homeowners",
+                    source: "Services Australia",
+                    unit: "AUD"
+                },
+                ASSET_LIMIT_HOMEOWNER: {
+                    value: 1031000,
+                    description: "Asset limit for couple homeowners (no pension beyond this)",
+                    source: "Services Australia",
+                    unit: "AUD"
+                },
+                ASSET_LIMIT_NON_HOMEOWNER: {
+                    value: 1254500,
+                    description: "Asset limit for couple non-homeowners",
+                    source: "Services Australia",
+                    unit: "AUD"
+                }
+            },
+            SINGLE: {
+                ASSET_FREE_AREA_HOMEOWNER: {
+                    value: 301750,
+                    description: "Asset free area for single homeowner",
+                    source: "Services Australia",
+                    unit: "AUD"
+                },
+                ASSET_FREE_AREA_NON_HOMEOWNER: {
+                    value: 525250,
+                    description: "Asset free area for single non-homeowner",
+                    source: "Services Australia",
+                    unit: "AUD"
+                },
+                ASSET_LIMIT_HOMEOWNER: {
+                    value: 686500,
+                    description: "Asset limit for single homeowner",
+                    source: "Services Australia",
+                    unit: "AUD"
+                },
+                ASSET_LIMIT_NON_HOMEOWNER: {
+                    value: 910000,
+                    description: "Asset limit for single non-homeowner",
+                    source: "Services Australia",
+                    unit: "AUD"
+                }
+            }
+        },
+
+        incomeTest: {
+            COUPLE: {
+                INCOME_FREE_AREA_PER_YEAR: {
+                    value: 372,
+                    description: "Income free area per year for couple (combined)",
+                    source: "Services Australia",
+                    unit: "AUD"
+                }
+            },
+            SINGLE: {
+                INCOME_FREE_AREA_PER_YEAR: {
+                    value: 212,
+                    description: "Income free area per year for single person",
+                    source: "Services Australia",
+                    unit: "AUD"
+                }
+            }
+        },
+
+        workBonus: {
+            UPFRONT_CREDIT: {
+                value: 4000,
+                description: "Upfront work bonus credit",
+                source: "Services Australia",
+                unit: "AUD"
+            },
+            ACCRUAL_PER_YEAR: {
+                value: 300,
+                description: "Annual work bonus accrual",
+                source: "Services Australia",
+                unit: "AUD"
+            }
+        },
+
+        deemingRates: {
+            COUPLE_LOWER_THRESHOLD: {
+                value: 102000,
+                description: "Lower deeming threshold for couple (combined)",
+                source: "Services Australia",
+                unit: "AUD"
+            },
+            SINGLE_LOWER_THRESHOLD: {
+                value: 68000,
+                description: "Lower deeming threshold for single person",
+                source: "Services Australia",
+                unit: "AUD"
+            },
+            LOWER_RATE: {
+                value: 0.0225,
+                description: "Lower deeming rate (2.25%)",
+                source: "Services Australia",
+                unit: "rate"
+            },
+            UPPER_RATE: {
+                value: 0.0475,
+                description: "Upper deeming rate (4.75%)",
+                source: "Services Australia",
+                unit: "rate"
+            }
+        },
+
+        rentAssistance: {
+            COUPLE: {
+                THRESHOLD: {
+                    value: 150,
+                    description: "Minimum rent threshold for couple to receive assistance",
+                    source: "Services Australia",
+                    unit: "AUD per week"
+                },
+                MAX_ASSISTANCE: {
+                    value: 169,
+                    description: "Maximum rent assistance for couple per week",
+                    source: "Services Australia",
+                    unit: "AUD per week"
+                }
+            },
+            SINGLE: {
+                THRESHOLD: {
+                    value: 126,
+                    description: "Minimum rent threshold for single person",
+                    source: "Services Australia",
+                    unit: "AUD per week"
+                },
+                MAX_ASSISTANCE: {
+                    value: 169,
+                    description: "Maximum rent assistance for single person per week",
+                    source: "Services Australia",
+                    unit: "AUD per week"
+                }
+            }
+        },
+
+        cshc: {
+            COUPLE_INCOME_THRESHOLD: {
+                value: 100000,
+                description: "Income threshold for Commonwealth Seniors Health Card (couple)",
+                source: "Services Australia",
+                unit: "AUD per year"
+            },
+            SINGLE_INCOME_THRESHOLD: {
+                value: 61284,
+                description: "Income threshold for Commonwealth Seniors Health Card (single)",
+                source: "Services Australia",
+                unit: "AUD per year"
+            }
+        }
     }
 };
 

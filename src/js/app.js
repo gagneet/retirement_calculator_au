@@ -3639,14 +3639,22 @@ class RetirementCalculatorApp {
 
         // Main calculation button
         const btnCalculate = $('btnCalculate');
+        console.log('DEBUG: btnCalculate found:', !!btnCalculate);
         if (btnCalculate) {
-            btnCalculate.addEventListener('click', () => this.calculateRetirement(true));
+            btnCalculate.addEventListener('click', () => {
+                console.log('Calculate Enhanced Projection clicked!');
+                this.calculateRetirement(true);
+            });
         }
 
         // Recommendation Engine button
         const btnGenerateRecommendations = $('btnGenerateRecommendations');
+        console.log('DEBUG: btnGenerateRecommendations found:', !!btnGenerateRecommendations);
         if (btnGenerateRecommendations) {
-            btnGenerateRecommendations.addEventListener('click', () => this.runSuggestionEngine());
+            btnGenerateRecommendations.addEventListener('click', () => {
+                console.log('Generate AI Recommendations clicked!');
+                this.runSuggestionEngine();
+            });
         }
 
         // Generate Suggestions button
@@ -3663,26 +3671,40 @@ class RetirementCalculatorApp {
 
         // Monte Carlo button
         const btnMonteCarlo = $('btnMonteCarlo');
+        console.log('DEBUG: btnMonteCarlo found:', !!btnMonteCarlo);
         if (btnMonteCarlo) {
-            btnMonteCarlo.addEventListener('click', () => this.runMonteCarloSimulation());
+            btnMonteCarlo.addEventListener('click', () => {
+                console.log('Run Enhanced Monte Carlo clicked!');
+                this.runMonteCarloSimulation();
+            });
         }
 
         // Stress test button
         const btnStressTest = $('btnStressTest');
+        console.log('DEBUG: btnStressTest found:', !!btnStressTest);
         if (btnStressTest) {
-            btnStressTest.addEventListener('click', () => this.runStressTest());
+            btnStressTest.addEventListener('click', () => {
+                console.log('Run Stress Test Scenarios clicked!');
+                this.runStressTest();
+            });
         }
 
         // Retirement solver button
         const btnRetirementSolver = $('btnRetirementSolver');
+        console.log('DEBUG: btnRetirementSolver found:', !!btnRetirementSolver);
         if (btnRetirementSolver) {
-            btnRetirementSolver.addEventListener('click', () => this.runRetirementSolver());
+            btnRetirementSolver.addEventListener('click', () => {
+                console.log('When Can I Retire clicked!');
+                this.runRetirementSolver();
+            });
         }
 
         // Scenario comparison button
         const btnScenarioComparison = $('btnScenarioComparison');
+        console.log('DEBUG: btnScenarioComparison found:', !!btnScenarioComparison);
         if (btnScenarioComparison) {
             btnScenarioComparison.addEventListener('click', () => {
+                console.log('Compare Scenarios clicked!');
                 // Initialize scenario comparison tab
                 this.initializeScenarioComparison();
                 // TODO: Save current inputs before navigating
@@ -3695,14 +3717,36 @@ class RetirementCalculatorApp {
 
         // Reset to defaults button
         const btnResetDefaults = $('btnResetDefaults');
+        console.log('DEBUG: btnResetDefaults found:', !!btnResetDefaults);
         if (btnResetDefaults) {
-            btnResetDefaults.addEventListener('click', () => this.resetToDefaults());
+            btnResetDefaults.addEventListener('click', () => {
+                console.log('Reset to Defaults clicked!');
+                this.resetToDefaults();
+            });
         }
 
         // Clear Cache button
         const btnClearCache = $('clearCacheBtn');
         if (btnClearCache) {
             btnClearCache.addEventListener('click', () => this.clearCache());
+        }
+
+        // Toggle tabs visibility in Advanced Calculator
+        const toggleTabsVisibility = $('toggleTabsVisibility');
+        if (toggleTabsVisibility) {
+            toggleTabsVisibility.addEventListener('click', () => {
+                const tabsContainer = $('analysisTabsContainer');
+                if (tabsContainer) {
+                    const isHidden = tabsContainer.classList.contains('hidden');
+                    if (isHidden) {
+                        tabsContainer.classList.remove('hidden');
+                        toggleTabsVisibility.textContent = 'Hide Tabs';
+                    } else {
+                        tabsContainer.classList.add('hidden');
+                        toggleTabsVisibility.textContent = 'Show Tabs';
+                    }
+                }
+            });
         }
 
         // Scenario comparison controls
@@ -4161,14 +4205,32 @@ class RetirementCalculatorApp {
 
     resetToDefaults() {
         /**
-         * Reset all form inputs to their default values
+         * Reset all form inputs to their default values, but preserve values that came from onboarding
          */
         const config = ENHANCED_CONFIG.DEFAULTS;
         const inputIds = Object.values(this.getAllFormInputs()).flat();
 
+        // Define fields that should be preserved if they came from onboarding
+        const preserveFromOnboarding = [
+            'yourCurrentAge', 'partnerCurrentAge', 'retirementAge', 'partnerRetirementAge',
+            'yourSalary', 'partnerSalary', 'yourCurrentSuper', 'partnerCurrentSuper',
+            'currentSavings', 'currentStocks', 'homeValue', 'mortgageBalance',
+            'investmentPropertyValue', 'investmentPropertyLoan',
+            'weeklyRentalIncome', 'annualPropertyExpenses', 'riskTolerance',
+            'hasEmergencyFund', 'planToDownsize', 'hasInvestmentProperty', 'asfaComfortable'
+        ];
+
+        // Check if onboarding was completed
+        const onboardingCompleted = localStorage.getItem('retirement-calc-onboarding-completed') === 'true';
+
         inputIds.forEach(inputId => {
             const element = $(inputId);
             if (element) {
+                // Skip resetting fields that came from onboarding
+                if (onboardingCompleted && preserveFromOnboarding.includes(inputId)) {
+                    return; // Skip this field - preserve its current value
+                }
+
                 // Get the default value from config
                 let defaultValue = this.getDefaultValue(inputId, config);
 
@@ -4184,7 +4246,7 @@ class RetirementCalculatorApp {
             }
         });
 
-        // Clear localStorage
+        // Don't clear localStorage for onboarding data - only clear calculation cache
         localStorage.removeItem('retirement-calculator-inputs');
 
         // Update risk tolerance display
@@ -4196,8 +4258,8 @@ class RetirementCalculatorApp {
         // Trigger a calculation update
         this.calculateRetirement(false);
 
-        showNotification('Form reset to default values', 'success');
-        // logger.info('Form inputs reset to defaults');
+        showNotification('Advanced settings reset to defaults (onboarding data preserved)', 'success');
+        // logger.info('Form inputs reset to defaults while preserving onboarding data');
     }
 
     getDefaultValue(inputId, config) {
@@ -4499,7 +4561,7 @@ class RetirementCalculatorApp {
         const dependentSummarySection = $('dependentSummarySection');
 
         if (totalDependentsCountField && dependentDetailsSection) {
-            totalDependentsCountField.addEventListener('input', () => {
+            const updateDependentVisibility = () => {
                 const count = parseInt(totalDependentsCountField.value) || 0;
                 if (count > 0) {
                     dependentDetailsSection.classList.remove('hidden');
@@ -4513,7 +4575,13 @@ class RetirementCalculatorApp {
                     }
                 }
                 this.calculateDependentCosts();
-            });
+            };
+
+            totalDependentsCountField.addEventListener('input', updateDependentVisibility);
+            totalDependentsCountField.addEventListener('change', updateDependentVisibility);
+
+            // Trigger initial check in case there's already a value
+            setTimeout(updateDependentVisibility, 100);
         }
 
         // Setup global collapse/expand functions
@@ -6014,12 +6082,31 @@ function completeOnboarding() {
     // Mark onboarding as completed
     localStorage.setItem('retirement-calc-onboarding-completed', 'true');
 
-    // Switch to advanced calculator tab
-    switchTab('advanced');
-
-    // Show success message
+    // Set up event listeners for advanced calculator buttons
     setTimeout(() => {
-        alert('🎉 Onboarding completed! Your information has been transferred to the advanced calculator. Click "Calculate Enhanced Projection" to see your results.');
+        if (window.app) {
+            // Set up event listeners since they weren't set up during onboarding mode
+            if (!window.app.eventListenersSetup) {
+                window.app.setupEventListeners();
+            }
+
+            // Run the calculation
+            if (window.app.calculateRetirement) {
+                window.app.calculateRetirement(true);
+
+                // Switch to results tab to show the generated plan
+                setTimeout(() => {
+                    switchTab('results');
+
+                    // Show success message
+                    alert('🎉 Your Retirement Plan has been generated! Explore the Results, Charts, and Action Plan tabs to see your personalized analysis.');
+                }, 1000);
+            }
+        } else {
+            // Fallback if app not ready - switch to advanced calculator
+            switchTab('advanced');
+            alert('🎉 Onboarding completed! Your information has been transferred to the advanced calculator. Click "Calculate Enhanced Projection" to see your results.');
+        }
     }, 500);
 }
 
@@ -6143,9 +6230,43 @@ function transferOnboardingToAdvanced() {
     }
 
     const planToDownsize = document.getElementById('onboarding-planToDownsize')?.checked;
-    if (planToDownsize) {
-        const checkbox = document.getElementById('planToDownsize');
-        if (checkbox) checkbox.checked = true;
+    if (planToDownsize !== undefined) {
+        const selectField = document.getElementById('planToDownsize');
+        if (selectField) selectField.value = planToDownsize ? "true" : "false";
+    }
+
+    // Ensure monthlyStockContribution has a default value since it's not collected in onboarding
+    const monthlyStockField = document.getElementById('monthlyStockContribution');
+    if (monthlyStockField && (!monthlyStockField.value || monthlyStockField.value === '0')) {
+        monthlyStockField.value = '800'; // Default value
+    }
+
+    // Ensure percentIncomeSaved has a default value since it's not collected in onboarding
+    const percentIncomeSavedField = document.getElementById('percentIncomeSaved');
+    if (percentIncomeSavedField && (!percentIncomeSavedField.value || percentIncomeSavedField.value === '0')) {
+        percentIncomeSavedField.value = '9'; // Default value
+    }
+
+    // Ensure investmentPropertyRate has correct percentage format (not currency)
+    const investmentPropertyRateField = document.getElementById('investmentPropertyRate');
+    if (investmentPropertyRateField) {
+        const currentValue = investmentPropertyRateField.value;
+        // If the value looks like a currency (contains $ or is very large), reset to default
+        if (currentValue && (currentValue.includes('$') || parseFloat(currentValue.replace(/[$,]/g, '')) > 100)) {
+            investmentPropertyRateField.value = '6.2'; // Default percentage value
+        }
+    }
+
+    // Calculate and populate Total Super Balance (last 30 June)
+    const totalSuperBalanceField = document.getElementById('totalSuperBalanceLastJune');
+    if (totalSuperBalanceField) {
+        const yourSuper = parseCurrency(document.getElementById('yourCurrentSuper')?.value || '0');
+        const partnerSuper = parseCurrency(document.getElementById('partnerCurrentSuper')?.value || '0');
+        const totalSuper = yourSuper + partnerSuper;
+
+        if (totalSuper > 0) {
+            totalSuperBalanceField.value = totalSuper.toString();
+        }
     }
 
     // Transfer risk and goals data
@@ -6187,6 +6308,24 @@ function transferOnboardingToAdvanced() {
     }
 
     console.log('✅ Onboarding data transferred to Advanced Calculator');
+
+    // Update dynamic asset allocation display
+    setTimeout(() => {
+        if (window.RetirementCalculatorApp && window.RetirementCalculatorApp.updateRecommendedAllocation) {
+            const inputs = window.RetirementCalculatorApp.collectInputs();
+            window.RetirementCalculatorApp.updateRecommendedAllocation(inputs);
+        }
+    }, 200);
+
+    // Ensure all calculator buttons are properly bound after transfer
+    setTimeout(() => {
+        if (window.app) {
+            // Re-setup event listeners for moved buttons
+            if (window.setupTabActionHandlers) {
+                window.setupTabActionHandlers();
+            }
+        }
+    }, 300);
 }
 
 // 🚀 NEW: Helper functions for onboarding
@@ -6816,6 +6955,134 @@ function initializeApp() {
 
         // Expose functions to window for onclick handlers
         window.completeOnboarding = completeOnboarding;
+        window.setupTabActionHandlers = setupTabActionHandlers;
+
+        // Expose button handlers to window for onclick attributes
+        window.handleCalculateClick = () => {
+            console.log('Calculate Enhanced Projection clicked via onclick!');
+            if (window.app && window.app.calculateRetirement) {
+                try {
+                    console.log('About to call calculateRetirement...');
+                    window.app.calculateRetirement(true);
+                    console.log('calculateRetirement call completed successfully');
+                } catch (error) {
+                    console.error('Error in calculateRetirement:', error);
+                    alert('Error: ' + error.message);
+                }
+            } else {
+                console.error('App or calculateRetirement method not available');
+                console.log('window.app:', window.app);
+                alert('App not properly initialized');
+            }
+        };
+
+        window.handleMonteCarloClick = () => {
+            console.log('Run Enhanced Monte Carlo clicked via onclick!');
+            if (window.app && window.app.runMonteCarloSimulation) {
+                try {
+                    console.log('About to call runMonteCarloSimulation...');
+                    window.app.runMonteCarloSimulation();
+                    console.log('runMonteCarloSimulation call completed successfully');
+                } catch (error) {
+                    console.error('Error in runMonteCarloSimulation:', error);
+                    alert('Error: ' + error.message);
+                }
+            } else {
+                console.error('App or runMonteCarloSimulation method not available');
+                alert('Monte Carlo method not available');
+            }
+        };
+
+        window.handleStressTestClick = () => {
+            console.log('Run Stress Test Scenarios clicked via onclick!');
+            if (window.app && window.app.runStressTest) {
+                window.app.runStressTest();
+            } else {
+                console.error('App or runStressTest method not available');
+            }
+        };
+
+        window.handleRetirementSolverClick = () => {
+            console.log('When Can I Retire clicked via onclick!');
+            if (window.app && window.app.runRetirementSolver) {
+                window.app.runRetirementSolver();
+            } else {
+                console.error('App or runRetirementSolver method not available');
+            }
+        };
+
+        window.handleRecommendationsClick = () => {
+            console.log('Generate AI Recommendations clicked via onclick!');
+            if (window.app && window.app.runSuggestionEngine) {
+                window.app.runSuggestionEngine();
+            } else {
+                console.error('App or runSuggestionEngine method not available');
+            }
+        };
+
+        window.handleScenariosClick = () => {
+            console.log('Compare Scenarios clicked via onclick!');
+            if (window.app && window.app.initializeScenarioComparison) {
+                window.app.initializeScenarioComparison();
+            } else {
+                console.error('App or initializeScenarioComparison method not available');
+            }
+        };
+
+        window.handleResetClick = () => {
+            console.log('Reset to Defaults clicked via onclick!');
+            if (window.app && window.app.resetToDefaults) {
+                window.app.resetToDefaults();
+            } else {
+                console.error('App or resetToDefaults method not available');
+            }
+        };
+
+        window.handleExportClick = () => {
+            console.log('Export Enhanced Report clicked via onclick!');
+            const exportDropdown = document.getElementById('exportDropdown');
+            if (exportDropdown) {
+                exportDropdown.classList.toggle('hidden');
+            } else {
+                console.error('Export dropdown not found');
+            }
+        };
+
+        window.handleExportCSVClick = (e) => {
+            console.log('Export CSV clicked via onclick!');
+            if (e) e.preventDefault();
+            if (window.app && window.app.exportResults) {
+                window.app.exportResults('csv');
+            } else {
+                console.error('App or exportResults method not available');
+            }
+            const exportDropdown = document.getElementById('exportDropdown');
+            if (exportDropdown) exportDropdown.classList.add('hidden');
+        };
+
+        window.handleExportXLSXClick = (e) => {
+            console.log('Export XLSX clicked via onclick!');
+            if (e) e.preventDefault();
+            if (window.app && window.app.exportResults) {
+                window.app.exportResults('xlsx');
+            } else {
+                console.error('App or exportResults method not available');
+            }
+            const exportDropdown = document.getElementById('exportDropdown');
+            if (exportDropdown) exportDropdown.classList.add('hidden');
+        };
+
+        window.handleExportPDFClick = (e) => {
+            console.log('Export PDF clicked via onclick!');
+            if (e) e.preventDefault();
+            if (window.app && window.app.exportResults) {
+                window.app.exportResults('pdf');
+            } else {
+                console.error('App or exportResults method not available');
+            }
+            const exportDropdown = document.getElementById('exportDropdown');
+            if (exportDropdown) exportDropdown.classList.add('hidden');
+        };
 
         // Setup currency formatting for onboarding inputs
         setupCurrencyFormatting();
