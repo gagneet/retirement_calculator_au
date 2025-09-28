@@ -47,6 +47,35 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Tab System Styles */
+.tab-button {
+    transition: all 0.2s ease;
+    border-bottom-width: 2px;
+    cursor: pointer;
+}
+
+.tab-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.tab-button.active {
+    border-bottom-color: #3b82f6 !important;
+    color: #3b82f6 !important;
+}
+
+.tab-content {
+    transition: opacity 0.3s ease;
+}
+
+.tab-content.hidden {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
 /* Theme Toggle Button - Enhanced visibility */
 .theme-toggle {
     position: relative !important;

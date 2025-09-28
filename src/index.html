@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Cache-clearing script
+	<!-- Cache-clearing script -->
     <script>
         (function() {
             // Check if the cache has already been cleared in this session
@@ -26,7 +26,7 @@
             }
         })();
     </script>
-    -->
+    
 
     <!-- Google Analytics - Silent loading with background retry -->
     <script>
@@ -365,6 +365,18 @@
         <h1 class="sr-only">Australian Retirement Calculator - Advanced Planning Tool</h1>
         <p class="text-lg text-gray-600">Advanced retirement planning with superannuation, age pension, healthcare costs, aged care, dynamic allocation, and investment property modeling</p>
 
+        <!-- Enhanced Onboarding Button -->
+        <div class="mt-6 mb-4 text-center">
+            <div class="inline-flex items-center bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 cursor-pointer" onclick="startOnboarding()">
+                <span class="text-2xl mr-3">🚀</span>
+                <div class="text-left">
+                    <div class="font-bold text-lg">New User? Start Here!</div>
+                    <div class="text-sm text-green-100">5-step guided setup with personalized recommendations</div>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Or use the tabs above to navigate manually</p>
+        </div>
+
         <!-- Quick Start Instructions -->
         <div class="mt-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-lg">
             <div class="flex items-start justify-between">
@@ -415,7 +427,484 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <!-- Enhanced Tabbed Interface with Onboarding Flow -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <!-- Tab Navigation -->
+        <div class="border-b border-gray-200 bg-gray-50">
+            <nav class="flex flex-wrap gap-2 px-6 py-2" aria-label="Tabs">
+                <!-- Onboarding Steps (shown first for new users) -->
+                <button id="tab-step1" class="tab-button active py-3 px-4 border-b-2 border-blue-500 font-medium text-sm text-blue-600 whitespace-nowrap rounded-t-lg" onclick="switchTab('step1')">
+                    👥 1. Household
+                </button>
+                <button id="tab-step2" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-400 whitespace-nowrap rounded-t-lg" onclick="switchTab('step2')" disabled>
+                    💰 2. Finances
+                </button>
+                <button id="tab-step3" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-400 whitespace-nowrap rounded-t-lg" onclick="switchTab('step3')" disabled>
+                    🏠 3. Property
+                </button>
+                <button id="tab-step4" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-400 whitespace-nowrap rounded-t-lg" onclick="switchTab('step4')" disabled>
+                    🎯 4. Goals
+                </button>
+                <button id="tab-step5" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-400 whitespace-nowrap rounded-t-lg" onclick="switchTab('step5')" disabled>
+                    ✅ 5. Review
+                </button>
+
+                <!-- Divider -->
+                <div class="border-l border-gray-300 mx-2"></div>
+
+                <!-- Advanced Calculator -->
+                <button id="tab-advanced" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('advanced')">
+                    📝 Advanced Calculator
+                </button>
+
+                <!-- Results & Analysis -->
+                <button id="tab-results" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('results')">
+                    📊 Results
+                </button>
+                <button id="tab-charts" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('charts')">
+                    📈 Charts
+                </button>
+                <button id="tab-suggestions" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('suggestions')">
+                    💡 Action Plan
+                </button>
+                <button id="tab-export" class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap rounded-t-lg" onclick="switchTab('export')">
+                    📁 Export
+                </button>
+            </nav>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="min-h-screen">
+            <!-- Step 1: Household Information -->
+            <div id="content-step1" class="tab-content active p-6">
+                <div class="max-w-3xl mx-auto">
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between text-sm text-gray-500 mb-2">
+                            <span>Step 1 of 5</span>
+                            <span>20% Complete</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500" style="width: 20%"></div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-3">👥 Tell us about your household</h2>
+                        <p class="text-lg text-gray-600">Basic information to personalize your retirement plan</p>
+                    </div>
+
+                    <div class="bg-white rounded-lg border border-gray-200 p-8">
+                        <div class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Your Age</label>
+                                    <input type="number" id="onboarding-yourAge" min="18" max="100" value="39" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="39">
+                                    <p class="text-xs text-gray-500 mt-1">Current age in years</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Target Retirement Age</label>
+                                    <input type="number" id="onboarding-retirementAge" min="50" max="75" value="67" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="67">
+                                    <p class="text-xs text-gray-500 mt-1">When you want to retire</p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="onboarding-hasPartner" class="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                                    <label for="onboarding-hasPartner" class="ml-2 text-sm text-gray-700">I have a partner/spouse to include in planning</label>
+                                </div>
+
+                                <div id="partnerDetails" class="hidden space-y-4 p-4 bg-blue-50 rounded-lg">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Partner's Age</label>
+                                            <input type="number" id="onboarding-partnerAge" min="18" max="100" value="41" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="41">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Partner's Retirement Age</label>
+                                            <input type="number" id="onboarding-partnerRetirementAge" min="50" max="75" value="67" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="67">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-between pt-6">
+                                <div></div>
+                                <button onclick="nextOnboardingStep(1)" class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                                    Continue to Finances →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Financial Information (initially hidden) -->
+            <div id="content-step2" class="tab-content hidden p-6">
+                <div class="max-w-3xl mx-auto">
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between text-sm text-gray-500 mb-2">
+                            <span>Step 2 of 5</span>
+                            <span>40% Complete</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500" style="width: 40%"></div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-3">💰 Your current finances</h2>
+                        <p class="text-lg text-gray-600">Tell us about your income and savings</p>
+                    </div>
+
+                    <div class="bg-white rounded-lg border border-gray-200 p-8">
+                        <div class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Your Annual Income</label>
+                                    <input type="text" id="onboarding-yourIncome" value="$80,000" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$80,000">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Your Super Balance</label>
+                                    <input type="text" id="onboarding-yourSuper" value="$120,000" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$120,000">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Cash Savings</label>
+                                    <input type="text" id="onboarding-savings" value="$25,000" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$25,000">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Investments (Stocks/ETFs)</label>
+                                    <input type="text" id="onboarding-investments" value="$15,000" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$15,000">
+                                </div>
+                            </div>
+
+                            <div class="flex justify-between pt-6">
+                                <button onclick="prevOnboardingStep(2)" class="px-6 py-3 bg-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-400 transition-colors">
+                                    ← Back
+                                </button>
+                                <button onclick="nextOnboardingStep(2)" class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                                    Continue to Property →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Property Information (initially hidden) -->
+            <div id="content-step3" class="tab-content hidden p-6">
+                <div class="max-w-3xl mx-auto">
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between text-sm text-gray-500 mb-2">
+                            <span>Step 3 of 5</span>
+                            <span>60% Complete</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500" style="width: 60%"></div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-3">🏠 Your property situation</h2>
+                        <p class="text-lg text-gray-600">Tell us about your home and any investment properties</p>
+                    </div>
+
+                    <div class="bg-white rounded-lg border border-gray-200 p-8">
+                        <div class="space-y-6">
+                            <!-- Home Ownership -->
+                            <div class="space-y-4">
+                                <h3 class="text-lg font-semibold text-gray-800">Your Home</h3>
+
+                                <div class="flex items-center space-x-6">
+                                    <label class="flex items-center">
+                                        <input type="radio" name="homeOwnership" value="own" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">I own my home</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" name="homeOwnership" value="rent" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">I rent</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" name="homeOwnership" value="other" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">Other</span>
+                                    </label>
+                                </div>
+
+                                <div id="homeOwnershipDetails" class="hidden space-y-4 p-4 bg-blue-50 rounded-lg">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Home Value</label>
+                                            <input type="text" id="onboarding-homeValue" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$800,000">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Remaining Mortgage</label>
+                                            <input type="text" id="onboarding-mortgageBalance" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$300,000">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Investment Property -->
+                            <div class="space-y-4 border-t pt-6">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="onboarding-hasInvestmentProperty" class="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                                    <label for="onboarding-hasInvestmentProperty" class="ml-2 text-sm text-gray-700">I own investment property</label>
+                                </div>
+
+                                <div id="investmentPropertyDetails" class="hidden space-y-4 p-4 bg-green-50 rounded-lg">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Property Value</label>
+                                            <input type="text" id="onboarding-investmentPropertyValue" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$600,000">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Outstanding Loan</label>
+                                            <input type="text" id="onboarding-investmentPropertyLoan" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$400,000">
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Weekly Rental Income</label>
+                                            <input type="text" id="onboarding-weeklyRent" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$450">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Annual Property Expenses</label>
+                                            <input type="text" id="onboarding-propertyExpenses" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="$8,000">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Future Plans -->
+                            <div class="space-y-4 border-t pt-6">
+                                <h3 class="text-lg font-semibold text-gray-800">Future Property Plans</h3>
+
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="onboarding-planToDownsize" class="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                                    <label for="onboarding-planToDownsize" class="ml-2 text-sm text-gray-700">I plan to downsize my home in retirement</label>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-between pt-6">
+                                <button onclick="prevOnboardingStep(3)" class="px-6 py-3 bg-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-400 transition-colors">
+                                    ← Back
+                                </button>
+                                <button onclick="nextOnboardingStep(3)" class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                                    Continue to Goals →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Goals & Risk Profile (initially hidden) -->
+            <div id="content-step4" class="tab-content hidden p-6">
+                <div class="max-w-3xl mx-auto">
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between text-sm text-gray-500 mb-2">
+                            <span>Step 4 of 5</span>
+                            <span>80% Complete</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500" style="width: 80%"></div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-3">🎯 Your retirement goals</h2>
+                        <p class="text-lg text-gray-600">Help us understand your retirement lifestyle and risk comfort</p>
+                    </div>
+
+                    <div class="bg-white rounded-lg border border-gray-200 p-8">
+                        <div class="space-y-6">
+                            <!-- Retirement Lifestyle -->
+                            <div class="space-y-4">
+                                <h3 class="text-lg font-semibold text-gray-800">Desired Retirement Lifestyle</h3>
+
+                                <div class="space-y-3">
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="radio" name="retirementLifestyle" value="modest" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <div class="ml-3">
+                                            <div class="font-medium">Modest Lifestyle (~$31,000/year)</div>
+                                            <div class="text-sm text-gray-600">Basic needs covered, limited entertainment and travel</div>
+                                        </div>
+                                    </label>
+
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="radio" name="retirementLifestyle" value="comfortable" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" checked>
+                                        <div class="ml-3">
+                                            <div class="font-medium">Comfortable Lifestyle (~$50,000/year)</div>
+                                            <div class="text-sm text-gray-600">Good health coverage, regular dining out, domestic holidays</div>
+                                        </div>
+                                    </label>
+
+                                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                        <input type="radio" name="retirementLifestyle" value="luxury" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <div class="ml-3">
+                                            <div class="font-medium">Luxury Lifestyle (~$80,000+/year)</div>
+                                            <div class="text-sm text-gray-600">Premium healthcare, fine dining, international travel</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Risk Tolerance -->
+                            <div class="space-y-4 border-t pt-6">
+                                <h3 class="text-lg font-semibold text-gray-800">Investment Risk Comfort</h3>
+
+                                <div class="space-y-3">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-3">How comfortable are you with investment ups and downs?</label>
+                                        <div class="relative">
+                                            <input type="range" id="onboarding-riskTolerance" min="1" max="10" value="6" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider">
+                                            <div class="flex justify-between text-xs text-gray-500 mt-2">
+                                                <span>Very Conservative</span>
+                                                <span class="font-semibold text-blue-700" id="onboarding-riskValue">Moderate (6)</span>
+                                                <span>Very Aggressive</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Emergency Fund -->
+                            <div class="space-y-4 border-t pt-6">
+                                <h3 class="text-lg font-semibold text-gray-800">Financial Security</h3>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Emergency Fund Status</label>
+                                    <select id="onboarding-emergencyFund" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="full">I have 6+ months of expenses saved</option>
+                                        <option value="partial">I have 3-6 months of expenses saved</option>
+                                        <option value="minimal">I have 1-3 months of expenses saved</option>
+                                        <option value="none">I don't have an emergency fund</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-between pt-6">
+                                <button onclick="prevOnboardingStep(4)" class="px-6 py-3 bg-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-400 transition-colors">
+                                    ← Back
+                                </button>
+                                <button onclick="nextOnboardingStep(4)" class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                                    Review & Calculate →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Review & Calculate (initially hidden) -->
+            <div id="content-step5" class="tab-content hidden p-6">
+                <div class="max-w-4xl mx-auto">
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between text-sm text-gray-500 mb-2">
+                            <span>Step 5 of 5</span>
+                            <span>100% Complete</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-3">✅ Review your information</h2>
+                        <p class="text-lg text-gray-600">Check your details and get your personalized retirement plan</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <!-- Review Summary Cards -->
+                        <div class="bg-white rounded-lg border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">👥 Household</h3>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Your Age:</span>
+                                    <span id="review-yourAge" class="font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Retirement Age:</span>
+                                    <span id="review-retirementAge" class="font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Partner:</span>
+                                    <span id="review-hasPartner" class="font-medium">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">💰 Finances</h3>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Income:</span>
+                                    <span id="review-income" class="font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Super:</span>
+                                    <span id="review-super" class="font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Savings:</span>
+                                    <span id="review-savings" class="font-medium">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">🏠 Property</h3>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Home Ownership:</span>
+                                    <span id="review-homeOwnership" class="font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Investment Property:</span>
+                                    <span id="review-investmentProperty" class="font-medium">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">🎯 Goals</h3>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Lifestyle:</span>
+                                    <span id="review-lifestyle" class="font-medium">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Risk Tolerance:</span>
+                                    <span id="review-riskTolerance" class="font-medium">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center space-y-4">
+                        <div class="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
+                            <h3 class="text-xl font-semibold text-green-800 mb-2">🎉 Ready for Your Retirement Plan!</h3>
+                            <p class="text-green-700">Your information has been collected. Click below to transfer to the advanced calculator and see your detailed retirement projection with personalized recommendations.</p>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                            <button onclick="prevOnboardingStep(5)" class="px-6 py-3 bg-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-400 transition-colors">
+                                ← Back to Edit
+                            </button>
+                            <button onclick="completeOnboarding()" class="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg">
+                                🚀 Generate My Retirement Plan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Calculator Tab (initially hidden) -->
+            <div id="content-advanced" class="tab-content hidden p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Column 1: Personal & Risk Profile -->
         <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-xl font-semibold mb-4 border-b pb-2">Personal & Risk Profile</h2>
@@ -1421,6 +1910,304 @@
                     <div id="progressBar" class="h-3 bg-indigo-600 rounded-full progress-bar-initial"></div>
                 </div>
                 <div id="progressText" class="text-xs text-gray-600 mt-1"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Tab -->
+    <div id="content-results" class="tab-content hidden p-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3">📊 Results & Analysis</h2>
+                <p class="text-lg text-gray-600">Comprehensive analysis of your retirement projections</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mb-8 flex flex-wrap gap-4">
+                <button id="btnCalculateResults" class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+                    <i class="fas fa-calculator mr-2"></i>
+                    Calculate Results
+                </button>
+                <button id="btnAdvancedAnalysis" class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center">
+                    <i class="fas fa-chart-area mr-2"></i>
+                    Advanced Analysis
+                </button>
+                <button id="btnHealthCheck" class="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center">
+                    <i class="fas fa-stethoscope mr-2"></i>
+                    Health Check
+                </button>
+            </div>
+
+            <!-- Results Container -->
+            <div id="resultsContainer" class="space-y-6">
+                <!-- Enhanced Summary Content -->
+                <div id="summaryResults" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6">
+                    <!-- Enhanced summary content will be populated by JavaScript -->
+                </div>
+                <div id="finalResult" class="mt-4 p-4 rounded-lg">
+                    <!-- Final result will be populated by JavaScript -->
+                </div>
+                <div id="enhancedRecommendations" class="mt-4 p-4 bg-green-50 rounded-lg">
+                    <h4 class="font-semibold text-green-900">AI-Powered Recommendations</h4>
+                    <ul id="enhancedRecommendationsList" class="list-disc ml-5 mt-2 text-sm text-green-800">
+                        <!-- Enhanced recommendations will be populated -->
+                    </ul>
+                </div>
+
+                <!-- Health Check Dashboard -->
+                <div id="healthCheckDashboard" class="mt-6">
+                    <!-- Health check dashboard will be populated here -->
+                </div>
+
+                <!-- Placeholder when no data -->
+                <div id="resultsPlaceholder" class="text-center py-12 text-gray-500">
+                    <i class="fas fa-chart-line text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-medium text-gray-900">Ready to Calculate</h3>
+                    <p class="text-gray-600 mt-2">Click "Calculate Results" to see your retirement projections</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Tab -->
+    <div id="content-charts" class="tab-content hidden p-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3">📈 Charts & Visualizations</h2>
+                <p class="text-lg text-gray-600">Visual analysis with Monte Carlo simulations and projections</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mb-8 flex flex-wrap gap-4">
+                <button id="btnRunMonteCarlo" class="px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors flex items-center">
+                    <i class="fas fa-dice mr-2"></i>
+                    Run Monte Carlo
+                </button>
+                <button id="btnGenerateCharts" class="px-6 py-3 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors flex items-center">
+                    <i class="fas fa-chart-bar mr-2"></i>
+                    Generate Charts
+                </button>
+                <button id="btnPropertyAnalysis" class="px-6 py-3 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors flex items-center">
+                    <i class="fas fa-home mr-2"></i>
+                    Property Analysis
+                </button>
+            </div>
+
+            <!-- Charts Container -->
+            <div id="chartsContainer" class="space-y-6">
+                <!-- Existing chart content can be moved here -->
+                <div id="monteCarloResults" class="hidden mb-6">
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm mb-4">
+                        <div class="p-3 bg-blue-50 rounded text-center">
+                            <div class="font-semibold">Total Runs</div>
+                            <div id="mcRuns">-</div>
+                        </div>
+                        <div class="p-3 bg-green-50 rounded text-center">
+                            <div class="font-semibold">Success Rate</div>
+                            <div id="mcSuccessRate">-</div>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded text-center">
+                            <div class="font-semibold">Median Balance</div>
+                            <div id="mcMedian">-</div>
+                        </div>
+                        <div class="p-3 bg-purple-50 rounded text-center">
+                            <div class="font-semibold">10th Percentile</div>
+                            <div id="mc10th">-</div>
+                        </div>
+                        <div class="p-3 bg-yellow-50 rounded text-center">
+                            <div class="font-semibold">Confidence Score</div>
+                            <div id="mcConfidence">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="monteCarloNarrative" class="hidden"></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div id="fanChartContainer">
+                        <h3 class="text-lg font-semibold mb-2">Portfolio Balance Over Time</h3>
+                        <canvas id="fanChart"></canvas>
+                    </div>
+                    <div id="histChartContainer">
+                        <h3 class="text-lg font-semibold mb-2">Final Balance Distribution</h3>
+                        <canvas id="histChart"></canvas>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2">Asset Allocation Over Time</h3>
+                        <canvas id="allocationChart"></canvas>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2">Property vs Portfolio Growth</h3>
+                        <canvas id="propertyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Advanced Analysis Results -->
+                <div id="actionableMonteCarloOutput" class="mt-8">
+                    <!-- Actionable Monte Carlo output will be populated here -->
+                </div>
+
+                <div id="sensitivityAnalysisTable" class="mt-8">
+                    <!-- Sensitivity analysis table will be populated here -->
+                </div>
+
+                <div id="visceralScenarioComparisonTable" class="mt-8">
+                    <!-- Visceral scenario comparison table will be populated here -->
+                </div>
+
+                <!-- Placeholder when no data -->
+                <div id="chartsPlaceholder" class="text-center py-12 text-gray-500">
+                    <i class="fas fa-chart-pie text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-medium text-gray-900">Charts Ready</h3>
+                    <p class="text-gray-600 mt-2">Run calculations to see visualizations and Monte Carlo analysis</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suggestions Tab -->
+    <div id="content-suggestions" class="tab-content hidden p-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3">💡 Action Plan & Suggestions</h2>
+                <p class="text-lg text-gray-600">Personalized recommendations and what-if scenarios</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mb-8 flex flex-wrap gap-4">
+                <button id="btnGenerateSuggestions" class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center">
+                    <i class="fas fa-lightbulb mr-2"></i>
+                    Generate AI Suggestions
+                </button>
+                <button id="btnQuickWins" class="px-6 py-3 bg-yellow-600 text-white font-medium rounded-lg hover:bg-yellow-700 transition-colors flex items-center">
+                    <i class="fas fa-bolt mr-2"></i>
+                    Quick Wins Analysis
+                </button>
+                <button id="btnScenarioComparison" class="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center">
+                    <i class="fas fa-balance-scale mr-2"></i>
+                    Compare Scenarios
+                </button>
+            </div>
+
+            <!-- Suggestions Container -->
+            <div id="suggestionsContainer">
+                <!-- AI Recommendations Section -->
+                <div id="recommendationsContainer" class="mb-8 space-y-4">
+                    <!-- Recommendations will be populated here by JavaScript -->
+                </div>
+
+                <!-- Existing suggestions content -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Property Optimization -->
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-blue-900 mb-3">🏠 Property Strategy</h3>
+                        <div id="propertySuggestions" class="space-y-3">
+                            <!-- Property suggestions will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <!-- Income & Salary Optimization -->
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-green-900 mb-3">💰 Income & Career Strategy</h3>
+                        <div id="incomeSuggestions" class="space-y-3">
+                            <!-- Income suggestions will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <!-- Investment Optimization -->
+                    <div class="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-purple-900 mb-3">📈 Investment Strategy</h3>
+                        <div id="investmentSuggestions" class="space-y-3">
+                            <!-- Investment suggestions will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <!-- Retirement Timing -->
+                    <div class="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-orange-900 mb-3">⏰ Retirement Timing</h3>
+                        <div id="timingSuggestions" class="space-y-3">
+                            <!-- Timing suggestions will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Placeholder when no suggestions -->
+                <div id="suggestionsPlaceholder" class="text-center py-12 text-gray-500">
+                    <i class="fas fa-magic text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-medium text-gray-900">AI Suggestions Ready</h3>
+                    <p class="text-gray-600 mt-2">Generate personalized recommendations based on your financial profile</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Tab -->
+    <div id="content-export" class="tab-content hidden p-6">
+        <div class="max-w-5xl mx-auto">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3">📁 Export & Reports</h2>
+                <p class="text-lg text-gray-600">Download comprehensive reports and share your analysis</p>
+            </div>
+
+            <!-- Export Options -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <!-- PDF Report -->
+                <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-file-pdf text-red-600 text-2xl mr-3"></i>
+                        <h3 class="text-lg font-semibold text-gray-900">PDF Report</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Comprehensive retirement analysis with charts and recommendations</p>
+                    <button id="btnExportPDF" class="w-full px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors">
+                        Download PDF Report
+                    </button>
+                </div>
+
+                <!-- Excel Spreadsheet -->
+                <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-file-excel text-green-600 text-2xl mr-3"></i>
+                        <h3 class="text-lg font-semibold text-gray-900">Excel Analysis</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Detailed year-by-year projections and scenario comparisons</p>
+                    <button id="btnExportExcel" class="w-full px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors">
+                        Download Excel File
+                    </button>
+                </div>
+
+                <!-- CSV Data -->
+                <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-file-csv text-blue-600 text-2xl mr-3"></i>
+                        <h3 class="text-lg font-semibold text-gray-900">CSV Data</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Raw projection data for further analysis</p>
+                    <button id="btnExportCSV" class="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                        Download CSV Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Share Options -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Share Your Analysis</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button id="btnShareURL" class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-white transition-colors">
+                        <i class="fas fa-link mr-2"></i>
+                        Copy Shareable Link
+                    </button>
+                    <button id="btnPrintSummary" class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-white transition-colors">
+                        <i class="fas fa-print mr-2"></i>
+                        Print Summary
+                    </button>
+                </div>
+            </div>
+
+            <!-- Export History -->
+            <div class="mt-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Export History</h3>
+                <div id="exportHistory" class="bg-white border border-gray-200 rounded-lg divide-y">
+                    <!-- Export history will be populated here -->
+                    <div class="p-4 text-center text-gray-500">
+                        <i class="fas fa-history text-2xl mb-2"></i>
+                        <p>No exports yet</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

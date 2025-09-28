@@ -47,7 +47,12 @@ class RetirementCalculatorApp {
         this.currentResults = null;
         this.currentPersona = null;
         this.isCalculating = false;
-        this.onboardingSystem = null;
+
+        // 🚀 NEW: Initialize onboarding system
+        this.onboardingSystem = new OnboardingSystem();
+
+        // Check if onboarding data should be loaded
+        this.handleOnboardingData();
 
         this.initializeApp();
     }
@@ -308,12 +313,29 @@ class RetirementCalculatorApp {
             const monteCarloForAnalysis = await this.simulator.runMonteCarloSimulation(inputs, 500);
             this.currentMonteCarloResults = monteCarloForAnalysis; // Also store it for other uses
 
-            // Update UI
+            // 🚀 NEW: Analyze user persona and generate contextual intelligence
+            const personaAnalysis = this.contextualIntelligence.analyzeUserPersona(inputs);
+            this.currentPersona = personaAnalysis.primary;
+
+            // Calculate confidence score for guidance
+            const confidenceScore = this.contextualIntelligence.calculateConfidenceScore(inputs);
+
+            // Generate contextual alerts and guidance
+            const contextualAlerts = this.contextualIntelligence.generateContextualAlerts(inputs, this.currentPersona);
+            const contextualGuidance = this.contextualIntelligence.generateContextualGuidance(inputs, confidenceScore, 'calculator');
+
+            // Update UI with traditional displays
             this.updateRiskProfile(inputs);
             this.updateRecommendedAllocation(inputs);
             this.displaySummaryResults(result, inputs);
             this.displayHealthCheckDashboard(result, inputs);
             this.displayActionableRiskAnalysis(result, inputs, monteCarloForAnalysis);
+
+            // 🚀 NEW: Display persona-based insights and contextual guidance
+            this.displayPersonaInsights(personaAnalysis, inputs);
+            this.displayContextualAlerts(contextualAlerts);
+            this.displayContextualGuidance(contextualGuidance, confidenceScore);
+
             this.displaySensitivityAnalysis(result, inputs);
             this.displayVisceralScenarioComparison(result, inputs);
             this.displayYearByYearProjection(result);
@@ -323,6 +345,12 @@ class RetirementCalculatorApp {
             // Render charts
             const chartManager = await this.getChartManager();
             chartManager.renderCompleteAnalysis(result, inputs);
+
+            // 🚀 NEW: Generate and display scenario comparison matrix
+            await this.displayScenarioComparisonMatrix(inputs, result);
+
+            // 🚀 NEW: Create comprehensive results dashboard
+            this.displayComprehensiveResultsDashboard(result, inputs, monteCarloForAnalysis, personaAnalysis, confidenceScore);
 
             // Show summary tab and conditionally scroll to results
             if (shouldScrollToResults) {
@@ -1837,14 +1865,35 @@ class RetirementCalculatorApp {
             await new Promise(resolve => setTimeout(resolve, 0));
 
             const suggestionEngine = new SuggestionEngine(this.simulator, inputs, results);
-            const suggestions = suggestionEngine.generateSuggestions();
+
+            updateProgress(40, 'Generating comprehensive suggestions...');
+            const suggestions = await suggestionEngine.generateSuggestions();
+
+            updateProgress(60, 'Identifying Quick Wins...');
+            // 🚀 NEW: Separate Quick Wins from regular suggestions
+            const quickWins = suggestions.filter(s => s.isQuickWin);
+            const regularSuggestions = suggestions.filter(s => !s.isQuickWin);
+
+            updateProgress(80, 'Analyzing persona recommendations...');
+            // Generate persona-specific recommendations if we have current persona
+            let personaRecommendations = [];
+            if (this.currentPersona) {
+                personaRecommendations = this.generatePersonaRecommendations(this.currentPersona, inputs);
+            }
 
             updateProgress(90, 'Formatting suggestions...');
-            this.displaySuggestions(suggestions);
+            // 🚀 NEW: Enhanced display with Quick Wins prioritization
+            this.displayEnhancedSuggestions(quickWins, regularSuggestions, personaRecommendations);
+
+            // 🚀 NEW: Generate final action plan
+            this.generateFinalActionPlan(quickWins, regularSuggestions, personaRecommendations, inputs);
 
             showTab('suggestions', true);
             updateProgress(100, 'Suggestions Generated!');
-            showNotification(`Successfully generated ${suggestions.length} suggestions.`, 'success');
+
+            const quickWinCount = quickWins.length;
+            const totalCount = suggestions.length;
+            showNotification(`Generated ${totalCount} suggestions including ${quickWinCount} Quick Wins!`, 'success');
 
         } catch (error) {
             console.error('Suggestion Engine error:', error);
@@ -4660,7 +4709,1581 @@ class RetirementCalculatorApp {
         };
         return colorMap[type] || colorMap['medium_term'];
     }
+
+    // 🚀 NEW: Display persona-based insights
+    displayPersonaInsights(personaAnalysis, inputs) {
+        const container = $('personaInsightsContainer');
+        if (!container) {
+            // Create container if it doesn't exist
+            const summaryContainer = $('summaryContainer') || $('results');
+            if (summaryContainer) {
+                const personaDiv = document.createElement('div');
+                personaDiv.id = 'personaInsightsContainer';
+                summaryContainer.insertBefore(personaDiv, summaryContainer.firstChild);
+            } else {
+                return;
+            }
+        }
+
+        const persona = personaAnalysis.primary;
+        const totalIncome = (inputs.yourSalary || 0) + (inputs.partnerSalary || 0);
+        const totalSuper = (inputs.yourCurrentSuper || 0) + (inputs.partnerCurrentSuper || 0);
+
+        const personaHTML = `
+            <div class="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border-l-4 border-blue-500">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                        <span class="text-2xl mr-3">${this.getPersonaIcon(persona.type)}</span>
+                        Your Retirement Profile: ${persona.name}
+                    </h3>
+                    <div class="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+                        ${Math.round(persona.confidence * 100)}% match
+                    </div>
+                </div>
+
+                <p class="text-gray-700 mb-4">${persona.description}</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded-lg">
+                        <h4 class="font-semibold text-gray-800 mb-2">Key Strategies for You</h4>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            ${persona.keyStrategies.map(strategy =>
+                                `<li class="flex items-start"><span class="text-green-500 mr-2">•</span>${strategy}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg">
+                        <h4 class="font-semibold text-gray-800 mb-2">Your Profile Highlights</h4>
+                        <div class="text-sm text-gray-600 space-y-1">
+                            <div>Income: ${formatCurrency(totalIncome)}</div>
+                            <div>Super: ${formatCurrency(totalSuper)}</div>
+                            <div>Risk Profile: ${persona.riskProfile}</div>
+                            <div>Age: ${inputs.yourCurrentAge || 'Not specified'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                ${personaAnalysis.secondary.length > 0 ? `
+                    <div class="mt-4 pt-4 border-t border-blue-200">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Secondary Profiles</h4>
+                        <div class="flex flex-wrap gap-2">
+                            ${personaAnalysis.secondary.map(p =>
+                                `<span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                                    ${p.name} (${Math.round(p.confidence * 100)}%)
+                                </span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+
+        $('personaInsightsContainer').innerHTML = personaHTML;
+    }
+
+    // 🚀 NEW: Display contextual alerts
+    displayContextualAlerts(alerts) {
+        if (!alerts || alerts.length === 0) return;
+
+        let container = $('contextualAlertsContainer');
+        if (!container) {
+            const summaryContainer = $('summaryContainer') || $('results');
+            if (summaryContainer) {
+                const alertDiv = document.createElement('div');
+                alertDiv.id = 'contextualAlertsContainer';
+                const personaContainer = $('personaInsightsContainer');
+                if (personaContainer) {
+                    summaryContainer.insertBefore(alertDiv, personaContainer.nextSibling);
+                } else {
+                    summaryContainer.insertBefore(alertDiv, summaryContainer.firstChild);
+                }
+                container = alertDiv;
+            } else {
+                return;
+            }
+        }
+
+        const highPriorityAlerts = alerts.filter(a => a.severity === 'high');
+        const mediumPriorityAlerts = alerts.filter(a => a.severity === 'medium');
+
+        if (highPriorityAlerts.length === 0 && mediumPriorityAlerts.length === 0) return;
+
+        container.innerHTML = `
+            <div class="mb-6">
+                ${highPriorityAlerts.length > 0 ? highPriorityAlerts.map(alert => `
+                    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mb-3">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <span class="text-red-600 text-xl">⚠️</span>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <h4 class="text-sm font-semibold text-red-800">${alert.title}</h4>
+                                <p class="text-sm text-red-700 mt-1">${alert.message}</p>
+                                ${alert.quickFix ? `
+                                    <div class="mt-2">
+                                        <span class="text-xs bg-red-100 text-red-800 px-3 py-1 rounded">
+                                            Quick Fix: ${alert.quickFix}
+                                        </span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('') : ''}
+
+                ${mediumPriorityAlerts.length > 0 ? mediumPriorityAlerts.map(alert => `
+                    <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg mb-3">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <span class="text-yellow-600 text-xl">💡</span>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <h4 class="text-sm font-semibold text-yellow-800">${alert.title}</h4>
+                                <p class="text-sm text-yellow-700 mt-1">${alert.message}</p>
+                                ${alert.quickFix ? `
+                                    <div class="mt-2">
+                                        <span class="text-xs bg-yellow-100 text-yellow-800 px-3 py-1 rounded">
+                                            ${alert.quickFix}
+                                        </span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('') : ''}
+            </div>
+        `;
+    }
+
+    // 🚀 NEW: Display contextual guidance
+    displayContextualGuidance(guidance, confidenceScore) {
+        if (!guidance || guidance.length === 0) return;
+
+        let container = $('contextualGuidanceContainer');
+        if (!container) {
+            const summaryContainer = $('summaryContainer') || $('results');
+            if (summaryContainer) {
+                const guidanceDiv = document.createElement('div');
+                guidanceDiv.id = 'contextualGuidanceContainer';
+                summaryContainer.appendChild(guidanceDiv);
+                container = guidanceDiv;
+            } else {
+                return;
+            }
+        }
+
+        container.innerHTML = `
+            <div class="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border-l-4 border-green-500">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                        <span class="text-2xl mr-3">🎯</span>
+                        Smart Guidance
+                    </h3>
+                    <div class="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full">
+                        Profile ${confidenceScore}% complete
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    ${guidance.map(guide => `
+                        <div class="bg-white p-4 rounded-lg border border-green-200">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <span class="text-green-600 text-lg">${this.getGuidanceIcon(guide.type)}</span>
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <h4 class="text-sm font-semibold text-gray-800">${guide.title}</h4>
+                                    <p class="text-sm text-gray-600 mt-1">${guide.message}</p>
+                                    ${guide.action ? `
+                                        <div class="mt-2">
+                                            <span class="text-xs bg-green-100 text-green-800 px-3 py-1 rounded">
+                                                ${guide.action}
+                                            </span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    // Helper method to get persona icons
+    getPersonaIcon(personaType) {
+        const icons = {
+            high_earner: '💼',
+            business_owner: '🏢',
+            property_investor: '🏠',
+            late_starter: '⏰',
+            pension_maximizer: '🎯'
+        };
+        return icons[personaType] || '👤';
+    }
+
+    // Helper method to get guidance icons
+    getGuidanceIcon(guidanceType) {
+        const icons = {
+            onboarding_suggestion: '📋',
+            advanced_analysis: '📊',
+            scenario_analysis: '🔄',
+            input_guidance: '💡',
+            results_interpretation: '📈',
+            suggestion_prioritization: '⚡',
+            persona_guidance: '🎯'
+        };
+        return icons[guidanceType] || '💡';
+    }
+
+    // 🚀 NEW: Generate persona-specific recommendations
+    generatePersonaRecommendations(persona, inputs) {
+        const recommendations = [];
+
+        switch (persona.type) {
+            case 'high_earner':
+                recommendations.push({
+                    title: 'Tax-Effective Wealth Building',
+                    description: 'Leverage your high income with advanced tax strategies',
+                    priority: 'High',
+                    actions: ['Maximize super contributions', 'Consider negative gearing', 'Explore family trust structures'],
+                    category: 'Tax Strategy'
+                });
+                break;
+
+            case 'business_owner':
+                recommendations.push({
+                    title: 'Business Succession Planning',
+                    description: 'Optimize your business assets for retirement transition',
+                    priority: 'High',
+                    actions: ['Plan for small business CGT concessions', 'Consider business sale timing', 'Structure super contributions through business'],
+                    category: 'Business Strategy'
+                });
+                break;
+
+            case 'late_starter':
+                recommendations.push({
+                    title: 'Accelerated Catch-Up Strategy',
+                    description: 'Make the most of your remaining working years',
+                    priority: 'High',
+                    actions: ['Maximize catch-up contributions', 'Consider working 2-3 years longer', 'Eliminate all debt before retirement'],
+                    category: 'Catch-Up Strategy'
+                });
+                break;
+
+            case 'property_investor':
+                recommendations.push({
+                    title: 'Property Portfolio Optimization',
+                    description: 'Strategic property management for retirement income',
+                    priority: 'Medium',
+                    actions: ['Plan property sale timing for CGT', 'Consider rental income vs capital growth', 'Review debt levels before retirement'],
+                    category: 'Property Strategy'
+                });
+                break;
+
+            case 'pension_maximizer':
+                recommendations.push({
+                    title: 'Age Pension Optimization',
+                    description: 'Strategic asset positioning for maximum pension benefits',
+                    priority: 'Medium',
+                    actions: ['Keep assets just under thresholds', 'Consider timing of asset sales', 'Optimize home ownership strategy'],
+                    category: 'Pension Strategy'
+                });
+                break;
+        }
+
+        return recommendations;
+    }
+
+    // 🚀 NEW: Enhanced suggestions display with Quick Wins
+    displayEnhancedSuggestions(quickWins, regularSuggestions, personaRecommendations) {
+        const container = $('suggestionsContainer') || $('suggestions');
+        if (!container) return;
+
+        const quickWinCount = quickWins.length;
+        const totalCount = quickWins.length + regularSuggestions.length;
+
+        container.innerHTML = `
+            <div class="space-y-6">
+                <!-- Quick Wins Section -->
+                ${quickWinCount > 0 ? `
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border-l-4 border-green-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                                <span class="text-2xl mr-3">⚡</span>
+                                Quick Wins (${quickWinCount})
+                            </h2>
+                            <div class="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full">
+                                Start here for immediate impact
+                            </div>
+                        </div>
+
+                        <p class="text-gray-700 mb-6">These high-impact, easy-to-implement strategies can improve your retirement outcome with minimal effort.</p>
+
+                        <div class="grid gap-4">
+                            ${quickWins.map(suggestion => `
+                                <div class="bg-white p-5 rounded-lg border-l-4 border-green-500 shadow-sm">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center mb-2">
+                                                <h3 class="text-lg font-semibold text-gray-800">${suggestion.title}</h3>
+                                                <div class="ml-3 flex items-center space-x-2">
+                                                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                                        Quick Win Score: ${suggestion.quickWinScore ? suggestion.quickWinScore.toFixed(1) : 'N/A'}/10
+                                                    </span>
+                                                    ${suggestion.estimatedImpact ? `
+                                                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                                            Impact: ${suggestion.estimatedImpact}
+                                                        </span>
+                                                    ` : ''}
+                                                    ${suggestion.timeToImplement ? `
+                                                        <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
+                                                            ${suggestion.timeToImplement} days
+                                                        </span>
+                                                    ` : ''}
+                                                </div>
+                                            </div>
+
+                                            <p class="text-gray-600 mb-3">${suggestion.description}</p>
+
+                                            <div class="space-y-2">
+                                                <h4 class="font-medium text-gray-700">Action Steps:</h4>
+                                                <ul class="text-sm text-gray-600 space-y-1">
+                                                    ${suggestion.actions ? suggestion.actions.map(action =>
+                                                        `<li class="flex items-start">
+                                                            <span class="text-green-500 mr-2 mt-0.5">✓</span>
+                                                            ${action}
+                                                        </li>`
+                                                    ).join('') : ''}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Persona Recommendations -->
+                ${personaRecommendations.length > 0 ? `
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border-l-4 border-blue-500">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                            <span class="text-2xl mr-3">${this.getPersonaIcon(this.currentPersona.type)}</span>
+                            Personalized for ${this.currentPersona.name}
+                        </h2>
+
+                        <div class="grid gap-4">
+                            ${personaRecommendations.map(rec => `
+                                <div class="bg-white p-5 rounded-lg border-l-4 border-blue-500 shadow-sm">
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-2">${rec.title}</h3>
+                                    <p class="text-gray-600 mb-3">${rec.description}</p>
+                                    <div class="space-y-2">
+                                        <h4 class="font-medium text-gray-700">Recommended Actions:</h4>
+                                        <ul class="text-sm text-gray-600 space-y-1">
+                                            ${rec.actions.map(action =>
+                                                `<li class="flex items-start">
+                                                    <span class="text-blue-500 mr-2 mt-0.5">→</span>
+                                                    ${action}
+                                                </li>`
+                                            ).join('')}
+                                        </ul>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Regular Suggestions -->
+                ${regularSuggestions.length > 0 ? `
+                    <div class="bg-white p-6 rounded-lg border border-gray-200">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                            <span class="text-2xl mr-3">💡</span>
+                            Additional Recommendations (${regularSuggestions.length})
+                        </h2>
+
+                        <div class="grid gap-4">
+                            ${regularSuggestions.map(suggestion => `
+                                <div class="bg-gray-50 p-4 rounded-lg border-l-4 ${this.getPriorityColor(suggestion.priority)}">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center mb-2">
+                                                <h3 class="text-lg font-semibold text-gray-800">${suggestion.title}</h3>
+                                                <span class="ml-3 bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+                                                    ${suggestion.priority} Priority
+                                                </span>
+                                            </div>
+
+                                            <p class="text-gray-600 mb-3">${suggestion.description}</p>
+
+                                            ${suggestion.actions && suggestion.actions.length > 0 ? `
+                                                <div class="space-y-2">
+                                                    <h4 class="font-medium text-gray-700">Action Steps:</h4>
+                                                    <ul class="text-sm text-gray-600 space-y-1">
+                                                        ${suggestion.actions.map(action =>
+                                                            `<li class="flex items-start">
+                                                                <span class="text-gray-500 mr-2 mt-0.5">•</span>
+                                                                ${action}
+                                                            </li>`
+                                                        ).join('')}
+                                                    </ul>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Summary -->
+                <div class="bg-gradient-to-r from-gray-50 to-slate-50 p-6 rounded-lg border border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                        <span class="text-2xl mr-3">📋</span>
+                        Implementation Summary
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                        <div class="bg-white p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600">${quickWinCount}</div>
+                            <div class="text-sm text-gray-600">Quick Wins</div>
+                            <div class="text-xs text-gray-500 mt-1">Start with these</div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600">${personaRecommendations.length}</div>
+                            <div class="text-sm text-gray-600">Personalized</div>
+                            <div class="text-xs text-gray-500 mt-1">Tailored to your profile</div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-gray-600">${totalCount}</div>
+                            <div class="text-sm text-gray-600">Total Suggestions</div>
+                            <div class="text-xs text-gray-500 mt-1">Comprehensive analysis</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <h4 class="font-semibold text-yellow-800 mb-2">💡 Implementation Tip</h4>
+                        <p class="text-sm text-yellow-700">
+                            Focus on Quick Wins first - they provide the best return on effort.
+                            Then tackle persona-specific recommendations that align with your long-term strategy.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Helper method to get priority colors
+    getPriorityColor(priority) {
+        const colors = {
+            'High': 'border-red-500',
+            'Medium': 'border-yellow-500',
+            'Low': 'border-green-500'
+        };
+        return colors[priority] || 'border-gray-500';
+    }
+
+    // 🚀 NEW: Display scenario comparison matrix
+    async displayScenarioComparisonMatrix(inputs, currentResult) {
+        if (!this.scenarioMatrix) {
+            console.warn('Scenario matrix not initialized');
+            return;
+        }
+
+        try {
+            // Generate scenario comparisons
+            const scenarios = await this.scenarioMatrix.generatePersonalizedScenarios(inputs);
+
+            // Run simulations for each scenario
+            const scenarioResults = [];
+            for (const scenario of scenarios) {
+                const result = this.simulator.simulateRetirement(scenario.inputs, false);
+                scenarioResults.push({
+                    ...scenario,
+                    result
+                });
+            }
+
+            // Display the comparison matrix
+            this.displayScenarioMatrix(scenarioResults, inputs, currentResult);
+
+        } catch (error) {
+            console.error('Error generating scenario comparison:', error);
+        }
+    }
+
+    // Display the scenario comparison matrix UI
+    displayScenarioMatrix(scenarioResults, inputs, currentResult) {
+        const scenarioContainer = document.getElementById('scenarioAnalysisResults');
+        if (!scenarioContainer) {
+            console.warn('Scenario analysis container not found');
+            return;
+        }
+
+        const currentAssets = currentResult.totalAssetsAtRetirement;
+        const currentAgePension = currentResult.agePensionEligible ? currentResult.agePensionPayment : 0;
+        const currentTotal = currentAssets + (currentAgePension * 20); // Rough present value of pension
+
+        let scenarioHTML = `
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <span class="text-2xl mr-3">🎯</span>
+                    Scenario Comparison Matrix
+                </h3>
+
+                <div class="mb-4 p-4 bg-blue-50 rounded-lg">
+                    <h4 class="font-semibold text-blue-800 mb-2">📊 Your Current Path</h4>
+                    <div class="grid grid-cols-3 gap-4 text-sm">
+                        <div class="text-center">
+                            <div class="font-semibold">${formatCurrency(currentAssets)}</div>
+                            <div class="text-blue-600">Total Assets</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-semibold">${formatCurrency(currentAgePension)}/year</div>
+                            <div class="text-blue-600">Age Pension</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-semibold">${this.getRetirementComfort(currentTotal)}</div>
+                            <div class="text-blue-600">Comfort Level</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+        `;
+
+        scenarioResults.forEach((scenario, index) => {
+            const scenarioAssets = scenario.result.totalAssetsAtRetirement;
+            const scenarioAgePension = scenario.result.agePensionEligible ? scenario.result.agePensionPayment : 0;
+            const scenarioTotal = scenarioAssets + (scenarioAgePension * 20);
+
+            const improvement = scenarioTotal - currentTotal;
+            const improvementPercent = currentTotal > 0 ? (improvement / currentTotal * 100) : 0;
+
+            const isPositive = improvement > 0;
+            const impactColor = isPositive ? 'text-green-600' : 'text-red-600';
+            const bgColor = isPositive ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
+            const icon = isPositive ? '📈' : '📉';
+
+            scenarioHTML += `
+                <div class="border rounded-lg p-4 ${bgColor}">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-gray-800 flex items-center">
+                                <span class="text-xl mr-2">${scenario.icon}</span>
+                                ${scenario.name}
+                            </h4>
+                            <p class="text-sm text-gray-600 mt-1">${scenario.description}</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold ${impactColor}">
+                                ${icon} ${improvement >= 0 ? '+' : ''}${formatCurrency(improvement)}
+                            </div>
+                            <div class="text-sm text-gray-600">
+                                ${improvementPercent >= 0 ? '+' : ''}${improvementPercent.toFixed(1)}%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4 text-sm">
+                        <div class="text-center">
+                            <div class="font-semibold">${formatCurrency(scenarioAssets)}</div>
+                            <div class="text-gray-600">Total Assets</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-semibold">${formatCurrency(scenarioAgePension)}/year</div>
+                            <div class="text-gray-600">Age Pension</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-semibold">${this.getRetirementComfort(scenarioTotal)}</div>
+                            <div class="text-gray-600">Comfort Level</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 pt-3 border-t border-gray-200">
+                        <div class="text-xs text-gray-500">
+                            <strong>Key Changes:</strong> ${scenario.keyChanges.join(', ')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        scenarioHTML += `
+                </div>
+
+                <div class="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <h4 class="font-semibold text-yellow-800 mb-2">💡 Quick Analysis</h4>
+                    <p class="text-sm text-yellow-700">
+                        These scenarios show how different financial strategies could impact your retirement.
+                        Focus on scenarios with positive outcomes that align with your risk tolerance and life goals.
+                    </p>
+                </div>
+            </div>
+        `;
+
+        scenarioContainer.innerHTML = scenarioHTML;
+    }
+
+    // Helper to determine retirement comfort level
+    getRetirementComfort(totalValue) {
+        // Using ASFA retirement standards as reference
+        if (totalValue >= 2000000) return '🏆 Luxurious';
+        if (totalValue >= 1500000) return '💎 Very Comfortable';
+        if (totalValue >= 1000000) return '✅ Comfortable';
+        if (totalValue >= 600000) return '⚠️ Modest';
+        return '🚨 Below Standard';
+    }
+
+    // 🚀 NEW: Display comprehensive results dashboard
+    displayComprehensiveResultsDashboard(result, inputs, monteCarloResults, personaAnalysis, confidenceScore) {
+        let container = document.getElementById('comprehensiveResultsDashboard');
+        if (!container) {
+            // Create container if it doesn't exist
+            const summaryContainer = document.getElementById('summaryContainer') || document.getElementById('results');
+            if (summaryContainer) {
+                const dashboardDiv = document.createElement('div');
+                dashboardDiv.id = 'comprehensiveResultsDashboard';
+                summaryContainer.appendChild(dashboardDiv);
+                container = dashboardDiv;
+            } else {
+                console.warn('Summary container not found for comprehensive dashboard');
+                return;
+            }
+        }
+
+        const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+        const totalAssets = result.totalAssetsAtRetirement;
+        const agePensionAmount = result.agePensionEligible ? result.agePensionPayment : 0;
+        const comfortLevel = this.getRetirementComfort(totalAssets + (agePensionAmount * 20));
+
+        // Calculate success rate from Monte Carlo if available
+        const successRate = monteCarloResults && monteCarloResults.successRate ?
+            (monteCarloResults.successRate * 100).toFixed(1) : 'N/A';
+
+        // Get persona information
+        const persona = personaAnalysis ? personaAnalysis.primary : null;
+        const personaMatch = persona ? Math.round(persona.confidence * 100) : 0;
+
+        // Calculate readiness score based on multiple factors
+        const readinessScore = this.calculateRetirementReadinessScore(result, inputs, monteCarloResults);
+
+        const dashboardHTML = `
+            <div class="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl shadow-lg p-6 mb-8 border border-indigo-200">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center flex items-center justify-center">
+                    <span class="text-3xl mr-3">📊</span>
+                    Comprehensive Retirement Dashboard
+                </h2>
+
+                <!-- Key Metrics Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-lg p-4 text-center shadow-sm border border-gray-100">
+                        <div class="text-2xl font-bold ${totalAssets >= 1000000 ? 'text-green-600' : totalAssets >= 500000 ? 'text-yellow-600' : 'text-red-600'}">${formatCurrency(totalAssets)}</div>
+                        <div class="text-sm text-gray-600 font-medium">Total Assets</div>
+                        <div class="text-xs text-gray-500 mt-1">At retirement</div>
+                    </div>
+
+                    <div class="bg-white rounded-lg p-4 text-center shadow-sm border border-gray-100">
+                        <div class="text-2xl font-bold text-blue-600">${yearsToRetirement}</div>
+                        <div class="text-sm text-gray-600 font-medium">Years Left</div>
+                        <div class="text-xs text-gray-500 mt-1">Until retirement</div>
+                    </div>
+
+                    <div class="bg-white rounded-lg p-4 text-center shadow-sm border border-gray-100">
+                        <div class="text-lg font-bold ${successRate !== 'N/A' && parseFloat(successRate) >= 80 ? 'text-green-600' : parseFloat(successRate) >= 60 ? 'text-yellow-600' : 'text-red-600'}">${successRate}%</div>
+                        <div class="text-sm text-gray-600 font-medium">Success Rate</div>
+                        <div class="text-xs text-gray-500 mt-1">Monte Carlo</div>
+                    </div>
+
+                    <div class="bg-white rounded-lg p-4 text-center shadow-sm border border-gray-100">
+                        <div class="text-lg font-bold ${readinessScore >= 80 ? 'text-green-600' : readinessScore >= 60 ? 'text-yellow-600' : 'text-red-600'}">${readinessScore}%</div>
+                        <div class="text-sm text-gray-600 font-medium">Readiness</div>
+                        <div class="text-xs text-gray-500 mt-1">Overall score</div>
+                    </div>
+                </div>
+
+                <!-- Status Overview -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white rounded-lg p-5 shadow-sm border border-gray-100">
+                        <h3 class="font-semibold text-gray-800 mb-3 flex items-center">
+                            <span class="text-xl mr-2">${this.getComfortIcon(comfortLevel)}</span>
+                            Retirement Outlook
+                        </h3>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Comfort Level:</span>
+                                <span class="font-semibold">${comfortLevel}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Age Pension:</span>
+                                <span class="font-semibold">${result.agePensionEligible ? formatCurrency(agePensionAmount) + '/year' : 'Not eligible'}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Confidence:</span>
+                                <span class="font-semibold">${Math.round(confidenceScore * 100)}%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${persona ? `
+                    <div class="bg-white rounded-lg p-5 shadow-sm border border-gray-100">
+                        <h3 class="font-semibold text-gray-800 mb-3 flex items-center">
+                            <span class="text-xl mr-2">${this.getPersonaIcon(persona.type)}</span>
+                            Your Profile
+                        </h3>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Type:</span>
+                                <span class="font-semibold">${persona.name}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Match:</span>
+                                <span class="font-semibold">${personaMatch}%</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Risk Profile:</span>
+                                <span class="font-semibold">${persona.riskProfile}</span>
+                            </div>
+                        </div>
+                    </div>
+                    ` : `
+                    <div class="bg-white rounded-lg p-5 shadow-sm border border-gray-100">
+                        <h3 class="font-semibold text-gray-800 mb-3">Profile Analysis</h3>
+                        <p class="text-gray-600 text-sm">Run the full analysis to get personalized insights and recommendations.</p>
+                    </div>
+                    `}
+                </div>
+
+                <!-- Quick Action Buttons -->
+                <div class="flex flex-wrap gap-3 justify-center">
+                    <button
+                        onclick="window.RetirementCalculatorApp.runMonteCarloSimulation()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        🎲 Run Monte Carlo
+                    </button>
+                    <button
+                        onclick="window.RetirementCalculatorApp.runSuggestionEngine()"
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        💡 Get Suggestions
+                    </button>
+                    <button
+                        onclick="showTab('charts', true)"
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        📈 View Charts
+                    </button>
+                    <button
+                        onclick="showTab('export', true)"
+                        class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        📁 Export Data
+                    </button>
+                </div>
+
+                <!-- Progress Indicator -->
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <div class="flex items-center justify-between text-sm text-gray-600 mb-2">
+                        <span>Retirement Readiness Progress</span>
+                        <span>${readinessScore}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="h-3 rounded-full transition-all duration-500 ${
+                            readinessScore >= 80 ? 'bg-green-500' :
+                            readinessScore >= 60 ? 'bg-yellow-500' :
+                            readinessScore >= 40 ? 'bg-orange-500' : 'bg-red-500'
+                        }" style="width: ${readinessScore}%"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = dashboardHTML;
+    }
+
+    // Calculate overall retirement readiness score
+    calculateRetirementReadinessScore(result, inputs, monteCarloResults) {
+        let score = 0;
+        const factors = [];
+
+        // Asset adequacy (30 points)
+        const totalAssets = result.totalAssetsAtRetirement;
+        const targetAssets = inputs.asfaComfortable * 25; // Rough 4% withdrawal rule
+        const assetRatio = totalAssets / targetAssets;
+        const assetScore = Math.min(30, assetRatio * 30);
+        score += assetScore;
+        factors.push(`Assets: ${Math.round(assetScore)}/30`);
+
+        // Time to retirement (20 points)
+        const yearsLeft = inputs.retirementAge - inputs.yourCurrentAge;
+        const timeScore = yearsLeft >= 10 ? 20 : yearsLeft >= 5 ? 15 : yearsLeft >= 2 ? 10 : 5;
+        score += timeScore;
+        factors.push(`Time: ${timeScore}/20`);
+
+        // Diversification (15 points)
+        const hasSuper = (inputs.yourCurrentSuper || 0) + (inputs.partnerCurrentSuper || 0) > 0;
+        const hasStocks = (inputs.currentStocks || 0) > 0;
+        const hasProperty = inputs.hasInvestmentProperty || (inputs.homeValue || 0) > 0;
+        const hasSavings = (inputs.currentSavings || 0) > 0;
+
+        const diversificationCount = [hasSuper, hasStocks, hasProperty, hasSavings].filter(Boolean).length;
+        const diversificationScore = diversificationCount * 3.75; // 15 points max
+        score += diversificationScore;
+        factors.push(`Diversification: ${Math.round(diversificationScore)}/15`);
+
+        // Income stability (15 points)
+        const totalIncome = (inputs.yourSalary || 0) + (inputs.partnerSalary || 0);
+        const incomeScore = totalIncome > 100000 ? 15 : totalIncome > 60000 ? 12 : totalIncome > 30000 ? 8 : 5;
+        score += incomeScore;
+        factors.push(`Income: ${incomeScore}/15`);
+
+        // Monte Carlo success rate (20 points)
+        const monteCarloScore = monteCarloResults && monteCarloResults.successRate ?
+            monteCarloResults.successRate * 20 : 10; // Default moderate score if no MC data
+        score += monteCarloScore;
+        factors.push(`Success Rate: ${Math.round(monteCarloScore)}/20`);
+
+        // Store breakdown for debugging
+        this.readinessScoreFactors = factors;
+
+        return Math.round(Math.min(100, score));
+    }
+
+    // Helper to get comfort level icon
+    getComfortIcon(comfortLevel) {
+        const iconMap = {
+            '🏆 Luxurious': '🏆',
+            '💎 Very Comfortable': '💎',
+            '✅ Comfortable': '✅',
+            '⚠️ Modest': '⚠️',
+            '🚨 Below Standard': '🚨'
+        };
+        return iconMap[comfortLevel] || '❓';
+    }
+
+    // 🚀 NEW: Handle onboarding data integration
+    handleOnboardingData() {
+        // Check if onboarding data exists and should be loaded
+        const onboardingCompleted = localStorage.getItem('retirement-calc-onboarding-completed');
+        const onboardingData = localStorage.getItem('retirement-calc-onboarding-data');
+
+        if (onboardingCompleted === 'true' && onboardingData) {
+            try {
+                const data = JSON.parse(onboardingData);
+                this.loadOnboardingDataToCalculator(data);
+                console.log('Onboarding data loaded into calculator:', data);
+            } catch (error) {
+                console.error('Error loading onboarding data:', error);
+            }
+        }
+    }
+
+    // Load onboarding data into the calculator form
+    loadOnboardingDataToCalculator(onboardingData) {
+        // Wait for DOM to be ready
+        setTimeout(() => {
+            // Basic personal information
+            if (onboardingData.yourAge) safeSetValue('yourCurrentAge', onboardingData.yourAge);
+            if (onboardingData.partnerAge) safeSetValue('partnerCurrentAge', onboardingData.partnerAge);
+            if (onboardingData.yourRetirementAge) safeSetValue('retirementAge', onboardingData.yourRetirementAge);
+            if (onboardingData.partnerRetirementAge) safeSetValue('partnerRetirementAge', onboardingData.partnerRetirementAge);
+
+            // Financial information
+            if (onboardingData.yourIncome) {
+                const income = this.parseNumericValue(onboardingData.yourIncome);
+                if (income > 0) safeSetValue('yourSalary', income);
+            }
+
+            if (onboardingData.partnerIncome) {
+                const income = this.parseNumericValue(onboardingData.partnerIncome);
+                if (income > 0) safeSetValue('partnerSalary', income);
+            }
+
+            if (onboardingData.yourSuperBalance) {
+                const balance = this.parseNumericValue(onboardingData.yourSuperBalance);
+                if (balance > 0) safeSetValue('yourCurrentSuper', balance);
+            }
+
+            if (onboardingData.partnerSuperBalance) {
+                const balance = this.parseNumericValue(onboardingData.partnerSuperBalance);
+                if (balance > 0) safeSetValue('partnerCurrentSuper', balance);
+            }
+
+            if (onboardingData.savingsBalance) {
+                const balance = this.parseNumericValue(onboardingData.savingsBalance);
+                if (balance > 0) safeSetValue('currentSavings', balance);
+            }
+
+            if (onboardingData.investmentBalance) {
+                const balance = this.parseNumericValue(onboardingData.investmentBalance);
+                if (balance > 0) safeSetValue('currentStocks', balance);
+            }
+
+            // Property information
+            if (onboardingData.homeValue) {
+                const value = this.parseNumericValue(onboardingData.homeValue);
+                if (value > 0) safeSetValue('homeValue', value);
+            }
+
+            if (onboardingData.mortgageBalance) {
+                const balance = this.parseNumericValue(onboardingData.mortgageBalance);
+                if (balance > 0) safeSetValue('mortgageBalance', balance);
+            }
+
+            // Risk profile
+            if (onboardingData.riskTolerance) {
+                safeSetValue('riskTolerance', onboardingData.riskTolerance);
+            }
+
+            // Trigger initial calculation if we have enough data
+            const hasMinimalData = onboardingData.yourAge && onboardingData.yourRetirementAge &&
+                                  (onboardingData.yourIncome || onboardingData.yourSuperBalance);
+
+            if (hasMinimalData) {
+                // Small delay to ensure all fields are populated
+                setTimeout(() => {
+                    this.calculateRetirement(false);
+                    showNotification('Welcome back! Your onboarding data has been loaded.', 'success');
+                }, 500);
+            }
+
+        }, 100);
+    }
+
+    // Helper to parse numeric values from onboarding data
+    parseNumericValue(value) {
+        if (typeof value === 'number') return value;
+        if (typeof value === 'string') {
+            // Remove currency symbols, commas, and other non-numeric characters
+            const cleaned = value.replace(/[^0-9.]/g, '');
+            const parsed = parseFloat(cleaned);
+            return isNaN(parsed) ? 0 : parsed;
+        }
+        return 0;
+    }
+
+    // 🚀 NEW: Generate comprehensive final action plan
+    generateFinalActionPlan(quickWins, regularSuggestions, personaRecommendations, inputs) {
+        const container = document.getElementById('finalActionPlan');
+        if (!container) {
+            // Create container if it doesn't exist
+            const suggestionsContainer = document.getElementById('suggestions') || document.getElementById('suggestionsContainer');
+            if (suggestionsContainer) {
+                const actionPlanDiv = document.createElement('div');
+                actionPlanDiv.id = 'finalActionPlan';
+                suggestionsContainer.appendChild(actionPlanDiv);
+            } else {
+                console.warn('Suggestions container not found for final action plan');
+                return;
+            }
+        }
+
+        // Organize recommendations by time frame
+        const immediate = [...quickWins]; // 0-30 days
+        const shortTerm = regularSuggestions.filter(s => s.priority === 'High'); // 1-6 months
+        const mediumTerm = regularSuggestions.filter(s => s.priority === 'Medium'); // 6-12 months
+        const longTerm = regularSuggestions.filter(s => s.priority === 'Low'); // 12+ months
+
+        // Calculate potential total impact
+        const totalPotentialImpact = [...immediate, ...shortTerm, ...mediumTerm, ...longTerm]
+            .reduce((sum, rec) => {
+                const impact = this.parseNumericValue(rec.estimatedImpact || rec.impact || '0');
+                return sum + impact;
+            }, 0);
+
+        const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
+
+        const actionPlanHTML = `
+            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl shadow-lg p-6 mt-8 mb-6 border border-green-200">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center flex items-center justify-center">
+                    <span class="text-3xl mr-3">🎯</span>
+                    Your Personalized Action Plan
+                </h2>
+
+                <!-- Executive Summary -->
+                <div class="bg-white rounded-lg p-5 mb-6 shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                        <span class="text-xl mr-2">📋</span>
+                        Executive Summary
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                        <div class="p-3 bg-blue-50 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600">${immediate.length}</div>
+                            <div class="text-sm text-gray-600">Quick Wins</div>
+                            <div class="text-xs text-gray-500">Start now</div>
+                        </div>
+                        <div class="p-3 bg-yellow-50 rounded-lg">
+                            <div class="text-2xl font-bold text-yellow-600">${shortTerm.length + mediumTerm.length}</div>
+                            <div class="text-sm text-gray-600">Key Actions</div>
+                            <div class="text-xs text-gray-500">Next 12 months</div>
+                        </div>
+                        <div class="p-3 bg-green-50 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600">${formatCurrency(totalPotentialImpact)}</div>
+                            <div class="text-sm text-gray-600">Potential Impact</div>
+                            <div class="text-xs text-gray-500">At retirement</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline-based Action Plan -->
+                <div class="space-y-6">
+                    <!-- Phase 1: Immediate Actions (0-30 days) -->
+                    ${immediate.length > 0 ? `
+                    <div class="bg-white rounded-lg p-5 shadow-sm border-l-4 border-red-500">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                            <span class="text-xl mr-2">🔥</span>
+                            Phase 1: Immediate Actions (Next 30 Days)
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-4">Start with these high-impact, easy-to-implement changes</p>
+                        <div class="space-y-3">
+                            ${immediate.slice(0, 5).map((item, index) => `
+                                <div class="flex items-start p-3 bg-red-50 rounded-lg">
+                                    <div class="flex-shrink-0 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">
+                                        ${index + 1}
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-medium text-gray-800">${item.title}</h4>
+                                        <p class="text-sm text-gray-600 mt-1">${item.description || ''}</p>
+                                        ${item.actions && item.actions.length > 0 ? `
+                                            <div class="mt-2">
+                                                <div class="text-xs text-gray-500 font-medium mb-1">Next Steps:</div>
+                                                <ul class="text-xs text-gray-600">
+                                                    ${item.actions.slice(0, 2).map(action =>
+                                                        `<li class="flex items-center"><span class="text-green-500 mr-1">•</span>${action}</li>`
+                                                    ).join('')}
+                                                </ul>
+                                            </div>
+                                        ` : ''}
+                                        ${item.estimatedImpact ? `
+                                            <div class="mt-2 text-xs text-red-600 font-medium">Impact: ${item.estimatedImpact}</div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- Phase 2: Short-term Strategy (1-6 months) -->
+                    ${shortTerm.length > 0 ? `
+                    <div class="bg-white rounded-lg p-5 shadow-sm border-l-4 border-yellow-500">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                            <span class="text-xl mr-2">⚡</span>
+                            Phase 2: Short-term Strategy (1-6 Months)
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-4">Build momentum with these strategic improvements</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${shortTerm.slice(0, 4).map((item, index) => `
+                                <div class="p-3 bg-yellow-50 rounded-lg">
+                                    <h4 class="font-medium text-gray-800 flex items-center">
+                                        <span class="text-yellow-600 mr-2">${index + 1}.</span>
+                                        ${item.title}
+                                    </h4>
+                                    <p class="text-sm text-gray-600 mt-1">${item.description || ''}</p>
+                                    ${item.estimatedImpact ? `
+                                        <div class="mt-2 text-xs text-yellow-600 font-medium">Impact: ${item.estimatedImpact}</div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- Phase 3: Medium-term Development (6-12 months) -->
+                    ${mediumTerm.length > 0 ? `
+                    <div class="bg-white rounded-lg p-5 shadow-sm border-l-4 border-blue-500">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                            <span class="text-xl mr-2">📈</span>
+                            Phase 3: Medium-term Development (6-12 Months)
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-4">Establish sustainable wealth-building systems</p>
+                        <div class="space-y-2">
+                            ${mediumTerm.slice(0, 3).map((item, index) => `
+                                <div class="flex items-center p-2 bg-blue-50 rounded">
+                                    <span class="text-blue-600 mr-3 font-semibold">${index + 1}.</span>
+                                    <span class="text-gray-700">${item.title}</span>
+                                    ${item.estimatedImpact ? `
+                                        <span class="ml-auto text-xs text-blue-600 font-medium">${item.estimatedImpact}</span>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- Phase 4: Long-term Optimization (12+ months) -->
+                    ${longTerm.length > 0 ? `
+                    <div class="bg-white rounded-lg p-5 shadow-sm border-l-4 border-green-500">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                            <span class="text-xl mr-2">🌱</span>
+                            Phase 4: Long-term Optimization (12+ Months)
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-4">Advanced strategies for wealth maximization</p>
+                        <div class="space-y-2">
+                            ${longTerm.slice(0, 3).map((item, index) => `
+                                <div class="flex items-center p-2 bg-green-50 rounded">
+                                    <span class="text-green-600 mr-3 font-semibold">${index + 1}.</span>
+                                    <span class="text-gray-700 text-sm">${item.title}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+
+                <!-- Key Milestones -->
+                <div class="mt-6 bg-white rounded-lg p-5 shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                        <span class="text-xl mr-2">🏆</span>
+                        Key Milestones & Review Points
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div class="text-center p-3 bg-blue-50 rounded-lg">
+                            <div class="font-semibold text-blue-800">30 Days</div>
+                            <div class="text-blue-600">Quick wins implemented</div>
+                        </div>
+                        <div class="text-center p-3 bg-yellow-50 rounded-lg">
+                            <div class="font-semibold text-yellow-800">6 Months</div>
+                            <div class="text-yellow-600">Strategy review & adjustment</div>
+                        </div>
+                        <div class="text-center p-3 bg-green-50 rounded-lg">
+                            <div class="font-semibold text-green-800">12 Months</div>
+                            <div class="text-green-600">Annual planning session</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Success Metrics -->
+                <div class="mt-4 p-4 bg-gradient-to-r from-green-100 to-emerald-100 rounded-lg border border-green-200">
+                    <h4 class="font-semibold text-green-800 mb-2 flex items-center">
+                        <span class="text-lg mr-2">🎯</span>
+                        Success Metrics
+                    </h4>
+                    <div class="text-sm text-green-700 grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div>• Monthly review of action items</div>
+                        <div>• Quarterly portfolio rebalancing</div>
+                        <div>• Annual strategy assessment</div>
+                        <div>• Progress tracking on major goals</div>
+                    </div>
+                </div>
+
+                <!-- Implementation Support -->
+                <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h4 class="font-semibold text-gray-800 mb-2">💡 Implementation Tips</h4>
+                    <div class="text-sm text-gray-600">
+                        <p>• Start with Phase 1 - complete at least 2-3 quick wins before moving to Phase 2</p>
+                        <p>• Set calendar reminders for key milestone reviews</p>
+                        <p>• Consider working with a financial advisor for complex strategies</p>
+                        <p>• Re-run this calculator quarterly to track progress and adjust strategies</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('finalActionPlan').innerHTML = actionPlanHTML;
+    }
 }
+
+// 🚀 NEW: Global function to start onboarding
+window.startOnboarding = function() {
+    // Clear any existing onboarding completion flags
+    localStorage.removeItem('retirement-calc-onboarding-completed');
+    localStorage.removeItem('retirement-calc-onboarding-data');
+
+    // Switch to first onboarding step
+    switchTab('step1');
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+// 🚀 NEW: Tab switching functionality
+window.switchTab = function(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+        content.classList.remove('active');
+    });
+
+    // Remove active state from all tab buttons
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active', 'border-blue-500', 'text-blue-600');
+        button.classList.add('border-transparent', 'text-gray-500');
+    });
+
+    // Show selected tab content
+    const selectedContent = document.getElementById(`content-${tabName}`);
+    if (selectedContent) {
+        selectedContent.classList.remove('hidden');
+        selectedContent.classList.add('active');
+    }
+
+    // Activate selected tab button
+    const selectedButton = document.getElementById(`tab-${tabName}`);
+    if (selectedButton) {
+        selectedButton.classList.add('active', 'border-blue-500', 'text-blue-600');
+        selectedButton.classList.remove('border-transparent', 'text-gray-500');
+    }
+};
+
+// 🚀 NEW: Onboarding step navigation
+window.nextOnboardingStep = function(currentStep) {
+    // Collect data from current step
+    collectOnboardingStepData(currentStep);
+
+    const nextStep = currentStep + 1;
+    if (nextStep <= 5) {
+        // Enable next tab
+        const nextTabButton = document.getElementById(`tab-step${nextStep}`);
+        if (nextTabButton) {
+            nextTabButton.disabled = false;
+            nextTabButton.classList.remove('text-gray-400');
+            nextTabButton.classList.add('text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+        }
+
+        // Switch to next step
+        switchTab(`step${nextStep}`);
+    } else {
+        // Onboarding complete - transfer to advanced calculator
+        completeOnboarding();
+    }
+};
+
+window.prevOnboardingStep = function(currentStep) {
+    const prevStep = currentStep - 1;
+    if (prevStep >= 1) {
+        switchTab(`step${prevStep}`);
+    }
+};
+
+function collectOnboardingStepData(step) {
+    // Collect and validate data from the current onboarding step
+    switch(step) {
+        case 1:
+            // Collect household data
+            const hasPartner = document.getElementById('onboarding-hasPartner')?.checked;
+            if (hasPartner) {
+                const partnerDetails = document.getElementById('partnerDetails');
+                if (partnerDetails) partnerDetails.classList.remove('hidden');
+            }
+            break;
+        case 2:
+            // Collect financial data - validation could be added here
+            break;
+        case 3:
+            // Collect property data - show/hide relevant sections
+            const homeOwnership = document.querySelector('input[name="homeOwnership"]:checked')?.value;
+            const hasInvestmentProperty = document.getElementById('onboarding-hasInvestmentProperty')?.checked;
+
+            const homeDetails = document.getElementById('homeOwnershipDetails');
+            if (homeOwnership === 'own' && homeDetails) {
+                homeDetails.classList.remove('hidden');
+            }
+
+            const investmentDetails = document.getElementById('investmentPropertyDetails');
+            if (hasInvestmentProperty && investmentDetails) {
+                investmentDetails.classList.remove('hidden');
+            }
+            break;
+        case 4:
+            // Update risk tolerance display
+            updateOnboardingRiskDisplay();
+            break;
+        case 5:
+            // Update review summary
+            updateReviewSummary();
+            break;
+    }
+}
+
+function completeOnboarding() {
+    // Transfer all onboarding data to the advanced calculator
+    transferOnboardingToAdvanced();
+
+    // Mark onboarding as completed
+    localStorage.setItem('retirement-calc-onboarding-completed', 'true');
+
+    // Switch to advanced calculator tab
+    switchTab('advanced');
+
+    // Show success message
+    setTimeout(() => {
+        alert('🎉 Onboarding completed! Your information has been transferred to the advanced calculator. Click "Calculate Enhanced Projection" to see your results.');
+    }, 500);
+}
+
+function transferOnboardingToAdvanced() {
+    // Helper function to parse currency values
+    const parseCurrency = (value) => {
+        if (!value) return '';
+        return value.replace(/[$,]/g, '');
+    };
+
+    // Transfer household data
+    const yourAge = document.getElementById('onboarding-yourAge')?.value;
+    if (yourAge) {
+        const field = document.getElementById('yourCurrentAge');
+        if (field) field.value = yourAge;
+    }
+
+    const retirementAge = document.getElementById('onboarding-retirementAge')?.value;
+    if (retirementAge) {
+        const field = document.getElementById('retirementAge');
+        if (field) field.value = retirementAge;
+    }
+
+    const hasPartner = document.getElementById('onboarding-hasPartner')?.checked;
+    if (hasPartner) {
+        const partnerAge = document.getElementById('onboarding-partnerAge')?.value;
+        if (partnerAge) {
+            const field = document.getElementById('partnerCurrentAge');
+            if (field) field.value = partnerAge;
+        }
+
+        const partnerRetirementAge = document.getElementById('onboarding-partnerRetirementAge')?.value;
+        if (partnerRetirementAge) {
+            const field = document.getElementById('partnerRetirementAge');
+            if (field) field.value = partnerRetirementAge;
+        }
+    }
+
+    // Transfer financial data
+    const yourIncome = document.getElementById('onboarding-yourIncome')?.value;
+    if (yourIncome) {
+        const field = document.getElementById('yourSalary');
+        if (field) field.value = parseCurrency(yourIncome);
+    }
+
+    const yourSuper = document.getElementById('onboarding-yourSuper')?.value;
+    if (yourSuper) {
+        const field = document.getElementById('yourCurrentSuper');
+        if (field) field.value = parseCurrency(yourSuper);
+    }
+
+    const savings = document.getElementById('onboarding-savings')?.value;
+    if (savings) {
+        const field = document.getElementById('currentSavings');
+        if (field) field.value = parseCurrency(savings);
+    }
+
+    const investments = document.getElementById('onboarding-investments')?.value;
+    if (investments) {
+        const field = document.getElementById('currentStocks');
+        if (field) field.value = parseCurrency(investments);
+    }
+
+    // Transfer property data
+    const homeOwnership = document.querySelector('input[name="homeOwnership"]:checked')?.value;
+    if (homeOwnership === 'own') {
+        const homeValue = document.getElementById('onboarding-homeValue')?.value;
+        if (homeValue) {
+            const field = document.getElementById('homeValue');
+            if (field) field.value = parseCurrency(homeValue);
+        }
+
+        const mortgageBalance = document.getElementById('onboarding-mortgageBalance')?.value;
+        if (mortgageBalance) {
+            const field = document.getElementById('mortgageBalance');
+            if (field) field.value = parseCurrency(mortgageBalance);
+        }
+    }
+
+    const hasInvestmentProperty = document.getElementById('onboarding-hasInvestmentProperty')?.checked;
+    if (hasInvestmentProperty) {
+        const checkbox = document.getElementById('hasInvestmentProperty');
+        if (checkbox) checkbox.checked = true;
+
+        const propertyValue = document.getElementById('onboarding-investmentPropertyValue')?.value;
+        if (propertyValue) {
+            const field = document.getElementById('investmentPropertyValue');
+            if (field) field.value = parseCurrency(propertyValue);
+        }
+
+        const propertyLoan = document.getElementById('onboarding-investmentPropertyLoan')?.value;
+        if (propertyLoan) {
+            const field = document.getElementById('investmentPropertyLoan');
+            if (field) field.value = parseCurrency(propertyLoan);
+        }
+
+        const weeklyRent = document.getElementById('onboarding-weeklyRent')?.value;
+        if (weeklyRent) {
+            const field = document.getElementById('weeklyRentalIncome');
+            if (field) field.value = parseCurrency(weeklyRent);
+        }
+
+        const propertyExpenses = document.getElementById('onboarding-propertyExpenses')?.value;
+        if (propertyExpenses) {
+            const field = document.getElementById('annualPropertyExpenses');
+            if (field) field.value = parseCurrency(propertyExpenses);
+        }
+    }
+
+    const planToDownsize = document.getElementById('onboarding-planToDownsize')?.checked;
+    if (planToDownsize) {
+        const checkbox = document.getElementById('planToDownsize');
+        if (checkbox) checkbox.checked = true;
+    }
+
+    // Transfer risk and goals data
+    const riskTolerance = document.getElementById('onboarding-riskTolerance')?.value;
+    if (riskTolerance) {
+        const field = document.getElementById('riskTolerance');
+        if (field) {
+            field.value = riskTolerance;
+            // Trigger the risk tolerance display update
+            if (window.RetirementCalculatorApp && window.RetirementCalculatorApp.updateRiskToleranceDisplay) {
+                window.RetirementCalculatorApp.updateRiskToleranceDisplay(riskTolerance);
+            }
+        }
+    }
+
+    const emergencyFund = document.getElementById('onboarding-emergencyFund')?.value;
+    if (emergencyFund) {
+        const field = document.getElementById('hasEmergencyFund');
+        if (field) field.value = emergencyFund;
+    }
+
+    // Set lifestyle target based on selection
+    const lifestyle = document.querySelector('input[name="retirementLifestyle"]:checked')?.value;
+    if (lifestyle) {
+        const asfaComfortableField = document.getElementById('asfaComfortable');
+        if (asfaComfortableField) {
+            switch(lifestyle) {
+                case 'modest':
+                    asfaComfortableField.value = '31000';
+                    break;
+                case 'comfortable':
+                    asfaComfortableField.value = '50000';
+                    break;
+                case 'luxury':
+                    asfaComfortableField.value = '80000';
+                    break;
+            }
+        }
+    }
+
+    console.log('✅ Onboarding data transferred to Advanced Calculator');
+}
+
+// 🚀 NEW: Helper functions for onboarding
+function updateOnboardingRiskDisplay() {
+    const riskSlider = document.getElementById('onboarding-riskTolerance');
+    const riskValue = document.getElementById('onboarding-riskValue');
+
+    if (riskSlider && riskValue) {
+        const value = parseInt(riskSlider.value);
+        let label = '';
+        if (value <= 3) label = `Conservative (${value})`;
+        else if (value <= 7) label = `Moderate (${value})`;
+        else label = `Aggressive (${value})`;
+
+        riskValue.textContent = label;
+    }
+}
+
+function updateReviewSummary() {
+    // Update household section
+    const yourAge = document.getElementById('onboarding-yourAge')?.value || '-';
+    const retirementAge = document.getElementById('onboarding-retirementAge')?.value || '-';
+    const hasPartner = document.getElementById('onboarding-hasPartner')?.checked;
+
+    document.getElementById('review-yourAge').textContent = yourAge;
+    document.getElementById('review-retirementAge').textContent = retirementAge;
+    document.getElementById('review-hasPartner').textContent = hasPartner ? 'Yes' : 'No';
+
+    // Update finances section
+    const income = document.getElementById('onboarding-yourIncome')?.value || '-';
+    const superBalance = document.getElementById('onboarding-yourSuper')?.value || '-';
+    const savings = document.getElementById('onboarding-savings')?.value || '-';
+
+    document.getElementById('review-income').textContent = income;
+    document.getElementById('review-super').textContent = superBalance;
+    document.getElementById('review-savings').textContent = savings;
+
+    // Update property section
+    const homeOwnership = document.querySelector('input[name="homeOwnership"]:checked')?.value;
+    const hasInvestmentProperty = document.getElementById('onboarding-hasInvestmentProperty')?.checked;
+
+    let homeOwnershipText = '-';
+    if (homeOwnership === 'own') homeOwnershipText = 'Own';
+    else if (homeOwnership === 'rent') homeOwnershipText = 'Rent';
+    else if (homeOwnership === 'other') homeOwnershipText = 'Other';
+
+    document.getElementById('review-homeOwnership').textContent = homeOwnershipText;
+    document.getElementById('review-investmentProperty').textContent = hasInvestmentProperty ? 'Yes' : 'No';
+
+    // Update goals section
+    const lifestyle = document.querySelector('input[name="retirementLifestyle"]:checked')?.value;
+    const riskTolerance = document.getElementById('onboarding-riskTolerance')?.value || '-';
+
+    let lifestyleText = '-';
+    if (lifestyle === 'modest') lifestyleText = 'Modest';
+    else if (lifestyle === 'comfortable') lifestyleText = 'Comfortable';
+    else if (lifestyle === 'luxury') lifestyleText = 'Luxury';
+
+    document.getElementById('review-lifestyle').textContent = lifestyleText;
+    document.getElementById('review-riskTolerance').textContent = riskTolerance !== '-' ? `${riskTolerance}/10` : '-';
+}
+
+// 🚀 NEW: Initialize onboarding event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    // Partner details toggle
+    const hasPartnerCheckbox = document.getElementById('onboarding-hasPartner');
+    if (hasPartnerCheckbox) {
+        hasPartnerCheckbox.addEventListener('change', function() {
+            const partnerDetails = document.getElementById('partnerDetails');
+            if (partnerDetails) {
+                if (this.checked) {
+                    partnerDetails.classList.remove('hidden');
+                } else {
+                    partnerDetails.classList.add('hidden');
+                }
+            }
+        });
+    }
+
+    // Home ownership toggle
+    document.querySelectorAll('input[name="homeOwnership"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const homeDetails = document.getElementById('homeOwnershipDetails');
+            if (homeDetails) {
+                if (this.value === 'own') {
+                    homeDetails.classList.remove('hidden');
+                } else {
+                    homeDetails.classList.add('hidden');
+                }
+            }
+        });
+    });
+
+    // Investment property toggle
+    const hasInvestmentPropertyCheckbox = document.getElementById('onboarding-hasInvestmentProperty');
+    if (hasInvestmentPropertyCheckbox) {
+        hasInvestmentPropertyCheckbox.addEventListener('change', function() {
+            const investmentDetails = document.getElementById('investmentPropertyDetails');
+            if (investmentDetails) {
+                if (this.checked) {
+                    investmentDetails.classList.remove('hidden');
+                } else {
+                    investmentDetails.classList.add('hidden');
+                }
+            }
+        });
+    }
+
+    // Risk tolerance slider
+    const riskSlider = document.getElementById('onboarding-riskTolerance');
+    if (riskSlider) {
+        riskSlider.addEventListener('input', updateOnboardingRiskDisplay);
+        updateOnboardingRiskDisplay(); // Initial update
+    }
+});
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -4802,6 +6425,150 @@ function fallbackMode() {
 export default RetirementCalculatorApp;
 
 // Auto-initialize when loaded - prevent double initialization
+// Tab Action Button Event Handlers
+function setupTabActionHandlers() {
+    // Results Tab Actions
+    const btnCalculateResults = document.getElementById('btnCalculateResults');
+    if (btnCalculateResults) {
+        btnCalculateResults.addEventListener('click', function() {
+            if (window.app && window.app.calculateResults) {
+                window.app.calculateResults();
+                // Hide results placeholder
+                const placeholder = document.getElementById('resultsPlaceholder');
+                if (placeholder) placeholder.style.display = 'none';
+            }
+        });
+    }
+
+    const btnAdvancedAnalysis = document.getElementById('btnAdvancedAnalysis');
+    if (btnAdvancedAnalysis) {
+        btnAdvancedAnalysis.addEventListener('click', function() {
+            if (window.app && window.app.runAdvancedAnalysis) {
+                window.app.runAdvancedAnalysis();
+            }
+        });
+    }
+
+    const btnHealthCheck = document.getElementById('btnHealthCheck');
+    if (btnHealthCheck) {
+        btnHealthCheck.addEventListener('click', function() {
+            if (window.app && window.app.runHealthCheck) {
+                window.app.runHealthCheck();
+            }
+        });
+    }
+
+    // Charts Tab Actions
+    const btnRunMonteCarlo = document.getElementById('btnRunMonteCarlo');
+    if (btnRunMonteCarlo) {
+        btnRunMonteCarlo.addEventListener('click', function() {
+            if (window.app && window.app.runMonteCarloSimulation) {
+                window.app.runMonteCarloSimulation();
+                // Hide charts placeholder
+                const chartsPlaceholder = document.getElementById('chartsPlaceholder');
+                if (chartsPlaceholder) chartsPlaceholder.style.display = 'none';
+            }
+        });
+    }
+
+    const btnGenerateCharts = document.getElementById('btnGenerateCharts');
+    if (btnGenerateCharts) {
+        btnGenerateCharts.addEventListener('click', function() {
+            if (window.app && window.app.generateCharts) {
+                window.app.generateCharts();
+            }
+        });
+    }
+
+    const btnPropertyAnalysis = document.getElementById('btnPropertyAnalysis');
+    if (btnPropertyAnalysis) {
+        btnPropertyAnalysis.addEventListener('click', function() {
+            if (window.app && window.app.runPropertyAnalysis) {
+                window.app.runPropertyAnalysis();
+            }
+        });
+    }
+
+    // Suggestions Tab Actions
+    const btnGenerateSuggestions = document.getElementById('btnGenerateSuggestions');
+    if (btnGenerateSuggestions) {
+        btnGenerateSuggestions.addEventListener('click', function() {
+            if (window.app && window.app.generateSuggestions) {
+                window.app.generateSuggestions();
+                // Hide suggestions placeholder
+                const suggestionsPlaceholder = document.getElementById('suggestionsPlaceholder');
+                if (suggestionsPlaceholder) suggestionsPlaceholder.style.display = 'none';
+            }
+        });
+    }
+
+    const btnQuickWins = document.getElementById('btnQuickWins');
+    if (btnQuickWins) {
+        btnQuickWins.addEventListener('click', function() {
+            if (window.app && window.app.runQuickWinsAnalysis) {
+                window.app.runQuickWinsAnalysis();
+            }
+        });
+    }
+
+    const btnScenarioComparison = document.getElementById('btnScenarioComparison');
+    if (btnScenarioComparison) {
+        btnScenarioComparison.addEventListener('click', function() {
+            if (window.app && window.app.runScenarioComparison) {
+                window.app.runScenarioComparison();
+            }
+        });
+    }
+
+    // Export Tab Actions
+    const btnExportPDF = document.getElementById('btnExportPDF');
+    if (btnExportPDF) {
+        btnExportPDF.addEventListener('click', function() {
+            if (window.app && window.app.exportToPDF) {
+                window.app.exportToPDF();
+            }
+        });
+    }
+
+    const btnExportExcel = document.getElementById('btnExportExcel');
+    if (btnExportExcel) {
+        btnExportExcel.addEventListener('click', function() {
+            if (window.app && window.app.exportToExcel) {
+                window.app.exportToExcel();
+            }
+        });
+    }
+
+    const btnExportCSV = document.getElementById('btnExportCSV');
+    if (btnExportCSV) {
+        btnExportCSV.addEventListener('click', function() {
+            if (window.app && window.app.exportToCSV) {
+                window.app.exportToCSV();
+            }
+        });
+    }
+
+    const btnShareURL = document.getElementById('btnShareURL');
+    if (btnShareURL) {
+        btnShareURL.addEventListener('click', function() {
+            if (window.app && window.app.shareURL) {
+                window.app.shareURL();
+            }
+        });
+    }
+
+    const btnPrintSummary = document.getElementById('btnPrintSummary');
+    if (btnPrintSummary) {
+        btnPrintSummary.addEventListener('click', function() {
+            if (window.app && window.app.printSummary) {
+                window.app.printSummary();
+            } else {
+                window.print();
+            }
+        });
+    }
+}
+
 function initializeApp() {
     // Prevent double initialization
     if (window.app && window.app.isInitialized) {
@@ -4816,6 +6583,13 @@ function initializeApp() {
 
         // The app auto-initializes in constructor, so just mark as initialized
         app.isInitialized = true;
+
+        // Setup tab action handlers
+        setupTabActionHandlers();
+
+        // Expose functions to window for onclick handlers
+        window.completeOnboarding = completeOnboarding;
+
         console.log('✅ Australian Retirement Calculator loaded successfully');
     } catch (error) {
         console.error('Failed to initialize app:', error);

@@ -1,7 +1,7 @@
 // js/contextual-intelligence.js - Smart Contextual Guidance System
 
 import { formatCurrency, formatPercent } from './utils.js';
-import { ENHANCED_CONFIG } from './enhanced-config.js';
+import { ENHANCED_FINANCIAL_CONFIG as ENHANCED_CONFIG } from './enhanced-config.js';
 
 export default class ContextualIntelligenceSystem {
     constructor() {

@@ -33,7 +33,7 @@ export default class OnboardingSystem {
         const hasSeenOnboarding = localStorage.getItem('retirement-calc-onboarding-completed');
         const forceOnboarding = new URLSearchParams(window.location.search).get('onboarding') === 'true';
 
-        // NEW: Show onboarding by default for testing (can be disabled with ?skip=true)
+        // Show onboarding by default for new users, or when explicitly requested
         return !hasSeenOnboarding || forceOnboarding;
     }
 
@@ -48,10 +48,15 @@ export default class OnboardingSystem {
         const container = $('.container');
         if (!container) return;
 
-        // Store original content for restoration later
+        // Instead of replacing entire content, create tabbed interface
+        this.createTabbedOnboardingInterface(container);
+    }
+
+    createTabbedOnboardingInterface(container) {
+        // Store original content for the detailed calculator tab
         this.originalContent = container.innerHTML;
 
-        const onboardingHTML = `
+        const tabbedHTML = `
             <div id="onboardingContainer" class="max-w-4xl mx-auto">
                 <!-- Progress Indicator -->
                 <div class="mb-8">
