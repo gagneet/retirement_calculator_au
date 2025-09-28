@@ -1,21 +1,32 @@
 // js/suggestion-engine.js - The New Dynamic and Comprehensive Suggestion Engine
 
 import { ENHANCED_CONFIG } from './config.js';
-import { formatCurrency, formatPercent } from './utils.js';
+import { formatCurrency, formatPercent, calculateUnusedConcessionalCap, calculateDownsizerContribution } from './utils.js';
 import MarketDataEngine from './market-data.js';
 
-export class SuggestionEngine {
+export default class SuggestionEngine {
     constructor(simulator, inputs, results) {
+        if (!simulator) {
+            throw new Error('SuggestionEngine requires a simulator instance');
+        }
+        if (!inputs) {
+            throw new Error('SuggestionEngine requires inputs object');
+        }
+
         this.simulator = simulator;
         this.inputs = inputs;
-        this.results = results;
+        this.results = results || null;
         this.marketData = new MarketDataEngine();
         this.suggestions = [];
     }
 
     // Main method to generate all recommendations
     async generateSuggestions() {
-        console.log("Starting comprehensive suggestion engine...");
+        try {
+            console.log("Starting comprehensive suggestion engine...");
+
+            // Clear any existing suggestions
+            this.suggestions = [];
 
         // 1. Generate specific, persona-based suggestions first
         this.generateSuggestionsForSarah();
@@ -45,20 +56,43 @@ export class SuggestionEngine {
             });
         }
 
-        // 3. Prioritize and return all collected suggestions
-        return this.prioritizeSuggestions();
+            // 3. Prioritize and return all collected suggestions
+            return this.prioritizeSuggestions();
+        } catch (error) {
+            console.error('Error generating suggestions:', error);
+            return [{
+                category: 'Error',
+                priority: 'High',
+                title: 'Unable to generate suggestions',
+                description: 'There was an error generating personalized suggestions. Please check your inputs and try again.',
+                actions: ['Verify all required fields are filled', 'Contact support if the problem persists'],
+                confidence: 0
+            }];
+        }
     }
 
     // --- Persona-based suggestions ---
     generateSuggestionsForSarah() {
         const { yourSalary, yourCurrentAge, retirementAge } = this.inputs;
+
+        // Safety checks
+        if (!yourSalary || !yourCurrentAge || !retirementAge) {
+            console.warn('Missing required fields for Sarah persona suggestions');
+            return;
+        }
+
         const preservationAge = this.getPreservationAge(yourCurrentAge);
-        const div293Threshold = 250000;
+        const div293Threshold = ENHANCED_CONFIG.HEALTH_CHECK.TAX_EFFICIENCY.DIV293_THRESHOLD;
 
         // Suggestion for Division 293 Tax
         if (yourSalary > div293Threshold) {
-            const concessionalContribution = yourSalary * this.inputs.employerSuperContribution;
-            const taxableContribution = Math.min(concessionalContribution, 27500);
+            const employerContributionRate = this.inputs.employerSuperContribution || 0;
+            if (employerContributionRate === 0) {
+                console.warn('Employer super contribution rate is zero, skipping Division 293 calculation');
+                return;
+            }
+            const concessionalContribution = yourSalary * (employerContributionRate / 100);
+            const taxableContribution = Math.min(concessionalContribution, ENHANCED_CONFIG.HEALTH_CHECK.CONTRIBUTION_CAPS.CONCESSIONAL_CAP);
             const div293Impact = taxableContribution * 0.15;
             const netContribution = taxableContribution - div293Impact;
 
@@ -99,9 +133,14 @@ export class SuggestionEngine {
     generateSuggestionsForMarkAndLisa() {
         const { businessStructure, businessYearsHeld, businessActiveAssetValue, propertyCashFlowStatus, numberOfProperties } = this.inputs;
 
+        // Safety checks for business data
+        if (!businessStructure || businessStructure === 'none') {
+            return; // No business suggestions needed
+        }
+
         // 15-year CGT exemption suggestion
         if (businessStructure !== 'none' && businessYearsHeld >= 15 && this.inputs.retirementAge > this.inputs.yourCurrentAge) {
-             const cgtCap = 1705000;
+             const cgtCap = ENHANCED_CONFIG.BUSINESS_CGT_EXEMPTION_CAP;
              const potentialContribution = Math.min(businessActiveAssetValue, cgtCap);
 
             this.suggestions.push({
@@ -139,10 +178,16 @@ export class SuggestionEngine {
     generateSuggestionsForRobert() {
         const { homeOwnershipStatus, yourCurrentAge, totalSuperBalanceLastJune } = this.inputs;
 
+        // Safety checks
+        if (!yourCurrentAge || !totalSuperBalanceLastJune) {
+            console.warn('Missing required fields for Robert persona suggestions');
+            return;
+        }
+
         // Unused concessional cap suggestion
-        const unusedCap = this.calculateUnusedConcessionalCap();
-        if (unusedCap > 10000) {
-            const concessionalCap = 27500;
+        const unusedCap = calculateUnusedConcessionalCap(this.inputs);
+        if (unusedCap > ENHANCED_CONFIG.UNUSED_CAP_THRESHOLD) {
+            const concessionalCap = ENHANCED_CONFIG.HEALTH_CHECK.CONTRIBUTION_CAPS.CONCESSIONAL_CAP;
             const maxContributionThisYear = concessionalCap + unusedCap;
 
             this.suggestions.push({
@@ -164,7 +209,7 @@ export class SuggestionEngine {
                 category: "Home Ownership",
                 priority: "High",
                 title: "Plan for a Downsizer Super Contribution",
-                description: "If you sell your main residence after turning 55, you may be eligible to make a one-off downsizer contribution of up to $300,000 (or $600,000 for a couple) to your super.",
+                description: `If you sell your main residence after turning 55, you may be eligible to make a one-off downsizer contribution of up to ${formatCurrency(ENHANCED_CONFIG.DOWNSIZER_CONTRIBUTION_SINGLE)} (or ${formatCurrency(ENHANCED_CONFIG.DOWNSIZER_CONTRIBUTION_COUPLE)} for a couple) to your super.`,
                 actions: [
                     "This contribution is separate from the normal caps and can be made even if your Total Super Balance is high.",
                     "If you plan to sell your home, this is a fantastic way to transfer a large amount of capital into the tax-effective super environment."
@@ -177,9 +222,15 @@ export class SuggestionEngine {
     generateSuggestionsForJenny() {
         const { partTimeWorkIncome, yourCurrentAge } = this.inputs;
 
+        // Safety checks
+        if (!yourCurrentAge) {
+            console.warn('Missing required fields for Jenny persona suggestions');
+            return;
+        }
+
         // Work Bonus suggestion
         if (partTimeWorkIncome > 0 && yourCurrentAge >= 67) {
-            const workBonusMax = 11800;
+            const workBonusMax = ENHANCED_CONFIG.WORK_BONUS_MAX;
             const incomeToAssess = Math.max(0, partTimeWorkIncome - workBonusMax);
             const pensionReduction = incomeToAssess * 0.5;
             const netGain = partTimeWorkIncome - pensionReduction;
@@ -236,6 +287,10 @@ export class SuggestionEngine {
     // --- Deeper Analysis Methods (from decision-support-engine) ---
     async runBaselineAnalysis() {
         try {
+            if (!this.simulator) {
+                throw new Error('Simulator instance not available');
+            }
+
             const monteCarlo = await this.simulator.runMonteCarloSimulation(this.inputs, 1000);
             const deterministic = this.simulator.simulateRetirement(this.inputs);
             const riskProfile = this.calculateRiskProfile();
@@ -550,6 +605,12 @@ export class SuggestionEngine {
 
     getHealthCheckMetrics() {
         const { inputs, results } = this;
+
+        // Validate inputs
+        if (!inputs) {
+            console.error('Missing inputs for health check metrics');
+            return this.getDefaultHealthCheckMetrics();
+        }
         if (!results || !results.yearlyData) {
             // Return default/error state if results are not available
             return {
@@ -647,7 +708,7 @@ export class SuggestionEngine {
         if (inputs.yourSalary > healthCheckConfig.TAX_EFFICIENCY.DIV293_THRESHOLD || inputs.partnerSalary > healthCheckConfig.TAX_EFFICIENCY.DIV293_THRESHOLD) {
             taxStatus = '🔴';
             taxText = `Division 293 tax is impacting your super contributions. Consider strategies to reduce taxable income.`;
-        } else if (inputs.nonConcessionalContribution > 0 && unusedCap > 10000) {
+        } else if (inputs.nonConcessionalContribution > 0 && unusedCap > ENHANCED_CONFIG.UNUSED_CAP_THRESHOLD) {
             taxStatus = '🟡';
             taxText = 'Consider maximizing concessional contributions before making non-concessional ones for better tax outcomes.';
         }
@@ -674,5 +735,17 @@ export class SuggestionEngine {
         };
 
         return metrics;
+    }
+
+    // Default health check metrics for error cases
+    getDefaultHealthCheckMetrics() {
+        return {
+            savingsRate: { status: '⚪', text: 'Unable to calculate - please check your inputs', value: 'N/A' },
+            pensionOptimization: { status: '⚪', text: 'Unable to calculate - please check your inputs', value: 'N/A' },
+            assetAllocation: { status: '⚪', text: 'Unable to calculate - please check your inputs', value: 'N/A' },
+            contributionCaps: { status: '⚪', text: 'Unable to calculate - please check your inputs', value: 'N/A' },
+            taxEfficiency: { status: '⚪', text: 'Unable to calculate - please check your inputs', value: 'N/A' },
+            riskCoverage: { status: '⚪', text: 'Unable to calculate - please check your inputs', value: 'N/A' },
+        };
     }
 }

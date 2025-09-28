@@ -48,6 +48,29 @@ export const ENHANCED_FINANCIAL_CONFIG = {
         }
     },
 
+    // ===== TAXATION SYSTEM =====
+    taxation: {
+        _category: "Australian Taxation System",
+        _description: "Tax rates, thresholds and rules from ATO",
+        _lastResearched: "2025-01-15",
+        _sources: ["ATO"],
+
+        DIVISION_293_THRESHOLD: {
+            value: 250000,
+            description: "Salary threshold for Division 293 additional super tax",
+            source: "ATO",
+            lastUpdated: "2025-01-15",
+            isGovernmentSet: true
+        },
+        DIVISION_293_TAX_RATE: {
+            value: 0.15,
+            description: "Additional tax rate on super contributions over threshold",
+            source: "ATO",
+            lastUpdated: "2025-01-15",
+            isGovernmentSet: true
+        }
+    },
+
     // ===== GOVERNMENT DATA & THRESHOLDS =====
     governmentData: {
         _category: "Government Data & Thresholds",

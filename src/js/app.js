@@ -4,7 +4,7 @@ import '../css/styles.css';
 import { ENHANCED_CONFIG } from './config.js';
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import RetirementSimulator from './simulator.js';
-import { SuggestionEngine } from './suggestion-engine.js';
+import SuggestionEngine from './suggestion-engine.js';
 import MarketDataEngine from './market-data.js';
 import { initializeTrustUI } from './trust-ui.js';
 import ThemeManager from './theme.js';
@@ -1823,7 +1823,7 @@ class RetirementCalculatorApp {
             updateProgress(10, 'Initializing Suggestion Engine...');
             await new Promise(resolve => setTimeout(resolve, 0));
 
-            const suggestionEngine = new SuggestionEngine(inputs, results);
+            const suggestionEngine = new SuggestionEngine(this.simulator, inputs, results);
             const suggestions = suggestionEngine.generateSuggestions();
 
             updateProgress(90, 'Formatting suggestions...');
