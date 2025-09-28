@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency: Disable Onboarding</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+        .button { padding: 10px 20px; margin: 10px; background: #dc2626; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .success { background: #16a34a; }
+        .info { background: #0891b2; }
+        .status { padding: 15px; background: #f3f4f6; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🚨 Emergency: Disable Onboarding System</h1>
+
+    <p><strong>Issue:</strong> The onboarding system is breaking your live site by replacing the page content.</p>
+
+    <div class="status">
+        <h3>Current Status:</h3>
+        <div id="currentStatus">Checking...</div>
+    </div>
+
+    <h3>Emergency Actions:</h3>
+
+    <button class="button" onclick="disableOnboardingPermanently()">
+        🛑 DISABLE ONBOARDING PERMANENTLY
+    </button>
+
+    <button class="button success" onclick="markOnboardingCompleted()">
+        ✅ Mark Onboarding as Completed (for existing users)
+    </button>
+
+    <button class="button info" onclick="clearAllOnboardingData()">
+        🧹 Clear All Onboarding Data
+    </button>
+
+    <button class="button info" onclick="testNormalFlow()">
+        🧪 Test Normal Calculator Flow
+    </button>
+
+    <div class="status">
+        <h3>Instructions for Live Site:</h3>
+        <ol>
+            <li>Visit your live site: <a href="https://retirement.gagneet.com" target="_blank">https://retirement.gagneet.com</a></li>
+            <li>Open browser console (F12)</li>
+            <li>Run this command: <code>localStorage.setItem('retirement-calc-onboarding-disabled', 'true')</code></li>
+            <li>Refresh the page</li>
+            <li>The normal calculator should work again</li>
+        </ol>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        function updateStatus() {
+            const disabled = localStorage.getItem('retirement-calc-onboarding-disabled');
+            const completed = localStorage.getItem('retirement-calc-onboarding-completed');
+            const data = localStorage.getItem('retirement-calc-onboarding-data');
+            const hasExistingData = localStorage.getItem('retirement-calculator-data') ||
+                                   localStorage.getItem('retirementCalculatorInputs');
+
+            document.getElementById('currentStatus').innerHTML = `
+                <p><strong>Onboarding Disabled:</strong> ${disabled || 'false'}</p>
+                <p><strong>Onboarding Completed:</strong> ${completed || 'false'}</p>
+                <p><strong>Has Onboarding Data:</strong> ${data ? 'Yes' : 'No'}</p>
+                <p><strong>Has Existing Calculator Data:</strong> ${hasExistingData ? 'Yes' : 'No'}</p>
+            `;
+        }
+
+        function disableOnboardingPermanently() {
+            localStorage.setItem('retirement-calc-onboarding-disabled', 'true');
+            showResult('✅ Onboarding has been PERMANENTLY DISABLED. Refresh any calculator pages.');
+            updateStatus();
+        }
+
+        function markOnboardingCompleted() {
+            localStorage.setItem('retirement-calc-onboarding-completed', 'true');
+            showResult('✅ Onboarding marked as completed. New visitors will still see it, but existing users won\\'t.');
+            updateStatus();
+        }
+
+        function clearAllOnboardingData() {
+            localStorage.removeItem('retirement-calc-onboarding-completed');
+            localStorage.removeItem('retirement-calc-onboarding-data');
+            localStorage.removeItem('retirement-calc-onboarding-disabled');
+            showResult('🧹 All onboarding data cleared. Calculator will behave as if onboarding never existed.');
+            updateStatus();
+        }
+
+        function testNormalFlow() {
+            window.open('./dist/index.html', '_blank');
+        }
+
+        function showResult(message) {
+            document.getElementById('results').innerHTML = `
+                <div style="padding: 10px; background: #16a34a; color: white; border-radius: 5px; margin: 10px 0;">
+                    ${message}
+                </div>
+            `;
+        }
+
+        // Initial status check
+        updateStatus();
+    </script>
+</body>
+</html>

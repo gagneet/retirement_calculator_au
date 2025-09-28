@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Onboarding Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background: #f9fafb; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .button {
+            padding: 12px 24px; margin: 10px 5px; border: none; border-radius: 8px;
+            cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block;
+            transition: all 0.2s ease;
+        }
+        .primary { background: #3b82f6; color: white; }
+        .primary:hover { background: #2563eb; }
+        .success { background: #10b981; color: white; }
+        .success:hover { background: #059669; }
+        .warning { background: #f59e0b; color: white; }
+        .warning:hover { background: #d97706; }
+        .danger { background: #ef4444; color: white; }
+        .danger:hover { background: #dc2626; }
+        .status { padding: 20px; background: #f3f4f6; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6; }
+        .code { background: #1f2937; color: #f9fafb; padding: 15px; border-radius: 8px; font-family: monospace; margin: 10px 0; }
+        .result { padding: 15px; margin: 15px 0; border-radius: 8px; }
+        .result.success { background: #d1fae5; border: 1px solid #10b981; color: #065f46; }
+        .result.error { background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; }
+        .result.info { background: #dbeafe; border: 1px solid #3b82f6; color: #1e40af; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Production Onboarding Debug Tool</h1>
+
+        <p><strong>Purpose:</strong> Diagnose why the onboarding system isn't showing on your production site.</p>
+
+        <div class="status">
+            <h3>🔍 Current Browser State:</h3>
+            <div id="currentState">Loading...</div>
+        </div>
+
+        <h3>🧪 Debug Tests:</h3>
+
+        <div style="margin: 20px 0;">
+            <h4>Test 1: Force Clear Everything & Enable Onboarding</h4>
+            <button class="button danger" onclick="forceResetAndTest()">
+                🧹 Nuclear Reset → Test Onboarding
+            </button>
+            <p><small>Clears ALL localStorage data and forces onboarding mode</small></p>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <h4>Test 2: Direct URL Parameter Test</h4>
+            <a href="https://retirement.gagneet.com/?onboarding=true&debug=true" target="_blank" class="button primary">
+                🎯 Direct URL Test (?onboarding=true&debug=true)
+            </a>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <h4>Test 3: Check If Built JS Contains Onboarding</h4>
+            <button class="button warning" onclick="checkProductionJS()">
+                📦 Check Production JS File
+            </button>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <h4>Test 4: Manual Console Trigger</h4>
+            <div class="code">
+                // Copy and paste this in your browser console on retirement.gagneet.com:
+                localStorage.clear();
+                localStorage.setItem('retirement-calc-onboarding-debug', 'true');
+                window.location.href = window.location.href.split('?')[0] + '?onboarding=true';
+            </div>
+            <button class="button success" onclick="copyToClipboard()">
+                📋 Copy Console Command
+            </button>
+        </div>
+
+        <h3>⚙️ Browser Compatibility Check:</h3>
+        <div id="compatibilityResults"></div>
+
+        <div id="debugResults"></div>
+        <div id="jsAnalysisResults"></div>
+    </div>
+
+    <script>
+        function updateCurrentState() {
+            const state = {
+                onboardingDisabled: localStorage.getItem('retirement-calc-onboarding-disabled'),
+                onboardingCompleted: localStorage.getItem('retirement-calc-onboarding-completed'),
+                onboardingData: localStorage.getItem('retirement-calc-onboarding-data'),
+                calculatorData: localStorage.getItem('retirement-calculator-data') || localStorage.getItem('retirementCalculatorInputs'),
+                userAgent: navigator.userAgent,
+                currentURL: window.location.href,
+                localStorage: Object.keys(localStorage).filter(k => k.includes('retirement')),
+                urlParams: new URLSearchParams(window.location.search).toString()
+            };
+
+            document.getElementById('currentState').innerHTML = `
+                <p><strong>Onboarding Disabled:</strong> ${state.onboardingDisabled || 'false'}</p>
+                <p><strong>Onboarding Completed:</strong> ${state.onboardingCompleted || 'false'}</p>
+                <p><strong>Has Onboarding Data:</strong> ${state.onboardingData ? 'Yes' : 'No'}</p>
+                <p><strong>Has Calculator Data:</strong> ${state.calculatorData ? 'Yes' : 'No'}</p>
+                <p><strong>URL Params:</strong> ${state.urlParams || 'none'}</p>
+                <p><strong>Related Keys:</strong> ${state.localStorage.length > 0 ? state.localStorage.join(', ') : 'none'}</p>
+            `;
+
+            return state;
+        }
+
+        function forceResetAndTest() {
+            showResult('⏳ Clearing all data and testing...', 'info');
+
+            // Clear absolutely everything
+            localStorage.clear();
+            sessionStorage.clear();
+
+            // Force onboarding to show
+            localStorage.setItem('retirement-calc-onboarding-debug', 'true');
+
+            showResult('✅ All data cleared. Opening test window...', 'success');
+            updateCurrentState();
+
+            setTimeout(() => {
+                window.open('https://retirement.gagneet.com/?onboarding=true&debug=true', '_blank');
+            }, 2000);
+        }
+
+        function checkProductionJS() {
+            showResult('🔍 Checking production JavaScript file...', 'info');
+
+            fetch('https://retirement.gagneet.com/')
+                .then(response => response.text())
+                .then(html => {
+                    // Extract JS file reference
+                    const jsMatch = html.match(/main\.[a-f0-9]+\.js/);
+                    if (!jsMatch) {
+                        showResult('❌ Could not find main JS file reference in HTML', 'error');
+                        return;
+                    }
+
+                    const jsFile = jsMatch[0];
+                    showResult(`📁 Found JS file: ${jsFile}`, 'info');
+
+                    // Try to fetch the JS file and check for onboarding content
+                    return fetch(`https://retirement.gagneet.com/${jsFile}`);
+                })
+                .then(response => response.text())
+                .then(jsContent => {
+                    // Check for onboarding-related strings
+                    const onboardingIndicators = [
+                        'shouldShowOnboarding',
+                        'isOnboardingMode',
+                        'onboarding-completed',
+                        'onboarding-data'
+                    ];
+
+                    const found = onboardingIndicators.filter(indicator =>
+                        jsContent.includes(indicator)
+                    );
+
+                    if (found.length === onboardingIndicators.length) {
+                        showResult(`✅ All onboarding indicators found in JS: ${found.join(', ')}`, 'success');
+                    } else {
+                        showResult(`⚠️ Missing onboarding indicators: ${onboardingIndicators.filter(i => !found.includes(i)).join(', ')}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    showResult(`❌ Error checking production JS: ${error.message}`, 'error');
+                });
+        }
+
+        function copyToClipboard() {
+            const code = `localStorage.clear();
+localStorage.setItem('retirement-calc-onboarding-debug', 'true');
+window.location.href = window.location.href.split('?')[0] + '?onboarding=true';`;
+
+            navigator.clipboard.writeText(code).then(() => {
+                showResult('📋 Console command copied! Paste it in your browser console on retirement.gagneet.com', 'success');
+            }).catch(() => {
+                showResult('❌ Could not copy to clipboard. Please copy manually from the code box above.', 'error');
+            });
+        }
+
+        function showResult(message, type = 'info') {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = message;
+
+            const container = document.getElementById('debugResults');
+            container.appendChild(resultDiv);
+
+            // Auto-scroll to show the result
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function checkBrowserCompatibility() {
+            const tests = {
+                'ES6 Modules': () => typeof import !== 'undefined',
+                'LocalStorage': () => typeof localStorage !== 'undefined',
+                'Fetch API': () => typeof fetch !== 'undefined',
+                'URL API': () => typeof URL !== 'undefined',
+                'URLSearchParams': () => typeof URLSearchParams !== 'undefined'
+            };
+
+            let html = '<h4>Browser Compatibility Results:</h4><ul>';
+            for (const [test, checkFn] of Object.entries(tests)) {
+                try {
+                    const supported = checkFn();
+                    html += `<li>${supported ? '✅' : '❌'} ${test}</li>`;
+                } catch (error) {
+                    html += `<li>❌ ${test} (Error: ${error.message})</li>`;
+                }
+            }
+            html += '</ul>';
+
+            document.getElementById('compatibilityResults').innerHTML = html;
+        }
+
+        // Run initial checks
+        updateCurrentState();
+        checkBrowserCompatibility();
+    </script>
+</body>
+</html>

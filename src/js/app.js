@@ -8,6 +8,7 @@ import SuggestionEngine from './suggestion-engine.js';
 import MarketDataEngine from './market-data.js';
 import { initializeTrustUI } from './trust-ui.js';
 import ThemeManager from './theme.js';
+import OnboardingSystem from './onboarding.js';
 import {
     $,
     safeGetValue,
@@ -41,27 +42,34 @@ class RetirementCalculatorApp {
         this.themeManager = new ThemeManager();
         this.currentResults = null;
         this.isCalculating = false;
+        this.onboardingSystem = null;
 
         this.initializeApp();
     }
 
     initializeApp() {
-        this.loadSavedInputs(); // Load saved inputs first
-        this.setupEventListeners();
-        this.setupAutoSave(); // Setup auto-save functionality
-        this.setupCashFlowUI(); // Setup cash flow validation and UI
-        this.setupDependentCalculations(); // Setup enhanced dependent calculations
-        this.addSuggestionStyles(); // Add CSS styles for suggestion modifications
-        this.updateUIElements();
-        initializeTrustUI(); // Initialize trust UI functionality
+        // Initialize onboarding system first - it may replace the entire UI
+        this.onboardingSystem = new OnboardingSystem();
 
-        // Initialize tooltip system
-        addTooltipBottomStyles(); // Add bottom positioning styles
-        initializeTooltips(); // Initialize tooltip functionality
-        initializeCurrencyInputs(); // Initialize currency input formatting
-        initializePercentageInputs(); // Initialize percentage input formatting
+        // Only initialize the full app if not in onboarding mode
+        if (!this.onboardingSystem.isOnboardingMode) {
+            this.loadSavedInputs(); // Load saved inputs first
+            this.setupEventListeners();
+            this.setupAutoSave(); // Setup auto-save functionality
+            this.setupCashFlowUI(); // Setup cash flow validation and UI
+            this.setupDependentCalculations(); // Setup enhanced dependent calculations
+            this.addSuggestionStyles(); // Add CSS styles for suggestion modifications
+            this.updateUIElements();
+            initializeTrustUI(); // Initialize trust UI functionality
 
-        this.performInitialCalculation();
+            // Initialize tooltip system
+            addTooltipBottomStyles(); // Add bottom positioning styles
+            initializeTooltips(); // Initialize tooltip functionality
+            initializeCurrencyInputs(); // Initialize currency input formatting
+            initializePercentageInputs(); // Initialize percentage input formatting
+
+            this.performInitialCalculation();
+        }
     }
 
     // Input collection with complete property support

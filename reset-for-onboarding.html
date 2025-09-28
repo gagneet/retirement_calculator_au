@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset for Onboarding Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; background: #f9fafb; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .button {
+            padding: 12px 24px; margin: 10px 5px; border: none; border-radius: 8px;
+            cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block;
+            transition: all 0.2s ease;
+        }
+        .primary { background: #3b82f6; color: white; }
+        .primary:hover { background: #2563eb; }
+        .success { background: #10b981; color: white; }
+        .success:hover { background: #059669; }
+        .danger { background: #ef4444; color: white; }
+        .danger:hover { background: #dc2626; }
+        .info { background: #8b5cf6; color: white; }
+        .info:hover { background: #7c3aed; }
+        .status { padding: 20px; background: #f3f4f6; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6; }
+        .code { background: #1f2937; color: #f9fafb; padding: 15px; border-radius: 8px; font-family: monospace; margin: 10px 0; }
+        .step { margin: 20px 0; padding: 15px; background: #ecfdf5; border-radius: 8px; border-left: 4px solid #10b981; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Test New Onboarding System</h1>
+
+        <p><strong>Current Status:</strong> The new onboarding system is ready to test on your production site!</p>
+
+        <div class="step">
+            <h3>📋 What You'll See:</h3>
+            <ul>
+                <li><strong>Progress Bar:</strong> Step 1 of 5 (20% → 100%)</li>
+                <li><strong>Confidence Score:</strong> Builds from 0 to 100 as you progress</li>
+                <li><strong>5 Beautiful Steps:</strong> Household → Finances → Property → Goals → Advanced</li>
+                <li><strong>Smart Validations:</strong> Division 293 warnings, CGT alerts, etc.</li>
+                <li><strong>Skip Option:</strong> Advanced users can skip to full calculator</li>
+            </ul>
+        </div>
+
+        <h3>🧪 Test Methods:</h3>
+
+        <div style="margin: 20px 0;">
+            <h4>Method 1: Direct URL (Easiest)</h4>
+            <div class="code">https://retirement.gagneet.com/?onboarding=true</div>
+            <a href="https://retirement.gagneet.com/?onboarding=true" target="_blank" class="button primary">
+                🎯 Test Onboarding Now
+            </a>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <h4>Method 2: Reset Your Browser Data</h4>
+            <button class="button danger" onclick="resetForOnboarding()">
+                🧹 Clear Data & Test Onboarding
+            </button>
+            <p><small>This will clear your saved calculator data locally</small></p>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <h4>Method 3: Incognito Mode</h4>
+            <p>Open incognito/private window → Visit <strong>retirement.gagneet.com</strong></p>
+        </div>
+
+        <h3>⚙️ Control Options:</h3>
+
+        <div style="margin: 20px 0;">
+            <a href="https://retirement.gagneet.com/?skip=true" target="_blank" class="button info">
+                ⏭️ Skip to Old Calculator
+            </a>
+            <button class="button success" onclick="markCompleted()">
+                ✅ Mark Onboarding Complete
+            </button>
+        </div>
+
+        <div class="status">
+            <h3>Current Browser Status:</h3>
+            <div id="currentStatus">Loading...</div>
+        </div>
+
+        <div id="results"></div>
+
+        <div style="margin-top: 30px; padding: 20px; background: #fef3c7; border-radius: 8px;">
+            <h4>💡 Pro Tips:</h4>
+            <ul>
+                <li><strong>Mobile Test:</strong> The onboarding is fully responsive</li>
+                <li><strong>Progress Saves:</strong> You can close and resume later</li>
+                <li><strong>Smart Defaults:</strong> Many fields auto-calculate</li>
+                <li><strong>Contextual Help:</strong> Hover over info icons for explanations</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function updateStatus() {
+            const disabled = localStorage.getItem('retirement-calc-onboarding-disabled');
+            const completed = localStorage.getItem('retirement-calc-onboarding-completed');
+            const data = localStorage.getItem('retirement-calc-onboarding-data');
+            const calcData = localStorage.getItem('retirement-calculator-data') ||
+                            localStorage.getItem('retirementCalculatorInputs');
+
+            const status = {
+                disabled: disabled === 'true',
+                completed: completed === 'true',
+                hasOnboardingData: !!data,
+                hasCalculatorData: !!calcData
+            };
+
+            let statusText = '';
+            if (status.disabled) {
+                statusText = '🛑 <strong>Onboarding is DISABLED</strong>';
+            } else if (status.completed) {
+                statusText = '✅ <strong>Onboarding marked as completed</strong>';
+            } else {
+                statusText = '🚀 <strong>Ready for onboarding</strong>';
+            }
+
+            document.getElementById('currentStatus').innerHTML = `
+                <p>${statusText}</p>
+                <p><strong>Has Onboarding Data:</strong> ${status.hasOnboardingData ? 'Yes' : 'No'}</p>
+                <p><strong>Has Calculator Data:</strong> ${status.hasCalculatorData ? 'Yes' : 'No'}</p>
+            `;
+
+            return status;
+        }
+
+        function resetForOnboarding() {
+            // Clear all onboarding and calculator data
+            localStorage.removeItem('retirement-calc-onboarding-completed');
+            localStorage.removeItem('retirement-calc-onboarding-data');
+            localStorage.removeItem('retirement-calc-onboarding-disabled');
+            localStorage.removeItem('retirement-calculator-data');
+            localStorage.removeItem('retirementCalculatorInputs');
+
+            showResult('✅ All data cleared! You can now test onboarding as a new user.', 'success');
+            updateStatus();
+
+            // Auto-redirect to test
+            setTimeout(() => {
+                window.open('https://retirement.gagneet.com/', '_blank');
+            }, 2000);
+        }
+
+        function markCompleted() {
+            localStorage.setItem('retirement-calc-onboarding-completed', 'true');
+            showResult('✅ Onboarding marked as completed. Future visits will skip onboarding.', 'success');
+            updateStatus();
+        }
+
+        function showResult(message, type = 'info') {
+            const colors = {
+                success: '#10b981',
+                danger: '#ef4444',
+                info: '#3b82f6'
+            };
+
+            document.getElementById('results').innerHTML = `
+                <div style="padding: 15px; background: ${colors[type]}; color: white; border-radius: 8px; margin: 15px 0;">
+                    ${message}
+                </div>
+            `;
+        }
+
+        // Initial status check
+        updateStatus();
+    </script>
+</body>
+</html>
