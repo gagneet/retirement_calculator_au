@@ -8,6 +8,8 @@ import MarketDataEngine from './market-data.js';
 import { initializeTrustUI } from './trust-ui.js';
 import ThemeManager from './theme.js';
 import { OnboardingWizard } from './onboarding-wizard.js';
+import { ScenarioComparisonMatrix } from './scenario-matrix.js';
+import { PersonaIntelligenceEngine } from './persona-intelligence.js';
 import {
     $,
     safeGetValue,
@@ -39,6 +41,8 @@ class RetirementCalculatorApp {
         this.chartManager = null; // Will be lazy-loaded
         this.marketData = new MarketDataEngine();
         this.themeManager = new ThemeManager();
+        this.scenarioMatrix = new ScenarioComparisonMatrix(this.simulator);
+        this.personaIntelligence = new PersonaIntelligenceEngine(this.simulator);
         this.onboardingWizard = null; // Will be initialized after DOM is ready
         this.currentResults = null;
         this.isCalculating = false;
@@ -1059,6 +1063,384 @@ class RetirementCalculatorApp {
         }
     }
 
+    // Display enhanced Monte Carlo simulation results with regime analysis
+    displayEnhancedMonteCarloResults(results) {
+        // Find or create enhanced results container
+        let enhancedContainer = $('enhancedMonteCarloResults');
+        if (!enhancedContainer) {
+            const mcResults = $('monteCarloResults');
+            if (!mcResults) return;
+
+            enhancedContainer = document.createElement('div');
+            enhancedContainer.id = 'enhancedMonteCarloResults';
+            enhancedContainer.className = 'mt-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg';
+            mcResults.appendChild(enhancedContainer);
+        }
+
+        // Enhanced insights HTML
+        enhancedContainer.innerHTML = `
+            <h4 class="text-lg font-semibold text-indigo-800 mb-3">🎯 Enhanced Market Analysis</h4>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <!-- Risk Metrics -->
+                <div class="bg-white p-3 rounded-lg shadow-sm border">
+                    <h5 class="font-medium text-gray-800 mb-2">Risk Metrics</h5>
+                    <div class="space-y-1 text-sm">
+                        <div>Value at Risk (5%): <span class="font-medium text-red-600">${formatCurrency(results.var95 || results.percentiles?.p5 || 0)}</span></div>
+                        <div>Expected Shortfall: <span class="font-medium text-red-600">${formatCurrency(results.cvar95 || results.tailRiskMetrics?.expectedShortfall95 || 0)}</span></div>
+                        <div>Tail Risk Ratio: <span class="font-medium">${((results.tailRiskMetrics?.tailRatio || 0) * 100).toFixed(1)}%</span></div>
+                    </div>
+                </div>
+
+                <!-- Distribution Statistics -->
+                <div class="bg-white p-3 rounded-lg shadow-sm border">
+                    <h5 class="font-medium text-gray-800 mb-2">Distribution Shape</h5>
+                    <div class="space-y-1 text-sm">
+                        <div>Skewness: <span class="font-medium">${(results.skewness || 0).toFixed(2)}</span></div>
+                        <div>Kurtosis: <span class="font-medium">${(results.kurtosis || 0).toFixed(2)}</span></div>
+                        <div>Standard Deviation: <span class="font-medium">${formatCurrency(results.standardDeviation || 0)}</span></div>
+                    </div>
+                </div>
+
+                <!-- Market Regime Analysis -->
+                <div class="bg-white p-3 rounded-lg shadow-sm border">
+                    <h5 class="font-medium text-gray-800 mb-2">Market Conditions</h5>
+                    <div class="space-y-1 text-sm">
+                        ${results.regimeAnalysis?.mostCommonEquityRegime ?
+                            `<div>Dominant Equity: <span class="font-medium text-blue-600">${results.regimeAnalysis.mostCommonEquityRegime.regime}</span></div>` :
+                            ''
+                        }
+                        ${results.regimeAnalysis?.mostCommonInterestRegime ?
+                            `<div>Interest Environment: <span class="font-medium text-green-600">${results.regimeAnalysis.mostCommonInterestRegime.regime}</span></div>` :
+                            ''
+                        }
+                        ${results.regimeAnalysis?.mostCommonPropertyPhase ?
+                            `<div>Property Cycle: <span class="font-medium text-purple-600">${results.regimeAnalysis.mostCommonPropertyPhase.regime}</span></div>` :
+                            ''
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Scenarios -->
+            ${results.scenarios ? `
+            <div class="bg-white p-4 rounded-lg shadow-sm border mb-4">
+                <h5 class="font-medium text-gray-800 mb-3">Key Scenario Outcomes</h5>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
+                    <div class="p-2 bg-red-50 rounded">
+                        <div class="text-xs text-gray-600 mb-1">Worst Case</div>
+                        <div class="font-medium text-red-700">${formatCurrency(results.scenarios.worstCase?.outcome || 0)}</div>
+                    </div>
+                    <div class="p-2 bg-orange-50 rounded">
+                        <div class="text-xs text-gray-600 mb-1">Pessimistic</div>
+                        <div class="font-medium text-orange-700">${formatCurrency(results.scenarios.pessimistic?.outcome || 0)}</div>
+                    </div>
+                    <div class="p-2 bg-blue-50 rounded">
+                        <div class="text-xs text-gray-600 mb-1">Median</div>
+                        <div class="font-medium text-blue-700">${formatCurrency(results.scenarios.median?.outcome || 0)}</div>
+                    </div>
+                    <div class="p-2 bg-green-50 rounded">
+                        <div class="text-xs text-gray-600 mb-1">Optimistic</div>
+                        <div class="font-medium text-green-700">${formatCurrency(results.scenarios.optimistic?.outcome || 0)}</div>
+                    </div>
+                    <div class="p-2 bg-emerald-50 rounded">
+                        <div class="text-xs text-gray-600 mb-1">Best Case</div>
+                        <div class="font-medium text-emerald-700">${formatCurrency(results.scenarios.bestCase?.outcome || 0)}</div>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+
+            <!-- Confidence Intervals -->
+            ${results.confidenceIntervals ? `
+            <div class="bg-white p-4 rounded-lg shadow-sm border">
+                <h5 class="font-medium text-gray-800 mb-3">Confidence Ranges</h5>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm">80% Confidence:</span>
+                        <span class="font-medium">${formatCurrency(results.confidenceIntervals.ci80?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci80?.upper || 0)}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm">90% Confidence:</span>
+                        <span class="font-medium">${formatCurrency(results.confidenceIntervals.ci90?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci90?.upper || 0)}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm">95% Confidence:</span>
+                        <span class="font-medium">${formatCurrency(results.confidenceIntervals.ci95?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci95?.upper || 0)}</span>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+
+            <!-- Stress Test Results -->
+            ${results.stressTestResults ? `
+            <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <h5 class="font-medium text-red-800 mb-2">🚨 Stress Test Performance</h5>
+                <div class="text-sm space-y-1">
+                    <div>Average Stress Outcome: <span class="font-medium">${formatCurrency(results.stressTestResults.averageStressOutcome || 0)}</span></div>
+                    <div>Worst Stress Outcome: <span class="font-medium text-red-700">${formatCurrency(results.stressTestResults.worstStressOutcome || 0)}</span></div>
+                    <div>Stress Success Rate: <span class="font-medium">${((results.stressTestResults.stressSuccessRate || 0) * 100).toFixed(1)}%</span></div>
+                </div>
+            </div>
+            ` : ''}
+
+            <div class="mt-4 text-xs text-gray-600">
+                💡 These enhanced metrics use sophisticated market modeling including regime changes, volatility clustering, and asset correlations for more realistic projections.
+            </div>
+        `;
+
+        enhancedContainer.classList.remove('hidden');
+    }
+
+    // Run comprehensive scenario comparison matrix
+    async runScenarioComparison() {
+        if (this.isCalculating) return;
+
+        this.isCalculating = true;
+
+        try {
+            const inputs = this.collectInputs();
+
+            const progressCallback = async (percentage, message) => {
+                updateProgress(percentage, message);
+                await new Promise(resolve => setTimeout(resolve, 10));
+            };
+
+            // Show progress
+            updateProgress(0, "Generating scenario variations...");
+
+            const matrixResults = await this.scenarioMatrix.generateScenarioMatrix(
+                inputs, progressCallback
+            );
+
+            // Display results
+            this.displayScenarioMatrix(matrixResults);
+
+            updateProgress(100, "Scenario analysis complete!");
+            hideProgress();
+
+        } catch (error) {
+            console.error('Scenario comparison error:', error);
+            showError('Failed to run scenario comparison. Please try again.');
+        } finally {
+            this.isCalculating = false;
+        }
+    }
+
+    // Display scenario matrix results
+    displayScenarioMatrix(matrixResults) {
+        // Find or create scenario matrix container
+        let matrixContainer = $('scenarioMatrixResults');
+        if (!matrixContainer) {
+            // Create container if it doesn't exist
+            const resultsSection = $('results');
+            if (resultsSection) {
+                matrixContainer = document.createElement('div');
+                matrixContainer.id = 'scenarioMatrixResults';
+                matrixContainer.className = 'mt-6';
+                resultsSection.appendChild(matrixContainer);
+            } else {
+                console.error('Results section not found');
+                return;
+            }
+        }
+
+        // Generate and display matrix HTML
+        matrixContainer.innerHTML = this.scenarioMatrix.generateMatrixHTML(matrixResults);
+        matrixContainer.classList.remove('hidden');
+
+        // Store results for export
+        this.currentScenarioMatrix = matrixResults;
+
+        // Scroll to results
+        matrixContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Merge comprehensive and persona-based recommendations
+    mergeRecommendations(comprehensiveRecs, personaRecs) {
+        return {
+            comprehensive: comprehensiveRecs,
+            persona: personaRecs,
+            merged: {
+                topPriority: this.getTopPriorityRecommendations(comprehensiveRecs, personaRecs),
+                personaInsights: personaRecs.insights || [],
+                actionPlan: personaRecs.actionPlan || {},
+                nextSteps: personaRecs.nextSteps || []
+            }
+        };
+    }
+
+    // Get top priority recommendations from both engines
+    getTopPriorityRecommendations(comprehensiveRecs, personaRecs) {
+        const combined = [];
+
+        // Add top comprehensive recommendations
+        if (comprehensiveRecs && comprehensiveRecs.quickWins) {
+            combined.push(...comprehensiveRecs.quickWins.slice(0, 3).map(rec => ({
+                ...rec,
+                source: "comprehensive",
+                priority: "high"
+            })));
+        }
+
+        // Add top persona recommendations
+        if (personaRecs && personaRecs.recommendations) {
+            combined.push(...personaRecs.recommendations.slice(0, 3).map(rec => ({
+                ...rec,
+                source: "persona",
+                priority: rec.priority || "medium"
+            })));
+        }
+
+        // Sort by priority and return top 5
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+        return combined
+            .sort((a, b) => (priorityOrder[b.priority] || 1) - (priorityOrder[a.priority] || 1))
+            .slice(0, 5);
+    }
+
+    // Display enhanced recommendations with persona intelligence
+    displayEnhancedRecommendations(enhancedRecs) {
+        // First display the comprehensive recommendations (existing functionality)
+        if (enhancedRecs.comprehensive) {
+            this.displayComprehensiveRecommendations(enhancedRecs.comprehensive);
+        }
+
+        // Then add persona intelligence overlay
+        this.addPersonaIntelligenceOverlay(enhancedRecs.persona, enhancedRecs.merged);
+    }
+
+    // Add persona intelligence overlay to recommendations display
+    addPersonaIntelligenceOverlay(personaRecs, mergedRecs) {
+        // Find or create persona intelligence container
+        let personaContainer = $('personaIntelligenceResults');
+        if (!personaContainer) {
+            const recommendationsTab = $('tab-recommendations');
+            if (recommendationsTab) {
+                personaContainer = document.createElement('div');
+                personaContainer.id = 'personaIntelligenceResults';
+                personaContainer.className = 'mt-6';
+                // Insert at the top of recommendations
+                recommendationsTab.insertBefore(personaContainer, recommendationsTab.firstChild);
+            } else {
+                return;
+            }
+        }
+
+        if (!personaRecs || !personaRecs.personaAnalysis) {
+            personaContainer.innerHTML = '';
+            return;
+        }
+
+        const { personaAnalysis, insights, actionPlan, nextSteps } = personaRecs;
+        const { primaryPersona, userProfile } = personaAnalysis;
+
+        personaContainer.innerHTML = `
+            <div class="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-6 mb-6">
+                <div class="flex items-center mb-4">
+                    <div class="bg-purple-100 p-3 rounded-full mr-4">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800">🎯 Your Financial Persona</h3>
+                        <p class="text-purple-600 font-medium">${primaryPersona.name}</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Persona Profile -->
+                    <div class="bg-white p-4 rounded-lg shadow-sm">
+                        <h4 class="font-semibold text-gray-800 mb-3">Your Profile</h4>
+                        <p class="text-sm text-gray-600 mb-3">${primaryPersona.description}</p>
+                        <div class="space-y-2 text-sm">
+                            <div><span class="font-medium">Age:</span> ${userProfile.demographics.age} years</div>
+                            <div><span class="font-medium">Time Horizon:</span> ${userProfile.demographics.yearsToRetirement} years to retirement</div>
+                            <div><span class="font-medium">Risk Capacity:</span> ${userProfile.riskProfile.capacity}/100</div>
+                            <div><span class="font-medium">Savings Rate:</span> ${(userProfile.financial.savingsRate * 100).toFixed(1)}%</div>
+                        </div>
+                    </div>
+
+                    <!-- Key Insights -->
+                    <div class="bg-white p-4 rounded-lg shadow-sm">
+                        <h4 class="font-semibold text-gray-800 mb-3">Persona Insights</h4>
+                        <div class="space-y-3">
+                            ${insights.slice(0, 2).map(insight => `
+                                <div class="p-2 bg-gray-50 rounded text-sm">
+                                    <div class="font-medium text-gray-800">${insight.title}</div>
+                                    <div class="text-gray-600 mt-1">${insight.description}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Priority Action Plan -->
+                ${actionPlan && (actionPlan.immediate?.length > 0 || actionPlan.next30Days?.length > 0) ? `
+                <div class="mt-6 bg-white p-4 rounded-lg shadow-sm">
+                    <h4 class="font-semibold text-gray-800 mb-3">🚀 Priority Action Plan</h4>
+
+                    ${actionPlan.immediate && actionPlan.immediate.length > 0 ? `
+                    <div class="mb-4">
+                        <h5 class="font-medium text-red-600 mb-2">Immediate Actions</h5>
+                        <div class="space-y-2">
+                            ${actionPlan.immediate.map(action => `
+                                <div class="flex items-center p-2 bg-red-50 rounded text-sm">
+                                    <span class="w-2 h-2 bg-red-500 rounded-full mr-3"></span>
+                                    <span>${action.title}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    ${actionPlan.next30Days && actionPlan.next30Days.length > 0 ? `
+                    <div class="mb-4">
+                        <h5 class="font-medium text-orange-600 mb-2">Next 30 Days</h5>
+                        <div class="space-y-2">
+                            ${actionPlan.next30Days.map(action => `
+                                <div class="flex items-center p-2 bg-orange-50 rounded text-sm">
+                                    <span class="w-2 h-2 bg-orange-500 rounded-full mr-3"></span>
+                                    <span>${action.title}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+                ` : ''}
+
+                <!-- Next Steps -->
+                ${nextSteps && nextSteps.length > 0 ? `
+                <div class="mt-6 bg-white p-4 rounded-lg shadow-sm">
+                    <h4 class="font-semibold text-gray-800 mb-3">📋 Next Steps</h4>
+                    <div class="space-y-3">
+                        ${nextSteps.slice(0, 3).map(step => `
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-sm font-medium mr-3">
+                                    ${step.step}
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-800">${step.action}</div>
+                                    <div class="text-sm text-gray-600 mt-1">${step.description}</div>
+                                    <div class="text-xs text-gray-500 mt-1">Timeline: ${step.timeframe}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="mt-4 text-xs text-purple-600">
+                    💡 These insights are based on AI analysis of your financial profile and similar successful strategies.
+                </div>
+            </div>
+        `;
+
+        personaContainer.classList.remove('hidden');
+    }
+
     // Enhanced helper methods for practical risk analysis
     getRiskCapacityExplanation(capacity, inputs) {
         const age = inputs.yourCurrentAge;
@@ -1764,8 +2146,22 @@ class RetirementCalculatorApp {
 
             const comprehensiveRecommendations = await decisionEngine.generateComprehensiveRecommendations();
 
-            updateProgress(90, 'Formatting comprehensive recommendations...');
-            this.displayComprehensiveRecommendations(comprehensiveRecommendations);
+            // Layer on persona-based intelligence for enhanced personalization
+            updateProgress(85, 'Applying persona-based intelligence...');
+            const personaRecommendations = this.personaIntelligence.generatePersonaRecommendations(
+                inputs,
+                this.currentMonteCarloResults,
+                this.currentScenarioMatrix
+            );
+
+            // Merge comprehensive and persona-based recommendations
+            const enhancedRecommendations = this.mergeRecommendations(
+                comprehensiveRecommendations,
+                personaRecommendations
+            );
+
+            updateProgress(90, 'Formatting enhanced recommendations...');
+            this.displayEnhancedRecommendations(enhancedRecommendations);
 
             showTab('recommendations', true);
             updateProgress(100, 'Comprehensive AI Recommendations Generated!');
@@ -2898,7 +3294,11 @@ class RetirementCalculatorApp {
                 await new Promise(resolve => setTimeout(resolve, 0));
             };
 
-            const results = await this.simulator.runMonteCarloSimulation(inputs, runs, progressCallback);
+            // Use enhanced Monte Carlo simulation for better accuracy (if enabled)
+            const useEnhancedMonteCarlo = inputs.useEnhancedMonteCarlo !== false; // Default to true
+            const results = useEnhancedMonteCarlo ?
+                await this.simulator.runEnhancedMonteCarloSimulation(inputs, runs, progressCallback) :
+                await this.simulator.runMonteCarloSimulation(inputs, runs, progressCallback);
 
             // Store results for Risk Analysis tab
             this.currentMonteCarloResults = results;
@@ -2912,6 +3312,11 @@ class RetirementCalculatorApp {
                 safeSetText('mcMedian', formatCurrency(results.median));
                 safeSetText('mc10th', formatCurrency(results.percentile10));
                 safeSetText('mcConfidence', `${(results.successRate * 100).toFixed(0)}%`);
+
+                // Display enhanced Monte Carlo metrics if available
+                if (results.regimeAnalysis) {
+                    this.displayEnhancedMonteCarloResults(results);
+                }
             }
 
             // Add narrative explanation
@@ -3550,6 +3955,12 @@ class RetirementCalculatorApp {
         const btnMonteCarlo = $('btnMonteCarlo');
         if (btnMonteCarlo) {
             btnMonteCarlo.addEventListener('click', () => this.runMonteCarloSimulation());
+        }
+
+        // Scenario comparison button
+        const btnScenarioMatrix = $('btnScenarioMatrix');
+        if (btnScenarioMatrix) {
+            btnScenarioMatrix.addEventListener('click', () => this.runScenarioComparison());
         }
 
         // Stress test button

@@ -2,6 +2,7 @@
 
 import { ENHANCED_CONFIG } from './config.js';
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
+import { EnhancedMonteCarloEngine } from './enhanced-monte-carlo.js';
 import {
     calculatePostTaxIncome,
     calculateLoanBalance,
@@ -21,6 +22,7 @@ export class RetirementSimulator {
         // Merge original config with enhanced financial config
         this.config = ENHANCED_CONFIG;
         this.financialConfig = ENHANCED_FINANCIAL_CONFIG;
+        this.enhancedMonteCarloEngine = new EnhancedMonteCarloEngine();
         this.previousReturns = {
             portfolio: null,
             property: null
@@ -614,7 +616,7 @@ export class RetirementSimulator {
     }
 
     // Main simulation engine
-    simulateRetirement(inputs, useRandomReturns = false, stressScenario = null) {
+    simulateRetirement(inputs, useRandomReturns = false, stressScenario = null, scenarioReturns = null) {
         // Reset previous returns for each simulation
         this.previousReturns = {
             portfolio: null,
@@ -641,6 +643,7 @@ export class RetirementSimulator {
         const allocationHistory = [];
         const healthcareCostHistory = [];
         const propertyHistory = [];
+        const regimeHistory = []; // Track regime changes for enhanced MC
 
         // Pre-retirement simulation
         const simulationEndYear = inputs.isSingleCalculation ?
@@ -688,7 +691,21 @@ export class RetirementSimulator {
 
             let returnRate = baseReturn;
 
-            if (useRandomReturns) {
+            // Use scenario returns if provided (for enhanced Monte Carlo)
+            if (scenarioReturns && scenarioReturns[year - 1]) {
+                const scenarioReturn = scenarioReturns[year - 1];
+                returnRate = (allocation.equity / 100) * scenarioReturn.equity +
+                           (allocation.bonds / 100) * scenarioReturn.bonds +
+                           (allocation.cash / 100) * scenarioReturn.cash;
+
+                // Track regime information for analysis
+                if (scenarioReturn.regimeInfo) {
+                    regimeHistory.push({
+                        year,
+                        ...scenarioReturn.regimeInfo
+                    });
+                }
+            } else if (useRandomReturns) {
                 // Use enhanced portfolio return with regime modeling
                 returnRate = this.calculatePortfolioReturn(
                     allocation,
@@ -1087,6 +1104,7 @@ export class RetirementSimulator {
             allocationHistory,
             healthcareCostHistory,
             propertyHistory,
+            regimeHistory, // Include regime history for enhanced analysis
             agedCareCosts,
             totalFinancialAssets: futureSuper + futureSavings + futureStocks,
             accessibleHomeEquity,
@@ -1176,6 +1194,14 @@ export class RetirementSimulator {
             downside: outcomes.filter(o => o < medianOutcome).length / runs
         };
     }
+
+    // Enhanced Monte Carlo with advanced regime modeling and correlations
+    async runEnhancedMonteCarloSimulation(inputs, runs = 5000, progressCallback = null) {
+        return await this.enhancedMonteCarloEngine.runEnhancedMonteCarloSimulation(
+            this, inputs, runs, progressCallback
+        );
+    }
+
 
     // Stress testing
     runStressTest(inputs, scenario) {

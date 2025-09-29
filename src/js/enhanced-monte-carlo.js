@@ -1,0 +1,569 @@
+// enhanced-monte-carlo.js - Advanced Monte Carlo Simulation Engine
+// Enhanced with regime awareness, correlation modeling, and volatility clustering
+
+import { ENHANCED_CONFIG } from './config.js';
+import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
+import { randomNormal, median, getCurrentRateRegime, getPropertyCyclePhase } from './utils.js';
+
+export class EnhancedMonteCarloEngine {
+    constructor() {
+        this.config = ENHANCED_CONFIG;
+        this.financialConfig = ENHANCED_FINANCIAL_CONFIG;
+        this.regimeState = {
+            currentEquityRegime: null,
+            currentInterestRegime: null,
+            currentPropertyCycle: null,
+            regimeDuration: 0,
+            volatilityCluster: 'normal'
+        };
+    }
+
+    // Advanced correlation matrix for Australian assets
+    getCorrelationMatrix() {
+        return {
+            equity: {
+                bonds: -0.15,    // Negative correlation during risk-off periods
+                property: 0.35,  // Moderate positive correlation
+                international: 0.75, // High correlation with global markets
+                cash: -0.05
+            },
+            bonds: {
+                property: -0.10,
+                international: 0.20,
+                cash: 0.30
+            },
+            property: {
+                international: 0.25,
+                cash: -0.05
+            }
+        };
+    }
+
+    // Enhanced volatility clustering model
+    calculateVolatilityCluster(historicalVolatility, year) {
+        // Implement GARCH-like volatility clustering
+        const baseVolatility = historicalVolatility || 0.15;
+
+        // High volatility tends to cluster together
+        if (this.regimeState.volatilityCluster === 'high') {
+            // 70% chance to stay in high volatility
+            if (Math.random() < 0.7) {
+                return {
+                    cluster: 'high',
+                    multiplier: 1.8 + randomNormal(0, 0.2)
+                };
+            } else {
+                this.regimeState.volatilityCluster = 'normal';
+            }
+        } else if (this.regimeState.volatilityCluster === 'low') {
+            // 60% chance to stay in low volatility
+            if (Math.random() < 0.6) {
+                return {
+                    cluster: 'low',
+                    multiplier: 0.6 + randomNormal(0, 0.1)
+                };
+            } else {
+                this.regimeState.volatilityCluster = 'normal';
+            }
+        }
+
+        // Normal volatility transitions
+        const rand = Math.random();
+        if (rand < 0.15) {
+            this.regimeState.volatilityCluster = 'high';
+            return { cluster: 'high', multiplier: 1.8 + randomNormal(0, 0.2) };
+        } else if (rand < 0.25) {
+            this.regimeState.volatilityCluster = 'low';
+            return { cluster: 'low', multiplier: 0.6 + randomNormal(0, 0.1) };
+        } else {
+            return { cluster: 'normal', multiplier: 1.0 + randomNormal(0, 0.1) };
+        }
+    }
+
+    // Regime-aware return generation with enhanced Australian market modeling
+    generateRegimeAwareReturns(baseReturns, year, correlatedShocks = null) {
+        const currentYear = 2024 + year;
+
+        // Update regime states
+        this.updateMarketRegimes(year);
+
+        const rateRegime = getCurrentRateRegime(currentYear);
+        const propertyPhase = getPropertyCyclePhase(year);
+        const equityRegime = this.regimeState.currentEquityRegime;
+
+        // Calculate volatility adjustments
+        const volCluster = this.calculateVolatilityCluster(0.15, year);
+
+        // Generate correlated random shocks if not provided
+        const shocks = correlatedShocks || this.generateCorrelatedShocks();
+
+        // Enhanced equity returns with regime awareness
+        const equityBaseReturn = equityRegime ?
+            equityRegime.baseReturn : baseReturns.equity;
+        const equityVolatility = (equityRegime ?
+            equityRegime.volatility : 0.15) * volCluster.multiplier;
+
+        const equityReturn = equityBaseReturn +
+            shocks.equity * equityVolatility +
+            this.getInterestRateImpact(rateRegime, 'equity');
+
+        // Enhanced bond returns with duration risk modeling
+        const bondDurationRisk = this.calculateBondDurationRisk(rateRegime, year);
+        const bondReturn = baseReturns.bonds +
+            shocks.bonds * 0.08 * volCluster.multiplier * 0.5 +
+            bondDurationRisk;
+
+        // Enhanced property returns with cycle awareness
+        const propertyBaseReturn = propertyPhase ?
+            propertyPhase.baseReturn : baseReturns.property;
+        const propertyVolatility = propertyPhase ?
+            propertyPhase.volatility : 0.12;
+
+        const propertyReturn = propertyBaseReturn +
+            shocks.property * propertyVolatility +
+            this.getInterestRateImpact(rateRegime, 'property') +
+            this.getEquitySpilloverEffect(equityReturn);
+
+        // Cash returns directly tied to rate regime
+        const cashReturn = Math.max(0,
+            rateRegime.rate + shocks.cash * 0.005);
+
+        return {
+            equity: Math.max(-0.6, Math.min(0.8, equityReturn)), // Cap extreme returns
+            bonds: Math.max(-0.3, Math.min(0.4, bondReturn)),
+            property: Math.max(-0.4, Math.min(0.5, propertyReturn)),
+            cash: cashReturn,
+            regimeInfo: {
+                equityRegime: equityRegime?.name,
+                interestRegime: rateRegime.name,
+                propertyPhase: propertyPhase?.phase,
+                volatilityCluster: volCluster.cluster
+            }
+        };
+    }
+
+    // Generate correlated random shocks using Cholesky decomposition
+    generateCorrelatedShocks() {
+        // Independent random variables
+        const z1 = randomNormal(0, 1);
+        const z2 = randomNormal(0, 1);
+        const z3 = randomNormal(0, 1);
+        const z4 = randomNormal(0, 1);
+
+        // Simplified correlation matrix (Cholesky factorization)
+        // This creates realistic correlations between Australian asset classes
+        return {
+            equity: z1,
+            bonds: -0.15 * z1 + 0.99 * z2,
+            property: 0.35 * z1 + 0.25 * z2 + 0.91 * z3,
+            cash: -0.05 * z1 + 0.30 * z2 + z4,
+            international: 0.75 * z1 + 0.66 * z2
+        };
+    }
+
+    // Update market regime states with transition probabilities
+    updateMarketRegimes(year) {
+        // Interest rate regime transitions
+        if (!this.regimeState.currentInterestRegime ||
+            this.regimeState.regimeDuration <= 0) {
+            this.transitionInterestRateRegime();
+        } else {
+            this.regimeState.regimeDuration--;
+        }
+
+        // Equity market regime transitions
+        if (!this.regimeState.currentEquityRegime || Math.random() < 0.2) {
+            this.transitionEquityRegime();
+        }
+
+        // Property cycle is handled by existing getPropertyCyclePhase
+    }
+
+    // Interest rate regime transition logic
+    transitionInterestRateRegime() {
+        const regimes = this.config.MARKET_REGIMES.interestRateRegimes;
+        const current = this.regimeState.currentInterestRegime;
+
+        // Weighted random selection with transition bias
+        let probabilities = regimes.map(r => r.probability);
+
+        // Add transition bias (rates tend to normalize over time)
+        if (current) {
+            const normalIndex = regimes.findIndex(r => r.name === 'Normal');
+            if (normalIndex >= 0 && current.name !== 'Normal') {
+                probabilities[normalIndex] *= 1.5; // Bias toward normal
+            }
+        }
+
+        // Normalize probabilities
+        const total = probabilities.reduce((sum, p) => sum + p, 0);
+        probabilities = probabilities.map(p => p / total);
+
+        const rand = Math.random();
+        let cumulative = 0;
+        for (let i = 0; i < regimes.length; i++) {
+            cumulative += probabilities[i];
+            if (rand <= cumulative) {
+                this.regimeState.currentInterestRegime = regimes[i];
+                this.regimeState.regimeDuration = regimes[i].duration +
+                    Math.floor(randomNormal(0, 1)); // Add noise to duration
+                break;
+            }
+        }
+    }
+
+    // Equity market regime transition
+    transitionEquityRegime() {
+        const regimes = this.config.MARKET_REGIMES.equityMarketRegimes;
+        const rand = Math.random();
+        let cumulative = 0;
+
+        for (const regime of regimes) {
+            cumulative += regime.probability;
+            if (rand <= cumulative) {
+                this.regimeState.currentEquityRegime = regime;
+                break;
+            }
+        }
+    }
+
+    // Calculate interest rate impact on different asset classes
+    getInterestRateImpact(rateRegime, assetClass) {
+        const rateChange = rateRegime.rate - 0.045; // Difference from normal 4.5%
+
+        switch (assetClass) {
+            case 'equity':
+                // Higher rates generally negative for equities (PV of earnings)
+                return rateChange * -0.8;
+            case 'property':
+                // Higher rates very negative for property (mortgage costs)
+                return rateChange * -1.5;
+            case 'bonds':
+                // Duration risk already handled in bond calculation
+                return 0;
+            default:
+                return 0;
+        }
+    }
+
+    // Calculate bond duration risk based on rate changes
+    calculateBondDurationRisk(rateRegime, year) {
+        // Assume average portfolio duration of 5 years
+        const duration = 5;
+        const expectedRateChange = rateRegime.rate - 0.045;
+
+        // Duration risk formula: -Duration × ΔYield
+        return -duration * expectedRateChange * 0.01; // Convert to decimal
+    }
+
+    // Equity spillover effect to property markets
+    getEquitySpilloverEffect(equityReturn) {
+        // Strong equity performance can spill over to property with lag
+        if (equityReturn > 0.15) {
+            return 0.02; // 2% boost to property
+        } else if (equityReturn < -0.15) {
+            return -0.01; // 1% drag on property
+        }
+        return 0;
+    }
+
+    // Advanced Monte Carlo with enhanced modeling
+    async runEnhancedMonteCarloSimulation(simulator, inputs, runs = 5000, progressCallback = null) {
+        const outcomes = [];
+        const paths = [];
+        const regimeStats = {
+            equityRegimes: new Map(),
+            interestRegimes: new Map(),
+            propertyPhases: new Map(),
+            volatilityClusters: new Map()
+        };
+
+        const correlationStats = [];
+        const stressTestResults = [];
+
+        // Reset regime state for each simulation run
+        for (let i = 0; i < runs; i++) {
+            this.resetRegimeState();
+
+            // Generate correlated market scenarios
+            const scenarioReturns = this.generateScenarioSequence(inputs);
+
+            // Run simulation with enhanced returns
+            const result = simulator.simulateRetirement(inputs, true, null, scenarioReturns);
+
+            outcomes.push(result.finalBalance);
+            paths.push(result.balances);
+
+            // Collect regime statistics
+            if (result.regimeHistory) {
+                this.updateRegimeStats(regimeStats, result.regimeHistory);
+            }
+
+            // Run stress tests on a subset of simulations
+            if (i % 100 === 0 && i > 0) {
+                const stressResult = this.runStressTestVariant(simulator, inputs);
+                stressTestResults.push(stressResult);
+            }
+
+            if (progressCallback && i % 100 === 0) {
+                await progressCallback(i, runs);
+            }
+        }
+
+        // Enhanced analysis
+        outcomes.sort((a, b) => a - b);
+
+        const analysis = this.calculateEnhancedStatistics(outcomes, paths, regimeStats);
+
+        return {
+            ...analysis,
+            regimeAnalysis: this.analyzeRegimeImpacts(regimeStats),
+            stressTestResults: this.aggregateStressTests(stressTestResults),
+            confidenceIntervals: this.calculateConfidenceIntervals(outcomes),
+            tailRiskMetrics: this.calculateTailRiskMetrics(outcomes),
+            scenarios: this.generateKeyScenarios(outcomes, paths)
+        };
+    }
+
+    // Reset regime state for clean simulation runs
+    resetRegimeState() {
+        this.regimeState = {
+            currentEquityRegime: null,
+            currentInterestRegime: null,
+            currentPropertyCycle: null,
+            regimeDuration: 0,
+            volatilityCluster: 'normal'
+        };
+    }
+
+    // Generate complete scenario sequence for a simulation run
+    generateScenarioSequence(inputs) {
+        const years = Math.max(
+            inputs.yourLifespan - inputs.yourCurrentAge,
+            inputs.partnerLifespan - inputs.partnerCurrentAge
+        );
+
+        const scenarioSequence = [];
+
+        for (let year = 0; year < years; year++) {
+            const baseReturns = {
+                equity: inputs.expectedReturn / 100,
+                bonds: inputs.expectedReturn * 0.6 / 100,
+                property: inputs.expectedReturn * 0.8 / 100,
+                cash: 0.03
+            };
+
+            const returns = this.generateRegimeAwareReturns(baseReturns, year);
+            scenarioSequence.push(returns);
+        }
+
+        return scenarioSequence;
+    }
+
+    // Enhanced statistical analysis
+    calculateEnhancedStatistics(outcomes, paths, regimeStats) {
+        const n = outcomes.length;
+        const mean = outcomes.reduce((sum, val) => sum + val, 0) / n;
+        const medianOutcome = median(outcomes);
+
+        // Calculate percentiles
+        const percentiles = {};
+        [1, 5, 10, 25, 50, 75, 90, 95, 99].forEach(p => {
+            const index = Math.floor((p / 100) * n);
+            percentiles[`p${p}`] = outcomes[Math.min(index, n - 1)];
+        });
+
+        // Risk metrics
+        const successfulOutcomes = outcomes.filter(o => o > 0);
+        const successRate = successfulOutcomes.length / n;
+
+        // Value at Risk (VaR) and Conditional VaR
+        const var95 = percentiles.p5;
+        const cvar95 = outcomes.filter(o => o <= var95).reduce((sum, val) => sum + val, 0) /
+                      outcomes.filter(o => o <= var95).length;
+
+        return {
+            outcomes,
+            paths,
+            mean,
+            median: medianOutcome,
+            percentiles,
+            successRate,
+            failureRate: 1 - successRate,
+            var95,
+            cvar95,
+            standardDeviation: Math.sqrt(
+                outcomes.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n
+            ),
+            skewness: this.calculateSkewness(outcomes, mean),
+            kurtosis: this.calculateKurtosis(outcomes, mean)
+        };
+    }
+
+    // Calculate skewness of distribution
+    calculateSkewness(outcomes, mean) {
+        const n = outcomes.length;
+        const variance = outcomes.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n;
+        const stdDev = Math.sqrt(variance);
+
+        const skewness = outcomes.reduce((sum, val) => {
+            return sum + Math.pow((val - mean) / stdDev, 3);
+        }, 0) / n;
+
+        return skewness;
+    }
+
+    // Calculate kurtosis of distribution
+    calculateKurtosis(outcomes, mean) {
+        const n = outcomes.length;
+        const variance = outcomes.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n;
+        const stdDev = Math.sqrt(variance);
+
+        const kurtosis = outcomes.reduce((sum, val) => {
+            return sum + Math.pow((val - mean) / stdDev, 4);
+        }, 0) / n - 3; // Subtract 3 for excess kurtosis
+
+        return kurtosis;
+    }
+
+    // Update regime statistics
+    updateRegimeStats(stats, regimeHistory) {
+        regimeHistory.forEach(regime => {
+            ['equityRegimes', 'interestRegimes', 'propertyPhases', 'volatilityClusters'].forEach(key => {
+                if (regime[key]) {
+                    const map = stats[key];
+                    map.set(regime[key], (map.get(regime[key]) || 0) + 1);
+                }
+            });
+        });
+    }
+
+    // Analyze regime impacts on outcomes
+    analyzeRegimeImpacts(regimeStats) {
+        return {
+            mostCommonEquityRegime: this.getMostFrequent(regimeStats.equityRegimes),
+            mostCommonInterestRegime: this.getMostFrequent(regimeStats.interestRegimes),
+            mostCommonPropertyPhase: this.getMostFrequent(regimeStats.propertyPhases),
+            regimeDistributions: {
+                equity: Object.fromEntries(regimeStats.equityRegimes),
+                interest: Object.fromEntries(regimeStats.interestRegimes),
+                property: Object.fromEntries(regimeStats.propertyPhases),
+                volatility: Object.fromEntries(regimeStats.volatilityClusters)
+            }
+        };
+    }
+
+    // Helper function to get most frequent regime
+    getMostFrequent(map) {
+        let maxCount = 0;
+        let mostFrequent = null;
+
+        for (const [key, count] of map) {
+            if (count > maxCount) {
+                maxCount = count;
+                mostFrequent = key;
+            }
+        }
+
+        return { regime: mostFrequent, count: maxCount };
+    }
+
+    // Run stress test variants
+    runStressTestVariant(simulator, inputs) {
+        const stressScenarios = this.config.STRESS_SCENARIOS;
+        const scenario = stressScenarios[Math.floor(Math.random() * stressScenarios.length)];
+
+        return simulator.runStressTest(inputs, scenario);
+    }
+
+    // Aggregate stress test results
+    aggregateStressTests(results) {
+        if (results.length === 0) return null;
+
+        return {
+            averageStressOutcome: results.reduce((sum, r) => sum + r.finalBalance, 0) / results.length,
+            worstStressOutcome: Math.min(...results.map(r => r.finalBalance)),
+            stressSuccessRate: results.filter(r => r.finalBalance > 0).length / results.length,
+            scenariosTeated: results.length
+        };
+    }
+
+    // Calculate confidence intervals
+    calculateConfidenceIntervals(outcomes) {
+        const n = outcomes.length;
+        const sortedOutcomes = [...outcomes].sort((a, b) => a - b);
+
+        return {
+            ci80: {
+                lower: sortedOutcomes[Math.floor(0.1 * n)],
+                upper: sortedOutcomes[Math.floor(0.9 * n)]
+            },
+            ci90: {
+                lower: sortedOutcomes[Math.floor(0.05 * n)],
+                upper: sortedOutcomes[Math.floor(0.95 * n)]
+            },
+            ci95: {
+                lower: sortedOutcomes[Math.floor(0.025 * n)],
+                upper: sortedOutcomes[Math.floor(0.975 * n)]
+            }
+        };
+    }
+
+    // Calculate tail risk metrics
+    calculateTailRiskMetrics(outcomes) {
+        const n = outcomes.length;
+        const sortedOutcomes = [...outcomes].sort((a, b) => a - b);
+
+        // Expected Shortfall (Conditional VaR) at different levels
+        const calculateES = (confidence) => {
+            const cutoff = Math.floor((1 - confidence) * n);
+            const tailOutcomes = sortedOutcomes.slice(0, cutoff);
+            return tailOutcomes.reduce((sum, val) => sum + val, 0) / tailOutcomes.length;
+        };
+
+        return {
+            expectedShortfall99: calculateES(0.99),
+            expectedShortfall95: calculateES(0.95),
+            expectedShortfall90: calculateES(0.90),
+            maxLoss: sortedOutcomes[0],
+            tailRatio: Math.abs(sortedOutcomes[0]) / median(outcomes) // Tail risk relative to median
+        };
+    }
+
+    // Generate key scenarios for user communication
+    generateKeyScenarios(outcomes, paths) {
+        const n = outcomes.length;
+        const sortedIndices = outcomes
+            .map((value, index) => ({ value, index }))
+            .sort((a, b) => a.value - b.value)
+            .map(item => item.index);
+
+        return {
+            worstCase: {
+                outcome: outcomes[sortedIndices[0]],
+                path: paths[sortedIndices[0]],
+                percentile: 1
+            },
+            pessimistic: {
+                outcome: outcomes[sortedIndices[Math.floor(0.1 * n)]],
+                path: paths[sortedIndices[Math.floor(0.1 * n)]],
+                percentile: 10
+            },
+            median: {
+                outcome: outcomes[sortedIndices[Math.floor(0.5 * n)]],
+                path: paths[sortedIndices[Math.floor(0.5 * n)]],
+                percentile: 50
+            },
+            optimistic: {
+                outcome: outcomes[sortedIndices[Math.floor(0.9 * n)]],
+                path: paths[sortedIndices[Math.floor(0.9 * n)]],
+                percentile: 90
+            },
+            bestCase: {
+                outcome: outcomes[sortedIndices[n - 1]],
+                path: paths[sortedIndices[n - 1]],
+                percentile: 99
+            }
+        };
+    }
+}
