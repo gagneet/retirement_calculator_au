@@ -19,6 +19,32 @@ export class OnboardingWizard {
             'review'
         ];
 
+        // Gamification state
+        this.gamification = {
+            completedSteps: new Set(),
+            selectedAvatar: 'professional', // Default avatar
+            stepBadges: new Map(),
+            progressPercentage: 0,
+            celebrationShown: new Set()
+        };
+
+        // Step icons for breadcrumb (house → money → property → goals → checkered flag)
+        this.stepIcons = {
+            1: '🏠', // house
+            2: '💰', // money
+            3: '🏡', // property
+            4: '🎯', // goals
+            5: '🏁'  // checkered flag
+        };
+
+        // Avatar options
+        this.avatarOptions = [
+            { id: 'professional', icon: '👨‍💼', name: 'Professional' },
+            { id: 'creative', icon: '👩‍🎨', name: 'Creative' },
+            { id: 'technical', icon: '👨‍💻', name: 'Technical' },
+            { id: 'explorer', icon: '👩‍✈️', name: 'Explorer' }
+        ];
+
         this.init();
     }
 
@@ -115,6 +141,90 @@ export class OnboardingWizard {
         this.showStep(1);
     }
 
+    // Gamification: Facts and insights system
+    getFinancialInsight(field, value) {
+        const insights = {
+            'super-balance': [
+                "💡 The earlier you start, the more compound interest works for you!",
+                "📈 Super grows tax-free, making it one of Australia's best investment vehicles.",
+                "🎯 Industry funds typically outperform retail funds over the long term.",
+                "⚡ Even small extra contributions can add thousands to your retirement."
+            ],
+            'salary': [
+                "💰 Higher earners can maximize super through salary sacrifice.",
+                "📊 Your super guarantee is 12% - that's automatic wealth building!",
+                "🏆 Top earners should consider the $30K annual concessional contribution cap.",
+                "💼 Professional advice can unlock significant tax advantages."
+            ],
+            'property-value': [
+                "🏠 Property typically forms 60-70% of Australian household wealth.",
+                "📍 Location drives long-term capital growth in Australian property.",
+                "🔄 Property and super together create powerful wealth diversification.",
+                "💡 Your home doesn't count toward Age Pension asset tests."
+            ],
+            'retirement-age': [
+                "🕐 Working one extra year can increase retirement income by 6-8%.",
+                "🎯 Age 67 is the current Age Pension age for most Australians.",
+                "💪 Many successful retirees work part-time for the first few years.",
+                "⚖️ Balance health, finances, and lifestyle when choosing retirement age."
+            ],
+            'risk-tolerance': [
+                "📊 Younger investors can typically handle more market volatility.",
+                "🎲 Conservative portfolios may not beat inflation over time.",
+                "🚀 Growth assets historically provide better long-term returns.",
+                "⚖️ Diversification reduces risk while maintaining growth potential."
+            ]
+        };
+
+        const fieldInsights = insights[field];
+        if (fieldInsights && fieldInsights.length > 0) {
+            const randomIndex = Math.floor(Math.random() * fieldInsights.length);
+            return fieldInsights[randomIndex];
+        }
+        return null;
+    }
+
+    // Gamification: Avatar system
+    getCurrentAvatarInfo() {
+        return this.avatarOptions.find(avatar => avatar.id === this.gamification.selectedAvatar) || this.avatarOptions[0];
+    }
+
+    // Gamification: Badge system
+    awardBadge(stepNumber) {
+        const badgeInfo = {
+            1: { icon: '🏠', title: 'Home Builder', description: 'Household details complete' },
+            2: { icon: '💰', title: 'Money Manager', description: 'Financial foundation set' },
+            3: { icon: '🏡', title: 'Property Pro', description: 'Assets mapped out' },
+            4: { icon: '🎯', title: 'Goal Getter', description: 'Retirement vision defined' },
+            5: { icon: '🏆', title: 'Plan Master', description: 'Complete retirement plan' }
+        };
+
+        const badge = badgeInfo[stepNumber];
+        if (badge) {
+            this.gamification.stepBadges.set(stepNumber, badge);
+            this.gamification.completedSteps.add(stepNumber);
+            this.updateProgressPercentage();
+        }
+        return badge;
+    }
+
+    // Gamification: Progress tracking
+    updateProgressPercentage() {
+        this.gamification.progressPercentage = (this.gamification.completedSteps.size / this.totalSteps) * 100;
+    }
+
+    // Gamification: Context-sensitive button copy
+    getNextButtonText(currentStep) {
+        const buttonTexts = {
+            1: "Great! Let's check your finances →",
+            2: "Perfect! Now let's look at property →",
+            3: "Excellent! Time to set your goals →",
+            4: "Amazing! Let's review your plan →",
+            5: "Launch Your Retirement Plan! 🚀"
+        };
+        return buttonTexts[currentStep] || "Next →";
+    }
+
     startOnboarding() {
         // Method to start the onboarding process - called by the main app
         this.init();
@@ -186,26 +296,91 @@ export class OnboardingWizard {
     }
 
     generateBreadcrumb() {
+        const currentAvatar = this.getCurrentAvatarInfo();
         const steps = [
-            { id: 1, name: 'Household', icon: '🏠' },
-            { id: 2, name: 'Finances', icon: '💰' },
-            { id: 3, name: 'Property', icon: '🏡' },
-            { id: 4, name: 'Goals', icon: '🎯' },
-            { id: 5, name: 'Review', icon: '📋' }
+            { id: 1, name: 'Household', icon: this.stepIcons[1] },
+            { id: 2, name: 'Finances', icon: this.stepIcons[2] },
+            { id: 3, name: 'Property', icon: this.stepIcons[3] },
+            { id: 4, name: 'Goals', icon: this.stepIcons[4] },
+            { id: 5, name: 'Review', icon: this.stepIcons[5] }
         ];
 
-        return steps.map(step => `
-            <div class="flex items-center ${step.id < steps.length ? 'flex-1' : ''}">
-                <div class="step-indicator ${this.currentStep >= step.id ? 'active' : 'inactive'}" data-step="${step.id}">
-                    <span class="step-icon">${step.icon}</span>
-                    <span class="step-number">${step.id}</span>
+        return `
+            <!-- Avatar and Progress Section -->
+            <div class="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-100">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="relative">
+                            <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg transform transition-transform duration-200 hover:scale-110">
+                                <span class="text-2xl">${currentAvatar.icon}</span>
+                            </div>
+                            <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                <span class="text-white text-xs font-bold">L${this.gamification.completedSteps.size}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-800">${currentAvatar.name}</h3>
+                            <p class="text-xs text-gray-600">${this.gamification.progressPercentage.toFixed(0)}% Complete</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-gray-600">Progress</p>
+                        <div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500 ease-out"
+                                 style="width: ${this.gamification.progressPercentage}%"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="step-label ${this.currentStep >= step.id ? 'text-blue-600 font-medium' : 'text-gray-400'}">
-                    ${step.name}
+
+                <!-- Step Breadcrumb -->
+                <div class="flex justify-between items-center">
+                    ${steps.map((step, index) => `
+                        <div class="flex items-center ${index < steps.length - 1 ? 'flex-1' : ''}">
+                            <div class="flex flex-col items-center">
+                                <div class="step-indicator w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${this.getStepIndicatorClass(step.id)}"
+                                     data-step="${step.id}">
+                                    ${this.gamification.completedSteps.has(step.id) ?
+                                        `<span class="text-white text-xl animate-bounce-once">✓</span>` :
+                                        `<span class="step-icon text-lg">${step.icon}</span>`
+                                    }
+                                </div>
+                                <div class="step-label text-xs mt-2 text-center transition-colors duration-200 ${this.getStepLabelClass(step.id)}">
+                                    ${step.name}
+                                </div>
+                            </div>
+                            ${index < steps.length - 1 ? `
+                                <div class="flex-1 mx-2 h-0.5 ${this.gamification.completedSteps.has(step.id) ? 'bg-green-400' : 'bg-gray-300'} transition-colors duration-300"></div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
                 </div>
-                ${step.id < steps.length ? '<div class="step-connector"></div>' : ''}
             </div>
-        `).join('');
+        `;
+    }
+
+    // Helper methods for breadcrumb styling
+    getStepIndicatorClass(stepId) {
+        if (this.gamification.completedSteps.has(stepId)) {
+            return 'bg-green-500 shadow-lg transform scale-110';
+        } else if (stepId === this.currentStep) {
+            return 'bg-blue-500 shadow-lg ring-4 ring-blue-200 animate-pulse';
+        } else if (stepId < this.currentStep) {
+            return 'bg-blue-300';
+        } else {
+            return 'bg-gray-300';
+        }
+    }
+
+    getStepLabelClass(stepId) {
+        if (this.gamification.completedSteps.has(stepId)) {
+            return 'text-green-600 font-semibold';
+        } else if (stepId === this.currentStep) {
+            return 'text-blue-600 font-medium';
+        } else if (stepId < this.currentStep) {
+            return 'text-blue-400';
+        } else {
+            return 'text-gray-400';
+        }
     }
 
     setupEventListeners() {
@@ -226,8 +401,74 @@ export class OnboardingWizard {
 
     startNewUser() {
         $('onboarding-initial').classList.add('hidden');
-        $('onboarding-wizard-content').classList.remove('hidden');
-        this.showStep(1);
+        this.showAvatarSelection();
+    }
+
+    // Gamification: Avatar selection screen
+    showAvatarSelection() {
+        const container = $('onboarding-container');
+        if (container) {
+            const avatarSelectionHTML = `
+                <div id="avatar-selection" class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                    <div class="text-center py-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4">Choose Your Avatar</h2>
+                        <p class="text-gray-600 mb-8">Pick a character that represents you on this retirement planning journey!</p>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-md mx-auto mb-8">
+                            ${this.avatarOptions.map(avatar => `
+                                <div class="avatar-option cursor-pointer p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-lg transform hover:scale-105 ${
+                                    avatar.id === this.gamification.selectedAvatar ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-200' : 'border-gray-300 hover:border-blue-300'
+                                }"
+                                     data-avatar="${avatar.id}">
+                                    <div class="text-4xl mb-2">${avatar.icon}</div>
+                                    <div class="text-sm font-medium text-gray-700">${avatar.name}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <button id="confirm-avatar-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-colors">
+                            Start Planning! 🚀
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = avatarSelectionHTML;
+
+            // Add avatar selection listeners
+            this.setupAvatarSelection();
+        }
+    }
+
+    setupAvatarSelection() {
+        // Avatar option selection
+        document.querySelectorAll('.avatar-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                // Remove selection from all options
+                document.querySelectorAll('.avatar-option').forEach(opt => {
+                    opt.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-200');
+                    opt.classList.add('border-gray-300');
+                });
+
+                // Add selection to clicked option
+                option.classList.remove('border-gray-300');
+                option.classList.add('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-200');
+
+                // Update selected avatar
+                this.gamification.selectedAvatar = option.dataset.avatar;
+            });
+        });
+
+        // Confirm avatar button
+        const confirmBtn = $('confirm-avatar-btn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                // Hide avatar selection and show wizard
+                $('avatar-selection').classList.add('hidden');
+                $('onboarding-wizard-content').classList.remove('hidden');
+                this.showStep(1);
+            });
+        }
     }
 
     async loadExistingUser() {
@@ -1144,9 +1385,40 @@ export class OnboardingWizard {
                         </div>
                     </div>
 
+                    <!-- Gamification: Achievement Badges -->
+                    <div class="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-xl border border-purple-200">
+                        <h3 class="text-lg font-semibold text-purple-800 mb-4">🏆 Your Achievements</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            ${Array.from({length: 5}, (_, i) => {
+                                const stepNum = i + 1;
+                                const badge = this.gamification.stepBadges.get(stepNum);
+                                const isCompleted = this.gamification.completedSteps.has(stepNum);
+
+                                return `
+                                    <div class="flex flex-col items-center p-3 rounded-lg transition-all duration-200 ${
+                                        isCompleted ? 'bg-white shadow-lg border-2 border-green-300 transform hover:scale-105' : 'bg-gray-100 opacity-50'
+                                    }">
+                                        <div class="text-2xl mb-1 ${isCompleted ? 'animate-pulse' : ''}">${badge ? badge.icon : '🔒'}</div>
+                                        <div class="text-xs font-medium text-center ${isCompleted ? 'text-gray-800' : 'text-gray-500'}">${badge ? badge.title : 'Locked'}</div>
+                                        ${isCompleted ? `<div class="text-xs text-green-600 mt-1">✓ Complete</div>` : ''}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        <div class="mt-4 text-center">
+                            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full ${
+                                this.gamification.completedSteps.size === 5 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                            }">
+                                <span class="text-sm font-medium">Progress:</span>
+                                <span class="font-bold">${this.gamification.completedSteps.size}/5</span>
+                                ${this.gamification.completedSteps.size === 5 ? '<span class="text-xs">🎉 Master Level!</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Generate Button -->
                     <div class="text-center pt-6">
-                        <button id="generate-plan-btn" class="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors">
+                        <button id="generate-plan-btn" class="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg">
                             🚀 Generate My Retirement Plan
                         </button>
                         <p class="text-sm text-gray-500 mt-2">This will show your Enhanced Summary and action buttons</p>
@@ -1300,7 +1572,13 @@ export class OnboardingWizard {
                 nextBtn.style.display = 'none';
             } else {
                 nextBtn.style.display = 'inline-block';
-                nextBtn.textContent = 'Next →';
+
+                // Gamification: Context-sensitive button text
+                nextBtn.innerHTML = this.getNextButtonText(this.currentStep);
+
+                // Add some styling for the enhanced button
+                nextBtn.className = 'px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105 hover:shadow-lg';
+
                 nextBtn.onclick = () => this.nextStep();
             }
         }
@@ -1309,10 +1587,72 @@ export class OnboardingWizard {
     nextStep() {
         if (this.validateCurrentStep()) {
             this.updateDataFromForms();
+
+            // Gamification: Award badge for completed step
+            const completedStep = this.currentStep;
+            if (!this.gamification.completedSteps.has(completedStep)) {
+                this.showStepCelebration(completedStep);
+                this.awardBadge(completedStep);
+            }
+
             if (this.currentStep < this.totalSteps) {
-                this.showStep(this.currentStep + 1);
+                setTimeout(() => {
+                    this.showStep(this.currentStep + 1);
+                }, this.gamification.celebrationShown.has(completedStep) ? 0 : 1000); // Delay if showing celebration
             }
         }
+    }
+
+    // Gamification: Step completion celebration
+    showStepCelebration(stepNumber) {
+        if (this.gamification.celebrationShown.has(stepNumber)) return;
+
+        const badge = this.awardBadge(stepNumber);
+        if (!badge) return;
+
+        // Create celebration overlay
+        const celebrationHTML = `
+            <div id="step-celebration" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+                <div class="bg-white rounded-xl p-8 text-center max-w-md mx-4 transform animate-bounce-once">
+                    <div class="text-6xl mb-4 animate-pulse">${badge.icon}</div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">${badge.title}</h3>
+                    <p class="text-gray-600 mb-6">${badge.description}</p>
+
+                    <div class="flex items-center justify-center space-x-2 mb-6">
+                        <span class="text-sm text-gray-500">Level</span>
+                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                            <span class="text-white text-sm font-bold">${this.gamification.completedSteps.size}</span>
+                        </div>
+                        <span class="text-sm text-gray-500">unlocked!</span>
+                    </div>
+
+                    <button id="continue-celebration" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                        Continue Journey! ✨
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Add celebration to body
+        document.body.insertAdjacentHTML('beforeend', celebrationHTML);
+
+        // Add click listener to continue
+        const continueBtn = document.getElementById('continue-celebration');
+        if (continueBtn) {
+            continueBtn.addEventListener('click', () => {
+                document.getElementById('step-celebration').remove();
+                this.gamification.celebrationShown.add(stepNumber);
+            });
+        }
+
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            const celebrationEl = document.getElementById('step-celebration');
+            if (celebrationEl) {
+                celebrationEl.remove();
+                this.gamification.celebrationShown.add(stepNumber);
+            }
+        }, 3000);
     }
 
     previousStep() {
@@ -1986,6 +2326,65 @@ export class OnboardingWizard {
         return inputHtml;
     }
 
+    // Gamification: Show field insights
+    showFieldInsight(inputElement, value) {
+        // Map input IDs to insight categories
+        const insightMapping = {
+            'finances-salary': 'salary',
+            'finances-super-balance': 'super-balance',
+            'finances-partner-super': 'super-balance',
+            'property-current-value': 'property-value',
+            'investment-current-value': 'property-value',
+            'goals-retirement-age': 'retirement-age',
+            'goals-risk-tolerance': 'risk-tolerance'
+        };
+
+        const fieldKey = insightMapping[inputElement.id];
+        if (!fieldKey || value <= 0) return;
+
+        const insight = this.getFinancialInsight(fieldKey, value);
+        if (!insight) return;
+
+        // Remove any existing insight tooltips
+        const existingInsight = document.getElementById('field-insight');
+        if (existingInsight) {
+            existingInsight.remove();
+        }
+
+        // Create insight tooltip
+        const insightElement = document.createElement('div');
+        insightElement.id = 'field-insight';
+        insightElement.className = 'absolute z-10 bg-gradient-to-r from-blue-500 to-purple-600 text-white p-3 rounded-lg shadow-lg max-w-sm text-sm transform animate-fade-in';
+        insightElement.innerHTML = `
+            <div class="flex items-start space-x-2">
+                <div class="flex-shrink-0 animate-bounce">💡</div>
+                <div>${insight}</div>
+                <button class="flex-shrink-0 text-blue-200 hover:text-white ml-2" onclick="this.parentElement.parentElement.remove()">×</button>
+            </div>
+        `;
+
+        // Position relative to input
+        const rect = inputElement.getBoundingClientRect();
+        const container = inputElement.closest('.step-content') || document.body;
+
+        // Append to container and position
+        container.style.position = 'relative';
+        container.appendChild(insightElement);
+
+        insightElement.style.position = 'absolute';
+        insightElement.style.top = `${inputElement.offsetTop + inputElement.offsetHeight + 10}px`;
+        insightElement.style.left = `${Math.max(0, inputElement.offsetLeft)}px`;
+        insightElement.style.maxWidth = '300px';
+
+        // Auto-hide after 4 seconds
+        setTimeout(() => {
+            if (insightElement && insightElement.parentNode) {
+                insightElement.classList.add('animate-fade-out');
+                setTimeout(() => insightElement.remove(), 300);
+            }
+        }, 4000);
+    }
+
     setupEnhancedInputListeners() {
         // Add listeners for all enhanced inputs
         document.querySelectorAll('input[data-format-type]').forEach(input => {
@@ -2006,6 +2405,9 @@ export class OnboardingWizard {
                     } else if (formatType === 'number') {
                         e.target.value = numValue.toString();
                     }
+
+                    // Gamification: Show insights for key fields
+                    this.showFieldInsight(e.target, numValue);
                 }
             });
 
