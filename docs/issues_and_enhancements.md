@@ -565,3 +565,47 @@ Maintain consistency between AI recommendations and scenario comparisons
 Your suggestions and scenario comparisons are now fully accurate and based on your exact input values!
 
 ---
+
+## ✅ All Issues Fixed Successfully - Currency and Default fields highlighting
+
+I've addressed all three issues you reported:
+
+1. Currency Formatting Fixed 💰
+
+- Added missing currency field: businessActiveAssetValue to the initializeCurrencyInputs() function in utils.js
+- Currency formatting now working: Fields will display with commas and proper number formatting (e.g., 1,450,000 instead of 1450000)
+- Fields affected: All Advanced Calculator currency fields including business assets, property values, salaries, etc.
+
+2. Tooltips Added ℹ️
+
+- Added comprehensive tooltips to all missing fields in the "Business & Property Details" section:
+    - Business Structure
+    - Business Active Asset Value
+    - Business Ownership (%)
+    - Years Business Held
+    - Number of Investment Properties
+    - Investment Property Cash Flow
+- Australian-specific context: Each tooltip includes relevant information about Age Pension implications, tax benefits, and practical examples
+
+3. Default Values Highlighting System ⚠️
+
+- Visual highlighting: Added prominent yellow-orange highlighting to sections with default values
+- Warning notice: Added a clear notice at the top of Advanced Calculator explaining that some fields use defaults
+- Interactive review system:
+    - "Review All Defaults" button that scrolls to and highlights all default sections
+    - "Dismiss Notice" button to hide the warning
+- CSS animations: Sections pulse with subtle highlighting to draw attention
+- Badge indicators: Each default section shows "Default Values - Review Needed" badge
+- Dark theme support: Proper styling for both light and dark themes
+
+How it works:
+
+1. Currency fields now automatically format with commas and proper number display
+2. Percentage fields continue to work as before with % symbols
+3. Tooltip system provides contextual help when users hover over the info icons
+4. Highlighting system draws attention to sections that need user review before calculation
+5. Review functionality allows users to easily navigate and review all default values
+
+The system is now production-ready and will help users understand which fields need their attention while providing proper formatting and helpful tooltips throughout the Advanced Calculator.
+
+---
