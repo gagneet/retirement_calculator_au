@@ -61,26 +61,33 @@ class RetirementCalculatorApp {
     }
 
     initializeApp() {
-        // Initialize onboarding system first - it may replace the entire UI
         this.onboardingSystem = new OnboardingSystem();
 
-        // Only initialize the full app if not in onboarding mode
-        if (!this.onboardingSystem.isOnboardingMode) {
-            this.loadSavedInputs(); // Load saved inputs first
-            this.setupEventListeners();
-            this.setupAutoSave(); // Setup auto-save functionality
-            this.setupCashFlowUI(); // Setup cash flow validation and UI
-            this.setupDependentCalculations(); // Setup enhanced dependent calculations
-            this.addSuggestionStyles(); // Add CSS styles for suggestion modifications
-            this.updateUIElements();
-            initializeTrustUI(); // Initialize trust UI functionality
+        if (this.onboardingSystem.isOnboardingMode) {
+            console.log("App starting in onboarding mode.");
+        } else {
+            console.log("App starting in calculator mode.");
+            this.initializeCalculator();
+        }
+    }
 
-            // Initialize tooltip system
-            addTooltipBottomStyles(); // Add bottom positioning styles
-            initializeTooltips(); // Initialize tooltip functionality
-            initializeCurrencyInputs(); // Initialize currency input formatting
-            initializePercentageInputs(); // Initialize percentage input formatting
+    initializeCalculator(isFromOnboarding = false) {
+        this.loadSavedInputs();
+        this.setupEventListeners();
+        this.setupAutoSave();
+        this.setupCashFlowUI();
+        this.setupDependentCalculations();
+        this.addSuggestionStyles();
+        this.updateUIElements();
+        initializeTrustUI();
+        addTooltipBottomStyles();
+        initializeTooltips();
+        initializeCurrencyInputs();
+        initializePercentageInputs();
 
+        // Perform initial calculation only if not coming from onboarding,
+        // as completeOnboarding will trigger its own calculation.
+        if (!isFromOnboarding) {
             this.performInitialCalculation();
         }
     }
@@ -363,11 +370,11 @@ class RetirementCalculatorApp {
 
             // Show summary tab and conditionally scroll to results
             if (shouldScrollToResults) {
-                showTab('summary', true);
+                // showTab('summary', true); // RCE-4.1 - This was causing the tab to switch away from results
                 showNotification('Calculation completed successfully', 'success');
             } else {
                 // For initial load, just switch tabs without scrolling or notification
-                showTab('summary', false);
+                // showTab('summary', false); // RCE-4.1 - This was causing the tab to switch away from results
             }
 
         } catch (error) {
@@ -2260,6 +2267,54 @@ class RetirementCalculatorApp {
         });
     }
 
+    setupAdvancedCalculatorEventListeners() {
+        const btnMonteCarlo = $('advanced-btnMonteCarlo');
+        if (btnMonteCarlo) {
+            btnMonteCarlo.addEventListener('click', async () => {
+                this.showAnalysisResult('advanced-monteCarloResults');
+                await this.runMonteCarloSimulation(false); // run without tab switching
+            });
+        }
+
+        const btnStressTest = $('advanced-btnStressTest');
+        if (btnStressTest) {
+            btnStressTest.addEventListener('click', async () => {
+                this.showAnalysisResult('advanced-stressTestResults');
+                await this.runStressTest(false);
+            });
+        }
+
+        const btnRetirementSolver = $('advanced-btnRetirementSolver');
+        if (btnRetirementSolver) {
+            btnRetirementSolver.addEventListener('click', async () => {
+                this.showAnalysisResult('advanced-retirementSolverResults');
+                await this.runRetirementSolver(false);
+            });
+        }
+
+        const btnScenarioComparison = $('advanced-btnScenarioComparison');
+        if (btnScenarioComparison) {
+            btnScenarioComparison.addEventListener('click', () => {
+                this.showAnalysisResult('advanced-scenarioComparisonResults');
+                this.initializeScenarioComparison(false);
+            });
+        }
+    }
+
+    // Helper to show a specific analysis result section in the advanced calculator
+    showAnalysisResult(resultId) {
+        // Hide all analysis result sections first
+        document.querySelectorAll('.analysis-result').forEach(section => {
+            section.classList.add('hidden');
+        });
+
+        // Show the requested one
+        const resultSection = $(resultId);
+        if (resultSection) {
+            resultSection.classList.remove('hidden');
+        }
+    }
+
     // Add CSS styles for suggestion modifications
     addSuggestionStyles() {
         const style = document.createElement('style');
@@ -3059,7 +3114,7 @@ class RetirementCalculatorApp {
             this.currentMonteCarloResults = results;
 
             // Update Monte Carlo results display
-            const mcResults = $('advanced-monteCarloResults');
+            const mcResults = $('monteCarloResults');
             if (mcResults) {
                 mcResults.classList.remove('hidden');
                 safeSetText('mcRuns', runs.toLocaleString());
@@ -3678,59 +3733,8 @@ class RetirementCalculatorApp {
             btnGenerateOverseasScenarios.addEventListener('click', () => this.generateOverseasScenarios());
         }
 
-        // Monte Carlo button - COMMENTED OUT: Duplicate, using the one in setupAdvancedCalculatorEventListeners instead
-        /*
-        const btnMonteCarlo = $('btnMonteCarlo');
-        console.log('DEBUG: btnMonteCarlo found:', !!btnMonteCarlo);
-        if (btnMonteCarlo) {
-            btnMonteCarlo.addEventListener('click', () => {
-                console.log('Run Enhanced Monte Carlo clicked!');
-                this.runMonteCarloSimulation();
-            });
-        }
-        */
-
-        // Stress test button - COMMENTED OUT: Duplicate, using the one in setupAdvancedCalculatorEventListeners instead
-        /*
-        const btnStressTest = $('btnStressTest');
-        console.log('DEBUG: btnStressTest found:', !!btnStressTest);
-        if (btnStressTest) {
-            btnStressTest.addEventListener('click', () => {
-                console.log('Run Stress Test Scenarios clicked!');
-                this.runStressTest();
-            });
-        }
-        */
-
-        // Retirement solver button - COMMENTED OUT: Duplicate, using the one in setupAdvancedCalculatorEventListeners instead
-        /*
-        const btnRetirementSolver = $('btnRetirementSolver');
-        console.log('DEBUG: btnRetirementSolver found:', !!btnRetirementSolver);
-        if (btnRetirementSolver) {
-            btnRetirementSolver.addEventListener('click', () => {
-                console.log('When Can I Retire clicked!');
-                this.runRetirementSolver();
-            });
-        }
-        */
-
-        // Scenario comparison button - COMMENTED OUT: Duplicate, using the one in setupAdvancedCalculatorEventListeners instead
-        /*
-        const btnScenarioComparison = $('btnScenarioComparison');
-        console.log('DEBUG: btnScenarioComparison found:', !!btnScenarioComparison);
-        if (btnScenarioComparison) {
-            btnScenarioComparison.addEventListener('click', () => {
-                console.log('Compare Scenarios clicked!');
-                // Initialize scenario comparison tab
-                this.initializeScenarioComparison();
-                // TODO: Save current inputs before navigating
-                // This removes the navigation to new page for Scenario's
-                // this.saveInputs();
-                // Navigate to comparison page
-                // window.location.href = 'comparison.html';
-            });
-        }
-        */
+        // Setup listeners for the advanced calculator tools
+        this.setupAdvancedCalculatorEventListeners();
 
         // Reset to defaults button
         const btnResetDefaults = $('btnResetDefaults');
@@ -3799,17 +3803,17 @@ class RetirementCalculatorApp {
                     exportDropdown.classList.add('hidden');
                 }
             });
-            $('advanced-btnExportCSV').addEventListener('click', (e) => {
+            $('btnExportCSV').addEventListener('click', (e) => {
                 e.preventDefault();
                 this.exportResults('csv');
                 exportDropdown.classList.add('hidden');
             });
-            $('advanced-btnExportXLSX').addEventListener('click', (e) => {
+            $('btnExportXLSX').addEventListener('click', (e) => {
                 e.preventDefault();
                 this.exportResults('xlsx');
                 exportDropdown.classList.add('hidden');
             });
-            $('advanced-btnExportPDF').addEventListener('click', (e) => {
+            $('btnExportPDF').addEventListener('click', (e) => {
                 e.preventDefault();
                 this.exportResults('pdf');
                 exportDropdown.classList.add('hidden');
@@ -4870,11 +4874,6 @@ class RetirementCalculatorApp {
     // 🚀 NEW: Update Results tab with confidence dashboard data
     updateResultsTabConfidenceDashboard(result, inputs, monteCarloResults, confidenceScore) {
         console.log('🎯 Updating Results tab dashboard with confidence score:', confidenceScore);
-
-        const retirementAgeElement = document.getElementById('results-retirementAge');
-        if (retirementAgeElement && inputs.retirementAge) {
-            retirementAgeElement.textContent = inputs.retirementAge;
-        }
 
         // Update confidence score display
         const confidenceScoreElement = document.getElementById('confidenceScore');
@@ -6282,50 +6281,50 @@ function collectOnboardingStepData(step) {
 }
 
 async function completeOnboarding() {
-    // 1. Transfer data from onboarding form to main calculator form
-    transferOnboardingToAdvanced();
+    console.log('🚀 Completing onboarding...');
 
-    // 2. Mark onboarding as completed
+    // Mark onboarding as completed
     localStorage.setItem('retirement-calc-onboarding-completed', 'true');
 
-    // 3. Show the main application tabs and hide the initial hero section
+    // Show main application UI
     const mainTabNavigation = document.getElementById('mainTabNavigation');
     const initialOverview = document.getElementById('initialOverview');
     if (mainTabNavigation) mainTabNavigation.style.display = 'block';
     if (initialOverview) initialOverview.style.display = 'none';
 
-    // 4. Ensure the app instance is ready
+    // Ensure the app instance is ready
     if (!window.app) {
-        console.error('Calculator app instance not found.');
-        alert('There was an error initializing the calculator. Please refresh and try again.');
+        console.error("Calculator app instance not found!");
+        alert("There was an error initializing the calculator. Please refresh.");
         return;
     }
 
-    // 5. Re-bind event listeners for the main calculator
-    // This is crucial as the DOM was replaced.
-    if (!window.app.eventListenersSetup) {
-        window.app.setupEventListeners();
-        if(window.setupTabActionHandlers) setupTabActionHandlers();
-    }
+    // Initialize the main calculator UI and logic
+    window.app.initializeCalculator(true); // Pass true to prevent initial auto-calculation
 
-    // 6. Run the calculation and display results
+    // Transfer data from onboarding form to the main calculator form
+    transferOnboardingToAdvanced();
+
+    // Wait a moment for the DOM to update with transferred values
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     try {
-        console.log('🚀 Starting calculation from completeOnboarding...');
-        await window.app.calculateRetirement(false); // run calculation without scrolling
-        console.log('✅ Calculation completed.');
+        // Run the main calculation
+        console.log('🏃‍♂️ Running final calculation...');
+        await window.app.calculateRetirement(true);
+        console.log('✅ Final calculation complete.');
 
-        // 7. Switch to the 'Results' tab to show the confidence dashboard
+        // Switch to the results tab to display the outcome
         console.log('🔄 Switching to results tab...');
         switchTab('results');
 
-        // 8. Show a success notification
-        showNotification('🎉 Your Retirement Plan is ready! View your results.', 'success');
+        showNotification('Your retirement plan has been generated!', 'success');
 
     } catch (error) {
-        console.error('❌ Error running calculation from completeOnboarding:', error);
-        alert('⚠️ There was an issue generating your plan. Please check the console for details and try clicking "Calculate Enhanced Projection" in the Advanced Calculator tab.');
-        // Still switch to advanced tab to show any partial data or error state
-        switchTab('advanced');
+        console.error('Error during final calculation after onboarding:', error);
+        alert('There was an error generating your plan. Please try clicking "Calculate Enhanced Projection" again.');
+        // Still switch to the results tab so user can see any partial data or errors
+        switchTab('results');
     }
 }
 
