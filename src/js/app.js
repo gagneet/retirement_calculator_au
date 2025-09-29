@@ -31,6 +31,7 @@ import {
     showTab,
     debounce,
     showNotification,
+    handleError,
     saveToLocalStorage,
     loadFromLocalStorage,
     initializeTooltips,
@@ -1225,11 +1226,11 @@ class RetirementCalculatorApp {
             this.displayScenarioMatrix(matrixResults);
 
             updateProgress(100, "Scenario analysis complete!");
-            hideProgress();
+            setTimeout(() => updateProgress(0), 1000);
 
         } catch (error) {
             console.error('Scenario comparison error:', error);
-            showError('Failed to run scenario comparison. Please try again.');
+            showNotification('Failed to run scenario comparison. Please try again.', 'error');
         } finally {
             this.isCalculating = false;
         }
@@ -1486,11 +1487,11 @@ class RetirementCalculatorApp {
             });
 
             updateProgress(100, "Healthcare analysis complete!");
-            hideProgress();
+            setTimeout(() => updateProgress(0), 1000);
 
         } catch (error) {
             console.error('Healthcare analysis error:', error);
-            showError('Failed to complete healthcare analysis. Please try again.');
+            showNotification('Failed to complete healthcare analysis. Please try again.', 'error');
         } finally {
             this.isCalculating = false;
         }
@@ -1524,10 +1525,11 @@ class RetirementCalculatorApp {
             this.displayAdvancedRiskProfile(riskProfile);
 
             updateProgress(100, "Risk analysis complete!");
+            setTimeout(() => updateProgress(0), 1000);
 
         } catch (error) {
             console.error('Risk profiling error:', error);
-            showError('Failed to complete risk analysis. Please try again.');
+            showNotification('Failed to complete risk analysis. Please try again.', 'error');
         } finally {
             this.isCalculating = false;
         }
@@ -1567,10 +1569,11 @@ class RetirementCalculatorApp {
             this.displayDynamicAllocationStrategy(allocationStrategy);
 
             updateProgress(100, "Allocation analysis complete!");
+            setTimeout(() => updateProgress(0), 1000);
 
         } catch (error) {
             console.error('Dynamic allocation error:', error);
-            showError('Failed to complete allocation analysis. Please try again.');
+            showNotification('Failed to complete allocation analysis. Please try again.', 'error');
         } finally {
             this.isCalculating = false;
         }
