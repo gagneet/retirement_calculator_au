@@ -408,6 +408,10 @@ export class OnboardingWizard {
     showAvatarSelection() {
         const container = $('onboarding-container');
         if (container) {
+            // First ensure the wizard HTML structure exists
+            container.innerHTML = this.generateWizardHTML();
+
+            // Now create and show the avatar selection screen
             const avatarSelectionHTML = `
                 <div id="avatar-selection" class="bg-white rounded-lg shadow-lg p-6 mb-8">
                     <div class="text-center py-8">
@@ -433,41 +437,85 @@ export class OnboardingWizard {
                 </div>
             `;
 
-            container.innerHTML = avatarSelectionHTML;
+            // Hide the initial and wizard content sections
+            const initialSection = $('onboarding-initial');
+            const wizardContent = $('onboarding-wizard-content');
 
-            // Add avatar selection listeners
-            this.setupAvatarSelection();
+            if (initialSection) initialSection.classList.add('hidden');
+            if (wizardContent) wizardContent.classList.add('hidden');
+
+            // Add the avatar selection to the container
+            container.insertAdjacentHTML('beforeend', avatarSelectionHTML);
+
+            // Add avatar selection listeners with a small delay to ensure DOM is ready
+            setTimeout(() => {
+                this.setupAvatarSelection();
+            }, 50);
         }
     }
 
     setupAvatarSelection() {
-        // Avatar option selection
-        document.querySelectorAll('.avatar-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-                // Remove selection from all options
-                document.querySelectorAll('.avatar-option').forEach(opt => {
-                    opt.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-200');
-                    opt.classList.add('border-gray-300');
+        try {
+            // Avatar option selection
+            const avatarOptions = document.querySelectorAll('.avatar-option');
+
+            if (avatarOptions.length === 0) {
+                console.warn('No avatar options found in DOM');
+                return;
+            }
+
+            avatarOptions.forEach(option => {
+                option.addEventListener('click', (e) => {
+                    // Remove selection from all options
+                    avatarOptions.forEach(opt => {
+                        opt.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-200');
+                        opt.classList.add('border-gray-300');
+                    });
+
+                    // Add selection to clicked option
+                    option.classList.remove('border-gray-300');
+                    option.classList.add('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-200');
+
+                    // Update selected avatar
+                    this.gamification.selectedAvatar = option.dataset.avatar;
                 });
-
-                // Add selection to clicked option
-                option.classList.remove('border-gray-300');
-                option.classList.add('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-200');
-
-                // Update selected avatar
-                this.gamification.selectedAvatar = option.dataset.avatar;
             });
-        });
 
-        // Confirm avatar button
-        const confirmBtn = $('confirm-avatar-btn');
-        if (confirmBtn) {
-            confirmBtn.addEventListener('click', () => {
-                // Hide avatar selection and show wizard
-                $('avatar-selection').classList.add('hidden');
-                $('onboarding-wizard-content').classList.remove('hidden');
-                this.showStep(1);
-            });
+            // Confirm avatar button
+            const confirmBtn = $('confirm-avatar-btn');
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', () => {
+                    // Hide avatar selection and show wizard
+                    const avatarSelection = $('avatar-selection');
+                    const wizardContent = $('onboarding-wizard-content');
+
+                    if (avatarSelection) {
+                        avatarSelection.classList.add('hidden');
+                    }
+
+                    if (wizardContent) {
+                        wizardContent.classList.remove('hidden');
+                        this.showStep(1);
+                    } else {
+                        console.error('Wizard content not found, cannot proceed to step 1');
+                        // Fallback: try to recreate wizard content
+                        const container = $('onboarding-container');
+                        if (container) {
+                            container.innerHTML = this.generateWizardHTML();
+                            const newWizardContent = $('onboarding-wizard-content');
+                            if (newWizardContent) {
+                                newWizardContent.classList.remove('hidden');
+                                this.showStep(1);
+                            }
+                        }
+                    }
+                });
+            } else {
+                console.warn('Confirm avatar button not found');
+            }
+
+        } catch (error) {
+            console.error('Error setting up avatar selection:', error);
         }
     }
 
