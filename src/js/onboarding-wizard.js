@@ -2,7 +2,7 @@
 // 5-step wizard for collecting initial retirement planning data
 
 import { ENHANCED_CONFIG } from './config.js';
-import { $, safeSetValue, safeGetValue, formatCurrency, saveToLocalStorage, loadFromLocalStorage } from './utils.js';
+import { $, safeSetValue, safeGetValue, formatCurrency, formatNumber, formatPercent, saveToLocalStorage, loadFromLocalStorage } from './utils.js';
 
 export class OnboardingWizard {
     constructor() {
@@ -265,6 +265,7 @@ export class OnboardingWizard {
         this.updateBreadcrumb();
         this.updateStepContent();
         this.updateNavigationButtons();
+        this.setupEnhancedInputListeners(); // Add enhanced input formatting
         this.saveProgress();
     }
 
@@ -330,6 +331,29 @@ export class OnboardingWizard {
         }
     }
 
+    // Helper method to format risk tolerance with color coding
+    formatRiskTolerance(value, includeNumber = true) {
+        const numValue = parseInt(value) || 6; // Default to 6 if undefined
+        let riskLevel, color;
+
+        if (numValue <= 3) {
+            riskLevel = "Conservative";
+            color = "text-green-600";
+        } else if (numValue <= 7) {
+            riskLevel = "Moderate";
+            color = "text-blue-600";
+        } else {
+            riskLevel = "Aggressive";
+            color = "text-red-600";
+        }
+
+        if (includeNumber) {
+            return `<span class="${color} font-semibold">${riskLevel} (${numValue}/10)</span>`;
+        } else {
+            return `<span class="${color} font-semibold">${riskLevel}</span>`;
+        }
+    }
+
     updateRiskToleranceDisplay() {
         const slider = document.querySelector('#goals-risk-tolerance');
         const valueDisplay = document.getElementById('goals-risk-tolerance-value');
@@ -351,6 +375,7 @@ export class OnboardingWizard {
                 desc = "Aggressive (8-10): You can handle high volatility for potential higher returns. Comfortable with growth assets like shares and property even during market downturns.";
             }
 
+            valueDisplay.innerHTML = this.formatRiskTolerance(value, false).replace(/<[^>]*>/g, ''); // Remove HTML tags for plain text
             valueDisplay.textContent = `${riskLevel} (${value})`;
             description.textContent = desc;
         }
@@ -385,10 +410,15 @@ export class OnboardingWizard {
                         <h3 class="text-lg font-semibold text-gray-800">Basic Information</h3>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Your Current Age</label>
-                            <input type="number" id="household-age" value="${household.age}" min="18" max="100"
-                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <p class="text-xs text-gray-500 mt-1">This affects superannuation preservation rules and Age Pension eligibility</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">🎂 Your Current Age</label>
+                            ${this.createEnhancedInput('household-age', household.age, 'number', {
+                                min: 18,
+                                max: 100,
+                                tooltip: 'Your age affects super preservation rules, Age Pension eligibility, and investment time horizon',
+                                placeholder: '34',
+                                gamingLevel: 2
+                            })}
+                            <p class="text-xs text-gray-500 mt-1">🗓️ This affects superannuation preservation rules and Age Pension eligibility</p>
                         </div>
 
                         <div>
@@ -526,36 +556,39 @@ export class OnboardingWizard {
                         <h3 class="text-lg font-semibold text-gray-800">Income</h3>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Your Annual Salary</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                <input type="number" id="finances-salary" value="${finances.income.salary}" min="0"
-                                    class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    onchange="onboardingWizard.updateEmployerContributions()">
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Your gross annual salary before tax - used to calculate superannuation contributions</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">💼 Your Annual Salary</label>
+                            ${this.createEnhancedInput('finances-salary', finances.income.salary, 'currency', {
+                                min: 0,
+                                tooltip: 'Your gross annual salary before tax',
+                                placeholder: '75,000',
+                                gamingLevel: 2
+                            })}
+                            <p class="text-xs text-gray-500 mt-1">💡 Used to calculate superannuation contributions automatically</p>
                         </div>
 
                         ${household.maritalStatus !== 'single' ? `
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Partner's Annual Salary</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                <input type="number" id="finances-partner-salary" value="${finances.income.partnerSalary || ''}" min="0"
-                                    class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Partner's gross annual salary before tax</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">👫 Partner's Annual Salary</label>
+                            ${this.createEnhancedInput('finances-partner-salary', finances.income.partnerSalary || 0, 'currency', {
+                                min: 0,
+                                tooltip: 'Partner\'s gross annual salary before tax',
+                                placeholder: '65,000',
+                                gamingLevel: 2
+                            })}
+                            <p class="text-xs text-gray-500 mt-1">💡 Partner's gross annual salary before tax</p>
                         </div>
                         ` : ''}
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Monthly Savings Rate</label>
-                            <div class="relative">
-                                <input type="number" id="finances-savings-rate" value="${finances.savingsRate}" min="0" max="100" step="1"
-                                    class="w-full pr-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Percentage of after-tax income you save each month</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">💰 Monthly Savings Rate</label>
+                            ${this.createEnhancedInput('finances-savings-rate', finances.savingsRate || 15, 'percentage', {
+                                min: 0,
+                                max: 100,
+                                tooltip: 'Percentage of after-tax income saved monthly',
+                                placeholder: '15.0',
+                                gamingLevel: 2
+                            })}
+                            <p class="text-xs text-gray-500 mt-1">📊 Typical range: 10-20% for retirement planning</p>
                         </div>
                     </div>
 
@@ -564,44 +597,54 @@ export class OnboardingWizard {
                         <h3 class="text-lg font-semibold text-gray-800">Superannuation</h3>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Current Super Balance</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                <input type="number" id="finances-super-balance" value="${finances.superannuation.currentBalance}" min="0"
-                                    class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Your total superannuation balance across all funds</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">🏦 Current Super Balance</label>
+                            ${this.createEnhancedInput('finances-super-balance', finances.superannuation.currentBalance, 'currency', {
+                                min: 0,
+                                tooltip: 'Total superannuation balance across all funds',
+                                placeholder: '150,000',
+                                gamingLevel: 3
+                            })}
+                            <p class="text-xs text-gray-500 mt-1">💼 Your total superannuation balance across all funds</p>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Annual Employer Contributions</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                <input type="number" id="finances-employer-contrib" value="${finances.superannuation.employerContributions}" min="0"
-                                    class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-100" readonly>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">🏢 Annual Employer Contributions</label>
+                            <div class="relative group">
+                                <input
+                                    type="text"
+                                    id="finances-employer-contrib"
+                                    value="${formatNumber(finances.superannuation.employerContributions)}"
+                                    maxlength="14"
+                                    class="w-full max-w-[140px] px-3 py-2 text-sm font-mono text-right bg-gray-100 border-2 border-gray-300 rounded-lg cursor-not-allowed"
+                                    readonly
+                                    title="Automatically calculated as 12% of your salary (Super Guarantee)"
+                                />
+                                <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm font-bold pointer-events-none">$</div>
                             </div>
-                            <p class="text-xs text-gray-500 mt-1">Automatically calculated as 12% of salary</p>
+                            <p class="text-xs text-gray-500 mt-1">⚡ Automatically calculated as 12% of salary</p>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Additional Contributions (Annual)</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                <input type="number" id="finances-voluntary-contrib" value="${finances.superannuation.voluntaryContributions}" min="0"
-                                    class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Salary sacrifice or after-tax contributions you make</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">💪 Additional Contributions (Annual)</label>
+                            ${this.createEnhancedInput('finances-voluntary-contrib', finances.superannuation.voluntaryContributions, 'currency', {
+                                min: 0,
+                                tooltip: 'Salary sacrifice or after-tax contributions you make to boost your super',
+                                placeholder: '5,000',
+                                gamingLevel: 2
+                            })}
+                            <p class="text-xs text-gray-500 mt-1">💡 Salary sacrifice or after-tax contributions you make</p>
                         </div>
 
                         ${household.maritalStatus !== 'single' ? `
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Partner's Super Balance</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                <input type="number" id="finances-partner-super" value="${finances.superannuation.partnerCurrentBalance || ''}" min="0"
-                                    class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Partner's total superannuation balance</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">👫 Partner's Super Balance</label>
+                            ${this.createEnhancedInput('finances-partner-super', finances.superannuation.partnerCurrentBalance || 0, 'currency', {
+                                min: 0,
+                                tooltip: 'Partner\'s total superannuation balance across all funds',
+                                placeholder: '120,000',
+                                gamingLevel: 2
+                            })}
+                            <p class="text-xs text-gray-500 mt-1">💼 Partner's total superannuation balance</p>
                         </div>
                         ` : ''}
                     </div>
@@ -612,33 +655,36 @@ export class OnboardingWizard {
                     <h3 class="text-lg font-semibold text-gray-800 mb-6">Savings & Other Investments</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Emergency Fund (Cash Savings)</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                <input type="number" id="finances-emergency-fund" value="${finances.emergencyFund}" min="0"
-                                    class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Cash savings in bank accounts, term deposits, etc.</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">🛡️ Emergency Fund (Cash Savings)</label>
+                            ${this.createEnhancedInput('finances-emergency-fund', finances.emergencyFund, 'currency', {
+                                min: 0,
+                                tooltip: 'Cash savings in bank accounts, term deposits - aim for 3-6 months expenses',
+                                placeholder: '25,000',
+                                gamingLevel: 2
+                            })}
+                            <p class="text-xs text-gray-500 mt-1">💡 Cash savings in bank accounts, term deposits, etc.</p>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Share Portfolio Value</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                <input type="number" id="finances-shares" value="${finances.otherInvestments.shares}" min="0"
-                                    class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Current value of shares, ETFs, managed funds outside super</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">📈 Share Portfolio Value</label>
+                            ${this.createEnhancedInput('finances-shares', finances.otherInvestments.shares, 'currency', {
+                                min: 0,
+                                tooltip: 'Current value of shares, ETFs, managed funds outside superannuation',
+                                placeholder: '50,000',
+                                gamingLevel: 2
+                            })}
+                            <p class="text-xs text-gray-500 mt-1">📊 Current value of shares, ETFs, managed funds outside super</p>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Monthly Investment Contribution</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                <input type="number" id="finances-monthly-investment" value="${finances.otherInvestments.monthlyContribution}" min="0"
-                                    class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Regular monthly investments outside superannuation</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">📅 Monthly Investment Contribution</label>
+                            ${this.createEnhancedInput('finances-monthly-investment', finances.otherInvestments.monthlyContribution, 'currency', {
+                                min: 0,
+                                tooltip: 'How much you invest monthly outside of superannuation in shares, ETFs, etc.',
+                                placeholder: '1,000',
+                                gamingLevel: 2
+                            })}
+                            <p class="text-xs text-gray-500 mt-1">📊 Regular monthly investments outside superannuation</p>
                         </div>
                     </div>
                 </div>
@@ -649,22 +695,24 @@ export class OnboardingWizard {
                     <p class="text-sm text-gray-600 mb-6">Include credit cards, personal loans, but NOT home loans (we'll cover property on the next page)</p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Credit Card Debt</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                <input type="number" id="finances-credit-cards" value="${finances.debt.creditCards}" min="0"
-                                    class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Outstanding credit card balances</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">💳 Total Credit Card Limits</label>
+                            ${this.createEnhancedInput('finances-credit-cards', finances.debt.creditCards, 'currency', {
+                                min: 0,
+                                tooltip: 'Total credit card limits available to you - helps assess your debt capacity',
+                                placeholder: '15,000',
+                                gamingLevel: 2
+                            })}
+                            <p class="text-xs text-gray-500 mt-1">💡 Total credit card limits available to you</p>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Personal Loans</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                <input type="number" id="finances-personal-loans" value="${finances.debt.personalLoans}" min="0"
-                                    class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            </div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">🏦 Any other debts like a Personal Loan, etc.</label>
+                            ${this.createEnhancedInput('finances-personal-loans', finances.debt.personalLoans, 'currency', {
+                                min: 0,
+                                tooltip: 'Personal loans, car loans, or any other debts (excluding home loan)',
+                                placeholder: '8,000',
+                                gamingLevel: 2
+                            })}
                             <p class="text-xs text-gray-500 mt-1">Car loans, unsecured personal loans</p>
                         </div>
                     </div>
@@ -720,40 +768,45 @@ export class OnboardingWizard {
                         <h4 class="text-md font-semibold text-gray-700 mb-4">Home Details</h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Purchase Price</label>
-                                <div class="relative">
-                                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                    <input type="number" id="property-purchase-price" value="${property.homeDetails.purchasePrice}" min="0"
-                                        class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">What you originally paid for the property</p>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">🏠 Purchase Price</label>
+                                ${this.createEnhancedInput('property-purchase-price', property.homeDetails.purchasePrice, 'currency', {
+                                    min: 0,
+                                    tooltip: 'What you originally paid for the property - used for capital gains calculations',
+                                    placeholder: '650,000',
+                                    gamingLevel: 2
+                                })}
+                                <p class="text-xs text-gray-500 mt-1">💰 What you originally paid for the property</p>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Current Value</label>
-                                <div class="relative">
-                                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                    <input type="number" id="property-current-value" value="${property.homeDetails.currentValue}" min="0"
-                                        class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">Current estimated market value</p>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">📊 Current Value</label>
+                                ${this.createEnhancedInput('property-current-value', property.homeDetails.currentValue, 'currency', {
+                                    min: 0,
+                                    tooltip: 'Current estimated market value of your property - check recent sales or get an appraisal',
+                                    placeholder: '850,000',
+                                    gamingLevel: 2
+                                })}
+                                <p class="text-xs text-gray-500 mt-1">🏡 Current estimated market value</p>
                             </div>
                             <div id="loan-remaining-field" class="${property.homeStatus === 'own' ? 'hidden' : ''}">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Loan Remaining</label>
-                                <div class="relative">
-                                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                    <input type="number" id="property-loan-remaining" value="${property.homeDetails.loanRemaining}" min="0"
-                                        class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">Outstanding mortgage balance</p>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">🏦 Loan Remaining</label>
+                                ${this.createEnhancedInput('property-loan-remaining', property.homeDetails.loanRemaining, 'currency', {
+                                    min: 0,
+                                    tooltip: 'Outstanding mortgage balance remaining on your home loan',
+                                    placeholder: '420,000',
+                                    gamingLevel: 2
+                                })}
+                                <p class="text-xs text-gray-500 mt-1">💳 Outstanding mortgage balance</p>
                             </div>
                             <div id="home-loan-rate-field" class="${property.homeStatus === 'own' ? 'hidden' : ''}">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Home Loan Interest Rate</label>
-                                <div class="relative">
-                                    <input type="number" id="property-loan-rate" value="${property.homeDetails.loanRate || 6.5}" min="0" max="15" step="0.1"
-                                        class="w-full pr-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">Current interest rate on your home loan</p>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">📈 Home Loan Interest Rate</label>
+                                ${this.createEnhancedInput('property-loan-rate', property.homeDetails.loanRate || 6.5, 'percentage', {
+                                    min: 0,
+                                    max: 15,
+                                    tooltip: 'Current interest rate on your home loan - affects repayments and equity growth',
+                                    placeholder: '6.5',
+                                    gamingLevel: 2
+                                })}
+                                <p class="text-xs text-gray-500 mt-1">📊 Current interest rate on your home loan</p>
                             </div>
                         </div>
                     </div>
@@ -772,58 +825,65 @@ export class OnboardingWizard {
                         <div id="investment-property-details" class="${!property.investmentProperty.hasInvestment ? 'hidden' : ''}">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Purchase Price</label>
-                                    <div class="relative">
-                                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                        <input type="number" id="investment-purchase-price" value="${property.investmentProperty.details.purchasePrice}" min="0"
-                                            class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">What you paid for the investment property</p>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">🏗️ Purchase Price</label>
+                                    ${this.createEnhancedInput('investment-purchase-price', property.investmentProperty.details.purchasePrice, 'currency', {
+                                        min: 0,
+                                        tooltip: 'What you paid for the investment property - used for capital gains tax calculations',
+                                        placeholder: '580,000',
+                                        gamingLevel: 2
+                                    })}
+                                    <p class="text-xs text-gray-500 mt-1">💰 What you paid for the investment property</p>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Current Value</label>
-                                    <div class="relative">
-                                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                        <input type="number" id="investment-current-value" value="${property.investmentProperty.details.currentValue}" min="0"
-                                            class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">Current estimated market value</p>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">📊 Current Value</label>
+                                    ${this.createEnhancedInput('investment-current-value', property.investmentProperty.details.currentValue, 'currency', {
+                                        min: 0,
+                                        tooltip: 'Current estimated market value of your investment property',
+                                        placeholder: '750,000',
+                                        gamingLevel: 2
+                                    })}
+                                    <p class="text-xs text-gray-500 mt-1">🏡 Current estimated market value</p>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Loan Remaining</label>
-                                    <div class="relative">
-                                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                        <input type="number" id="investment-loan-remaining" value="${property.investmentProperty.details.loanRemaining}" min="0"
-                                            class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">Outstanding investment loan balance</p>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">🏦 Loan Remaining</label>
+                                    ${this.createEnhancedInput('investment-loan-remaining', property.investmentProperty.details.loanRemaining, 'currency', {
+                                        min: 0,
+                                        tooltip: 'Outstanding investment property loan balance',
+                                        placeholder: '480,000',
+                                        gamingLevel: 2
+                                    })}
+                                    <p class="text-xs text-gray-500 mt-1">💳 Outstanding investment loan balance</p>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Investment Loan Interest Rate</label>
-                                    <div class="relative">
-                                        <input type="number" id="investment-loan-rate" value="${property.investmentProperty.details.loanRate || 7.5}" min="0" max="15" step="0.1"
-                                            class="w-full pr-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                        <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">Interest rate on investment property loan</p>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">📈 Investment Loan Interest Rate</label>
+                                    ${this.createEnhancedInput('investment-loan-rate', property.investmentProperty.details.loanRate || 7.5, 'percentage', {
+                                        min: 0,
+                                        max: 15,
+                                        tooltip: 'Interest rate on investment property loan - usually higher than home loans',
+                                        placeholder: '7.5',
+                                        gamingLevel: 2
+                                    })}
+                                    <p class="text-xs text-gray-500 mt-1">📊 Interest rate on investment property loan</p>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Weekly Rent</label>
-                                    <div class="relative">
-                                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                        <input type="number" id="investment-weekly-rent" value="${property.investmentProperty.details.weeklyRent}" min="0"
-                                            class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">Weekly rental income received</p>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">💰 Weekly Rent</label>
+                                    ${this.createEnhancedInput('investment-weekly-rent', property.investmentProperty.details.weeklyRent, 'currency', {
+                                        min: 0,
+                                        tooltip: 'Weekly rental income received from tenants',
+                                        placeholder: '650',
+                                        gamingLevel: 2
+                                    })}
+                                    <p class="text-xs text-gray-500 mt-1">🏠 Weekly rental income from tenants</p>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Annual Expenses</label>
-                                    <div class="relative">
-                                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                        <input type="number" id="investment-expenses" value="${property.investmentProperty.details.expenses}" min="0"
-                                            class="w-full pl-8 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">Rates, insurance, maintenance, management fees</p>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">💸 Annual Expenses</label>
+                                    ${this.createEnhancedInput('investment-expenses', property.investmentProperty.details.expenses, 'currency', {
+                                        min: 0,
+                                        tooltip: 'Annual property expenses: rates, insurance, maintenance, management fees, repairs',
+                                        placeholder: '8,000',
+                                        gamingLevel: 2
+                                    })}
+                                    <p class="text-xs text-gray-500 mt-1">🧾 Rates, insurance, maintenance, management fees</p>
                                 </div>
                             </div>
                         </div>
@@ -845,10 +905,15 @@ export class OnboardingWizard {
                         <h3 class="text-lg font-semibold text-gray-800 mb-4">Retirement Timeline</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Preferred Retirement Age</label>
-                                <input type="number" id="goals-retirement-age" value="${goals.retirementAge}" min="55" max="80"
-                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                <p class="text-xs text-gray-500 mt-1">When would you like to stop working?</p>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">🎂 Preferred Retirement Age</label>
+                                ${this.createEnhancedInput('goals-retirement-age', goals.retirementAge, 'number', {
+                                    min: 55,
+                                    max: 80,
+                                    tooltip: 'When would you like to stop working? Consider super preservation age and pension age',
+                                    placeholder: '67',
+                                    gamingLevel: 2
+                                })}
+                                <p class="text-xs text-gray-500 mt-1">🗓️ When would you like to stop working?</p>
                             </div>
                         </div>
                     </div>
@@ -858,9 +923,13 @@ export class OnboardingWizard {
                         <h3 class="text-lg font-semibold text-gray-800 mb-4">Desired Retirement Lifestyle</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Desired Annual Income</label>
-                                <input type="number" id="goals-income-needed" value="${goals.lifestyleGoals.incomeNeeded}" min="0"
-                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">💰 Desired Annual Income</label>
+                                ${this.createEnhancedInput('goals-income-needed', goals.lifestyleGoals.incomeNeeded, 'currency', {
+                                    min: 0,
+                                    tooltip: 'How much income do you want per year in retirement? Consider ASFA standards: Modest ~$48k, Comfortable ~$74k',
+                                    placeholder: '74000',
+                                    gamingLevel: 2
+                                })}
                                 <div class="mt-2 text-xs text-gray-600">
                                     <div class="flex justify-between">
                                         <span>ASFA Modest:</span>
@@ -907,10 +976,14 @@ export class OnboardingWizard {
                             </div>
 
                             <div id="inheritance-amount-field" class="${goals.legacyPlanning.leaveInheritance === 'no' ? 'hidden' : ''}">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Target Inheritance Amount</label>
-                                <input type="number" id="goals-inheritance-amount" value="${goals.legacyPlanning.inheritanceAmount}" min="0"
-                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                <p class="text-xs text-gray-500 mt-1">Approximate amount you'd like to leave</p>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">🏛️ Target Inheritance Amount</label>
+                                ${this.createEnhancedInput('goals-inheritance-amount', goals.legacyPlanning.inheritanceAmount, 'currency', {
+                                    min: 0,
+                                    tooltip: 'The amount you aim to leave as inheritance. This affects how much you can spend in retirement',
+                                    placeholder: '100000',
+                                    gamingLevel: 2
+                                })}
+                                <p class="text-xs text-gray-500 mt-1">💡 Approximate amount you'd like to leave</p>
                             </div>
                         </div>
                     </div>
@@ -1050,7 +1123,7 @@ export class OnboardingWizard {
                                 </div>
                                 <div class="flex justify-between">
                                     <span>Risk Tolerance:</span>
-                                    <span class="font-medium capitalize">${data.goals.riskTolerance}</span>
+                                    ${this.formatRiskTolerance(data.goals.riskTolerance, true)}
                                 </div>
                                 <div class="flex justify-between">
                                     <span>Inheritance Goal:</span>
@@ -1304,15 +1377,27 @@ export class OnboardingWizard {
         if (homeStatus) {
             this.data.property.homeStatus = homeStatus;
         }
+        this.data.property.homeDetails.purchasePrice = safeGetValue('property-purchase-price') || this.data.property.homeDetails.purchasePrice;
         this.data.property.homeDetails.currentValue = safeGetValue('property-current-value') || this.data.property.homeDetails.currentValue;
         this.data.property.homeDetails.loanRemaining = safeGetValue('property-loan-remaining') || this.data.property.homeDetails.loanRemaining;
         this.data.property.homeDetails.loanRate = safeGetValue('property-loan-rate') || this.data.property.homeDetails.loanRate;
+
+        // Investment property fields
+        this.data.property.investmentProperty.details.purchasePrice = safeGetValue('investment-purchase-price') || this.data.property.investmentProperty.details.purchasePrice;
+        this.data.property.investmentProperty.details.currentValue = safeGetValue('investment-current-value') || this.data.property.investmentProperty.details.currentValue;
+        this.data.property.investmentProperty.details.loanRemaining = safeGetValue('investment-loan-remaining') || this.data.property.investmentProperty.details.loanRemaining;
         this.data.property.investmentProperty.details.loanRate = safeGetValue('investment-loan-rate') || this.data.property.investmentProperty.details.loanRate;
+        this.data.property.investmentProperty.details.weeklyRent = safeGetValue('investment-weekly-rent') || this.data.property.investmentProperty.details.weeklyRent;
+        this.data.property.investmentProperty.details.expenses = safeGetValue('investment-expenses') || this.data.property.investmentProperty.details.expenses;
 
         // Update goals data
         this.data.goals.retirementAge = safeGetValue('goals-retirement-age') || this.data.goals.retirementAge;
         this.data.goals.riskTolerance = safeGetValue('goals-risk-tolerance') || this.data.goals.riskTolerance;
         this.data.goals.lifestyleGoals.incomeNeeded = safeGetValue('goals-income-needed') || this.data.goals.lifestyleGoals.incomeNeeded;
+        this.data.goals.lifestyleGoals.travelPlans = document.querySelector('#goals-travel-plans')?.value || this.data.goals.lifestyleGoals.travelPlans;
+        this.data.goals.lifestyleGoals.hobbies = document.querySelector('#goals-hobbies')?.value || this.data.goals.lifestyleGoals.hobbies;
+        this.data.goals.legacyPlanning.leaveInheritance = document.querySelector('#goals-leave-inheritance')?.value || this.data.goals.legacyPlanning.leaveInheritance;
+        this.data.goals.legacyPlanning.inheritanceAmount = safeGetValue('goals-inheritance-amount') || this.data.goals.legacyPlanning.inheritanceAmount;
     }
 
     runDataValidation() {
@@ -1826,6 +1911,208 @@ export class OnboardingWizard {
         if (data.finances.riskTolerance >= 5 && data.finances.riskTolerance <= 7) score += 5;
 
         return Math.min(Math.max(score, 10), 95); // Cap between 10-95%
+    }
+
+    createEnhancedInput(id, value, type = 'currency', options = {}) {
+        const {
+            min = 0,
+            max = null,
+            step = null,
+            placeholder = '',
+            tooltip = '',
+            required = false,
+            gamingLevel = 1 // 1-3, higher = more playful
+        } = options;
+
+        // Gaming-style classes and effects
+        const gamingClasses = gamingLevel >= 2 ?
+            'transform transition-all duration-200 hover:scale-105 hover:shadow-lg focus:scale-105 focus:shadow-xl focus:ring-4 focus:ring-blue-300' :
+            'transition-all duration-150 hover:shadow-md focus:shadow-lg';
+
+        // Input styling with gaming elements
+        const baseClasses = `
+            w-full max-w-[140px] px-3 py-2 text-sm font-mono text-right
+            bg-gradient-to-r from-gray-50 to-white
+            border-2 border-gray-300 rounded-lg
+            focus:border-blue-500 focus:bg-white focus:outline-none
+            ${gamingClasses}
+            ${gamingLevel >= 3 ? 'border-gradient hover:border-gradient-intense' : ''}
+        `.trim();
+
+        // Format display value based on type
+        let displayValue = value || '';
+        if (value && type === 'currency') {
+            displayValue = formatNumber(parseFloat(value));
+        } else if (value && type === 'percentage') {
+            displayValue = parseFloat(value).toFixed(1);
+        } else if (value && type === 'number') {
+            displayValue = parseFloat(value).toString();
+        }
+
+        // Create input with gaming enhancements
+        const inputHtml = `
+            <div class="relative group">
+                <input
+                    type="text"
+                    id="${id}"
+                    value="${displayValue}"
+                    maxlength="14"
+                    placeholder="${placeholder}"
+                    class="${baseClasses}"
+                    data-format-type="${type}"
+                    data-raw-value="${value || 0}"
+                    ${min !== null ? `data-min="${min}"` : ''}
+                    ${max !== null ? `data-max="${max}"` : ''}
+                    ${step !== null ? `data-step="${step}"` : ''}
+                    ${required ? 'required' : ''}
+                />
+                ${type === 'currency' ?
+                    `<div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm font-bold pointer-events-none">$</div>` : ''
+                }
+                ${type === 'percentage' ?
+                    `<div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm font-bold pointer-events-none">%</div>` : ''
+                }
+                ${gamingLevel >= 2 ?
+                    `<div class="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 animate-pulse"></div>` : ''
+                }
+                ${tooltip ?
+                    `<div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10 whitespace-nowrap">
+                        ${tooltip}
+                    </div>` : ''
+                }
+            </div>
+        `;
+
+        return inputHtml;
+    }
+
+    setupEnhancedInputListeners() {
+        // Add listeners for all enhanced inputs
+        document.querySelectorAll('input[data-format-type]').forEach(input => {
+            const formatType = input.getAttribute('data-format-type');
+
+            // Format on blur
+            input.addEventListener('blur', (e) => {
+                const value = e.target.value.replace(/[^\d.-]/g, '');
+                const numValue = parseFloat(value);
+
+                if (!isNaN(numValue)) {
+                    e.target.setAttribute('data-raw-value', numValue);
+
+                    if (formatType === 'currency') {
+                        e.target.value = formatNumber(numValue);
+                    } else if (formatType === 'percentage') {
+                        e.target.value = numValue.toFixed(1);
+                    } else if (formatType === 'number') {
+                        e.target.value = numValue.toString();
+                    }
+                }
+            });
+
+            // Clear formatting on focus for easier editing
+            input.addEventListener('focus', (e) => {
+                const rawValue = e.target.getAttribute('data-raw-value');
+                if (rawValue && rawValue !== '0') {
+                    e.target.value = rawValue;
+                }
+                e.target.select(); // Select all text for easy replacement
+            });
+
+            // Real-time validation and gaming effects
+            input.addEventListener('input', (e) => {
+                const value = e.target.value.replace(/[^\d.-]/g, '');
+                const numValue = parseFloat(value) || 0;
+
+                // Update raw value
+                e.target.setAttribute('data-raw-value', numValue);
+
+                // Add gaming effect for valid inputs
+                if (numValue > 0) {
+                    e.target.classList.add('border-green-400', 'bg-green-50');
+                    e.target.classList.remove('border-red-400', 'bg-red-50');
+                } else {
+                    e.target.classList.remove('border-green-400', 'bg-green-50');
+                }
+
+                // Trigger data update
+                this.updateDataFromForms();
+            });
+        });
+    }
+
+    // Static method to enhance any existing input field
+    static enhanceExistingInput(inputId, formatType = 'currency', options = {}) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+
+        const {
+            gamingLevel = 1,
+            tooltip = ''
+        } = options;
+
+        // Add enhanced styling
+        const existingClasses = input.className;
+        const enhancedClasses = gamingLevel >= 2 ?
+            'transform transition-all duration-200 hover:scale-105 hover:shadow-lg focus:scale-105 focus:shadow-xl focus:ring-4 focus:ring-indigo-300 font-mono text-right' :
+            'transition-all duration-150 hover:shadow-md focus:shadow-lg font-mono text-right';
+
+        input.className = existingClasses + ' ' + enhancedClasses;
+        input.maxLength = 14;
+        input.setAttribute('data-format-type', formatType);
+
+        // Format current value
+        const currentValue = parseFloat(input.value) || 0;
+        input.setAttribute('data-raw-value', currentValue);
+
+        if (formatType === 'currency' && currentValue > 0) {
+            input.value = formatNumber(currentValue);
+        } else if (formatType === 'percentage' && currentValue > 0) {
+            input.value = currentValue.toFixed(1);
+        }
+
+        // Add formatting listeners
+        input.addEventListener('blur', (e) => {
+            const value = e.target.value.replace(/[^\d.-]/g, '');
+            const numValue = parseFloat(value);
+
+            if (!isNaN(numValue)) {
+                e.target.setAttribute('data-raw-value', numValue);
+
+                if (formatType === 'currency') {
+                    e.target.value = formatNumber(numValue);
+                } else if (formatType === 'percentage') {
+                    e.target.value = numValue.toFixed(1);
+                }
+            }
+        });
+
+        input.addEventListener('focus', (e) => {
+            const rawValue = e.target.getAttribute('data-raw-value');
+            if (rawValue && rawValue !== '0') {
+                e.target.value = rawValue;
+            }
+            e.target.select();
+        });
+
+        // Add gaming effects
+        input.addEventListener('input', (e) => {
+            const value = e.target.value.replace(/[^\d.-]/g, '');
+            const numValue = parseFloat(value) || 0;
+
+            e.target.setAttribute('data-raw-value', numValue);
+
+            if (numValue > 0) {
+                e.target.classList.add('border-green-400', 'bg-green-50');
+                e.target.classList.remove('border-red-400', 'bg-red-50');
+            } else {
+                e.target.classList.remove('border-green-400', 'bg-green-50');
+            }
+        });
+
+        // Add tooltip if provided
+        if (tooltip) {
+            input.title = tooltip;
+        }
     }
 
     calculateMoneyLongevity(totalAssets, annualIncomeNeeded, userAge, partnerAge, retirementAge, maritalStatus) {

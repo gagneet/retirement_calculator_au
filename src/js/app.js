@@ -62,6 +62,7 @@ class RetirementCalculatorApp {
         initializeTooltips(); // Initialize tooltip functionality
         initializeCurrencyInputs(); // Initialize currency input formatting
         initializePercentageInputs(); // Initialize percentage input formatting
+        this.enhanceAdvancedCalculatorInputs(); // Add gaming-style enhancements to calculator inputs
 
         // Make utilities globally available for onboarding wizard
         window.utils = {
@@ -3477,6 +3478,38 @@ class RetirementCalculatorApp {
         const partnerSalary = $('partnerSalary');
         if (yourSalary) yourSalary.addEventListener('blur', updateCGTRate);
         if (partnerSalary) partnerSalary.addEventListener('blur', updateCGTRate);
+    }
+
+    enhanceAdvancedCalculatorInputs() {
+        // Enhance key financial input fields with gaming-style formatting
+        const fieldsToEnhance = [
+            // Financial inputs
+            { id: 'yourSalary', type: 'currency', tooltip: 'Your annual gross salary' },
+            { id: 'partnerSalary', type: 'currency', tooltip: 'Partner\'s annual gross salary' },
+            { id: 'yourCurrentSuper', type: 'currency', tooltip: 'Current superannuation balance' },
+            { id: 'partnerCurrentSuper', type: 'currency', tooltip: 'Partner\'s superannuation balance' },
+            { id: 'currentSavings', type: 'currency', tooltip: 'Current savings and cash' },
+            { id: 'currentStocks', type: 'currency', tooltip: 'Current investment portfolio value' },
+
+            // Property inputs
+            { id: 'homeValue', type: 'currency', tooltip: 'Current home market value' },
+            { id: 'mortgageBalance', type: 'currency', tooltip: 'Outstanding mortgage balance' },
+            { id: 'investmentPropertyValue', type: 'currency', tooltip: 'Investment property value' },
+            { id: 'investmentPropertyLoan', type: 'currency', tooltip: 'Investment property loan balance' },
+
+            // Percentage inputs
+            { id: 'superReturn', type: 'percentage', tooltip: 'Expected annual superannuation return' },
+            { id: 'investmentReturn', type: 'percentage', tooltip: 'Expected investment return rate' },
+            { id: 'inflationRate', type: 'percentage', tooltip: 'Expected annual inflation rate' },
+            { id: 'salaryGrowthRate', type: 'percentage', tooltip: 'Expected salary growth rate' },
+        ];
+
+        fieldsToEnhance.forEach(field => {
+            OnboardingWizard.enhanceExistingInput(field.id, field.type, {
+                gamingLevel: 2,
+                tooltip: field.tooltip
+            });
+        });
     }
 
     // Event listeners
