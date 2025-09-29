@@ -3059,7 +3059,7 @@ class RetirementCalculatorApp {
             this.currentMonteCarloResults = results;
 
             // Update Monte Carlo results display
-            const mcResults = $('monteCarloResults');
+            const mcResults = $('advanced-monteCarloResults');
             if (mcResults) {
                 mcResults.classList.remove('hidden');
                 safeSetText('mcRuns', runs.toLocaleString());
@@ -3799,17 +3799,17 @@ class RetirementCalculatorApp {
                     exportDropdown.classList.add('hidden');
                 }
             });
-            $('btnExportCSV').addEventListener('click', (e) => {
+            $('advanced-btnExportCSV').addEventListener('click', (e) => {
                 e.preventDefault();
                 this.exportResults('csv');
                 exportDropdown.classList.add('hidden');
             });
-            $('btnExportXLSX').addEventListener('click', (e) => {
+            $('advanced-btnExportXLSX').addEventListener('click', (e) => {
                 e.preventDefault();
                 this.exportResults('xlsx');
                 exportDropdown.classList.add('hidden');
             });
-            $('btnExportPDF').addEventListener('click', (e) => {
+            $('advanced-btnExportPDF').addEventListener('click', (e) => {
                 e.preventDefault();
                 this.exportResults('pdf');
                 exportDropdown.classList.add('hidden');
@@ -4833,8 +4833,8 @@ class RetirementCalculatorApp {
                         <h4 class="font-semibold text-gray-800 mb-2">Key Strategies for You</h4>
                         <ul class="text-sm text-gray-600 space-y-1">
                             ${persona.keyStrategies.map(strategy =>
-                                `<li class="flex items-start"><span class="text-green-500 mr-2">•</span>${strategy}</li>`
-                            ).join('')}
+            `<li class="flex items-start"><span class="text-green-500 mr-2">•</span>${strategy}</li>`
+        ).join('')}
                         </ul>
                     </div>
 
@@ -4854,10 +4854,10 @@ class RetirementCalculatorApp {
                         <h4 class="text-sm font-medium text-gray-700 mb-2">Secondary Profiles</h4>
                         <div class="flex flex-wrap gap-2">
                             ${personaAnalysis.secondary.map(p =>
-                                `<span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+            `<span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
                                     ${p.name} (${Math.round(p.confidence * 100)}%)
                                 </span>`
-                            ).join('')}
+        ).join('')}
                         </div>
                     </div>
                 ` : ''}
@@ -4870,6 +4870,11 @@ class RetirementCalculatorApp {
     // 🚀 NEW: Update Results tab with confidence dashboard data
     updateResultsTabConfidenceDashboard(result, inputs, monteCarloResults, confidenceScore) {
         console.log('🎯 Updating Results tab dashboard with confidence score:', confidenceScore);
+
+        const retirementAgeElement = document.getElementById('results-retirementAge');
+        if (retirementAgeElement && inputs.retirementAge) {
+            retirementAgeElement.textContent = inputs.retirementAge;
+        }
 
         // Update confidence score display
         const confidenceScoreElement = document.getElementById('confidenceScore');
@@ -5295,11 +5300,11 @@ class RetirementCalculatorApp {
                                                 <h4 class="font-medium text-gray-700">Action Steps:</h4>
                                                 <ul class="text-sm text-gray-600 space-y-1">
                                                     ${suggestion.actions ? suggestion.actions.map(action =>
-                                                        `<li class="flex items-start">
+            `<li class="flex items-start">
                                                             <span class="text-green-500 mr-2 mt-0.5">✓</span>
                                                             ${action}
                                                         </li>`
-                                                    ).join('') : ''}
+        ).join('') : ''}
                                                 </ul>
                                             </div>
                                         </div>
@@ -5327,11 +5332,11 @@ class RetirementCalculatorApp {
                                         <h4 class="font-medium text-gray-700">Recommended Actions:</h4>
                                         <ul class="text-sm text-gray-600 space-y-1">
                                             ${rec.actions.map(action =>
-                                                `<li class="flex items-start">
+            `<li class="flex items-start">
                                                     <span class="text-blue-500 mr-2 mt-0.5">→</span>
                                                     ${action}
                                                 </li>`
-                                            ).join('')}
+        ).join('')}
                                         </ul>
                                     </div>
                                 </div>
@@ -5367,11 +5372,11 @@ class RetirementCalculatorApp {
                                                     <h4 class="font-medium text-gray-700">Action Steps:</h4>
                                                     <ul class="text-sm text-gray-600 space-y-1">
                                                         ${suggestion.actions.map(action =>
-                                                            `<li class="flex items-start">
+            `<li class="flex items-start">
                                                                 <span class="text-gray-500 mr-2 mt-0.5">•</span>
                                                                 ${action}
                                                             </li>`
-                                                        ).join('')}
+        ).join('')}
                                                     </ul>
                                                 </div>
                                             ` : ''}
@@ -5739,10 +5744,10 @@ class RetirementCalculatorApp {
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-3">
                         <div class="h-3 rounded-full transition-all duration-500 ${
-                            readinessScore >= 80 ? 'bg-green-500' :
-                            readinessScore >= 60 ? 'bg-yellow-500' :
-                            readinessScore >= 40 ? 'bg-orange-500' : 'bg-red-500'
-                        }" style="width: ${readinessScore}%"></div>
+            readinessScore >= 80 ? 'bg-green-500' :
+                readinessScore >= 60 ? 'bg-yellow-500' :
+                    readinessScore >= 40 ? 'bg-orange-500' : 'bg-red-500'
+        }" style="width: ${readinessScore}%"></div>
                     </div>
                 </div>
             </div>
@@ -5887,7 +5892,7 @@ class RetirementCalculatorApp {
 
             // Trigger initial calculation if we have enough data
             const hasMinimalData = onboardingData.yourAge && onboardingData.yourRetirementAge &&
-                                  (onboardingData.yourIncome || onboardingData.yourSuperBalance);
+                (onboardingData.yourIncome || onboardingData.yourSuperBalance);
 
             if (hasMinimalData) {
                 // Small delay to ensure all fields are populated
@@ -5999,8 +6004,8 @@ class RetirementCalculatorApp {
                                                 <div class="text-xs text-gray-500 font-medium mb-1">Next Steps:</div>
                                                 <ul class="text-xs text-gray-600">
                                                     ${item.actions.slice(0, 2).map(action =>
-                                                        `<li class="flex items-center"><span class="text-green-500 mr-1">•</span>${action}</li>`
-                                                    ).join('')}
+            `<li class="flex items-center"><span class="text-green-500 mr-1">•</span>${action}</li>`
+        ).join('')}
                                                 </ul>
                                             </div>
                                         ` : ''}
@@ -6276,69 +6281,52 @@ function collectOnboardingStepData(step) {
     }
 }
 
-function completeOnboarding() {
-    // Transfer all onboarding data to the advanced calculator
+async function completeOnboarding() {
+    // 1. Transfer data from onboarding form to main calculator form
     transferOnboardingToAdvanced();
 
-    // Mark onboarding as completed
+    // 2. Mark onboarding as completed
     localStorage.setItem('retirement-calc-onboarding-completed', 'true');
 
-    // CRITICAL: Show main tab navigation and hide initial overview
+    // 3. Show the main application tabs and hide the initial hero section
     const mainTabNavigation = document.getElementById('mainTabNavigation');
     const initialOverview = document.getElementById('initialOverview');
+    if (mainTabNavigation) mainTabNavigation.style.display = 'block';
+    if (initialOverview) initialOverview.style.display = 'none';
 
-    if (mainTabNavigation) {
-        mainTabNavigation.style.display = 'block';
+    // 4. Ensure the app instance is ready
+    if (!window.app) {
+        console.error('Calculator app instance not found.');
+        alert('There was an error initializing the calculator. Please refresh and try again.');
+        return;
     }
 
-    if (initialOverview) {
-        initialOverview.style.display = 'none';
+    // 5. Re-bind event listeners for the main calculator
+    // This is crucial as the DOM was replaced.
+    if (!window.app.eventListenersSetup) {
+        window.app.setupEventListeners();
+        if(window.setupTabActionHandlers) setupTabActionHandlers();
     }
 
-    // Set up event listeners for advanced calculator buttons
-    setTimeout(async () => {
-        if (window.app) {
-            // Set up event listeners since they weren't set up during onboarding mode
-            if (!window.app.eventListenersSetup) {
-                window.app.setupEventListeners();
-            }
+    // 6. Run the calculation and display results
+    try {
+        console.log('🚀 Starting calculation from completeOnboarding...');
+        await window.app.calculateRetirement(false); // run calculation without scrolling
+        console.log('✅ Calculation completed.');
 
-            // Run the calculation with proper context binding
-            if (window.app && typeof window.app.calculateRetirement === 'function') {
-                try {
-                    console.log('🚀 Starting calculation from completeOnboarding...');
+        // 7. Switch to the 'Results' tab to show the confidence dashboard
+        console.log('🔄 Switching to results tab...');
+        switchTab('results');
 
-                    // Use .call() to ensure proper 'this' context in webpack builds and await the async result
-                    const calculationResult = await window.app.calculateRetirement.call(window.app, true);
-                    console.log('✅ Calculation completed:', calculationResult);
+        // 8. Show a success notification
+        showNotification('🎉 Your Retirement Plan is ready! View your results.', 'success');
 
-                    // Switch to results tab to show the generated plan (no timeout needed since calculation is complete)
-                    console.log('🔄 Switching to results tab...');
-                    switchTab('results');
-
-                    // Check if results content is populated
-                    const resultsContent = document.getElementById('content-results');
-                    const confidenceScore = document.getElementById('confidenceScore');
-                    console.log('📊 Results tab content:', resultsContent?.innerHTML?.length || 0, 'characters');
-                    console.log('🎯 Confidence score element:', confidenceScore?.textContent);
-
-                    // Show success message
-                    alert('🎉 Your Retirement Plan has been generated! Explore the Results, Charts, and Action Plan tabs to see your personalized analysis.');
-                } catch (error) {
-                    console.error('❌ Error running calculation:', error);
-                    console.error('Error stack:', error.stack);
-
-                    // Fallback - still show tabs but with error message
-                    switchTab('results');
-                    alert('⚠️ There was an issue generating your plan. Please check the console for details and try clicking "Calculate Enhanced Projection" in the Advanced Calculator tab.');
-                }
-            }
-        } else {
-            // Fallback if app not ready - switch to advanced calculator
-            switchTab('advanced');
-            alert('🎉 Onboarding completed! Your information has been transferred to the advanced calculator. Click "Calculate Enhanced Projection" to see your results.');
-        }
-    }, 500);
+    } catch (error) {
+        console.error('❌ Error running calculation from completeOnboarding:', error);
+        alert('⚠️ There was an issue generating your plan. Please check the console for details and try clicking "Calculate Enhanced Projection" in the Advanced Calculator tab.');
+        // Still switch to advanced tab to show any partial data or error state
+        switchTab('advanced');
+    }
 }
 
 function transferOnboardingToAdvanced() {
