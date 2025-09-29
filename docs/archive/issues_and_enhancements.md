@@ -566,7 +566,7 @@ Your suggestions and scenario comparisons are now fully accurate and based on yo
 
 ---
 
-● 🎮 Enhanced Onboarding Experience Complete!
+## 🎮 Enhanced Onboarding Experience Complete!
 
 I've successfully transformed the onboarding wizard into a modern, gaming-inspired, and highly practical experience! Here's what's been implemented:
 
@@ -636,5 +636,186 @@ Enhanced 15+ key fields in the advanced calculator with:
 
 The onboarding experience now feels like a modern, engaging financial planning game while maintaining professional credibility and practical functionality! Users get immediate visual
 feedback, smooth interactions, and an intuitive flow that makes financial planning feel approachable and even fun.
+
+---
+
+## ✅ All Onboarding Enhancements Completed
+
+🎮 Enhanced UI/UX Features Implemented:
+
+1. Gaming-Style Input Fields - All financial fields now have gaming-level visual effects (hover scaling, pulsing indicators, color feedback)
+2. Smart Currency/Percentage Formatting - Real-time formatting with proper decimals, commas, and 14-character limits
+3. Comprehensive Tooltips - Every field includes contextual Australian financial planning advice
+4. Enhanced Color Coding - Risk tolerance now displays with proper color coding (Conservative: green, Moderate: blue, Aggressive: red)
+
+🏠 Property Information Fields Enhanced:
+
+- ✅ Home Details: Purchase Price, Current Value, Loan Remaining, Home Loan Interest Rate (added)
+- ✅ Investment Property: Purchase Price, Current Value, Loan Remaining, Investment Loan Interest Rate, Weekly Rent, Annual Expenses
+
+🎯 Retirement Goals Fields Enhanced:
+
+- ✅ Preferred Retirement Age with number validation (55-80 range)
+- ✅ Desired Annual Income with ASFA standards reference
+- ✅ Target Inheritance Amount with conditional display
+- ✅ Risk Tolerance Display Fixed - No more "undefined/10", now shows proper color-coded format
+
+🔧 Technical Improvements:
+
+- ✅ Fixed Risk Tolerance "undefined/10" Issue - Created formatRiskTolerance() helper method
+- ✅ Comprehensive Data Mapping - Updated updateDataFromForms() to capture all enhanced fields
+- ✅ Renamed Debt Fields - "Credit Card Debt" → "Total Credit Card Limits", "Personal Loans" → "Any other debts like a Personal Loan, etc."
+- ✅ Enhanced Input System - createEnhancedInput() method with 3 gaming levels and static enhanceExistingInput() for advanced calculator
+
+🎨 Visual Enhancements:
+
+- 💰 Currency fields with emoji icons and real-time formatting
+- 🎂 Age fields with appropriate emoji indicators
+- 🏛️ Legacy planning with sophisticated visual cues
+- Color-coded risk assessment with proper gradients
+
+The retirement calculator now provides a modern, gaming-inspired user experience while maintaining professional financial planning functionality. All fields are properly validated,
+formatted, and mapped to the underlying data structure for seamless integration with the advanced calculator.
+
+---
+
+## ✅ Menu Navigation & Export Button Issues Fixed
+
+🔧 Problem Identification & Solutions:
+
+1. ✅ Menu Navigation Issues Fixed
+
+Problem: "New User?" and "Returning User?" menu items not responding to clicks
+Root Cause: Menu handlers were trying to access onboarding buttons before the app was fully initialized
+Solution: Enhanced menu handlers with multiple fallback strategies
+
+New User Menu Handler:
+// Multi-layered approach:
+1. Try to click existing new-user-btn if available
+2. If no button, try to access app.onboardingWizard
+3. Last resort: Initialize app and then start onboarding
+4. Console warning if all methods fail
+
+Returning User Menu Handler:
+// Multiple import methods:
+1. Try to click existing returning-user-btn
+2. Try to trigger importFileInput element
+3. Create dynamic file input through app.importUserInputs
+4. Graceful fallback with console warnings
+
+2. ✅ Export Enhanced Report Button Fixed
+
+Problem: Export button clicks were not working, no dropdown appeared
+Root Cause: Duplicate element IDs causing JavaScript conflicts
+
+Original Issue:
+- Two buttons with same ID: btnExport (lines 673 & 1590)
+- Two dropdowns with same ID: exportDropdown (lines 676 & 1593)
+- JavaScript could only bind to the first element found
+
+Solution Implemented:
+- Renamed second button set to unique IDs: btnExport2, exportDropdown2
+- Added complete event handler set for second export button
+- Both export buttons now work independently
+
+🎯 Technical Implementation:
+
+Enhanced Menu Navigation:
+// Robust initialization chain
+if (window.RetirementCalculatorApp) {
+if (!window.app) {
+window.app = new window.RetirementCalculatorApp();
+}
+if (window.app.onboardingWizard) {
+window.app.onboardingWizard.startOnboarding();
+}
+}
+
+Duplicate ID Resolution:
+// First export button (original)
+const btnExport = $('btnExport');
+const exportDropdown = $('exportDropdown');
+
+// Second export button (renamed)
+const btnExport2 = $('btnExport2');
+const exportDropdown2 = $('exportDropdown2');
+
+// Both now have independent event handlers
+
+🚀 Live Results:
+
+Both issues are now resolved at https://retirement.gagneet.com:
+
+✅ Menu Navigation Working:
+- "New User?" → Starts onboarding wizard with avatar selection
+- "Returning User?" → Opens file dialog for data import
+- Menu closes properly after selection
+- Multiple fallback paths ensure reliability
+
+✅ Export Enhanced Report Working:
+- Both export button instances now functional
+- Dropdown menus appear correctly
+- All three export formats available: CSV, XLSX, PDF
+- No more ID conflicts or JavaScript errors
+
+🔍 Debugging Features Added:
+
+Console Logging for Troubleshooting:
+- "Export button clicked!" - Confirms button activation
+- "Second Export button clicked!" - Confirms duplicate button works
+- "Initializing app from menu..." - Shows fallback initialization
+- Comprehensive error warnings for missing elements
+
+🎮 Preserved Functionality:
+
+All existing features remain intact:
+- Complete gamified onboarding experience
+- Advanced calculator with proper data transfer
+- All previous bug fixes for currency formatting, dependents, etc.
+- Back-to-top navigation buttons
+- Achievement system and progress tracking
+
+The retirement calculator now provides reliable menu navigation and export functionality across all user interaction paths, ensuring a professional and frustration-free experience.
+
+---
+
+## 🎯 Issues Fixed with Advanced Calculator with OnBoarding
+
+1. Data Load Functionality ✅
+- Enhanced the populateFormFromData function with better error handling and debugging
+- Improved field matching logic and percentage field handling
+- Added comprehensive console logging to track which fields are populated vs skipped
+- Fixed checkbox/radio button handling and decimal value conversion
+
+2. Export to PDF/XLSX Button ✅
+- Fixed event listener setup for export dropdown buttons
+- Added proper null checks before attaching event listeners
+- Enhanced error logging to debug dropdown visibility issues
+- Improved event handling with proper preventDefault and stopPropagation
+
+3. Load Data & Save Data Menu Items ✅
+- Added "Load Data" and "Save Data" menu items to the main navigation dropdown
+- Implemented proper event handlers that connect to existing functionality
+- Added visual separators and appropriate icons for better UX
+- Menu items automatically trigger the existing btnImportUserData and btnExportUserData functionality
+
+4. Field Formatting ✅
+- Enhanced currency input formatting to display $ symbol with proper thousands separators
+- Improved percentage formatting to show % symbol with 2 decimal places
+- Added cursor position management to prevent cursor from going before $ symbol
+- Enhanced parseFormattedNumber to handle all formatting characters ($, %, commas)
+- Added initialization formatting for existing field values
+
+🚀 Key Improvements
+
+- Better Error Handling: All functions now have comprehensive error handling and logging
+- Enhanced UX: Currency fields show $123,456.78 format, percentage fields show 5.25% format
+- Improved Navigation: Easy access to Load/Save Data from the main menu
+- Robust Event Handling: All dropdown menus and buttons work reliably
+- Smart Formatting: Fields automatically format on blur, paste, and initialization
+
+The application has been built successfully and all functionality should now work as expected at https://retirement.gagneet.com!
+
+Test the JSON upload you provided - it should now properly populate fields and show meaningful success messages instead of "0 fields updated, 5 fields skipped".
 
 ---
