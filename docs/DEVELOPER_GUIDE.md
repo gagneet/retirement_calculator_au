@@ -9,17 +9,22 @@ This guide provides all the information you need to set up, develop, and contrib
     - [Prerequisites](#prerequisites)
     - [Quick Setup](#quick-setup)
     - [Detailed Instructions](#detailed-instructions)
-3. [Core Components (API)](#3-core-components-api)
+    - [Platform-Specific Instructions](#platform-specific-instructions)
+    - [Docker Setup](#docker-setup)
+3. [Production Deployment](#3-production-deployment)
+    - [Static Site Hosting](#static-site-hosting)
+    - [Server Configuration](#server-configuration)
+4. [Core Components (API)](#4-core-components-api)
     - [`RetirementCalculatorApp`](#retirementcalculatorapp-jsappjs)
     - [`RetirementSimulator`](#retirementsimulator-jssimulatorjs)
     - [`SuggestionEngine`](#suggestionengine-jssuggestion-enginejs)
     - [`ContextualIntelligenceSystem`](#contextualintelligencesystem-jscontextual-intelligencejs)
     - [`OnboardingSystem`](#onboardingsystem-jsonboardingjs)
     - [`Configuration`](#configuration-jsconfigjs)
-4. [Development Workflow](#4-development-workflow)
-    - [Running Tests](#running-tests)
+5. [Development Workflow](#5-development-workflow)
+    - [Running Tests & Verification](#running-tests--verification)
     - [Coding Conventions](#coding-conventions)
-5. [Troubleshooting](#5-troubleshooting)
+6. [Troubleshooting](#6-troubleshooting)
 
 ---
 
@@ -108,74 +113,199 @@ python -m http.server 8000
 ```
 Then, open `http://localhost:8000` in your browser.
 
-## 3. Core Components (API)
+### Platform-Specific Instructions
+
+#### Windows
+-   Use Command Prompt or PowerShell to navigate to the project directory.
+-   If `python` or `node` commands are not found, ensure they are installed and added to your system's PATH.
+
+#### macOS
+-   Use the built-in Terminal.
+-   Python 3 is usually pre-installed (`python3`).
+-   Consider using Homebrew (`brew install node`) for easy Node.js installation.
+
+#### Linux (Ubuntu/Debian)
+-   Use the Terminal.
+-   Install Python and Node.js via `apt`:
+    ```bash
+    sudo apt update
+    sudo apt install python3 nodejs npm
+    ```
+
+### Docker Setup
+For a consistent development environment, you can use Docker.
+
+#### Dockerfile
+```dockerfile
+FROM nginx:alpine
+
+# Copy project files
+COPY . /usr/share/nginx/html
+
+# Expose port 80
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+#### Build and Run
+```bash
+# Build the Docker image
+docker build -t retirement-calculator .
+
+# Run the container
+docker run -d -p 8080:80 --name retirement-calc retirement-calculator
+```
+Access the application at `http://localhost:8080`.
+
+## 3. Production Deployment
+
+### Static Site Hosting
+The project can be easily deployed to any static site hosting provider.
+-   **Netlify/Vercel:** Connect your Git repository for automatic deployments. No special build settings are required.
+-   **GitHub Pages:** Push your code to a GitHub repository and enable GitHub Pages in the settings.
+-   **AWS S3:** Sync the project files to an S3 bucket and configure it for static website hosting. Use CloudFront for SSL and caching.
+
+### Server Configuration
+
+#### Nginx
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+    root /path/to/your/project;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.js$ {
+        add_header Content-Type application/javascript;
+    }
+}
+```
+
+#### Apache (.htaccess)
+```apache
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.html [QSA,L]
+
+AddType application/javascript .js
+```
+
+## 4. Core Components (API)
 
 ### `RetirementCalculatorApp` (`js/app.js`)
 This is the main class that controls the application's lifecycle and user interactions.
 
--   **`constructor()`**: Initializes all core components, including the simulator, theme manager, and onboarding system.
+-   **`constructor()`**: Initializes all core components.
 -   **`initializeApp()`**: Sets up event listeners, loads saved data, and performs the initial calculation.
--   **`collectInputs()`**: Gathers all values from the form fields and returns a comprehensive `inputs` object. This object is the primary data source for all calculations.
--   **`calculateRetirement()`**: The main calculation function. It runs the simulation, generates results, and updates all the UI components and dashboards.
--   **`runSuggestionEngine()`**: Generates and displays the actionable recommendations and quick wins.
+-   **`collectInputs()`**: Gathers all values from the form fields and returns a comprehensive `inputs` object.
+-   **`calculateRetirement()`**: The main calculation function that runs the simulation and updates the UI.
+-   **`runSuggestionEngine()`**: Generates and displays actionable recommendations.
 -   **`runMonteCarloSimulation()`**: Runs the detailed Monte Carlo analysis.
 
 ### `RetirementSimulator` (`js/simulator.js`)
 The core calculation engine.
 
--   **`simulateRetirement(inputs, useMonteCarloVar)`**: Runs a deterministic (non-random) simulation to produce a year-by-year projection of your finances.
--   **`runMonteCarloSimulation(inputs, runs, progressCallback)`**: Runs the Monte Carlo simulation for a specified number of iterations, returning statistical results (success rate, median balance, percentiles).
--   **`runStressTest(inputs, scenario)`**: Applies a predefined stress scenario (e.g., a market crash) to the simulation.
+-   **`simulateRetirement(inputs, useMonteCarloVar)`**: Runs a deterministic simulation.
+-   **`runMonteCarloSimulation(inputs, runs, progressCallback)`**: Runs the Monte Carlo simulation. Returns a `Promise<MonteCarloResult>`.
+-   **`runStressTest(inputs, scenario)`**: Applies a predefined stress scenario.
 -   **`calculateRiskCapacity(inputs)`**: Calculates the user's financial ability to take on risk.
 
 ### `SuggestionEngine` (`js/suggestion-engine.js`)
 Generates financial advice.
 
--   **`generateSuggestions()`**: The main method that produces an array of suggestion objects. Each object contains a title, description, priority, and the specific modifications required to implement the suggestion.
--   **`getHealthCheckMetrics()`**: Returns the data for the Health Check Dashboard.
+-   **`generateSuggestions()`**: The main method that produces an array of suggestion objects.
+-   **`getHealthCheckMetrics()`**: Returns data for the Health Check Dashboard.
 -   **`generateActionableRiskAnalysis(monteCarloResults)`**: Generates the top 3 improvements for the risk analysis section.
 
 ### `ContextualIntelligenceSystem` (`js/contextual-intelligence.js`)
-Provides personalized, real-time feedback to the user.
+Provides personalized, real-time feedback.
 
--   **`analyzeUserPersona(inputs)`**: Analyzes the user's inputs to determine their primary and secondary retirement personas (e.g., "High Earner," "Late Starter").
--   **`calculateConfidenceScore(inputs)`**: Calculates the readiness score based on the completeness and quality of the user's data.
--   **`generateContextualAlerts(inputs, persona)`**: Generates alerts for potential risks or issues in the user's plan.
--   **`generateContextualGuidance(inputs, confidenceScore)`**: Provides smart tips on what the user should do next.
+-   **`analyzeUserPersona(inputs)`**: Determines the user's retirement persona.
+-   **`calculateConfidenceScore(inputs)`**: Calculates the readiness score.
+-   **`generateContextualAlerts(inputs, persona)`**: Generates alerts for potential risks.
+-   **`generateContextualGuidance(inputs, confidenceScore)`**: Provides smart tips.
 
 ### `OnboardingSystem` (`js/onboarding.js`)
 Manages the initial data collection for new users.
 
--   **`constructor()`**: Checks if the user is in onboarding mode and initializes the UI accordingly.
--   **`nextOnboardingStep(currentStep)`**: Collects data from the current step and moves to the next.
--   **`completeOnboarding()`**: Transfers all collected data to the main calculator and triggers the first calculation.
+-   **`constructor()`**: Initializes the onboarding UI.
+-   **`completeOnboarding()`**: Transfers collected data to the main calculator.
 
 ### `Configuration` (`js/config.js`)
-This file is central to the calculator's accuracy and contains all the key financial parameters.
+This file is central to the calculator's accuracy.
 
--   **`ENHANCED_CONFIG`**: The main export, an object containing all configuration data.
--   **`SUPER_GUARANTEE_RATE`**: Currently set to `0.12` (12%).
--   **`TAX_BRACKETS`**: An array of objects defining the 2025-26 Australian tax brackets.
--   **`MARKET_REGIMES`**: Contains historical data and probabilities for different market conditions (interest rates, property cycles, equity markets).
--   **`STRESS_SCENARIOS`**: Defines the parameters for historical stress tests.
--   **`DEFAULTS`**: A nested object containing all the default values for the calculator's input fields.
+-   **`ENHANCED_CONFIG`**: The main export containing all configuration data.
+-   **`SUPER_GUARANTEE_RATE`**: Set to `0.12` (12%).
+-   **`TAX_BRACKETS`**: Defines the 2025-26 Australian tax brackets.
+-   **`MARKET_REGIMES`**: Contains historical data and probabilities for market conditions.
+-   **`STRESS_SCENARIOS`**: Defines parameters for historical stress tests.
+-   **`DEFAULTS`**: Contains default values for all input fields.
 
-## 4. Development Workflow
+## 5. Development Workflow
 
-### Running Tests
-The project includes a suite of verification functions in the `Verification Steps` section of this guide. To run them:
-1.  Open the application in your browser.
-2.  Open the developer console.
-3.  You can paste the verification snippets into the console to test specific functionalities like module loading, DOM element presence, and calculations.
+### Running Tests & Verification
+The project uses a set of verification functions that can be run from the browser console.
+
+**1. Basic Functionality Test:**
+```javascript
+// Test module loading
+import('./js/config.js').then(() => console.log('✅ Modules loading correctly')).catch(err => console.error('❌ Module loading failed:', err));
+
+// Test for presence of required DOM elements
+const requiredElements = ['yourCurrentAge', 'retirementAge', 'btnCalculate'];
+const missing = requiredElements.filter(id => !document.getElementById(id));
+if (missing.length === 0) console.log('✅ All required DOM elements present');
+else console.error('❌ Missing DOM elements:', missing);
+```
+
+**2. Calculation Test:**
+```javascript
+async function testCalculation() {
+  if (!window.app) { console.error('App not initialized'); return; }
+  try {
+    const inputs = window.app.collectInputs();
+    const result = window.app.simulator.simulateRetirement(inputs, false);
+    if (result && result.finalBalance) {
+      console.log('✅ Deterministic calculation successful. Final Balance:', result.finalBalance);
+    } else {
+      console.error('❌ Deterministic calculation failed.');
+    }
+  } catch (error) {
+    console.error('❌ Calculation test failed:', error);
+  }
+}
+testCalculation();
+```
+
+**3. Performance Benchmark:**
+```javascript
+async function performanceBenchmark() {
+  if (!window.app) { console.error('App not initialized'); return; }
+  console.log('=== Performance Benchmark ===');
+  const inputs = window.app.collectInputs();
+  const startTime = performance.now();
+  await window.app.simulator.runMonteCarloSimulation(inputs, 1000);
+  const duration = performance.now() - startTime;
+  console.log(`1000 Monte Carlo runs: ${duration.toFixed(0)}ms`);
+  if (duration > 5000) console.warn('⚠️ Performance concern: 1000 runs took > 5s');
+}
+performanceBenchmark();
+```
 
 ### Coding Conventions
 -   Follow the existing code style (ES6 modules, classes, JSDoc comments).
--   When adding new financial parameters, add them to `js/config.js` to ensure they are centralized.
--   Ensure any new UI elements are accessible and have appropriate ARIA attributes.
+-   Centralize all financial parameters in `js/config.js`.
+-   Ensure new UI elements are accessible and follow existing design patterns.
 
-## 5. Troubleshooting
+## 6. Troubleshooting
 
--   **ES6 Module Errors:** Ensure you are serving the project over HTTP, not opening the `index.html` file directly.
+-   **ES6 Module Errors:** Ensure you are serving the project over HTTP, not opening the `index.html` file directly. This is the most common setup issue.
 -   **CORS Errors:** If you are fetching data from an external API (not currently implemented), you will need to configure CORS on the server or use a proxy.
--   **Calculation Errors:** Check the browser's developer console for any JavaScript errors. The most common cause is invalid or missing data in the `inputs` object. Use `console.log(inputs)` in `app.js` to inspect the data being used for calculations.
+-   **Calculation Errors:** Check the browser's developer console for JavaScript errors. The most common cause is invalid or missing data in the `inputs` object. Use `console.log(window.app.collectInputs())` to inspect the data being used.
 -   **Outdated Financial Data:** All financial constants are in `js/config.js`. If tax laws or other regulations change, this is the first place to update.
+-   **Port Already in Use:** If your server fails to start, another application may be using the port. Try a different port, e.g., `npm start -- --port=8081` or `python -m http.server 8081`.

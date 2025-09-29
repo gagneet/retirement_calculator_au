@@ -33,7 +33,7 @@ Welcome to the Enhanced Australian Retirement Calculator! This guide will walk y
 
 When you first open the calculator, you are greeted with a welcome page.
 
-`[Screenshot of the main welcome page with "New User" and "Returning User" buttons]`
+`[Screenshot 01-landing-page.png: The main welcome page showing the "New User" and "Returning User" buttons and the overall modern layout.]`
 
 ### New Users: Guided Onboarding
 
@@ -56,8 +56,16 @@ If you have used the calculator before and saved your data, click the **"Returni
 
 After onboarding, you'll have access to the main dashboard, where you can fine-tune your inputs.
 
+`[Screenshot 02-risk-profile-banner.png: The risk profile banner at the top showing the three-dimensional risk assessment (Capacity, Tolerance, Requirement).]`
+
 ### Input Sections
-The left-hand side of the dashboard contains all your financial details. You can update any of these values at any time. The key sections include:
+The left-hand side of the dashboard contains all your financial details. You can update any of these values at any time.
+
+`[Screenshot 03-personal-info.png: The personal information input section.]`
+`[Screenshot 04-financial-assets.png: The financial assets input section.]`
+`[Screenshot 05-investment-property.png: The detailed investment property section, including the location dropdown.]`
+
+The key sections include:
 -   **Personal Details:** Ages, retirement timeline, and lifespan expectations.
 -   **Financial Details:** Salaries, super balances, savings, and investments.
 -   **Property Details:** Your home and investment property information.
@@ -67,6 +75,8 @@ The left-hand side of the dashboard contains all your financial details. You can
 ### Running a Calculation
 Whenever you change an input, you can click the **"Calculate Enhanced Projection"** button to update your results. The dashboard will update instantly with new insights.
 
+`[Screenshot 07-generate-recommendations-button.png: The prominent "Generate AI Recommendations" button, possibly showing the progress bar during analysis.]`
+
 ## 3. Understanding Your Results
 
 After running a calculation, the results are displayed in a series of easy-to-understand dashboards.
@@ -74,7 +84,7 @@ After running a calculation, the results are displayed in a series of easy-to-un
 ### Comprehensive Results Dashboard
 This is the first thing you'll see. It provides a high-level overview of your retirement readiness.
 
-`[Screenshot of the Comprehensive Results Dashboard]`
+`[Screenshot 08-comprehensive-recommendations.png: The comprehensive recommendations interface, showing summary statistics and grouped recommendations.]`
 
 -   **Total Assets:** Your projected total assets at retirement.
 -   **Years Left:** The number of years until your planned retirement.
@@ -84,7 +94,7 @@ This is the first thing you'll see. It provides a high-level overview of your re
 ### Persona Insights
 Based on your inputs, the calculator assigns you a **Retirement Persona**.
 
-`[Screenshot of the Persona Insights section, e.g., "High Earner"]`
+`[Screenshot of the Persona Insights section, e.g., "High Earner" or "Late Starter".]`
 
 This helps you understand your financial situation in a relatable way and provides key strategies tailored to your profile (e.g., "Tax-Effective Wealth Building" for a High Earner).
 
@@ -96,7 +106,7 @@ The calculator's intelligence system provides real-time alerts and guidance.
 ### Health Check Dashboard
 This dashboard gives you a quick visual check on key areas of your financial health.
 
-`[Screenshot of the Health Check Dashboard with green, yellow, red indicators]`
+`[Screenshot of the Health Check Dashboard with green, yellow, red indicators for metrics like Savings Rate, Pension Optimization, etc.]`
 
 Metrics include:
 -   **Savings Rate:** Are you saving enough?
@@ -110,13 +120,16 @@ For more detailed analysis, you can explore the various tabs at the top of the r
 
 ### Charts & Visualizations
 This tab provides graphical representations of your retirement plan.
+
+`[Screenshot 17-comprehensive-charts.png: The main charts tab showing multiple visualizations like Asset Allocation, Healthcare Costs, and Age Pension eligibility.]`
+
 -   **Income Breakdown Chart:** A stacked area chart showing where your income will come from in retirement (e.g., Super Drawdown, Age Pension, Investment Income).
 -   **Monte Carlo Fan Chart:** Shows the range of possible outcomes for your portfolio, illustrating the best-case, worst-case, and most likely scenarios.
 
 ### Actionable Risk Analysis
 This powerful tool shows you the top 3 actions you can take to improve your plan's success rate.
 
-`[Screenshot of the Actionable Risk Analysis with top 3 improvements]`
+`[Screenshot of the Actionable Risk Analysis with top 3 improvements, showing the impact on success rate.]`
 
 For each suggestion, it shows:
 -   The potential improvement to your success rate.
@@ -125,11 +138,13 @@ For each suggestion, it shows:
 ### Scenario Comparison Matrix
 This feature allows you to compare different "what-if" scenarios side-by-side. For example, you can see how retiring two years earlier or increasing your savings rate would affect your final outcome.
 
+`[Screenshot 23-scenario-comparison-ai.png: The scenario comparison matrix showing different scenarios and their outcomes.]`
+
 ## 5. Your Personalized Action Plan
 
 After analyzing your data, the system generates a timeline-based action plan.
 
-`[Screenshot of the Final Action Plan]`
+`[Screenshot of the Final Action Plan, showing the different phases.]`
 
 This plan is broken down into:
 -   **Phase 1: Immediate Actions (Next 30 Days):** Quick wins that have a high impact.
@@ -142,13 +157,19 @@ This plan is broken down into:
 ### Monte Carlo Simulation
 You can run a detailed Monte Carlo simulation by clicking the **"Run Enhanced Monte Carlo"** button in the "Advanced Calculator" section. This simulates thousands of possible market conditions to test the robustness of your plan.
 
+`[Screenshot 15-monte-carlo-with-recs.png: The Monte Carlo fan chart, showing the probability distributions.]`
+
 ### Stress Testing
 The **"Run Stress Test Scenarios"** feature subjects your plan to historical financial crises, like the Global Financial Crisis or a major property market correction, to see how it holds up.
 
 ## 7. Data Management
 
 ### Exporting Your Plan
-You can export your results at any time using the export button. Options include:
+You can export your results at any time using the export button.
+
+`[Screenshot 18-export-options.png: The export dropdown menu showing PDF, XLSX, CSV, and JSON options.]`
+
+Options include:
 -   **PDF:** A comprehensive, easy-to-read report.
 -   **XLSX (Excel):** A detailed spreadsheet with all your data and charts.
 -   **CSV:** Raw data for use in other tools.
