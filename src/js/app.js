@@ -156,7 +156,14 @@ class RetirementCalculatorApp {
 
         if (calculatorContainer) {
             calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            showNotification('Welcome back! You can start using the advanced calculator directly.', 'info');
+            showNotification('Welcome back! You can start using the advanced calculator directly, or use the menu to load your saved data.', 'info');
+
+            // Automatically trigger data import option
+            setTimeout(() => {
+                if (confirm('Would you like to load your previously saved data?')) {
+                    this.importUserInputs();
+                }
+            }, 1500);
         }
     }
 
@@ -4679,23 +4686,55 @@ class RetirementCalculatorApp {
             btnRunComparison.addEventListener('click', () => this.runScenarioComparison());
         }
 
-        // Export dropdown functionality
+        // Export dropdown functionality - delay to ensure DOM is ready
+        setTimeout(() => {
+            this.setupExportDropdowns();
+        }, 100);
+    }
+
+    setupExportDropdowns() {
         const btnExport = $('btnExport');
         const exportDropdown = $('exportDropdown');
 
         console.log('Export button setup:', { btnExport: !!btnExport, exportDropdown: !!exportDropdown });
+        console.log('Export button element:', btnExport);
+        console.log('Export dropdown element:', exportDropdown);
+
+        if (exportDropdown) {
+            console.log('Export dropdown classes:', exportDropdown.className);
+            console.log('Export dropdown computed style:', window.getComputedStyle(exportDropdown).display);
+        }
 
         if (btnExport && exportDropdown) {
+            // Ensure dropdown is initially hidden with inline styles
+            exportDropdown.style.display = 'none';
+            exportDropdown.classList.add('hidden');
+
             btnExport.addEventListener('click', (e) => {
                 console.log('Export button clicked!');
                 e.preventDefault();
                 e.stopPropagation();
-                exportDropdown.classList.toggle('hidden');
+
+                // Toggle dropdown visibility with both class and style
+                const isHidden = exportDropdown.style.display === 'none' || exportDropdown.classList.contains('hidden');
+
+                if (isHidden) {
+                    exportDropdown.classList.remove('hidden');
+                    exportDropdown.style.display = 'block';
+                    exportDropdown.style.position = 'absolute';
+                    exportDropdown.style.zIndex = '1000';
+                    console.log('Export dropdown shown');
+                } else {
+                    exportDropdown.classList.add('hidden');
+                    exportDropdown.style.display = 'none';
+                    console.log('Export dropdown hidden');
+                }
             });
 
             document.addEventListener('click', (e) => {
                 if (!exportDropdown.contains(e.target) && !btnExport.contains(e.target)) {
                     exportDropdown.classList.add('hidden');
+                    exportDropdown.style.display = 'none';
                 }
             });
 
@@ -4708,6 +4747,7 @@ class RetirementCalculatorApp {
                     e.preventDefault();
                     this.exportResults('csv');
                     exportDropdown.classList.add('hidden');
+                    exportDropdown.style.display = 'none';
                 });
             }
             if (btnExportXLSX) {
@@ -4715,6 +4755,7 @@ class RetirementCalculatorApp {
                     e.preventDefault();
                     this.exportResults('xlsx');
                     exportDropdown.classList.add('hidden');
+                    exportDropdown.style.display = 'none';
                 });
             }
             if (btnExportPDF) {
@@ -4722,6 +4763,7 @@ class RetirementCalculatorApp {
                     e.preventDefault();
                     this.exportResults('pdf');
                     exportDropdown.classList.add('hidden');
+                    exportDropdown.style.display = 'none';
                 });
             }
         } else {
@@ -4733,17 +4775,44 @@ class RetirementCalculatorApp {
         const exportDropdown2 = $('exportDropdown2');
 
         console.log('Second Export button setup:', { btnExport2: !!btnExport2, exportDropdown2: !!exportDropdown2 });
+        console.log('Second Export button element:', btnExport2);
+        console.log('Second Export dropdown element:', exportDropdown2);
+
+        if (exportDropdown2) {
+            console.log('Second Export dropdown classes:', exportDropdown2.className);
+            console.log('Second Export dropdown computed style:', window.getComputedStyle(exportDropdown2).display);
+        }
 
         if (btnExport2 && exportDropdown2) {
+            // Ensure dropdown is initially hidden with inline styles
+            exportDropdown2.style.display = 'none';
+            exportDropdown2.classList.add('hidden');
+
             btnExport2.addEventListener('click', (e) => {
                 console.log('Second Export button clicked!');
+                e.preventDefault();
                 e.stopPropagation();
-                exportDropdown2.classList.toggle('hidden');
+
+                // Toggle dropdown visibility with both class and style
+                const isHidden = exportDropdown2.style.display === 'none' || exportDropdown2.classList.contains('hidden');
+
+                if (isHidden) {
+                    exportDropdown2.classList.remove('hidden');
+                    exportDropdown2.style.display = 'block';
+                    exportDropdown2.style.position = 'absolute';
+                    exportDropdown2.style.zIndex = '1000';
+                    console.log('Second Export dropdown shown');
+                } else {
+                    exportDropdown2.classList.add('hidden');
+                    exportDropdown2.style.display = 'none';
+                    console.log('Second Export dropdown hidden');
+                }
             });
 
             document.addEventListener('click', (e) => {
                 if (!exportDropdown2.contains(e.target) && !btnExport2.contains(e.target)) {
                     exportDropdown2.classList.add('hidden');
+                    exportDropdown2.style.display = 'none';
                 }
             });
 
@@ -4756,6 +4825,7 @@ class RetirementCalculatorApp {
                     e.preventDefault();
                     this.exportResults('csv');
                     exportDropdown2.classList.add('hidden');
+                    exportDropdown2.style.display = 'none';
                 });
             }
             if (btnExportXLSX2) {
@@ -4763,6 +4833,7 @@ class RetirementCalculatorApp {
                     e.preventDefault();
                     this.exportResults('xlsx');
                     exportDropdown2.classList.add('hidden');
+                    exportDropdown2.style.display = 'none';
                 });
             }
             if (btnExportPDF2) {
@@ -4770,6 +4841,7 @@ class RetirementCalculatorApp {
                     e.preventDefault();
                     this.exportResults('pdf');
                     exportDropdown2.classList.add('hidden');
+                    exportDropdown2.style.display = 'none';
                 });
             }
         }
