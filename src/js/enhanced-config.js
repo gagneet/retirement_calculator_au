@@ -383,6 +383,364 @@ export const ENHANCED_FINANCIAL_CONFIG = {
             console.warn(`Metadata not found for ${category}.${key}`);
         }
         return null;
+    },
+
+    // ===== MONTE CARLO SIMULATION CONSTANTS =====
+    monteCarloSimulation: {
+        _category: "Monte Carlo Simulation Parameters",
+        _description: "Advanced Monte Carlo simulation configuration values",
+        _source: "Financial modeling research and Australian market data",
+
+        ASSET_CORRELATIONS: {
+            EQUITY_BONDS: { value: -0.15, description: "Negative correlation during risk-off periods" },
+            EQUITY_PROPERTY: { value: 0.35, description: "Moderate positive correlation with property" },
+            EQUITY_INTERNATIONAL: { value: 0.75, description: "High correlation with global markets" },
+            EQUITY_CASH: { value: -0.05, description: "Slight negative correlation with cash" },
+            BONDS_PROPERTY: { value: -0.10, description: "Bonds to property correlation" },
+            BONDS_INTERNATIONAL: { value: 0.20, description: "Bonds to international correlation" },
+            BONDS_CASH: { value: 0.30, description: "Bonds to cash positive correlation" },
+            PROPERTY_INTERNATIONAL: { value: 0.25, description: "Property to international correlation" },
+            PROPERTY_CASH: { value: -0.05, description: "Property to cash correlation" }
+        },
+
+        VOLATILITY_CLUSTERING: {
+            BASE_VOLATILITY: { value: 0.15, description: "Base volatility assumption" },
+            HIGH_VOLATILITY_PERSISTENCE: { value: 0.7, description: "70% chance to stay in high volatility" },
+            LOW_VOLATILITY_PERSISTENCE: { value: 0.6, description: "60% chance to stay in low volatility" },
+            HIGH_VOLATILITY_MULTIPLIER: { value: 1.8, description: "High volatility period multiplier" },
+            LOW_VOLATILITY_MULTIPLIER: { value: 0.6, description: "Low volatility period multiplier" },
+            VOLATILITY_NOISE: { value: 0.2, description: "Random noise in volatility calculations" },
+            HIGH_VOLATILITY_PROBABILITY: { value: 0.15, description: "Probability of entering high volatility" },
+            LOW_VOLATILITY_PROBABILITY: { value: 0.1, description: "Probability of entering low volatility (0.25 - 0.15)" }
+        },
+
+        RETURN_CALCULATIONS: {
+            BOND_VOLATILITY: { value: 0.08, description: "Bond return volatility" },
+            BOND_VOLATILITY_ADJUSTMENT: { value: 0.5, description: "Bond volatility adjustment factor" },
+            PROPERTY_BASE_VOLATILITY: { value: 0.12, description: "Property base volatility" },
+            CASH_VOLATILITY: { value: 0.005, description: "Cash return volatility" },
+            NORMAL_RATE_BASELINE: { value: 0.045, description: "Normal interest rate baseline (4.5%)" },
+            EQUITY_RATE_SENSITIVITY: { value: -0.8, description: "Equity sensitivity to rate changes" },
+            PROPERTY_RATE_SENSITIVITY: { value: -1.5, description: "Property sensitivity to rate changes" },
+            BOND_DURATION: { value: 5, description: "Assumed portfolio bond duration" },
+            EQUITY_SPILLOVER_THRESHOLD_POSITIVE: { value: 0.15, description: "Equity return threshold for positive spillover" },
+            EQUITY_SPILLOVER_THRESHOLD_NEGATIVE: { value: -0.15, description: "Equity return threshold for negative spillover" },
+            EQUITY_SPILLOVER_BOOST: { value: 0.02, description: "2% boost to property from strong equity" },
+            EQUITY_SPILLOVER_DRAG: { value: -0.01, description: "1% drag on property from weak equity" }
+        },
+
+        RETURN_CAPS: {
+            EQUITY_MAX: { value: 0.8, description: "Maximum equity return cap (80%)" },
+            EQUITY_MIN: { value: -0.6, description: "Minimum equity return floor (-60%)" },
+            BONDS_MAX: { value: 0.4, description: "Maximum bond return cap (40%)" },
+            BONDS_MIN: { value: -0.3, description: "Minimum bond return floor (-30%)" },
+            PROPERTY_MAX: { value: 0.5, description: "Maximum property return cap (50%)" },
+            PROPERTY_MIN: { value: -0.4, description: "Minimum property return floor (-40%)" }
+        },
+
+        REGIME_TRANSITIONS: {
+            EQUITY_REGIME_CHANGE_PROBABILITY: { value: 0.2, description: "20% chance of equity regime change each year" },
+            NORMAL_REGIME_BIAS: { value: 1.5, description: "Bias factor toward normal regime" },
+            REGIME_DURATION_NOISE: { value: 1, description: "Random noise in regime duration" }
+        },
+
+        BASE_RETURN_ASSUMPTIONS: {
+            BOND_MULTIPLIER: { value: 0.6, description: "Bond return as 60% of equity expected return" },
+            PROPERTY_MULTIPLIER: { value: 0.8, description: "Property return as 80% of equity expected return" },
+            CASH_BASE_RETURN: { value: 0.03, description: "Cash base return assumption (3%)" }
+        },
+
+        CONFIDENCE_INTERVALS: {
+            CI80_LOWER: { value: 0.1, description: "80% confidence interval lower bound (10th percentile)" },
+            CI80_UPPER: { value: 0.9, description: "80% confidence interval upper bound (90th percentile)" },
+            CI90_LOWER: { value: 0.05, description: "90% confidence interval lower bound (5th percentile)" },
+            CI90_UPPER: { value: 0.95, description: "90% confidence interval upper bound (95th percentile)" },
+            CI95_LOWER: { value: 0.025, description: "95% confidence interval lower bound (2.5th percentile)" },
+            CI95_UPPER: { value: 0.975, description: "95% confidence interval upper bound (97.5th percentile)" }
+        },
+
+        TAIL_RISK_PERCENTILES: {
+            EXPECTED_SHORTFALL_99: { value: 0.99, description: "99% expected shortfall calculation" },
+            EXPECTED_SHORTFALL_95: { value: 0.95, description: "95% expected shortfall calculation" },
+            EXPECTED_SHORTFALL_90: { value: 0.90, description: "90% expected shortfall calculation" }
+        },
+
+        SCENARIO_PERCENTILES: {
+            PESSIMISTIC: { value: 0.1, description: "10th percentile for pessimistic scenario" },
+            MEDIAN: { value: 0.5, description: "50th percentile for median scenario" },
+            OPTIMISTIC: { value: 0.9, description: "90th percentile for optimistic scenario" }
+        }
+    },
+
+    // ===== HEALTHCARE AND AGED CARE DETAILED CONFIG =====
+    healthcareDetailed: {
+        _category: "Healthcare Cost Modeling - Detailed Data",
+        _description: "2024-2025 Australian healthcare costs and aged care projections",
+        _source: "ABS, AIHW, Department of Health, Aged Care Financing Authority",
+        _lastUpdated: "2025-01-15",
+
+        PRIVATE_HEALTH_INSURANCE_PREMIUMS: {
+            SINGLE_BASIC: { value: 1200, description: "Basic hospital cover - single", currency: "AUD/year" },
+            SINGLE_STANDARD: { value: 1920, description: "Average comprehensive cover - single", currency: "AUD/year" },
+            SINGLE_PREMIUM: { value: 3500, description: "Top tier cover with extras - single", currency: "AUD/year" },
+            COUPLE_BASIC: { value: 2400, description: "Basic hospital cover - couple", currency: "AUD/year" },
+            COUPLE_STANDARD: { value: 3840, description: "Average comprehensive cover - couple", currency: "AUD/year" },
+            COUPLE_PREMIUM: { value: 7000, description: "Top tier cover with extras - couple", currency: "AUD/year" },
+            FAMILY_BASIC: { value: 3600, description: "Basic hospital cover - family", currency: "AUD/year" },
+            FAMILY_STANDARD: { value: 5760, description: "Average comprehensive cover - family", currency: "AUD/year" },
+            FAMILY_PREMIUM: { value: 10500, description: "Top tier cover with extras - family", currency: "AUD/year" }
+        },
+
+        HEALTHCARE_INFLATION_RATES_DETAILED: {
+            GENERAL_HEALTHCARE: { value: 0.04, description: "4% general health inflation", source: "ABS" },
+            PRIVATE_INSURANCE: { value: 0.0373, description: "3.73% private insurance increases", source: "ABS" },
+            MEDICAL_SERVICES: { value: 0.059, description: "5.9% medical and hospital services", source: "ABS" },
+            AGED_CARE: { value: 0.065, description: "6.5% aged care specific inflation", source: "AIHW" },
+            PHARMACEUTICALS: { value: 0.035, description: "3.5% PBS medicines", source: "PBS data" },
+            DENTAL: { value: 0.055, description: "5.5% dental services", source: "ABS" },
+            ALLIED_HEALTH: { value: 0.045, description: "4.5% allied health services", source: "ABS" }
+        },
+
+        OUT_OF_POCKET_COSTS_BY_AGE: {
+            AGE_55_64: {
+                ANNUAL: { value: 2800, description: "Total annual out-of-pocket (age 55-64)" },
+                GP: { value: 450, description: "GP out-of-pocket costs" },
+                SPECIALIST: { value: 850, description: "Specialist out-of-pocket costs" },
+                DENTAL: { value: 650, description: "Dental out-of-pocket costs" },
+                ALLIED: { value: 400, description: "Allied health out-of-pocket costs" },
+                PHARMACEUTICALS: { value: 450, description: "Pharmaceutical out-of-pocket costs" }
+            },
+            AGE_65_74: {
+                ANNUAL: { value: 3800, description: "Total annual out-of-pocket (age 65-74)" },
+                GP: { value: 650, description: "GP out-of-pocket costs" },
+                SPECIALIST: { value: 1200, description: "Specialist out-of-pocket costs" },
+                DENTAL: { value: 800, description: "Dental out-of-pocket costs" },
+                ALLIED: { value: 600, description: "Allied health out-of-pocket costs" },
+                PHARMACEUTICALS: { value: 550, description: "Pharmaceutical out-of-pocket costs" }
+            },
+            AGE_75_84: {
+                ANNUAL: { value: 5200, description: "Total annual out-of-pocket (age 75-84)" },
+                GP: { value: 950, description: "GP out-of-pocket costs" },
+                SPECIALIST: { value: 1650, description: "Specialist out-of-pocket costs" },
+                DENTAL: { value: 900, description: "Dental out-of-pocket costs" },
+                ALLIED: { value: 850, description: "Allied health out-of-pocket costs" },
+                PHARMACEUTICALS: { value: 850, description: "Pharmaceutical out-of-pocket costs" }
+            },
+            AGE_85_PLUS: {
+                ANNUAL: { value: 6800, description: "Total annual out-of-pocket (age 85+)" },
+                GP: { value: 1200, description: "GP out-of-pocket costs" },
+                SPECIALIST: { value: 2100, description: "Specialist out-of-pocket costs" },
+                DENTAL: { value: 950, description: "Dental out-of-pocket costs" },
+                ALLIED: { value: 1200, description: "Allied health out-of-pocket costs" },
+                PHARMACEUTICALS: { value: 1350, description: "Pharmaceutical out-of-pocket costs" }
+            }
+        },
+
+        AGED_CARE_2025_COSTS: {
+            AVERAGE_RAD: { value: 470000, description: "Average Refundable Accommodation Deposit", source: "Aged Care Financing Authority" },
+            MAXIMUM_RAD: { value: 750000, description: "Maximum RAD from 1 Jan 2025", source: "Australian Government" },
+            MPIR_RATE: { value: 0.0778, description: "Maximum Permissible Interest Rate (July 2025)" },
+            MPIR_RATE_OCT: { value: 0.0761, description: "Rate from October 2025" },
+            BASIC_DAILY_FEE: { value: 59.77, description: "Per day basic fee (Sept 2025)", currency: "AUD/day" },
+            MAXIMUM_MEANS_TESTED_FEE: { value: 319.69, description: "Per day maximum means tested fee", currency: "AUD/day" },
+            ACCOMMODATION_SUPPLEMENT: { value: 67.40, description: "Per day for low means residents", currency: "AUD/day" },
+            LIFETIME_CAP: { value: 130000, description: "Lifetime cap on home care contributions", currency: "AUD" }
+        },
+
+        HOME_CARE_PACKAGE_COSTS: {
+            LEVEL_1: { value: 9500, description: "Basic services package", currency: "AUD/year" },
+            LEVEL_2: { value: 17000, description: "Low level services package", currency: "AUD/year" },
+            LEVEL_3: { value: 34000, description: "Intermediate services package", currency: "AUD/year" },
+            LEVEL_4: { value: 52000, description: "High care services package", currency: "AUD/year" }
+        },
+
+        AGED_CARE_PROBABILITIES: {
+            MALE_SINGLE_PROBABILITY_65: { value: 0.05, description: "Male single probability at age 65" },
+            MALE_SINGLE_PROBABILITY_85: { value: 0.45, description: "Male single probability at age 85" },
+            FEMALE_SINGLE_PROBABILITY_65: { value: 0.06, description: "Female single probability at age 65" },
+            FEMALE_SINGLE_PROBABILITY_85: { value: 0.52, description: "Female single probability at age 85" },
+            MALE_AVERAGE_AGE: { value: 82, description: "Average age males enter aged care" },
+            MALE_AVERAGE_DURATION: { value: 2.8, description: "Average duration for males (years)" },
+            FEMALE_AVERAGE_AGE: { value: 85, description: "Average age females enter aged care" },
+            FEMALE_AVERAGE_DURATION: { value: 3.2, description: "Average duration for females (years)" }
+        },
+
+        CONDITION_COST_MULTIPLIERS: {
+            DIABETES: { value: 1.2, description: "Cost multiplier for diabetes" },
+            CARDIOVASCULAR: { value: 1.3, description: "Cost multiplier for cardiovascular conditions" },
+            ARTHRITIS: { value: 1.1, description: "Cost multiplier for arthritis" },
+            MENTAL_HEALTH: { value: 1.15, description: "Cost multiplier for mental health conditions" },
+            CANCER: { value: 1.5, description: "Cost multiplier for cancer treatment" },
+            AGE_85_MULTIPLIER: { value: 1.3, description: "Age-based multiplier for 85+" },
+            AGE_75_MULTIPLIER: { value: 1.15, description: "Age-based multiplier for 75+" },
+            MAX_CONDITION_MULTIPLIER: { value: 2.5, description: "Maximum condition cost multiplier cap" }
+        },
+
+        HOME_CARE_PROGRESSION: {
+            START_AGE: { value: 70, description: "Typical home care start age" },
+            LEVEL_1_DURATION: { value: 1.5, description: "Level 1 care duration (years)" },
+            LEVEL_2_DURATION: { value: 2.0, description: "Level 2 care duration (years)" },
+            LEVEL_3_DURATION: { value: 2.5, description: "Level 3 care duration (years)" },
+            LEVEL_4_DURATION: { value: 2.0, description: "Level 4 care duration (years)" },
+            HOME_CARE_PERCENTAGE: { value: 0.8, description: "80% of those needing care start with home care" },
+            RESIDENTIAL_CARE_PERCENTAGE: { value: 0.3, description: "30% of those needing care go to residential" }
+        },
+
+        AGED_CARE_MEANS_TEST: {
+            HIGH_MEANS_THRESHOLD_ASSETS: { value: 1000000, description: "High means test asset threshold" },
+            HIGH_MEANS_THRESHOLD_INCOME: { value: 100000, description: "High means test income threshold" },
+            LOW_MEANS_THRESHOLD_ASSETS: { value: 300000, description: "Low means test asset threshold" },
+            LOW_MEANS_THRESHOLD_INCOME: { value: 50000, description: "Low means test income threshold" },
+            HIGH_MEANS_CONTRIBUTION_RATE: { value: 0.8, description: "High means contribution rate (80%)" },
+            BASE_CONTRIBUTION_RATE: { value: 0.5, description: "Base contribution rate (50%)" },
+            FULL_PENSIONER_CONTRIBUTION_RATE: { value: 0.175, description: "Full pensioner contribution rate (17.5%)" }
+        }
+    },
+
+    // ===== PROPERTY ANALYSIS CONSTANTS =====
+    propertyAnalysis: {
+        _category: "Property Analysis Parameters",
+        _description: "Australian property market data and transaction costs",
+        _source: "Property market research, real estate data",
+
+        CAPITAL_CITY_GROWTH_RATES: {
+            SYDNEY: { value: 0.065, description: "6.5% long-term average growth rate" },
+            MELBOURNE: { value: 0.058, description: "5.8% long-term average growth rate" },
+            BRISBANE: { value: 0.072, description: "7.2% strong growth market" },
+            PERTH: { value: 0.063, description: "6.3% recovering market" },
+            ADELAIDE: { value: 0.069, description: "6.9% strong performer" },
+            HOBART: { value: 0.054, description: "5.4% maturing market" },
+            DARWIN: { value: 0.041, description: "4.1% challenging market" },
+            CANBERRA: { value: 0.067, description: "6.7% stable government market" },
+            NATIONAL: { value: 0.061, description: "6.1% national average" }
+        },
+
+        RENTAL_YIELDS: {
+            SYDNEY: { value: 0.029, description: "2.9% gross rental yield" },
+            MELBOURNE: { value: 0.033, description: "3.3% gross rental yield" },
+            BRISBANE: { value: 0.042, description: "4.2% gross rental yield" },
+            PERTH: { value: 0.038, description: "3.8% gross rental yield" },
+            ADELAIDE: { value: 0.041, description: "4.1% gross rental yield" },
+            HOBART: { value: 0.045, description: "4.5% gross rental yield" },
+            DARWIN: { value: 0.052, description: "5.2% gross rental yield" },
+            CANBERRA: { value: 0.035, description: "3.5% gross rental yield" },
+            NATIONAL: { value: 0.038, description: "3.8% national average yield" }
+        },
+
+        TRANSACTION_COSTS_DETAILED: {
+            STAMP_DUTY_AVERAGE: { value: 0.035, description: "~3.5% average across states" },
+            LEGAL_FEES_BUYING: { value: 1500, description: "Legal and conveyancing fees", currency: "AUD" },
+            INSPECTION_COSTS: { value: 800, description: "Building and pest inspection", currency: "AUD" },
+            LOAN_ESTABLISHMENT: { value: 1200, description: "Mortgage establishment fees", currency: "AUD" },
+            BUYING_OTHER_COSTS: { value: 1000, description: "Moving, insurance, etc.", currency: "AUD" },
+            AGENT_COMMISSION: { value: 0.025, description: "2.5% real estate agent commission" },
+            MARKETING_COSTS: { value: 5000, description: "Marketing and advertising", currency: "AUD" },
+            LEGAL_FEES_SELLING: { value: 1200, description: "Conveyancing fees", currency: "AUD" },
+            SELLING_OTHER_COSTS: { value: 800, description: "Styling, repairs, etc.", currency: "AUD" }
+        },
+
+        PROPERTY_INVESTMENT_ASSUMPTIONS: {
+            DEPOSIT_PERCENTAGE: { value: 0.2, description: "20% deposit requirement" },
+            INVESTMENT_LOAN_RATE: { value: 0.065, description: "6.5% investment loan interest rate" },
+            LOAN_TERM_YEARS: { value: 30, description: "30-year loan term" },
+            PROPERTY_RATES: { value: 0.01, description: "1% of property value for rates" },
+            PROPERTY_INSURANCE: { value: 1200, description: "Annual property insurance", currency: "AUD" },
+            MAINTENANCE_PERCENTAGE: { value: 0.01, description: "1% maintenance costs" },
+            PROPERTY_MANAGEMENT_RATE: { value: 0.08, description: "8% property management fees" },
+            VACANCY_ALLOWANCE: { value: 0.04, description: "4% vacancy allowance" },
+            RENTAL_GROWTH_RATE: { value: 0.03, description: "3% annual rent growth" },
+            HOLDING_COSTS_PERCENTAGE: { value: 0.02, description: "2% of value annually (rates, insurance, maintenance)" }
+        },
+
+        ANALYSIS_THRESHOLDS: {
+            MINIMUM_INVESTMENT_CAPITAL: { value: 100000, description: "Minimum capital for property investment" },
+            AVAILABLE_CAPITAL_RATIO: { value: 0.7, description: "Use 70% of liquid assets for investment" },
+            CAPITAL_BUFFER_YEARS: { value: 2, description: "2 years of monthly investments as buffer" },
+            CONCENTRATION_RISK_THRESHOLD: { value: 0.4, description: "40% property allocation risk threshold" },
+            HIGH_LVR_THRESHOLD: { value: 0.6, description: "60% LVR high leverage threshold" },
+            LOW_YIELD_THRESHOLD: { value: 0.03, description: "3% low rental yield threshold" },
+            NEGATIVE_CASHFLOW_THRESHOLD: { value: -10000, description: "Concerning negative cash flow level" },
+            PROPERTY_PURCHASE_GROWTH_ASSUMPTION: { value: 0.7, description: "Assume 30% growth if no purchase price provided" }
+        },
+
+        STRATEGY_SCORING: {
+            HIGH_NET_BENEFIT_THRESHOLD: { value: 50000, description: "High net benefit threshold for sell scenarios" },
+            EXCELLENT_RETURN_THRESHOLD: { value: 0.08, description: "8% excellent return threshold" },
+            GOOD_RETURN_THRESHOLD: { value: 0.06, description: "6% good return threshold" },
+            POSITIVE_CASHFLOW_BONUS: { value: 20, description: "Bonus points for positive cash flow" },
+            MARKET_TIMING_BONUS: { value: 10, description: "Bonus points for market timing" },
+            VALUE_ADD_BONUS: { value: 10, description: "Bonus points for value-add strategy" },
+            IMPROVEMENT_COST_EXAMPLE: { value: 50000, description: "Example improvement cost" },
+            IMPROVEMENT_VALUE_EXAMPLE: { value: 80000, description: "Example improvement value add" },
+            MARKET_PEAK_GROWTH: { value: 1.12, description: "12% growth to market peak assumption" },
+            MARKET_PEAK_YEARS: { value: 3.5, description: "3.5 years to market peak estimation" }
+        },
+
+        ALTERNATIVE_INVESTMENT_ASSUMPTIONS: {
+            SHARE_MARKET_RETURN: { value: 0.07, description: "7% average return in diversified share portfolio" },
+            ALTERNATIVE_INVESTMENT_THRESHOLD: { value: 1.2, description: "20% better returns threshold for sell recommendation" }
+        },
+
+        AFFORDABILITY_THRESHOLDS: {
+            CASH_FLOW_MANAGEABLE_RATIO: { value: 0.1, description: "Cash flow should be <10% of available capital annually" }
+        }
+    },
+
+    // ===== PERSONA INTELLIGENCE CONSTANTS =====
+    personaIntelligence: {
+        _category: "Persona-Based Intelligence Parameters",
+        _description: "Constants for persona detection and recommendation scoring",
+        _source: "Financial planning research and behavioral finance",
+
+        PERSONA_SCORING: {
+            AGE_SCORE_WEIGHT: { value: 25, description: "Weight for age criteria matching" },
+            INCOME_SCORE_WEIGHT: { value: 20, description: "Weight for income criteria matching" },
+            SUPER_SCORE_WEIGHT: { value: 15, description: "Weight for super criteria matching" },
+            NET_WORTH_SCORE_WEIGHT: { value: 15, description: "Weight for net worth criteria matching" },
+            RETIREMENT_SCORE_WEIGHT: { value: 15, description: "Weight for retirement timeline criteria" },
+            DEPENDENTS_SCORE_WEIGHT: { value: 20, description: "Weight for dependents criteria matching" },
+            PROPERTY_SCORE_WEIGHT: { value: 20, description: "Weight for property ownership criteria" },
+            PROPERTY_VALUE_BONUS: { value: 10, description: "Bonus for meeting property value criteria" }
+        },
+
+        RECOMMENDATION_THRESHOLDS: {
+            HIGH_INCOME_SUPER_THRESHOLD: { value: 90000, description: "High income threshold for super optimization" },
+            SUPER_PERCENTAGE_THRESHOLD: { value: 0.6, description: "Super as % of assets threshold (60%)" },
+            POTENTIAL_CONTRIBUTION_PERCENTAGE: { value: 0.1, description: "10% of income as potential super contribution" },
+            MAX_CONCESSIONAL_CONTRIBUTION: { value: 27500, description: "Maximum concessional super contribution limit" },
+            HIGH_MARGINAL_TAX_THRESHOLD: { value: 0.3, description: "30% marginal tax rate threshold" },
+            TAX_SAVING_PERCENTAGE: { value: 0.05, description: "5% potential tax savings calculation" },
+            LIFE_INSURANCE_MULTIPLIER: { value: 8, description: "8x annual income for life insurance recommendation" },
+            EMERGENCY_FUND_MONTHS: { value: 6, description: "6 months expenses for emergency fund" },
+            EMERGENCY_FUND_BASE_AMOUNT: { value: 5000, description: "Base amount for emergency fund calculation" }
+        },
+
+        INVESTMENT_STRATEGY_THRESHOLDS: {
+            LONG_TIME_HORIZON: { value: 15, description: "15+ years considered long-term investment horizon" },
+            HIGH_RISK_CAPACITY: { value: 60, description: "Risk capacity score threshold for aggressive allocation" },
+            AGGRESSIVE_EQUITY_ALLOCATION: { value: 80, description: "80-90% equity for aggressive investors" },
+            SUCCESS_RATE_IMPROVEMENT_THRESHOLD: { value: 0.8, description: "80% success rate target" },
+            RETIREMENT_RISK_REDUCTION_HORIZON: { value: 10, description: "Start risk reduction 10 years before retirement" }
+        },
+
+        PRIORITY_SCORING: {
+            HIGH_PRIORITY_SCORE: { value: 100, description: "Base score for high priority recommendations" },
+            MEDIUM_PRIORITY_SCORE: { value: 60, description: "Base score for medium priority recommendations" },
+            LOW_PRIORITY_SCORE: { value: 30, description: "Base score for low priority recommendations" },
+            IMMEDIATE_TIMEFRAME_BONUS: { value: 50, description: "Bonus for immediate action items" },
+            NEXT_REVIEW_TIMEFRAME_BONUS: { value: 30, description: "Bonus for next review items" },
+            SIX_MONTH_TIMEFRAME_BONUS: { value: 20, description: "Bonus for 6-month timeframe items" },
+            GRADUAL_TIMEFRAME_BONUS: { value: 10, description: "Bonus for gradual implementation items" },
+            EASY_DIFFICULTY_BONUS: { value: 20, description: "Bonus for easy implementation" },
+            MODERATE_DIFFICULTY_BONUS: { value: 10, description: "Bonus for moderate difficulty" },
+            COMPLEX_DIFFICULTY_BONUS: { value: 5, description: "Bonus for complex implementation" },
+            PERSONA_RELEVANCE_BONUS: { value: 25, description: "Bonus for persona-relevant recommendations" }
+        },
+
+        TAX_CALCULATIONS: {
+            SUPER_TAX_RATE: { value: 0.15, description: "15% super contributions tax rate" },
+            TOP_MARGINAL_TAX_RATE: { value: 0.45, description: "45% top marginal tax rate fallback" }
+        }
     }
 };
 

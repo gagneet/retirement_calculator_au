@@ -2917,6 +2917,12 @@ export class OnboardingWizard {
             wizard.style.display = 'none';
         }
 
+        // Show the action buttons container that contains all calculator buttons
+        const actionButtonsContainer = document.getElementById('action-buttons-container');
+        if (actionButtonsContainer) {
+            actionButtonsContainer.classList.remove('hidden');
+        }
+
         // If results tabs exist, show advanced tab
         if ($('results-tabs')) {
             this.showResultsTab('advanced');

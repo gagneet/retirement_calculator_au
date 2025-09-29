@@ -12,6 +12,8 @@ import { ScenarioComparisonMatrix } from './scenario-matrix.js';
 import { PersonaIntelligenceEngine } from './persona-intelligence.js';
 import { HealthcareModelingEngine } from './healthcare-modeling.js';
 import { PropertyAnalysisEngine } from './property-analysis.js';
+import { RiskProfilingEngine } from './risk-profiling-engine.js';
+import { DynamicAllocationEngine } from './dynamic-allocation-engine.js';
 import {
     $,
     safeGetValue,
@@ -47,6 +49,8 @@ class RetirementCalculatorApp {
         this.personaIntelligence = new PersonaIntelligenceEngine(this.simulator);
         this.healthcareModeling = new HealthcareModelingEngine();
         this.propertyAnalysis = new PropertyAnalysisEngine();
+        this.riskProfiling = new RiskProfilingEngine();
+        this.dynamicAllocation = new DynamicAllocationEngine();
         this.onboardingWizard = null; // Will be initialized after DOM is ready
         this.currentResults = null;
         this.isCalculating = false;
@@ -1490,6 +1494,416 @@ class RetirementCalculatorApp {
         } finally {
             this.isCalculating = false;
         }
+    }
+
+    // Advanced three-dimensional risk profiling analysis
+    async runAdvancedRiskProfiling() {
+        if (this.isCalculating) return;
+
+        this.isCalculating = true;
+
+        try {
+            const inputs = this.collectInputs();
+
+            updateProgress(20, "Analyzing risk capacity...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Get current Monte Carlo results if available
+            const monteCarloResults = this.currentResults?.monteCarlo || null;
+
+            updateProgress(40, "Assessing risk tolerance...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Generate comprehensive risk profile
+            const riskProfile = this.riskProfiling.generateRiskProfileSummary(inputs, monteCarloResults);
+
+            updateProgress(80, "Generating risk recommendations...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Display results
+            this.displayAdvancedRiskProfile(riskProfile);
+
+            updateProgress(100, "Risk analysis complete!");
+
+        } catch (error) {
+            console.error('Risk profiling error:', error);
+            showError('Failed to complete risk analysis. Please try again.');
+        } finally {
+            this.isCalculating = false;
+        }
+    }
+
+    // Dynamic asset allocation optimization analysis
+    async runDynamicAllocationAnalysis() {
+        if (this.isCalculating) return;
+
+        this.isCalculating = true;
+
+        try {
+            const inputs = this.collectInputs();
+
+            updateProgress(20, "Analyzing current allocation...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Get risk profile if not already generated
+            let riskProfile = null;
+            if (this.currentResults?.riskProfile) {
+                riskProfile = this.currentResults.riskProfile;
+            } else {
+                updateProgress(40, "Determining risk profile...");
+                riskProfile = this.riskProfiling.generateRiskProfileSummary(inputs, this.currentResults?.monteCarlo);
+            }
+
+            updateProgress(60, "Optimizing asset allocation...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Generate optimal allocation strategy
+            const allocationStrategy = this.dynamicAllocation.generateAllocationSummary(inputs, riskProfile);
+
+            updateProgress(80, "Creating rebalancing plan...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Display results
+            this.displayDynamicAllocationStrategy(allocationStrategy);
+
+            updateProgress(100, "Allocation analysis complete!");
+
+        } catch (error) {
+            console.error('Dynamic allocation error:', error);
+            showError('Failed to complete allocation analysis. Please try again.');
+        } finally {
+            this.isCalculating = false;
+        }
+    }
+
+    // Display advanced risk profiling results
+    displayAdvancedRiskProfile(riskProfile) {
+        const resultsContainer = $('results');
+        if (!resultsContainer) return;
+
+        const riskContainer = document.createElement('div');
+        riskContainer.className = 'bg-white rounded-lg shadow-lg p-6 mt-6';
+        riskContainer.id = 'riskProfilingResults';
+
+        const dimensionColors = {
+            capacity: 'blue',
+            tolerance: 'green',
+            requirement: 'purple'
+        };
+
+        riskContainer.innerHTML = `
+            <div class="border-b border-gray-200 pb-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Advanced Risk Analysis</h2>
+                        <p class="text-gray-600 mt-1">Three-dimensional risk assessment with personalized recommendations</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-${riskProfile.overallRiskProfile === 'aggressive' ? 'red' :
+                            riskProfile.overallRiskProfile === 'growth' ? 'orange' :
+                            riskProfile.overallRiskProfile === 'balanced' ? 'blue' :
+                            riskProfile.overallRiskProfile === 'conservative' ? 'green' : 'gray'}-600">
+                            ${riskProfile.riskScore}/100
+                        </div>
+                        <div class="text-sm text-gray-600 uppercase tracking-wide">
+                            ${riskProfile.overallRiskProfile.replace('_', ' ')} Investor
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            Confidence: ${riskProfile.confidenceLevel}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Dimensions -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                ${Object.entries(riskProfile.dimensions).map(([dimension, data]) => `
+                    <div class="bg-${dimensionColors[dimension]}-50 border border-${dimensionColors[dimension]}-200 p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold text-${dimensionColors[dimension]}-800 capitalize">${dimension.replace('_', ' ')}</h4>
+                            <div class="text-2xl font-bold text-${dimensionColors[dimension]}-600">${data.score}/100</div>
+                        </div>
+                        <div class="text-sm text-${dimensionColors[dimension]}-700 mb-2">${data.level.replace('_', ' ').toUpperCase()}</div>
+
+                        ${data.strengths && data.strengths.length > 0 ? `
+                            <div class="mb-2">
+                                <div class="text-xs font-medium text-green-700 mb-1">Strengths:</div>
+                                <div class="text-xs text-green-600">
+                                    ${data.strengths.map(s => s.replace('_', ' ')).join(', ')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${data.weaknesses && data.weaknesses.length > 0 ? `
+                            <div>
+                                <div class="text-xs font-medium text-red-700 mb-1">Areas for Improvement:</div>
+                                <div class="text-xs text-red-600">
+                                    ${data.weaknesses.map(w => w.replace('_', ' ')).join(', ')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('')}
+            </div>
+
+            <!-- Risk Misalignment Analysis -->
+            ${riskProfile.misalignment && riskProfile.misalignment.severity !== 'low' ? `
+                <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold text-yellow-800 mb-3">
+                        ⚠️ Risk Dimension ${riskProfile.misalignment.severity === 'high' ? 'Misalignment' : 'Considerations'}
+                    </h4>
+                    <div class="text-sm text-yellow-700 mb-3">
+                        Your risk dimensions show a ${riskProfile.misalignment.range.toFixed(0)}-point spread, indicating ${riskProfile.misalignment.severity} alignment between your capacity, tolerance, and requirements.
+                    </div>
+                    ${riskProfile.misalignment.conflicts && riskProfile.misalignment.conflicts.length > 0 ? `
+                        <div class="space-y-2">
+                            ${riskProfile.misalignment.conflicts.map(conflict => `
+                                <div class="bg-white p-3 rounded border-l-4 border-yellow-400">
+                                    <div class="font-medium text-yellow-800">${conflict.description}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            ` : ''}
+
+            <!-- Optimal Allocation -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4">Recommended Asset Allocation</h4>
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="text-center p-3 bg-blue-50 rounded">
+                        <div class="text-2xl font-bold text-blue-600">${riskProfile.optimalAllocation.equity}%</div>
+                        <div class="text-sm text-gray-600">Growth Assets</div>
+                        <div class="text-xs text-gray-500">Stocks, Property REITs</div>
+                    </div>
+                    <div class="text-center p-3 bg-green-50 rounded">
+                        <div class="text-2xl font-bold text-green-600">${riskProfile.optimalAllocation.bonds}%</div>
+                        <div class="text-sm text-gray-600">Defensive Assets</div>
+                        <div class="text-xs text-gray-500">Bonds, Fixed Income</div>
+                    </div>
+                    <div class="text-center p-3 bg-yellow-50 rounded">
+                        <div class="text-2xl font-bold text-yellow-600">${riskProfile.optimalAllocation.cash}%</div>
+                        <div class="text-sm text-gray-600">Cash Assets</div>
+                        <div class="text-xs text-gray-500">Term Deposits, Savings</div>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-700 bg-white p-3 rounded">
+                    <strong>Expected Performance:</strong><br>
+                    • Annual Return: ${(riskProfile.optimalAllocation.expectedReturn * 100).toFixed(1)}%<br>
+                    • Volatility: ${(riskProfile.optimalAllocation.expectedVolatility * 100).toFixed(1)}%<br>
+                    • ${riskProfile.optimalAllocation.rationale}
+                </div>
+            </div>
+
+            <!-- Top Recommendations -->
+            ${riskProfile.topRecommendations && riskProfile.topRecommendations.length > 0 ? `
+                <div class="bg-purple-50 border border-purple-200 p-4 rounded-lg">
+                    <h4 class="text-lg font-semibold text-purple-800 mb-4">Priority Action Items</h4>
+                    <div class="space-y-3">
+                        ${riskProfile.topRecommendations.map((rec, index) => `
+                            <div class="bg-white p-4 rounded border-l-4 border-purple-400">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="font-medium text-purple-800">${index + 1}. ${rec.title}</div>
+                                        <div class="text-sm text-gray-600 mt-1">${rec.description}</div>
+                                        ${rec.actions ? `
+                                            <ul class="text-sm text-gray-600 mt-2 pl-4">
+                                                ${rec.actions.slice(0, 3).map(action => `<li>• ${action}</li>`).join('')}
+                                            </ul>
+                                        ` : ''}
+                                    </div>
+                                    <div class="ml-4 px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                                        ${rec.priority?.toUpperCase() || 'MEDIUM'}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        `;
+
+        // Remove existing risk results and add new ones
+        const existingRiskResults = $('riskProfilingResults');
+        if (existingRiskResults) {
+            existingRiskResults.remove();
+        }
+
+        resultsContainer.appendChild(riskContainer);
+        riskContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Display dynamic allocation strategy results
+    displayDynamicAllocationStrategy(strategy) {
+        const resultsContainer = $('results');
+        if (!resultsContainer) return;
+
+        const allocationContainer = document.createElement('div');
+        allocationContainer.className = 'bg-white rounded-lg shadow-lg p-6 mt-6';
+        allocationContainer.id = 'dynamicAllocationResults';
+
+        allocationContainer.innerHTML = `
+            <div class="border-b border-gray-200 pb-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Dynamic Asset Allocation Strategy</h2>
+                        <p class="text-gray-600 mt-1">Optimized portfolio management with lifecycle-based allocation</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-blue-600 capitalize">
+                            ${strategy.strategy.name.replace('_', ' ')}
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            ${strategy.strategy.description}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            Confidence: ${strategy.confidence}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Recommended Allocation -->
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Recommended Portfolio Allocation</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                    <div class="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-blue-600">${strategy.currentAllocation.equity}%</div>
+                            <div class="text-sm font-medium text-blue-800">Growth Assets</div>
+                            <div class="text-xs text-blue-600 mt-1">
+                                Australian & International Shares, Property REITs
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-green-600">${strategy.currentAllocation.bonds}%</div>
+                            <div class="text-sm font-medium text-green-800">Defensive Assets</div>
+                            <div class="text-xs text-green-600 mt-1">
+                                Government & Corporate Bonds, Fixed Income
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 rounded-lg border border-yellow-200">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-yellow-600">${strategy.currentAllocation.cash}%</div>
+                            <div class="text-sm font-medium text-yellow-800">Cash Assets</div>
+                            <div class="text-xs text-yellow-600 mt-1">
+                                High Interest Savings, Term Deposits
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expected Performance Metrics -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4">Expected Portfolio Performance</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center p-3 bg-white rounded">
+                        <div class="text-xl font-bold text-blue-600">${strategy.expectedMetrics.expectedReturn}</div>
+                        <div class="text-sm text-gray-600">Annual Return</div>
+                    </div>
+                    <div class="text-center p-3 bg-white rounded">
+                        <div class="text-xl font-bold text-orange-600">${strategy.expectedMetrics.expectedVolatility}</div>
+                        <div class="text-sm text-gray-600">Volatility</div>
+                    </div>
+                    <div class="text-center p-3 bg-white rounded">
+                        <div class="text-xl font-bold text-green-600">${strategy.expectedMetrics.sharpeRatio}</div>
+                        <div class="text-sm text-gray-600">Sharpe Ratio</div>
+                    </div>
+                    <div class="text-center p-3 bg-white rounded">
+                        <div class="text-xl font-bold text-red-600">${strategy.expectedMetrics.maxDrawdown}</div>
+                        <div class="text-sm text-gray-600">Max Drawdown</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rebalancing Plan -->
+            <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
+                <h4 class="text-lg font-semibold text-blue-800 mb-3">Rebalancing Strategy</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <div class="font-medium text-blue-700">Frequency</div>
+                        <div class="text-sm text-blue-600 capitalize">${strategy.rebalancingPlan.frequency.replace('_', ' ')}</div>
+                    </div>
+                    <div>
+                        <div class="font-medium text-blue-700">Method</div>
+                        <div class="text-sm text-blue-600 capitalize">${strategy.rebalancingPlan.method.replace('_', ' ')}</div>
+                    </div>
+                    <div>
+                        <div class="font-medium text-blue-700">Next Review</div>
+                        <div class="text-sm text-blue-600">
+                            ${strategy.rebalancingPlan.nextReview ? new Date(strategy.rebalancingPlan.nextReview).toLocaleDateString() : 'Within 3 months'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tactical Adjustments -->
+            ${strategy.tacticalAdjustments && strategy.tacticalAdjustments.length > 0 ? `
+                <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold text-yellow-800 mb-3">Current Market Adjustments</h4>
+                    <div class="space-y-2">
+                        ${strategy.tacticalAdjustments.map(adj => `
+                            <div class="bg-white p-3 rounded border-l-4 border-yellow-400">
+                                <div class="font-medium text-yellow-800">${adj.type.replace('_', ' ').toUpperCase()}</div>
+                                <div class="text-sm text-gray-600">${adj.description}</div>
+                                <div class="text-xs text-gray-500 mt-1">Confidence: ${(adj.confidence * 100).toFixed(0)}%</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Implementation Steps -->
+            ${strategy.implementationSteps && strategy.implementationSteps.length > 0 ? `
+                <div class="bg-green-50 border border-green-200 p-4 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold text-green-800 mb-4">Implementation Roadmap</h4>
+                    <div class="space-y-3">
+                        ${strategy.implementationSteps.map((step, index) => `
+                            <div class="bg-white p-4 rounded border-l-4 border-green-400">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center mb-2">
+                                            <div class="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3">
+                                                ${index + 1}
+                                            </div>
+                                            <div class="font-medium text-green-800">${step.title}</div>
+                                        </div>
+                                        <div class="text-sm text-gray-600 ml-9">${step.description}</div>
+                                    </div>
+                                    <div class="ml-4 text-right">
+                                        <div class="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full mb-1">
+                                            ${step.priority?.toUpperCase() || 'MEDIUM'}
+                                        </div>
+                                        <div class="text-xs text-gray-500 capitalize">${step.timeline?.replace('_', ' ') || 'Soon'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Strategy Rationale -->
+            <div class="bg-purple-50 border border-purple-200 p-4 rounded-lg">
+                <h4 class="text-lg font-semibold text-purple-800 mb-3">Strategy Rationale</h4>
+                <div class="text-sm text-purple-700 leading-relaxed">
+                    ${strategy.rationale}
+                </div>
+            </div>
+        `;
+
+        // Remove existing allocation results and add new ones
+        const existingAllocationResults = $('dynamicAllocationResults');
+        if (existingAllocationResults) {
+            existingAllocationResults.remove();
+        }
+
+        resultsContainer.appendChild(allocationContainer);
+        allocationContainer.scrollIntoView({ behavior: 'smooth' });
     }
 
     // Display healthcare analysis results
@@ -4195,6 +4609,18 @@ class RetirementCalculatorApp {
         const btnHealthcareAnalysis = $('btnHealthcareAnalysis');
         if (btnHealthcareAnalysis) {
             btnHealthcareAnalysis.addEventListener('click', () => this.runHealthcareAnalysis());
+        }
+
+        // Risk profiling button
+        const btnRiskProfiling = $('btnRiskProfiling');
+        if (btnRiskProfiling) {
+            btnRiskProfiling.addEventListener('click', () => this.runAdvancedRiskProfiling());
+        }
+
+        // Dynamic allocation button
+        const btnDynamicAllocation = $('btnDynamicAllocation');
+        if (btnDynamicAllocation) {
+            btnDynamicAllocation.addEventListener('click', () => this.runDynamicAllocationAnalysis());
         }
 
         // Stress test button

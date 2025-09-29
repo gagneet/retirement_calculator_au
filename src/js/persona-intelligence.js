@@ -276,6 +276,7 @@ export class PersonaIntelligenceEngine {
         const scores = {};
 
         // Score each persona based on matching criteria
+        const scoring = this.financialConfig.personaIntelligence.PERSONA_SCORING;
         for (const [personaKey, persona] of Object.entries(this.personas)) {
             let score = 0;
             const criteria = persona.criteria;
@@ -283,7 +284,7 @@ export class PersonaIntelligenceEngine {
             // Age criteria
             if (criteria.age) {
                 if (userAge >= (criteria.age.min || 0) && userAge <= (criteria.age.max || 100)) {
-                    score += 25;
+                    score += scoring.AGE_SCORE_WEIGHT.value;
                 }
             }
 
@@ -291,41 +292,41 @@ export class PersonaIntelligenceEngine {
             if (criteria.income) {
                 if (totalIncome >= (criteria.income.min || 0) &&
                     totalIncome <= (criteria.income.max || Infinity)) {
-                    score += 20;
+                    score += scoring.INCOME_SCORE_WEIGHT.value;
                 }
             }
 
             // Super criteria
             if (criteria.super && totalSuper >= (criteria.super.min || 0)) {
-                score += 15;
+                score += scoring.SUPER_SCORE_WEIGHT.value;
             }
 
             // Net worth criteria
             if (criteria.netWorth && netWorth >= (criteria.netWorth.min || 0)) {
-                score += 15;
+                score += scoring.NET_WORTH_SCORE_WEIGHT.value;
             }
 
             // Years to retirement criteria
             if (criteria.yearsToRetirement) {
                 if (yearsToRetirement <= (criteria.yearsToRetirement.max || Infinity) &&
                     yearsToRetirement >= (criteria.yearsToRetirement.min || 0)) {
-                    score += 15;
+                    score += scoring.RETIREMENT_SCORE_WEIGHT.value;
                 }
             }
 
             // Dependents criteria
             if (criteria.dependents && dependents >= (criteria.dependents.min || 0)) {
-                score += 20;
+                score += scoring.DEPENDENTS_SCORE_WEIGHT.value;
             }
 
             // Investment property criteria
             if (criteria.hasInvestmentProperty && inputs.hasInvestmentProperty) {
-                score += 20;
+                score += scoring.PROPERTY_SCORE_WEIGHT.value;
             }
 
             if (criteria.propertyValue && inputs.hasInvestmentProperty &&
                 (inputs.propertyValue || 0) >= (criteria.propertyValue.min || 0)) {
-                score += 10;
+                score += scoring.PROPERTY_VALUE_BONUS.value;
             }
 
             scores[personaKey] = score;
@@ -439,10 +440,12 @@ export class PersonaIntelligenceEngine {
         const recommendations = [];
         const totalIncome = userProfile.financial.totalIncome;
         const superPercentage = userProfile.financial.superPercentage;
+        const thresholds = this.financialConfig.personaIntelligence.RECOMMENDATION_THRESHOLDS;
+        const taxCalc = this.financialConfig.personaIntelligence.TAX_CALCULATIONS;
 
-        if (totalIncome > 90000 && superPercentage < 0.6) {
-            const potentialContribution = Math.min(27500, totalIncome * 0.1);
-            const taxSaving = potentialContribution * (this.getMarginalTaxRate(totalIncome) - 0.15);
+        if (totalIncome > thresholds.HIGH_INCOME_SUPER_THRESHOLD.value && superPercentage < thresholds.SUPER_PERCENTAGE_THRESHOLD.value) {
+            const potentialContribution = Math.min(thresholds.MAX_CONCESSIONAL_CONTRIBUTION.value, totalIncome * thresholds.POTENTIAL_CONTRIBUTION_PERCENTAGE.value);
+            const taxSaving = potentialContribution * (this.getMarginalTaxRate(totalIncome) - taxCalc.SUPER_TAX_RATE.value);
 
             recommendations.push({
                 category: "super_optimization",
@@ -478,12 +481,13 @@ export class PersonaIntelligenceEngine {
         const timeHorizon = userProfile.riskProfile.timeHorizon;
 
         // Asset allocation recommendations
-        if (timeHorizon > 15 && riskCapacity > 60 && persona.characteristics.riskTolerance === "high") {
+        const investmentThresholds = this.financialConfig.personaIntelligence.INVESTMENT_STRATEGY_THRESHOLDS;
+        if (timeHorizon > investmentThresholds.LONG_TIME_HORIZON.value && riskCapacity > investmentThresholds.HIGH_RISK_CAPACITY.value && persona.characteristics.riskTolerance === "high") {
             recommendations.push({
                 category: "investment_strategy",
                 priority: "high",
                 title: "Aggressive Growth Allocation",
-                description: `With ${timeHorizon} years to retirement, consider 80-90% equity allocation for maximum long-term growth potential.`,
+                description: `With ${timeHorizon} years to retirement, consider ${investmentThresholds.AGGRESSIVE_EQUITY_ALLOCATION.value}-90% equity allocation for maximum long-term growth potential.`,
                 impact: "Higher expected returns with increased volatility",
                 difficulty: "easy",
                 timeframe: "next_rebalance",
