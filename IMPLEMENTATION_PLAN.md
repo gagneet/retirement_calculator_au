@@ -9,17 +9,17 @@
 
 ## Phase Overview
 
-**Phase 1 (4-6 weeks):** Trust & Transparency - Address fundamental user concerns
-**Phase 2 (3-4 weeks):** Decision Support - Enable scenario planning and comparison
-**Phase 3 (4-5 weeks):** Advanced Features - Regulatory compliance and sophisticated modeling
-**Phase 4 (2-3 weeks):** Polish & Testing - Production readiness
+**Phase 1:** Trust & Transparency - Address fundamental user concerns
+**Phase 2:** Decision Support - Enable scenario planning and comparison
+**Phase 3:** Advanced Features - Regulatory compliance and sophisticated modeling
+**Phase 4:** Polish & Testing - Production readiness
 
 Each phase delivers complete, shippable features that solve real user problems.
 
 ---
 
 ## PHASE 1: TRUST & TRANSPARENCY
-**Duration:** 4-6 weeks
+**Duration:** 4-6 hours
 **Priority:** P0 - Critical
 **Goal:** Fix fundamental trust issues that cause users to abandon retirement calculators
 
@@ -29,7 +29,7 @@ Each phase delivers complete, shippable features that solve real user problems.
 **User Evidence:** *"The problem with most of the calculators online is they don't allow you to reduce your expenditure over time!"* ([Whirlpool Forums](https://forums.whirlpool.net.au/archive/9yqmlwn7))
 
 **Implementation Tasks:**
-- [ ] Create expandable "Show Assumptions" UI panel
+- [ ] Create an expandable "Show Assumptions" UI panel
 - [ ] Make all financial assumptions user-editable (returns, inflation, fees, life expectancy)
 - [ ] Add "MoneySmart Defaults" and "Custom" presets
 - [ ] Real-time recalculation when assumptions change
@@ -83,7 +83,7 @@ Each phase delivers complete, shippable features that solve real user problems.
 ---
 
 ## PHASE 2: DECISION SUPPORT
-**Duration:** 3-4 weeks
+**Duration:** 30 minutes - 2 hors
 **Priority:** P1 - High Impact
 **Dependencies:** Phase 1 complete
 **Goal:** Enable users to make informed retirement decisions through comparison tools
@@ -147,7 +147,7 @@ Each phase delivers complete, shippable features that solve real user problems.
 ---
 
 ## PHASE 3: ADVANCED FEATURES
-**Duration:** 4-5 weeks
+**Duration:** 45 minutes - 1 hour
 **Priority:** P1/P2 - Nice to Have
 **Dependencies:** Phase 1-2 complete
 **Goal:** Serve sophisticated users and ensure regulatory compliance
@@ -211,7 +211,7 @@ Each phase delivers complete, shippable features that solve real user problems.
 ---
 
 ## PHASE 4: POLISH & PRODUCTION
-**Duration:** 2-3 weeks
+**Duration:** 30-90 minutes
 **Priority:** P1 - Production Readiness
 **Dependencies:** Core features complete
 **Goal:** Ensure reliability, performance, and user experience quality
