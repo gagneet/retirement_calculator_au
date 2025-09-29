@@ -18,7 +18,7 @@ export const ENHANCED_CONFIG = {
     DOWNSIZER_CONTRIBUTION_COUPLE: 600000,
     UNUSED_CAP_THRESHOLD: 10000,
 
-    // Enhanced healthcare and aged care costs (2024 values)
+    // Enhanced healthcare and aged care costs (2025 values)
     HEALTHCARE_COSTS: {
         home_package4: 56000,
         residential: 76000,

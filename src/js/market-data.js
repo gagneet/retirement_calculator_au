@@ -10,7 +10,7 @@ export class MarketDataEngine {
     initializeHistoricalData() {
         return {
             property: {
-                // Historical annual growth rates by city (2020-2024 average)
+                // Historical annual growth rates by city (2020-2025 average)
                 sydney: { avgGrowth: 0.035, volatility: 0.15, currentCycle: 'recovery' },
                 melbourne: { avgGrowth: 0.028, volatility: 0.12, currentCycle: 'recovery' },
                 brisbane: { avgGrowth: 0.084, volatility: 0.18, currentCycle: 'growth' },
