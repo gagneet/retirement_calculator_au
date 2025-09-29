@@ -115,6 +115,11 @@ export class OnboardingWizard {
         this.showStep(1);
     }
 
+    startOnboarding() {
+        // Method to start the onboarding process - called by the main app
+        this.init();
+    }
+
     createWizardHTML() {
         // Check if main container exists, if not create it
         let container = $('onboarding-container');
@@ -1355,11 +1360,118 @@ export class OnboardingWizard {
             wizard.style.display = 'none';
         }
 
-        // Show the new tab structure with Results and Advanced Calculator
-        this.createResultsTabs();
+        // Show the Enhanced Summary container
+        const enhancedSummaryContainer = $('enhanced-summary-container');
+        if (enhancedSummaryContainer) {
+            enhancedSummaryContainer.classList.remove('hidden');
+            this.populateEnhancedSummary();
+        }
+
+        // Show the Action Buttons container (which now includes all the buttons)
+        const actionButtonsContainer = $('action-buttons-container');
+        if (actionButtonsContainer) {
+            actionButtonsContainer.classList.remove('hidden');
+        }
 
         // Populate the Advanced Calculator with onboarding data
         this.populateAdvancedCalculator();
+    }
+
+    populateEnhancedSummary() {
+        const enhancedSummaryContent = $('enhanced-summary-content');
+        if (!enhancedSummaryContent) return;
+
+        // Calculate basic retirement projections using the existing data
+        const basicResults = this.calculateBasicRetirementProjection();
+
+        enhancedSummaryContent.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">💰 Current Financial Position</h3>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span>Total Super:</span>
+                            <span class="font-medium">$${basicResults.currentSuper.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Total Savings:</span>
+                            <span class="font-medium">$${basicResults.currentSavings.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Annual Income:</span>
+                            <span class="font-medium">$${basicResults.annualIncome.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Living Expenses:</span>
+                            <span class="font-medium">$${basicResults.monthlyLivingExpenses.toLocaleString()}/month</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">🎯 Retirement Goals</h3>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span>Your Current Age:</span>
+                            <span class="font-medium">${basicResults.userAge} years</span>
+                        </div>
+                        ${basicResults.partnerAge && basicResults.maritalStatus !== 'single' ?
+                            `<div class="flex justify-between">
+                                <span>Partner Age:</span>
+                                <span class="font-medium">${basicResults.partnerAge} years</span>
+                            </div>` : ''
+                        }
+                        <div class="flex justify-between">
+                            <span>Target Retirement Age:</span>
+                            <span class="font-medium">${basicResults.retirementAge}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Desired Income:</span>
+                            <span class="font-medium">$${basicResults.desiredIncome.toLocaleString()}/year</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Years to Go:</span>
+                            <span class="font-medium">${basicResults.yearsToRetirement} years</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">📊 Quick Assessment</h3>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span>Confidence Level:</span>
+                            <span class="font-medium ${basicResults.confidence >= 70 ? 'text-green-600' : basicResults.confidence >= 50 ? 'text-yellow-600' : 'text-red-600'}">${basicResults.confidence}%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Risk Tolerance:</span>
+                            <span class="font-medium">${basicResults.riskTolerance}/10</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Status:</span>
+                            <span class="font-medium ${basicResults.onTrack ? 'text-green-600' : 'text-red-600'}">${basicResults.onTrack ? 'On Track' : 'Needs Work'}</span>
+                        </div>
+                        <div class="pt-2 border-t border-gray-200">
+                            <div class="text-xs text-gray-600 mb-1">Money Longevity:</div>
+                            <div class="font-medium text-xs ${basicResults.moneyLongevity.type === 'surplus' ? 'text-green-600' : 'text-red-600'}">
+                                ${basicResults.moneyLongevity.message}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
+                <h3 class="text-lg font-semibold text-blue-800 mb-2">🚀 Next Steps</h3>
+                <p class="text-blue-700 mb-3">Your onboarding data has been transferred to the Advanced Calculator below. Use the action buttons to:</p>
+                <ul class="text-sm text-blue-600 space-y-1">
+                    <li>• Run detailed simulations and stress tests</li>
+                    <li>• Compare different retirement scenarios</li>
+                    <li>• Optimize your investment allocation</li>
+                    <li>• Export your complete retirement plan</li>
+                </ul>
+            </div>
+        `;
     }
 
     createResultsTabs() {
@@ -1619,6 +1731,13 @@ export class OnboardingWizard {
         // Calculate total assets
         const totalAssets = futureSuper + futureSavings + futureInvestments + accessibleHomeEquity + propertyEquity;
 
+        // Calculate monthly living expenses using the same logic as the existing calculator
+        const annualIncome = data.finances.income.salary + (data.finances.income.partnerSalary || 0);
+        const monthlySalary = annualIncome / 12;
+        const savingsRate = 0.15; // Default 15% savings rate from existing calculator
+        const monthlyLivingExpenses = monthlySalary * (1 - savingsRate);
+        const annualLivingExpenses = monthlyLivingExpenses * 12;
+
         // Calculate income needed (adjusted for inflation)
         const incomeNeeded = data.goals.lifestyleGoals.incomeNeeded * Math.pow(1 + inflation, yearsToRetirement);
 
@@ -1633,6 +1752,9 @@ export class OnboardingWizard {
         const totalDrawdown = incomeNeeded * yearsInRetirement + (agedCareCosts * defaults.healthcare.agedCareDuration);
         const remainingAssets = totalAssets - totalDrawdown;
 
+        // Calculate money duration - when will money run out or what's left at age 120
+        const moneyLongevityAnalysis = this.calculateMoneyLongevity(totalAssets, incomeNeeded, data.household.age, data.household.partnerAge, data.goals.retirementAge, data.household.maritalStatus);
+
         return {
             yearsToRetirement,
             futureSuper: Math.round(futureSuper),
@@ -1645,7 +1767,22 @@ export class OnboardingWizard {
             agedCareCosts: Math.round(agedCareCosts),
             goalMet,
             lifeExpectancy,
-            remainingAssets: Math.round(remainingAssets)
+            remainingAssets: Math.round(remainingAssets),
+            // Additional data for Enhanced Summary
+            currentSuper: data.finances.superannuation.currentBalance,
+            currentSavings: data.finances.emergencyFund + data.finances.otherInvestments.shares,
+            annualIncome: annualIncome,
+            retirementAge: data.goals.retirementAge,
+            desiredIncome: data.goals.lifestyleGoals.incomeNeeded,
+            confidence: this.calculateConfidenceScore(),
+            riskTolerance: data.finances.riskTolerance,
+            onTrack: goalMet,
+            monthlyLivingExpenses: Math.round(monthlyLivingExpenses),
+            annualLivingExpenses: Math.round(annualLivingExpenses),
+            userAge: data.household.age,
+            partnerAge: data.household.partnerAge || null,
+            maritalStatus: data.household.maritalStatus,
+            moneyLongevity: moneyLongevityAnalysis
         };
     }
 
@@ -1654,6 +1791,85 @@ export class OnboardingWizard {
         const futureValue = principal * Math.pow(1 + rate, years);
         const contributionValue = annualContribution * ((Math.pow(1 + rate, years) - 1) / rate);
         return futureValue + contributionValue;
+    }
+
+    calculateConfidenceScore() {
+        const data = this.data;
+        let score = 50; // Base score
+
+        // Age factor - younger people have more time
+        if (data.household.age < 35) score += 15;
+        else if (data.household.age < 45) score += 10;
+        else if (data.household.age < 55) score += 5;
+
+        // Income factor
+        if (data.finances.income.salary > 100000) score += 10;
+        else if (data.finances.income.salary > 70000) score += 5;
+
+        // Super balance factor
+        if (data.finances.superannuation.currentBalance > 200000) score += 15;
+        else if (data.finances.superannuation.currentBalance > 100000) score += 10;
+        else if (data.finances.superannuation.currentBalance > 50000) score += 5;
+
+        // Emergency fund factor
+        if (data.finances.emergencyFund > 20000) score += 10;
+        else if (data.finances.emergencyFund > 10000) score += 5;
+
+        // Property factor
+        if (data.property.homeStatus === 'own') score += 10;
+        else if (data.property.homeStatus === 'mortgage') score += 5;
+
+        // Investment property factor
+        if (data.property.investmentProperty.hasInvestment) score += 10;
+
+        // Risk tolerance factor (balanced is good)
+        if (data.finances.riskTolerance >= 5 && data.finances.riskTolerance <= 7) score += 5;
+
+        return Math.min(Math.max(score, 10), 95); // Cap between 10-95%
+    }
+
+    calculateMoneyLongevity(totalAssets, annualIncomeNeeded, userAge, partnerAge, retirementAge, maritalStatus) {
+        // Constants
+        const MAX_AGE = 120;
+        const currentYear = new Date().getFullYear();
+
+        // Determine the younger person's age (for couples)
+        let youngerAge = userAge;
+        if (partnerAge && maritalStatus !== 'single') {
+            youngerAge = Math.min(userAge, partnerAge);
+        }
+
+        // Calculate years from retirement to age 120 for the younger person
+        const yearsFromRetirementToMax = MAX_AGE - retirementAge;
+        const totalYearsOfRetirement = Math.max(0, yearsFromRetirementToMax);
+
+        // Simple calculation: Total assets / Annual income needed = Years money will last
+        const yearsMoneyWillLast = totalAssets / annualIncomeNeeded;
+
+        // Calculate when money runs out
+        const moneyRunsOutAge = retirementAge + yearsMoneyWillLast;
+
+        if (moneyRunsOutAge >= MAX_AGE) {
+            // Money lasts beyond age 120
+            const yearsToAge120 = MAX_AGE - retirementAge;
+            const totalSpentByAge120 = annualIncomeNeeded * yearsToAge120;
+            const moneyLeftAtAge120 = totalAssets - totalSpentByAge120;
+
+            return {
+                type: 'surplus',
+                moneyLeftAtAge120: Math.round(moneyLeftAtAge120),
+                message: `Money left over at age 120 will be: $${Math.round(moneyLeftAtAge120).toLocaleString()}`
+            };
+        } else {
+            // Money runs out before age 120
+            const runOutAge = Math.round(moneyRunsOutAge);
+
+            return {
+                type: 'deficit',
+                moneyRunsOutAge: runOutAge,
+                message: `Money will be zero at age: ${runOutAge}`
+            };
+        }
     }
 
     generateAdvancedCalculatorContent() {
