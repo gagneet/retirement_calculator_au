@@ -3640,6 +3640,52 @@ class RetirementCalculatorApp {
             });
         }
 
+        // Second Export dropdown functionality (duplicate button fix)
+        const btnExport2 = $('btnExport2');
+        const exportDropdown2 = $('exportDropdown2');
+
+        console.log('Second Export button setup:', { btnExport2: !!btnExport2, exportDropdown2: !!exportDropdown2 });
+
+        if (btnExport2 && exportDropdown2) {
+            btnExport2.addEventListener('click', (e) => {
+                console.log('Second Export button clicked!');
+                e.stopPropagation();
+                exportDropdown2.classList.toggle('hidden');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!exportDropdown2.contains(e.target) && !btnExport2.contains(e.target)) {
+                    exportDropdown2.classList.add('hidden');
+                }
+            });
+
+            const btnExportCSV2 = $('btnExportCSV2');
+            const btnExportXLSX2 = $('btnExportXLSX2');
+            const btnExportPDF2 = $('btnExportPDF2');
+
+            if (btnExportCSV2) {
+                btnExportCSV2.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.exportResults('csv');
+                    exportDropdown2.classList.add('hidden');
+                });
+            }
+            if (btnExportXLSX2) {
+                btnExportXLSX2.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.exportResults('xlsx');
+                    exportDropdown2.classList.add('hidden');
+                });
+            }
+            if (btnExportPDF2) {
+                btnExportPDF2.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.exportResults('pdf');
+                    exportDropdown2.classList.add('hidden');
+                });
+            }
+        }
+
         // User Data Import/Export buttons
         const btnExportUserData = $('btnExportUserData');
         const btnImportUserData = $('btnImportUserData');

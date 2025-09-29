@@ -1771,6 +1771,11 @@ export class OnboardingWizard {
         this.data.property.homeDetails.loanRate = safeGetValue('property-loan-rate') || this.data.property.homeDetails.loanRate;
 
         // Investment property fields
+        const hasInvestmentCheckbox = document.querySelector('#has-investment-property');
+        if (hasInvestmentCheckbox) {
+            this.data.property.investmentProperty.hasInvestment = hasInvestmentCheckbox.checked;
+        }
+
         this.data.property.investmentProperty.details.purchasePrice = safeGetValue('investment-purchase-price') || this.data.property.investmentProperty.details.purchasePrice;
         this.data.property.investmentProperty.details.currentValue = safeGetValue('investment-current-value') || this.data.property.investmentProperty.details.currentValue;
         this.data.property.investmentProperty.details.loanRemaining = safeGetValue('investment-loan-remaining') || this.data.property.investmentProperty.details.loanRemaining;
@@ -2656,15 +2661,18 @@ export class OnboardingWizard {
             // Personal details
             'yourCurrentAge': this.data.household.age,
             'retirementAge': this.data.goals.retirementAge,
-            'yourLifespan': this.data.goals.lifeExpectancy,
+            'yourLifespan': this.data.goals.lifeExpectancy || 85, // Default lifespan if not set
             'riskTolerance': this.data.goals.riskTolerance,
 
+            // Financial Dependents - FIX: Add missing dependents calculation
+            'financialDependents': (this.data.household.dependents?.children || 0) + (this.data.household.dependents?.elderlyParents || 0),
+
             // Partner details (if applicable)
-            'partnerCurrentAge': this.data.household.maritalStatus === 'married' ? this.data.household.partnerAge : 0,
-            'partnerRetirementAge': this.data.household.maritalStatus === 'married' ? this.data.goals.partnerRetirementAge : 0,
-            'partnerLifespan': this.data.household.maritalStatus === 'married' ? this.data.goals.partnerLifeExpectancy : 0,
-            'partnerSalary': this.data.household.maritalStatus === 'married' ? this.data.finances.income.partnerSalary : 0,
-            'partnerCurrentSuper': this.data.household.maritalStatus === 'married' ? this.data.finances.superannuation.partnerCurrentBalance : 0,
+            'partnerCurrentAge': this.data.household.maritalStatus === 'married' ? this.data.household.partnerAge : '',
+            'partnerRetirementAge': this.data.household.maritalStatus === 'married' ? (this.data.goals.partnerRetirementAge || 67) : '',
+            'partnerLifespan': this.data.household.maritalStatus === 'married' ? (this.data.goals.partnerLifeExpectancy || 85) : '',
+            'partnerSalary': this.data.household.maritalStatus === 'married' ? this.data.finances.income.partnerSalary : '',
+            'partnerCurrentSuper': this.data.household.maritalStatus === 'married' ? this.data.finances.superannuation.partnerCurrentBalance : '',
 
             // Financial details
             'yourSalary': this.data.finances.income.salary,
@@ -2675,42 +2683,93 @@ export class OnboardingWizard {
             'percentIncomeSaved': this.data.finances.savingsRate,
 
             // Property details
-            'homeValue': this.data.property.homeStatus !== 'rent' ? this.data.property.homeDetails.currentValue : 0,
-            'mortgageBalance': this.data.property.homeStatus === 'mortgage' ? this.data.property.homeDetails.loanRemaining : 0,
-            'monthlyMortgagePayment': this.data.property.homeStatus === 'mortgage' ? this.data.property.homeDetails.monthlyPayment : 0,
+            'homeValue': this.data.property.homeStatus !== 'rent' ? this.data.property.homeDetails.currentValue : '',
+            'mortgageBalance': this.data.property.homeStatus === 'mortgage' ? this.data.property.homeDetails.loanRemaining : '',
+            'monthlyMortgagePayment': this.data.property.homeStatus === 'mortgage' ? (this.data.property.homeDetails.monthlyPayment || 0) : '',
 
-            // Investment property details
-            'investmentPropertyValue': this.data.property.investmentProperty.hasInvestment ? this.data.property.investmentProperty.details.currentValue : 0,
-            'investmentPropertyLoan': this.data.property.investmentProperty.hasInvestment ? this.data.property.investmentProperty.details.loanRemaining : 0,
-            'weeklyRentalIncome': this.data.property.investmentProperty.hasInvestment ? this.data.property.investmentProperty.details.weeklyRent : 0,
-            'annualPropertyExpenses': this.data.property.investmentProperty.hasInvestment ? this.data.property.investmentProperty.details.expenses : 0,
+            // Investment property details - FIX: Ensure proper value assignment
+            'investmentPropertyValue': this.data.property.investmentProperty.hasInvestment ? this.data.property.investmentProperty.details.currentValue : '',
+            'investmentPropertyLoan': this.data.property.investmentProperty.hasInvestment ? this.data.property.investmentProperty.details.loanRemaining : '',
+            'weeklyRentalIncome': this.data.property.investmentProperty.hasInvestment ? this.data.property.investmentProperty.details.weeklyRent : '',
+            'annualPropertyExpenses': this.data.property.investmentProperty.hasInvestment ? this.data.property.investmentProperty.details.expenses : '',
 
             // Goals and lifestyle
-            'asfaComfortable': this.data.goals.lifestyleGoals.incomeNeeded
+            'asfaComfortable': this.data.goals.lifestyleGoals.incomeNeeded,
+
+            // Percentage fields - need special handling for display
+            'initialInvestmentReturn': this.data.goals.expectedReturns?.initialReturn || 8, // Default 8%
+            'superAnnualGrowth': this.data.goals.expectedReturns?.superGrowth || 7, // Default 7%
+            'annualRealSalaryGrowth': this.data.goals.expectedReturns?.salaryGrowth || 3 // Default 3%
         };
 
         // Populate the form fields
         let fieldsPopulated = 0;
         const fieldsSetByOnboarding = [];
 
+        // Currency fields that need special formatting
+        const currencyFields = new Set([
+            'yourSalary', 'partnerSalary', 'yourCurrentSuper', 'partnerCurrentSuper',
+            'currentSavings', 'currentStocks', 'monthlyStockContribution',
+            'homeValue', 'mortgageBalance', 'monthlyMortgagePayment',
+            'investmentPropertyValue', 'investmentPropertyLoan',
+            'weeklyRentalIncome', 'annualPropertyExpenses', 'asfaComfortable'
+        ]);
+
+        // Percentage fields that need % symbol
+        const percentageFields = new Set([
+            'percentIncomeSaved', 'initialInvestmentReturn',
+            'superAnnualGrowth', 'annualRealSalaryGrowth'
+        ]);
+
         Object.keys(mapping).forEach(fieldId => {
             const value = mapping[fieldId];
-            if (value !== undefined && value !== null && value !== '' && value !== 0) {
+            if (value !== undefined && value !== null && value !== '') {
                 try {
-                    safeSetValue(fieldId, value);
+                    let displayValue = value;
+
+                    // Format currency fields
+                    if (currencyFields.has(fieldId) && typeof value === 'number' && value > 0) {
+                        displayValue = value.toLocaleString('en-AU');
+                    }
+                    // Format percentage fields
+                    else if (percentageFields.has(fieldId) && typeof value === 'number') {
+                        displayValue = value + '%';
+                    }
+
+                    safeSetValue(fieldId, displayValue);
                     fieldsPopulated++;
                     fieldsSetByOnboarding.push(fieldId);
-                    console.log(`Populated field ${fieldId} with value:`, value);
+                    console.log(`Populated field ${fieldId} with formatted value:`, displayValue);
                 } catch (error) {
                     console.warn(`Failed to set field ${fieldId}:`, error);
                 }
             }
         });
 
+        // Calculate and set Expected Duration automatically
+        this.calculateExpectedDuration();
+
         console.log(`Successfully populated ${fieldsPopulated} fields from onboarding data`);
 
         // Add visual indicators for fields that weren't populated from onboarding
         this.highlightUnsetFields(fieldsSetByOnboarding);
+    }
+
+    // Calculate Expected Duration (years) = Your Expected Lifespan - Expected Aged Care Start Age
+    calculateExpectedDuration() {
+        try {
+            const lifespan = this.data.goals.lifeExpectancy || 85;
+            const agedCareStartAge = this.data.household.health?.expectedCareAge || 80; // Default to 80 if not set
+
+            const expectedDuration = Math.max(0, lifespan - agedCareStartAge);
+
+            if (window.utils && window.utils.safeSetValue) {
+                window.utils.safeSetValue('expectedDuration', expectedDuration);
+                console.log(`Calculated Expected Duration: ${expectedDuration} years (${lifespan} - ${agedCareStartAge})`);
+            }
+        } catch (error) {
+            console.warn('Failed to calculate Expected Duration:', error);
+        }
     }
 
     highlightUnsetFields(fieldsSetByOnboarding = []) {
