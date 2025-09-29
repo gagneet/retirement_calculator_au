@@ -10,6 +10,8 @@ import ThemeManager from './theme.js';
 import { OnboardingWizard } from './onboarding-wizard.js';
 import { ScenarioComparisonMatrix } from './scenario-matrix.js';
 import { PersonaIntelligenceEngine } from './persona-intelligence.js';
+import { HealthcareModelingEngine } from './healthcare-modeling.js';
+import { PropertyAnalysisEngine } from './property-analysis.js';
 import {
     $,
     safeGetValue,
@@ -43,6 +45,8 @@ class RetirementCalculatorApp {
         this.themeManager = new ThemeManager();
         this.scenarioMatrix = new ScenarioComparisonMatrix(this.simulator);
         this.personaIntelligence = new PersonaIntelligenceEngine(this.simulator);
+        this.healthcareModeling = new HealthcareModelingEngine();
+        this.propertyAnalysis = new PropertyAnalysisEngine();
         this.onboardingWizard = null; // Will be initialized after DOM is ready
         this.currentResults = null;
         this.isCalculating = false;
@@ -1439,6 +1443,230 @@ class RetirementCalculatorApp {
         `;
 
         personaContainer.classList.remove('hidden');
+    }
+
+    // Run healthcare cost analysis and display results
+    async runHealthcareAnalysis() {
+        if (this.isCalculating) return;
+
+        this.isCalculating = true;
+
+        try {
+            const inputs = this.collectInputs();
+
+            updateProgress(10, "Analyzing healthcare cost patterns...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Generate comprehensive healthcare projections
+            const healthcareProjections = this.healthcareModeling.calculateHealthcareCostProjection(inputs);
+
+            updateProgress(50, "Modeling aged care scenarios...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Run Monte Carlo simulation for healthcare costs
+            const healthcareMonteCarlo = this.healthcareModeling.simulateHealthcareCosts(inputs, 2000);
+
+            updateProgress(80, "Generating healthcare recommendations...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Create summary
+            const healthcareSummary = this.healthcareModeling.generateHealthcareSummary(inputs);
+
+            updateProgress(90, "Displaying healthcare analysis...");
+
+            // Display results
+            this.displayHealthcareAnalysis({
+                projections: healthcareProjections,
+                monteCarlo: healthcareMonteCarlo,
+                summary: healthcareSummary
+            });
+
+            updateProgress(100, "Healthcare analysis complete!");
+            hideProgress();
+
+        } catch (error) {
+            console.error('Healthcare analysis error:', error);
+            showError('Failed to complete healthcare analysis. Please try again.');
+        } finally {
+            this.isCalculating = false;
+        }
+    }
+
+    // Display healthcare analysis results
+    displayHealthcareAnalysis(healthcareResults) {
+        // Find or create healthcare results container
+        let healthcareContainer = $('healthcareAnalysisResults');
+        if (!healthcareContainer) {
+            const resultsSection = $('results');
+            if (resultsSection) {
+                healthcareContainer = document.createElement('div');
+                healthcareContainer.id = 'healthcareAnalysisResults';
+                healthcareContainer.className = 'mt-6';
+                resultsSection.appendChild(healthcareContainer);
+            } else {
+                console.error('Results section not found');
+                return;
+            }
+        }
+
+        const { projections, monteCarlo, summary } = healthcareResults;
+
+        healthcareContainer.innerHTML = `
+            <div class="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-6">
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">🏥 Healthcare Cost Analysis</h3>
+                <p class="text-gray-600 mb-6">Comprehensive healthcare and aged care cost projections based on 2024-2025 Australian data</p>
+
+                <!-- Summary Statistics -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded-lg shadow border">
+                        <div class="text-sm text-gray-600">Lifetime Healthcare Costs</div>
+                        <div class="text-2xl font-bold text-blue-600">${formatCurrency(summary.totalLifetimeCost)}</div>
+                        <div class="text-xs text-gray-500">Including aged care</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow border">
+                        <div class="text-sm text-gray-600">Annual Average</div>
+                        <div class="text-2xl font-bold text-green-600">${formatCurrency(summary.averageAnnualCost)}</div>
+                        <div class="text-xs text-gray-500">Per year in retirement</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow border">
+                        <div class="text-sm text-gray-600">Aged Care Probability</div>
+                        <div class="text-2xl font-bold text-orange-600">${(summary.agedCareProbability * 100).toFixed(0)}%</div>
+                        <div class="text-xs text-gray-500">Likelihood of need</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow border">
+                        <div class="text-sm text-gray-600">Expected Aged Care Cost</div>
+                        <div class="text-2xl font-bold text-red-600">${formatCurrency(summary.agedCareExpectedCost)}</div>
+                        <div class="text-xs text-gray-500">If care is needed</div>
+                    </div>
+                </div>
+
+                <!-- Monte Carlo Results -->
+                <div class="bg-white p-4 rounded-lg shadow border mb-6">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4">Healthcare Cost Projections (Monte Carlo Analysis)</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div class="text-center p-3 bg-red-50 rounded">
+                            <div class="text-xs text-gray-600 mb-1">10th Percentile</div>
+                            <div class="font-medium text-red-700">${formatCurrency(monteCarlo.percentile10)}</div>
+                        </div>
+                        <div class="text-center p-3 bg-orange-50 rounded">
+                            <div class="text-xs text-gray-600 mb-1">25th Percentile</div>
+                            <div class="font-medium text-orange-700">${formatCurrency(monteCarlo.percentile10 * 1.4)}</div>
+                        </div>
+                        <div class="text-center p-3 bg-blue-50 rounded">
+                            <div class="text-xs text-gray-600 mb-1">Median (50th)</div>
+                            <div class="font-medium text-blue-700">${formatCurrency(monteCarlo.median)}</div>
+                        </div>
+                        <div class="text-center p-3 bg-green-50 rounded">
+                            <div class="text-xs text-gray-600 mb-1">90th Percentile</div>
+                            <div class="font-medium text-green-700">${formatCurrency(monteCarlo.percentile90)}</div>
+                        </div>
+                        <div class="text-center p-3 bg-purple-50 rounded">
+                            <div class="text-xs text-gray-600 mb-1">95th Percentile</div>
+                            <div class="font-medium text-purple-700">${formatCurrency(monteCarlo.percentile95)}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aged Care Breakdown -->
+                ${projections.agedCareProjections ? `
+                <div class="bg-white p-4 rounded-lg shadow border mb-6">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4">Aged Care Cost Breakdown</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <h5 class="font-medium text-gray-700 mb-2">Home Care</h5>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span>Probability:</span>
+                                    <span class="font-medium">${(projections.agedCareProjections.homeCare.probability * 100).toFixed(0)}%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Expected Cost:</span>
+                                    <span class="font-medium">${formatCurrency(projections.agedCareProjections.homeCare.expectedCost)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Average Duration:</span>
+                                    <span class="font-medium">${projections.agedCareProjections.homeCare.averageDuration} years</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="font-medium text-gray-700 mb-2">Residential Care</h5>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span>Probability:</span>
+                                    <span class="font-medium">${(projections.agedCareProjections.residentialCare.probability * 100).toFixed(0)}%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Expected Cost:</span>
+                                    <span class="font-medium">${formatCurrency(projections.agedCareProjections.residentialCare.expectedCost)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Estimated RAD:</span>
+                                    <span class="font-medium">${formatCurrency(projections.agedCareProjections.residentialCare.estimatedRAD)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <!-- Risk Factors -->
+                ${summary.majorRisks && summary.majorRisks.length > 0 ? `
+                <div class="bg-red-50 border border-red-200 p-4 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold text-red-800 mb-3">⚠️ Healthcare Risk Factors</h4>
+                    <div class="space-y-3">
+                        ${summary.majorRisks.map(risk => `
+                            <div class="bg-white p-3 rounded border-l-4 border-red-400">
+                                <div class="font-medium text-red-800">${risk.description}</div>
+                                <div class="text-sm text-red-600 mt-1">${risk.impact}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                <!-- Recommendations -->
+                ${summary.topRecommendations && summary.topRecommendations.length > 0 ? `
+                <div class="bg-white p-4 rounded-lg shadow border mb-6">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4">💡 Healthcare Planning Recommendations</h4>
+                    <div class="space-y-4">
+                        ${summary.topRecommendations.map((rec, index) => `
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium mr-3">
+                                    ${index + 1}
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-800">${rec.title}</div>
+                                    <div class="text-sm text-gray-600 mt-1">${rec.description}</div>
+                                    ${rec.estimatedSaving > 0 ? `<div class="text-sm text-green-600 mt-1">Potential savings: ${formatCurrency(rec.estimatedSaving)}</div>` : ''}
+                                    ${rec.implementationSteps ? `
+                                    <div class="mt-2">
+                                        <div class="text-xs text-gray-500 font-medium">Implementation steps:</div>
+                                        <ul class="text-xs text-gray-600 mt-1 ml-4">
+                                            ${rec.implementationSteps.slice(0, 2).map(step => `<li>• ${step}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="mt-4 text-xs text-gray-600">
+                    📊 Analysis based on 2024-2025 Australian healthcare costs, aged care reforms, and inflation data from government sources.
+                </div>
+            </div>
+        `;
+
+        healthcareContainer.classList.remove('hidden');
+
+        // Store results for export
+        this.currentHealthcareAnalysis = healthcareResults;
+
+        // Scroll to results
+        healthcareContainer.scrollIntoView({ behavior: 'smooth' });
     }
 
     // Enhanced helper methods for practical risk analysis
@@ -3963,6 +4191,12 @@ class RetirementCalculatorApp {
             btnScenarioMatrix.addEventListener('click', () => this.runScenarioComparison());
         }
 
+        // Healthcare analysis button
+        const btnHealthcareAnalysis = $('btnHealthcareAnalysis');
+        if (btnHealthcareAnalysis) {
+            btnHealthcareAnalysis.addEventListener('click', () => this.runHealthcareAnalysis());
+        }
+
         // Stress test button
         const btnStressTest = $('btnStressTest');
         if (btnStressTest) {
@@ -4025,6 +4259,7 @@ class RetirementCalculatorApp {
         if (btnExport && exportDropdown) {
             btnExport.addEventListener('click', (e) => {
                 console.log('Export button clicked!');
+                e.preventDefault();
                 e.stopPropagation();
                 exportDropdown.classList.toggle('hidden');
             });
@@ -4034,21 +4269,34 @@ class RetirementCalculatorApp {
                     exportDropdown.classList.add('hidden');
                 }
             });
-            $('btnExportCSV').addEventListener('click', (e) => {
-                e.preventDefault();
-                this.exportResults('csv');
-                exportDropdown.classList.add('hidden');
-            });
-            $('btnExportXLSX').addEventListener('click', (e) => {
-                e.preventDefault();
-                this.exportResults('xlsx');
-                exportDropdown.classList.add('hidden');
-            });
-            $('btnExportPDF').addEventListener('click', (e) => {
-                e.preventDefault();
-                this.exportResults('pdf');
-                exportDropdown.classList.add('hidden');
-            });
+
+            const btnExportCSV = $('btnExportCSV');
+            const btnExportXLSX = $('btnExportXLSX');
+            const btnExportPDF = $('btnExportPDF');
+
+            if (btnExportCSV) {
+                btnExportCSV.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.exportResults('csv');
+                    exportDropdown.classList.add('hidden');
+                });
+            }
+            if (btnExportXLSX) {
+                btnExportXLSX.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.exportResults('xlsx');
+                    exportDropdown.classList.add('hidden');
+                });
+            }
+            if (btnExportPDF) {
+                btnExportPDF.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.exportResults('pdf');
+                    exportDropdown.classList.add('hidden');
+                });
+            }
+        } else {
+            console.warn('Export button or dropdown not found:', { btnExport: !!btnExport, exportDropdown: !!exportDropdown });
         }
 
         // Second Export dropdown functionality (duplicate button fix)

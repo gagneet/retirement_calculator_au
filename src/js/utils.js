@@ -6,6 +6,7 @@ export const $ = (id) => document.getElementById(id);
 // Utility to parse formatted numeric input values (currency, percentages)
 export const parseFormattedNumber = (formattedValue) => {
     // Remove all non-numeric characters except decimal point and minus
+    // This handles $, %, commas, and other formatting characters
     const numericString = String(formattedValue).replace(/[^\d.-]/g, '');
     const num = parseFloat(numericString);
     return isNaN(num) ? 0 : num;
@@ -87,8 +88,8 @@ export const formatCurrencyInput = (value) => {
 
     if (isNaN(num)) return '';
 
-    // Format with thousands separators but no currency symbol for input fields
-    return num.toLocaleString('en-AU', {
+    // Format with thousands separators and $ symbol for input fields
+    return '$' + num.toLocaleString('en-AU', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2
     });
@@ -111,11 +112,12 @@ export const addCurrencyFormatting = (inputElement) => {
             const formattedValue = formatCurrencyInput(numericValue);
             inputElement.value = formattedValue;
 
-            // Restore cursor position accounting for added commas
+            // Restore cursor position accounting for added commas and $ symbol
             const originalLength = originalValue.length;
             const newLength = formattedValue.length;
             const lengthDiff = newLength - originalLength;
-            const newCursorPosition = Math.max(0, Math.min(cursorPosition + lengthDiff, newLength));
+            // Ensure cursor doesn't go before the $ symbol
+            const newCursorPosition = Math.max(1, Math.min(cursorPosition + lengthDiff, newLength));
 
             inputElement.setSelectionRange(newCursorPosition, newCursorPosition);
         }
@@ -125,6 +127,24 @@ export const addCurrencyFormatting = (inputElement) => {
 
     // Format on blur (when user leaves the field)
     inputElement.addEventListener('blur', formatInput);
+
+    // Prevent cursor from going before $ symbol
+    inputElement.addEventListener('keydown', (e) => {
+        const cursorPosition = inputElement.selectionStart;
+        if ((e.key === 'Backspace' || e.key === 'Delete' || e.key === 'ArrowLeft') && cursorPosition <= 1) {
+            if (inputElement.value.startsWith('$')) {
+                e.preventDefault();
+                inputElement.setSelectionRange(1, 1);
+            }
+        }
+    });
+
+    // Handle click events to prevent cursor from going before $
+    inputElement.addEventListener('click', () => {
+        if (inputElement.selectionStart === 0 && inputElement.value.startsWith('$')) {
+            inputElement.setSelectionRange(1, 1);
+        }
+    });
 
     // Format on input but debounced to prevent cursor jumping
     let formatTimer;
@@ -177,7 +197,9 @@ export const addPercentageFormatting = (inputElement) => {
         if (originalValue.endsWith('%')) return;
 
         if (originalValue !== '' && !isNaN(numericValue)) {
-            inputElement.value = `${numericValue}%`;
+            // Format to 2 decimal places for percentages
+            const formattedNumber = numericValue.toFixed(2);
+            inputElement.value = `${formattedNumber}%`;
         }
     };
 
@@ -1264,6 +1286,9 @@ export const importUserData = () => {
 export const populateFormFromData = (userData) => {
     let fieldsPopulated = 0;
     let fieldsSkipped = 0;
+    const skippedFields = [];
+
+    console.log('Populating form with userData:', userData);
 
     Object.entries(userData).forEach(([key, value]) => {
         try {
@@ -1275,45 +1300,64 @@ export const populateFormFromData = (userData) => {
                     if (element) {
                         element.value = detailValue;
                         fieldsPopulated++;
+                        console.log(`✓ Populated dependent detail: ${detailKey} = ${detailValue}`);
+                    } else {
+                        skippedFields.push(detailKey);
+                        console.log(`✗ Element not found: ${detailKey}`);
                     }
                 });
             } else {
                 const element = $(key);
                 if (element) {
-                    if (element.type === 'checkbox') {
-                        element.checked = value;
+                    if (element.type === 'checkbox' || element.type === 'radio') {
+                        element.checked = value === true || value === 'true' || value === 'yes';
                     } else if (element.type === 'select-one') {
                         element.value = value;
                     } else {
                         // Handle percentage values (convert back from decimal)
                         const percentageFields = [
                             'Rate', 'inflation', 'Return', 'percentIncomeSaved', 'Volatility',
-                            'Growth', 'Probability', 'Magnitude', 'franking'
+                            'Growth', 'Probability', 'Magnitude', 'franking', 'salaryGrowthRate',
+                            'returnDeclineRate', 'healthcareInflation', 'propertyGrowthRate',
+                            'capitalGainsTaxRate', 'dividendYield', 'frankingRate', 'returnVolatility'
                         ];
 
-                        if (percentageFields.some(field => key.includes(field))) {
-                            element.value = (value * 100).toFixed(2);
+                        if (percentageFields.some(field => key.includes(field)) && typeof value === 'number') {
+                            // Only convert if value is a decimal (less than 1 for rates)
+                            if (value < 1 && value > 0) {
+                                element.value = (value * 100).toFixed(2);
+                            } else {
+                                element.value = value;
+                            }
                         } else {
                             element.value = value;
                         }
                     }
                     fieldsPopulated++;
+                    console.log(`✓ Populated field: ${key} = ${value}`);
                 } else {
                     fieldsSkipped++;
+                    skippedFields.push(key);
+                    console.log(`✗ Element not found: ${key}`);
                 }
             }
         } catch (error) {
             fieldsSkipped++;
+            skippedFields.push(key);
             console.warn(`Could not populate field ${key}:`, error);
         }
     });
+
+    if (skippedFields.length > 0) {
+        console.log('Skipped fields:', skippedFields);
+    }
 
     showNotification(
         `Import complete: ${fieldsPopulated} fields updated${fieldsSkipped > 0 ? `, ${fieldsSkipped} fields skipped` : ''}`,
         fieldsSkipped > 0 ? 'warning' : 'success'
     );
 
-    return { fieldsPopulated, fieldsSkipped };
+    return { fieldsPopulated, fieldsSkipped, skippedFields };
 };
 
 // Tab management utilities
