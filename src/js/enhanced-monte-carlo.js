@@ -402,7 +402,14 @@ export class EnhancedMonteCarloEngine {
                 outcomes.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n
             ),
             skewness: this.calculateSkewness(outcomes, mean),
-            kurtosis: this.calculateKurtosis(outcomes, mean)
+            kurtosis: this.calculateKurtosis(outcomes, mean),
+            // Legacy support for compatibility with app.js
+            percentile10: percentiles.p10,
+            percentile90: percentiles.p90,
+            // Risk metrics
+            shortfallRisk: 1 - successRate,
+            tailRisk: percentiles.p5, // 5% worst case
+            downside: outcomes.filter(o => o < medianOutcome).length / n
         };
     }
 
