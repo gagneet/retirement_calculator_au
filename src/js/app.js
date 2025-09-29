@@ -7,6 +7,7 @@ import RetirementSimulator from './simulator.js';
 import MarketDataEngine from './market-data.js';
 import { initializeTrustUI } from './trust-ui.js';
 import ThemeManager from './theme.js';
+import { OnboardingWizard } from './onboarding-wizard.js';
 import {
     $,
     safeGetValue,
@@ -38,6 +39,7 @@ class RetirementCalculatorApp {
         this.chartManager = null; // Will be lazy-loaded
         this.marketData = new MarketDataEngine();
         this.themeManager = new ThemeManager();
+        this.onboardingWizard = null; // Will be initialized after DOM is ready
         this.currentResults = null;
         this.isCalculating = false;
 
@@ -53,6 +55,7 @@ class RetirementCalculatorApp {
         this.addSuggestionStyles(); // Add CSS styles for suggestion modifications
         this.updateUIElements();
         initializeTrustUI(); // Initialize trust UI functionality
+        this.initializeOnboardingWizard(); // Initialize onboarding wizard
 
         // Initialize tooltip system
         addTooltipBottomStyles(); // Add bottom positioning styles
@@ -60,7 +63,135 @@ class RetirementCalculatorApp {
         initializeCurrencyInputs(); // Initialize currency input formatting
         initializePercentageInputs(); // Initialize percentage input formatting
 
+        // Make utilities globally available for onboarding wizard
+        window.utils = {
+            $,
+            safeGetValue,
+            safeGetChecked,
+            safeGetSelectValue,
+            safeSetValue,
+            safeSetText,
+            safeSetHTML,
+            formatCurrency,
+            formatPercent,
+            updateProgress,
+            exportUserData,
+            importUserData,
+            populateFormFromData,
+            showTab,
+            debounce,
+            showNotification,
+            saveToLocalStorage,
+            loadFromLocalStorage
+        };
+
         this.performInitialCalculation();
+    }
+
+    initializeOnboardingWizard() {
+        try {
+            // Initialize the onboarding wizard
+            this.onboardingWizard = new OnboardingWizard();
+
+            // Set up event listeners for the main onboarding buttons
+            const newUserBtn = document.getElementById('new-user-btn');
+            const returningUserBtn = document.getElementById('returning-user-btn');
+
+            if (newUserBtn) {
+                newUserBtn.addEventListener('click', () => {
+                    this.onboardingWizard.startOnboarding();
+                    this.hideOnboardingButtons();
+                });
+            }
+
+            if (returningUserBtn) {
+                returningUserBtn.addEventListener('click', () => {
+                    this.skipOnboardingToAdvanced();
+                });
+            }
+
+            // Check if onboarding was completed before
+            if (this.onboardingWizard.isCompleted) {
+                this.showOnboardingCompletedState();
+            }
+
+            // Check URL parameters for onboarding control
+            this.handleOnboardingURLParams();
+
+            // Make the wizard available globally for debugging
+            window.onboardingWizard = this.onboardingWizard;
+
+            console.log('✅ Onboarding wizard initialized successfully');
+        } catch (error) {
+            console.error('❌ Failed to initialize onboarding wizard:', error);
+        }
+    }
+
+    hideOnboardingButtons() {
+        const onboardingButtons = document.getElementById('onboarding-buttons');
+        if (onboardingButtons) {
+            onboardingButtons.style.display = 'none';
+        }
+    }
+
+    skipOnboardingToAdvanced() {
+        this.hideOnboardingButtons();
+        // Scroll to the calculator form or show notification
+        const calculatorContainer = document.querySelector('.calculator-container') ||
+                                   document.querySelector('.bg-white.rounded-lg');
+
+        if (calculatorContainer) {
+            calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            showNotification('Welcome back! You can start using the advanced calculator directly.', 'info');
+        }
+    }
+
+    showOnboardingCompletedState() {
+        const onboardingButtons = document.getElementById('onboarding-buttons');
+        if (onboardingButtons) {
+            onboardingButtons.innerHTML = `
+                <div class="text-center p-6 bg-green-50 rounded-lg border border-green-200">
+                    <div class="mb-4">
+                        <span class="text-4xl">✅</span>
+                        <h2 class="text-xl font-semibold text-green-800 mt-2">Onboarding Complete!</h2>
+                        <p class="text-green-600 mt-1">Your data has been loaded into the calculator</p>
+                    </div>
+                    <div class="flex gap-4 justify-center">
+                        <button id="start-new-onboarding" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                            Start New Planning Session
+                        </button>
+                        <button id="continue-advanced" class="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors">
+                            Continue with Advanced Calculator
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Add event listeners for the new buttons
+            document.getElementById('start-new-onboarding')?.addEventListener('click', () => {
+                this.onboardingWizard.resetAndStart();
+                this.hideOnboardingButtons();
+            });
+
+            document.getElementById('continue-advanced')?.addEventListener('click', () => {
+                this.skipOnboardingToAdvanced();
+            });
+        }
+    }
+
+    handleOnboardingURLParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+
+        if (urlParams.get('onboarding') === 'true') {
+            // Force show onboarding wizard
+            setTimeout(() => {
+                this.onboardingWizard.startOnboarding();
+                this.hideOnboardingButtons();
+            }, 500);
+        } else if (urlParams.get('skip') === 'true') {
+            // Skip onboarding entirely
+            this.skipOnboardingToAdvanced();
+        }
     }
 
     // Input collection with complete property support

@@ -387,6 +387,48 @@
         </div>
     </header>
 
+    <!-- Onboarding Wizard Container -->
+    <div id="onboarding-container" class="mb-8">
+        <!-- Initial Onboarding Buttons -->
+        <div id="onboarding-buttons" class="text-center space-y-4 p-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+            <div class="mb-4">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-2">👋 Welcome to Your Retirement Planner</h2>
+                <p class="text-gray-600">Choose how you'd like to get started with your retirement planning journey</p>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-4 justify-center max-w-2xl mx-auto">
+                <button id="new-user-btn" class="flex-1 group bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200">
+                    <div class="flex items-center justify-center">
+                        <span class="text-2xl mr-3">🚀</span>
+                        <div class="text-left">
+                            <div class="font-bold">New User?</div>
+                            <div class="text-sm font-normal opacity-90">Start the 5-step guided plan</div>
+                        </div>
+                    </div>
+                </button>
+
+                <button id="returning-user-btn" class="flex-1 group bg-green-600 text-white px-8 py-4 rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200">
+                    <div class="flex items-center justify-center">
+                        <span class="text-2xl mr-3">📊</span>
+                        <div class="text-left">
+                            <div class="font-bold">Returning User?</div>
+                            <div class="text-sm font-normal opacity-90">Skip to advanced calculator</div>
+                        </div>
+                    </div>
+                </button>
+            </div>
+
+            <div class="mt-4 text-sm text-gray-500">
+                <p>✨ New to retirement planning? Our guided wizard makes it easy to get started!</p>
+            </div>
+        </div>
+
+        <!-- Onboarding Wizard (Initially Hidden) -->
+        <div id="onboarding-wizard" class="hidden">
+            <!-- Content will be populated by JavaScript -->
+        </div>
+    </div>
+
     <!-- Risk Profile Banner -->
     <div id="riskProfileBanner" class="mb-6 p-4 rounded-lg border-l-4 border-blue-500 bg-blue-50">
         <h3 class="font-semibold text-blue-900">Your Risk Profile</h3>
