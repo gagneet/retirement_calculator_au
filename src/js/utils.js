@@ -1203,12 +1203,12 @@ export const exportToJSON = (data, filename = 'retirement-data.json') => {
 // User Data Export/Import Functionality
 export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
     const exportData = {
-        version: '1.0',
+        version: '3.0',
         exportDate: new Date().toISOString(),
         scenarioName: scenarioName,
         userData: inputs,
         metadata: {
-            calculatorVersion: '2024.1',
+            calculatorVersion: '2025.3',
             description: 'Australian Retirement Calculator - User Input Data',
             fields: Object.keys(inputs).length,
             note: 'This file contains only your input data, no calculation results. Your privacy is protected.'
@@ -1255,7 +1255,7 @@ export const importUserData = () => {
                     }
 
                     // Check version compatibility
-                    if (data.version !== '1.0') {
+                    if (data.version !== '3.0') {
                         showNotification('File version may not be fully compatible. Import will be attempted.', 'warning');
                     }
 

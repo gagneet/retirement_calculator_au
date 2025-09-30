@@ -5,10 +5,10 @@
 export const ENHANCED_FINANCIAL_CONFIG = {
     // ===== METADATA FOR ADMIN INTERFACE =====
     _metadata: {
-        version: "1.0.0",
-        lastUpdated: "2025-01-15",
+        version: "3.0.0",
+        lastUpdated: "2025-01-11",
         sources: ["ABS", "RBA", "ASIC", "APRA", "Australian Government"],
-        nextReviewDate: "2025-07-15",
+        nextReviewDate: "2025-07-23",
         autoUpdateEnabled: false
     },
 
@@ -16,22 +16,22 @@ export const ENHANCED_FINANCIAL_CONFIG = {
     australianSystem: {
         _category: "Australian Financial System",
         _description: "Core constants from Australian government and financial system",
-        _lastResearched: "2025-01-15",
+        _lastResearched: "2025-01-10",
         _sources: ["Australian Government", "ATO", "Services Australia"],
 
         SUPER_GUARANTEE_RATE: {
             value: 0.12,
             description: "Current superannuation guarantee rate",
             source: "ATO",
-            lastUpdated: "2025-01-15",
-            nextReview: "2025-07-01",
+            lastUpdated: "2025-01-10",
+            nextReview: "2025-07-02",
             isGovernmentSet: true
         },
         CORPORATE_TAX_RATE: {
             value: 0.30,
             description: "Australian corporate tax rate",
             source: "ATO",
-            lastUpdated: "2025-01-15",
+            lastUpdated: "2025-01-01",
             isGovernmentSet: true
         },
         CGT_DISCOUNT: {
