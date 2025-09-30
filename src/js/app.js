@@ -25,15 +25,18 @@ async function loadAdvancedEngines() {
 
         const allocationModule = await import('./dynamic-allocation-engine.js');
         DynamicAllocationEngine = allocationModule.DynamicAllocationEngine;
+
+        console.log('✅ Advanced engines loaded successfully');
+        return true;
     } catch (error) {
-        console.error('Failed to load advanced analysis engines:', error);
+        console.error('❌ Failed to load advanced analysis engines:', error);
         // Provide fallback functionality or disable features
+        return false;
     }
 }
 
-// Call the async function
-loadAdvancedEngines();
-}
+// Advanced engines will be loaded by the app instance
+
 import {
     $,
     safeGetValue,
@@ -70,8 +73,8 @@ class RetirementCalculatorApp {
         this.personaIntelligence = new PersonaIntelligenceEngine(this.simulator);
         this.healthcareModeling = new HealthcareModelingEngine();
         this.propertyAnalysis = new PropertyAnalysisEngine();
-        this.riskProfiling = new RiskProfilingEngine();
-        this.dynamicAllocation = new DynamicAllocationEngine();
+        this.riskProfiling = null; // Will be initialized after dynamic import
+        this.dynamicAllocation = null; // Will be initialized after dynamic import
         this.onboardingWizard = null; // Will be initialized after DOM is ready
         this.currentResults = null;
         this.isCalculating = false;
@@ -121,6 +124,20 @@ class RetirementCalculatorApp {
         };
 
         this.performInitialCalculation();
+
+        // Initialize advanced engines after loading
+        this.initializeAdvancedEngines();
+    }
+
+    async initializeAdvancedEngines() {
+        const loaded = await loadAdvancedEngines();
+        if (loaded && RiskProfilingEngine && DynamicAllocationEngine) {
+            this.riskProfiling = new RiskProfilingEngine();
+            this.dynamicAllocation = new DynamicAllocationEngine();
+            console.log('✅ Advanced engines initialized in app instance');
+        } else {
+            console.warn('⚠️ Advanced engines not available - some features will be disabled');
+        }
     }
 
     initializeOnboardingWizard() {
@@ -133,28 +150,39 @@ class RetirementCalculatorApp {
             const returningUserBtn = document.getElementById('returning-user-btn');
 
             if (newUserBtn) {
-            if (newUserBtn) {
-                let isStartingOnboarding = false;
-                newUserBtn.addEventListener('click', () => {
-                    if (isStartingOnboarding) return;
-                    isStartingOnboarding = true;
-                    
-                    try {
-                        this.onboardingWizard.startOnboarding();
-                        this.hideOnboardingButtons();
-                    } finally {
-                        // Reset flag after operation completes
-                        isStartingOnboarding = false;
-                    }
-                });
-            }
-                });
+                // Prevent duplicate event listeners
+                const existingListeners = newUserBtn.getAttribute('data-listener-added');
+                if (!existingListeners) {
+                    let isStartingOnboarding = false;
+                    newUserBtn.addEventListener('click', async () => {
+                        if (isStartingOnboarding) return;
+                        isStartingOnboarding = true;
+
+                        try {
+                            await this.onboardingWizard.startOnboarding();
+                            this.hideOnboardingButtons();
+                            // Reset flag after a brief delay to prevent double clicks
+                            setTimeout(() => {
+                                isStartingOnboarding = false;
+                            }, 1000);
+                        } catch (error) {
+                            console.error('Failed to start onboarding:', error);
+                            isStartingOnboarding = false;
+                        }
+                    });
+                    newUserBtn.setAttribute('data-listener-added', 'true');
+                }
             }
 
             if (returningUserBtn) {
-                returningUserBtn.addEventListener('click', () => {
-                    this.skipOnboardingToAdvanced();
-                });
+                // Prevent duplicate event listeners by removing any existing ones
+                const existingListeners = returningUserBtn.getAttribute('data-listener-added');
+                if (!existingListeners) {
+                    returningUserBtn.addEventListener('click', () => {
+                        this.skipOnboardingToAdvanced();
+                    });
+                    returningUserBtn.setAttribute('data-listener-added', 'true');
+                }
             }
 
             // Check if onboarding was completed before
@@ -190,17 +218,8 @@ class RetirementCalculatorApp {
             calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             showNotification('Welcome back! You can start using the advanced calculator directly, or use the menu to load your saved data.', 'info');
 
-            // Use the new actionable notification
-            setTimeout(() => {
-                showActionableNotification('Would you like to load your previously saved data?', [{
-                    text: 'Yes, Load Data',
-                    class: 'primary',
-                    callback: () => this.importUserInputs()
-                }, {
-                    text: 'No, Thanks',
-                    class: 'secondary'
-                }]);
-            }, 1500);
+            // Provide a less intrusive option for data loading
+            showNotification('Tip: Use the menu "Load Data" option to import your previously saved data.', 'info');
         }
     }
 
@@ -1600,6 +1619,10 @@ class RetirementCalculatorApp {
             await new Promise(resolve => setTimeout(resolve, 100));
 
             // Generate comprehensive risk profile
+            if (!this.riskProfiling) {
+                showNotification('Risk profiling engine not loaded yet. Please try again in a moment.', 'warning');
+                return;
+            }
             const riskProfile = this.riskProfiling.generateRiskProfileSummary(inputs, monteCarloResults);
 
             updateProgress(80, "Generating risk recommendations...");
@@ -1636,6 +1659,10 @@ class RetirementCalculatorApp {
             if (this.currentResults?.riskProfile) {
                 riskProfile = this.currentResults.riskProfile;
             } else {
+                if (!this.riskProfiling) {
+                    showNotification('Risk profiling engine not loaded yet. Please try again in a moment.', 'warning');
+                    return;
+                }
                 updateProgress(40, "Determining risk profile...");
                 riskProfile = this.riskProfiling.generateRiskProfileSummary(inputs, this.currentResults?.monteCarlo);
             }
@@ -1644,6 +1671,10 @@ class RetirementCalculatorApp {
             await new Promise(resolve => setTimeout(resolve, 100));
 
             // Generate optimal allocation strategy
+            if (!this.dynamicAllocation) {
+                showNotification('Allocation engine not loaded yet. Please try again in a moment.', 'warning');
+                return;
+            }
             const allocationStrategy = this.dynamicAllocation.generateAllocationSummary(inputs, riskProfile);
 
             updateProgress(80, "Creating rebalancing plan...");
@@ -4577,12 +4608,10 @@ class RetirementCalculatorApp {
         } catch (error) {
             showNotification(error.message || 'Failed to import data.', 'error');
         } finally {
-        } catch (error) {
-            showNotification(error.message || 'Failed to import data.', 'error');
-        } finally {
             // Reset the flag immediately after the operation completes
             this.isImporting = false;
         }
+    }
 
     // UI update functions
     updateUIElements() {
@@ -4776,21 +4805,41 @@ class RetirementCalculatorApp {
         // Export dropdown functionality - delay to ensure DOM is ready
         setTimeout(() => {
             this.setupExportDropdowns();
-        }, 100);
+        }, 500); // Increased delay to ensure DOM is ready
     }
 
     setupExportDropdowns() {
+        console.log('Setting up export dropdowns...');
+
         const setupDropdown = (buttonId, dropdownId, exportCsvId, exportXlsxId, exportPdfId) => {
             const button = $(buttonId);
             const dropdown = $(dropdownId);
 
-            if (button && dropdown) {
-                button.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    dropdown.classList.toggle('hidden');
-                });
+            console.log(`Setting up ${buttonId}:`, { button: !!button, dropdown: !!dropdown });
 
-                // Export buttons
+            if (button && dropdown) {
+                // Prevent duplicate listeners
+                if (!button.getAttribute('data-export-listener')) {
+                    button.addEventListener('click', (e) => {
+                        console.log(`${buttonId} clicked, toggling dropdown`);
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        // Toggle visibility with both class and inline style
+                        const isHidden = dropdown.classList.contains('hidden');
+                        if (isHidden) {
+                            dropdown.classList.remove('hidden');
+                            dropdown.style.display = 'block';
+                            console.log(`${dropdownId} shown`);
+                        } else {
+                            dropdown.classList.add('hidden');
+                            dropdown.style.display = 'none';
+                            console.log(`${dropdownId} hidden`);
+                        }
+                    });
+                    button.setAttribute('data-export-listener', 'true');
+                }
+                // Export buttons within the if block
                 const btnExportCSV = $(exportCsvId);
                 const btnExportXLSX = $(exportXlsxId);
                 const btnExportPDF = $(exportPdfId);
@@ -4798,6 +4847,8 @@ class RetirementCalculatorApp {
                 if (btnExportCSV) btnExportCSV.addEventListener('click', () => this.exportResults('csv'));
                 if (btnExportXLSX) btnExportXLSX.addEventListener('click', () => this.exportResults('xlsx'));
                 if (btnExportPDF) btnExportPDF.addEventListener('click', () => this.exportResults('pdf'));
+            } else {
+                console.warn(`Export dropdown setup failed for ${buttonId}:`, { button: !!button, dropdown: !!dropdown });
             }
         };
 
