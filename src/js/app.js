@@ -4577,12 +4577,12 @@ class RetirementCalculatorApp {
         } catch (error) {
             showNotification(error.message || 'Failed to import data.', 'error');
         } finally {
-            // Reset the flag after a short delay to prevent immediate re-triggering
-            setTimeout(() => {
-                this.isImporting = false;
-            }, 1000);
+        } catch (error) {
+            showNotification(error.message || 'Failed to import data.', 'error');
+        } finally {
+            // Reset the flag immediately after the operation completes
+            this.isImporting = false;
         }
-    }
 
     // UI update functions
     updateUIElements() {
