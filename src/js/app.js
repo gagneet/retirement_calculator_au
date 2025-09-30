@@ -183,9 +183,17 @@ class RetirementCalculatorApp {
             }
 
             if (returningUserBtn) {
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
                 console.log('🔧 Setting up returning user functionality...');
                 const returningUserInput = $('returning-user-file-input');
                 console.log('📂 returningUserInput element:', returningUserInput);
+=======
+                const returningUserInput = $('returning-user-file-input');
+>>>>>>> Stashed changes
+=======
+                const returningUserInput = $('returning-user-file-input');
+>>>>>>> Stashed changes
 
                 // Prevent duplicate event listeners
                 if (!returningUserBtn.getAttribute('data-listener-added')) {
@@ -197,11 +205,25 @@ class RetirementCalculatorApp {
                         if (calculatorContainer) {
                             calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
                         console.log('🎯 About to click file input:', returningUserInput);
                         if (returningUserInput) {
                             returningUserInput.click();
                         } else {
                             console.log('❌ No returningUserInput element to click!');
+=======
+=======
+>>>>>>> Stashed changes
+                        if (returningUserInput) {
+                            returningUserInput.click();
+                        } else {
+                            console.error('❌ returning-user-file-input element not found');
+                            showNotification('File input not available. Please use Menu > Returning User instead.', 'error');
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
                         }
                     });
                     returningUserBtn.setAttribute('data-listener-added', 'true');
@@ -211,6 +233,8 @@ class RetirementCalculatorApp {
                 }
 
                 if (returningUserInput && !returningUserInput.getAttribute('data-listener-added')) {
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
                     returningUserInput.addEventListener('change', (e) => {
                         console.log('📁 File input changed! Calling handleReturningUserFileSelect...');
                         this.handleReturningUserFileSelect(e);
@@ -224,6 +248,16 @@ class RetirementCalculatorApp {
                 }
             } else {
                 console.log('❌ No returningUserBtn found');
+=======
+                    returningUserInput.addEventListener('change', (e) => this.handleReturningUserFileSelect(e));
+                    returningUserInput.setAttribute('data-listener-added', 'true');
+                }
+>>>>>>> Stashed changes
+=======
+                    returningUserInput.addEventListener('change', (e) => this.handleReturningUserFileSelect(e));
+                    returningUserInput.setAttribute('data-listener-added', 'true');
+                }
+>>>>>>> Stashed changes
             }
 
             // Check if onboarding was completed before
@@ -453,6 +487,8 @@ class RetirementCalculatorApp {
         };
     }
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
     async skipOnboardingToAdvanced() {
         this.hideOnboardingButtons();
         const calculatorContainer = document.querySelector('.calculator-container') ||
@@ -466,6 +502,60 @@ class RetirementCalculatorApp {
 
     // Duplicate methods removed - both showReturningUserEnhancedSummary and calculateReturningUserProjections already defined above
 
+=======
+=======
+>>>>>>> Stashed changes
+    async handleReturningUserFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            return; // User cancelled the file picker
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (!data.userData || !data.version) {
+                    showNotification('Invalid retirement calculator data file format.', 'error');
+                    return;
+                }
+
+                // Populate form with imported data
+                populateFormFromData(data.userData);
+
+                // Trigger currency and percentage input formatting
+                initializeCurrencyInputs();
+                initializePercentageInputs();
+
+                // Show enhanced summary
+                this.showReturningUserEnhancedSummary(data.userData, data.scenarioName || 'Imported Data');
+
+                // Show action buttons for advanced analysis
+                const actionButtonsContainer = $('action-buttons-container');
+                if (actionButtonsContainer) {
+                    actionButtonsContainer.classList.remove('hidden');
+                }
+
+                showNotification('Successfully imported your retirement data!', 'success');
+                console.log('✅ Successfully imported returning user data');
+
+            } catch (error) {
+                console.error('❌ Error parsing imported file:', error);
+                showNotification('Error reading the selected file. Please ensure it\'s a valid retirement calculator data file.', 'error');
+            }
+        };
+
+        reader.onerror = () => {
+            showNotification('Error reading the selected file. Please try again.', 'error');
+        };
+
+        reader.readAsText(file);
+    }
+
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     showOnboardingCompletedState() {
         const onboardingButtons = document.getElementById('onboarding-buttons');
         if (onboardingButtons) {
