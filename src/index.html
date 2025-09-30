@@ -2327,6 +2327,9 @@
 
 <!-- Webpack will inject the bundled script here -->
 
+<!-- Hidden file input for returning user data -->
+<input type="file" id="returning-user-file-input" class="hidden" accept=".json">
+
 <!-- Error handling and loading timeout -->
 <script>
     // Track JavaScript errors (excluding Google services)
@@ -2487,160 +2490,160 @@
 
 <!-- Navigation Menu Functionality -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const navMenuButton = document.getElementById('navMenuButton');
-    const navDropdown = document.getElementById('navDropdown');
+    document.addEventListener('DOMContentLoaded', function() {
+        const navMenuButton = document.getElementById('navMenuButton');
+        const navDropdown = document.getElementById('navDropdown');
 
-    if (navMenuButton && navDropdown) {
-        // Toggle dropdown on button click
-        navMenuButton.addEventListener('click', function(e) {
-            e.stopPropagation();
-            navDropdown.classList.toggle('hidden');
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!navMenuButton.contains(e.target) && !navDropdown.contains(e.target)) {
-                navDropdown.classList.add('hidden');
-            }
-        });
-
-        // Close dropdown when pressing Escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                navDropdown.classList.add('hidden');
-            }
-        });
-
-        // Add keyboard navigation
-        navMenuButton.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
+        if (navMenuButton && navDropdown) {
+            // Toggle dropdown on button click
+            navMenuButton.addEventListener('click', function(e) {
+                e.stopPropagation();
                 navDropdown.classList.toggle('hidden');
-            }
-        });
+            });
 
-        // Add event handlers for New User and Returning User menu items
-        const menuNewUser = document.getElementById('menu-new-user');
-        const menuReturningUser = document.getElementById('menu-returning-user');
-
-        if (menuNewUser) {
-            menuNewUser.addEventListener('click', function(e) {
-                e.preventDefault();
-                navDropdown.classList.add('hidden'); // Close menu
-
-                // First try to click the new user button if it exists
-                const newUserBtn = document.getElementById('new-user-btn');
-                if (newUserBtn) {
-                    newUserBtn.click();
-                    return;
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!navMenuButton.contains(e.target) && !navDropdown.contains(e.target)) {
+                    navDropdown.classList.add('hidden');
                 }
+            });
 
-                // If no button, try to initialize onboarding wizard
-                if (window.app && window.app.onboardingWizard) {
-                    window.app.onboardingWizard.startOnboarding();
-                    return;
+            // Close dropdown when pressing Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    navDropdown.classList.add('hidden');
                 }
+            });
 
-                // Last resort: try to initialize the app first, then start onboarding
-                if (window.RetirementCalculatorApp) {
-                    console.log('Initializing app from menu...');
-                    if (!window.app) {
-                        window.app = new window.RetirementCalculatorApp();
+            // Add keyboard navigation
+            navMenuButton.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navDropdown.classList.toggle('hidden');
+                }
+            });
+
+            // Add event handlers for New User and Returning User menu items
+            const menuNewUser = document.getElementById('menu-new-user');
+            const menuReturningUser = document.getElementById('menu-returning-user');
+
+            if (menuNewUser) {
+                menuNewUser.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    navDropdown.classList.add('hidden'); // Close menu
+
+                    // First try to click the new user button if it exists
+                    const newUserBtn = document.getElementById('new-user-btn');
+                    if (newUserBtn) {
+                        newUserBtn.click();
+                        return;
                     }
-                    if (window.app.onboardingWizard) {
+
+                    // If no button, try to initialize onboarding wizard
+                    if (window.app && window.app.onboardingWizard) {
                         window.app.onboardingWizard.startOnboarding();
+                        return;
                     }
-                } else {
-                    console.warn('RetirementCalculatorApp not available, cannot start onboarding');
-                }
-            });
-        }
 
-        if (menuReturningUser) {
-            menuReturningUser.addEventListener('click', function(e) {
-                e.preventDefault();
-                navDropdown.classList.add('hidden'); // Close menu
-
-                // First try to click the returning user button if it exists
-                const returningUserBtn = document.getElementById('returning-user-btn');
-                if (returningUserBtn) {
-                    returningUserBtn.click();
-                    return;
-                }
-
-                // Alternative: trigger file input for data loading
-                const fileInput = document.getElementById('importFileInput');
-                if (fileInput) {
-                    fileInput.click();
-                    return;
-                }
-
-                // Try to trigger import through the app
-                if (window.app && window.app.importUserInputs) {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = '.json';
-                    input.onchange = (e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                            window.app.importUserInputs(file);
+                    // Last resort: try to initialize the app first, then start onboarding
+                    if (window.RetirementCalculatorApp) {
+                        console.log('Initializing app from menu...');
+                        if (!window.app) {
+                            window.app = new window.RetirementCalculatorApp();
                         }
-                    };
-                    input.click();
-                } else {
-                    console.warn('Import functionality not available');
-                }
-            });
+                        if (window.app.onboardingWizard) {
+                            window.app.onboardingWizard.startOnboarding();
+                        }
+                    } else {
+                        console.warn('RetirementCalculatorApp not available, cannot start onboarding');
+                    }
+                });
+            }
+
+            if (menuReturningUser) {
+                menuReturningUser.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    navDropdown.classList.add('hidden'); // Close menu
+
+                    // First try to click the returning user button if it exists
+                    const returningUserBtn = document.getElementById('returning-user-btn');
+                    if (returningUserBtn) {
+                        returningUserBtn.click();
+                        return;
+                    }
+
+                    // Alternative: trigger file input for data loading
+                    const fileInput = document.getElementById('importFileInput');
+                    if (fileInput) {
+                        fileInput.click();
+                        return;
+                    }
+
+                    // Try to trigger import through the app
+                    if (window.app && window.app.importUserInputs) {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = '.json';
+                        input.onchange = (e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                                window.app.importUserInputs(file);
+                            }
+                        };
+                        input.click();
+                    } else {
+                        console.warn('Import functionality not available');
+                    }
+                });
+            }
+
+            // Add event handlers for Load Data and Save Data menu items
+            const menuLoadData = document.getElementById('menu-load-data');
+            const menuSaveData = document.getElementById('menu-save-data');
+
+            if (menuLoadData) {
+                menuLoadData.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    navDropdown.classList.add('hidden'); // Close menu
+
+                    // Try to trigger the existing Load Data functionality
+                    const btnImportUserData = document.getElementById('btnImportUserData');
+                    if (btnImportUserData) {
+                        btnImportUserData.click();
+                        return;
+                    }
+
+                    // Fallback: trigger import through the app
+                    if (window.app && window.app.importUserInputs) {
+                        window.app.importUserInputs();
+                    } else {
+                        console.warn('Load Data functionality not available');
+                    }
+                });
+            }
+
+            if (menuSaveData) {
+                menuSaveData.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    navDropdown.classList.add('hidden'); // Close menu
+
+                    // Try to trigger the existing Save Data functionality
+                    const btnExportUserData = document.getElementById('btnExportUserData');
+                    if (btnExportUserData) {
+                        btnExportUserData.click();
+                        return;
+                    }
+
+                    // Fallback: trigger export through the app
+                    if (window.app && window.app.exportUserInputs) {
+                        window.app.exportUserInputs();
+                    } else {
+                        console.warn('Save Data functionality not available');
+                    }
+                });
+            }
         }
-
-        // Add event handlers for Load Data and Save Data menu items
-        const menuLoadData = document.getElementById('menu-load-data');
-        const menuSaveData = document.getElementById('menu-save-data');
-
-        if (menuLoadData) {
-            menuLoadData.addEventListener('click', function(e) {
-                e.preventDefault();
-                navDropdown.classList.add('hidden'); // Close menu
-
-                // Try to trigger the existing Load Data functionality
-                const btnImportUserData = document.getElementById('btnImportUserData');
-                if (btnImportUserData) {
-                    btnImportUserData.click();
-                    return;
-                }
-
-                // Fallback: trigger import through the app
-                if (window.app && window.app.importUserInputs) {
-                    window.app.importUserInputs();
-                } else {
-                    console.warn('Load Data functionality not available');
-                }
-            });
-        }
-
-        if (menuSaveData) {
-            menuSaveData.addEventListener('click', function(e) {
-                e.preventDefault();
-                navDropdown.classList.add('hidden'); // Close menu
-
-                // Try to trigger the existing Save Data functionality
-                const btnExportUserData = document.getElementById('btnExportUserData');
-                if (btnExportUserData) {
-                    btnExportUserData.click();
-                    return;
-                }
-
-                // Fallback: trigger export through the app
-                if (window.app && window.app.exportUserInputs) {
-                    window.app.exportUserInputs();
-                } else {
-                    console.warn('Save Data functionality not available');
-                }
-            });
-        }
-    }
-});
+    });
 </script>
 
 </body>

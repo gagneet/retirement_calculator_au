@@ -175,13 +175,25 @@ class RetirementCalculatorApp {
             }
 
             if (returningUserBtn) {
-                // Prevent duplicate event listeners by removing any existing ones
-                const existingListeners = returningUserBtn.getAttribute('data-listener-added');
-                if (!existingListeners) {
-                    returningUserBtn.addEventListener('click', async () => {
-                        await this.skipOnboardingToAdvanced();
+                const returningUserInput = $('returning-user-file-input');
+
+                // Prevent duplicate event listeners
+                if (!returningUserBtn.getAttribute('data-listener-added')) {
+                    returningUserBtn.addEventListener('click', () => {
+                        // Hide onboarding buttons and trigger the hidden file input
+                        this.hideOnboardingButtons();
+                        const calculatorContainer = document.querySelector('.calculator-container') || document.querySelector('.bg-white.rounded-lg');
+                        if (calculatorContainer) {
+                            calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                        returningUserInput.click();
                     });
                     returningUserBtn.setAttribute('data-listener-added', 'true');
+                }
+
+                if (returningUserInput && !returningUserInput.getAttribute('data-listener-added')) {
+                    returningUserInput.addEventListener('change', (e) => this.handleReturningUserFileSelect(e));
+                    returningUserInput.setAttribute('data-listener-added', 'true');
                 }
             }
 
@@ -209,52 +221,55 @@ class RetirementCalculatorApp {
         }
     }
 
-    async skipOnboardingToAdvanced() {
-        this.hideOnboardingButtons();
-        const calculatorContainer = document.querySelector('.calculator-container') ||
-            document.querySelector('.bg-white.rounded-lg');
+    async handleReturningUserFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            return; // User cancelled the file picker
+        }
 
-        if (calculatorContainer) {
-            calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-            // Offer immediate data import for returning users
-            const shouldImport = confirm('Welcome back! Would you like to import your previously saved data now?\n\nClick OK to select your data file, or Cancel to use the calculator with default values.');
-
-            if (shouldImport) {
-                try {
-                    // Import data and show enhanced summary for returning users
-                    await this.importAndShowReturningUserSummary();
-                } catch (error) {
-                    console.error('Failed to import data for returning user:', error);
-                    showNotification('Failed to import data. You can try again using the "Load Data" option in the menu.', 'error');
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (!data.userData || !data.version) {
+                    showNotification('Invalid retirement calculator data file format.', 'error');
+                    return;
                 }
-            } else {
-                showNotification('You can always load your data later using the "Load Data" option in the menu.', 'info');
+
+                // Populate form with imported data
+                populateFormFromData(data.userData);
+
+                // Trigger currency and percentage input formatting
+                initializeCurrencyInputs();
+                initializePercentageInputs();
+
+                // Show enhanced summary
+                this.showReturningUserEnhancedSummary(data.userData, data.scenarioName);
+
+                // Show action buttons for advanced analysis
+                const actionButtonsContainer = $('action-buttons-container');
+                if (actionButtonsContainer) {
+                    actionButtonsContainer.classList.remove('hidden');
+                }
+
+                showNotification(`Successfully loaded: ${data.scenarioName || 'Your Retirement Data'}`, 'success');
+
+                // Recalculate projections with the new data
+                this.calculateRetirement(false);
+
+            } catch (err) {
+                console.error('Error parsing user data file:', err);
+                showNotification('Invalid JSON file. Please select a valid data file.', 'error');
             }
-        }
-    }
+        };
+        reader.onerror = () => {
+            console.error('Error reading file.');
+            showNotification('Error reading file. Please try again.', 'error');
+        };
+        reader.readAsText(file);
 
-    async importAndShowReturningUserSummary() {
-        // Use the robust import functionality
-        const importedData = await importUserData();
-        if (importedData && importedData.userData) {
-            // Populate the form with imported data (same as regular import)
-            populateFormFromData(importedData.userData);
-
-            // Trigger currency and percentage input formatting
-            initializeCurrencyInputs();
-
-            // Show enhanced summary for returning users (similar to onboarding completion)
-            this.showReturningUserEnhancedSummary(importedData.userData, importedData.scenarioName);
-
-            // Show action buttons for advanced analysis
-            const actionButtonsContainer = $('action-buttons-container');
-            if (actionButtonsContainer) {
-                actionButtonsContainer.classList.remove('hidden');
-            }
-
-            showNotification(`Successfully loaded: ${importedData.scenarioName || 'Your Retirement Data'}`, 'success');
-        }
+        // Reset the file input so the 'change' event fires again if the same file is selected
+        event.target.value = '';
     }
 
     showReturningUserEnhancedSummary(userData, scenarioName) {
@@ -302,11 +317,11 @@ class RetirementCalculatorApp {
                             <span class="font-medium">${results.userAge} years</span>
                         </div>
                         ${results.partnerAge && results.partnerAge > 0 ?
-                            `<div class="flex justify-between">
+            `<div class="flex justify-between">
                                 <span>Partner Age:</span>
                                 <span class="font-medium">${results.partnerAge} years</span>
                             </div>` : ''
-                        }
+        }
                         <div class="flex justify-between">
                             <span>Target Retirement Age:</span>
                             <span class="font-medium">${results.retirementAge}</span>
