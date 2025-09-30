@@ -2253,7 +2253,7 @@ export class OnboardingWizard {
             retirementAge: data.goals.retirementAge,
             desiredIncome: data.goals.lifestyleGoals.incomeNeeded,
             confidence: this.calculateConfidenceScore(),
-            riskTolerance: data.finances.riskTolerance,
+            riskTolerance: data.goals.riskTolerance,
             onTrack: goalMet,
             monthlyLivingExpenses: Math.round(monthlyLivingExpenses),
             annualLivingExpenses: Math.round(annualLivingExpenses),
@@ -2301,7 +2301,7 @@ export class OnboardingWizard {
         if (data.property.investmentProperty.hasInvestment) score += 10;
 
         // Risk tolerance factor (balanced is good)
-        if (data.finances.riskTolerance >= 5 && data.finances.riskTolerance <= 7) score += 5;
+        if (data.goals.riskTolerance >= 5 && data.goals.riskTolerance <= 7) score += 5;
 
         return Math.min(Math.max(score, 10), 95); // Cap between 10-95%
     }
@@ -2915,6 +2915,12 @@ export class OnboardingWizard {
         const wizard = $('onboarding-wizard');
         if (wizard) {
             wizard.style.display = 'none';
+        }
+
+        // Show the action buttons container that contains all calculator buttons
+        const actionButtonsContainer = document.getElementById('action-buttons-container');
+        if (actionButtonsContainer) {
+            actionButtonsContainer.classList.remove('hidden');
         }
 
         // If results tabs exist, show advanced tab

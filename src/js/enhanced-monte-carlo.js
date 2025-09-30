@@ -20,21 +20,22 @@ export class EnhancedMonteCarloEngine {
 
     // Advanced correlation matrix for Australian assets
     getCorrelationMatrix() {
+        const corr = this.financialConfig.monteCarloSimulation.ASSET_CORRELATIONS;
         return {
             equity: {
-                bonds: -0.15,    // Negative correlation during risk-off periods
-                property: 0.35,  // Moderate positive correlation
-                international: 0.75, // High correlation with global markets
-                cash: -0.05
+                bonds: corr.EQUITY_BONDS.value,
+                property: corr.EQUITY_PROPERTY.value,
+                international: corr.EQUITY_INTERNATIONAL.value,
+                cash: corr.EQUITY_CASH.value
             },
             bonds: {
-                property: -0.10,
-                international: 0.20,
-                cash: 0.30
+                property: corr.BONDS_PROPERTY.value,
+                international: corr.BONDS_INTERNATIONAL.value,
+                cash: corr.BONDS_CASH.value
             },
             property: {
-                international: 0.25,
-                cash: -0.05
+                international: corr.PROPERTY_INTERNATIONAL.value,
+                cash: corr.PROPERTY_CASH.value
             }
         };
     }
@@ -42,25 +43,24 @@ export class EnhancedMonteCarloEngine {
     // Enhanced volatility clustering model
     calculateVolatilityCluster(historicalVolatility, year) {
         // Implement GARCH-like volatility clustering
-        const baseVolatility = historicalVolatility || 0.15;
+        const baseVolatility = historicalVolatility || this.financialConfig.monteCarloSimulation.VOLATILITY_CLUSTERING.BASE_VOLATILITY.value;
 
         // High volatility tends to cluster together
+        const volConfig = this.financialConfig.monteCarloSimulation.VOLATILITY_CLUSTERING;
         if (this.regimeState.volatilityCluster === 'high') {
-            // 70% chance to stay in high volatility
-            if (Math.random() < 0.7) {
+            if (Math.random() < volConfig.HIGH_VOLATILITY_PERSISTENCE.value) {
                 return {
                     cluster: 'high',
-                    multiplier: 1.8 + randomNormal(0, 0.2)
+                    multiplier: volConfig.HIGH_VOLATILITY_MULTIPLIER.value + randomNormal(0, volConfig.VOLATILITY_NOISE.value)
                 };
             } else {
                 this.regimeState.volatilityCluster = 'normal';
             }
         } else if (this.regimeState.volatilityCluster === 'low') {
-            // 60% chance to stay in low volatility
-            if (Math.random() < 0.6) {
+            if (Math.random() < volConfig.LOW_VOLATILITY_PERSISTENCE.value) {
                 return {
                     cluster: 'low',
-                    multiplier: 0.6 + randomNormal(0, 0.1)
+                    multiplier: volConfig.LOW_VOLATILITY_MULTIPLIER.value + randomNormal(0, volConfig.VOLATILITY_NOISE.value * 0.5)
                 };
             } else {
                 this.regimeState.volatilityCluster = 'normal';
@@ -69,14 +69,14 @@ export class EnhancedMonteCarloEngine {
 
         // Normal volatility transitions
         const rand = Math.random();
-        if (rand < 0.15) {
+        if (rand < volConfig.HIGH_VOLATILITY_PROBABILITY.value) {
             this.regimeState.volatilityCluster = 'high';
-            return { cluster: 'high', multiplier: 1.8 + randomNormal(0, 0.2) };
-        } else if (rand < 0.25) {
+            return { cluster: 'high', multiplier: volConfig.HIGH_VOLATILITY_MULTIPLIER.value + randomNormal(0, volConfig.VOLATILITY_NOISE.value) };
+        } else if (rand < (volConfig.HIGH_VOLATILITY_PROBABILITY.value + volConfig.LOW_VOLATILITY_PROBABILITY.value)) {
             this.regimeState.volatilityCluster = 'low';
-            return { cluster: 'low', multiplier: 0.6 + randomNormal(0, 0.1) };
+            return { cluster: 'low', multiplier: volConfig.LOW_VOLATILITY_MULTIPLIER.value + randomNormal(0, volConfig.VOLATILITY_NOISE.value * 0.5) };
         } else {
-            return { cluster: 'normal', multiplier: 1.0 + randomNormal(0, 0.1) };
+            return { cluster: 'normal', multiplier: 1.0 + randomNormal(0, volConfig.VOLATILITY_NOISE.value * 0.5) };
         }
     }
 
@@ -92,7 +92,7 @@ export class EnhancedMonteCarloEngine {
         const equityRegime = this.regimeState.currentEquityRegime;
 
         // Calculate volatility adjustments
-        const volCluster = this.calculateVolatilityCluster(0.15, year);
+        const volCluster = this.calculateVolatilityCluster(this.financialConfig.monteCarloSimulation.VOLATILITY_CLUSTERING.BASE_VOLATILITY.value, year);
 
         // Generate correlated random shocks if not provided
         const shocks = correlatedShocks || this.generateCorrelatedShocks();
@@ -101,7 +101,7 @@ export class EnhancedMonteCarloEngine {
         const equityBaseReturn = equityRegime ?
             equityRegime.baseReturn : baseReturns.equity;
         const equityVolatility = (equityRegime ?
-            equityRegime.volatility : 0.15) * volCluster.multiplier;
+            equityRegime.volatility : this.financialConfig.monteCarloSimulation.VOLATILITY_CLUSTERING.BASE_VOLATILITY.value) * volCluster.multiplier;
 
         const equityReturn = equityBaseReturn +
             shocks.equity * equityVolatility +
@@ -109,15 +109,16 @@ export class EnhancedMonteCarloEngine {
 
         // Enhanced bond returns with duration risk modeling
         const bondDurationRisk = this.calculateBondDurationRisk(rateRegime, year);
+        const returnCalc = this.financialConfig.monteCarloSimulation.RETURN_CALCULATIONS;
         const bondReturn = baseReturns.bonds +
-            shocks.bonds * 0.08 * volCluster.multiplier * 0.5 +
+            shocks.bonds * returnCalc.BOND_VOLATILITY.value * volCluster.multiplier * returnCalc.BOND_VOLATILITY_ADJUSTMENT.value +
             bondDurationRisk;
 
         // Enhanced property returns with cycle awareness
         const propertyBaseReturn = propertyPhase ?
             propertyPhase.baseReturn : baseReturns.property;
         const propertyVolatility = propertyPhase ?
-            propertyPhase.volatility : 0.12;
+            propertyPhase.volatility : this.financialConfig.monteCarloSimulation.RETURN_CALCULATIONS.PROPERTY_BASE_VOLATILITY.value;
 
         const propertyReturn = propertyBaseReturn +
             shocks.property * propertyVolatility +
@@ -126,12 +127,13 @@ export class EnhancedMonteCarloEngine {
 
         // Cash returns directly tied to rate regime
         const cashReturn = Math.max(0,
-            rateRegime.rate + shocks.cash * 0.005);
+            rateRegime.rate + shocks.cash * this.financialConfig.monteCarloSimulation.RETURN_CALCULATIONS.CASH_VOLATILITY.value);
 
+        const caps = this.financialConfig.monteCarloSimulation.RETURN_CAPS;
         return {
-            equity: Math.max(-0.6, Math.min(0.8, equityReturn)), // Cap extreme returns
-            bonds: Math.max(-0.3, Math.min(0.4, bondReturn)),
-            property: Math.max(-0.4, Math.min(0.5, propertyReturn)),
+            equity: Math.max(caps.EQUITY_MIN.value, Math.min(caps.EQUITY_MAX.value, equityReturn)),
+            bonds: Math.max(caps.BONDS_MIN.value, Math.min(caps.BONDS_MAX.value, bondReturn)),
+            property: Math.max(caps.PROPERTY_MIN.value, Math.min(caps.PROPERTY_MAX.value, propertyReturn)),
             cash: cashReturn,
             regimeInfo: {
                 equityRegime: equityRegime?.name,
@@ -152,12 +154,13 @@ export class EnhancedMonteCarloEngine {
 
         // Simplified correlation matrix (Cholesky factorization)
         // This creates realistic correlations between Australian asset classes
+        const corr = this.financialConfig.monteCarloSimulation.ASSET_CORRELATIONS;
         return {
             equity: z1,
-            bonds: -0.15 * z1 + 0.99 * z2,
-            property: 0.35 * z1 + 0.25 * z2 + 0.91 * z3,
-            cash: -0.05 * z1 + 0.30 * z2 + z4,
-            international: 0.75 * z1 + 0.66 * z2
+            bonds: corr.EQUITY_BONDS.value * z1 + 0.99 * z2,
+            property: corr.EQUITY_PROPERTY.value * z1 + corr.BONDS_PROPERTY.value * z2 + 0.91 * z3,
+            cash: corr.EQUITY_CASH.value * z1 + corr.BONDS_CASH.value * z2 + z4,
+            international: corr.EQUITY_INTERNATIONAL.value * z1 + 0.66 * z2
         };
     }
 
@@ -172,7 +175,7 @@ export class EnhancedMonteCarloEngine {
         }
 
         // Equity market regime transitions
-        if (!this.regimeState.currentEquityRegime || Math.random() < 0.2) {
+        if (!this.regimeState.currentEquityRegime || Math.random() < this.financialConfig.monteCarloSimulation.REGIME_TRANSITIONS.EQUITY_REGIME_CHANGE_PROBABILITY.value) {
             this.transitionEquityRegime();
         }
 
@@ -191,7 +194,7 @@ export class EnhancedMonteCarloEngine {
         if (current) {
             const normalIndex = regimes.findIndex(r => r.name === 'Normal');
             if (normalIndex >= 0 && current.name !== 'Normal') {
-                probabilities[normalIndex] *= 1.5; // Bias toward normal
+                probabilities[normalIndex] *= this.financialConfig.monteCarloSimulation.REGIME_TRANSITIONS.NORMAL_REGIME_BIAS.value;
             }
         }
 
@@ -206,7 +209,7 @@ export class EnhancedMonteCarloEngine {
             if (rand <= cumulative) {
                 this.regimeState.currentInterestRegime = regimes[i];
                 this.regimeState.regimeDuration = regimes[i].duration +
-                    Math.floor(randomNormal(0, 1)); // Add noise to duration
+                    Math.floor(randomNormal(0, this.financialConfig.monteCarloSimulation.REGIME_TRANSITIONS.REGIME_DURATION_NOISE.value));
                 break;
             }
         }
@@ -229,15 +232,16 @@ export class EnhancedMonteCarloEngine {
 
     // Calculate interest rate impact on different asset classes
     getInterestRateImpact(rateRegime, assetClass) {
-        const rateChange = rateRegime.rate - 0.045; // Difference from normal 4.5%
+        const returnCalc = this.financialConfig.monteCarloSimulation.RETURN_CALCULATIONS;
+        const rateChange = rateRegime.rate - returnCalc.NORMAL_RATE_BASELINE.value;
 
         switch (assetClass) {
             case 'equity':
                 // Higher rates generally negative for equities (PV of earnings)
-                return rateChange * -0.8;
+                return rateChange * returnCalc.EQUITY_RATE_SENSITIVITY.value;
             case 'property':
                 // Higher rates very negative for property (mortgage costs)
-                return rateChange * -1.5;
+                return rateChange * returnCalc.PROPERTY_RATE_SENSITIVITY.value;
             case 'bonds':
                 // Duration risk already handled in bond calculation
                 return 0;
@@ -248,9 +252,9 @@ export class EnhancedMonteCarloEngine {
 
     // Calculate bond duration risk based on rate changes
     calculateBondDurationRisk(rateRegime, year) {
-        // Assume average portfolio duration of 5 years
-        const duration = 5;
-        const expectedRateChange = rateRegime.rate - 0.045;
+        const returnCalc = this.financialConfig.monteCarloSimulation.RETURN_CALCULATIONS;
+        const duration = returnCalc.BOND_DURATION.value;
+        const expectedRateChange = rateRegime.rate - returnCalc.NORMAL_RATE_BASELINE.value;
 
         // Duration risk formula: -Duration × ΔYield
         return -duration * expectedRateChange * 0.01; // Convert to decimal
@@ -258,11 +262,12 @@ export class EnhancedMonteCarloEngine {
 
     // Equity spillover effect to property markets
     getEquitySpilloverEffect(equityReturn) {
+        const returnCalc = this.financialConfig.monteCarloSimulation.RETURN_CALCULATIONS;
         // Strong equity performance can spill over to property with lag
-        if (equityReturn > 0.15) {
-            return 0.02; // 2% boost to property
-        } else if (equityReturn < -0.15) {
-            return -0.01; // 1% drag on property
+        if (equityReturn > returnCalc.EQUITY_SPILLOVER_THRESHOLD_POSITIVE.value) {
+            return returnCalc.EQUITY_SPILLOVER_BOOST.value;
+        } else if (equityReturn < returnCalc.EQUITY_SPILLOVER_THRESHOLD_NEGATIVE.value) {
+            return returnCalc.EQUITY_SPILLOVER_DRAG.value;
         }
         return 0;
     }
@@ -346,11 +351,12 @@ export class EnhancedMonteCarloEngine {
         const scenarioSequence = [];
 
         for (let year = 0; year < years; year++) {
+            const baseReturnAssumptions = this.financialConfig.monteCarloSimulation.BASE_RETURN_ASSUMPTIONS;
             const baseReturns = {
-                equity: inputs.expectedReturn / 100,
-                bonds: inputs.expectedReturn * 0.6 / 100,
-                property: inputs.expectedReturn * 0.8 / 100,
-                cash: 0.03
+                equity: inputs.investmentReturn,  // Already converted to decimal in collectInputs
+                bonds: inputs.investmentReturn * baseReturnAssumptions.BOND_MULTIPLIER.value,
+                property: inputs.investmentReturn * baseReturnAssumptions.PROPERTY_MULTIPLIER.value,
+                cash: baseReturnAssumptions.CASH_BASE_RETURN.value
             };
 
             const returns = this.generateRegimeAwareReturns(baseReturns, year);
@@ -396,7 +402,14 @@ export class EnhancedMonteCarloEngine {
                 outcomes.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n
             ),
             skewness: this.calculateSkewness(outcomes, mean),
-            kurtosis: this.calculateKurtosis(outcomes, mean)
+            kurtosis: this.calculateKurtosis(outcomes, mean),
+            // Legacy support for compatibility with app.js
+            percentile10: percentiles.p10,
+            percentile90: percentiles.p90,
+            // Risk metrics
+            shortfallRisk: 1 - successRate,
+            tailRisk: percentiles.p5, // 5% worst case
+            downside: outcomes.filter(o => o < medianOutcome).length / n
         };
     }
 

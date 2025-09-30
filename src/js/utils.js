@@ -1468,6 +1468,82 @@ export const handleError = (error, context = '') => {
     showNotification(`Error: ${errorMsg}`, 'error');
 };
 
+export const showActionableNotification = (message, actions) => {
+    // Remove any existing actionable notification to prevent overlap
+    const existingNotification = document.querySelector('.actionable-notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+
+    const notification = document.createElement('div');
+    notification.className = 'actionable-notification';
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 1rem 1.5rem;
+        border-radius: 0.5rem;
+        background-color: #2d3748;
+        color: white;
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+        font-family: 'Inter', sans-serif;
+        font-size: 0.9rem;
+    `;
+
+    const messageSpan = document.createElement('span');
+    messageSpan.textContent = message;
+    notification.appendChild(messageSpan);
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.gap = '0.75rem';
+
+    actions.forEach(action => {
+        const button = document.createElement('button');
+        button.textContent = action.text;
+        button.className = `notification-button ${action.class || ''}`;
+        button.style.cssText = `
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        `;
+
+        if (action.class === 'primary') {
+            button.style.backgroundColor = '#3b82f6';
+            button.style.color = 'white';
+        } else {
+            button.style.backgroundColor = '#4a5568';
+            button.style.color = 'white';
+        }
+
+        button.onmouseover = () => {
+            button.style.backgroundColor = action.class === 'primary' ? '#2563eb' : '#2d3748';
+        };
+        button.onmouseout = () => {
+            button.style.backgroundColor = action.class === 'primary' ? '#3b82f6' : '#4a5568';
+        };
+
+        button.onclick = () => {
+            if (typeof action.callback === 'function') {
+                action.callback();
+            }
+            notification.remove();
+        };
+        buttonContainer.appendChild(button);
+    });
+
+    notification.appendChild(buttonContainer);
+    document.body.appendChild(notification);
+};
+
 export const showNotification = (message, type = 'info', duration = 5000) => {
     // Create notification element
     const notification = document.createElement('div');
@@ -2134,8 +2210,8 @@ function addEnhancedAnalysisToXLSX(wb, analysis) {
             ['Projected Final Balance', analysis.enhancedSummary.keyMetrics.projectedBalance, 'Deterministic calculation'],
             ['Monte Carlo Success Rate',
                 analysis.enhancedSummary.keyMetrics.successProbability
-                ? `${analysis.enhancedSummary.keyMetrics.successProbability.toFixed(1)}%`
-                : 'Not calculated',
+                    ? `${analysis.enhancedSummary.keyMetrics.successProbability.toFixed(1)}%`
+                    : 'Not calculated',
                 'Probability of success with market volatility']
         ];
 
