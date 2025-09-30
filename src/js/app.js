@@ -217,27 +217,174 @@ class RetirementCalculatorApp {
         if (calculatorContainer) {
             calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-            // Offer immediate data import for returning users - use a more direct approach
+            // Offer immediate data import for returning users
             const shouldImport = confirm('Welcome back! Would you like to import your previously saved data now?\n\nClick OK to select your data file, or Cancel to use the calculator with default values.');
 
             if (shouldImport) {
-                // Trigger the load data menu item directly which maintains user activation
-                const menuLoadData = document.getElementById('menu-load-data');
-                if (menuLoadData) {
-                    menuLoadData.click();
-                } else {
-                    // Fallback: trigger the import button directly
-                    const btnImportUserData = document.getElementById('btnImportUserData');
-                    if (btnImportUserData) {
-                        btnImportUserData.click();
-                    } else {
-                        showNotification('Please use the "Load Data" option in the menu to import your data.', 'info');
-                    }
+                try {
+                    // Import data and show enhanced summary for returning users
+                    await this.importAndShowReturningUserSummary();
+                } catch (error) {
+                    console.error('Failed to import data for returning user:', error);
+                    showNotification('Failed to import data. You can try again using the "Load Data" option in the menu.', 'error');
                 }
             } else {
                 showNotification('You can always load your data later using the "Load Data" option in the menu.', 'info');
             }
         }
+    }
+
+    async importAndShowReturningUserSummary() {
+        // Use the robust import functionality
+        const importedData = await importUserData();
+        if (importedData && importedData.userData) {
+            // Populate the form with imported data (same as regular import)
+            populateFormFromData(importedData.userData);
+
+            // Trigger currency and percentage input formatting
+            initializeCurrencyInputs();
+
+            // Show enhanced summary for returning users (similar to onboarding completion)
+            this.showReturningUserEnhancedSummary(importedData.userData, importedData.scenarioName);
+
+            // Show action buttons for advanced analysis
+            const actionButtonsContainer = $('action-buttons-container');
+            if (actionButtonsContainer) {
+                actionButtonsContainer.classList.remove('hidden');
+            }
+
+            showNotification(`Successfully loaded: ${importedData.scenarioName || 'Your Retirement Data'}`, 'success');
+        }
+    }
+
+    showReturningUserEnhancedSummary(userData, scenarioName) {
+        // Show the Enhanced Summary container
+        const enhancedSummaryContainer = $('enhanced-summary-container');
+        if (enhancedSummaryContainer) {
+            enhancedSummaryContainer.classList.remove('hidden');
+        }
+
+        const enhancedSummaryContent = $('enhanced-summary-content');
+        if (!enhancedSummaryContent) return;
+
+        // Calculate projections using imported data
+        const results = this.calculateReturningUserProjections(userData);
+
+        enhancedSummaryContent.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">💰 Current Financial Position</h3>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span>Total Super:</span>
+                            <span class="font-medium">$${results.currentSuper.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Total Savings:</span>
+                            <span class="font-medium">$${results.currentSavings.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Investment Assets:</span>
+                            <span class="font-medium">$${results.currentStocks.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Annual Income:</span>
+                            <span class="font-medium">$${results.annualIncome.toLocaleString()}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">🎯 Retirement Goals</h3>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span>Your Current Age:</span>
+                            <span class="font-medium">${results.userAge} years</span>
+                        </div>
+                        ${results.partnerAge && results.partnerAge > 0 ?
+                            `<div class="flex justify-between">
+                                <span>Partner Age:</span>
+                                <span class="font-medium">${results.partnerAge} years</span>
+                            </div>` : ''
+                        }
+                        <div class="flex justify-between">
+                            <span>Target Retirement Age:</span>
+                            <span class="font-medium">${results.retirementAge}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Years to Retirement:</span>
+                            <span class="font-medium">${Math.max(0, results.retirementAge - results.userAge)} years</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">📈 Basic Projections</h3>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span>Expected Super at Retirement:</span>
+                            <span class="font-medium">$${results.projectedSuper.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Expected Savings:</span>
+                            <span class="font-medium">$${results.projectedSavings.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Total Retirement Assets:</span>
+                            <span class="font-medium text-green-600">$${results.totalProjected.toLocaleString()}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">🚀 Next Steps for ${scenarioName || 'Your Plan'}</h3>
+                <p class="text-gray-700 mb-3">Your data has been loaded into the advanced calculator. Here's what you can do now:</p>
+                <ul class="text-sm text-gray-600 space-y-1">
+                    <li>• <strong>Run Enhanced Monte Carlo:</strong> Get probabilistic projections with market volatility</li>
+                    <li>• <strong>Compare Strategies:</strong> Test different scenarios side-by-side</li>
+                    <li>• <strong>Healthcare Analysis:</strong> Factor in aged care and healthcare costs</li>
+                    <li>• <strong>Risk Analysis:</strong> Understand your risk profile and optimize allocation</li>
+                    <li>• <strong>Generate AI Recommendations:</strong> Get personalized suggestions for improvement</li>
+                </ul>
+            </div>
+        `;
+    }
+
+    calculateReturningUserProjections(userData) {
+        // Extract key data from imported userData
+        const userAge = userData.yourCurrentAge || 35;
+        const partnerAge = userData.partnerCurrentAge || 0;
+        const retirementAge = userData.retirementAge || 65;
+        const yearsToRetirement = Math.max(0, retirementAge - userAge);
+
+        const currentSuper = (userData.yourCurrentSuper || 0) + (userData.partnerCurrentSuper || 0);
+        const currentSavings = userData.currentSavings || 0;
+        const currentStocks = userData.currentStocks || 0;
+        const annualIncome = (userData.yourSalary || 0) + (userData.partnerSalary || 0);
+
+        // Basic projections using imported return rates
+        const superReturn = userData.superReturn || 0.0875; // Default to 8.75%
+        const savingsReturn = userData.savingsReturn || 0.018; // Default to 1.8%
+
+        const projectedSuper = currentSuper * Math.pow(1 + superReturn, yearsToRetirement) +
+            (annualIncome * 0.12 * ((Math.pow(1 + superReturn, yearsToRetirement) - 1) / superReturn));
+        const projectedSavings = currentSavings * Math.pow(1 + savingsReturn, yearsToRetirement);
+        const projectedStocks = currentStocks * Math.pow(1 + (userData.investmentReturn || 0.0561), yearsToRetirement);
+
+        return {
+            userAge,
+            partnerAge,
+            retirementAge,
+            currentSuper,
+            currentSavings,
+            currentStocks,
+            annualIncome,
+            projectedSuper,
+            projectedSavings,
+            projectedStocks,
+            totalProjected: projectedSuper + projectedSavings + projectedStocks
+        };
     }
 
     showOnboardingCompletedState() {
