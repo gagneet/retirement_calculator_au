@@ -1332,6 +1332,7 @@ export const populateFormFromData = (userData) => {
 
                 const element = $(targetKey);
                 if (element) {
+                    console.log(`✅ Found element for: ${targetKey}`);  // Debug: found element
                     if (element.type === 'checkbox' || element.type === 'radio') {
                         element.checked = value === true || value === 'true' || value === 'yes';
                     } else if (element.type === 'select-one') {
@@ -1361,7 +1362,7 @@ export const populateFormFromData = (userData) => {
                 } else {
                     fieldsSkipped++;
                     skippedFields.push(key);
-                    console.log(`✗ Element not found: ${key}`);
+                    console.log(`❌ Element NOT found for: ${key} (looking for DOM element with id='${targetKey}')`);
                 }
             }
         } catch (error) {
@@ -1374,6 +1375,14 @@ export const populateFormFromData = (userData) => {
     if (skippedFields.length > 0) {
         console.log('Skipped fields:', skippedFields);
     }
+
+    // Debug logging to see what's happening
+    console.log('📊 Import Summary:', {
+        fieldsPopulated,
+        fieldsSkipped,
+        skippedFields: skippedFields.slice(0, 10), // Show first 10 skipped fields
+        totalFields: Object.keys(userData).length
+    });
 
     showNotification(
         `Import complete: ${fieldsPopulated} fields updated${fieldsSkipped > 0 ? `, ${fieldsSkipped} fields skipped` : ''}`,

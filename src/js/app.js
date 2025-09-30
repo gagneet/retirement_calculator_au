@@ -84,6 +84,7 @@ class RetirementCalculatorApp {
     }
 
     async initializeApp() {
+        console.log('🚀 initializeApp starting...');
         this.loadSavedInputs(); // Load saved inputs first
         this.setupEventListeners();
         this.setupAutoSave(); // Setup auto-save functionality
@@ -92,7 +93,9 @@ class RetirementCalculatorApp {
         this.addSuggestionStyles(); // Add CSS styles for suggestion modifications
         this.updateUIElements();
         initializeTrustUI(); // Initialize trust UI functionality
+        console.log('🎯 About to initialize onboarding wizard...');
         await this.initializeOnboardingWizard(); // Initialize onboarding wizard
+        console.log('✅ initializeApp completed');
 
         // Initialize tooltip system
         addTooltipBottomStyles(); // Add bottom positioning styles
@@ -141,13 +144,18 @@ class RetirementCalculatorApp {
     }
 
     async initializeOnboardingWizard() {
+        console.log('🎯 initializeOnboardingWizard called');
         try {
+            console.log('📋 Creating OnboardingWizard...');
             // Initialize the onboarding wizard
             this.onboardingWizard = new OnboardingWizard();
+            console.log('✅ OnboardingWizard created successfully');
 
             // Set up event listeners for the main onboarding buttons
+            console.log('🔍 Looking for onboarding buttons...');
             const newUserBtn = document.getElementById('new-user-btn');
             const returningUserBtn = document.getElementById('returning-user-btn');
+            console.log('🔍 Buttons found:', { newUserBtn: !!newUserBtn, returningUserBtn: !!returningUserBtn });
 
             if (newUserBtn) {
                 // Prevent duplicate event listeners
@@ -175,26 +183,47 @@ class RetirementCalculatorApp {
             }
 
             if (returningUserBtn) {
+                console.log('🔧 Setting up returning user functionality...');
                 const returningUserInput = $('returning-user-file-input');
+                console.log('📂 returningUserInput element:', returningUserInput);
 
                 // Prevent duplicate event listeners
                 if (!returningUserBtn.getAttribute('data-listener-added')) {
                     returningUserBtn.addEventListener('click', () => {
+                        console.log('👆 Returning user button clicked!');
                         // Hide onboarding buttons and trigger the hidden file input
                         this.hideOnboardingButtons();
                         const calculatorContainer = document.querySelector('.calculator-container') || document.querySelector('.bg-white.rounded-lg');
                         if (calculatorContainer) {
                             calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }
-                        returningUserInput.click();
+                        console.log('🎯 About to click file input:', returningUserInput);
+                        if (returningUserInput) {
+                            returningUserInput.click();
+                        } else {
+                            console.log('❌ No returningUserInput element to click!');
+                        }
                     });
                     returningUserBtn.setAttribute('data-listener-added', 'true');
+                    console.log('✅ Returning user button listener added');
+                } else {
+                    console.log('⚠️ Returning user button listener already exists');
                 }
 
                 if (returningUserInput && !returningUserInput.getAttribute('data-listener-added')) {
-                    returningUserInput.addEventListener('change', (e) => this.handleReturningUserFileSelect(e));
+                    returningUserInput.addEventListener('change', (e) => {
+                        console.log('📁 File input changed! Calling handleReturningUserFileSelect...');
+                        this.handleReturningUserFileSelect(e);
+                    });
                     returningUserInput.setAttribute('data-listener-added', 'true');
+                    console.log('✅ File input change listener added');
+                } else if (!returningUserInput) {
+                    console.log('❌ No returningUserInput element found for change listener');
+                } else {
+                    console.log('⚠️ File input change listener already exists');
                 }
+            } else {
+                console.log('❌ No returningUserBtn found');
             }
 
             // Check if onboarding was completed before
@@ -222,20 +251,28 @@ class RetirementCalculatorApp {
     }
 
     async handleReturningUserFileSelect(event) {
+        console.log('🔍 handleReturningUserFileSelect called', event);
         const file = event.target.files[0];
         if (!file) {
+            console.log('❌ No file selected');
             return; // User cancelled the file picker
         }
 
+        console.log('📁 File selected:', file.name, file.size, 'bytes');
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
+                console.log('📖 File read successfully, parsing JSON...');
                 const data = JSON.parse(e.target.result);
+                console.log('✅ JSON parsed successfully:', data);
+
                 if (!data.userData || !data.version) {
+                    console.log('❌ Invalid data structure:', { hasUserData: !!data.userData, hasVersion: !!data.version });
                     showNotification('Invalid retirement calculator data file format.', 'error');
                     return;
                 }
 
+                console.log('🎯 About to populate form with userData:', data.userData);
                 // Populate form with imported data
                 populateFormFromData(data.userData);
 
@@ -243,13 +280,18 @@ class RetirementCalculatorApp {
                 initializeCurrencyInputs();
                 initializePercentageInputs();
 
+                console.log('🌟 About to show enhanced summary...');
                 // Show enhanced summary
                 this.showReturningUserEnhancedSummary(data.userData, data.scenarioName);
 
+                console.log('🔘 Showing action buttons...');
                 // Show action buttons for advanced analysis
                 const actionButtonsContainer = $('action-buttons-container');
                 if (actionButtonsContainer) {
                     actionButtonsContainer.classList.remove('hidden');
+                    console.log('✅ Action buttons container shown');
+                } else {
+                    console.log('❌ Action buttons container not found');
                 }
 
                 showNotification(`Successfully loaded: ${data.scenarioName || 'Your Retirement Data'}`, 'success');
@@ -273,14 +315,23 @@ class RetirementCalculatorApp {
     }
 
     showReturningUserEnhancedSummary(userData, scenarioName) {
+        console.log('🚀 showReturningUserEnhancedSummary called with:', { userData, scenarioName });
+
         // Show the Enhanced Summary container
         const enhancedSummaryContainer = $('enhanced-summary-container');
         if (enhancedSummaryContainer) {
             enhancedSummaryContainer.classList.remove('hidden');
+            console.log('✅ Enhanced summary container shown');
+        } else {
+            console.log('❌ Enhanced summary container not found');
         }
 
         const enhancedSummaryContent = $('enhanced-summary-content');
-        if (!enhancedSummaryContent) return;
+        if (!enhancedSummaryContent) {
+            console.log('❌ Enhanced summary content element not found');
+            return;
+        }
+        console.log('✅ Enhanced summary content element found');
 
         // Calculate projections using imported data
         const results = this.calculateReturningUserProjections(userData);
@@ -317,11 +368,11 @@ class RetirementCalculatorApp {
                             <span class="font-medium">${results.userAge} years</span>
                         </div>
                         ${results.partnerAge && results.partnerAge > 0 ?
-            `<div class="flex justify-between">
+                            `<div class="flex justify-between">
                                 <span>Partner Age:</span>
                                 <span class="font-medium">${results.partnerAge} years</span>
                             </div>` : ''
-        }
+                        }
                         <div class="flex justify-between">
                             <span>Target Retirement Age:</span>
                             <span class="font-medium">${results.retirementAge}</span>
@@ -401,6 +452,19 @@ class RetirementCalculatorApp {
             totalProjected: projectedSuper + projectedSavings + projectedStocks
         };
     }
+
+    async skipOnboardingToAdvanced() {
+        this.hideOnboardingButtons();
+        const calculatorContainer = document.querySelector('.calculator-container') ||
+            document.querySelector('.bg-white.rounded-lg');
+
+        if (calculatorContainer) {
+            calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            showNotification('Welcome back! Use the "Load Data" option in the menu above to import your previously saved data, or start using the calculator directly.', 'info');
+        }
+    }
+
+    // Duplicate methods removed - both showReturningUserEnhancedSummary and calculateReturningUserProjections already defined above
 
     showOnboardingCompletedState() {
         const onboardingButtons = document.getElementById('onboarding-buttons');
