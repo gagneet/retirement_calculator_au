@@ -247,7 +247,7 @@ class RetirementCalculatorApp {
         }
         // If no partner age and no partner data, finalPartnerAge stays 0 (single calculation)
 
-        return {
+        const inputs = {
             // Personal details
             yourCurrentAge: userAge,
             partnerCurrentAge: finalPartnerAge,
@@ -368,6 +368,8 @@ class RetirementCalculatorApp {
             // Partnership status for calculations
             isSingleCalculation: finalPartnerAge === 0
         };
+
+        return inputs;
     }
 
     // Update risk profile display

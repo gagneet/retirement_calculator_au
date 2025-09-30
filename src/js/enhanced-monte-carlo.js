@@ -353,9 +353,9 @@ export class EnhancedMonteCarloEngine {
         for (let year = 0; year < years; year++) {
             const baseReturnAssumptions = this.financialConfig.monteCarloSimulation.BASE_RETURN_ASSUMPTIONS;
             const baseReturns = {
-                equity: inputs.expectedReturn / 100,
-                bonds: inputs.expectedReturn * baseReturnAssumptions.BOND_MULTIPLIER.value / 100,
-                property: inputs.expectedReturn * baseReturnAssumptions.PROPERTY_MULTIPLIER.value / 100,
+                equity: inputs.investmentReturn,  // Already converted to decimal in collectInputs
+                bonds: inputs.investmentReturn * baseReturnAssumptions.BOND_MULTIPLIER.value,
+                property: inputs.investmentReturn * baseReturnAssumptions.PROPERTY_MULTIPLIER.value,
                 cash: baseReturnAssumptions.CASH_BASE_RETURN.value
             };
 
