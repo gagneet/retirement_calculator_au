@@ -15,16 +15,24 @@ import { PropertyAnalysisEngine } from './property-analysis.js';
 // js/app.js - Main Application Controller
 
 // Import new engines with error handling
+// Import new engines with error handling
 let RiskProfilingEngine, DynamicAllocationEngine;
-try {
-    const riskModule = await import('./risk-profiling-engine.js');
-    RiskProfilingEngine = riskModule.RiskProfilingEngine;
 
-    const allocationModule = await import('./dynamic-allocation-engine.js');
-    DynamicAllocationEngine = allocationModule.DynamicAllocationEngine;
-} catch (error) {
-    console.error('Failed to load advanced analysis engines:', error);
-    // Provide fallback functionality or disable features
+async function loadAdvancedEngines() {
+    try {
+        const riskModule = await import('./risk-profiling-engine.js');
+        RiskProfilingEngine = riskModule.RiskProfilingEngine;
+
+        const allocationModule = await import('./dynamic-allocation-engine.js');
+        DynamicAllocationEngine = allocationModule.DynamicAllocationEngine;
+    } catch (error) {
+        console.error('Failed to load advanced analysis engines:', error);
+        // Provide fallback functionality or disable features
+    }
+}
+
+// Call the async function
+loadAdvancedEngines();
 }
 import {
     $,
