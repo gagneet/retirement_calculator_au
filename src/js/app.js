@@ -7,6 +7,36 @@ import RetirementSimulator from './simulator.js';
 import MarketDataEngine from './market-data.js';
 import { initializeTrustUI } from './trust-ui.js';
 import ThemeManager from './theme.js';
+import { OnboardingWizard } from './onboarding-wizard.js';
+import { ScenarioComparisonMatrix } from './scenario-matrix.js';
+import { PersonaIntelligenceEngine } from './persona-intelligence.js';
+import { HealthcareModelingEngine } from './healthcare-modeling.js';
+import { PropertyAnalysisEngine } from './property-analysis.js';
+// js/app.js - Main Application Controller
+
+// Import new engines with error handling
+// Import new engines with error handling
+let RiskProfilingEngine, DynamicAllocationEngine;
+
+async function loadAdvancedEngines() {
+    try {
+        const riskModule = await import('./risk-profiling-engine.js');
+        RiskProfilingEngine = riskModule.RiskProfilingEngine;
+
+        const allocationModule = await import('./dynamic-allocation-engine.js');
+        DynamicAllocationEngine = allocationModule.DynamicAllocationEngine;
+
+        console.log('✅ Advanced engines loaded successfully');
+        return true;
+    } catch (error) {
+        console.error('❌ Failed to load advanced analysis engines:', error);
+        // Provide fallback functionality or disable features
+        return false;
+    }
+}
+
+// Advanced engines will be loaded by the app instance
+
 import {
     $,
     safeGetValue,
@@ -24,6 +54,7 @@ import {
     showTab,
     debounce,
     showNotification,
+    handleError,
     saveToLocalStorage,
     loadFromLocalStorage,
     initializeTooltips,
@@ -38,13 +69,22 @@ class RetirementCalculatorApp {
         this.chartManager = null; // Will be lazy-loaded
         this.marketData = new MarketDataEngine();
         this.themeManager = new ThemeManager();
+        this.scenarioMatrix = new ScenarioComparisonMatrix(this.simulator);
+        this.personaIntelligence = new PersonaIntelligenceEngine(this.simulator);
+        this.healthcareModeling = new HealthcareModelingEngine();
+        this.propertyAnalysis = new PropertyAnalysisEngine();
+        this.riskProfiling = null; // Will be initialized after dynamic import
+        this.dynamicAllocation = null; // Will be initialized after dynamic import
+        this.onboardingWizard = null; // Will be initialized after DOM is ready
         this.currentResults = null;
         this.isCalculating = false;
+        this.isImporting = false;
 
-        this.initializeApp();
+        this.initializeApp().catch(console.error);
     }
 
-    initializeApp() {
+    async initializeApp() {
+        console.log('🚀 initializeApp starting...');
         this.loadSavedInputs(); // Load saved inputs first
         this.setupEventListeners();
         this.setupAutoSave(); // Setup auto-save functionality
@@ -53,14 +93,457 @@ class RetirementCalculatorApp {
         this.addSuggestionStyles(); // Add CSS styles for suggestion modifications
         this.updateUIElements();
         initializeTrustUI(); // Initialize trust UI functionality
+        console.log('🎯 About to initialize onboarding wizard...');
+        await this.initializeOnboardingWizard(); // Initialize onboarding wizard
+        console.log('✅ initializeApp completed');
 
         // Initialize tooltip system
         addTooltipBottomStyles(); // Add bottom positioning styles
         initializeTooltips(); // Initialize tooltip functionality
         initializeCurrencyInputs(); // Initialize currency input formatting
         initializePercentageInputs(); // Initialize percentage input formatting
+        this.enhanceAdvancedCalculatorInputs(); // Add gaming-style enhancements to calculator inputs
+
+        // Make utilities globally available for onboarding wizard
+        window.utils = {
+            $,
+            safeGetValue,
+            safeGetChecked,
+            safeGetSelectValue,
+            safeSetValue,
+            safeSetText,
+            safeSetHTML,
+            formatCurrency,
+            formatPercent,
+            updateProgress,
+            exportUserData,
+            importUserData,
+            populateFormFromData,
+            showTab,
+            debounce,
+            showNotification,
+            saveToLocalStorage,
+            loadFromLocalStorage
+        };
 
         this.performInitialCalculation();
+
+        // Initialize advanced engines after loading
+        this.initializeAdvancedEngines();
+    }
+
+    async initializeAdvancedEngines() {
+        const loaded = await loadAdvancedEngines();
+        if (loaded && RiskProfilingEngine && DynamicAllocationEngine) {
+            this.riskProfiling = new RiskProfilingEngine();
+            this.dynamicAllocation = new DynamicAllocationEngine();
+            console.log('✅ Advanced engines initialized in app instance');
+        } else {
+            console.warn('⚠️ Advanced engines not available - some features will be disabled');
+        }
+    }
+
+    async initializeOnboardingWizard() {
+        console.log('🎯 initializeOnboardingWizard called');
+        try {
+            console.log('📋 Creating OnboardingWizard...');
+            // Initialize the onboarding wizard
+            this.onboardingWizard = new OnboardingWizard();
+            console.log('✅ OnboardingWizard created successfully');
+
+            // Set up event listeners for the main onboarding buttons
+            console.log('🔍 Looking for onboarding buttons...');
+            const newUserBtn = document.getElementById('new-user-btn');
+            const returningUserBtn = document.getElementById('returning-user-btn');
+            console.log('🔍 Buttons found:', { newUserBtn: !!newUserBtn, returningUserBtn: !!returningUserBtn });
+
+            if (newUserBtn) {
+                // Prevent duplicate event listeners
+                const existingListeners = newUserBtn.getAttribute('data-listener-added');
+                if (!existingListeners) {
+                    let isStartingOnboarding = false;
+                    newUserBtn.addEventListener('click', async () => {
+                        if (isStartingOnboarding) return;
+                        isStartingOnboarding = true;
+
+                        try {
+                            await this.onboardingWizard.startOnboarding();
+                            this.hideOnboardingButtons();
+                            // Reset flag after a brief delay to prevent double clicks
+                            setTimeout(() => {
+                                isStartingOnboarding = false;
+                            }, 1000);
+                        } catch (error) {
+                            console.error('Failed to start onboarding:', error);
+                            isStartingOnboarding = false;
+                        }
+                    });
+                    newUserBtn.setAttribute('data-listener-added', 'true');
+                }
+            }
+
+            if (returningUserBtn) {
+                // Prevent duplicate event listeners
+                if (!returningUserBtn.getAttribute('data-listener-added')) {
+                    returningUserBtn.addEventListener('click', async () => {
+                        console.log('👆 Returning user button clicked!');
+                        // Hide onboarding buttons and scroll to calculator
+                        this.hideOnboardingButtons();
+                        const calculatorContainer = document.querySelector('.calculator-container') || document.querySelector('.bg-white.rounded-lg');
+                        if (calculatorContainer) {
+                            calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+
+                        // Use the same robust import method as the menu
+                        try {
+                            await this.importUserInputs();
+                        } catch (error) {
+                            console.error('❌ Failed to import user data:', error);
+                            showNotification('Failed to import data. Please try again.', 'error');
+                        }
+                    });
+                    returningUserBtn.setAttribute('data-listener-added', 'true');
+                    console.log('✅ Returning user button listener added');
+                } else {
+                    console.log('⚠️ Returning user button listener already exists');
+                }
+
+            } else {
+                console.log('❌ No returningUserBtn found');
+                }
+
+            // Check if onboarding was completed before
+            if (this.onboardingWizard.isCompleted) {
+                this.showOnboardingCompletedState();
+            }
+
+            // Check URL parameters for onboarding control
+            await this.handleOnboardingURLParams();
+
+            // Make the wizard available globally for debugging
+            window.onboardingWizard = this.onboardingWizard;
+
+            console.log('✅ Onboarding wizard initialized successfully');
+        } catch (error) {
+            console.error('❌ Failed to initialize onboarding wizard:', error);
+        }
+    }
+
+    hideOnboardingButtons() {
+        const onboardingButtons = document.getElementById('onboarding-buttons');
+        if (onboardingButtons) {
+            onboardingButtons.style.display = 'none';
+        }
+    }
+
+    async handleReturningUserFileSelect(event) {
+        console.log('🔍 handleReturningUserFileSelect called', event);
+        const file = event.target.files[0];
+        if (!file) {
+            console.log('❌ No file selected');
+            return; // User cancelled the file picker
+        }
+
+        console.log('📁 File selected:', file.name, file.size, 'bytes');
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                console.log('📖 File read successfully, parsing JSON...');
+                const data = JSON.parse(e.target.result);
+                console.log('✅ JSON parsed successfully:', data);
+
+                if (!data.userData || !data.version) {
+                    console.log('❌ Invalid data structure:', { hasUserData: !!data.userData, hasVersion: !!data.version });
+                    showNotification('Invalid retirement calculator data file format.', 'error');
+                    return;
+                }
+
+                console.log('🎯 About to populate form with userData:', data.userData);
+                // Populate form with imported data
+                populateFormFromData(data.userData);
+
+                // Trigger currency and percentage input formatting
+                initializeCurrencyInputs();
+                initializePercentageInputs();
+
+                console.log('🌟 About to show enhanced summary...');
+                // Show enhanced summary
+                this.showReturningUserEnhancedSummary(data.userData, data.scenarioName);
+
+                console.log('🔘 Showing action buttons...');
+                // Show action buttons for advanced analysis
+                const actionButtonsContainer = $('action-buttons-container');
+                if (actionButtonsContainer) {
+                    actionButtonsContainer.classList.remove('hidden');
+                    console.log('✅ Action buttons container shown');
+                } else {
+                    console.log('❌ Action buttons container not found');
+                }
+
+                showNotification(`Successfully loaded: ${data.scenarioName || 'Your Retirement Data'}`, 'success');
+
+                // Recalculate projections with the new data
+                this.calculateRetirement(false);
+
+            } catch (err) {
+                console.error('Error parsing user data file:', err);
+                showNotification('Invalid JSON file. Please select a valid data file.', 'error');
+            }
+        };
+        reader.onerror = () => {
+            console.error('Error reading file.');
+            showNotification('Error reading file. Please try again.', 'error');
+        };
+        reader.readAsText(file);
+
+        // Reset the file input so the 'change' event fires again if the same file is selected
+        event.target.value = '';
+    }
+
+    showReturningUserEnhancedSummary(userData, scenarioName) {
+        console.log('🚀 showReturningUserEnhancedSummary called with:', { userData, scenarioName });
+
+        // Show the Enhanced Summary container
+        const enhancedSummaryContainer = $('enhanced-summary-container');
+        if (enhancedSummaryContainer) {
+            enhancedSummaryContainer.classList.remove('hidden');
+            console.log('✅ Enhanced summary container shown');
+        } else {
+            console.log('❌ Enhanced summary container not found');
+        }
+
+        const enhancedSummaryContent = $('enhanced-summary-content');
+        if (!enhancedSummaryContent) {
+            console.log('❌ Enhanced summary content element not found');
+            return;
+        }
+        console.log('✅ Enhanced summary content element found');
+
+        // Calculate projections using imported data
+        const results = this.calculateReturningUserProjections(userData);
+
+        enhancedSummaryContent.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">💰 Current Financial Position</h3>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span>Total Super:</span>
+                            <span class="font-medium">$${results.currentSuper.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Total Savings:</span>
+                            <span class="font-medium">$${results.currentSavings.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Investment Assets:</span>
+                            <span class="font-medium">$${results.currentStocks.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Annual Income:</span>
+                            <span class="font-medium">$${results.annualIncome.toLocaleString()}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">🎯 Retirement Goals</h3>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span>Your Current Age:</span>
+                            <span class="font-medium">${results.userAge} years</span>
+                        </div>
+                        ${results.partnerAge && results.partnerAge > 0 ?
+                            `<div class="flex justify-between">
+                                <span>Partner Age:</span>
+                                <span class="font-medium">${results.partnerAge} years</span>
+                            </div>` : ''
+                        }
+                        <div class="flex justify-between">
+                            <span>Target Retirement Age:</span>
+                            <span class="font-medium">${results.retirementAge}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Years to Retirement:</span>
+                            <span class="font-medium">${Math.max(0, results.retirementAge - results.userAge)} years</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">📈 Basic Projections</h3>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span>Expected Super at Retirement:</span>
+                            <span class="font-medium">$${results.projectedSuper.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Expected Savings:</span>
+                            <span class="font-medium">$${results.projectedSavings.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Total Retirement Assets:</span>
+                            <span class="font-medium text-green-600">$${results.totalProjected.toLocaleString()}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">🚀 Next Steps for ${scenarioName || 'Your Plan'}</h3>
+                <p class="text-gray-700 mb-3">Your data has been loaded into the advanced calculator. Here's what you can do now:</p>
+                <ul class="text-sm text-gray-600 space-y-1">
+                    <li>• <strong>Run Enhanced Monte Carlo:</strong> Get probabilistic projections with market volatility</li>
+                    <li>• <strong>Compare Strategies:</strong> Test different scenarios side-by-side</li>
+                    <li>• <strong>Healthcare Analysis:</strong> Factor in aged care and healthcare costs</li>
+                    <li>• <strong>Risk Analysis:</strong> Understand your risk profile and optimize allocation</li>
+                    <li>• <strong>Generate AI Recommendations:</strong> Get personalized suggestions for improvement</li>
+                </ul>
+            </div>
+        `;
+    }
+
+    calculateReturningUserProjections(userData) {
+        // Extract key data from imported userData
+        const userAge = userData.yourCurrentAge || 35;
+        const partnerAge = userData.partnerCurrentAge || 0;
+        const retirementAge = userData.retirementAge || 65;
+        const yearsToRetirement = Math.max(0, retirementAge - userAge);
+
+        const currentSuper = (userData.yourCurrentSuper || 0) + (userData.partnerCurrentSuper || 0);
+        const currentSavings = userData.currentSavings || 0;
+        const currentStocks = userData.currentStocks || 0;
+        const annualIncome = (userData.yourSalary || 0) + (userData.partnerSalary || 0);
+
+        // Basic projections using imported return rates
+        const superReturn = userData.superReturn || 0.0875; // Default to 8.75%
+        const savingsReturn = userData.savingsReturn || 0.018; // Default to 1.8%
+
+        const projectedSuper = currentSuper * Math.pow(1 + superReturn, yearsToRetirement) +
+            (annualIncome * 0.12 * ((Math.pow(1 + superReturn, yearsToRetirement) - 1) / superReturn));
+        const projectedSavings = currentSavings * Math.pow(1 + savingsReturn, yearsToRetirement);
+        const projectedStocks = currentStocks * Math.pow(1 + (userData.investmentReturn || 0.0561), yearsToRetirement);
+
+        return {
+            userAge,
+            partnerAge,
+            retirementAge,
+            currentSuper,
+            currentSavings,
+            currentStocks,
+            annualIncome,
+            projectedSuper,
+            projectedSavings,
+            projectedStocks,
+            totalProjected: projectedSuper + projectedSavings + projectedStocks
+        };
+    }
+
+    async skipOnboardingToAdvanced() {
+        this.hideOnboardingButtons();
+        const calculatorContainer = document.querySelector('.calculator-container') ||
+            document.querySelector('.bg-white.rounded-lg');
+
+        if (calculatorContainer) {
+            calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            showNotification('Welcome back! Use the "Load Data" option in the menu above to import your previously saved data, or start using the calculator directly.', 'info');
+        }
+    }
+
+    // Duplicate methods removed - both showReturningUserEnhancedSummary and calculateReturningUserProjections already defined above
+    async handleReturningUserFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            return; // User cancelled the file picker
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (!data.userData || !data.version) {
+                    showNotification('Invalid retirement calculator data file format.', 'error');
+                    return;
+                }
+
+                // Populate form with imported data
+                populateFormFromData(data.userData);
+
+                // Trigger currency and percentage input formatting
+                initializeCurrencyInputs();
+                initializePercentageInputs();
+
+                // Show enhanced summary
+                this.showReturningUserEnhancedSummary(data.userData, data.scenarioName || 'Imported Data');
+
+                // Show action buttons for advanced analysis
+                const actionButtonsContainer = $('action-buttons-container');
+                if (actionButtonsContainer) {
+                    actionButtonsContainer.classList.remove('hidden');
+                }
+
+                showNotification('Successfully imported your retirement data!', 'success');
+                console.log('✅ Successfully imported returning user data');
+
+            } catch (error) {
+                console.error('❌ Error parsing imported file:', error);
+                showNotification('Error reading the selected file. Please ensure it\'s a valid retirement calculator data file.', 'error');
+            }
+        };
+
+        reader.onerror = () => {
+            showNotification('Error reading the selected file. Please try again.', 'error');
+        };
+
+        reader.readAsText(file);
+    }
+
+    showOnboardingCompletedState() {
+        const onboardingButtons = document.getElementById('onboarding-buttons');
+        if (onboardingButtons) {
+            onboardingButtons.innerHTML = `
+                <div class="text-center p-6 bg-green-50 rounded-lg border border-green-200">
+                    <div class="mb-4">
+                        <span class="text-4xl">✅</span>
+                        <h2 class="text-xl font-semibold text-green-800 mt-2">Onboarding Complete!</h2>
+                        <p class="text-green-600 mt-1">Your data has been loaded into the calculator</p>
+                    </div>
+                    <div class="flex gap-4 justify-center">
+                        <button id="start-new-onboarding" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                            Start New Planning Session
+                        </button>
+                        <button id="continue-advanced" class="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors">
+                            Continue with Advanced Calculator
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Add event listeners for the new buttons
+            document.getElementById('start-new-onboarding')?.addEventListener('click', () => {
+                this.onboardingWizard.resetAndStart();
+                this.hideOnboardingButtons();
+            });
+
+            document.getElementById('continue-advanced')?.addEventListener('click', async () => {
+                await this.skipOnboardingToAdvanced();
+            });
+        }
+    }
+
+    async handleOnboardingURLParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+
+        if (urlParams.get('onboarding') === 'true') {
+            // Force show onboarding wizard
+            setTimeout(() => {
+                this.onboardingWizard.startOnboarding();
+                this.hideOnboardingButtons();
+            }, 500);
+        } else if (urlParams.get('skip') === 'true') {
+            // Skip onboarding entirely
+            await this.skipOnboardingToAdvanced();
+        }
     }
 
     // Input collection with complete property support
@@ -82,7 +565,7 @@ class RetirementCalculatorApp {
         const partnerLifespanValue = $('partnerLifespan') ? $('partnerLifespan').value.trim() : '';
 
         const hasPartnerData = partnerSalaryValue !== '' || partnerSuperValue !== '' ||
-                              partnerRetirementValue !== '' || partnerLifespanValue !== '';
+            partnerRetirementValue !== '' || partnerLifespanValue !== '';
 
         // Determine final partner age to use in calculations
         let finalPartnerAge = 0;
@@ -95,7 +578,7 @@ class RetirementCalculatorApp {
         }
         // If no partner age and no partner data, finalPartnerAge stays 0 (single calculation)
 
-        return {
+        const inputs = {
             // Personal details
             yourCurrentAge: userAge,
             partnerCurrentAge: finalPartnerAge,
@@ -216,6 +699,8 @@ class RetirementCalculatorApp {
             // Partnership status for calculations
             isSingleCalculation: finalPartnerAge === 0
         };
+
+        return inputs;
     }
 
     // Update risk profile display
@@ -267,21 +752,59 @@ class RetirementCalculatorApp {
 
         try {
             const inputs = this.collectInputs();
-            const result = this.simulator.simulateRetirement(inputs, false);
-            this.currentResults = result;
 
-            // Update UI
-            this.updateRiskProfile(inputs);
-            this.updateRecommendedAllocation(inputs);
-            this.displaySummaryResults(result, inputs);
-            this.displayYearByYearProjection(result);
-            this.displayPropertyAnalysis(result, inputs);
-            this.displayRiskAnalysis(result, inputs);
-            this.displayOptimizationStrategies(result, inputs);
+            let result;
+            try {
+                result = this.simulator.simulateRetirement(inputs, false);
+                this.currentResults = result;
+            } catch (simError) {
+                console.error('Simulation error:', simError);
+                throw new Error(`Core simulation failed. Please check your financial inputs. Details: ${simError.message}`);
+            }
+
+            // Update UI components with individual error handling
+            try {
+                this.updateRiskProfile(inputs);
+                this.updateRecommendedAllocation(inputs);
+                this.displaySummaryResults(result, inputs);
+                this.displayYearByYearProjection(result);
+            } catch (summaryError) {
+                console.error('Summary display error:', summaryError);
+                // Allow continuing even if summary fails
+                showNotification('Could not display summary results. Check console for details.', 'warning');
+            }
+
+            try {
+                this.displayPropertyAnalysis(result, inputs);
+            } catch (propertyError) {
+                console.error('Property analysis display error:', propertyError);
+                showNotification('Could not display property analysis. Check property inputs.', 'warning');
+            }
+
+            try {
+                this.displayRiskAnalysis(result, inputs);
+            } catch (riskError) {
+                console.error('Risk analysis display error:', riskError);
+                showNotification('Could not display risk analysis.', 'warning');
+            }
+
+            try {
+                this.displayOptimizationStrategies(result, inputs);
+            } catch (optError) {
+                console.error('Optimization display error:', optError);
+                showNotification('Could not display optimization strategies.', 'warning');
+            }
+
 
             // Render charts
-            const chartManager = await this.getChartManager();
-            chartManager.renderCompleteAnalysis(result, inputs);
+            try {
+                const chartManager = await this.getChartManager();
+                chartManager.renderCompleteAnalysis(result, inputs);
+            } catch (chartError) {
+                console.error('Chart rendering error:', chartError);
+                showNotification('Could not render charts, but results are still valid.', 'warning');
+            }
+
 
             // Show summary tab and conditionally scroll to results
             if (shouldScrollToResults) {
@@ -293,9 +816,9 @@ class RetirementCalculatorApp {
             }
 
         } catch (error) {
-            console.error('Calculation error:', error);
+            console.error('Main calculation error:', error);
             if (shouldScrollToResults) {
-                showNotification('Error in calculation: ' + error.message, 'error');
+                handleError(error, 'Retirement Calculation');
             }
         } finally {
             this.isCalculating = false;
@@ -925,6 +1448,1044 @@ class RetirementCalculatorApp {
         } else {
             return "Your plan struggles in many scenarios. Major changes to contributions, retirement age, or expenses are likely needed.";
         }
+    }
+
+    // Display enhanced Monte Carlo simulation results with regime analysis
+    displayEnhancedMonteCarloResults(results) {
+        // Find or create enhanced results container
+        let enhancedContainer = $('enhancedMonteCarloResults');
+        if (!enhancedContainer) {
+            const mcResults = $('monteCarloResults');
+            if (!mcResults) return;
+
+            enhancedContainer = document.createElement('div');
+            enhancedContainer.id = 'enhancedMonteCarloResults';
+            enhancedContainer.className = 'mt-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg';
+            mcResults.appendChild(enhancedContainer);
+        }
+
+        // Enhanced insights HTML
+        enhancedContainer.innerHTML = `
+            <h4 class="text-lg font-semibold text-indigo-800 mb-3">🎯 Enhanced Market Analysis</h4>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <!-- Risk Metrics -->
+                <div class="bg-white p-3 rounded-lg shadow-sm border">
+                    <h5 class="font-medium text-gray-800 mb-2">Risk Metrics</h5>
+                    <div class="space-y-1 text-sm">
+                        <div>Value at Risk (5%): <span class="font-medium text-red-600">${formatCurrency(results.var95 || results.percentiles?.p5 || 0)}</span></div>
+                        <div>Expected Shortfall: <span class="font-medium text-red-600">${formatCurrency(results.cvar95 || results.tailRiskMetrics?.expectedShortfall95 || 0)}</span></div>
+                        <div>Tail Risk Ratio: <span class="font-medium">${((results.tailRiskMetrics?.tailRatio || 0) * 100).toFixed(1)}%</span></div>
+                    </div>
+                </div>
+
+                <!-- Distribution Statistics -->
+                <div class="bg-white p-3 rounded-lg shadow-sm border">
+                    <h5 class="font-medium text-gray-800 mb-2">Distribution Shape</h5>
+                    <div class="space-y-1 text-sm">
+                        <div>Skewness: <span class="font-medium">${(results.skewness || 0).toFixed(2)}</span></div>
+                        <div>Kurtosis: <span class="font-medium">${(results.kurtosis || 0).toFixed(2)}</span></div>
+                        <div>Standard Deviation: <span class="font-medium">${formatCurrency(results.standardDeviation || 0)}</span></div>
+                    </div>
+                </div>
+
+                <!-- Market Regime Analysis -->
+                <div class="bg-white p-3 rounded-lg shadow-sm border">
+                    <h5 class="font-medium text-gray-800 mb-2">Market Conditions</h5>
+                    <div class="space-y-1 text-sm">
+                        ${results.regimeAnalysis?.mostCommonEquityRegime ?
+            `<div>Dominant Equity: <span class="font-medium text-blue-600">${results.regimeAnalysis.mostCommonEquityRegime.regime}</span></div>` :
+            ''
+        }
+                        ${results.regimeAnalysis?.mostCommonInterestRegime ?
+            `<div>Interest Environment: <span class="font-medium text-green-600">${results.regimeAnalysis.mostCommonInterestRegime.regime}</span></div>` :
+            ''
+        }
+                        ${results.regimeAnalysis?.mostCommonPropertyPhase ?
+            `<div>Property Cycle: <span class="font-medium text-purple-600">${results.regimeAnalysis.mostCommonPropertyPhase.regime}</span></div>` :
+            ''
+        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Scenarios -->
+            ${results.scenarios ? `
+            <div class="bg-white p-4 rounded-lg shadow-sm border mb-4">
+                <h5 class="font-medium text-gray-800 mb-3">Key Scenario Outcomes</h5>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
+                    <div class="p-2 bg-red-50 rounded">
+                        <div class="text-xs text-gray-600 mb-1">Worst Case</div>
+                        <div class="font-medium text-red-700">${formatCurrency(results.scenarios.worstCase?.outcome || 0)}</div>
+                    </div>
+                    <div class="p-2 bg-orange-50 rounded">
+                        <div class="text-xs text-gray-600 mb-1">Pessimistic</div>
+                        <div class="font-medium text-orange-700">${formatCurrency(results.scenarios.pessimistic?.outcome || 0)}</div>
+                    </div>
+                    <div class="p-2 bg-blue-50 rounded">
+                        <div class="text-xs text-gray-600 mb-1">Median</div>
+                        <div class="font-medium text-blue-700">${formatCurrency(results.scenarios.median?.outcome || 0)}</div>
+                    </div>
+                    <div class="p-2 bg-green-50 rounded">
+                        <div class="text-xs text-gray-600 mb-1">Optimistic</div>
+                        <div class="font-medium text-green-700">${formatCurrency(results.scenarios.optimistic?.outcome || 0)}</div>
+                    </div>
+                    <div class="p-2 bg-emerald-50 rounded">
+                        <div class="text-xs text-gray-600 mb-1">Best Case</div>
+                        <div class="font-medium text-emerald-700">${formatCurrency(results.scenarios.bestCase?.outcome || 0)}</div>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+
+            <!-- Confidence Intervals -->
+            ${results.confidenceIntervals ? `
+            <div class="bg-white p-4 rounded-lg shadow-sm border">
+                <h5 class="font-medium text-gray-800 mb-3">Confidence Ranges</h5>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm">80% Confidence:</span>
+                        <span class="font-medium">${formatCurrency(results.confidenceIntervals.ci80?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci80?.upper || 0)}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm">90% Confidence:</span>
+                        <span class="font-medium">${formatCurrency(results.confidenceIntervals.ci90?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci90?.upper || 0)}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm">95% Confidence:</span>
+                        <span class="font-medium">${formatCurrency(results.confidenceIntervals.ci95?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci95?.upper || 0)}</span>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+
+            <!-- Stress Test Results -->
+            ${results.stressTestResults ? `
+            <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <h5 class="font-medium text-red-800 mb-2">🚨 Stress Test Performance</h5>
+                <div class="text-sm space-y-1">
+                    <div>Average Stress Outcome: <span class="font-medium">${formatCurrency(results.stressTestResults.averageStressOutcome || 0)}</span></div>
+                    <div>Worst Stress Outcome: <span class="font-medium text-red-700">${formatCurrency(results.stressTestResults.worstStressOutcome || 0)}</span></div>
+                    <div>Stress Success Rate: <span class="font-medium">${((results.stressTestResults.stressSuccessRate || 0) * 100).toFixed(1)}%</span></div>
+                </div>
+            </div>
+            ` : ''}
+
+            <div class="mt-4 text-xs text-gray-600">
+                💡 These enhanced metrics use sophisticated market modeling including regime changes, volatility clustering, and asset correlations for more realistic projections.
+            </div>
+        `;
+
+        enhancedContainer.classList.remove('hidden');
+    }
+
+    // Run comprehensive scenario comparison matrix
+    async runScenarioComparison() {
+        if (this.isCalculating) return;
+
+        this.isCalculating = true;
+
+        try {
+            const inputs = this.collectInputs();
+
+            // Check if scenario matrix engine is available
+            if (!this.scenarioMatrix) {
+                showNotification('Scenario comparison engine not available. Please try again in a moment.', 'warning');
+                return;
+            }
+
+            const progressCallback = async (percentage, message) => {
+                updateProgress(percentage, message);
+                await new Promise(resolve => setTimeout(resolve, 10));
+            };
+
+            // Show progress
+            updateProgress(0, "Generating scenario variations...");
+
+            const matrixResults = await this.scenarioMatrix.generateScenarioMatrix(
+                inputs, progressCallback
+            );
+
+            // Display results
+            this.displayScenarioMatrix(matrixResults);
+
+            updateProgress(100, "Scenario analysis complete!");
+            setTimeout(() => updateProgress(0), 1000);
+
+        } catch (error) {
+            console.error('Scenario comparison error:', error);
+            showNotification('Failed to run scenario comparison. Please try again.', 'error');
+        } finally {
+            this.isCalculating = false;
+        }
+    }
+
+    // Display scenario matrix results
+    displayScenarioMatrix(matrixResults) {
+        // Find or create scenario matrix container
+        let matrixContainer = $('scenarioMatrixResults');
+        if (!matrixContainer) {
+            // Create container if it doesn't exist
+            const resultsSection = $('results');
+            if (resultsSection) {
+                matrixContainer = document.createElement('div');
+                matrixContainer.id = 'scenarioMatrixResults';
+                matrixContainer.className = 'mt-6';
+                resultsSection.appendChild(matrixContainer);
+            } else {
+                console.error('Results section not found');
+                return;
+            }
+        }
+
+        // Generate and display matrix HTML
+        matrixContainer.innerHTML = this.scenarioMatrix.generateMatrixHTML(matrixResults);
+        matrixContainer.classList.remove('hidden');
+
+        // Store results for export
+        this.currentScenarioMatrix = matrixResults;
+
+        // Scroll to results
+        matrixContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Merge comprehensive and persona-based recommendations
+    mergeRecommendations(comprehensiveRecs, personaRecs) {
+        return {
+            comprehensive: comprehensiveRecs,
+            persona: personaRecs,
+            merged: {
+                topPriority: this.getTopPriorityRecommendations(comprehensiveRecs, personaRecs),
+                personaInsights: personaRecs.insights || [],
+                actionPlan: personaRecs.actionPlan || {},
+                nextSteps: personaRecs.nextSteps || []
+            }
+        };
+    }
+
+    // Get top priority recommendations from both engines
+    getTopPriorityRecommendations(comprehensiveRecs, personaRecs) {
+        const combined = [];
+
+        // Add top comprehensive recommendations
+        if (comprehensiveRecs && comprehensiveRecs.quickWins) {
+            combined.push(...comprehensiveRecs.quickWins.slice(0, 3).map(rec => ({
+                ...rec,
+                source: "comprehensive",
+                priority: "high"
+            })));
+        }
+
+        // Add top persona recommendations
+        if (personaRecs && personaRecs.recommendations) {
+            combined.push(...personaRecs.recommendations.slice(0, 3).map(rec => ({
+                ...rec,
+                source: "persona",
+                priority: rec.priority || "medium"
+            })));
+        }
+
+        // Sort by priority and return top 5
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+        return combined
+            .sort((a, b) => (priorityOrder[b.priority] || 1) - (priorityOrder[a.priority] || 1))
+            .slice(0, 5);
+    }
+
+    // Display enhanced recommendations with persona intelligence
+    displayEnhancedRecommendations(enhancedRecs) {
+        // First display the comprehensive recommendations (existing functionality)
+        if (enhancedRecs.comprehensive) {
+            this.displayComprehensiveRecommendations(enhancedRecs.comprehensive);
+        }
+
+        // Then add persona intelligence overlay
+        this.addPersonaIntelligenceOverlay(enhancedRecs.persona, enhancedRecs.merged);
+    }
+
+    // Add persona intelligence overlay to recommendations display
+    addPersonaIntelligenceOverlay(personaRecs, mergedRecs) {
+        // Find or create persona intelligence container
+        let personaContainer = $('personaIntelligenceResults');
+        if (!personaContainer) {
+            const recommendationsTab = $('tab-recommendations');
+            if (recommendationsTab) {
+                personaContainer = document.createElement('div');
+                personaContainer.id = 'personaIntelligenceResults';
+                personaContainer.className = 'mt-6';
+                // Insert at the top of recommendations
+                recommendationsTab.insertBefore(personaContainer, recommendationsTab.firstChild);
+            } else {
+                return;
+            }
+        }
+
+        if (!personaRecs || !personaRecs.personaAnalysis) {
+            personaContainer.innerHTML = '';
+            return;
+        }
+
+        const { personaAnalysis, insights, actionPlan, nextSteps } = personaRecs;
+        const { primaryPersona, userProfile } = personaAnalysis;
+
+        personaContainer.innerHTML = `
+            <div class="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-6 mb-6">
+                <div class="flex items-center mb-4">
+                    <div class="bg-purple-100 p-3 rounded-full mr-4">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800">🎯 Your Financial Persona</h3>
+                        <p class="text-purple-600 font-medium">${primaryPersona.name}</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Persona Profile -->
+                    <div class="bg-white p-4 rounded-lg shadow-sm">
+                        <h4 class="font-semibold text-gray-800 mb-3">Your Profile</h4>
+                        <p class="text-sm text-gray-600 mb-3">${primaryPersona.description}</p>
+                        <div class="space-y-2 text-sm">
+                            <div><span class="font-medium">Age:</span> ${userProfile.demographics.age} years</div>
+                            <div><span class="font-medium">Time Horizon:</span> ${userProfile.demographics.yearsToRetirement} years to retirement</div>
+                            <div><span class="font-medium">Risk Capacity:</span> ${userProfile.riskProfile.capacity}/100</div>
+                            <div><span class="font-medium">Savings Rate:</span> ${(userProfile.financial.savingsRate * 100).toFixed(1)}%</div>
+                        </div>
+                    </div>
+
+                    <!-- Key Insights -->
+                    <div class="bg-white p-4 rounded-lg shadow-sm">
+                        <h4 class="font-semibold text-gray-800 mb-3">Persona Insights</h4>
+                        <div class="space-y-3">
+                            ${insights.slice(0, 2).map(insight => `
+                                <div class="p-2 bg-gray-50 rounded text-sm">
+                                    <div class="font-medium text-gray-800">${insight.title}</div>
+                                    <div class="text-gray-600 mt-1">${insight.description}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Priority Action Plan -->
+                ${actionPlan && (actionPlan.immediate?.length > 0 || actionPlan.next30Days?.length > 0) ? `
+                <div class="mt-6 bg-white p-4 rounded-lg shadow-sm">
+                    <h4 class="font-semibold text-gray-800 mb-3">🚀 Priority Action Plan</h4>
+
+                    ${actionPlan.immediate && actionPlan.immediate.length > 0 ? `
+                    <div class="mb-4">
+                        <h5 class="font-medium text-red-600 mb-2">Immediate Actions</h5>
+                        <div class="space-y-2">
+                            ${actionPlan.immediate.map(action => `
+                                <div class="flex items-center p-2 bg-red-50 rounded text-sm">
+                                    <span class="w-2 h-2 bg-red-500 rounded-full mr-3"></span>
+                                    <span>${action.title}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    ${actionPlan.next30Days && actionPlan.next30Days.length > 0 ? `
+                    <div class="mb-4">
+                        <h5 class="font-medium text-orange-600 mb-2">Next 30 Days</h5>
+                        <div class="space-y-2">
+                            ${actionPlan.next30Days.map(action => `
+                                <div class="flex items-center p-2 bg-orange-50 rounded text-sm">
+                                    <span class="w-2 h-2 bg-orange-500 rounded-full mr-3"></span>
+                                    <span>${action.title}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+                ` : ''}
+
+                <!-- Next Steps -->
+                ${nextSteps && nextSteps.length > 0 ? `
+                <div class="mt-6 bg-white p-4 rounded-lg shadow-sm">
+                    <h4 class="font-semibold text-gray-800 mb-3">📋 Next Steps</h4>
+                    <div class="space-y-3">
+                        ${nextSteps.slice(0, 3).map(step => `
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-sm font-medium mr-3">
+                                    ${step.step}
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-800">${step.action}</div>
+                                    <div class="text-sm text-gray-600 mt-1">${step.description}</div>
+                                    <div class="text-xs text-gray-500 mt-1">Timeline: ${step.timeframe}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="mt-4 text-xs text-purple-600">
+                    💡 These insights are based on AI analysis of your financial profile and similar successful strategies.
+                </div>
+            </div>
+        `;
+
+        personaContainer.classList.remove('hidden');
+    }
+
+    // Run healthcare cost analysis and display results
+    async runHealthcareAnalysis() {
+        if (this.isCalculating) return;
+
+        this.isCalculating = true;
+
+        try {
+            const inputs = this.collectInputs();
+
+            // Check if healthcare modeling engine is available
+            if (!this.healthcareModeling) {
+                showNotification('Healthcare modeling engine not available. Please try again in a moment.', 'warning');
+                return;
+            }
+
+            updateProgress(10, "Analyzing healthcare cost patterns...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Generate comprehensive healthcare projections
+            const healthcareProjections = this.healthcareModeling.calculateHealthcareCostProjection(inputs);
+
+            updateProgress(50, "Modeling aged care scenarios...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Run Monte Carlo simulation for healthcare costs
+            const healthcareMonteCarlo = this.healthcareModeling.simulateHealthcareCosts(inputs, 2000);
+
+            updateProgress(80, "Generating healthcare recommendations...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Create summary
+            const healthcareSummary = this.healthcareModeling.generateHealthcareSummary(inputs);
+
+            updateProgress(90, "Displaying healthcare analysis...");
+
+            // Display results
+            this.displayHealthcareAnalysis({
+                projections: healthcareProjections,
+                monteCarlo: healthcareMonteCarlo,
+                summary: healthcareSummary
+            });
+
+            updateProgress(100, "Healthcare analysis complete!");
+            setTimeout(() => updateProgress(0), 1000);
+
+        } catch (error) {
+            console.error('Healthcare analysis error:', error);
+            showNotification('Failed to complete healthcare analysis. Please try again.', 'error');
+        } finally {
+            this.isCalculating = false;
+        }
+    }
+
+    // Advanced three-dimensional risk profiling analysis
+    async runAdvancedRiskProfiling() {
+        if (this.isCalculating) return;
+
+        this.isCalculating = true;
+
+        try {
+            const inputs = this.collectInputs();
+
+            updateProgress(20, "Analyzing risk capacity...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Get current Monte Carlo results if available
+            const monteCarloResults = this.currentResults?.monteCarlo || null;
+
+            updateProgress(40, "Assessing risk tolerance...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Generate comprehensive risk profile
+            if (!this.riskProfiling) {
+                showNotification('Risk profiling engine not loaded yet. Please try again in a moment.', 'warning');
+                return;
+            }
+            const riskProfile = this.riskProfiling.generateRiskProfileSummary(inputs, monteCarloResults);
+
+            updateProgress(80, "Generating risk recommendations...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Display results
+            this.displayAdvancedRiskProfile(riskProfile);
+
+            updateProgress(100, "Risk analysis complete!");
+            setTimeout(() => updateProgress(0), 1000);
+
+        } catch (error) {
+            console.error('Risk profiling error:', error);
+            showNotification('Failed to complete risk analysis. Please try again.', 'error');
+        } finally {
+            this.isCalculating = false;
+        }
+    }
+
+    // Dynamic asset allocation optimization analysis
+    async runDynamicAllocationAnalysis() {
+        if (this.isCalculating) return;
+
+        this.isCalculating = true;
+
+        try {
+            const inputs = this.collectInputs();
+
+            updateProgress(20, "Analyzing current allocation...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Get risk profile if not already generated
+            let riskProfile = null;
+            if (this.currentResults?.riskProfile) {
+                riskProfile = this.currentResults.riskProfile;
+            } else {
+                if (!this.riskProfiling) {
+                    showNotification('Risk profiling engine not loaded yet. Please try again in a moment.', 'warning');
+                    return;
+                }
+                updateProgress(40, "Determining risk profile...");
+                riskProfile = this.riskProfiling.generateRiskProfileSummary(inputs, this.currentResults?.monteCarlo);
+            }
+
+            updateProgress(60, "Optimizing asset allocation...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Generate optimal allocation strategy
+            if (!this.dynamicAllocation) {
+                showNotification('Allocation engine not loaded yet. Please try again in a moment.', 'warning');
+                return;
+            }
+            const allocationStrategy = this.dynamicAllocation.generateAllocationSummary(inputs, riskProfile);
+
+            updateProgress(80, "Creating rebalancing plan...");
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Display results
+            this.displayDynamicAllocationStrategy(allocationStrategy);
+
+            updateProgress(100, "Allocation analysis complete!");
+            setTimeout(() => updateProgress(0), 1000);
+
+        } catch (error) {
+            console.error('Dynamic allocation error:', error);
+            showNotification('Failed to complete allocation analysis. Please try again.', 'error');
+        } finally {
+            this.isCalculating = false;
+        }
+    }
+
+    // Display advanced risk profiling results
+    displayAdvancedRiskProfile(riskProfile) {
+        const resultsContainer = $('results');
+        if (!resultsContainer) return;
+
+        const riskContainer = document.createElement('div');
+        riskContainer.className = 'bg-white rounded-lg shadow-lg p-6 mt-6';
+        riskContainer.id = 'riskProfilingResults';
+
+        const dimensionColors = {
+            capacity: 'blue',
+            tolerance: 'green',
+            requirement: 'purple'
+        };
+
+        riskContainer.innerHTML = `
+            <div class="border-b border-gray-200 pb-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Advanced Risk Analysis</h2>
+                        <p class="text-gray-600 mt-1">Three-dimensional risk assessment with personalized recommendations</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-${riskProfile.overallRiskProfile === 'aggressive' ? 'red' :
+            riskProfile.overallRiskProfile === 'growth' ? 'orange' :
+                riskProfile.overallRiskProfile === 'balanced' ? 'blue' :
+                    riskProfile.overallRiskProfile === 'conservative' ? 'green' : 'gray'}-600">
+                            ${riskProfile.riskScore}/100
+                        </div>
+                        <div class="text-sm text-gray-600 uppercase tracking-wide">
+                            ${riskProfile.overallRiskProfile.replace('_', ' ')} Investor
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            Confidence: ${riskProfile.confidenceLevel}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Dimensions -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                ${Object.entries(riskProfile.dimensions).map(([dimension, data]) => `
+                    <div class="bg-${dimensionColors[dimension]}-50 border border-${dimensionColors[dimension]}-200 p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold text-${dimensionColors[dimension]}-800 capitalize">${dimension.replace('_', ' ')}</h4>
+                            <div class="text-2xl font-bold text-${dimensionColors[dimension]}-600">${data.score}/100</div>
+                        </div>
+                        <div class="text-sm text-${dimensionColors[dimension]}-700 mb-2">${data.level.replace('_', ' ').toUpperCase()}</div>
+
+                        ${data.strengths && data.strengths.length > 0 ? `
+                            <div class="mb-2">
+                                <div class="text-xs font-medium text-green-700 mb-1">Strengths:</div>
+                                <div class="text-xs text-green-600">
+                                    ${data.strengths.map(s => s.replace('_', ' ')).join(', ')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${data.weaknesses && data.weaknesses.length > 0 ? `
+                            <div>
+                                <div class="text-xs font-medium text-red-700 mb-1">Areas for Improvement:</div>
+                                <div class="text-xs text-red-600">
+                                    ${data.weaknesses.map(w => w.replace('_', ' ')).join(', ')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('')}
+            </div>
+
+            <!-- Risk Misalignment Analysis -->
+            ${riskProfile.misalignment && riskProfile.misalignment.severity !== 'low' ? `
+                <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold text-yellow-800 mb-3">
+                        ⚠️ Risk Dimension ${riskProfile.misalignment.severity === 'high' ? 'Misalignment' : 'Considerations'}
+                    </h4>
+                    <div class="text-sm text-yellow-700 mb-3">
+                        Your risk dimensions show a ${riskProfile.misalignment.range.toFixed(0)}-point spread, indicating ${riskProfile.misalignment.severity} alignment between your capacity, tolerance, and requirements.
+                    </div>
+                    ${riskProfile.misalignment.conflicts && riskProfile.misalignment.conflicts.length > 0 ? `
+                        <div class="space-y-2">
+                            ${riskProfile.misalignment.conflicts.map(conflict => `
+                                <div class="bg-white p-3 rounded border-l-4 border-yellow-400">
+                                    <div class="font-medium text-yellow-800">${conflict.description}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            ` : ''}
+
+            <!-- Optimal Allocation -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4">Recommended Asset Allocation</h4>
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="text-center p-3 bg-blue-50 rounded">
+                        <div class="text-2xl font-bold text-blue-600">${riskProfile.optimalAllocation.equity}%</div>
+                        <div class="text-sm text-gray-600">Growth Assets</div>
+                        <div class="text-xs text-gray-500">Stocks, Property REITs</div>
+                    </div>
+                    <div class="text-center p-3 bg-green-50 rounded">
+                        <div class="text-2xl font-bold text-green-600">${riskProfile.optimalAllocation.bonds}%</div>
+                        <div class="text-sm text-gray-600">Defensive Assets</div>
+                        <div class="text-xs text-gray-500">Bonds, Fixed Income</div>
+                    </div>
+                    <div class="text-center p-3 bg-yellow-50 rounded">
+                        <div class="text-2xl font-bold text-yellow-600">${riskProfile.optimalAllocation.cash}%</div>
+                        <div class="text-sm text-gray-600">Cash Assets</div>
+                        <div class="text-xs text-gray-500">Term Deposits, Savings</div>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-700 bg-white p-3 rounded">
+                    <strong>Expected Performance:</strong><br>
+                    • Annual Return: ${(riskProfile.optimalAllocation.expectedReturn * 100).toFixed(1)}%<br>
+                    • Volatility: ${(riskProfile.optimalAllocation.expectedVolatility * 100).toFixed(1)}%<br>
+                    • ${riskProfile.optimalAllocation.rationale}
+                </div>
+            </div>
+
+            <!-- Top Recommendations -->
+            ${riskProfile.topRecommendations && riskProfile.topRecommendations.length > 0 ? `
+                <div class="bg-purple-50 border border-purple-200 p-4 rounded-lg">
+                    <h4 class="text-lg font-semibold text-purple-800 mb-4">Priority Action Items</h4>
+                    <div class="space-y-3">
+                        ${riskProfile.topRecommendations.map((rec, index) => `
+                            <div class="bg-white p-4 rounded border-l-4 border-purple-400">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="font-medium text-purple-800">${index + 1}. ${rec.title}</div>
+                                        <div class="text-sm text-gray-600 mt-1">${rec.description}</div>
+                                        ${rec.actions ? `
+                                            <ul class="text-sm text-gray-600 mt-2 pl-4">
+                                                ${rec.actions.slice(0, 3).map(action => `<li>• ${action}</li>`).join('')}
+                                            </ul>
+                                        ` : ''}
+                                    </div>
+                                    <div class="ml-4 px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                                        ${rec.priority?.toUpperCase() || 'MEDIUM'}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        `;
+
+        // Remove existing risk results and add new ones
+        const existingRiskResults = $('riskProfilingResults');
+        if (existingRiskResults) {
+            existingRiskResults.remove();
+        }
+
+        resultsContainer.appendChild(riskContainer);
+        riskContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Display dynamic allocation strategy results
+    displayDynamicAllocationStrategy(strategy) {
+        const resultsContainer = $('results');
+        if (!resultsContainer) return;
+
+        const allocationContainer = document.createElement('div');
+        allocationContainer.className = 'bg-white rounded-lg shadow-lg p-6 mt-6';
+        allocationContainer.id = 'dynamicAllocationResults';
+
+        allocationContainer.innerHTML = `
+            <div class="border-b border-gray-200 pb-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Dynamic Asset Allocation Strategy</h2>
+                        <p class="text-gray-600 mt-1">Optimized portfolio management with lifecycle-based allocation</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-blue-600 capitalize">
+                            ${strategy.strategy.name.replace('_', ' ')}
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            ${strategy.strategy.description}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            Confidence: ${strategy.confidence}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Recommended Allocation -->
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Recommended Portfolio Allocation</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                    <div class="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-blue-600">${strategy.currentAllocation.equity}%</div>
+                            <div class="text-sm font-medium text-blue-800">Growth Assets</div>
+                            <div class="text-xs text-blue-600 mt-1">
+                                Australian & International Shares, Property REITs
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-green-600">${strategy.currentAllocation.bonds}%</div>
+                            <div class="text-sm font-medium text-green-800">Defensive Assets</div>
+                            <div class="text-xs text-green-600 mt-1">
+                                Government & Corporate Bonds, Fixed Income
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 rounded-lg border border-yellow-200">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-yellow-600">${strategy.currentAllocation.cash}%</div>
+                            <div class="text-sm font-medium text-yellow-800">Cash Assets</div>
+                            <div class="text-xs text-yellow-600 mt-1">
+                                High Interest Savings, Term Deposits
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expected Performance Metrics -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4">Expected Portfolio Performance</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center p-3 bg-white rounded">
+                        <div class="text-xl font-bold text-blue-600">${strategy.expectedMetrics.expectedReturn}</div>
+                        <div class="text-sm text-gray-600">Annual Return</div>
+                    </div>
+                    <div class="text-center p-3 bg-white rounded">
+                        <div class="text-xl font-bold text-orange-600">${strategy.expectedMetrics.expectedVolatility}</div>
+                        <div class="text-sm text-gray-600">Volatility</div>
+                    </div>
+                    <div class="text-center p-3 bg-white rounded">
+                        <div class="text-xl font-bold text-green-600">${strategy.expectedMetrics.sharpeRatio}</div>
+                        <div class="text-sm text-gray-600">Sharpe Ratio</div>
+                    </div>
+                    <div class="text-center p-3 bg-white rounded">
+                        <div class="text-xl font-bold text-red-600">${strategy.expectedMetrics.maxDrawdown}</div>
+                        <div class="text-sm text-gray-600">Max Drawdown</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rebalancing Plan -->
+            <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
+                <h4 class="text-lg font-semibold text-blue-800 mb-3">Rebalancing Strategy</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <div class="font-medium text-blue-700">Frequency</div>
+                        <div class="text-sm text-blue-600 capitalize">${strategy.rebalancingPlan.frequency.replace('_', ' ')}</div>
+                    </div>
+                    <div>
+                        <div class="font-medium text-blue-700">Method</div>
+                        <div class="text-sm text-blue-600 capitalize">${strategy.rebalancingPlan.method.replace('_', ' ')}</div>
+                    </div>
+                    <div>
+                        <div class="font-medium text-blue-700">Next Review</div>
+                        <div class="text-sm text-blue-600">
+                            ${strategy.rebalancingPlan.nextReview ? new Date(strategy.rebalancingPlan.nextReview).toLocaleDateString() : 'Within 3 months'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tactical Adjustments -->
+            ${strategy.tacticalAdjustments && strategy.tacticalAdjustments.length > 0 ? `
+                <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold text-yellow-800 mb-3">Current Market Adjustments</h4>
+                    <div class="space-y-2">
+                        ${strategy.tacticalAdjustments.map(adj => `
+                            <div class="bg-white p-3 rounded border-l-4 border-yellow-400">
+                                <div class="font-medium text-yellow-800">${adj.type.replace('_', ' ').toUpperCase()}</div>
+                                <div class="text-sm text-gray-600">${adj.description}</div>
+                                <div class="text-xs text-gray-500 mt-1">Confidence: ${(adj.confidence * 100).toFixed(0)}%</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Implementation Steps -->
+            ${strategy.implementationSteps && strategy.implementationSteps.length > 0 ? `
+                <div class="bg-green-50 border border-green-200 p-4 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold text-green-800 mb-4">Implementation Roadmap</h4>
+                    <div class="space-y-3">
+                        ${strategy.implementationSteps.map((step, index) => `
+                            <div class="bg-white p-4 rounded border-l-4 border-green-400">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center mb-2">
+                                            <div class="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3">
+                                                ${index + 1}
+                                            </div>
+                                            <div class="font-medium text-green-800">${step.title}</div>
+                                        </div>
+                                        <div class="text-sm text-gray-600 ml-9">${step.description}</div>
+                                    </div>
+                                    <div class="ml-4 text-right">
+                                        <div class="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full mb-1">
+                                            ${step.priority?.toUpperCase() || 'MEDIUM'}
+                                        </div>
+                                        <div class="text-xs text-gray-500 capitalize">${step.timeline?.replace('_', ' ') || 'Soon'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Strategy Rationale -->
+            <div class="bg-purple-50 border border-purple-200 p-4 rounded-lg">
+                <h4 class="text-lg font-semibold text-purple-800 mb-3">Strategy Rationale</h4>
+                <div class="text-sm text-purple-700 leading-relaxed">
+                    ${strategy.rationale}
+                </div>
+            </div>
+        `;
+
+        // Remove existing allocation results and add new ones
+        const existingAllocationResults = $('dynamicAllocationResults');
+        if (existingAllocationResults) {
+            existingAllocationResults.remove();
+        }
+
+        resultsContainer.appendChild(allocationContainer);
+        allocationContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Display healthcare analysis results
+    displayHealthcareAnalysis(healthcareResults) {
+        // Find or create healthcare results container
+        let healthcareContainer = $('healthcareAnalysisResults');
+        if (!healthcareContainer) {
+            const resultsSection = $('results');
+            if (resultsSection) {
+                healthcareContainer = document.createElement('div');
+                healthcareContainer.id = 'healthcareAnalysisResults';
+                healthcareContainer.className = 'mt-6';
+                resultsSection.appendChild(healthcareContainer);
+            } else {
+                console.error('Results section not found');
+                return;
+            }
+        }
+
+        const { projections, monteCarlo, summary } = healthcareResults;
+
+        healthcareContainer.innerHTML = `
+            <div class="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-6">
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">🏥 Healthcare Cost Analysis</h3>
+                <p class="text-gray-600 mb-6">Comprehensive healthcare and aged care cost projections based on 2024-2025 Australian data</p>
+
+                <!-- Summary Statistics -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded-lg shadow border">
+                        <div class="text-sm text-gray-600">Lifetime Healthcare Costs</div>
+                        <div class="text-2xl font-bold text-blue-600">${formatCurrency(summary.totalLifetimeCost)}</div>
+                        <div class="text-xs text-gray-500">Including aged care</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow border">
+                        <div class="text-sm text-gray-600">Annual Average</div>
+                        <div class="text-2xl font-bold text-green-600">${formatCurrency(summary.averageAnnualCost)}</div>
+                        <div class="text-xs text-gray-500">Per year in retirement</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow border">
+                        <div class="text-sm text-gray-600">Aged Care Probability</div>
+                        <div class="text-2xl font-bold text-orange-600">${(summary.agedCareProbability * 100).toFixed(0)}%</div>
+                        <div class="text-xs text-gray-500">Likelihood of need</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow border">
+                        <div class="text-sm text-gray-600">Expected Aged Care Cost</div>
+                        <div class="text-2xl font-bold text-red-600">${formatCurrency(summary.agedCareExpectedCost)}</div>
+                        <div class="text-xs text-gray-500">If care is needed</div>
+                    </div>
+                </div>
+
+                <!-- Monte Carlo Results -->
+                <div class="bg-white p-4 rounded-lg shadow border mb-6">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4">Healthcare Cost Projections (Monte Carlo Analysis)</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div class="text-center p-3 bg-red-50 rounded">
+                            <div class="text-xs text-gray-600 mb-1">10th Percentile</div>
+                            <div class="font-medium text-red-700">${formatCurrency(monteCarlo.percentile10)}</div>
+                        </div>
+                        <div class="text-center p-3 bg-orange-50 rounded">
+                            <div class="text-xs text-gray-600 mb-1">25th Percentile</div>
+                            <div class="font-medium text-orange-700">${formatCurrency(monteCarlo.percentile10 * 1.4)}</div>
+                        </div>
+                        <div class="text-center p-3 bg-blue-50 rounded">
+                            <div class="text-xs text-gray-600 mb-1">Median (50th)</div>
+                            <div class="font-medium text-blue-700">${formatCurrency(monteCarlo.median)}</div>
+                        </div>
+                        <div class="text-center p-3 bg-green-50 rounded">
+                            <div class="text-xs text-gray-600 mb-1">90th Percentile</div>
+                            <div class="font-medium text-green-700">${formatCurrency(monteCarlo.percentile90)}</div>
+                        </div>
+                        <div class="text-center p-3 bg-purple-50 rounded">
+                            <div class="text-xs text-gray-600 mb-1">95th Percentile</div>
+                            <div class="font-medium text-purple-700">${formatCurrency(monteCarlo.percentile95)}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aged Care Breakdown -->
+                ${projections.agedCareProjections ? `
+                <div class="bg-white p-4 rounded-lg shadow border mb-6">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4">Aged Care Cost Breakdown</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <h5 class="font-medium text-gray-700 mb-2">Home Care</h5>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span>Probability:</span>
+                                    <span class="font-medium">${(projections.agedCareProjections.homeCare.probability * 100).toFixed(0)}%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Expected Cost:</span>
+                                    <span class="font-medium">${formatCurrency(projections.agedCareProjections.homeCare.expectedCost)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Average Duration:</span>
+                                    <span class="font-medium">${projections.agedCareProjections.homeCare.averageDuration} years</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="font-medium text-gray-700 mb-2">Residential Care</h5>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span>Probability:</span>
+                                    <span class="font-medium">${(projections.agedCareProjections.residentialCare.probability * 100).toFixed(0)}%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Expected Cost:</span>
+                                    <span class="font-medium">${formatCurrency(projections.agedCareProjections.residentialCare.expectedCost)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Estimated RAD:</span>
+                                    <span class="font-medium">${formatCurrency(projections.agedCareProjections.residentialCare.estimatedRAD)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <!-- Risk Factors -->
+                ${summary.majorRisks && summary.majorRisks.length > 0 ? `
+                <div class="bg-red-50 border border-red-200 p-4 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold text-red-800 mb-3">⚠️ Healthcare Risk Factors</h4>
+                    <div class="space-y-3">
+                        ${summary.majorRisks.map(risk => `
+                            <div class="bg-white p-3 rounded border-l-4 border-red-400">
+                                <div class="font-medium text-red-800">${risk.description}</div>
+                                <div class="text-sm text-red-600 mt-1">${risk.impact}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                <!-- Recommendations -->
+                ${summary.topRecommendations && summary.topRecommendations.length > 0 ? `
+                <div class="bg-white p-4 rounded-lg shadow border mb-6">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4">💡 Healthcare Planning Recommendations</h4>
+                    <div class="space-y-4">
+                        ${summary.topRecommendations.map((rec, index) => `
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium mr-3">
+                                    ${index + 1}
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-800">${rec.title}</div>
+                                    <div class="text-sm text-gray-600 mt-1">${rec.description}</div>
+                                    ${rec.estimatedSaving > 0 ? `<div class="text-sm text-green-600 mt-1">Potential savings: ${formatCurrency(rec.estimatedSaving)}</div>` : ''}
+                                    ${rec.implementationSteps ? `
+                                    <div class="mt-2">
+                                        <div class="text-xs text-gray-500 font-medium">Implementation steps:</div>
+                                        <ul class="text-xs text-gray-600 mt-1 ml-4">
+                                            ${rec.implementationSteps.slice(0, 2).map(step => `<li>• ${step}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="mt-4 text-xs text-gray-600">
+                    📊 Analysis based on 2024-2025 Australian healthcare costs, aged care reforms, and inflation data from government sources.
+                </div>
+            </div>
+        `;
+
+        healthcareContainer.classList.remove('hidden');
+
+        // Store results for export
+        this.currentHealthcareAnalysis = healthcareResults;
+
+        // Scroll to results
+        healthcareContainer.scrollIntoView({ behavior: 'smooth' });
     }
 
     // Enhanced helper methods for practical risk analysis
@@ -1632,8 +3193,22 @@ class RetirementCalculatorApp {
 
             const comprehensiveRecommendations = await decisionEngine.generateComprehensiveRecommendations();
 
-            updateProgress(90, 'Formatting comprehensive recommendations...');
-            this.displayComprehensiveRecommendations(comprehensiveRecommendations);
+            // Layer on persona-based intelligence for enhanced personalization
+            updateProgress(85, 'Applying persona-based intelligence...');
+            const personaRecommendations = this.personaIntelligence.generatePersonaRecommendations(
+                inputs,
+                this.currentMonteCarloResults,
+                this.currentScenarioMatrix
+            );
+
+            // Merge comprehensive and persona-based recommendations
+            const enhancedRecommendations = this.mergeRecommendations(
+                comprehensiveRecommendations,
+                personaRecommendations
+            );
+
+            updateProgress(90, 'Formatting enhanced recommendations...');
+            this.displayEnhancedRecommendations(enhancedRecommendations);
 
             showTab('recommendations', true);
             updateProgress(100, 'Comprehensive AI Recommendations Generated!');
@@ -2487,10 +4062,10 @@ class RetirementCalculatorApp {
                 <div class="flex justify-between items-start mb-3">
                     <h4 class="font-semibold text-gray-900">${scenario.title}</h4>
                     <span class="px-2 py-1 text-xs font-semibold rounded-full ${
-                        scenario.riskLevel === 'LOW' ? 'bg-green-100 text-green-800' :
-                        scenario.riskLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                    }">
+            scenario.riskLevel === 'LOW' ? 'bg-green-100 text-green-800' :
+                scenario.riskLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+        }">
                         Risk: ${scenario.riskLevel}
                     </span>
                 </div>
@@ -2501,11 +4076,11 @@ class RetirementCalculatorApp {
                     <div>
                         <span class="text-xs font-medium text-gray-700">Impact:</span>
                         <span class="text-xs ml-2 px-2 py-1 rounded ${
-                            scenario.impact === 'POSITIVE' || scenario.impact === 'HIGH POSITIVE' || scenario.impact === 'VERY HIGH POSITIVE'
-                                ? 'bg-green-100 text-green-800' :
-                            scenario.impact === 'NEGATIVE' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                        }">${scenario.impact}</span>
+            scenario.impact === 'POSITIVE' || scenario.impact === 'HIGH POSITIVE' || scenario.impact === 'VERY HIGH POSITIVE'
+                ? 'bg-green-100 text-green-800' :
+                scenario.impact === 'NEGATIVE' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+        }">${scenario.impact}</span>
                     </div>
 
                     <div>
@@ -2563,9 +4138,9 @@ class RetirementCalculatorApp {
                         <div class="flex items-center gap-2 mb-1">
                             <span class="text-xs font-semibold uppercase text-gray-500">${rec.category}</span>
                             ${rec.feasibility && rec.feasibility !== 'Standard Strategy' ?
-                                `<span class="text-xs px-2 py-1 rounded ${rec.feasibility.includes('Easily') || rec.feasibility.includes('Comfortable') ? 'bg-green-100 text-green-700' :
-                                  rec.feasibility.includes('Major') || rec.feasibility.includes('Complex') ? 'bg-red-100 text-red-700' :
-                                  'bg-yellow-100 text-yellow-700'}">${rec.feasibility}</span>` : ''}
+            `<span class="text-xs px-2 py-1 rounded ${rec.feasibility.includes('Easily') || rec.feasibility.includes('Comfortable') ? 'bg-green-100 text-green-700' :
+                rec.feasibility.includes('Major') || rec.feasibility.includes('Complex') ? 'bg-red-100 text-red-700' :
+                    'bg-yellow-100 text-yellow-700'}">${rec.feasibility}</span>` : ''}
                         </div>
                         <h4 class="font-bold text-lg text-gray-800">${rec.title}</h4>
                     </div>
@@ -2766,7 +4341,11 @@ class RetirementCalculatorApp {
                 await new Promise(resolve => setTimeout(resolve, 0));
             };
 
-            const results = await this.simulator.runMonteCarloSimulation(inputs, runs, progressCallback);
+            // Use enhanced Monte Carlo simulation for better accuracy (if enabled)
+            const useEnhancedMonteCarlo = inputs.useEnhancedMonteCarlo !== false; // Default to true
+            const results = useEnhancedMonteCarlo ?
+                await this.simulator.runEnhancedMonteCarloSimulation(inputs, runs, progressCallback) :
+                await this.simulator.runMonteCarloSimulation(inputs, runs, progressCallback);
 
             // Store results for Risk Analysis tab
             this.currentMonteCarloResults = results;
@@ -2780,6 +4359,11 @@ class RetirementCalculatorApp {
                 safeSetText('mcMedian', formatCurrency(results.median));
                 safeSetText('mc10th', formatCurrency(results.percentile10));
                 safeSetText('mcConfidence', `${(results.successRate * 100).toFixed(0)}%`);
+
+                // Display enhanced Monte Carlo metrics if available
+                if (results.regimeAnalysis) {
+                    this.displayEnhancedMonteCarloResults(results);
+                }
             }
 
             // Add narrative explanation
@@ -3283,28 +4867,36 @@ class RetirementCalculatorApp {
     }
 
     async importUserInputs() {
+        if (this.isImporting) {
+            return;
+        }
+        this.isImporting = true;
+
         try {
             const importedData = await importUserData();
+            if (importedData) {
+                // Populate the form with imported data
+                populateFormFromData(importedData.userData);
 
-            // Populate the form with imported data
-            const result = populateFormFromData(importedData.userData);
+                // Trigger currency and percentage input formatting
+                initializeCurrencyInputs();
+                initializePercentageInputs();
 
-            // Trigger currency and percentage input formatting
-            initializeCurrencyInputs();
-            initializePercentageInputs();
+                // Update risk profile and allocation displays
+                setTimeout(() => {
+                    const inputs = this.collectInputs();
+                    this.updateRiskProfile(inputs);
+                    this.updateRecommendedAllocation(inputs);
 
-            // Update risk profile and allocation displays
-            setTimeout(() => {
-                const inputs = this.collectInputs();
-                this.updateRiskProfile(inputs);
-                this.updateRecommendedAllocation(inputs);
-
-                // Optionally trigger a calculation
-                this.calculateRetirement(false);
-            }, 100);
-
+                    // Optionally trigger a calculation
+                    this.calculateRetirement(false);
+                }, 100);
+            }
         } catch (error) {
-            showNotification(error, 'error');
+            showNotification(error.message || 'Failed to import data.', 'error');
+        } finally {
+            // Reset the flag immediately after the operation completes
+            this.isImporting = false;
         }
     }
 
@@ -3348,6 +4940,38 @@ class RetirementCalculatorApp {
         if (partnerSalary) partnerSalary.addEventListener('blur', updateCGTRate);
     }
 
+    enhanceAdvancedCalculatorInputs() {
+        // Enhance key financial input fields with gaming-style formatting
+        const fieldsToEnhance = [
+            // Financial inputs
+            { id: 'yourSalary', type: 'currency', tooltip: 'Your annual gross salary' },
+            { id: 'partnerSalary', type: 'currency', tooltip: 'Partner\'s annual gross salary' },
+            { id: 'yourCurrentSuper', type: 'currency', tooltip: 'Current superannuation balance' },
+            { id: 'partnerCurrentSuper', type: 'currency', tooltip: 'Partner\'s superannuation balance' },
+            { id: 'currentSavings', type: 'currency', tooltip: 'Current savings and cash' },
+            { id: 'currentStocks', type: 'currency', tooltip: 'Current investment portfolio value' },
+
+            // Property inputs
+            { id: 'homeValue', type: 'currency', tooltip: 'Current home market value' },
+            { id: 'mortgageBalance', type: 'currency', tooltip: 'Outstanding mortgage balance' },
+            { id: 'investmentPropertyValue', type: 'currency', tooltip: 'Investment property value' },
+            { id: 'investmentPropertyLoan', type: 'currency', tooltip: 'Investment property loan balance' },
+
+            // Percentage inputs
+            { id: 'superReturn', type: 'percentage', tooltip: 'Expected annual superannuation return' },
+            { id: 'investmentReturn', type: 'percentage', tooltip: 'Expected investment return rate' },
+            { id: 'inflationRate', type: 'percentage', tooltip: 'Expected annual inflation rate' },
+            { id: 'salaryGrowthRate', type: 'percentage', tooltip: 'Expected salary growth rate' },
+        ];
+
+        fieldsToEnhance.forEach(field => {
+            OnboardingWizard.enhanceExistingInput(field.id, field.type, {
+                gamingLevel: 2,
+                tooltip: field.tooltip
+            });
+        });
+    }
+
     // Event listeners
     setupEventListeners() {
         console.log('setupEventListeners called!');
@@ -3386,6 +5010,30 @@ class RetirementCalculatorApp {
         const btnMonteCarlo = $('btnMonteCarlo');
         if (btnMonteCarlo) {
             btnMonteCarlo.addEventListener('click', () => this.runMonteCarloSimulation());
+        }
+
+        // Scenario comparison button
+        const btnScenarioMatrix = $('btnScenarioMatrix');
+        if (btnScenarioMatrix) {
+            btnScenarioMatrix.addEventListener('click', () => this.runScenarioComparison());
+        }
+
+        // Healthcare analysis button
+        const btnHealthcareAnalysis = $('btnHealthcareAnalysis');
+        if (btnHealthcareAnalysis) {
+            btnHealthcareAnalysis.addEventListener('click', () => this.runHealthcareAnalysis());
+        }
+
+        // Risk profiling button
+        const btnRiskProfiling = $('btnRiskProfiling');
+        if (btnRiskProfiling) {
+            btnRiskProfiling.addEventListener('click', () => this.runAdvancedRiskProfiling());
+        }
+
+        // Dynamic allocation button
+        const btnDynamicAllocation = $('btnDynamicAllocation');
+        if (btnDynamicAllocation) {
+            btnDynamicAllocation.addEventListener('click', () => this.runDynamicAllocationAnalysis());
         }
 
         // Stress test button
@@ -3441,40 +5089,71 @@ class RetirementCalculatorApp {
             btnRunComparison.addEventListener('click', () => this.runScenarioComparison());
         }
 
-        // Export dropdown functionality
-        const btnExport = $('btnExport');
-        const exportDropdown = $('exportDropdown');
+        // Export dropdown functionality - delay to ensure DOM is ready
+        setTimeout(() => {
+            this.setupExportDropdowns();
+        }, 500); // Increased delay to ensure DOM is ready
+    }
 
-        console.log('Export button setup:', { btnExport: !!btnExport, exportDropdown: !!exportDropdown });
+    setupExportDropdowns() {
+        console.log('Setting up export dropdowns...');
 
-        if (btnExport && exportDropdown) {
-            btnExport.addEventListener('click', (e) => {
-                console.log('Export button clicked!');
-                e.stopPropagation();
-                exportDropdown.classList.toggle('hidden');
-            });
+        const setupDropdown = (buttonId, dropdownId, exportCsvId, exportXlsxId, exportPdfId) => {
+            const button = $(buttonId);
+            const dropdown = $(dropdownId);
 
-            document.addEventListener('click', (e) => {
-                if (!exportDropdown.contains(e.target) && !btnExport.contains(e.target)) {
-                    exportDropdown.classList.add('hidden');
+            console.log(`Setting up ${buttonId}:`, { button: !!button, dropdown: !!dropdown });
+
+            if (button && dropdown) {
+                // Prevent duplicate listeners
+                if (!button.getAttribute('data-export-listener')) {
+                    button.addEventListener('click', (e) => {
+                        console.log(`${buttonId} clicked, toggling dropdown`);
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        // Toggle visibility with both class and inline style
+                        const isHidden = dropdown.classList.contains('hidden');
+                        if (isHidden) {
+                            dropdown.classList.remove('hidden');
+                            dropdown.style.display = 'block';
+                            console.log(`${dropdownId} shown`);
+                        } else {
+                            dropdown.classList.add('hidden');
+                            dropdown.style.display = 'none';
+                            console.log(`${dropdownId} hidden`);
+                        }
+                    });
+                    button.setAttribute('data-export-listener', 'true');
+                }
+                // Export buttons within the if block
+                const btnExportCSV = $(exportCsvId);
+                const btnExportXLSX = $(exportXlsxId);
+                const btnExportPDF = $(exportPdfId);
+
+                if (btnExportCSV) btnExportCSV.addEventListener('click', () => this.exportResults('csv'));
+                if (btnExportXLSX) btnExportXLSX.addEventListener('click', () => this.exportResults('xlsx'));
+                if (btnExportPDF) btnExportPDF.addEventListener('click', () => this.exportResults('pdf'));
+            } else {
+                console.warn(`Export dropdown setup failed for ${buttonId}:`, { button: !!button, dropdown: !!dropdown });
+            }
+        };
+
+        // Setup for main export button
+        setupDropdown('btnExport', 'exportDropdown', 'btnExportCSV', 'btnExportXLSX', 'btnExportPDF');
+        // Setup for the second (deprecated) export button to ensure it also works
+        setupDropdown('btnExport2', 'exportDropdown2', 'btnExportCSV2', 'btnExportXLSX2', 'btnExportPDF2');
+
+
+        // Hide dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdowns = document.querySelectorAll('[id^="exportDropdown"]');
+            dropdowns.forEach(dropdown => {
+                if (!dropdown.contains(e.target) && !e.target.closest('[id^="btnExport"]')) {
+                    dropdown.classList.add('hidden');
                 }
             });
-            $('btnExportCSV').addEventListener('click', (e) => {
-                e.preventDefault();
-                this.exportResults('csv');
-                exportDropdown.classList.add('hidden');
-            });
-            $('btnExportXLSX').addEventListener('click', (e) => {
-                e.preventDefault();
-                this.exportResults('xlsx');
-                exportDropdown.classList.add('hidden');
-            });
-            $('btnExportPDF').addEventListener('click', (e) => {
-                e.preventDefault();
-                this.exportResults('pdf');
-                exportDropdown.classList.add('hidden');
-            });
-        }
+        });
 
         // User Data Import/Export buttons
         const btnExportUserData = $('btnExportUserData');
@@ -4434,6 +6113,12 @@ class RetirementCalculatorApp {
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Prevent double initialization
+    if (window.appInitialized) {
+        return;
+    }
+    window.appInitialized = true;
+
     // Check browser compatibility first
     const isCompatible = checkBrowserCompatibility();
 
@@ -4443,7 +6128,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-        window.RetirementCalculatorApp = new RetirementCalculatorApp();
+        window.app = new RetirementCalculatorApp();
+        // Make class available for any legacy code that might need it
+        window.RetirementCalculatorApp = RetirementCalculatorApp;
         console.log('Enhanced Australian Retirement Calculator initialized successfully');
     } catch (error) {
         console.error('Failed to initialize calculator:', error);
@@ -4546,10 +6233,6 @@ function showCompatibilityError(compatibility) {
 }
 
 // Fallback mode for older browsers
-// function fallbackMode() {
-//     window.location.href = 'https://retirement.gagneet.com/index.html';
-// }
-
 function fallbackMode() {
     // Try local fallback first, then external
     const localFallback = './index.html';
@@ -4570,33 +6253,3 @@ function fallbackMode() {
 }
 
 export default RetirementCalculatorApp;
-
-// Auto-initialize when loaded - prevent double initialization
-function initializeApp() {
-    // Prevent double initialization
-    if (window.app && window.app.isInitialized) {
-        console.log('App already exists & initialized, skipping initialization...');
-        return;
-    }
-
-    try {
-        const app = new RetirementCalculatorApp();
-        window.app = app;
-        window.RetirementCalculatorApp = RetirementCalculatorApp;
-
-        // The app auto-initializes in constructor, so just mark as initialized
-        app.isInitialized = true;
-        console.log('✅ Australian Retirement Calculator loaded successfully');
-    } catch (error) {
-        console.error('Failed to initialize app:', error);
-    }
-}
-
-// Initialize based on DOM state
-if (document.readyState === 'loading') {
-    // DOM is still loading, wait for DOMContentLoaded
-    document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-    // DOM is already loaded, initialize immediately
-    initializeApp();
-}

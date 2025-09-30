@@ -1304,3 +1304,352 @@ select:focus {
 .risk-tolerance-slider:focus::-ms-thumb {
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
 }
+
+/* =============================================================================
+   ONBOARDING WIZARD STYLES
+   ============================================================================= */
+
+/* Onboarding wizard container */
+.onboarding-wizard {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+/* Step indicator styles */
+.step-indicator {
+    position: relative;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+    border: 2px solid;
+    background: white;
+    margin-bottom: 0.5rem;
+}
+
+.step-indicator.inactive {
+    border-color: #d1d5db;
+    color: #9ca3af;
+    background: #f9fafb;
+}
+
+.step-indicator.active {
+    border-color: #3b82f6;
+    color: white;
+    background: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.step-indicator.completed {
+    border-color: #10b981;
+    color: white;
+    background: #10b981;
+}
+
+.step-icon {
+    font-size: 1.2rem;
+}
+
+.step-number {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    background: white;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    width: 1.2rem;
+    height: 1.2rem;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.step-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-align: center;
+    margin-left: 0.75rem;
+    transition: color 0.3s ease;
+}
+
+.step-connector {
+    flex: 1;
+    height: 2px;
+    background: #e5e7eb;
+    margin: 0 1rem;
+    position: relative;
+    top: -1.5rem;
+}
+
+.step-indicator.completed + .step-label + .step-connector {
+    background: #10b981;
+}
+
+/* Radio card styles for property selection */
+.radio-card {
+    position: relative;
+    cursor: pointer;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: all 0.3s ease;
+    display: block;
+    background: white;
+}
+
+.radio-card:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.radio-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.radio-card input[type="radio"]:checked + .radio-content {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.radio-card:has(input[type="radio"]:checked) {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.radio-content {
+    text-align: center;
+    pointer-events: none;
+}
+
+/* Tab navigation styles for results */
+#results-tabs .tab-button {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+#results-tabs .tab-button.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+}
+
+#results-tabs .tab-button:hover:not(.active) {
+    color: #374151;
+    border-bottom-color: #d1d5db;
+}
+
+/* Expandable section styles */
+.bg-gray-50 button[id$="-toggle"] {
+    transition: all 0.2s ease;
+}
+
+.bg-gray-50 button[id$="-toggle"]:hover {
+    background-color: #f3f4f6;
+}
+
+.bg-gray-50 button[id$="-toggle"] span:last-child {
+    transition: transform 0.2s ease;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+/* Summary cards in review step */
+.bg-blue-50, .bg-green-50, .bg-purple-50, .bg-orange-50 {
+    border-left: 4px solid;
+    transition: all 0.3s ease;
+}
+
+.bg-blue-50 {
+    border-left-color: #3b82f6;
+}
+
+.bg-green-50 {
+    border-left-color: #10b981;
+}
+
+.bg-purple-50 {
+    border-left-color: #8b5cf6;
+}
+
+.bg-orange-50 {
+    border-left-color: #f59e0b;
+}
+
+/* Results metrics cards */
+.basic-results-content .grid > div {
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.basic-results-content .grid > div:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Alert and warning styles */
+.border-yellow-400 {
+    background-color: #fefce8;
+}
+
+/* Form validation styles for advanced calculator integration */
+input[style*="border-color: #fbbf24"], select[style*="border-color: #fbbf24"] {
+    position: relative;
+}
+
+input[style*="border-color: #fbbf24"]:focus, select[style*="border-color: #fbbf24"]:focus {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1) !important;
+}
+
+/* Loading states */
+.loading-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid transparent;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments for onboarding wizard */
+@media (max-width: 768px) {
+    .onboarding-wizard {
+        margin: 0 -1rem;
+        border-radius: 0;
+    }
+
+    .step-indicator {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 0.75rem;
+    }
+
+    .step-icon {
+        font-size: 1rem;
+    }
+
+    .step-number {
+        width: 1rem;
+        height: 1rem;
+        font-size: 0.6rem;
+    }
+
+    .step-label {
+        font-size: 0.75rem;
+        margin-left: 0.5rem;
+    }
+
+    .step-connector {
+        margin: 0 0.5rem;
+    }
+
+    .radio-card {
+        padding: 0.75rem;
+    }
+
+    /* Stack summary cards on mobile */
+    .grid.grid-cols-1.md\\:grid-cols-2 > div {
+        margin-bottom: 1rem;
+    }
+
+    /* Adjust result metrics for mobile */
+    .basic-results-content .grid.lg\\:grid-cols-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .basic-results-content .grid.md\\:grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    /* Mobile-first approach for very small screens */
+    .step-indicator {
+        width: 2rem;
+        height: 2rem;
+        font-size: 0.7rem;
+    }
+
+    .step-icon {
+        font-size: 0.9rem;
+    }
+
+    .step-number {
+        width: 0.875rem;
+        height: 0.875rem;
+        font-size: 0.55rem;
+    }
+
+    .step-label {
+        font-size: 0.7rem;
+    }
+
+    /* Hide connectors on very small screens */
+    .step-connector {
+        display: none;
+    }
+
+    /* Stack breadcrumb vertically */
+    .flex.justify-between.items-center > div {
+        margin-bottom: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* Dark mode adjustments for onboarding wizard */
+[data-theme="dark"] .onboarding-wizard {
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .step-indicator {
+    background: var(--bg-secondary);
+    border-color: var(--border-primary);
+}
+
+[data-theme="dark"] .step-indicator.inactive {
+    background: var(--bg-tertiary);
+    color: var(--text-tertiary);
+}
+
+[data-theme="dark"] .radio-card {
+    background: var(--bg-secondary);
+    border-color: var(--border-primary);
+}
+
+[data-theme="dark"] .radio-card:hover {
+    border-color: var(--accent-primary);
+}
+
+[data-theme="dark"] .bg-gray-50 {
+    background-color: var(--bg-tertiary) !important;
+}
+
+[data-theme="dark"] .bg-blue-50,
+[data-theme="dark"] .bg-green-50,
+[data-theme="dark"] .bg-purple-50,
+[data-theme="dark"] .bg-orange-50,
+[data-theme="dark"] .bg-yellow-50,
+[data-theme="dark"] .bg-red-50,
+[data-theme="dark"] .bg-indigo-50,
+[data-theme="dark"] .bg-teal-50 {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}

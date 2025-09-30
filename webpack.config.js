@@ -55,7 +55,7 @@ module.exports = {
             patterns: [
                 { from: 'src/assets', to: 'assets' },
                 { from: 'src/robots.txt', to: 'robots.txt' },
-                { from: 'src/contact/sitemap.xml', to: 'sitemap.xml' },
+                { from: 'sitemap.xml', to: 'sitemap.xml' },
                 { from: 'src/contact/admin-feedback.php', to: 'contact/admin-feedback.php' },
                 { from: 'src/contact/feedback_server.py', to: 'contact/feedback_server.py' },
                 { from: 'src/contact/simple_feedback_server.py', to: 'contact/simple_feedback_server.py' },

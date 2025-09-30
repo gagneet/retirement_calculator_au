@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Monte Carlo Debug Test</title>
+</head>
+<body>
+    <h1>Monte Carlo Debug Test</h1>
+    <p>Check console for debug output</p>
+
+    <script>
+        // Simulate the test data from our json file
+        const testData = {
+            "currentAge": 35,
+            "retirementAge": 65,
+            "currentSuper": 50000,
+            "currentCash": 25000,
+            "currentShares": 0,
+            "annualSalary": 80000,
+            "superContribution": 12,
+            "salaryGrowthRate": 3,
+            "returnRate": 7.5,
+            "inflationRate": 2.5,
+            "targetRetirementIncome": 40000,
+            "lifeExpectancy": 85,
+            "employerSuper": 12,
+            "taxableIncome": 80000,
+            "partnerAge": 33,
+            "retirementGoal": 800000,
+            "hasPartner": true,
+            "dependents": 2,
+            "homeValue": 500000,
+            "homeMortgage": 300000,
+            "investmentPropertyValue": 0,
+            "investmentPropertyMortgage": 0,
+            "version": "4.0"
+        };
+
+        console.log("Test data that should be loaded:", testData);
+
+        // Navigate to the production site and check console
+        window.location.href = "https://retirement.gagneet.com";
+    </script>
+</body>
+</html>

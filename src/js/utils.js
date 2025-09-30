@@ -6,6 +6,7 @@ export const $ = (id) => document.getElementById(id);
 // Utility to parse formatted numeric input values (currency, percentages)
 export const parseFormattedNumber = (formattedValue) => {
     // Remove all non-numeric characters except decimal point and minus
+    // This handles $, %, commas, and other formatting characters
     const numericString = String(formattedValue).replace(/[^\d.-]/g, '');
     const num = parseFloat(numericString);
     return isNaN(num) ? 0 : num;
@@ -87,8 +88,8 @@ export const formatCurrencyInput = (value) => {
 
     if (isNaN(num)) return '';
 
-    // Format with thousands separators but no currency symbol for input fields
-    return num.toLocaleString('en-AU', {
+    // Format with thousands separators and $ symbol for input fields
+    return '$' + num.toLocaleString('en-AU', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2
     });
@@ -111,11 +112,12 @@ export const addCurrencyFormatting = (inputElement) => {
             const formattedValue = formatCurrencyInput(numericValue);
             inputElement.value = formattedValue;
 
-            // Restore cursor position accounting for added commas
+            // Restore cursor position accounting for added commas and $ symbol
             const originalLength = originalValue.length;
             const newLength = formattedValue.length;
             const lengthDiff = newLength - originalLength;
-            const newCursorPosition = Math.max(0, Math.min(cursorPosition + lengthDiff, newLength));
+            // Ensure cursor doesn't go before the $ symbol
+            const newCursorPosition = Math.max(1, Math.min(cursorPosition + lengthDiff, newLength));
 
             inputElement.setSelectionRange(newCursorPosition, newCursorPosition);
         }
@@ -125,6 +127,24 @@ export const addCurrencyFormatting = (inputElement) => {
 
     // Format on blur (when user leaves the field)
     inputElement.addEventListener('blur', formatInput);
+
+    // Prevent cursor from going before $ symbol
+    inputElement.addEventListener('keydown', (e) => {
+        const cursorPosition = inputElement.selectionStart;
+        if ((e.key === 'Backspace' || e.key === 'Delete' || e.key === 'ArrowLeft') && cursorPosition <= 1) {
+            if (inputElement.value.startsWith('$')) {
+                e.preventDefault();
+                inputElement.setSelectionRange(1, 1);
+            }
+        }
+    });
+
+    // Handle click events to prevent cursor from going before $
+    inputElement.addEventListener('click', () => {
+        if (inputElement.selectionStart === 0 && inputElement.value.startsWith('$')) {
+            inputElement.setSelectionRange(1, 1);
+        }
+    });
 
     // Format on input but debounced to prevent cursor jumping
     let formatTimer;
@@ -177,7 +197,9 @@ export const addPercentageFormatting = (inputElement) => {
         if (originalValue.endsWith('%')) return;
 
         if (originalValue !== '' && !isNaN(numericValue)) {
-            inputElement.value = `${numericValue}%`;
+            // Format to 2 decimal places for percentages
+            const formattedNumber = numericValue.toFixed(2);
+            inputElement.value = `${formattedNumber}%`;
         }
     };
 
@@ -1181,12 +1203,12 @@ export const exportToJSON = (data, filename = 'retirement-data.json') => {
 // User Data Export/Import Functionality
 export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
     const exportData = {
-        version: '1.0',
+        version: '3.0',
         exportDate: new Date().toISOString(),
         scenarioName: scenarioName,
         userData: inputs,
         metadata: {
-            calculatorVersion: '2024.1',
+            calculatorVersion: '2025.3',
             description: 'Australian Retirement Calculator - User Input Data',
             fields: Object.keys(inputs).length,
             note: 'This file contains only your input data, no calculation results. Your privacy is protected.'
@@ -1233,8 +1255,11 @@ export const importUserData = () => {
                     }
 
                     // Check version compatibility
-                    if (data.version !== '1.0') {
+                    const supportedVersions = ['1.0', '2.0', '3.0'];
+                    if (!supportedVersions.includes(data.version)) {
                         showNotification('File version may not be fully compatible. Import will be attempted.', 'warning');
+                    } else if (data.version !== '3.0') {
+                        showNotification('Imported older file format - some features may need adjustment.', 'info');
                     }
 
                     showNotification(`Successfully imported: ${data.scenarioName || 'Retirement Data'}`, 'success');
@@ -1264,6 +1289,9 @@ export const importUserData = () => {
 export const populateFormFromData = (userData) => {
     let fieldsPopulated = 0;
     let fieldsSkipped = 0;
+    const skippedFields = [];
+
+    console.log('Populating form with userData:', userData);
 
     Object.entries(userData).forEach(([key, value]) => {
         try {
@@ -1275,37 +1303,85 @@ export const populateFormFromData = (userData) => {
                     if (element) {
                         element.value = detailValue;
                         fieldsPopulated++;
+                        console.log(`✓ Populated dependent detail: ${detailKey} = ${detailValue}`);
+                    } else {
+                        skippedFields.push(detailKey);
+                        console.log(`✗ Element not found: ${detailKey}`);
                     }
                 });
             } else {
-                const element = $(key);
+                // Handle field mapping for legacy/alternative field names
+                let targetKey = key;
+                let targetValue = value;
+
+                // Map returnRate to specific investment return fields
+                if (key === 'returnRate') {
+                    // Set all investment-related return fields to the same value for consistency
+                    const returnFields = ['investmentReturn', 'superReturn'];
+                    returnFields.forEach(fieldName => {
+                        const fieldElement = $(fieldName);
+                        if (fieldElement) {
+                            fieldElement.value = value;
+                            fieldsPopulated++;
+                            console.log(`✓ Mapped returnRate to ${fieldName}: ${value}%`);
+                        }
+                    });
+                    // Don't process the original returnRate key further
+                    return;
+                }
+
+                const element = $(targetKey);
                 if (element) {
-                    if (element.type === 'checkbox') {
-                        element.checked = value;
+                    console.log(`✅ Found element for: ${targetKey}`);  // Debug: found element
+                    if (element.type === 'checkbox' || element.type === 'radio') {
+                        element.checked = value === true || value === 'true' || value === 'yes';
                     } else if (element.type === 'select-one') {
                         element.value = value;
                     } else {
                         // Handle percentage values (convert back from decimal)
                         const percentageFields = [
                             'Rate', 'inflation', 'Return', 'percentIncomeSaved', 'Volatility',
-                            'Growth', 'Probability', 'Magnitude', 'franking'
+                            'Growth', 'Probability', 'Magnitude', 'franking', 'salaryGrowthRate',
+                            'returnDeclineRate', 'healthcareInflation', 'propertyGrowthRate',
+                            'capitalGainsTaxRate', 'dividendYield', 'frankingRate', 'returnVolatility'
                         ];
 
-                        if (percentageFields.some(field => key.includes(field))) {
-                            element.value = (value * 100).toFixed(2);
+                        if (percentageFields.some(field => key.includes(field)) && typeof value === 'number') {
+                            // Only convert if value is a decimal (less than 1 for rates)
+                            if (value < 1 && value > 0) {
+                                element.value = (value * 100).toFixed(2);
+                            } else {
+                                element.value = value;
+                            }
                         } else {
                             element.value = value;
                         }
                     }
                     fieldsPopulated++;
+                    console.log(`✓ Populated field: ${key} = ${value}`);
                 } else {
                     fieldsSkipped++;
+                    skippedFields.push(key);
+                    console.log(`❌ Element NOT found for: ${key} (looking for DOM element with id='${targetKey}')`);
                 }
             }
         } catch (error) {
             fieldsSkipped++;
+            skippedFields.push(key);
             console.warn(`Could not populate field ${key}:`, error);
         }
+    });
+
+    if (skippedFields.length > 0) {
+        console.log('Skipped fields:', skippedFields);
+    }
+
+    // Debug logging to see what's happening
+    console.log('📊 Import Summary:', {
+        fieldsPopulated,
+        fieldsSkipped,
+        skippedFields: skippedFields.slice(0, 10), // Show first 10 skipped fields
+        totalFields: Object.keys(userData).length
     });
 
     showNotification(
@@ -1313,7 +1389,7 @@ export const populateFormFromData = (userData) => {
         fieldsSkipped > 0 ? 'warning' : 'success'
     );
 
-    return { fieldsPopulated, fieldsSkipped };
+    return { fieldsPopulated, fieldsSkipped, skippedFields };
 };
 
 // Tab management utilities
@@ -1422,6 +1498,82 @@ export const handleError = (error, context = '') => {
     // Show user-friendly error message
     const errorMsg = error.message || 'An unexpected error occurred';
     showNotification(`Error: ${errorMsg}`, 'error');
+};
+
+export const showActionableNotification = (message, actions) => {
+    // Remove any existing actionable notification to prevent overlap
+    const existingNotification = document.querySelector('.actionable-notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+
+    const notification = document.createElement('div');
+    notification.className = 'actionable-notification';
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 1rem 1.5rem;
+        border-radius: 0.5rem;
+        background-color: #2d3748;
+        color: white;
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+        font-family: 'Inter', sans-serif;
+        font-size: 0.9rem;
+    `;
+
+    const messageSpan = document.createElement('span');
+    messageSpan.textContent = message;
+    notification.appendChild(messageSpan);
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.gap = '0.75rem';
+
+    actions.forEach(action => {
+        const button = document.createElement('button');
+        button.textContent = action.text;
+        button.className = `notification-button ${action.class || ''}`;
+        button.style.cssText = `
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        `;
+
+        if (action.class === 'primary') {
+            button.style.backgroundColor = '#3b82f6';
+            button.style.color = 'white';
+        } else {
+            button.style.backgroundColor = '#4a5568';
+            button.style.color = 'white';
+        }
+
+        button.onmouseover = () => {
+            button.style.backgroundColor = action.class === 'primary' ? '#2563eb' : '#2d3748';
+        };
+        button.onmouseout = () => {
+            button.style.backgroundColor = action.class === 'primary' ? '#3b82f6' : '#4a5568';
+        };
+
+        button.onclick = () => {
+            if (typeof action.callback === 'function') {
+                action.callback();
+            }
+            notification.remove();
+        };
+        buttonContainer.appendChild(button);
+    });
+
+    notification.appendChild(buttonContainer);
+    document.body.appendChild(notification);
 };
 
 export const showNotification = (message, type = 'info', duration = 5000) => {
@@ -2090,8 +2242,8 @@ function addEnhancedAnalysisToXLSX(wb, analysis) {
             ['Projected Final Balance', analysis.enhancedSummary.keyMetrics.projectedBalance, 'Deterministic calculation'],
             ['Monte Carlo Success Rate',
                 analysis.enhancedSummary.keyMetrics.successProbability
-                ? `${analysis.enhancedSummary.keyMetrics.successProbability.toFixed(1)}%`
-                : 'Not calculated',
+                    ? `${analysis.enhancedSummary.keyMetrics.successProbability.toFixed(1)}%`
+                    : 'Not calculated',
                 'Probability of success with market volatility']
         ];
 
