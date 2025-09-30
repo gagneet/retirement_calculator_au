@@ -217,16 +217,22 @@ class RetirementCalculatorApp {
         if (calculatorContainer) {
             calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-            // Offer immediate data import for returning users
+            // Offer immediate data import for returning users - use a more direct approach
             const shouldImport = confirm('Welcome back! Would you like to import your previously saved data now?\n\nClick OK to select your data file, or Cancel to use the calculator with default values.');
 
             if (shouldImport) {
-                try {
-                    // Use the same robust import logic as the Load Data menu
-                    await this.importUserInputs();
-                } catch (error) {
-                    console.error('Failed to import user data:', error);
-                    showNotification('Failed to import data. You can try again using the "Load Data" option in the menu.', 'error');
+                // Trigger the load data menu item directly which maintains user activation
+                const menuLoadData = document.getElementById('menu-load-data');
+                if (menuLoadData) {
+                    menuLoadData.click();
+                } else {
+                    // Fallback: trigger the import button directly
+                    const btnImportUserData = document.getElementById('btnImportUserData');
+                    if (btnImportUserData) {
+                        btnImportUserData.click();
+                    } else {
+                        showNotification('Please use the "Load Data" option in the menu to import your data.', 'info');
+                    }
                 }
             } else {
                 showNotification('You can always load your data later using the "Load Data" option in the menu.', 'info');
