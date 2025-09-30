@@ -195,8 +195,9 @@ export class PropertyAnalysisEngine {
 
         // --- Safeguards and Validation ---
         if (salePrice < 0 || purchasePrice < 0 || outstandingLoan < 0) {
-            console.error("Invalid input: Property values and loans cannot be negative.", { salePrice, purchasePrice, outstandingLoan });
-            return null; // Return null to indicate failure
+            const errorMsg = "Invalid input: Property values and loans cannot be negative.";
+            console.error(errorMsg, { salePrice, purchasePrice, outstandingLoan });
+            throw new Error(errorMsg);
         }
 
         // Calculate transaction costs
