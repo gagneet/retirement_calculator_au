@@ -216,10 +216,16 @@ class RetirementCalculatorApp {
 
         if (calculatorContainer) {
             calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            showNotification('Welcome back! You can start using the advanced calculator directly, or use the menu to load your saved data.', 'info');
 
-            // Provide a less intrusive option for data loading
-            showNotification('Tip: Use the menu "Load Data" option to import your previously saved data.', 'info');
+            // Offer immediate data import for returning users
+            const shouldImport = confirm('Welcome back! Would you like to import your previously saved data now?\n\nClick OK to select your data file, or Cancel to use the calculator with default values.');
+
+            if (shouldImport) {
+                // Use the same robust import logic as the Load Data menu
+                this.importUserInputs();
+            } else {
+                showNotification('You can always load your data later using the "Load Data" option in the menu.', 'info');
+            }
         }
     }
 
