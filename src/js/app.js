@@ -80,10 +80,10 @@ class RetirementCalculatorApp {
         this.isCalculating = false;
         this.isImporting = false;
 
-        this.initializeApp();
+        this.initializeApp().catch(console.error);
     }
 
-    initializeApp() {
+    async initializeApp() {
         this.loadSavedInputs(); // Load saved inputs first
         this.setupEventListeners();
         this.setupAutoSave(); // Setup auto-save functionality
@@ -92,7 +92,7 @@ class RetirementCalculatorApp {
         this.addSuggestionStyles(); // Add CSS styles for suggestion modifications
         this.updateUIElements();
         initializeTrustUI(); // Initialize trust UI functionality
-        this.initializeOnboardingWizard(); // Initialize onboarding wizard
+        await this.initializeOnboardingWizard(); // Initialize onboarding wizard
 
         // Initialize tooltip system
         addTooltipBottomStyles(); // Add bottom positioning styles
@@ -140,7 +140,7 @@ class RetirementCalculatorApp {
         }
     }
 
-    initializeOnboardingWizard() {
+    async initializeOnboardingWizard() {
         try {
             // Initialize the onboarding wizard
             this.onboardingWizard = new OnboardingWizard();
@@ -178,8 +178,8 @@ class RetirementCalculatorApp {
                 // Prevent duplicate event listeners by removing any existing ones
                 const existingListeners = returningUserBtn.getAttribute('data-listener-added');
                 if (!existingListeners) {
-                    returningUserBtn.addEventListener('click', () => {
-                        this.skipOnboardingToAdvanced();
+                    returningUserBtn.addEventListener('click', async () => {
+                        await this.skipOnboardingToAdvanced();
                     });
                     returningUserBtn.setAttribute('data-listener-added', 'true');
                 }
@@ -191,7 +191,7 @@ class RetirementCalculatorApp {
             }
 
             // Check URL parameters for onboarding control
-            this.handleOnboardingURLParams();
+            await this.handleOnboardingURLParams();
 
             // Make the wizard available globally for debugging
             window.onboardingWizard = this.onboardingWizard;
@@ -209,7 +209,7 @@ class RetirementCalculatorApp {
         }
     }
 
-    skipOnboardingToAdvanced() {
+    async skipOnboardingToAdvanced() {
         this.hideOnboardingButtons();
         const calculatorContainer = document.querySelector('.calculator-container') ||
             document.querySelector('.bg-white.rounded-lg');
@@ -221,8 +221,13 @@ class RetirementCalculatorApp {
             const shouldImport = confirm('Welcome back! Would you like to import your previously saved data now?\n\nClick OK to select your data file, or Cancel to use the calculator with default values.');
 
             if (shouldImport) {
-                // Use the same robust import logic as the Load Data menu
-                this.importUserInputs();
+                try {
+                    // Use the same robust import logic as the Load Data menu
+                    await this.importUserInputs();
+                } catch (error) {
+                    console.error('Failed to import user data:', error);
+                    showNotification('Failed to import data. You can try again using the "Load Data" option in the menu.', 'error');
+                }
             } else {
                 showNotification('You can always load your data later using the "Load Data" option in the menu.', 'info');
             }
@@ -256,13 +261,13 @@ class RetirementCalculatorApp {
                 this.hideOnboardingButtons();
             });
 
-            document.getElementById('continue-advanced')?.addEventListener('click', () => {
-                this.skipOnboardingToAdvanced();
+            document.getElementById('continue-advanced')?.addEventListener('click', async () => {
+                await this.skipOnboardingToAdvanced();
             });
         }
     }
 
-    handleOnboardingURLParams() {
+    async handleOnboardingURLParams() {
         const urlParams = new URLSearchParams(window.location.search);
 
         if (urlParams.get('onboarding') === 'true') {
@@ -273,7 +278,7 @@ class RetirementCalculatorApp {
             }, 500);
         } else if (urlParams.get('skip') === 'true') {
             // Skip onboarding entirely
-            this.skipOnboardingToAdvanced();
+            await this.skipOnboardingToAdvanced();
         }
     }
 
