@@ -1313,6 +1313,12 @@ class RetirementCalculatorApp {
         try {
             const inputs = this.collectInputs();
 
+            // Check if scenario matrix engine is available
+            if (!this.scenarioMatrix) {
+                showNotification('Scenario comparison engine not available. Please try again in a moment.', 'warning');
+                return;
+            }
+
             const progressCallback = async (percentage, message) => {
                 updateProgress(percentage, message);
                 await new Promise(resolve => setTimeout(resolve, 10));
@@ -1561,6 +1567,12 @@ class RetirementCalculatorApp {
 
         try {
             const inputs = this.collectInputs();
+
+            // Check if healthcare modeling engine is available
+            if (!this.healthcareModeling) {
+                showNotification('Healthcare modeling engine not available. Please try again in a moment.', 'warning');
+                return;
+            }
 
             updateProgress(10, "Analyzing healthcare cost patterns...");
             await new Promise(resolve => setTimeout(resolve, 100));
