@@ -248,6 +248,9 @@ export class DynamicAllocationEngine {
 
     // Generate optimal dynamic allocation strategy
     generateOptimalAllocation(inputs, riskProfile, marketConditions = null) {
+        // --- Performance Concern ---
+        // TODO: This is a computationally expensive function. Implement caching based on a hash of the inputs
+        // and riskProfile to avoid recalculating for the same parameters.
         const allocation = {
             strategy: null,
             allocation: {},
@@ -615,8 +618,8 @@ export class DynamicAllocationEngine {
 
         // Next review date
         const reviewMonths = rebalancingPlan.frequency === "monthly" ? 1 :
-                           rebalancingPlan.frequency === "quarterly" ? 3 :
-                           rebalancingPlan.frequency === "semi_annual" ? 6 : 12;
+            rebalancingPlan.frequency === "quarterly" ? 3 :
+                rebalancingPlan.frequency === "semi_annual" ? 6 : 12;
         rebalancingPlan.nextReviewDate = new Date();
         rebalancingPlan.nextReviewDate.setMonth(rebalancingPlan.nextReviewDate.getMonth() + reviewMonths);
 

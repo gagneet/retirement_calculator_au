@@ -122,7 +122,7 @@ export class PropertyAnalysisEngine {
         // Estimate location-based performance
         const location = inputs.propertyLocation || 'national';
         const expectedGrowthRate = this.propertyMarketData.capitalGrowthRates[location] ||
-                                  this.propertyMarketData.capitalGrowthRates.national;
+            this.propertyMarketData.capitalGrowthRates.national;
 
         // Calculate cash flow
         const cashFlow = this.calculatePropertyCashFlow(inputs);
@@ -193,6 +193,13 @@ export class PropertyAnalysisEngine {
         const outstandingLoan = inputs.propertyLoan || 0;
         const purchasePrice = inputs.propertyPurchasePrice || currentValue * 0.7;
 
+        // --- Safeguards and Validation ---
+        if (salePrice < 0 || purchasePrice < 0 || outstandingLoan < 0) {
+            const errorMsg = "Invalid input: Property values and loans cannot be negative.";
+            console.error(errorMsg, { salePrice, purchasePrice, outstandingLoan });
+            throw new Error(errorMsg);
+        }
+
         // Calculate transaction costs
         const sellingCosts = this.calculateSellingCosts(salePrice);
 
@@ -203,12 +210,18 @@ export class PropertyAnalysisEngine {
         const grossProceeds = salePrice - sellingCosts;
         const netProceeds = grossProceeds - remainingLoan;
 
-        // Calculate CGT liability
+        // --- Unit Test Recommendation ---
+        // TODO: Add unit tests for calculateCGT to cover various holding periods and resident statuses.
         const capitalGain = salePrice - purchasePrice - sellingCosts;
         const cgtLiability = calculateCGT(capitalGain, (inputs.holdingPeriod || 5) + years);
 
         // Calculate after-tax proceeds
         const afterTaxProceeds = netProceeds - cgtLiability;
+
+        // --- Bounds Checking ---
+        if (afterTaxProceeds < -outstandingLoan || afterTaxProceeds > salePrice) {
+            console.warn("Unusual after-tax proceeds calculated.", { afterTaxProceeds, salePrice });
+        }
 
         // Estimate alternative investment returns
         const alternativeReturns = this.calculateAlternativeInvestmentReturns(afterTaxProceeds, years);
@@ -395,10 +408,19 @@ export class PropertyAnalysisEngine {
 
     // Calculate property cash flow
     calculatePropertyCashFlow(inputs) {
+        // --- Unit Test Recommendation ---
+        // TODO: Add unit tests for this function to validate cash flow calculations under various scenarios (e.g., interest-only vs. P&I loans).
         const annualRent = (inputs.weeklyRent || 0) * 52;
         const propertyValue = inputs.propertyValue || 0;
         const outstandingLoan = inputs.propertyLoan || 0;
 
+        // --- Safeguards and Validation ---
+        // --- Safeguards and Validation ---
+        if (annualRent < 0 || propertyValue < 0 || outstandingLoan < 0) {
+            const errorMsg = "Invalid input: Rent, property value, and loan cannot be negative.";
+            console.error(errorMsg);
+            throw new Error(errorMsg);
+        }
         // Estimate mortgage payments (assume 6% interest rate)
         const monthlyMortgage = outstandingLoan > 0 ?
             outstandingLoan * 0.06 / 12 * Math.pow(1 + 0.06/12, 300) / (Math.pow(1 + 0.06/12, 300) - 1) * 12 : 0;
@@ -412,6 +434,11 @@ export class PropertyAnalysisEngine {
 
         const totalExpenses = monthlyMortgage + rates + insurance + maintenance + management + vacancy;
         const netCashFlow = annualRent - totalExpenses;
+
+        // --- Bounds Checking ---
+        if (Math.abs(netCashFlow) > propertyValue) {
+            console.warn("Calculated cash flow is unusually high relative to property value.", { netCashFlow, propertyValue });
+        }
 
         return {
             annualRent,
@@ -505,14 +532,14 @@ export class PropertyAnalysisEngine {
         const monthlyRate = 0.065 / 12;
         const totalPayments = 30 * 12;
         const monthlyPayment = currentLoan * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) /
-                              (Math.pow(1 + monthlyRate, totalPayments) - 1);
+            (Math.pow(1 + monthlyRate, totalPayments) - 1);
 
         // Calculate balance after years of payments
         const paymentsRemaining = Math.max(0, totalPayments - years * 12);
         if (paymentsRemaining <= 0) return 0;
 
         return monthlyPayment * (Math.pow(1 + monthlyRate, paymentsRemaining) - 1) /
-               (monthlyRate * Math.pow(1 + monthlyRate, paymentsRemaining));
+            (monthlyRate * Math.pow(1 + monthlyRate, paymentsRemaining));
     }
 
     // Calculate total rental income over period
@@ -561,7 +588,7 @@ export class PropertyAnalysisEngine {
         // Concentration risk
         const propertyValue = inputs.propertyValue || 0;
         const totalAssets = (inputs.yourCurrentSuper || 0) + (inputs.partnerCurrentSuper || 0) +
-                           (inputs.currentSavings || 0) + (inputs.currentStocks || 0) + propertyValue;
+            (inputs.currentSavings || 0) + (inputs.currentStocks || 0) + propertyValue;
 
         if (propertyValue > totalAssets * 0.4) {
             risks.push({
