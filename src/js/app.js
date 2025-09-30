@@ -133,14 +133,21 @@ class RetirementCalculatorApp {
             const returningUserBtn = document.getElementById('returning-user-btn');
 
             if (newUserBtn) {
+            if (newUserBtn) {
                 let isStartingOnboarding = false;
                 newUserBtn.addEventListener('click', () => {
                     if (isStartingOnboarding) return;
                     isStartingOnboarding = true;
-                    this.onboardingWizard.startOnboarding();
-                    this.hideOnboardingButtons();
-                    // Reset flag after a short delay
-                    setTimeout(() => { isStartingOnboarding = false; }, 1000);
+                    
+                    try {
+                        this.onboardingWizard.startOnboarding();
+                        this.hideOnboardingButtons();
+                    } finally {
+                        // Reset flag after operation completes
+                        isStartingOnboarding = false;
+                    }
+                });
+            }
                 });
             }
 
