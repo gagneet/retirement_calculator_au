@@ -183,54 +183,33 @@ class RetirementCalculatorApp {
             }
 
             if (returningUserBtn) {
-                console.log('🔧 Setting up returning user functionality...');
-                console.log('📂 returningUserInput element:', returningUserInput);
-                const returningUserInput = $('returning-user-file-input');
                 // Prevent duplicate event listeners
                 if (!returningUserBtn.getAttribute('data-listener-added')) {
-                    returningUserBtn.addEventListener('click', () => {
+                    returningUserBtn.addEventListener('click', async () => {
                         console.log('👆 Returning user button clicked!');
-                        // Hide onboarding buttons and trigger the hidden file input
+                        // Hide onboarding buttons and scroll to calculator
                         this.hideOnboardingButtons();
                         const calculatorContainer = document.querySelector('.calculator-container') || document.querySelector('.bg-white.rounded-lg');
                         if (calculatorContainer) {
-                            calculatorContainer.scrollIntoView({behavior: 'smooth', block: 'start'});
+                            calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }
-                        console.log('🎯 About to click file input:', returningUserInput);
-                        if (returningUserInput) {
-                            returningUserInput.click();
-                        } else {
-                            console.log('❌ No returningUserInput element to click!');
-                            if (returningUserInput) {
-                                returningUserInput.click();
-                            } else {
-                                console.error('❌ returning-user-file-input element not found');
-                                showNotification('File input not available. Please use Menu > Returning User instead.', 'error');
-                            }
+
+                        // Use the same robust import method as the menu
+                        try {
+                            await this.importUserInputs();
+                        } catch (error) {
+                            console.error('❌ Failed to import user data:', error);
+                            showNotification('Failed to import data. Please try again.', 'error');
                         }
                     });
-                    // returningUserBtn.setAttribute('data-listener-added', 'true');
+                    returningUserBtn.setAttribute('data-listener-added', 'true');
                     console.log('✅ Returning user button listener added');
                 } else {
                     console.log('⚠️ Returning user button listener already exists');
                 }
 
-                if (returningUserInput && !returningUserInput.getAttribute('data-listener-added')) {
-                    returningUserInput.addEventListener('change', (e) => {
-                        console.log('📁 File input changed! Calling handleReturningUserFileSelect...');
-                        this.handleReturningUserFileSelect(e);
-                    });
-                    returningUserInput.setAttribute('data-listener-added', 'true');
-                    console.log('✅ File input change listener added');
-                } else if (!returningUserInput) {
-                    console.log('❌ No returningUserInput element found for change listener');
-                } else {
-                    console.log('⚠️ File input change listener already exists');
-                }
             } else {
                 console.log('❌ No returningUserBtn found');
-                    returningUserInput.addEventListener('change', (e) => this.handleReturningUserFileSelect(e));
-                    returningUserInput.setAttribute('data-listener-added', 'true');
                 }
 
             // Check if onboarding was completed before
