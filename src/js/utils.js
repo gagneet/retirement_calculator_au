@@ -1255,8 +1255,11 @@ export const importUserData = () => {
                     }
 
                     // Check version compatibility
-                    if (data.version !== '3.0') {
+                    const supportedVersions = ['1.0', '2.0', '3.0'];
+                    if (!supportedVersions.includes(data.version)) {
                         showNotification('File version may not be fully compatible. Import will be attempted.', 'warning');
+                    } else if (data.version !== '3.0') {
+                        showNotification('Imported older file format - some features may need adjustment.', 'info');
                     }
 
                     showNotification(`Successfully imported: ${data.scenarioName || 'Retirement Data'}`, 'success');
@@ -1307,7 +1310,27 @@ export const populateFormFromData = (userData) => {
                     }
                 });
             } else {
-                const element = $(key);
+                // Handle field mapping for legacy/alternative field names
+                let targetKey = key;
+                let targetValue = value;
+
+                // Map returnRate to specific investment return fields
+                if (key === 'returnRate') {
+                    // Set all investment-related return fields to the same value for consistency
+                    const returnFields = ['investmentReturn', 'superReturn'];
+                    returnFields.forEach(fieldName => {
+                        const fieldElement = $(fieldName);
+                        if (fieldElement) {
+                            fieldElement.value = value;
+                            fieldsPopulated++;
+                            console.log(`✓ Mapped returnRate to ${fieldName}: ${value}%`);
+                        }
+                    });
+                    // Don't process the original returnRate key further
+                    return;
+                }
+
+                const element = $(targetKey);
                 if (element) {
                     if (element.type === 'checkbox' || element.type === 'radio') {
                         element.checked = value === true || value === 'true' || value === 'yes';
