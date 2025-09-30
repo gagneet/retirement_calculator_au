@@ -12,8 +12,20 @@ import { ScenarioComparisonMatrix } from './scenario-matrix.js';
 import { PersonaIntelligenceEngine } from './persona-intelligence.js';
 import { HealthcareModelingEngine } from './healthcare-modeling.js';
 import { PropertyAnalysisEngine } from './property-analysis.js';
-import { RiskProfilingEngine } from './risk-profiling-engine.js';
-import { DynamicAllocationEngine } from './dynamic-allocation-engine.js';
+// js/app.js - Main Application Controller
+
+// Import new engines with error handling
+let RiskProfilingEngine, DynamicAllocationEngine;
+try {
+    const riskModule = await import('./risk-profiling-engine.js');
+    RiskProfilingEngine = riskModule.RiskProfilingEngine;
+
+    const allocationModule = await import('./dynamic-allocation-engine.js');
+    DynamicAllocationEngine = allocationModule.DynamicAllocationEngine;
+} catch (error) {
+    console.error('Failed to load advanced analysis engines:', error);
+    // Provide fallback functionality or disable features
+}
 import {
     $,
     safeGetValue,
@@ -55,6 +67,7 @@ class RetirementCalculatorApp {
         this.onboardingWizard = null; // Will be initialized after DOM is ready
         this.currentResults = null;
         this.isCalculating = false;
+        this.isImporting = false;
 
         this.initializeApp();
     }
@@ -112,9 +125,14 @@ class RetirementCalculatorApp {
             const returningUserBtn = document.getElementById('returning-user-btn');
 
             if (newUserBtn) {
+                let isStartingOnboarding = false;
                 newUserBtn.addEventListener('click', () => {
+                    if (isStartingOnboarding) return;
+                    isStartingOnboarding = true;
                     this.onboardingWizard.startOnboarding();
                     this.hideOnboardingButtons();
+                    // Reset flag after a short delay
+                    setTimeout(() => { isStartingOnboarding = false; }, 1000);
                 });
             }
 
@@ -150,19 +168,23 @@ class RetirementCalculatorApp {
 
     skipOnboardingToAdvanced() {
         this.hideOnboardingButtons();
-        // Scroll to the calculator form or show notification
         const calculatorContainer = document.querySelector('.calculator-container') ||
-                                   document.querySelector('.bg-white.rounded-lg');
+            document.querySelector('.bg-white.rounded-lg');
 
         if (calculatorContainer) {
             calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             showNotification('Welcome back! You can start using the advanced calculator directly, or use the menu to load your saved data.', 'info');
 
-            // Automatically trigger data import option
+            // Use the new actionable notification
             setTimeout(() => {
-                if (confirm('Would you like to load your previously saved data?')) {
-                    this.importUserInputs();
-                }
+                showActionableNotification('Would you like to load your previously saved data?', [{
+                    text: 'Yes, Load Data',
+                    class: 'primary',
+                    callback: () => this.importUserInputs()
+                }, {
+                    text: 'No, Thanks',
+                    class: 'secondary'
+                }]);
             }, 1500);
         }
     }
@@ -234,7 +256,7 @@ class RetirementCalculatorApp {
         const partnerLifespanValue = $('partnerLifespan') ? $('partnerLifespan').value.trim() : '';
 
         const hasPartnerData = partnerSalaryValue !== '' || partnerSuperValue !== '' ||
-                              partnerRetirementValue !== '' || partnerLifespanValue !== '';
+            partnerRetirementValue !== '' || partnerLifespanValue !== '';
 
         // Determine final partner age to use in calculations
         let finalPartnerAge = 0;
@@ -421,21 +443,59 @@ class RetirementCalculatorApp {
 
         try {
             const inputs = this.collectInputs();
-            const result = this.simulator.simulateRetirement(inputs, false);
-            this.currentResults = result;
 
-            // Update UI
-            this.updateRiskProfile(inputs);
-            this.updateRecommendedAllocation(inputs);
-            this.displaySummaryResults(result, inputs);
-            this.displayYearByYearProjection(result);
-            this.displayPropertyAnalysis(result, inputs);
-            this.displayRiskAnalysis(result, inputs);
-            this.displayOptimizationStrategies(result, inputs);
+            let result;
+            try {
+                result = this.simulator.simulateRetirement(inputs, false);
+                this.currentResults = result;
+            } catch (simError) {
+                console.error('Simulation error:', simError);
+                throw new Error(`Core simulation failed. Please check your financial inputs. Details: ${simError.message}`);
+            }
+
+            // Update UI components with individual error handling
+            try {
+                this.updateRiskProfile(inputs);
+                this.updateRecommendedAllocation(inputs);
+                this.displaySummaryResults(result, inputs);
+                this.displayYearByYearProjection(result);
+            } catch (summaryError) {
+                console.error('Summary display error:', summaryError);
+                // Allow continuing even if summary fails
+                showNotification('Could not display summary results. Check console for details.', 'warning');
+            }
+
+            try {
+                this.displayPropertyAnalysis(result, inputs);
+            } catch (propertyError) {
+                console.error('Property analysis display error:', propertyError);
+                showNotification('Could not display property analysis. Check property inputs.', 'warning');
+            }
+
+            try {
+                this.displayRiskAnalysis(result, inputs);
+            } catch (riskError) {
+                console.error('Risk analysis display error:', riskError);
+                showNotification('Could not display risk analysis.', 'warning');
+            }
+
+            try {
+                this.displayOptimizationStrategies(result, inputs);
+            } catch (optError) {
+                console.error('Optimization display error:', optError);
+                showNotification('Could not display optimization strategies.', 'warning');
+            }
+
 
             // Render charts
-            const chartManager = await this.getChartManager();
-            chartManager.renderCompleteAnalysis(result, inputs);
+            try {
+                const chartManager = await this.getChartManager();
+                chartManager.renderCompleteAnalysis(result, inputs);
+            } catch (chartError) {
+                console.error('Chart rendering error:', chartError);
+                showNotification('Could not render charts, but results are still valid.', 'warning');
+            }
+
 
             // Show summary tab and conditionally scroll to results
             if (shouldScrollToResults) {
@@ -447,9 +507,9 @@ class RetirementCalculatorApp {
             }
 
         } catch (error) {
-            console.error('Calculation error:', error);
+            console.error('Main calculation error:', error);
             if (shouldScrollToResults) {
-                showNotification('Error in calculation: ' + error.message, 'error');
+                handleError(error, 'Retirement Calculation');
             }
         } finally {
             this.isCalculating = false;
@@ -1125,17 +1185,17 @@ class RetirementCalculatorApp {
                     <h5 class="font-medium text-gray-800 mb-2">Market Conditions</h5>
                     <div class="space-y-1 text-sm">
                         ${results.regimeAnalysis?.mostCommonEquityRegime ?
-                            `<div>Dominant Equity: <span class="font-medium text-blue-600">${results.regimeAnalysis.mostCommonEquityRegime.regime}</span></div>` :
-                            ''
-                        }
+            `<div>Dominant Equity: <span class="font-medium text-blue-600">${results.regimeAnalysis.mostCommonEquityRegime.regime}</span></div>` :
+            ''
+        }
                         ${results.regimeAnalysis?.mostCommonInterestRegime ?
-                            `<div>Interest Environment: <span class="font-medium text-green-600">${results.regimeAnalysis.mostCommonInterestRegime.regime}</span></div>` :
-                            ''
-                        }
+            `<div>Interest Environment: <span class="font-medium text-green-600">${results.regimeAnalysis.mostCommonInterestRegime.regime}</span></div>` :
+            ''
+        }
                         ${results.regimeAnalysis?.mostCommonPropertyPhase ?
-                            `<div>Property Cycle: <span class="font-medium text-purple-600">${results.regimeAnalysis.mostCommonPropertyPhase.regime}</span></div>` :
-                            ''
-                        }
+            `<div>Property Cycle: <span class="font-medium text-purple-600">${results.regimeAnalysis.mostCommonPropertyPhase.regime}</span></div>` :
+            ''
+        }
                     </div>
                 </div>
             </div>
@@ -1612,9 +1672,9 @@ class RetirementCalculatorApp {
                     </div>
                     <div class="text-right">
                         <div class="text-3xl font-bold text-${riskProfile.overallRiskProfile === 'aggressive' ? 'red' :
-                            riskProfile.overallRiskProfile === 'growth' ? 'orange' :
-                            riskProfile.overallRiskProfile === 'balanced' ? 'blue' :
-                            riskProfile.overallRiskProfile === 'conservative' ? 'green' : 'gray'}-600">
+            riskProfile.overallRiskProfile === 'growth' ? 'orange' :
+                riskProfile.overallRiskProfile === 'balanced' ? 'blue' :
+                    riskProfile.overallRiskProfile === 'conservative' ? 'green' : 'gray'}-600">
                             ${riskProfile.riskScore}/100
                         </div>
                         <div class="text-sm text-gray-600 uppercase tracking-wide">
@@ -3669,10 +3729,10 @@ class RetirementCalculatorApp {
                 <div class="flex justify-between items-start mb-3">
                     <h4 class="font-semibold text-gray-900">${scenario.title}</h4>
                     <span class="px-2 py-1 text-xs font-semibold rounded-full ${
-                        scenario.riskLevel === 'LOW' ? 'bg-green-100 text-green-800' :
-                        scenario.riskLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                    }">
+            scenario.riskLevel === 'LOW' ? 'bg-green-100 text-green-800' :
+                scenario.riskLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+        }">
                         Risk: ${scenario.riskLevel}
                     </span>
                 </div>
@@ -3683,11 +3743,11 @@ class RetirementCalculatorApp {
                     <div>
                         <span class="text-xs font-medium text-gray-700">Impact:</span>
                         <span class="text-xs ml-2 px-2 py-1 rounded ${
-                            scenario.impact === 'POSITIVE' || scenario.impact === 'HIGH POSITIVE' || scenario.impact === 'VERY HIGH POSITIVE'
-                                ? 'bg-green-100 text-green-800' :
-                            scenario.impact === 'NEGATIVE' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                        }">${scenario.impact}</span>
+            scenario.impact === 'POSITIVE' || scenario.impact === 'HIGH POSITIVE' || scenario.impact === 'VERY HIGH POSITIVE'
+                ? 'bg-green-100 text-green-800' :
+                scenario.impact === 'NEGATIVE' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+        }">${scenario.impact}</span>
                     </div>
 
                     <div>
@@ -3745,9 +3805,9 @@ class RetirementCalculatorApp {
                         <div class="flex items-center gap-2 mb-1">
                             <span class="text-xs font-semibold uppercase text-gray-500">${rec.category}</span>
                             ${rec.feasibility && rec.feasibility !== 'Standard Strategy' ?
-                                `<span class="text-xs px-2 py-1 rounded ${rec.feasibility.includes('Easily') || rec.feasibility.includes('Comfortable') ? 'bg-green-100 text-green-700' :
-                                  rec.feasibility.includes('Major') || rec.feasibility.includes('Complex') ? 'bg-red-100 text-red-700' :
-                                  'bg-yellow-100 text-yellow-700'}">${rec.feasibility}</span>` : ''}
+            `<span class="text-xs px-2 py-1 rounded ${rec.feasibility.includes('Easily') || rec.feasibility.includes('Comfortable') ? 'bg-green-100 text-green-700' :
+                rec.feasibility.includes('Major') || rec.feasibility.includes('Complex') ? 'bg-red-100 text-red-700' :
+                    'bg-yellow-100 text-yellow-700'}">${rec.feasibility}</span>` : ''}
                         </div>
                         <h4 class="font-bold text-lg text-gray-800">${rec.title}</h4>
                     </div>
@@ -4474,28 +4534,38 @@ class RetirementCalculatorApp {
     }
 
     async importUserInputs() {
+        if (this.isImporting) {
+            return;
+        }
+        this.isImporting = true;
+
         try {
             const importedData = await importUserData();
+            if (importedData) {
+                // Populate the form with imported data
+                populateFormFromData(importedData.userData);
 
-            // Populate the form with imported data
-            const result = populateFormFromData(importedData.userData);
+                // Trigger currency and percentage input formatting
+                initializeCurrencyInputs();
+                initializePercentageInputs();
 
-            // Trigger currency and percentage input formatting
-            initializeCurrencyInputs();
-            initializePercentageInputs();
+                // Update risk profile and allocation displays
+                setTimeout(() => {
+                    const inputs = this.collectInputs();
+                    this.updateRiskProfile(inputs);
+                    this.updateRecommendedAllocation(inputs);
 
-            // Update risk profile and allocation displays
-            setTimeout(() => {
-                const inputs = this.collectInputs();
-                this.updateRiskProfile(inputs);
-                this.updateRecommendedAllocation(inputs);
-
-                // Optionally trigger a calculation
-                this.calculateRetirement(false);
-            }, 100);
-
+                    // Optionally trigger a calculation
+                    this.calculateRetirement(false);
+                }, 100);
+            }
         } catch (error) {
-            showNotification(error, 'error');
+            showNotification(error.message || 'Failed to import data.', 'error');
+        } finally {
+            // Reset the flag after a short delay to prevent immediate re-triggering
+            setTimeout(() => {
+                this.isImporting = false;
+            }, 1000);
         }
     }
 
@@ -4695,158 +4765,42 @@ class RetirementCalculatorApp {
     }
 
     setupExportDropdowns() {
-        const btnExport = $('btnExport');
-        const exportDropdown = $('exportDropdown');
+        const setupDropdown = (buttonId, dropdownId, exportCsvId, exportXlsxId, exportPdfId) => {
+            const button = $(buttonId);
+            const dropdown = $(dropdownId);
 
-        console.log('Export button setup:', { btnExport: !!btnExport, exportDropdown: !!exportDropdown });
-        console.log('Export button element:', btnExport);
-        console.log('Export dropdown element:', exportDropdown);
+            if (button && dropdown) {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('hidden');
+                });
 
-        if (exportDropdown) {
-            console.log('Export dropdown classes:', exportDropdown.className);
-            console.log('Export dropdown computed style:', window.getComputedStyle(exportDropdown).display);
-        }
+                // Export buttons
+                const btnExportCSV = $(exportCsvId);
+                const btnExportXLSX = $(exportXlsxId);
+                const btnExportPDF = $(exportPdfId);
 
-        if (btnExport && exportDropdown) {
-            // Ensure dropdown is initially hidden with inline styles
-            exportDropdown.style.display = 'none';
-            exportDropdown.classList.add('hidden');
+                if (btnExportCSV) btnExportCSV.addEventListener('click', () => this.exportResults('csv'));
+                if (btnExportXLSX) btnExportXLSX.addEventListener('click', () => this.exportResults('xlsx'));
+                if (btnExportPDF) btnExportPDF.addEventListener('click', () => this.exportResults('pdf'));
+            }
+        };
 
-            btnExport.addEventListener('click', (e) => {
-                console.log('Export button clicked!');
-                e.preventDefault();
-                e.stopPropagation();
+        // Setup for main export button
+        setupDropdown('btnExport', 'exportDropdown', 'btnExportCSV', 'btnExportXLSX', 'btnExportPDF');
+        // Setup for the second (deprecated) export button to ensure it also works
+        setupDropdown('btnExport2', 'exportDropdown2', 'btnExportCSV2', 'btnExportXLSX2', 'btnExportPDF2');
 
-                // Toggle dropdown visibility with both class and style
-                const isHidden = exportDropdown.style.display === 'none' || exportDropdown.classList.contains('hidden');
 
-                if (isHidden) {
-                    exportDropdown.classList.remove('hidden');
-                    exportDropdown.style.display = 'block';
-                    exportDropdown.style.position = 'absolute';
-                    exportDropdown.style.zIndex = '1000';
-                    console.log('Export dropdown shown');
-                } else {
-                    exportDropdown.classList.add('hidden');
-                    exportDropdown.style.display = 'none';
-                    console.log('Export dropdown hidden');
+        // Hide dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdowns = document.querySelectorAll('[id^="exportDropdown"]');
+            dropdowns.forEach(dropdown => {
+                if (!dropdown.contains(e.target) && !e.target.closest('[id^="btnExport"]')) {
+                    dropdown.classList.add('hidden');
                 }
             });
-
-            document.addEventListener('click', (e) => {
-                if (!exportDropdown.contains(e.target) && !btnExport.contains(e.target)) {
-                    exportDropdown.classList.add('hidden');
-                    exportDropdown.style.display = 'none';
-                }
-            });
-
-            const btnExportCSV = $('btnExportCSV');
-            const btnExportXLSX = $('btnExportXLSX');
-            const btnExportPDF = $('btnExportPDF');
-
-            if (btnExportCSV) {
-                btnExportCSV.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.exportResults('csv');
-                    exportDropdown.classList.add('hidden');
-                    exportDropdown.style.display = 'none';
-                });
-            }
-            if (btnExportXLSX) {
-                btnExportXLSX.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.exportResults('xlsx');
-                    exportDropdown.classList.add('hidden');
-                    exportDropdown.style.display = 'none';
-                });
-            }
-            if (btnExportPDF) {
-                btnExportPDF.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.exportResults('pdf');
-                    exportDropdown.classList.add('hidden');
-                    exportDropdown.style.display = 'none';
-                });
-            }
-        } else {
-            console.warn('Export button or dropdown not found:', { btnExport: !!btnExport, exportDropdown: !!exportDropdown });
-        }
-
-        // Second Export dropdown functionality (duplicate button fix)
-        const btnExport2 = $('btnExport2');
-        const exportDropdown2 = $('exportDropdown2');
-
-        console.log('Second Export button setup:', { btnExport2: !!btnExport2, exportDropdown2: !!exportDropdown2 });
-        console.log('Second Export button element:', btnExport2);
-        console.log('Second Export dropdown element:', exportDropdown2);
-
-        if (exportDropdown2) {
-            console.log('Second Export dropdown classes:', exportDropdown2.className);
-            console.log('Second Export dropdown computed style:', window.getComputedStyle(exportDropdown2).display);
-        }
-
-        if (btnExport2 && exportDropdown2) {
-            // Ensure dropdown is initially hidden with inline styles
-            exportDropdown2.style.display = 'none';
-            exportDropdown2.classList.add('hidden');
-
-            btnExport2.addEventListener('click', (e) => {
-                console.log('Second Export button clicked!');
-                e.preventDefault();
-                e.stopPropagation();
-
-                // Toggle dropdown visibility with both class and style
-                const isHidden = exportDropdown2.style.display === 'none' || exportDropdown2.classList.contains('hidden');
-
-                if (isHidden) {
-                    exportDropdown2.classList.remove('hidden');
-                    exportDropdown2.style.display = 'block';
-                    exportDropdown2.style.position = 'absolute';
-                    exportDropdown2.style.zIndex = '1000';
-                    console.log('Second Export dropdown shown');
-                } else {
-                    exportDropdown2.classList.add('hidden');
-                    exportDropdown2.style.display = 'none';
-                    console.log('Second Export dropdown hidden');
-                }
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!exportDropdown2.contains(e.target) && !btnExport2.contains(e.target)) {
-                    exportDropdown2.classList.add('hidden');
-                    exportDropdown2.style.display = 'none';
-                }
-            });
-
-            const btnExportCSV2 = $('btnExportCSV2');
-            const btnExportXLSX2 = $('btnExportXLSX2');
-            const btnExportPDF2 = $('btnExportPDF2');
-
-            if (btnExportCSV2) {
-                btnExportCSV2.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.exportResults('csv');
-                    exportDropdown2.classList.add('hidden');
-                    exportDropdown2.style.display = 'none';
-                });
-            }
-            if (btnExportXLSX2) {
-                btnExportXLSX2.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.exportResults('xlsx');
-                    exportDropdown2.classList.add('hidden');
-                    exportDropdown2.style.display = 'none';
-                });
-            }
-            if (btnExportPDF2) {
-                btnExportPDF2.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.exportResults('pdf');
-                    exportDropdown2.classList.add('hidden');
-                    exportDropdown2.style.display = 'none';
-                });
-            }
-        }
+        });
 
         // User Data Import/Export buttons
         const btnExportUserData = $('btnExportUserData');
@@ -5806,6 +5760,12 @@ class RetirementCalculatorApp {
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Prevent double initialization
+    if (window.appInitialized) {
+        return;
+    }
+    window.appInitialized = true;
+
     // Check browser compatibility first
     const isCompatible = checkBrowserCompatibility();
 
@@ -5815,7 +5775,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-        window.RetirementCalculatorApp = new RetirementCalculatorApp();
+        window.app = new RetirementCalculatorApp();
+        // Make class available for any legacy code that might need it
+        window.RetirementCalculatorApp = RetirementCalculatorApp;
         console.log('Enhanced Australian Retirement Calculator initialized successfully');
     } catch (error) {
         console.error('Failed to initialize calculator:', error);
@@ -5918,10 +5880,6 @@ function showCompatibilityError(compatibility) {
 }
 
 // Fallback mode for older browsers
-// function fallbackMode() {
-//     window.location.href = 'https://retirement.gagneet.com/index.html';
-// }
-
 function fallbackMode() {
     // Try local fallback first, then external
     const localFallback = './index.html';
@@ -5942,33 +5900,3 @@ function fallbackMode() {
 }
 
 export default RetirementCalculatorApp;
-
-// Auto-initialize when loaded - prevent double initialization
-function initializeApp() {
-    // Prevent double initialization
-    if (window.app && window.app.isInitialized) {
-        console.log('App already exists & initialized, skipping initialization...');
-        return;
-    }
-
-    try {
-        const app = new RetirementCalculatorApp();
-        window.app = app;
-        window.RetirementCalculatorApp = RetirementCalculatorApp;
-
-        // The app auto-initializes in constructor, so just mark as initialized
-        app.isInitialized = true;
-        console.log('✅ Australian Retirement Calculator loaded successfully');
-    } catch (error) {
-        console.error('Failed to initialize app:', error);
-    }
-}
-
-// Initialize based on DOM state
-if (document.readyState === 'loading') {
-    // DOM is still loading, wait for DOMContentLoaded
-    document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-    // DOM is already loaded, initialize immediately
-    initializeApp();
-}

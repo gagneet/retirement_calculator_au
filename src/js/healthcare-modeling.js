@@ -166,14 +166,67 @@ export class HealthcareModelingEngine {
         };
     }
 
+    validateHealthcareInputs(inputs) {
+        const errors = [];
+        const warnings = [];
+
+        if (!inputs.yourCurrentAge || inputs.yourCurrentAge <= 0) {
+            errors.push("Current age must be a positive number.");
+        }
+        if (!inputs.yourLifespan || inputs.yourLifespan <= inputs.yourCurrentAge) {
+            errors.push("Expected lifespan must be greater than current age.");
+        }
+        if (inputs.agedCareStartAge < inputs.retirementAge) {
+            warnings.push("Aged care start age is earlier than retirement age, which is unusual.");
+        }
+        if (inputs.agedCareDuration <= 0) {
+            warnings.push("Aged care duration should be a positive number.");
+        }
+        if (inputs.currentHealthcareCosts < 0) {
+            errors.push("Current healthcare costs cannot be negative.");
+        } else if (inputs.currentHealthcareCosts === 0) {
+            warnings.push("Current healthcare costs are zero. Projections may be underestimated.");
+        }
+        if (inputs.healthcareInflation < 0 || inputs.healthcareInflation > 20) {
+            warnings.push("Healthcare inflation is outside the typical range of 0-20%.");
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors,
+            warnings
+        };
+    }
+
     // Calculate comprehensive healthcare cost projections for retirement
     calculateHealthcareCostProjection(inputs, monteCarloResults = null) {
+        // --- Input Validation ---
+        const validation = this.validateHealthcareInputs(inputs);
+        if (!validation.isValid) {
+            console.warn('Healthcare modeling validation failed:', validation.errors);
+            // Return a projection with warnings instead of throwing an error
+            return {
+                yearlyProjections: [],
+                totalLifetimeCost: 0,
+                agedCareProjections: null,
+                riskFactors: [{
+                    type: 'data_validation',
+                    severity: 'high',
+                    description: 'Input data is invalid or incomplete.',
+                    impact: `Calculation cannot proceed. ${validation.errors.join('; ')}`
+                }],
+                recommendations: [],
+                validationErrors: validation.errors
+            };
+        }
+
         const projections = {
             yearlyProjections: [],
             totalLifetimeCost: 0,
             agedCareProjections: null,
             riskFactors: [],
-            recommendations: []
+            recommendations: [],
+            validationWarnings: validation.warnings
         };
 
         const startAge = inputs.yourCurrentAge;
@@ -397,7 +450,7 @@ export class HealthcareModelingEngine {
 
         // Daily care fees
         const dailyFees = this.agedCareCosts.residentialCare.basicDailyFee +
-                         (this.agedCareCosts.residentialCare.maximumMeansTestedFee * 0.5); // Assume 50% means tested fee
+            (this.agedCareCosts.residentialCare.maximumMeansTestedFee * 0.5); // Assume 50% means tested fee
         const inflatedDailyFees = this.applyInflation(dailyFees, this.healthcareCosts.inflationRates.agedCare, yearsFromNow);
         const totalDailyFeeCost = inflatedDailyFees * 365 * averageDuration;
 
@@ -419,8 +472,8 @@ export class HealthcareModelingEngine {
         // Simplified contribution calculation based on means testing
         const totalIncome = (inputs.yourSalary || 0) + (inputs.partnerSalary || 0);
         const totalAssets = (inputs.yourCurrentSuper || 0) + (inputs.partnerCurrentSuper || 0) +
-                           (inputs.currentSavings || 0) + (inputs.currentStocks || 0) +
-                           (inputs.homeValue || 0);
+            (inputs.currentSavings || 0) + (inputs.currentStocks || 0) +
+            (inputs.homeValue || 0);
 
         let contributionRate = 0.5; // Base 50% contribution
 

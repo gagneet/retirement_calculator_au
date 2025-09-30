@@ -78,6 +78,155 @@ export const ENHANCED_FINANCIAL_CONFIG = {
             description: "Time horizon weighting exponent",
             source: "Financial planning research",
             isResearchDerived: true
+        },
+
+        RISK_SCORING_RUBRICS: {
+            capacity: {
+                income: {
+                    description: "Annual household income stability and level",
+                    scoring: {
+                        veryHigh: { threshold: 200000, score: 100, description: "$200,000+ - Very high income capacity" },
+                        high: { threshold: 120000, score: 80, description: "$120,000+ - High income capacity" },
+                        moderate: { threshold: 80000, score: 60, description: "$80,000+ - Moderate income capacity" },
+                        low: { threshold: 50000, score: 40, description: "$50,000+ - Limited income capacity" },
+                        veryLow: { threshold: 0, score: 20, description: "Under $50,000 - Very limited capacity" }
+                    }
+                },
+                assets: {
+                    description: "Liquid assets and investment portfolio size",
+                    scoring: {
+                        veryHigh: { ratio: 10, score: 100, description: "10+ times annual expenses" },
+                        high: { ratio: 5, score: 80, description: "5+ times annual expenses" },
+                        moderate: { ratio: 2, score: 60, description: "2+ times annual expenses" },
+                        low: { ratio: 1, score: 40, description: "1+ times annual expenses" },
+                        veryLow: { ratio: 0, score: 20, description: "Less than annual expenses" }
+                    }
+                },
+                timeHorizon: {
+                    description: "Years until retirement and investment timeline",
+                    scoring: {
+                        veryLong: { years: 20, score: 100, description: "20+ years - Excellent time capacity" },
+                        long: { years: 15, score: 80, description: "15+ years - Good time capacity" },
+                        moderate: { years: 10, score: 60, description: "10+ years - Moderate time capacity" },
+                        short: { years: 5, score: 40, description: "5+ years - Limited time capacity" },
+                        veryShort: { years: 0, score: 20, description: "Under 5 years - Very limited time" }
+                    }
+                },
+                emergencyFund: {
+                    description: "Emergency fund adequacy and liquidity",
+                    scoring: {
+                        excellent: { months: 12, score: 100, description: "12+ months expenses - Excellent safety net" },
+                        good: { months: 6, score: 80, description: "6+ months expenses - Good safety net" },
+                        adequate: { months: 3, score: 60, description: "3+ months expenses - Adequate safety net" },
+                        minimal: { months: 1, score: 40, description: "1+ month expenses - Minimal safety net" },
+                        none: { months: 0, score: 20, description: "No emergency fund - High vulnerability" }
+                    }
+                },
+                debt: {
+                    description: "Debt levels relative to income and assets",
+                    scoring: {
+                        none: { ratio: 0, score: 100, description: "No debt - Maximum capacity" },
+                        low: { ratio: 0.2, score: 80, description: "Low debt (<20% of income) - High capacity" },
+                        moderate: { ratio: 0.4, score: 60, description: "Moderate debt (20-40% of income)" },
+                        high: { ratio: 0.6, score: 40, description: "High debt (40-60% of income)" },
+                        excessive: { ratio: 1, score: 20, description: "Excessive debt (>60% of income)" }
+                    }
+                },
+                dependents: {
+                    description: "Number of financial dependents and obligations",
+                    scoring: {
+                        none: { count: 0, score: 100, description: "No dependents - Maximum flexibility" },
+                        few: { count: 1, score: 80, description: "1-2 dependents - High flexibility" },
+                        moderate: { count: 3, score: 60, description: "3-4 dependents - Moderate flexibility" },
+                        many: { count: 5, score: 40, description: "5+ dependents - Limited flexibility" },
+                        significant: { count: 999, score: 20, description: "Significant care obligations" }
+                    }
+                }
+            },
+            tolerance: {
+                reactionToLoss: {
+                    description: "Emotional response to investment losses",
+                    scoring: {
+                        opportunistic: { score: 100, description: "See losses as buying opportunities" },
+                        calm: { score: 80, description: "Stay calm and stick to plan" },
+                        concerned: { score: 60, description: "Concerned but don't panic sell" },
+                        anxious: { score: 40, description: "Lose sleep and consider selling" },
+                        panic: { score: 20, description: "Panic sell at market lows" }
+                    }
+                },
+                volatilityComfort: {
+                    description: "Comfort with portfolio value fluctuations",
+                    scoring: {
+                        veryHigh: { range: 0.3, score: 100, description: "Comfortable with 30%+ swings" },
+                        high: { range: 0.2, score: 80, description: "Comfortable with 20%+ swings" },
+                        moderate: { range: 0.15, score: 60, description: "Comfortable with 15%+ swings" },
+                        low: { range: 0.1, score: 40, description: "Comfortable with 10%+ swings" },
+                        veryLow: { range: 0.05, score: 20, description: "Comfortable with 5%+ swings" }
+                    }
+                },
+                experienceLevel: {
+                    description: "Investment experience and market knowledge",
+                    scoring: {
+                        expert: { years: 15, score: 100, description: "15+ years experience, sophisticated investor" },
+                        experienced: { years: 10, score: 80, description: "10+ years experience, knowledgeable" },
+                        moderate: { years: 5, score: 60, description: "5+ years experience, learning" },
+                        beginner: { years: 2, score: 40, description: "2+ years experience, basic knowledge" },
+                        novice: { years: 0, score: 20, description: "New to investing, minimal knowledge" }
+                    }
+                },
+                marketHistoryUnderstanding: {
+                    description: "Understanding of historical market performance and cycles",
+                    scoring: {
+                        excellent: { score: 100, description: "Deep understanding of market cycles and history" },
+                        good: { score: 80, description: "Good understanding of long-term market performance" },
+                        moderate: { score: 60, description: "Basic understanding of market volatility" },
+                        limited: { score: 40, description: "Limited understanding of market history" },
+                        minimal: { score: 20, description: "Minimal understanding of market risks" }
+                    }
+                }
+            },
+            requirement: {
+                retirementGap: {
+                    description: "Gap between current savings trajectory and retirement needs",
+                    scoring: {
+                        surplus: { gap: -0.2, score: 20, description: "On track with surplus - Low risk needed" },
+                        onTrack: { gap: 0, score: 40, description: "On track for goals - Moderate risk needed" },
+                        shortfall: { gap: 0.3, score: 60, description: "30% shortfall - Higher risk needed" },
+                        significant: { gap: 0.6, score: 80, description: "60% shortfall - High risk required" },
+                        critical: { gap: 1, score: 100, description: "Major shortfall - Maximum risk required" }
+                    }
+                },
+                inflationProtection: {
+                    description: "Need for inflation protection over retirement period",
+                    scoring: {
+                        minimal: { years: 5, score: 20, description: "Short retirement - Minimal inflation risk" },
+                        low: { years: 15, score: 40, description: "Moderate retirement - Low inflation risk" },
+                        moderate: { years: 25, score: 60, description: "Long retirement - Moderate inflation risk" },
+                        high: { years: 30, score: 80, description: "Very long retirement - High inflation risk" },
+                        critical: { years: 35, score: 100, description: "Extreme longevity - Critical inflation risk" }
+                    }
+                },
+                timeUrgency: {
+                    description: "Urgency based on time remaining to retirement",
+                    scoring: {
+                        relaxed: { years: 25, score: 20, description: "25+ years - No time urgency" },
+                        comfortable: { years: 15, score: 40, description: "15+ years - Comfortable timeline" },
+                        moderate: { years: 10, score: 60, description: "10+ years - Moderate urgency" },
+                        urgent: { years: 5, score: 80, description: "5+ years - High urgency" },
+                        critical: { years: 2, score: 100, description: "2+ years - Critical urgency" }
+                    }
+                },
+                goalAmbition: {
+                    description: "Ambition level of retirement lifestyle goals",
+                    scoring: {
+                        basic: { replacement: 0.6, score: 20, description: "Basic needs - 60% income replacement" },
+                        comfortable: { replacement: 0.7, score: 40, description: "Comfortable - 70% income replacement" },
+                        maintain: { replacement: 0.8, score: 60, description: "Maintain lifestyle - 80% replacement" },
+                        enhanced: { replacement: 0.9, score: 80, description: "Enhanced lifestyle - 90% replacement" },
+                        luxury: { replacement: 1.2, score: 100, description: "Luxury retirement - 120%+ replacement" }
+                    }
+                }
+            }
         }
     },
 
