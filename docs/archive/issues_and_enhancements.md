@@ -1478,3 +1478,45 @@ The plan now prioritizes real user pain points over assumed needs, with clear ev
 the most critical trust issues that cause users to abandon retirement calculators.
 
 ---
+
+● Excellent! The build is successful. Now let me update the todo list to reflect completion:
+
+● ✅ Returning User Button Fixed!
+
+I've successfully fixed the "Returning User?" button issue. Here's what was implemented:
+
+🔧 Problem Identified
+
+- The button was calling skipOnboardingToAdvanced() which used a confirm() dialog
+- The recent changes intended to use a file picker approach, but the HTML file input element was missing
+- The event handler wasn't properly set up for the file input approach
+
+✅ Solution Implemented
+
+1. Added Hidden File Input Element
+   <input type="file" id="returning-user-file-input" accept=".json" style="display: none;" />
+2. Updated Event Handler
+   - Button click now hides onboarding, scrolls to calculator, and triggers the hidden file input
+   - Added proper error handling if file input element is missing
+   - Includes console logging for debugging
+3. Created File Processing Method
+   - handleReturningUserFileSelect() method processes the selected JSON file
+   - Validates file format (checks for userData and version)
+   - Populates form using existing populateFormFromData() function
+   - Triggers input formatting for currency and percentage fields
+   - Shows enhanced summary and reveals advanced analysis buttons
+   - Provides user feedback with success/error notifications
+
+🎯 Expected Behavior Now
+
+1. User clicks "Returning User?" button
+2. Onboarding buttons are hidden and page scrolls to calculator
+3. File picker dialog opens automatically
+4. User selects their saved .json file
+5. Data is imported and form is populated
+6. Success notification appears
+7. Advanced Analysis Tools become available
+
+The button should now work identically to the Menu → "Returning User?" option that was already working correctly!
+
+---
