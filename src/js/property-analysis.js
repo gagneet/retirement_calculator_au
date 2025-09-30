@@ -415,11 +415,12 @@ export class PropertyAnalysisEngine {
         const outstandingLoan = inputs.propertyLoan || 0;
 
         // --- Safeguards and Validation ---
+        // --- Safeguards and Validation ---
         if (annualRent < 0 || propertyValue < 0 || outstandingLoan < 0) {
-            console.error("Invalid input: Rent, property value, and loan cannot be negative.");
-            return { netCashFlow: 0 }; // Return a neutral cash flow on error
+            const errorMsg = "Invalid input: Rent, property value, and loan cannot be negative.";
+            console.error(errorMsg);
+            throw new Error(errorMsg);
         }
-
         // Estimate mortgage payments (assume 6% interest rate)
         const monthlyMortgage = outstandingLoan > 0 ?
             outstandingLoan * 0.06 / 12 * Math.pow(1 + 0.06/12, 300) / (Math.pow(1 + 0.06/12, 300) - 1) * 12 : 0;
