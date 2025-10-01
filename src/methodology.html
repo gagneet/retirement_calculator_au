@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Methodology - Australian Retirement Calculator</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>How We Calculate</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Calculator</a></li>
+                <li><a href="assumptions.html">Assumptions</a></li>
+                <li><a href="changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section>
+            <h2>Core Simulation Engine</h2>
+            <p>The calculator uses a year-by-year simulation to project your financial future. Each year, it calculates your income, expenses, investment returns, and taxes to determine your financial position. This detailed approach allows for greater accuracy and the ability to model complex scenarios.</p>
+        </section>
+        <section>
+            <h2>Superannuation Projection</h2>
+            <p>Your superannuation balance is projected annually until your retirement age. The calculation for each year is as follows:</p>
+            <pre><code>Ending Balance = (Starting Balance + Contributions) * (1 + Annual Return)</code></pre>
+            <ul>
+                <li><strong>Contributions:</strong> Includes employer contributions (Super Guarantee) and any voluntary contributions you make.</li>
+                <li><strong>Annual Return:</strong> Based on the "Super Annual Growth" assumption you provide.</li>
+            </ul>
+        </section>
+        <section>
+            <h2>Age Pension Calculation</h2>
+            <p>The Age Pension eligibility is determined by two tests: the Assets Test and the Income Test. You will receive the lower pension amount calculated from these two tests.</p>
+            <h3>Assets Test</h3>
+            <p>Your pension is reduced if your assessable assets are above a certain threshold. The reduction is calculated as:</p>
+            <pre><code>Pension Reduction (per fortnight) = (Your Assets - Asset Threshold) / 1000 * 3</code></pre>
+            <h3>Income Test</h3>
+            <p>Your pension is reduced if your income from all sources (including deemed income from assets) is above a threshold.</p>
+            <pre><code>Pension Reduction (per fortnight) = (Your Deemed Income - Income Threshold) * 0.5</code></pre>
+        </section>
+        <section>
+            <h2>Investment Returns &amp; Dynamic Allocation</h2>
+            <p>Investment returns are calculated based on your asset allocation. If you enable "Dynamic Allocation", your asset mix will automatically adjust as you age, typically becoming more conservative over time. The formula for the equity portion is based on your selected glide path rule (e.g., 110 - Age).</p>
+            <pre><code>Equity % = Glide Path Rule(Your Age)</code></pre>
+            <p>The remaining percentage is allocated to bonds and cash.</p>
+        </section>
+        <section>
+            <h2>Healthcare &amp; Aged Care Costs</h2>
+            <p>Future healthcare costs are projected by inflating your current annual costs by the specified "Healthcare Inflation Rate". Aged care costs are factored in as a potential future liability, based on the probability, start age, duration, and annual cost you provide.</p>
+            <pre><code>Expected Aged Care Cost = (Annual Cost * Duration) * Probability</code></pre>
+        </section>
+        <section>
+            <h2>Monte Carlo Simulation</h2>
+            <p>The Monte Carlo simulation runs your retirement plan thousands of times, each with a different sequence of random (but realistic) investment returns. This helps you understand the range of possible outcomes and the probability of success for your plan.</p>
+        </section>
+    </main>
+    <footer>
+        <p>Version 3.0.0 - Last Updated: 2025-09-30</p>
+    </footer>
+</body>
+</html>

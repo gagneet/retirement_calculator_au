@@ -784,20 +784,8 @@ export class ChartManager {
         }
     }
 
-    /* ============================================================================
-     * DUPLICATE METHOD COMMENTED OUT - DO NOT UNCOMMENT
-     * ============================================================================
-     * This is an exact duplicate of destroyAllCharts() at line 11.
-     * The first implementation (line 11) is complete and correct.
-     * This duplicate has been commented out to prevent confusion.
-     * ============================================================================
-     */
-
-    // destroyAllCharts() {
-    //     Object.keys(this.charts).forEach(chartId => {
-    //         this.destroyChart(chartId);
-    //     });
-    // }
+    // NOTE: destroyAllCharts() is already defined at line 11
+    // This duplicate has been removed to avoid confusion and potential conflicts
 }
 
 export default ChartManager;

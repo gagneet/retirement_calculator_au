@@ -1,16 +1,16 @@
 // js/recommendation.js - The Decision Support Engine
 
-import { ENHANCED_CONFIG } from './config.js';
 import { formatCurrency, formatPercent, updateProgress } from './utils.js';
 import RetirementSimulator from './simulator.js';
 
 class RecommendationEngine {
-    constructor(simulator, inputs) {
-        if (!simulator || !inputs) {
-            throw new Error("RecommendationEngine requires a simulator instance and user inputs.");
+    constructor(simulator, inputs, config) {
+        if (!simulator || !inputs || !config) {
+            throw new Error("RecommendationEngine requires a simulator, user inputs, and a config object.");
         }
         this.simulator = simulator;
         this.baseInputs = inputs;
+        this.config = config;
         this.recommendations = [];
     }
 

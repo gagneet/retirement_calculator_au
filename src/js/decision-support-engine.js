@@ -1,13 +1,13 @@
 // js/decision-support-engine.js - Comprehensive Decision Support Engine
 
-import { ENHANCED_CONFIG } from './config.js';
 import { formatCurrency, formatPercent, calculateCGT, calculateAgePension } from './utils.js';
 import MarketDataEngine from './market-data.js';
 
 export class DecisionSupportEngine {
-    constructor(simulator, inputs) {
+    constructor(simulator, inputs, config) {
         this.simulator = simulator;
         this.inputs = inputs;
+        this.config = config;
         this.marketData = new MarketDataEngine();
         this.recommendations = [];
     }
@@ -465,7 +465,7 @@ export class DecisionSupportEngine {
         const currentAge = this.inputs.yourCurrentAge;
 
         // Concessional contribution optimization (2025 cap: $30,000)
-        const currentConcessional = grossIncome * ENHANCED_CONFIG.SUPER_GUARANTEE_RATE; // Super Guarantee
+        const currentConcessional = grossIncome * this.config.SUPER_GUARANTEE_RATE; // Super Guarantee
         const additionalConcessionalCapacity = 30000 - currentConcessional;
 
         if (additionalConcessionalCapacity > 0 && grossIncome > 80000) {

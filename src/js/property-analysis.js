@@ -1,14 +1,12 @@
 // property-analysis.js - Advanced Australian Property Analysis with Buy/Sell Scenarios
 // Comprehensive property strategy analysis including timing, tax implications, and market scenarios
 
-import { ENHANCED_CONFIG } from './config.js';
-import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import { formatCurrency, formatPercent, randomNormal, calculateCGT } from './utils.js';
 
 export class PropertyAnalysisEngine {
-    constructor() {
-        this.config = ENHANCED_CONFIG;
-        this.financialConfig = ENHANCED_FINANCIAL_CONFIG;
+    constructor(config) {
+        this.config = config;
+        this.financialConfig = config.financials;
 
         // Australian property market data from config
         const propConfig = this.financialConfig.propertyAnalysis;

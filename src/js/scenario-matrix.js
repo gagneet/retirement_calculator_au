@@ -1,14 +1,13 @@
 // scenario-matrix.js - Comprehensive Scenario Comparison Matrix
 // Provides side-by-side analysis of different retirement strategies
 
-import { ENHANCED_CONFIG } from './config.js';
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import { formatCurrency, formatPercent } from './utils.js';
 
 export class ScenarioComparisonMatrix {
-    constructor(simulator) {
+    constructor(simulator, config) {
         this.simulator = simulator;
-        this.config = ENHANCED_CONFIG;
+        this.config = config;
         this.financialConfig = ENHANCED_FINANCIAL_CONFIG;
     }
 

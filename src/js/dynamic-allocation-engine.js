@@ -1,14 +1,12 @@
 // dynamic-allocation-engine.js - Dynamic Asset Allocation Optimization Engine
 // Advanced portfolio management with lifecycle-based allocation, rebalancing, and optimization
 
-import { ENHANCED_CONFIG } from './config.js';
-import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import { formatCurrency, formatPercent, randomNormal } from './utils.js';
 
 export class DynamicAllocationEngine {
-    constructor() {
-        this.config = ENHANCED_CONFIG;
-        this.financialConfig = ENHANCED_FINANCIAL_CONFIG;
+    constructor(config) {
+        this.config = config;
+        this.financialConfig = config;
 
         // Dynamic allocation strategies
         this.allocationStrategies = this.initializeAllocationStrategies();

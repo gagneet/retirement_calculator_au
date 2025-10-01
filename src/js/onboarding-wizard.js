@@ -1,11 +1,11 @@
 // js/onboarding-wizard.js - User Onboarding Wizard Component
 // 5-step wizard for collecting initial retirement planning data
 
-import { ENHANCED_CONFIG } from './config.js';
 import { $, safeSetValue, safeGetValue, formatCurrency, formatNumber, formatPercent, saveToLocalStorage, loadFromLocalStorage } from './utils.js';
 
 export class OnboardingWizard {
-    constructor() {
+    constructor(config) {
+        this.config = config;
         this.currentStep = 1;
         this.totalSteps = 5;
         this.data = this.initializeData();
@@ -50,7 +50,7 @@ export class OnboardingWizard {
 
     initializeData() {
         // Initialize with enhanced defaults from config
-        const defaults = ENHANCED_CONFIG.DEFAULTS;
+        const defaults = this.config.DEFAULTS;
 
         return {
             household: {
@@ -76,7 +76,7 @@ export class OnboardingWizard {
                 superannuation: {
                     currentBalance: defaults.financial.yourCurrentSuper,
                     partnerCurrentBalance: 0,
-                    employerContributions: Math.round(defaults.financial.yourSalary * ENHANCED_CONFIG.SUPER_GUARANTEE_RATE),
+                    employerContributions: Math.round(defaults.financial.yourSalary * this.config.SUPER_GUARANTEE_RATE),
                     voluntaryContributions: 0,
                     fundPerformance: defaults.economic.superReturn * 100
                 },
@@ -1514,7 +1514,7 @@ export class OnboardingWizard {
         if (salaryInput) {
             salaryInput.addEventListener('input', (e) => {
                 const salary = parseFloat(e.target.value) || 0;
-                const employerContrib = Math.round(salary * ENHANCED_CONFIG.SUPER_GUARANTEE_RATE);
+                const employerContrib = Math.round(salary * this.config.SUPER_GUARANTEE_RATE);
                 safeSetValue('finances-employer-contrib', employerContrib);
             });
         }
@@ -2069,7 +2069,7 @@ export class OnboardingWizard {
                     <div class="bg-indigo-50 p-6 rounded-lg text-center">
                         <div class="text-2xl font-bold text-indigo-600">${formatCurrency(basicResults.accessibleHomeEquity)}</div>
                         <div class="text-sm text-indigo-800">Accessible Home Equity</div>
-                        <div class="text-xs text-gray-600 mt-1">${ENHANCED_CONFIG.HOME_EQUITY_ACCESS_RATE * 100}% of home value</div>
+                        <div class="text-xs text-gray-600 mt-1">${this.config.HOME_EQUITY_ACCESS_RATE * 100}% of home value</div>
                     </div>
 
                     <!-- Property Equity -->
@@ -2159,11 +2159,10 @@ export class OnboardingWizard {
         const yearsInRetirement = lifeExpectancy - data.goals.retirementAge;
 
         // Use config defaults for growth rates
-        const defaults = ENHANCED_CONFIG.DEFAULTS;
+        const defaults = this.config.DEFAULTS;
         const superReturn = defaults.economic.superReturn;
         const investmentReturn = defaults.economic.investmentReturn;
         const inflation = defaults.economic.inflation;
-        const healthcareInflation = defaults.healthcare.healthcareInflation;
         const propertyGrowth = defaults.property.propertyGrowthRate / 100;
 
         // Calculate future super balance
@@ -2196,7 +2195,7 @@ export class OnboardingWizard {
         if (data.property.homeStatus !== 'rent') {
             const futureHomeValue = data.property.homeDetails.currentValue * Math.pow(1 + propertyGrowth, yearsToRetirement);
             const futureLoanBalance = Math.max(0, data.property.homeDetails.loanRemaining - (yearsToRetirement * 10000)); // Simplified loan reduction
-            accessibleHomeEquity = (futureHomeValue - futureLoanBalance) * ENHANCED_CONFIG.HOME_EQUITY_ACCESS_RATE;
+            accessibleHomeEquity = (futureHomeValue - futureLoanBalance) * this.config.HOME_EQUITY_ACCESS_RATE;
         }
 
         // Calculate property equity
@@ -2220,8 +2219,8 @@ export class OnboardingWizard {
         // Calculate income needed (adjusted for inflation)
         const incomeNeeded = data.goals.lifestyleGoals.incomeNeeded * Math.pow(1 + inflation, yearsToRetirement);
 
-        // Calculate aged care costs (future value) - Use healthcare inflation which is higher than general inflation
-        const agedCareCosts = defaults.healthcare.agedCareAnnualCost * Math.pow(1 + healthcareInflation, yearsToRetirement + 15); // Assume care starts 15 years into retirement
+        // Calculate aged care costs (future value)
+        const agedCareCosts = defaults.healthcare.agedCareAnnualCost * Math.pow(1 + inflation, yearsToRetirement + 15); // Assume care starts 15 years into retirement
 
         // Simple retirement goal assessment (4% rule)
         const sustainableIncome = totalAssets * 0.04;
@@ -2930,14 +2929,6 @@ export class OnboardingWizard {
         }
     }
 }
-
-// Global instance
-let onboardingWizard = null;
-
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    onboardingWizard = new OnboardingWizard();
-});
 
 // Export for module usage
 export default OnboardingWizard;

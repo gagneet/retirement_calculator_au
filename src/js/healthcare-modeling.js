@@ -1,13 +1,12 @@
 // healthcare-modeling.js - Australian Healthcare Cost Modeling and Aged Care Projections
 // Based on 2024-2025 Australian healthcare reforms, aged care changes, and inflation data
 
-import { ENHANCED_CONFIG } from './config.js';
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import { randomNormal, formatCurrency } from './utils.js';
 
 export class HealthcareModelingEngine {
-    constructor() {
-        this.config = ENHANCED_CONFIG;
+    constructor(config) {
+        this.config = config;
         this.financialConfig = ENHANCED_FINANCIAL_CONFIG;
 
         // 2024-2025 Australian Healthcare Cost Data from config
