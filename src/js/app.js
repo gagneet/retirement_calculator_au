@@ -96,7 +96,7 @@ class RetirementCalculatorApp {
         this.propertyAnalysis = new PropertyAnalysisEngine(this.config);
         this.onboardingWizard = new OnboardingWizard(this.config);
 
-        console.log(`Re-initialized app with config for version ${config.VERSION}`);
+        console.log(`Re-initialized app with config for version ${config.version}`);
     }
 
     handleVersionChange(newVersion) {
@@ -184,8 +184,8 @@ class RetirementCalculatorApp {
     async initializeAdvancedEngines() {
         const loaded = await loadAdvancedEngines();
         if (loaded && RiskProfilingEngine && DynamicAllocationEngine) {
-            this.riskProfiling = new RiskProfilingEngine(ENHANCED_FINANCIAL_CONFIG);
-            this.dynamicAllocation = new DynamicAllocationEngine(ENHANCED_FINANCIAL_CONFIG);
+            this.riskProfiling = new RiskProfilingEngine(this.config);
+            this.dynamicAllocation = new DynamicAllocationEngine(this.config);
             console.log('✅ Advanced engines initialized in app instance');
         } else {
             console.warn('⚠️ Advanced engines not available - some features will be disabled');
@@ -3570,7 +3570,7 @@ class RetirementCalculatorApp {
     }
 
     setupVersionSelector() {
-        const selector = $('version-switcher');
+        const selector = $('version-selector');
         if (!selector) return;
 
         const versions = versionManager.getAvailableVersions();
@@ -3583,7 +3583,7 @@ class RetirementCalculatorApp {
     }
 
     setupCalculationModal() {
-        const modal = $('calculation-details-modal');
+        const modal = $('calculation-modal');
         const closeModal = $('close-modal');
         const modalTitle = $('modal-title');
         const modalContent = $('modal-content');
@@ -3608,7 +3608,7 @@ class RetirementCalculatorApp {
         });
 
         document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('show-calculation-btn')) {
+            if (e.target.classList.contains('show-calc-link')) {
                 e.preventDefault();
                 const calcId = e.target.dataset.calcId;
                 const details = this.getCalculationDetails(calcId);
@@ -3941,7 +3941,7 @@ class RetirementCalculatorApp {
             country: safeGetValue('overseasCountry', ''),
             departureAge: parseInt(safeGetValue('overseasAge', 65)),
             returnFrequency: safeGetValue('returnFrequency', 'annually'),
-            maintainResidency: safeGetValue('maintainResidency', false, 'checked'),
+            maintainResidency: safeGetChecked('maintainResidency', false),
             propertyStrategy: safeGetValue('propertyStrategy', 'keep-personal'),
             trustBeneficiaries: safeGetValue('trustBeneficiaries', 'you-only'),
             superAccess: safeGetValue('superAccess', 'pension-mode'),

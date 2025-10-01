@@ -784,12 +784,8 @@ export class ChartManager {
         }
     }
 
-    // Destroy all charts
-    destroyAllCharts() {
-        Object.keys(this.charts).forEach(chartId => {
-            this.destroyChart(chartId);
-        });
-    }
+    // NOTE: destroyAllCharts() is already defined at line 11
+    // This duplicate has been removed to avoid confusion and potential conflicts
 }
 
 export default ChartManager;
