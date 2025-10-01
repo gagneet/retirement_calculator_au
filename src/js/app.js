@@ -1582,20 +1582,30 @@ class RetirementCalculatorApp {
             ${results.confidenceIntervals ? `
             <div class="bg-white p-4 rounded-lg shadow-sm border">
                 <h5 class="font-medium text-gray-800 mb-3">Confidence Ranges</h5>
+                <div class="text-xs text-gray-600 mb-3">
+                    Final balance ranges across simulated scenarios. Lower bounds near $0 indicate some scenarios deplete funds.
+                </div>
                 <div class="space-y-2">
                     <div class="flex justify-between items-center">
-                        <span class="text-sm">80% Confidence:</span>
-                        <span class="font-medium">${formatCurrency(results.confidenceIntervals.ci80?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci80?.upper || 0)}</span>
+                        <span class="text-sm">80% Confidence (10th-90th percentile):</span>
+                        <span class="font-medium ${(results.confidenceIntervals.ci80?.lower || 0) === 0 ? 'text-orange-600' : ''}">${formatCurrency(results.confidenceIntervals.ci80?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci80?.upper || 0)}</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-sm">90% Confidence:</span>
-                        <span class="font-medium">${formatCurrency(results.confidenceIntervals.ci90?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci90?.upper || 0)}</span>
+                        <span class="text-sm">90% Confidence (5th-95th percentile):</span>
+                        <span class="font-medium ${(results.confidenceIntervals.ci90?.lower || 0) === 0 ? 'text-orange-600' : ''}">${formatCurrency(results.confidenceIntervals.ci90?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci90?.upper || 0)}</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-sm">95% Confidence:</span>
-                        <span class="font-medium">${formatCurrency(results.confidenceIntervals.ci95?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci95?.upper || 0)}</span>
+                        <span class="text-sm">95% Confidence (2.5th-97.5th percentile):</span>
+                        <span class="font-medium ${(results.confidenceIntervals.ci95?.lower || 0) === 0 ? 'text-orange-600' : ''}">${formatCurrency(results.confidenceIntervals.ci95?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci95?.upper || 0)}</span>
                     </div>
                 </div>
+                ${((results.confidenceIntervals.ci80?.lower || 0) === 0 || (results.confidenceIntervals.ci90?.lower || 0) === 0 || (results.confidenceIntervals.ci95?.lower || 0) === 0) ? `
+                <div class="mt-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs">
+                    <strong>⚠️ High Depletion Risk:</strong> ${(results.confidenceIntervals.ci80?.lower || 0) === 0 ? '10%+' : (results.confidenceIntervals.ci90?.lower || 0) === 0 ? '5%+' : '2.5%+'} of scenarios show funds depleting to $0.
+                    Success rate: <strong>${((results.successRate || 0) * 100).toFixed(1)}%</strong>.
+                    Consider: reducing expenses, working longer, or adjusting investment strategy.
+                </div>
+                ` : ''}
             </div>
             ` : ''}
 
