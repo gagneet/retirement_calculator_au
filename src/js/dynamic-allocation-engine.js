@@ -537,8 +537,11 @@ export class DynamicAllocationEngine {
 
     // Normalize allocations to sum to 100% and apply constraints
     normalizeAndConstrain(allocation) {
-        // Apply minimum constraints from config
-        const minAllocations = this.financialConfig.assetAllocation.MINIMUM_ALLOCATIONS;
+        // Apply minimum constraints from config with fallback defaults
+        const minAllocations = this.financialConfig?.assetAllocation?.MINIMUM_ALLOCATIONS || {
+            BOND_MIN: { value: 10 },
+            CASH_MIN: { value: 5 }
+        };
 
         let constrainedAllocation = {
             equity: Math.max(20, Math.min(95, allocation.equity)),    // 20-95% equity range
@@ -626,8 +629,12 @@ export class DynamicAllocationEngine {
 
     // Calculate expected portfolio metrics
     calculateExpectedMetrics(allocation) {
-        // Use returns and correlations from config
-        const assetReturns = this.financialConfig.assetAllocation.RETURN_EXPECTATIONS;
+        // Use returns and correlations from config with fallback defaults
+        const assetReturns = this.financialConfig?.assetAllocation?.RETURN_EXPECTATIONS || {
+            EQUITY_MULTIPLIER: { value: 1.2 },
+            BOND_MULTIPLIER: { value: 0.6 },
+            CASH_MULTIPLIER: { value: 0.3 }
+        };
         const baseReturn = 0.07; // 7% base equity return assumption
 
         const expectedReturn =
@@ -637,7 +644,7 @@ export class DynamicAllocationEngine {
 
         // Simplified volatility calculation (not accounting for correlations)
         const equityVol = 0.16;
-        const bondVol = this.financialConfig.monteCarlo.VOLATILITY_PARAMETERS.BOND_VOLATILITY.value;
+        const bondVol = this.financialConfig?.monteCarlo?.VOLATILITY_PARAMETERS?.BOND_VOLATILITY?.value || 0.06;
         const cashVol = 0.01;
 
         const expectedVolatility = Math.sqrt(

@@ -3174,7 +3174,7 @@ class RetirementCalculatorApp {
 
             // Use the new comprehensive decision support engine
             const { default: DecisionSupportEngine } = await import(/* webpackChunkName: "decision-support" */ './decision-support-engine.js');
-            const decisionEngine = new DecisionSupportEngine(this.simulator, inputs);
+            const decisionEngine = new DecisionSupportEngine(this.simulator, inputs, this.config);
 
             // This is a long process, so provide detailed feedback
             updateProgress(20, 'Analyzing market conditions and property cycles...');
@@ -3216,7 +3216,7 @@ class RetirementCalculatorApp {
             try {
                 updateProgress(50, 'Falling back to basic recommendations...');
                 const { default: RecommendationEngine } = await import(/* webpackChunkName: "recommendation" */ './recommendation.js');
-                const basicEngine = new RecommendationEngine(this.simulator, this.collectInputs());
+                const basicEngine = new RecommendationEngine(this.simulator, this.collectInputs(), this.config);
                 const basicRecommendations = await basicEngine.generateRecommendations();
                 this.displayRecommendations(basicRecommendations);
                 showTab('recommendations', true);
@@ -3253,7 +3253,7 @@ class RetirementCalculatorApp {
 
             // Use the RecommendationEngine with our enhanced scenarios
             const { default: RecommendationEngine } = await import(/* webpackChunkName: "recommendation" */ './recommendation.js');
-            const recommendationEngine = new RecommendationEngine(this.simulator, inputs);
+            const recommendationEngine = new RecommendationEngine(this.simulator, inputs, this.config);
 
             updateProgress(30, 'Running baseline calculation...');
             const baselineResults = await this.simulator.runMonteCarloSimulation(inputs, 1000);

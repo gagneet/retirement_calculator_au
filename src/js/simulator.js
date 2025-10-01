@@ -873,11 +873,34 @@ export class RetirementSimulator {
                 inputs.healthcareInflation
             );
 
-            // Aged care costs if applicable
+            // Aged care costs if applicable - inflate from the current year, not from start age
             let agedCareCost = 0;
             if (yourCurrentAge >= inputs.agedCareStartAge &&
                 yourCurrentAge < inputs.agedCareStartAge + inputs.agedCareDuration) {
-                agedCareCost = agedCareCosts.annualCost;
+                // Calculate years from current age to this aged care year
+                const yearsFromNow = yourCurrentAge - inputs.yourCurrentAge;
+                // Apply healthcare inflation from current year to this aged care year
+                let annualCost = inputs.agedCareAnnualCost * Math.pow(1 + inputs.healthcareInflation / 100, yearsFromNow);
+
+                // Handle partial years - if this is the last year of care and duration has a decimal
+                const yearsInCare = yourCurrentAge - inputs.agedCareStartAge;
+                const remainingCare = inputs.agedCareDuration - yearsInCare;
+
+                // If this is a partial final year (remaining care < 1 year), pro-rate the cost
+                if (remainingCare < 1 && remainingCare > 0) {
+                    annualCost = annualCost * remainingCare;
+                }
+
+                // Also check if person dies during aged care - don't charge beyond lifespan
+                if (yourCurrentAge >= inputs.yourLifespan) {
+                    annualCost = 0; // No cost if person has passed away
+                } else if (yourCurrentAge + 1 > inputs.yourLifespan) {
+                    // Partial year if person dies during this year
+                    const partialYear = inputs.yourLifespan - yourCurrentAge;
+                    annualCost = annualCost * partialYear;
+                }
+
+                agedCareCost = annualCost;
             }
 
             // Property income (if still owned) and update property equity
