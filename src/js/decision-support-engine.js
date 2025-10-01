@@ -2,6 +2,9 @@
 
 import { formatCurrency, formatPercent, calculateCGT, calculateAgePension } from './utils.js';
 import MarketDataEngine from './market-data.js';
+import { HousingOptimizer } from './housing-optimizer.js';
+import { OverseasRetirementAnalyzer } from './overseas-retirement.js';
+import { getCountriesByCost } from './country-profiles.js';
 
 export class DecisionSupportEngine {
     constructor(simulator, inputs, config) {
@@ -29,7 +32,9 @@ export class DecisionSupportEngine {
             earlyRetirement: await this.analyzeEarlyRetirement(baseline),
             investmentOptimization: await this.analyzeInvestmentOptimization(baseline),
             superannuationStrategy: await this.analyzeSuperannuationStrategy(baseline),
-            additionalStrategies: await this.analyzeAdditionalStrategies(baseline)
+            additionalStrategies: await this.analyzeAdditionalStrategies(baseline),
+            housingStrategy: await this.analyzeHousingStrategy(baseline),
+            overseasRetirement: await this.analyzeOverseasRetirement(baseline)
         };
 
         // Combine and prioritize all recommendations
@@ -740,6 +745,135 @@ export class DecisionSupportEngine {
             }
             return bConfidence - aConfidence;
         });
+    }
+
+    // Housing Strategy Analysis
+    async analyzeHousingStrategy(baseline) {
+        const recommendations = [];
+
+        try {
+            const personalDetails = {
+                age: this.inputs.yourCurrentAge || 65,
+                partnered: !this.inputs.isSingleCalculation
+            };
+
+            const financialData = {
+                homeValue: this.inputs.homeValue || 0,
+                superBalance: (this.inputs.yourCurrentSuper || 0) + (this.inputs.partnerCurrentSuper || 0),
+                investmentBalance: this.inputs.currentStocks || 0
+            };
+
+            const optimizer = new HousingOptimizer(personalDetails, financialData);
+            const strategies = optimizer.generateHousingStrategies();
+
+            // Downsizing recommendation
+            if (strategies.downsizing.applicable && strategies.downsizing.netProceeds > 200000) {
+                recommendations.push({
+                    category: "Housing Strategy",
+                    priority: "high",
+                    action: "Consider Downsizing",
+                    recommendation: `Downsizing could free up ${formatCurrency(strategies.downsizing.netProceeds)} in capital. ${strategies.downsizing.recommendation.reasoning}`,
+                    summary: `Best option: ${strategies.downsizing.recommendation.best}`,
+                    confidence: 0.85,
+                    impact: strategies.downsizing.netProceeds
+                });
+            }
+
+            // Reverse mortgage warning if applicable
+            if (strategies.reverseMortgage.applicable && personalDetails.age >= 65) {
+                const commercial = strategies.reverseMortgage.scenarios[0];
+                const debt15Years = commercial.timeline.find(t => t.years === 15)?.debt || 0;
+
+                recommendations.push({
+                    category: "Housing Strategy",
+                    priority: "medium",
+                    action: "Reverse Mortgage Caution",
+                    recommendation: `If considering equity release, government HEAS (4.85%) is significantly better than commercial reverse mortgages (6.5%). At commercial rates, a $${(strategies.reverseMortgage.loanAmount/1000).toFixed(0)}k loan grows to $${(debt15Years/1000).toFixed(0)}k in 15 years.`,
+                    summary: strategies.reverseMortgage.recommendation,
+                    confidence: 0.90
+                });
+            }
+
+            // Aged care planning if approaching age
+            if (personalDetails.age >= 60) {
+                const rad = strategies.agedCareAccommodation;
+                recommendations.push({
+                    category: "Aged Care Planning",
+                    priority: "medium",
+                    action: "RAD vs DAP Strategy",
+                    recommendation: `${rad.strategy.recommendation}: ${rad.strategy.reasoning}. Current MPIR: ${rad.analysis.currentMPIR}. Average stay is ${rad.considerations[2]}.`,
+                    summary: `Plan ahead for aged care accommodation costs`,
+                    confidence: 0.75
+                });
+            }
+
+        } catch (error) {
+            console.error('Housing strategy analysis error:', error);
+        }
+
+        return recommendations;
+    }
+
+    // Overseas Retirement Analysis
+    async analyzeOverseasRetirement(baseline) {
+        const recommendations = [];
+
+        try {
+            const personalDetails = {
+                age: this.inputs.yourCurrentAge || 65,
+                partnered: !this.inputs.isSingleCalculation,
+                australianResidenceYears: Math.min((this.inputs.yourCurrentAge || 65) - 18, 51) // Estimate
+            };
+
+            const financialData = {
+                superBalance: (this.inputs.yourCurrentSuper || 0) + (this.inputs.partnerCurrentSuper || 0),
+                investmentBalance: this.inputs.currentStocks || 0,
+                homeValue: this.inputs.homeValue || 0
+            };
+
+            const analyzer = new OverseasRetirementAnalyzer(personalDetails, financialData);
+
+            // Check if Age Pension alone would be sufficient overseas
+            const currentPension = baseline.yearlyData?.[0]?.pensionIncome || 0;
+
+            // Get affordable countries (costing 60% or less of Australia)
+            const affordableCountries = getCountriesByCost(0.60);
+
+            if (currentPension > 0 && affordableCountries.length > 0) {
+                // Analyze most affordable country
+                const cheapestCountry = affordableCountries[0];
+                const analysis = analyzer.analyzeCountry(cheapestCountry.code);
+
+                if (analysis.recommendations.financialViability.viable) {
+                    recommendations.push({
+                        category: "Lifestyle Options",
+                        priority: "medium",
+                        action: "Overseas Retirement Option",
+                        recommendation: `Consider retiring in ${analysis.country} - cost of living ${analysis.costOfLiving.savingsPercent}% lower than Australia. You could live comfortably on Age Pension alone with ${formatCurrency(analysis.recommendations.financialViability.surplus)} annual surplus.`,
+                        summary: `Explore ${analysis.country} for cost-effective retirement`,
+                        confidence: 0.70,
+                        impact: analysis.costOfLiving.savings
+                    });
+                }
+            }
+
+            // Add general overseas planning recommendation if Age Pension eligible soon
+            if (personalDetails.age >= 60) {
+                recommendations.push({
+                    category: "Age Pension Planning",
+                    priority: "low",
+                    action: "Understand Age Pension Portability",
+                    recommendation: `If considering overseas retirement, understand AWLR (Australian Working Life Residence) rules. You need 35 years of residence between age 16-67 for full portability. Countries with Social Security Agreements (like Portugal) offer better pension access.`,
+                    summary: `Plan ahead for Age Pension portability`,
+                    confidence: 0.80
+                });
+            }
+
+        } catch (error) {
+            console.error('Overseas retirement analysis error:', error);
+        }
+
+        return recommendations;
     }
 }
 

@@ -8,6 +8,7 @@ import {
     calculatePropertyCashFlow,
     calculateCGT,
     calculateAgePension,
+    calculateAgePensionForCouple,
     randomNormal,
     median,
     regimeAwareReturn,
@@ -1003,17 +1004,49 @@ export class RetirementSimulator {
 
             const totalCostWithHealthcare = baseIncomeNeeded + healthcareCost + agedCareCost;
 
-            // Pension calculation
+            // Enhanced Pension calculation - handles non-pensioner partner scenarios
             const assessableAssets = currentBalance + propertyEquity - (inputs.planToDownsize ? 0 : homeEquityAtRetirement);
-            const pensionIncome = calculateAgePension(
-                assessableAssets,
-                propertyIncome,
-                isCouple,
-                isCouple ? inputs.agePensionMax : this.config.SINGLE_PENSION_MAX,
-                isCouple ? inputs.pensionAssetThreshold : this.config.SINGLE_ASSET_THRESHOLD,
-                isCouple ? inputs.pensionAssetLimit : this.config.SINGLE_ASSET_LIMIT,
-                isCouple ? inputs.pensionIncomeThreshold : this.config.SINGLE_INCOME_THRESHOLD
-            );
+            let pensionIncome = 0;
+            let pensionDetails = null;
+
+            if (isCouple) {
+                // Use enhanced couple pension calculation
+                const person1 = {
+                    age: yourCurrentAge,
+                    super: i === 0 ? inputs.yourCurrentSuper : 0, // Super included in assessable assets
+                    investments: i === 0 ? (inputs.currentStocks || 0) : 0,
+                    salary: i === 0 ? (inputs.yourSalary || 0) : 0
+                };
+
+                const person2 = {
+                    age: partnerCurrentAge,
+                    super: i === 0 ? inputs.partnerCurrentSuper : 0,
+                    investments: 0,
+                    salary: i === 0 ? (inputs.partnerSalary || 0) : 0
+                };
+
+                const homeowner = (inputs.homeValue || 0) > 0 && !inputs.planToDownsize;
+                const pensionResult = calculateAgePensionForCouple(person1, person2, homeowner, {});
+
+                if (pensionResult.eligible) {
+                    pensionIncome = pensionResult.currentPension.annual;
+                    // Store detailed results for first year only (for display)
+                    if (i === 0) {
+                        pensionDetails = pensionResult;
+                    }
+                }
+            } else {
+                // Single person - use standard calculation
+                pensionIncome = calculateAgePension(
+                    assessableAssets,
+                    propertyIncome,
+                    false,
+                    this.config.SINGLE_PENSION_MAX,
+                    this.config.SINGLE_ASSET_THRESHOLD,
+                    this.config.SINGLE_ASSET_LIMIT,
+                    this.config.SINGLE_INCOME_THRESHOLD
+                );
+            }
 
             const totalIncome = pensionIncome + propertyIncome;
             const netWithdrawalNeeded = Math.max(0, totalCostWithHealthcare - totalIncome);
@@ -1093,7 +1126,7 @@ export class RetirementSimulator {
             const nonLiquidAssets = currentHomeEquity + propertyEquity;
 
             balances.push(currentBalance);
-            yearlyData.push({
+            const yearData = {
                 year: new Date().getFullYear() + retirementYear,
                 age: yourCurrentAge,
                 partnerAge: partnerCurrentAge,
@@ -1111,7 +1144,14 @@ export class RetirementSimulator {
                 liquidAssets,
                 nonLiquidAssets,
                 depleted: false
-            });
+            };
+
+            // Add pension details for first year if available
+            if (i === 0 && pensionDetails) {
+                yearData.pensionDetails = pensionDetails;
+            }
+
+            yearlyData.push(yearData);
 
             if (currentBalance <= 0) {
                 yearlyData[yearlyData.length - 1].depleted = true;

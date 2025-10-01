@@ -13,6 +13,9 @@ import { ScenarioComparisonMatrix } from './scenario-matrix.js';
 import { PersonaIntelligenceEngine } from './persona-intelligence.js';
 import { HealthcareModelingEngine } from './healthcare-modeling.js';
 import { PropertyAnalysisEngine } from './property-analysis.js';
+import { HousingOptimizer } from './housing-optimizer.js';
+import { OverseasRetirementAnalyzer } from './overseas-retirement.js';
+import { COUNTRY_PROFILES } from './country-profiles.js';
 // js/app.js - Main Application Controller
 
 // Import new engines with error handling
