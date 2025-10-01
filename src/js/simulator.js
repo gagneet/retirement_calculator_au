@@ -21,7 +21,7 @@ export class RetirementSimulator {
         // Merge original config with enhanced financial config
         this.config = config;
         this.financialConfig = ENHANCED_FINANCIAL_CONFIG;
-        this.enhancedMonteCarloEngine = new EnhancedMonteCarloEngine();
+        this.enhancedMonteCarloEngine = new EnhancedMonteCarloEngine(this.config);
         this.previousReturns = {
             portfolio: null,
             property: null
@@ -873,16 +873,11 @@ export class RetirementSimulator {
                 inputs.healthcareInflation
             );
 
-            // Aged care costs if applicable - inflate year by year like healthcare costs
+            // Aged care costs if applicable
             let agedCareCost = 0;
             if (yourCurrentAge >= inputs.agedCareStartAge &&
                 yourCurrentAge < inputs.agedCareStartAge + inputs.agedCareDuration) {
-                // Calculate inflated aged care cost for this specific year
-                agedCareCost = this.projectHealthcareCosts(
-                    inputs.agedCareAnnualCost,
-                    retirementYear,
-                    inputs.healthcareInflation
-                );
+                agedCareCost = agedCareCosts.annualCost;
             }
 
             // Property income (if still owned) and update property equity

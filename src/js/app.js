@@ -86,6 +86,26 @@ class RetirementCalculatorApp {
         this.initializeApp().catch(console.error);
     }
 
+    reinitializeApp(config) {
+        this.config = config;
+        this.simulator = new RetirementSimulator(this.config);
+        this.scenarioMatrix = new ScenarioComparisonMatrix(this.simulator, this.config);
+        this.personaIntelligence = new PersonaIntelligenceEngine(this.simulator, this.config);
+        this.healthcareModeling = new HealthcareModelingEngine(this.config);
+        this.propertyAnalysis = new PropertyAnalysisEngine(this.config);
+        this.onboardingWizard = new OnboardingWizard(this.config);
+
+        console.log(`Re-initialized app with config for version ${config.VERSION}`);
+    }
+
+    handleVersionChange(newVersion) {
+        this.currentVersion = newVersion;
+        const newConfig = versionManager.getConfigByVersion(newVersion);
+        this.reinitializeApp(newConfig);
+        this.calculateRetirement(true);
+        showNotification(`Switched to version ${newVersion} and recalculated.`, 'info');
+    }
+
     async initializeApp() {
         console.log('🚀 initializeApp starting...');
         this.loadSavedInputs(); // Load saved inputs first
@@ -173,72 +193,8 @@ class RetirementCalculatorApp {
 
     async initializeOnboardingWizard() {
         try {
-          // feature/versioning-transparency
-            // this.onboardingWizard = new OnboardingWizard(this.config);
-            // window.onboardingWizard = this.onboardingWizard; // Make globally available for event handlers
-
-            console.log('📋 Creating OnboardingWizard...');
-            // Initialize the onboarding wizard
-            this.onboardingWizard = new OnboardingWizard();
-            console.log('✅ OnboardingWizard created successfully');
-
-            // Set up event listeners for the main onboarding buttons
-            console.log('🔍 Looking for onboarding buttons...');
-            const newUserBtn = document.getElementById('new-user-btn');
-            const returningUserBtn = document.getElementById('returning-user-btn');
-            console.log('🔍 Buttons found:', { newUserBtn: !!newUserBtn, returningUserBtn: !!returningUserBtn });
-
-            if (newUserBtn) {
-                // Prevent duplicate event listeners
-                const existingListeners = newUserBtn.getAttribute('data-listener-added');
-                if (!existingListeners) {
-                    let isStartingOnboarding = false;
-                    newUserBtn.addEventListener('click', async () => {
-                        if (isStartingOnboarding) return;
-                        isStartingOnboarding = true;
-
-                        try {
-                            await this.onboardingWizard.startOnboarding();
-                            this.hideOnboardingButtons();
-                            // Reset flag after a brief delay to prevent double clicks
-                            setTimeout(() => {
-                                isStartingOnboarding = false;
-                            }, 1000);
-                        } catch (error) {
-                            console.error('Failed to start onboarding:', error);
-                            isStartingOnboarding = false;
-                        }
-                    });
-                    newUserBtn.setAttribute('data-listener-added', 'true');
-                }
-            }
-
-            if (returningUserBtn) {
-                // Prevent duplicate event listeners
-                if (!returningUserBtn.getAttribute('data-listener-added')) {
-                    returningUserBtn.addEventListener('click', async () => {
-                        console.log('👆 Returning user button clicked!');
-                        // Hide onboarding buttons
-                        this.hideOnboardingButtons();
-
-                        // Use the same robust import method as the menu
-                        // Note: Scrolling will happen in showReturningUserEnhancedSummary() after data loads
-                        try {
-                            await this.importUserInputs();
-                        } catch (error) {
-                            console.error('❌ Failed to import user data:', error);
-                            showNotification('Failed to import data. Please try again.', 'error');
-                        }
-                    });
-                    returningUserBtn.setAttribute('data-listener-added', 'true');
-                    console.log('✅ Returning user button listener added');
-                } else {
-                    console.log('⚠️ Returning user button listener already exists');
-                }
-
-            } else {
-                console.log('❌ No returningUserBtn found');
-            }
+            this.onboardingWizard = new OnboardingWizard(this.config);
+            window.onboardingWizard = this.onboardingWizard; // Make globally available for event handlers
 
             // The wizard now handles its own button events.
             // App.js only needs to handle URL params that might skip or force onboarding.
@@ -330,11 +286,6 @@ class RetirementCalculatorApp {
         if (enhancedSummaryContainer) {
             enhancedSummaryContainer.classList.remove('hidden');
             console.log('✅ Enhanced summary container shown');
-
-            // Scroll to the Enhanced Summary to make it visible
-            setTimeout(() => {
-                enhancedSummaryContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 300);
         } else {
             console.log('❌ Enhanced summary container not found');
         }
@@ -481,66 +432,54 @@ class RetirementCalculatorApp {
         }
     }
 
-    /* ============================================================================
-     * DUPLICATE FUNCTION COMMENTED OUT - DO NOT UNCOMMENT
-     * ============================================================================
-     * This is an incomplete duplicate of handleReturningUserFileSelect (line 263).
-     * Key missing functionality:
-     * - Does not call this.calculateRetirement(false) after import
-     * - Does not reset event.target.value (prevents re-selecting same file)
-     * - Missing comprehensive debug logging
-     *
-     * The complete implementation at line 263 should be used instead.
-     * ============================================================================
-     */
+    // Duplicate methods removed - both showReturningUserEnhancedSummary and calculateReturningUserProjections already defined above
+    async handleReturningUserFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            return; // User cancelled the file picker
+        }
 
-    // async handleReturningUserFileSelect(event) {
-    //     const file = event.target.files[0];
-    //     if (!file) {
-    //         return; // User cancelled the file picker
-    //     }
-    //
-    //     const reader = new FileReader();
-    //     reader.onload = (e) => {
-    //         try {
-    //             const data = JSON.parse(e.target.result);
-    //             if (!data.userData || !data.version) {
-    //                 showNotification('Invalid retirement calculator data file format.', 'error');
-    //                 return;
-    //             }
-    //
-    //             // Populate form with imported data
-    //             populateFormFromData(data.userData);
-    //
-    //             // Trigger currency and percentage input formatting
-    //             initializeCurrencyInputs();
-    //             initializePercentageInputs();
-    //             initializeNumericInputs();
-    //
-    //             // Show enhanced summary
-    //             this.showReturningUserEnhancedSummary(data.userData, data.scenarioName || 'Imported Data');
-    //
-    //             // Show action buttons for advanced analysis
-    //             const actionButtonsContainer = $('action-buttons-container');
-    //             if (actionButtonsContainer) {
-    //                 actionButtonsContainer.classList.remove('hidden');
-    //             }
-    //
-    //             showNotification('Successfully imported your retirement data!', 'success');
-    //             console.log('✅ Successfully imported returning user data');
-    //
-    //         } catch (error) {
-    //             console.error('❌ Error parsing imported file:', error);
-    //             showNotification('Error reading the selected file. Please ensure it\'s a valid retirement calculator data file.', 'error');
-    //         }
-    //     };
-    //
-    //     reader.onerror = () => {
-    //         showNotification('Error reading the selected file. Please try again.', 'error');
-    //     };
-    //
-    //     reader.readAsText(file);
-    // }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (!data.userData || !data.version) {
+                    showNotification('Invalid retirement calculator data file format.', 'error');
+                    return;
+                }
+
+                // Populate form with imported data
+                populateFormFromData(data.userData);
+
+                // Trigger currency and percentage input formatting
+                initializeCurrencyInputs();
+                initializePercentageInputs();
+                initializeNumericInputs();
+
+                // Show enhanced summary
+                this.showReturningUserEnhancedSummary(data.userData, data.scenarioName || 'Imported Data');
+
+                // Show action buttons for advanced analysis
+                const actionButtonsContainer = $('action-buttons-container');
+                if (actionButtonsContainer) {
+                    actionButtonsContainer.classList.remove('hidden');
+                }
+
+                showNotification('Successfully imported your retirement data!', 'success');
+                console.log('✅ Successfully imported returning user data');
+
+            } catch (error) {
+                console.error('❌ Error parsing imported file:', error);
+                showNotification('Error reading the selected file. Please ensure it\'s a valid retirement calculator data file.', 'error');
+            }
+        };
+
+        reader.onerror = () => {
+            showNotification('Error reading the selected file. Please try again.', 'error');
+        };
+
+        reader.readAsText(file);
+    }
 
     showOnboardingCompletedState() {
         const onboardingButtons = document.getElementById('onboarding-buttons');
@@ -1586,30 +1525,20 @@ class RetirementCalculatorApp {
             ${results.confidenceIntervals ? `
             <div class="bg-white p-4 rounded-lg shadow-sm border">
                 <h5 class="font-medium text-gray-800 mb-3">Confidence Ranges</h5>
-                <div class="text-xs text-gray-600 mb-3">
-                    Final balance ranges across simulated scenarios. Lower bounds near $0 indicate some scenarios deplete funds.
-                </div>
                 <div class="space-y-2">
                     <div class="flex justify-between items-center">
-                        <span class="text-sm">80% Confidence (10th-90th percentile):</span>
-                        <span class="font-medium ${(results.confidenceIntervals.ci80?.lower || 0) === 0 ? 'text-orange-600' : ''}">${formatCurrency(results.confidenceIntervals.ci80?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci80?.upper || 0)}</span>
+                        <span class="text-sm">80% Confidence:</span>
+                        <span class="font-medium">${formatCurrency(results.confidenceIntervals.ci80?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci80?.upper || 0)}</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-sm">90% Confidence (5th-95th percentile):</span>
-                        <span class="font-medium ${(results.confidenceIntervals.ci90?.lower || 0) === 0 ? 'text-orange-600' : ''}">${formatCurrency(results.confidenceIntervals.ci90?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci90?.upper || 0)}</span>
+                        <span class="text-sm">90% Confidence:</span>
+                        <span class="font-medium">${formatCurrency(results.confidenceIntervals.ci90?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci90?.upper || 0)}</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-sm">95% Confidence (2.5th-97.5th percentile):</span>
-                        <span class="font-medium ${(results.confidenceIntervals.ci95?.lower || 0) === 0 ? 'text-orange-600' : ''}">${formatCurrency(results.confidenceIntervals.ci95?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci95?.upper || 0)}</span>
+                        <span class="text-sm">95% Confidence:</span>
+                        <span class="font-medium">${formatCurrency(results.confidenceIntervals.ci95?.lower || 0)} - ${formatCurrency(results.confidenceIntervals.ci95?.upper || 0)}</span>
                     </div>
                 </div>
-                ${((results.confidenceIntervals.ci80?.lower || 0) === 0 || (results.confidenceIntervals.ci90?.lower || 0) === 0 || (results.confidenceIntervals.ci95?.lower || 0) === 0) ? `
-                <div class="mt-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs">
-                    <strong>⚠️ High Depletion Risk:</strong> ${(results.confidenceIntervals.ci80?.lower || 0) === 0 ? '10%+' : (results.confidenceIntervals.ci90?.lower || 0) === 0 ? '5%+' : '2.5%+'} of scenarios show funds depleting to $0.
-                    Success rate: <strong>${((results.successRate || 0) * 100).toFixed(1)}%</strong>.
-                    Consider: reducing expenses, working longer, or adjusting investment strategy.
-                </div>
-                ` : ''}
             </div>
             ` : ''}
 
@@ -1633,10 +1562,8 @@ class RetirementCalculatorApp {
         enhancedContainer.classList.remove('hidden');
     }
 
-    // Run comprehensive scenario comparison matrix (auto-generates scenarios)
-    // NOTE: This was originally named runScenarioComparison but renamed to avoid conflict
-    // with the user-selection based version at line ~4586
-    async runScenarioMatrix() {
+    // Run comprehensive scenario comparison matrix
+    async runScenarioComparison() {
         if (this.isCalculating) return;
 
         this.isCalculating = true;
@@ -3642,7 +3569,7 @@ class RetirementCalculatorApp {
     }
 
     setupVersionSelector() {
-        const selector = $('version-selector');
+        const selector = $('version-switcher');
         if (!selector) return;
 
         const versions = versionManager.getAvailableVersions();
@@ -3650,17 +3577,12 @@ class RetirementCalculatorApp {
         selector.value = this.currentVersion;
 
         selector.addEventListener('change', (e) => {
-            const newVersion = e.target.value;
-            this.currentVersion = newVersion;
-            this.config = versionManager.getConfigByVersion(newVersion);
-            this.simulator = new RetirementSimulator(this.config);
-            this.calculateRetirement(true);
-            showNotification(`Switched to version ${newVersion}`, 'info');
+            this.handleVersionChange(e.target.value);
         });
     }
 
     setupCalculationModal() {
-        const modal = $('calculation-modal');
+        const modal = $('calculation-details-modal');
         const closeModal = $('close-modal');
         const modalTitle = $('modal-title');
         const modalContent = $('modal-content');
@@ -3685,7 +3607,7 @@ class RetirementCalculatorApp {
         });
 
         document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('show-calc-link')) {
+            if (e.target.classList.contains('show-calculation-btn')) {
                 e.preventDefault();
                 const calcId = e.target.dataset.calcId;
                 const details = this.getCalculationDetails(calcId);
@@ -4015,13 +3937,13 @@ class RetirementCalculatorApp {
     // Collect overseas configuration from form inputs
     collectOverseasConfig() {
         return {
-            country: safeGetSelectValue('overseasCountry', ''),
+            country: safeGetValue('overseasCountry', ''),
             departureAge: parseInt(safeGetValue('overseasAge', 65)),
-            returnFrequency: safeGetSelectValue('returnFrequency', 'annually'),
-            maintainResidency: safeGetChecked('maintainResidency', false),
-            propertyStrategy: safeGetSelectValue('propertyStrategy', 'keep-personal'),
-            trustBeneficiaries: safeGetSelectValue('trustBeneficiaries', 'you-only'),
-            superAccess: safeGetSelectValue('superAccess', 'pension-mode'),
+            returnFrequency: safeGetValue('returnFrequency', 'annually'),
+            maintainResidency: safeGetValue('maintainResidency', false, 'checked'),
+            propertyStrategy: safeGetValue('propertyStrategy', 'keep-personal'),
+            trustBeneficiaries: safeGetValue('trustBeneficiaries', 'you-only'),
+            superAccess: safeGetValue('superAccess', 'pension-mode'),
             estimatedLivingCosts: parseFloat(safeGetValue('estimatedLivingCosts', 60000))
         };
     }
@@ -4752,9 +4674,6 @@ class RetirementCalculatorApp {
         });
     }
 
-    // Run scenario comparison based on user-selected checkboxes
-    // NOTE: This is different from runScenarioMatrix() at line ~1623 which auto-generates scenarios
-    // This function requires the user to select scenarios from the UI checkboxes
     async runScenarioComparison() {
         if (this.isCalculating) return;
         this.isCalculating = true;
@@ -5220,10 +5139,10 @@ class RetirementCalculatorApp {
             btnMonteCarlo.addEventListener('click', () => this.runMonteCarloSimulation());
         }
 
-        // Scenario comparison button (auto-generate scenarios)
+        // Scenario comparison button
         const btnScenarioMatrix = $('btnScenarioMatrix');
         if (btnScenarioMatrix) {
-            btnScenarioMatrix.addEventListener('click', () => this.runScenarioMatrix());
+            btnScenarioMatrix.addEventListener('click', () => this.runScenarioComparison());
         }
 
         // Healthcare analysis button
