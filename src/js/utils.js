@@ -1337,8 +1337,9 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
                 if (currencyFields.includes(key)) {
                     formattedInputs[key] = parseFloat(value.toFixed(2));
                 } else if (percentageFields.includes(key)) {
-                    // Store percentages as decimals
-                    formattedInputs[key] = parseFloat((value / 100).toFixed(4));
+                    // Percentage values are already in decimal form (e.g., 0.09 for 9%)
+                    // Just format to appropriate precision
+                    formattedInputs[key] = parseFloat(value.toFixed(6));
                 }
             }
         }

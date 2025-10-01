@@ -520,32 +520,20 @@ export class OnboardingWizard {
     }
 
     async loadExistingUser() {
-        // Trigger the existing load data functionality
-        const utils = await import('./utils.js');
-        if (utils.importUserData) {
-            // Create a file input for loading data
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        try {
-                            const data = JSON.parse(e.target.result);
-                            // Populate the advanced calculator with loaded data
-                            utils.populateFormFromData(data);
-                            // Show the advanced calculator directly
-                            this.showAdvancedCalculator();
-                        } catch (error) {
-                            alert('Error loading file. Please check the file format.');
-                        }
-                    };
-                    reader.readAsText(file);
-                }
-            };
-            input.click();
+        // Use the app's import functionality which includes confirmation dialog
+        // and proper data handling
+        if (window.app && window.app.importUserInputs) {
+            // Hide onboarding buttons
+            const onboardingInitial = $('onboarding-initial');
+            if (onboardingInitial) {
+                onboardingInitial.classList.add('hidden');
+            }
+
+            // Call the app's import function which handles everything properly
+            await window.app.importUserInputs();
+        } else {
+            console.error('App not initialized. Cannot load existing user data.');
+            alert('Calculator is still loading. Please wait a moment and try again.');
         }
     }
 
