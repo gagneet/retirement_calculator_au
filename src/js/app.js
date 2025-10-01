@@ -3,6 +3,7 @@ import '../css/styles.css';
 
 import versionManager from './version-manager.js';
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
+import { ENHANCED_CONFIG } from './config.js';
 import RetirementSimulator from './simulator.js';
 import MarketDataEngine from './market-data.js';
 import { initializeTrustUI } from './trust-ui.js';
@@ -183,8 +184,8 @@ class RetirementCalculatorApp {
     async initializeAdvancedEngines() {
         const loaded = await loadAdvancedEngines();
         if (loaded && RiskProfilingEngine && DynamicAllocationEngine) {
-            this.riskProfiling = new RiskProfilingEngine();
-            this.dynamicAllocation = new DynamicAllocationEngine();
+            this.riskProfiling = new RiskProfilingEngine(ENHANCED_FINANCIAL_CONFIG);
+            this.dynamicAllocation = new DynamicAllocationEngine(ENHANCED_FINANCIAL_CONFIG);
             console.log('✅ Advanced engines initialized in app instance');
         } else {
             console.warn('⚠️ Advanced engines not available - some features will be disabled');

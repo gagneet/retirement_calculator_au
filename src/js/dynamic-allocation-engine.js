@@ -6,7 +6,7 @@ import { formatCurrency, formatPercent, randomNormal } from './utils.js';
 export class DynamicAllocationEngine {
     constructor(config) {
         this.config = config;
-        this.financialConfig = config.financials;
+        this.financialConfig = config;
 
         // Dynamic allocation strategies
         this.allocationStrategies = this.initializeAllocationStrategies();
