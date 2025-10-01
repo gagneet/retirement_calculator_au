@@ -2040,7 +2040,10 @@ function extractAnalysisData(inputs, results, app) {
         propertyAnalysis: null,
         optimizationStrategies: null,
         aiRecommendations: null,
-        scenarioComparisons: null
+        scenarioComparisons: null,
+        suggestions: null,
+        scenarioMatrix: null,
+        personaRecommendations: null
     };
 
     try {
@@ -2070,6 +2073,21 @@ function extractAnalysisData(inputs, results, app) {
         // Scenario Comparisons (if available)
         if (app?.currentScenarioComparisons) {
             analysis.scenarioComparisons = app.currentScenarioComparisons;
+        }
+
+        // User-generated Suggestions (if available)
+        if (app?.lastGeneratedSuggestions && app.lastGeneratedSuggestions.length > 0) {
+            analysis.suggestions = app.lastGeneratedSuggestions;
+        }
+
+        // Scenario Matrix Analysis (if available)
+        if (app?.currentScenarioMatrix) {
+            analysis.scenarioMatrix = app.currentScenarioMatrix;
+        }
+
+        // Persona-based AI Recommendations (if available)
+        if (app?.currentPersonaRecommendations) {
+            analysis.personaRecommendations = app.currentPersonaRecommendations;
         }
 
     } catch (error) {
@@ -2371,6 +2389,249 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
             headStyles: { fillColor: [23, 162, 184] },
             styles: { fontSize: 8 }
         });
+
+        yPos = doc.lastAutoTable.finalY + 15;
+    }
+
+    // User-Generated Suggestions Section
+    if (analysis.suggestions && analysis.suggestions.length > 0) {
+        if (yPos > 160) {
+            doc.addPage();
+            yPos = 20;
+        }
+
+        doc.setFontSize(16);
+        doc.setTextColor(0, 71, 171);
+        doc.text("Personalized Suggestions", 14, yPos);
+        yPos += 10;
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text("User-generated suggestions based on comprehensive analysis", 14, yPos);
+        yPos += 10;
+
+        const suggestionsBody = analysis.suggestions.slice(0, 12).map(suggestion => {
+            const name = suggestion.name || suggestion.title || 'Suggestion';
+            const description = (suggestion.description || 'No description available').substring(0, 100);
+            const impact = suggestion.medianBalanceDiff
+                ? formatCurrency(suggestion.medianBalanceDiff)
+                : (suggestion.successRate ? `${(suggestion.successRate * 100).toFixed(1)}%` : 'N/A');
+            const feasibility = suggestion.feasibility || suggestion.difficulty || 'Review';
+
+            return [name, description, impact, feasibility];
+        });
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Suggestion', 'Description', 'Impact', 'Feasibility']],
+            body: suggestionsBody,
+            theme: 'striped',
+            headStyles: { fillColor: [99, 102, 241] },
+            styles: { fontSize: 8, cellPadding: 3 },
+            columnStyles: {
+                0: { cellWidth: 40 },
+                1: { cellWidth: 70 },
+                2: { cellWidth: 35 },
+                3: { cellWidth: 30 }
+            }
+        });
+
+        yPos = doc.lastAutoTable.finalY + 15;
+    }
+
+    // Scenario Matrix Section
+    if (analysis.scenarioMatrix) {
+        doc.addPage();
+        yPos = 20;
+
+        doc.setFontSize(18);
+        doc.setTextColor(0, 71, 171);
+        doc.text("Scenario Comparison Matrix", 14, yPos);
+        yPos += 10;
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text("Comprehensive comparison of different retirement strategies", 14, yPos);
+        yPos += 10;
+
+        // Summary statistics
+        if (analysis.scenarioMatrix.summary) {
+            const summary = analysis.scenarioMatrix.summary;
+            const summaryBody = [
+                ['Total Scenarios Analyzed', summary.totalScenariosAnalyzed || 0],
+                ['Best Success Rate', summary.bestSuccessRate ? `${(summary.bestSuccessRate * 100).toFixed(1)}%` : 'N/A'],
+                ['Average Success Rate', summary.averageSuccessRate ? `${(summary.averageSuccessRate * 100).toFixed(1)}%` : 'N/A'],
+                ['Best Median Outcome', summary.bestMedianOutcome ? formatCurrency(summary.bestMedianOutcome) : 'N/A']
+            ];
+
+            doc.autoTable({
+                startY: yPos,
+                head: [['Summary Metric', 'Value']],
+                body: summaryBody,
+                theme: 'grid',
+                headStyles: { fillColor: [79, 70, 229] },
+                styles: { fontSize: 9 }
+            });
+
+            yPos = doc.lastAutoTable.finalY + 12;
+        }
+
+        // Top scenarios comparison
+        if (analysis.scenarioMatrix.scenarios && analysis.scenarioMatrix.scenarios.length > 0) {
+            const scenariosBody = analysis.scenarioMatrix.scenarios.slice(0, 10).map(scenario => [
+                scenario.name || 'Scenario',
+                scenario.description || '',
+                scenario.comparisonMetrics?.successRate
+                    ? `${(scenario.comparisonMetrics.successRate * 100).toFixed(1)}%`
+                    : 'N/A',
+                scenario.comparisonMetrics?.median
+                    ? formatCurrency(scenario.comparisonMetrics.median)
+                    : 'N/A'
+            ]);
+
+            doc.autoTable({
+                startY: yPos,
+                head: [['Strategy', 'Description', 'Success Rate', 'Median Balance']],
+                body: scenariosBody,
+                theme: 'striped',
+                headStyles: { fillColor: [79, 70, 229] },
+                styles: { fontSize: 8, cellPadding: 2 },
+                columnStyles: {
+                    0: { cellWidth: 45 },
+                    1: { cellWidth: 60 },
+                    2: { cellWidth: 35 },
+                    3: { cellWidth: 35 }
+                }
+            });
+
+            yPos = doc.lastAutoTable.finalY + 12;
+        }
+
+        // Key insights
+        if (analysis.scenarioMatrix.insights && analysis.scenarioMatrix.insights.length > 0) {
+            if (yPos > 200) {
+                doc.addPage();
+                yPos = 20;
+            }
+
+            doc.setFontSize(14);
+            doc.setTextColor(0, 71, 171);
+            doc.text("Key Insights", 14, yPos);
+            yPos += 8;
+
+            const insightsBody = analysis.scenarioMatrix.insights.slice(0, 5).map(insight => [
+                insight.title || 'Insight',
+                insight.message || '',
+                insight.impact ? `+${insight.impact.toFixed(1)}%` : 'N/A'
+            ]);
+
+            doc.autoTable({
+                startY: yPos,
+                head: [['Insight', 'Details', 'Impact']],
+                body: insightsBody,
+                theme: 'grid',
+                headStyles: { fillColor: [16, 185, 129] },
+                styles: { fontSize: 8, cellPadding: 3 },
+                columnStyles: {
+                    0: { cellWidth: 40 },
+                    1: { cellWidth: 100 },
+                    2: { cellWidth: 25 }
+                }
+            });
+        }
+    }
+
+    // Persona-Based AI Recommendations Section
+    if (analysis.personaRecommendations) {
+        doc.addPage();
+        yPos = 20;
+
+        doc.setFontSize(18);
+        doc.setTextColor(0, 71, 171);
+        doc.text("AI Persona-Based Recommendations", 14, yPos);
+        yPos += 10;
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text("Personalized recommendations based on your financial profile", 14, yPos);
+        yPos += 10;
+
+        // Persona analysis
+        if (analysis.personaRecommendations.personaAnalysis) {
+            const persona = analysis.personaRecommendations.personaAnalysis.primaryPersona;
+            if (persona) {
+                doc.setFontSize(12);
+                doc.setTextColor(0);
+                doc.text(`Your Financial Persona: ${persona.name}`, 14, yPos);
+                yPos += 6;
+
+                doc.setFontSize(9);
+                doc.setTextColor(80);
+                const descriptionLines = doc.splitTextToSize(persona.description || '', 175);
+                doc.text(descriptionLines, 14, yPos);
+                yPos += (descriptionLines.length * 5) + 8;
+            }
+        }
+
+        // Recommendations
+        if (analysis.personaRecommendations.recommendations && analysis.personaRecommendations.recommendations.length > 0) {
+            const recommendationsBody = analysis.personaRecommendations.recommendations.slice(0, 10).map(rec => [
+                rec.category || 'General',
+                rec.title || rec.action || 'Recommendation',
+                rec.priority || 'Medium',
+                rec.difficulty || rec.timeframe || 'Review'
+            ]);
+
+            doc.autoTable({
+                startY: yPos,
+                head: [['Category', 'Recommendation', 'Priority', 'Difficulty']],
+                body: recommendationsBody,
+                theme: 'striped',
+                headStyles: { fillColor: [139, 92, 246] },
+                styles: { fontSize: 8, cellPadding: 3 },
+                columnStyles: {
+                    0: { cellWidth: 35 },
+                    1: { cellWidth: 80 },
+                    2: { cellWidth: 30 },
+                    3: { cellWidth: 30 }
+                }
+            });
+
+            yPos = doc.lastAutoTable.finalY + 12;
+        }
+
+        // Key insights
+        if (analysis.personaRecommendations.insights && analysis.personaRecommendations.insights.length > 0) {
+            if (yPos > 200) {
+                doc.addPage();
+                yPos = 20;
+            }
+
+            doc.setFontSize(14);
+            doc.setTextColor(0, 71, 171);
+            doc.text("Persona Insights", 14, yPos);
+            yPos += 8;
+
+            const insightsBody = analysis.personaRecommendations.insights.slice(0, 5).map(insight => [
+                insight.type || 'General',
+                insight.title || 'Insight',
+                insight.description || ''
+            ]);
+
+            doc.autoTable({
+                startY: yPos,
+                head: [['Type', 'Title', 'Description']],
+                body: insightsBody,
+                theme: 'grid',
+                headStyles: { fillColor: [139, 92, 246] },
+                styles: { fontSize: 8, cellPadding: 3 },
+                columnStyles: {
+                    0: { cellWidth: 30 },
+                    1: { cellWidth: 45 },
+                    2: { cellWidth: 100 }
+                }
+            });
+        }
     }
 }
 
