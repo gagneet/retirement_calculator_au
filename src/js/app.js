@@ -4909,15 +4909,24 @@ class RetirementCalculatorApp {
                 initializePercentageInputs();
                 initializeNumericInputs();
 
-                // Update risk profile and allocation displays
-                setTimeout(() => {
-                    const inputs = this.collectInputs();
-                    this.updateRiskProfile(inputs);
-                    this.updateRecommendedAllocation(inputs);
+                // Show enhanced summary for returning user
+                this.showReturningUserEnhancedSummary(importedData.userData, importedData.scenarioName);
 
-                    // Optionally trigger a calculation
-                    this.calculateRetirement(false);
-                }, 100);
+                // Show action buttons
+                const actionButtonsContainer = $('action-buttons-container');
+                if (actionButtonsContainer) {
+                    actionButtonsContainer.classList.remove('hidden');
+                }
+
+                // Update risk profile and allocation displays
+                const inputs = this.collectInputs();
+                this.updateRiskProfile(inputs);
+                this.updateRecommendedAllocation(inputs);
+
+                // Recalculate projections with the new data
+                this.calculateRetirement(false);
+
+                showNotification(`Successfully loaded scenario: ${importedData.scenarioName || 'Imported Data'}`, 'success');
             }
         } catch (error) {
             showNotification(error.message || 'Failed to import data.', 'error');

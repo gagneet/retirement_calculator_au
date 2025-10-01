@@ -1344,7 +1344,8 @@ export const importUserData = () => {
         input.onchange = (e) => {
             const file = e.target.files[0];
             if (!file) {
-                reject('No file selected');
+                // User cancelled the file dialog
+                resolve(null);
                 return;
             }
 
@@ -1359,21 +1360,30 @@ export const importUserData = () => {
                         return;
                     }
 
-                    // Check version compatibility
-                    const supportedVersions = ['1.0', '2.0', '3.0'];
-                    if (!supportedVersions.includes(data.version)) {
-                        showNotification('File version may not be fully compatible. Import will be attempted.', 'warning');
-                    } else if (data.version !== '3.0') {
-                        showNotification('Imported older file format - some features may need adjustment.', 'info');
-                    }
+                    // Show confirmation dialog to the user
+                    const scenarioName = data.scenarioName || 'your saved data';
+                    const confirmationMessage = `You are about to load the scenario: "${scenarioName}".\n\nThis will overwrite any unsaved changes in the calculator.\n\nDo you want to proceed?`;
 
-                    showNotification(`Successfully imported: ${data.scenarioName || 'Retirement Data'}`, 'success');
-                    resolve({
-                        userData: data.userData,
-                        scenarioName: data.scenarioName,
-                        exportDate: data.exportDate,
-                        metadata: data.metadata
-                    });
+                    if (window.confirm(confirmationMessage)) {
+                        // User confirmed, proceed with loading
+                        const supportedVersions = ['1.0', '2.0', '3.0'];
+                        if (!supportedVersions.includes(data.version)) {
+                            showNotification('File version may not be fully compatible. Import will be attempted.', 'warning');
+                        } else if (data.version !== '3.0') {
+                            showNotification('Imported older file format - some features may need adjustment.', 'info');
+                        }
+
+                        resolve({
+                            userData: data.userData,
+                            scenarioName: data.scenarioName,
+                            exportDate: data.exportDate,
+                            metadata: data.metadata
+                        });
+                    } else {
+                        // User cancelled
+                        showNotification('Data import cancelled.', 'info');
+                        resolve(null); // Resolve with null to indicate cancellation
+                    }
 
                 } catch (err) {
                     reject('Invalid JSON file format. Please check your file.');
