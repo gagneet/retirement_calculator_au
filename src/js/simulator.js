@@ -873,11 +873,16 @@ export class RetirementSimulator {
                 inputs.healthcareInflation
             );
 
-            // Aged care costs if applicable
+            // Aged care costs if applicable - inflate year by year like healthcare costs
             let agedCareCost = 0;
             if (yourCurrentAge >= inputs.agedCareStartAge &&
                 yourCurrentAge < inputs.agedCareStartAge + inputs.agedCareDuration) {
-                agedCareCost = agedCareCosts.annualCost;
+                // Calculate inflated aged care cost for this specific year
+                agedCareCost = this.projectHealthcareCosts(
+                    inputs.agedCareAnnualCost,
+                    retirementYear,
+                    inputs.healthcareInflation
+                );
             }
 
             // Property income (if still owned) and update property equity
