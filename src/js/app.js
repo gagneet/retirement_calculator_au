@@ -475,54 +475,66 @@ class RetirementCalculatorApp {
         }
     }
 
-    // Duplicate methods removed - both showReturningUserEnhancedSummary and calculateReturningUserProjections already defined above
-    async handleReturningUserFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) {
-            return; // User cancelled the file picker
-        }
+    /* ============================================================================
+     * DUPLICATE FUNCTION COMMENTED OUT - DO NOT UNCOMMENT
+     * ============================================================================
+     * This is an incomplete duplicate of handleReturningUserFileSelect (line 263).
+     * Key missing functionality:
+     * - Does not call this.calculateRetirement(false) after import
+     * - Does not reset event.target.value (prevents re-selecting same file)
+     * - Missing comprehensive debug logging
+     *
+     * The complete implementation at line 263 should be used instead.
+     * ============================================================================
+     */
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = JSON.parse(e.target.result);
-                if (!data.userData || !data.version) {
-                    showNotification('Invalid retirement calculator data file format.', 'error');
-                    return;
-                }
-
-                // Populate form with imported data
-                populateFormFromData(data.userData);
-
-                // Trigger currency and percentage input formatting
-                initializeCurrencyInputs();
-                initializePercentageInputs();
-                initializeNumericInputs();
-
-                // Show enhanced summary
-                this.showReturningUserEnhancedSummary(data.userData, data.scenarioName || 'Imported Data');
-
-                // Show action buttons for advanced analysis
-                const actionButtonsContainer = $('action-buttons-container');
-                if (actionButtonsContainer) {
-                    actionButtonsContainer.classList.remove('hidden');
-                }
-
-                showNotification('Successfully imported your retirement data!', 'success');
-                console.log('✅ Successfully imported returning user data');
-
-            } catch (error) {
-                console.error('❌ Error parsing imported file:', error);
-                showNotification('Error reading the selected file. Please ensure it\'s a valid retirement calculator data file.', 'error');
-            }
-        };
-
-        reader.onerror = () => {
-            showNotification('Error reading the selected file. Please try again.', 'error');
-        };
-
-        reader.readAsText(file);
-    }
+    // async handleReturningUserFileSelect(event) {
+    //     const file = event.target.files[0];
+    //     if (!file) {
+    //         return; // User cancelled the file picker
+    //     }
+    //
+    //     const reader = new FileReader();
+    //     reader.onload = (e) => {
+    //         try {
+    //             const data = JSON.parse(e.target.result);
+    //             if (!data.userData || !data.version) {
+    //                 showNotification('Invalid retirement calculator data file format.', 'error');
+    //                 return;
+    //             }
+    //
+    //             // Populate form with imported data
+    //             populateFormFromData(data.userData);
+    //
+    //             // Trigger currency and percentage input formatting
+    //             initializeCurrencyInputs();
+    //             initializePercentageInputs();
+    //             initializeNumericInputs();
+    //
+    //             // Show enhanced summary
+    //             this.showReturningUserEnhancedSummary(data.userData, data.scenarioName || 'Imported Data');
+    //
+    //             // Show action buttons for advanced analysis
+    //             const actionButtonsContainer = $('action-buttons-container');
+    //             if (actionButtonsContainer) {
+    //                 actionButtonsContainer.classList.remove('hidden');
+    //             }
+    //
+    //             showNotification('Successfully imported your retirement data!', 'success');
+    //             console.log('✅ Successfully imported returning user data');
+    //
+    //         } catch (error) {
+    //             console.error('❌ Error parsing imported file:', error);
+    //             showNotification('Error reading the selected file. Please ensure it\'s a valid retirement calculator data file.', 'error');
+    //         }
+    //     };
+    //
+    //     reader.onerror = () => {
+    //         showNotification('Error reading the selected file. Please try again.', 'error');
+    //     };
+    //
+    //     reader.readAsText(file);
+    // }
 
     showOnboardingCompletedState() {
         const onboardingButtons = document.getElementById('onboarding-buttons');
@@ -1605,8 +1617,10 @@ class RetirementCalculatorApp {
         enhancedContainer.classList.remove('hidden');
     }
 
-    // Run comprehensive scenario comparison matrix
-    async runScenarioComparison() {
+    // Run comprehensive scenario comparison matrix (auto-generates scenarios)
+    // NOTE: This was originally named runScenarioComparison but renamed to avoid conflict
+    // with the user-selection based version at line ~4586
+    async runScenarioMatrix() {
         if (this.isCalculating) return;
 
         this.isCalculating = true;
@@ -4583,6 +4597,9 @@ class RetirementCalculatorApp {
         });
     }
 
+    // Run scenario comparison based on user-selected checkboxes
+    // NOTE: This is different from runScenarioMatrix() at line ~1623 which auto-generates scenarios
+    // This function requires the user to select scenarios from the UI checkboxes
     async runScenarioComparison() {
         if (this.isCalculating) return;
         this.isCalculating = true;
@@ -5048,10 +5065,10 @@ class RetirementCalculatorApp {
             btnMonteCarlo.addEventListener('click', () => this.runMonteCarloSimulation());
         }
 
-        // Scenario comparison button
+        // Scenario comparison button (auto-generate scenarios)
         const btnScenarioMatrix = $('btnScenarioMatrix');
         if (btnScenarioMatrix) {
-            btnScenarioMatrix.addEventListener('click', () => this.runScenarioComparison());
+            btnScenarioMatrix.addEventListener('click', () => this.runScenarioMatrix());
         }
 
         // Healthcare analysis button
