@@ -646,6 +646,246 @@ export const calculateAgePension = (assets, income, isCouple, maxPension, assetT
     return Math.min(pensionFromAssets, pensionFromIncome);
 };
 
+/**
+ * Enhanced Age Pension calculation for couples with non-pensioner partner
+ * Handles critical case where one partner is under Age Pension age (67)
+ * @param {Object} person1 - First partner details {age, super, investments, salary}
+ * @param {Object} person2 - Second partner details {age, super, investments, salary}
+ * @param {boolean} homeowner - Whether they own their home
+ * @param {Object} config - Configuration with couple thresholds and rates
+ * @returns {Object} Detailed pension calculation with strategies
+ */
+export const calculateAgePensionForCouple = (person1, person2, homeowner, config) => {
+    const PENSION_AGE = 67;
+
+    // Check eligibility
+    const p1Eligible = person1.age >= PENSION_AGE;
+    const p2Eligible = person2.age >= PENSION_AGE;
+
+    // Route to appropriate calculation
+    if (!p1Eligible && !p2Eligible) {
+        return {
+            eligible: false,
+            reason: 'Neither partner at Age Pension age (67)',
+            yearsUntilEligible: Math.min(PENSION_AGE - person1.age, PENSION_AGE - person2.age)
+        };
+    }
+
+    if (p1Eligible && p2Eligible) {
+        return calculateStandardCouplePension(person1, person2, homeowner, config);
+    }
+
+    // One eligible, one not - CRITICAL CASE
+    return calculateNonPensionerCouplePension(person1, person2, homeowner, config);
+};
+
+/**
+ * Calculate Age Pension when both partners are eligible (standard case)
+ */
+const calculateStandardCouplePension = (person1, person2, homeowner, config) => {
+    const PENSION_AGE = 67;
+
+    // Combined income and assets
+    const combinedIncome = (person1.salary || 0) + (person2.salary || 0);
+    const combinedAssets = (person1.super || 0) + (person2.super || 0) +
+                           (person1.investments || 0) + (person2.investments || 0);
+
+    // Use couple thresholds
+    const assetThreshold = homeowner ? 470000 : 712500;
+    const assetLimit = homeowner ? 1031000 : 1273500;
+    const incomeThreshold = 380; // Fortnight
+    const maxRate = 1777 * 26; // Combined annual couple rate
+
+    // Asset test
+    let pensionFromAssets = 0;
+    if (combinedAssets <= assetThreshold) {
+        pensionFromAssets = maxRate;
+    } else if (combinedAssets < assetLimit) {
+        const excessAssets = combinedAssets - assetThreshold;
+        const reduction = (excessAssets / 1000) * 3 * 26; // $3 per fortnight per $1000
+        pensionFromAssets = Math.max(0, maxRate - reduction);
+    }
+
+    // Income test
+    let pensionFromIncome = maxRate;
+    const fortnightlyIncome = combinedIncome / 26;
+    if (fortnightlyIncome > incomeThreshold) {
+        const excessIncome = fortnightlyIncome - incomeThreshold;
+        const reduction = excessIncome * 0.5 * 26; // 50 cents per dollar
+        pensionFromIncome = Math.max(0, maxRate - reduction);
+    }
+
+    const annualPension = Math.min(pensionFromAssets, pensionFromIncome);
+
+    return {
+        eligible: true,
+        scenario: 'BOTH_ELIGIBLE',
+        recipientCount: 2,
+        combinedAssessment: {
+            income: combinedIncome,
+            assets: combinedAssets
+        },
+        currentPension: {
+            annual: Math.round(annualPension),
+            fortnight: Math.round(annualPension / 26)
+        },
+        limitingTest: pensionFromAssets < pensionFromIncome ? 'Assets Test' : 'Income Test'
+    };
+};
+
+/**
+ * Calculate Age Pension when one partner is under pension age (CRITICAL CASE)
+ * Non-pensioner's income and assets MUST be included in combined assessment
+ */
+const calculateNonPensionerCouplePension = (person1, person2, homeowner, config) => {
+    const PENSION_AGE = 67;
+
+    // Identify who is eligible
+    const eligible = person1.age >= PENSION_AGE ? person1 : person2;
+    const nonEligible = person1.age >= PENSION_AGE ? person2 : person1;
+
+    // CRITICAL: Combine income and assets from BOTH partners
+    const combinedIncome = (person1.salary || 0) + (person2.salary || 0);
+    const combinedAssets = (person1.super || 0) + (person2.super || 0) +
+                           (person1.investments || 0) + (person2.investments || 0);
+
+    // Apply COUPLE thresholds (not single) even though only one receives payment
+    const assetThreshold = homeowner ? 470000 : 712500;
+    const assetLimit = homeowner ? 1031000 : 1273500;
+    const incomeThreshold = 380; // Couple rate fortnight
+    const maxRate = 1777 * 26; // Combined couple rate
+
+    // Asset test using combined assets
+    let pensionFromAssets = 0;
+    if (combinedAssets <= assetThreshold) {
+        pensionFromAssets = maxRate;
+    } else if (combinedAssets < assetLimit) {
+        const excessAssets = combinedAssets - assetThreshold;
+        const reduction = (excessAssets / 1000) * 3 * 26;
+        pensionFromAssets = Math.max(0, maxRate - reduction);
+    }
+
+    // Income test using combined income
+    let pensionFromIncome = maxRate;
+    const fortnightlyIncome = combinedIncome / 26;
+    if (fortnightlyIncome > incomeThreshold) {
+        const excessIncome = fortnightlyIncome - incomeThreshold;
+        const reduction = excessIncome * 0.5 * 26;
+        pensionFromIncome = Math.max(0, maxRate - reduction);
+    }
+
+    // Take lower result, but only ONE person receives it (divide by 2)
+    const coupleRate = Math.min(pensionFromAssets, pensionFromIncome);
+    const actualPension = coupleRate / 2; // Only one recipient
+
+    // Project future when both eligible
+    const yearsUntil = PENSION_AGE - nonEligible.age;
+    const futureProjection = calculateStandardCouplePension(person1, person2, homeowner, config);
+
+    // Generate optimization strategies
+    const strategies = generatePartnerStrategies(person1, person2, eligible, nonEligible, combinedAssets);
+
+    return {
+        eligible: true,
+        scenario: 'ONE_ELIGIBLE',
+        recipientCount: 1,
+        eligiblePartner: {
+            age: eligible.age,
+            name: eligible === person1 ? 'Partner 1' : 'Partner 2'
+        },
+        nonEligiblePartner: {
+            age: nonEligible.age,
+            name: nonEligible === person1 ? 'Partner 1' : 'Partner 2',
+            yearsUntilEligible: yearsUntil,
+            salary: nonEligible.salary || 0
+        },
+        combinedAssessment: {
+            income: combinedIncome,
+            assets: combinedAssets,
+            warning: '⚠️ Non-pensioner partner\'s income and assets included in assessment'
+        },
+        currentPension: {
+            annual: Math.round(actualPension),
+            fortnight: Math.round(actualPension / 26)
+        },
+        limitingTest: pensionFromAssets < pensionFromIncome ? 'Assets Test' : 'Income Test',
+        whenBothEligible: {
+            yearsUntil,
+            expectedPension: futureProjection.currentPension.annual,
+            increase: futureProjection.currentPension.annual - actualPension,
+            increasePercent: ((futureProjection.currentPension.annual - actualPension) / actualPension * 100).toFixed(1)
+        },
+        strategies
+    };
+};
+
+/**
+ * Generate optimization strategies for couple with non-pensioner partner
+ */
+const generatePartnerStrategies = (person1, person2, eligible, nonEligible, combinedAssets) => {
+    const strategies = [];
+
+    // Strategy 1: Super contribution splitting
+    const superBalance1 = person1.super || 0;
+    const superBalance2 = person2.super || 0;
+    const superDifference = Math.abs(superBalance1 - superBalance2);
+
+    if (superDifference > 50000) {
+        strategies.push({
+            type: 'Super Contribution Splitting',
+            priority: 'HIGH',
+            description: `Significant super imbalance: $${(superDifference / 1000).toFixed(0)}k difference`,
+            action: 'Split contributions to equalize balances before both reach pension age',
+            benefit: 'Better Age Pension outcome when both eligible',
+            timeframe: 'Immediate'
+        });
+    }
+
+    // Strategy 2: Younger partner income optimization
+    const nonEligibleSalary = nonEligible.salary || 0;
+    if (nonEligibleSalary > 50000) {
+        const salaryReduction = 10000; // Example
+        const pensionIncrease = salaryReduction * 0.5 * 0.923; // 50% taper, 92.3% of year
+
+        strategies.push({
+            type: 'Younger Partner Income Optimization',
+            priority: 'MEDIUM',
+            description: `Partner earning $${(nonEligibleSalary / 1000).toFixed(0)}k impacts Age Pension`,
+            action: 'Consider salary sacrificing to super or reducing work hours',
+            benefit: `Each $1,000 salary reduction could increase pension by ~$500/year`,
+            timeframe: 'Next review'
+        });
+    }
+
+    // Strategy 3: Retirement timing coordination
+    const ageGap = Math.abs(person1.age - person2.age);
+    if (ageGap >= 3) {
+        strategies.push({
+            type: 'Retirement Timing Coordination',
+            priority: 'MEDIUM',
+            description: `${ageGap}-year age gap affects optimal retirement timing`,
+            action: 'Model different retirement scenarios to find optimal timing for both partners',
+            benefit: 'Maximize Age Pension while maintaining income',
+            timeframe: 'Planning phase'
+        });
+    }
+
+    // Strategy 4: Asset reallocation
+    if (combinedAssets > 470000 && combinedAssets < 600000) {
+        strategies.push({
+            type: 'Asset Reallocation',
+            priority: 'LOW',
+            description: 'Combined assets near couple threshold',
+            action: 'Consider strategies to reduce assessable assets (e.g., home improvements, gifting within limits)',
+            benefit: 'Potential to increase Age Pension entitlement',
+            timeframe: 'Medium-term',
+            warning: 'Must comply with gifting rules (5-year lookback)'
+        });
+    }
+
+    return strategies;
+};
+
 // Date and time utilities
 export const addYears = (date, years) => {
     const result = new Date(date);

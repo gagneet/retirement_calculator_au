@@ -1298,6 +1298,117 @@ export const ENHANCED_CONFIG = {
             SUPER_TAX_RATE: { value: 0.15, description: "15% super contributions tax rate" },
             TOP_MARGINAL_TAX_RATE: { value: 0.45, description: "45% top marginal tax rate fallback" }
         }
+    },
+
+    // ===== HOUSING STRATEGY CONFIGURATION =====
+    housingStrategy: {
+        _category: "Housing Strategy Parameters",
+        _description: "Configuration for downsizing, reverse mortgages, aged care, and granny flat analysis",
+        _lastUpdated: "2025-10-01",
+
+        downsizing: {
+            TYPICAL_REDUCTION: {
+                value: 0.35,
+                description: "35% typical reduction in home value when downsizing"
+            },
+            TRANSACTION_COSTS: {
+                value: 0.05,
+                description: "5% total transaction costs (agent fees, stamp duty, moving, legal)"
+            },
+            DOWNSIZER_LIMIT_SINGLE: {
+                value: 300000,
+                description: "Maximum downsizer contribution to super for singles"
+            },
+            DOWNSIZER_LIMIT_COUPLE: {
+                value: 600000,
+                description: "Maximum downsizer contribution to super for couples (combined)"
+            },
+            SUPER_GROWTH_RATE: {
+                value: 0.07,
+                description: "Assumed super growth rate for projections (7% p.a.)"
+            },
+            INVESTMENT_GROWTH_RATE: {
+                value: 0.065,
+                description: "Assumed investment growth rate outside super (6.5% p.a.)"
+            },
+            CASH_GROWTH_RATE: {
+                value: 0.025,
+                description: "Assumed cash growth rate (2.5% p.a.)"
+            }
+        },
+
+        reverseMortgage: {
+            COMMERCIAL_RATE: {
+                value: 0.065,
+                description: "Typical commercial reverse mortgage rate (6.5% p.a.)"
+            },
+            HEAS_RATE: {
+                value: 0.0485,
+                description: "Government HEAS rate (4.85% - bond rate + margin)"
+            },
+            TYPICAL_LOAN_PERCENT: {
+                value: 0.20,
+                description: "Typical starting loan as percentage of home value (20%)"
+            },
+            PROPERTY_GROWTH_RATE: {
+                value: 0.03,
+                description: "Assumed property value growth for projections (3% p.a.)"
+            },
+            MINIMUM_AGE: {
+                value: 60,
+                description: "Minimum age for reverse mortgage eligibility"
+            }
+        },
+
+        agedCare: {
+            MPIR_RATE: {
+                value: 0.0761,
+                description: "Maximum Permissible Interest Rate (Oct 2025) - updated quarterly"
+            },
+            TYPICAL_RAD: {
+                value: 500000,
+                description: "Typical/median RAD amount Australia-wide"
+            },
+            RAD_BY_CITY: {
+                sydney: { value: 750000, description: "Typical RAD in Sydney" },
+                melbourne: { value: 650000, description: "Typical RAD in Melbourne" },
+                brisbane: { value: 500000, description: "Typical RAD in Brisbane" },
+                perth: { value: 450000, description: "Typical RAD in Perth" },
+                adelaide: { value: 420000, description: "Typical RAD in Adelaide" },
+                regional: { value: 350000, description: "Typical RAD in regional areas" }
+            },
+            AVERAGE_STAY_YEARS: {
+                value: 2.5,
+                description: "Average length of stay in aged care (years)"
+            },
+            INVESTMENT_RETURN: {
+                value: 0.065,
+                description: "Expected investment return for RAD vs DAP comparison (6.5% p.a.)"
+            },
+            TAX_DRAG: {
+                value: 0.15,
+                description: "Assumed tax on investment returns (15%)"
+            }
+        },
+
+        grannyFlat: {
+            TYPICAL_TRANSFER_PERCENT: {
+                value: 0.30,
+                description: "Typical asset transfer as percentage of home value (30%)"
+            },
+            LOOKBACK_PERIOD_YEARS: {
+                value: 5,
+                description: "Age Pension gifting lookback period (5 years)"
+            },
+            LEGAL_COSTS_MIN: {
+                value: 3000,
+                description: "Minimum legal costs to structure properly"
+            },
+            LEGAL_COSTS_MAX: {
+                value: 10000,
+                description: "Maximum legal costs for complex arrangements"
+            }
+        }
     }
 }
 };
