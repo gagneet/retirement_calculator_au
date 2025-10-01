@@ -2163,6 +2163,7 @@ export class OnboardingWizard {
         const superReturn = defaults.economic.superReturn;
         const investmentReturn = defaults.economic.investmentReturn;
         const inflation = defaults.economic.inflation;
+        const healthcareInflation = defaults.healthcare.healthcareInflation;
         const propertyGrowth = defaults.property.propertyGrowthRate / 100;
 
         // Calculate future super balance
@@ -2219,8 +2220,8 @@ export class OnboardingWizard {
         // Calculate income needed (adjusted for inflation)
         const incomeNeeded = data.goals.lifestyleGoals.incomeNeeded * Math.pow(1 + inflation, yearsToRetirement);
 
-        // Calculate aged care costs (future value)
-        const agedCareCosts = defaults.healthcare.agedCareAnnualCost * Math.pow(1 + inflation, yearsToRetirement + 15); // Assume care starts 15 years into retirement
+        // Calculate aged care costs (future value) - Use healthcare inflation which is higher than general inflation
+        const agedCareCosts = defaults.healthcare.agedCareAnnualCost * Math.pow(1 + healthcareInflation, yearsToRetirement + 15); // Assume care starts 15 years into retirement
 
         // Simple retirement goal assessment (4% rule)
         const sustainableIncome = totalAssets * 0.04;

@@ -211,14 +211,11 @@ class RetirementCalculatorApp {
                 if (!returningUserBtn.getAttribute('data-listener-added')) {
                     returningUserBtn.addEventListener('click', async () => {
                         console.log('👆 Returning user button clicked!');
-                        // Hide onboarding buttons and scroll to calculator
+                        // Hide onboarding buttons
                         this.hideOnboardingButtons();
-                        const calculatorContainer = document.querySelector('.calculator-container') || document.querySelector('.bg-white.rounded-lg');
-                        if (calculatorContainer) {
-                            calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
 
                         // Use the same robust import method as the menu
+                        // Note: Scrolling will happen in showReturningUserEnhancedSummary() after data loads
                         try {
                             await this.importUserInputs();
                         } catch (error) {
@@ -333,6 +330,11 @@ class RetirementCalculatorApp {
         if (enhancedSummaryContainer) {
             enhancedSummaryContainer.classList.remove('hidden');
             console.log('✅ Enhanced summary container shown');
+
+            // Scroll to the Enhanced Summary to make it visible
+            setTimeout(() => {
+                enhancedSummaryContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
         } else {
             console.log('❌ Enhanced summary container not found');
         }
@@ -3860,13 +3862,13 @@ class RetirementCalculatorApp {
     // Collect overseas configuration from form inputs
     collectOverseasConfig() {
         return {
-            country: safeGetValue('overseasCountry', ''),
+            country: safeGetSelectValue('overseasCountry', ''),
             departureAge: parseInt(safeGetValue('overseasAge', 65)),
-            returnFrequency: safeGetValue('returnFrequency', 'annually'),
-            maintainResidency: safeGetValue('maintainResidency', false, 'checked'),
-            propertyStrategy: safeGetValue('propertyStrategy', 'keep-personal'),
-            trustBeneficiaries: safeGetValue('trustBeneficiaries', 'you-only'),
-            superAccess: safeGetValue('superAccess', 'pension-mode'),
+            returnFrequency: safeGetSelectValue('returnFrequency', 'annually'),
+            maintainResidency: safeGetChecked('maintainResidency', false),
+            propertyStrategy: safeGetSelectValue('propertyStrategy', 'keep-personal'),
+            trustBeneficiaries: safeGetSelectValue('trustBeneficiaries', 'you-only'),
+            superAccess: safeGetSelectValue('superAccess', 'pension-mode'),
             estimatedLivingCosts: parseFloat(safeGetValue('estimatedLivingCosts', 60000))
         };
     }
