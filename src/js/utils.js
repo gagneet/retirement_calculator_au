@@ -90,7 +90,7 @@ export const formatCurrencyInput = (value) => {
 
     // Format with thousands separators and $ symbol for input fields
     return '$' + num.toLocaleString('en-AU', {
-        minimumFractionDigits: 0,
+        minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
 };
@@ -194,11 +194,14 @@ export const addPercentageFormatting = (inputElement) => {
         const originalValue = inputElement.value;
         const numericValue = parseFormattedNumber(originalValue);
 
-        if (originalValue.endsWith('%')) return;
+        if (originalValue.endsWith('%') && originalValue.includes(',')) return;
 
         if (originalValue !== '' && !isNaN(numericValue)) {
-            // Format to 2 decimal places for percentages
-            const formattedNumber = numericValue.toFixed(2);
+            // Format with commas and 2 decimal places for percentages
+            const formattedNumber = numericValue.toLocaleString('en-AU', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
             inputElement.value = `${formattedNumber}%`;
         }
     };
@@ -224,13 +227,63 @@ export const initializePercentageInputs = () => {
         'agedCareProbability', 'inflation', 'investmentReturn',
         'returnDeclineRate', 'savingsReturn', 'superReturn',
         'salaryGrowthRate', 'leanYearsReduction', 'australianEquityAllocation',
-        'dividendYield', 'frankingRate', 'returnVolatility', 'shockProbability', 'shockMagnitude'
+        'dividendYield', 'frankingRate', 'returnVolatility', 'shockProbability', 'shockMagnitude',
+        'childrenUnder5Percent', 'childrenPrimaryPercent', 'teenagersPercent', 'adultDisabledPercent',
+        'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent'
     ];
 
     percentageFieldIds.forEach(id => {
         const element = $(id);
         if (element) {
             addPercentageFormatting(element);
+        }
+    });
+};
+
+// Add live formatting for numeric inputs (no decimals)
+export const addNumericFormatting = (inputElement) => {
+    if (!inputElement) return;
+
+    const formatInput = () => {
+        const originalValue = inputElement.value;
+        const numericValue = parseFormattedNumber(originalValue);
+
+        if (originalValue !== '' && !isNaN(numericValue) && !originalValue.includes(',')) {
+            // Format with commas and 0 decimal places
+            const formattedNumber = numericValue.toLocaleString('en-AU', {
+                maximumFractionDigits: 0,
+            });
+            inputElement.value = formattedNumber;
+        }
+    };
+
+    inputElement.addEventListener('blur', formatInput);
+
+    // Format on paste
+    inputElement.addEventListener('paste', () => {
+        setTimeout(formatInput, 10);
+    });
+
+    // Format existing value on initialization
+    if (inputElement.value) {
+        formatInput();
+    }
+};
+
+export const initializeNumericInputs = () => {
+    // Numeric input field IDs that should be formatted
+    const numericFieldIds = [
+        'yourCurrentAge', 'partnerCurrentAge', 'retirementAge', 'partnerRetirementAge',
+        'yourLifespan', 'partnerLifespan', 'dependents', 'totalDependentsCount',
+        'childrenUnder5', 'childrenPrimary', 'teenagers', 'adultDisabled', 'elderlyIndependent',
+        'elderlyHomeCare', 'elderlyResidential', 'otherDependents',
+        'sellPropertyYears', 'agedCareStartAge', 'numRuns', 'leanYearsStart'
+    ];
+
+    numericFieldIds.forEach(id => {
+        const element = $(id);
+        if (element) {
+            addNumericFormatting(element);
         }
     });
 };
@@ -1834,6 +1887,8 @@ export default {
     initializeCurrencyInputs,
     addPercentageFormatting,
     initializePercentageInputs,
+    addNumericFormatting,
+    initializeNumericInputs,
     randomNormal,
     percentile,
     median,

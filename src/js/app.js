@@ -60,7 +60,8 @@ import {
     initializeTooltips,
     addTooltipBottomStyles,
     initializeCurrencyInputs,
-    initializePercentageInputs
+    initializePercentageInputs,
+    initializeNumericInputs
 } from './utils.js';
 
 class RetirementCalculatorApp {
@@ -102,6 +103,7 @@ class RetirementCalculatorApp {
         initializeTooltips(); // Initialize tooltip functionality
         initializeCurrencyInputs(); // Initialize currency input formatting
         initializePercentageInputs(); // Initialize percentage input formatting
+        initializeNumericInputs(); // Initialize numeric input formatting
         this.enhanceAdvancedCalculatorInputs(); // Add gaming-style enhancements to calculator inputs
 
         // Make utilities globally available for onboarding wizard
@@ -287,6 +289,7 @@ class RetirementCalculatorApp {
                 // Trigger currency and percentage input formatting
                 initializeCurrencyInputs();
                 initializePercentageInputs();
+                initializeNumericInputs();
 
                 console.log('🌟 About to show enhanced summary...');
                 // Show enhanced summary
@@ -494,6 +497,7 @@ class RetirementCalculatorApp {
                 // Trigger currency and percentage input formatting
                 initializeCurrencyInputs();
                 initializePercentageInputs();
+                initializeNumericInputs();
 
                 // Show enhanced summary
                 this.showReturningUserEnhancedSummary(data.userData, data.scenarioName || 'Imported Data');
@@ -4903,6 +4907,7 @@ class RetirementCalculatorApp {
                 // Trigger currency and percentage input formatting
                 initializeCurrencyInputs();
                 initializePercentageInputs();
+                initializeNumericInputs();
 
                 // Update risk profile and allocation displays
                 setTimeout(() => {
