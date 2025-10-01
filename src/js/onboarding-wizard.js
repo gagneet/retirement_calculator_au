@@ -138,6 +138,7 @@ export class OnboardingWizard {
         this.createWizardHTML();
         this.setupEventListeners();
         this.loadSavedData();
+        this.showStep(1);
     }
 
     // Gamification: Facts and insights system
