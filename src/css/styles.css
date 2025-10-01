@@ -575,7 +575,7 @@ input:read-only {
 input:focus, select:focus, textarea:focus {
     outline: none !important;
     border-color: var(--accent-primary) !important;
-    // box-shadow: 0 0 0 3px var(--accent-primary) !important;
+    /* box-shadow: 0 0 0 3px var(--accent-primary) !important; */
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
 }
 
@@ -1196,7 +1196,7 @@ select:focus {
     width: 20px;
     border-radius: 50%;
     background: #ffffff;
-    // border: 2px solid #4f46e5;
+    /* border: 2px solid #4f46e5; */
     cursor: pointer;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all 0.2s ease;
@@ -1293,6 +1293,15 @@ select:focus {
 
 #disclaimer-modal a {
     color: #3b82f6;
+}
+
+/* Navigation Menu Styles */
+nav#navMenu {
+    z-index: 110 !important;
+}
+
+header nav {
+    z-index: 110 !important;
 }
 
 /* FWT Classification Statement Styles */

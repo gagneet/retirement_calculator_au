@@ -98,6 +98,21 @@ export const formatCurrencyInput = (value) => {
 export const addCurrencyFormatting = (inputElement) => {
     if (!inputElement) return;
 
+    // Check if formatting has already been added to prevent duplicate listeners
+    if (inputElement.hasAttribute('data-currency-formatted')) {
+        // Just format the current value if it exists
+        if (inputElement.value && inputElement.value !== '') {
+            const numericValue = parseFormattedNumber(inputElement.value);
+            if (!isNaN(numericValue)) {
+                inputElement.value = formatCurrencyInput(numericValue);
+            }
+        }
+        return;
+    }
+
+    // Mark this element as formatted
+    inputElement.setAttribute('data-currency-formatted', 'true');
+
     let isFormatting = false;
 
     const formatInput = () => {
@@ -190,6 +205,25 @@ export const initializeCurrencyInputs = () => {
 export const addPercentageFormatting = (inputElement) => {
     if (!inputElement) return;
 
+    // Check if formatting has already been added to prevent duplicate listeners
+    if (inputElement.hasAttribute('data-percentage-formatted')) {
+        // Just format the current value if it exists
+        if (inputElement.value && inputElement.value !== '') {
+            const numericValue = parseFormattedNumber(inputElement.value);
+            if (!isNaN(numericValue)) {
+                const formattedNumber = numericValue.toLocaleString('en-AU', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                });
+                inputElement.value = `${formattedNumber}%`;
+            }
+        }
+        return;
+    }
+
+    // Mark this element as formatted
+    inputElement.setAttribute('data-percentage-formatted', 'true');
+
     const formatInput = () => {
         const originalValue = inputElement.value;
         const numericValue = parseFormattedNumber(originalValue);
@@ -243,6 +277,24 @@ export const initializePercentageInputs = () => {
 // Add live formatting for numeric inputs (no decimals)
 export const addNumericFormatting = (inputElement) => {
     if (!inputElement) return;
+
+    // Check if formatting has already been added to prevent duplicate listeners
+    if (inputElement.hasAttribute('data-numeric-formatted')) {
+        // Just format the current value if it exists
+        if (inputElement.value && inputElement.value !== '' && !inputElement.value.includes(',')) {
+            const numericValue = parseFormattedNumber(inputElement.value);
+            if (!isNaN(numericValue)) {
+                const formattedNumber = numericValue.toLocaleString('en-AU', {
+                    maximumFractionDigits: 0,
+                });
+                inputElement.value = formattedNumber;
+            }
+        }
+        return;
+    }
+
+    // Mark this element as formatted
+    inputElement.setAttribute('data-numeric-formatted', 'true');
 
     const formatInput = () => {
         const originalValue = inputElement.value;
