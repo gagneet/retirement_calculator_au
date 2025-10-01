@@ -712,17 +712,81 @@ export const ENHANCED_CONFIG = {
                 value: 4118,
                 description: "Monthly living expenses for couple (ABS 2025)",
                 source: "ABS Household Expenditure Survey",
-                currency: "AUD"
+                currency: "AUD",
+                lastUpdated: "2025-01-15"
             },
             SINGLE_BASE: {
                 value: 2835,
                 description: "Monthly living expenses for single person (ABS 2025)",
-                source: "ABS Household Expenditure Survey"
+                source: "ABS Household Expenditure Survey",
+                currency: "AUD",
+                lastUpdated: "2025-01-15"
             },
             PER_CHILD: {
                 value: 630,
                 description: "Additional monthly cost per child (ABS 2025)",
-                source: "ABS Household Expenditure Survey"
+                source: "ABS Household Expenditure Survey",
+                currency: "AUD",
+                lastUpdated: "2025-01-15"
+            }
+        },
+        AVERAGE_HOUSING_COSTS: {
+            MORTGAGE_MONTHLY: {
+                value: 3961,
+                description: "Average monthly mortgage repayment Australia (2025)",
+                source: "Australian home loan statistics 2025",
+                currency: "AUD",
+                lastUpdated: "2025-01-15"
+            },
+            MORTGAGE_NSW: {
+                value: 4766,
+                description: "Average monthly mortgage repayment NSW (2025)",
+                source: "Australian home loan statistics 2025",
+                currency: "AUD",
+                lastUpdated: "2025-01-15"
+            },
+            MORTGAGE_TAS: {
+                value: 2812,
+                description: "Average monthly mortgage repayment Tasmania (2025)",
+                source: "Australian home loan statistics 2025",
+                currency: "AUD",
+                lastUpdated: "2025-01-15"
+            },
+            RENT_ESTIMATION: {
+                value: 0.7,
+                description: "Rent typically 70% of equivalent mortgage payment",
+                source: "Property market analysis 2025",
+                lastUpdated: "2025-01-15"
+            }
+        },
+        ASFA_RETIREMENT_STANDARDS: {
+            COUPLE_COMFORTABLE_ANNUAL: {
+                value: 73031,
+                description: "ASFA comfortable retirement for couple (annual)",
+                source: "ASFA Retirement Standard March 2025",
+                currency: "AUD",
+                lastUpdated: "2025-03-01"
+            },
+            COUPLE_COMFORTABLE_MONTHLY: {
+                value: 6086,
+                description: "ASFA comfortable retirement for couple (monthly)",
+                source: "ASFA Retirement Standard March 2025",
+                currency: "AUD",
+                lastUpdated: "2025-03-01"
+            },
+            SINGLE_COMFORTABLE_ANNUAL: {
+                value: 51814,
+                description: "ASFA comfortable retirement for single (annual)",
+                source: "ASFA Retirement Standard March 2025",
+                currency: "AUD",
+                lastUpdated: "2025-03-01"
+            },
+            SINGLE_COMFORTABLE_MONTHLY: {
+                value: 4318,
+                description: "ASFA comfortable retirement for single (monthly)",
+                source: "ASFA Retirement Standard March 2025",
+                currency: "AUD",
+                lastUpdated: "2025-03-01"
             }
         },
         CHILDCARE_COSTS: {

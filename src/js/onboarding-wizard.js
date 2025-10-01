@@ -1746,6 +1746,10 @@ export class OnboardingWizard {
         this.data.household.partnerAge = safeGetValue('household-partner-age') || this.data.household.partnerAge;
         this.data.household.retirementAge = safeGetValue('household-retirement-age') || this.data.household.retirementAge;
 
+        // Update living arrangements
+        this.data.household.livingArrangements.homeOwnership = document.querySelector('#household-home-ownership')?.value || this.data.household.livingArrangements.homeOwnership;
+        this.data.household.livingArrangements.monthlyExpenses = safeGetValue('household-expenses') || this.data.household.livingArrangements.monthlyExpenses;
+
         // Update finances data
         this.data.finances.income.salary = safeGetValue('finances-salary') || this.data.finances.income.salary;
         this.data.finances.income.partnerSalary = safeGetValue('finances-partner-salary') || this.data.finances.income.partnerSalary;
@@ -2152,6 +2156,76 @@ export class OnboardingWizard {
         `;
     }
 
+    calculateLivingExpenses(data) {
+        // Priority 1: Use user-provided monthly living expenses if available
+        if (data.household.livingArrangements.monthlyExpenses && data.household.livingArrangements.monthlyExpenses > 0) {
+            return data.household.livingArrangements.monthlyExpenses;
+        }
+
+        // Priority 2: Calculate from detailed user inputs (housing + other expenses)
+        let calculatedExpenses = 0;
+        const annualIncome = data.finances.income.salary + (data.finances.income.partnerSalary || 0);
+
+        // Add housing costs
+        if (data.property.homeStatus === 'mortgage' && data.property.homeDetails.loanRemaining > 0) {
+            // Calculate approximate monthly mortgage payment
+            const loanAmount = data.property.homeDetails.loanRemaining;
+            const annualRate = data.property.homeDetails.loanRate || 0.0576; // Default 5.76%
+            const monthlyRate = annualRate / 12;
+            const loanTermMonths = 300; // Assume 25 years remaining
+            const monthlyMortgage = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, loanTermMonths)) / (Math.pow(1 + monthlyRate, loanTermMonths) - 1);
+            calculatedExpenses += monthlyMortgage;
+        } else if (data.property.homeStatus === 'rent') {
+            // Estimate rent based on location
+            const avgMortgage = this.config.financials.cashFlowAnalysis.AVERAGE_HOUSING_COSTS.MORTGAGE_MONTHLY.value;
+            const rentMultiplier = this.config.financials.cashFlowAnalysis.AVERAGE_HOUSING_COSTS.RENT_ESTIMATION.value;
+            calculatedExpenses += avgMortgage * rentMultiplier;
+        }
+
+        // If we have housing costs but no other expenses, estimate the rest
+        if (calculatedExpenses > 0) {
+            // Use ABS base living expenses (excluding housing) and add housing
+            const isCouple = data.household.maritalStatus !== 'single';
+            const baseExpenses = isCouple
+                ? this.config.financials.cashFlowAnalysis.BASE_LIVING_EXPENSES.COUPLE_BASE.value
+                : this.config.financials.cashFlowAnalysis.BASE_LIVING_EXPENSES.SINGLE_BASE.value;
+
+            // Base expenses are total, so we estimate housing is ~30% of total
+            const nonHousingBase = baseExpenses * 0.7;
+            calculatedExpenses += nonHousingBase;
+
+            // Add costs for children if any
+            if (data.household.dependents && data.household.dependents.numberOfChildren > 0) {
+                const childCost = this.config.financials.cashFlowAnalysis.BASE_LIVING_EXPENSES.PER_CHILD.value;
+                calculatedExpenses += childCost * data.household.dependents.numberOfChildren;
+            }
+
+            return Math.round(calculatedExpenses);
+        }
+
+        // Priority 3: Use income-based calculation if available
+        if (annualIncome > 0) {
+            const monthlySalary = annualIncome / 12;
+            const savingsRate = data.finances.savingsRate ? (data.finances.savingsRate / 100) : 0.15; // Convert percentage or default 15%
+            return Math.round(monthlySalary * (1 - savingsRate));
+        }
+
+        // Priority 4: Fall back to ABS government standards
+        const isCouple = data.household.maritalStatus !== 'single';
+        const baseExpenses = isCouple
+            ? this.config.financials.cashFlowAnalysis.BASE_LIVING_EXPENSES.COUPLE_BASE.value
+            : this.config.financials.cashFlowAnalysis.BASE_LIVING_EXPENSES.SINGLE_BASE.value;
+
+        // Add costs for children if any
+        let totalExpenses = baseExpenses;
+        if (data.household.dependents && data.household.dependents.numberOfChildren > 0) {
+            const childCost = this.config.financials.cashFlowAnalysis.BASE_LIVING_EXPENSES.PER_CHILD.value;
+            totalExpenses += childCost * data.household.dependents.numberOfChildren;
+        }
+
+        return Math.round(totalExpenses);
+    }
+
     calculateBasicRetirementProjection() {
         const data = this.data;
         const yearsToRetirement = data.goals.retirementAge - data.household.age;
@@ -2209,11 +2283,9 @@ export class OnboardingWizard {
         // Calculate total assets
         const totalAssets = futureSuper + futureSavings + futureInvestments + accessibleHomeEquity + propertyEquity;
 
-        // Calculate monthly living expenses using the same logic as the existing calculator
+        // Calculate monthly living expenses using comprehensive approach
         const annualIncome = data.finances.income.salary + (data.finances.income.partnerSalary || 0);
-        const monthlySalary = annualIncome / 12;
-        const savingsRate = 0.15; // Default 15% savings rate from existing calculator
-        const monthlyLivingExpenses = monthlySalary * (1 - savingsRate);
+        let monthlyLivingExpenses = this.calculateLivingExpenses(data);
         const annualLivingExpenses = monthlyLivingExpenses * 12;
 
         // Calculate income needed (adjusted for inflation)
@@ -2323,8 +2395,12 @@ export class OnboardingWizard {
             'transition-all duration-150 hover:shadow-md focus:shadow-lg';
 
         // Input styling with gaming elements
+        // Use pl-7 for currency inputs to make room for $ symbol, pl-3 for others
+        const leftPadding = type === 'currency' ? 'pl-7' : 'pl-3';
+        const rightPadding = type === 'percentage' ? 'pr-7' : 'pr-3';
+
         const baseClasses = `
-            w-full max-w-[140px] px-3 py-2 text-sm font-mono text-right
+            w-full max-w-[140px] ${leftPadding} ${rightPadding} py-2 text-sm font-mono text-right
             bg-gradient-to-r from-gray-50 to-white
             border-2 border-gray-300 rounded-lg
             focus:border-blue-500 focus:bg-white focus:outline-none
