@@ -1,13 +1,13 @@
 import '../css/styles.css';
 // js/app.js - Main Application Controller
 
-import { ENHANCED_CONFIG } from './config.js';
+import versionManager from './version-manager.js';
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import RetirementSimulator from './simulator.js';
 import MarketDataEngine from './market-data.js';
 import { initializeTrustUI } from './trust-ui.js';
 import ThemeManager from './theme.js';
-import { OnboardingWizard } from './onboarding-wizard.js';
+import OnboardingWizard from './onboarding-wizard.js';
 import { ScenarioComparisonMatrix } from './scenario-matrix.js';
 import { PersonaIntelligenceEngine } from './persona-intelligence.js';
 import { HealthcareModelingEngine } from './healthcare-modeling.js';
@@ -66,20 +66,22 @@ import {
 
 class RetirementCalculatorApp {
     constructor() {
-        this.simulator = new RetirementSimulator();
+        this.config = versionManager.getLatestConfig();
+        this.simulator = new RetirementSimulator(this.config);
         this.chartManager = null; // Will be lazy-loaded
         this.marketData = new MarketDataEngine();
         this.themeManager = new ThemeManager();
-        this.scenarioMatrix = new ScenarioComparisonMatrix(this.simulator);
-        this.personaIntelligence = new PersonaIntelligenceEngine(this.simulator);
-        this.healthcareModeling = new HealthcareModelingEngine();
-        this.propertyAnalysis = new PropertyAnalysisEngine();
+        this.scenarioMatrix = new ScenarioComparisonMatrix(this.simulator, this.config);
+        this.personaIntelligence = new PersonaIntelligenceEngine(this.simulator, this.config);
+        this.healthcareModeling = new HealthcareModelingEngine(this.config);
+        this.propertyAnalysis = new PropertyAnalysisEngine(this.config);
         this.riskProfiling = null; // Will be initialized after dynamic import
         this.dynamicAllocation = null; // Will be initialized after dynamic import
         this.onboardingWizard = null; // Will be initialized after DOM is ready
         this.currentResults = null;
         this.isCalculating = false;
         this.isImporting = false;
+        this.currentVersion = versionManager.LATEST_VERSION;
 
         this.initializeApp().catch(console.error);
     }
@@ -88,6 +90,8 @@ class RetirementCalculatorApp {
         console.log('🚀 initializeApp starting...');
         this.loadSavedInputs(); // Load saved inputs first
         this.setupEventListeners();
+        this.setupVersionSelector();
+        this.setupCalculationModal();
         this.setupAutoSave(); // Setup auto-save functionality
         this.setupCashFlowUI(); // Setup cash flow validation and UI
         this.setupDependentCalculations(); // Setup enhanced dependent calculations
@@ -168,84 +172,13 @@ class RetirementCalculatorApp {
     }
 
     async initializeOnboardingWizard() {
-        console.log('🎯 initializeOnboardingWizard called');
         try {
-            console.log('📋 Creating OnboardingWizard...');
-            // Initialize the onboarding wizard
-            this.onboardingWizard = new OnboardingWizard();
-            console.log('✅ OnboardingWizard created successfully');
+            this.onboardingWizard = new OnboardingWizard(this.config);
+            window.onboardingWizard = this.onboardingWizard; // Make globally available for event handlers
 
-            // Set up event listeners for the main onboarding buttons
-            console.log('🔍 Looking for onboarding buttons...');
-            const newUserBtn = document.getElementById('new-user-btn');
-            const returningUserBtn = document.getElementById('returning-user-btn');
-            console.log('🔍 Buttons found:', { newUserBtn: !!newUserBtn, returningUserBtn: !!returningUserBtn });
-
-            if (newUserBtn) {
-                // Prevent duplicate event listeners
-                const existingListeners = newUserBtn.getAttribute('data-listener-added');
-                if (!existingListeners) {
-                    let isStartingOnboarding = false;
-                    newUserBtn.addEventListener('click', async () => {
-                        if (isStartingOnboarding) return;
-                        isStartingOnboarding = true;
-
-                        try {
-                            await this.onboardingWizard.startOnboarding();
-                            this.hideOnboardingButtons();
-                            // Reset flag after a brief delay to prevent double clicks
-                            setTimeout(() => {
-                                isStartingOnboarding = false;
-                            }, 1000);
-                        } catch (error) {
-                            console.error('Failed to start onboarding:', error);
-                            isStartingOnboarding = false;
-                        }
-                    });
-                    newUserBtn.setAttribute('data-listener-added', 'true');
-                }
-            }
-
-            if (returningUserBtn) {
-                // Prevent duplicate event listeners
-                if (!returningUserBtn.getAttribute('data-listener-added')) {
-                    returningUserBtn.addEventListener('click', async () => {
-                        console.log('👆 Returning user button clicked!');
-                        // Hide onboarding buttons and scroll to calculator
-                        this.hideOnboardingButtons();
-                        const calculatorContainer = document.querySelector('.calculator-container') || document.querySelector('.bg-white.rounded-lg');
-                        if (calculatorContainer) {
-                            calculatorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-
-                        // Use the same robust import method as the menu
-                        try {
-                            await this.importUserInputs();
-                        } catch (error) {
-                            console.error('❌ Failed to import user data:', error);
-                            showNotification('Failed to import data. Please try again.', 'error');
-                        }
-                    });
-                    returningUserBtn.setAttribute('data-listener-added', 'true');
-                    console.log('✅ Returning user button listener added');
-                } else {
-                    console.log('⚠️ Returning user button listener already exists');
-                }
-
-            } else {
-                console.log('❌ No returningUserBtn found');
-            }
-
-            // Check if onboarding was completed before
-            if (this.onboardingWizard.isCompleted) {
-                this.showOnboardingCompletedState();
-            }
-
-            // Check URL parameters for onboarding control
+            // The wizard now handles its own button events.
+            // App.js only needs to handle URL params that might skip or force onboarding.
             await this.handleOnboardingURLParams();
-
-            // Make the wizard available globally for debugging
-            window.onboardingWizard = this.onboardingWizard;
 
             console.log('✅ Onboarding wizard initialized successfully');
         } catch (error) {
@@ -466,6 +399,10 @@ class RetirementCalculatorApp {
 
     async skipOnboardingToAdvanced() {
         this.hideOnboardingButtons();
+        const actionButtonsContainer = $('action-buttons-container');
+        if (actionButtonsContainer) {
+            actionButtonsContainer.classList.remove('hidden');
+        }
         const calculatorContainer = document.querySelector('.calculator-container') ||
             document.querySelector('.bg-white.rounded-lg');
 
@@ -574,7 +511,7 @@ class RetirementCalculatorApp {
 
     // Input collection with complete property support
     collectInputs() {
-        const config = ENHANCED_CONFIG.DEFAULTS;
+        const config = this.config.DEFAULTS;
 
         // Get raw partner values
         const partnerAgeInput = $('partnerCurrentAge');
@@ -858,42 +795,42 @@ class RetirementCalculatorApp {
 
         safeSetHTML('summaryResults', `
             <div class="p-3 bg-blue-50 rounded flex justify-between">
-                <strong>Years to Retirement:</strong> 
-                <span>${yearsToRetirement}</span>
+                <strong>Years to Retirement:</strong>
+                <span>${yearsToRetirement} <a href="#" class="show-calc-link" data-calc-id="yearsToRetirement">(show)</a></span>
             </div>
             <div class="p-3 bg-blue-50 rounded flex justify-between">
-                <strong>Future Super:</strong> 
-                <span class="font-semibold">${formatCurrency(result.futureSuper)}</span>
+                <strong>Future Super:</strong>
+                <span class="font-semibold">${formatCurrency(result.futureSuper)} <a href="#" class="show-calc-link" data-calc-id="futureSuper">(show)</a></span>
             </div>
             <div class="p-3 bg-blue-50 rounded flex justify-between">
-                <strong>Future Savings:</strong> 
-                <span class="font-semibold">${formatCurrency(result.futureSavings)}</span>
+                <strong>Future Savings:</strong>
+                <span class="font-semibold">${formatCurrency(result.futureSavings)} <a href="#" class="show-calc-link" data-calc-id="futureSavings">(show)</a></span>
             </div>
             <div class="p-3 bg-blue-50 rounded flex justify-between">
-                <strong>Future Investments:</strong> 
-                <span class="font-semibold">${formatCurrency(result.futureStocks)}</span>
+                <strong>Future Investments:</strong>
+                <span class="font-semibold">${formatCurrency(result.futureStocks)} <a href="#" class="show-calc-link" data-calc-id="futureStocks">(show)</a></span>
             </div>
             <div class="p-3 bg-green-50 rounded flex justify-between">
-                <strong>Accessible Home Equity:</strong> 
-                <span class="font-semibold">${formatCurrency(result.accessibleHomeEquity)}</span>
+                <strong>Accessible Home Equity:</strong>
+                <span class="font-semibold">${formatCurrency(result.accessibleHomeEquity)} <a href="#" class="show-calc-link" data-calc-id="accessibleHomeEquity">(show)</a></span>
             </div>
             ${inputs.hasInvestmentProperty ? `
             <div class="p-3 bg-yellow-50 rounded flex justify-between">
-                <strong>Property Equity:</strong> 
-                <span class="font-semibold">${formatCurrency(result.propertyEquity)}</span>
+                <strong>Property Equity:</strong>
+                <span class="font-semibold">${formatCurrency(result.propertyEquity)} <a href="#" class="show-calc-link" data-calc-id="propertyEquity">(show)</a></span>
             </div>
             ` : ''}
             <div class="p-3 bg-green-50 rounded flex justify-between">
-                <strong>Total Assets at Retirement:</strong> 
-                <span class="font-bold text-lg">${formatCurrency(result.totalFinancialAssets + result.accessibleHomeEquity)}</span>
+                <strong>Total Assets at Retirement:</strong>
+                <span class="font-bold text-lg">${formatCurrency(result.totalFinancialAssets + result.accessibleHomeEquity)} <a href="#" class="show-calc-link" data-calc-id="totalAssets">(show)</a></span>
             </div>
             <div class="p-3 bg-red-50 rounded flex justify-between">
-                <strong>Income Needed (ASFA):</strong> 
-                <span class="font-bold text-lg">${formatCurrency(requiredAnnualIncomeInRetirement)}</span>
+                <strong>Income Needed (ASFA):</strong>
+                <span class="font-bold text-lg">${formatCurrency(requiredAnnualIncomeInRetirement)} <a href="#" class="show-calc-link" data-calc-id="incomeNeeded">(show)</a></span>
             </div>
             <div class="p-3 bg-purple-50 rounded flex justify-between">
-                <strong>Expected Aged Care Costs:</strong> 
-                <span class="font-semibold">${formatCurrency(result.agedCareCosts.expectedCost)}</span>
+                <strong>Expected Aged Care Costs:</strong>
+                <span class="font-semibold">${formatCurrency(result.agedCareCosts.expectedCost)} <a href="#" class="show-calc-link" data-calc-id="agedCareCosts">(show)</a></span>
             </div>
         `);
 
@@ -3609,6 +3546,145 @@ class RetirementCalculatorApp {
                 }
             }
         });
+    }
+
+    setupVersionSelector() {
+        const selector = $('version-selector');
+        if (!selector) return;
+
+        const versions = versionManager.getAvailableVersions();
+        selector.innerHTML = versions.map(v => `<option value="${v}">Version ${v}</option>`).join('');
+        selector.value = this.currentVersion;
+
+        selector.addEventListener('change', (e) => {
+            const newVersion = e.target.value;
+            this.currentVersion = newVersion;
+            this.config = versionManager.getConfigByVersion(newVersion);
+            this.simulator = new RetirementSimulator(this.config);
+            this.calculateRetirement(true);
+            showNotification(`Switched to version ${newVersion}`, 'info');
+        });
+    }
+
+    setupCalculationModal() {
+        const modal = $('calculation-modal');
+        const closeModal = $('close-modal');
+        const modalTitle = $('modal-title');
+        const modalContent = $('modal-content');
+
+        if (!modal || !closeModal || !modalTitle || !modalContent) return;
+
+        const showModal = (title, content) => {
+            modalTitle.textContent = title;
+            modalContent.innerHTML = content;
+            modal.classList.remove('hidden');
+        };
+
+        const hideModal = () => {
+            modal.classList.add('hidden');
+        };
+
+        closeModal.addEventListener('click', hideModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                hideModal();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('show-calc-link')) {
+                e.preventDefault();
+                const calcId = e.target.dataset.calcId;
+                const details = this.getCalculationDetails(calcId);
+                showModal(details.title, details.content);
+            }
+        });
+    }
+
+    getCalculationDetails(calcId) {
+        const inputs = this.collectInputs();
+        const result = this.currentResults;
+        let title = '';
+        let content = '';
+
+        if (!result) {
+            return {
+                title: 'Error',
+                content: '<p>Please run a calculation first to see the details.</p>'
+            };
+        }
+
+        switch (calcId) {
+            case 'yearsToRetirement':
+                title = 'Years to Retirement';
+                content = `
+                    <p><strong>Formula:</strong> Retirement Age - Your Current Age</p>
+                    <p><strong>Values:</strong> ${inputs.retirementAge} - ${inputs.yourCurrentAge} = <strong>${result.yearlyData[0].year - new Date().getFullYear()} years</strong></p>
+                `;
+                break;
+            case 'futureSuper':
+                title = 'Future Superannuation';
+                content = `
+                    <p>This is a year-by-year projection. The value shown is the sum of your and your partner's superannuation balances at retirement age.</p>
+                    <p><strong>Final Value:</strong> ${formatCurrency(result.futureSuper)}</p>
+                `;
+                break;
+            case 'futureSavings':
+                title = 'Future Savings';
+                content = `
+                    <p>This is a year-by-year projection of your cash savings, including interest earned and any additional savings from your income.</p>
+                    <p><strong>Final Value:</strong> ${formatCurrency(result.futureSavings)}</p>
+                `;
+                break;
+            case 'futureStocks':
+                title = 'Future Investments';
+                content = `
+                    <p>This is a year-by-year projection of your stock portfolio, including investment returns and monthly contributions.</p>
+                    <p><strong>Final Value:</strong> ${formatCurrency(result.futureStocks)}</p>
+                `;
+                break;
+            case 'accessibleHomeEquity':
+                title = 'Accessible Home Equity';
+                content = `
+                    <p><strong>Formula:</strong> (Home Value at Retirement - Mortgage at Retirement) * Home Equity Access Rate</p>
+                    <p><strong>Values:</strong> (${formatCurrency(result.homeEquity, 0)} - ${formatCurrency(result.mortgageBalanceAtRetirement, 0)}) * ${formatPercent(this.config.HOME_EQUITY_ACCESS_RATE)} = <strong>${formatCurrency(result.accessibleHomeEquity)}</strong></p>
+                `;
+                break;
+            case 'propertyEquity':
+                title = 'Investment Property Equity';
+                content = `
+                    <p><strong>Formula:</strong> Property Value at Retirement - Remaining Loan Balance</p>
+                    <p><strong>Values:</strong> ${formatCurrency(result.propertyEquity + result.investmentPropertyLoanAtRetirement, 0)} - ${formatCurrency(result.investmentPropertyLoanAtRetirement, 0)} = <strong>${formatCurrency(result.propertyEquity)}</strong></p>
+                `;
+                break;
+            case 'totalAssets':
+                title = 'Total Assets at Retirement';
+                content = `
+                    <p><strong>Formula:</strong> Future Super + Future Savings + Future Investments + Accessible Home Equity</p>
+                    <p><strong>Values:</strong> ${formatCurrency(result.futureSuper)} + ${formatCurrency(result.futureSavings)} + ${formatCurrency(result.futureStocks)} + ${formatCurrency(result.accessibleHomeEquity)} = <strong>${formatCurrency(result.totalFinancialAssets + result.accessibleHomeEquity)}</strong></p>
+                `;
+                break;
+            case 'incomeNeeded':
+                title = 'Income Needed (ASFA Comfortable Standard)';
+                content = `
+                    <p><strong>Formula:</strong> ASFA Comfortable Standard * (1 + Inflation Rate)^Years to Retirement</p>
+                    <p><strong>Values:</strong> ${formatCurrency(inputs.asfaComfortable)} * (1 + ${formatPercent(inputs.inflation, 4)})^${result.yearlyData[0].year - new Date().getFullYear()} = <strong>${formatCurrency(inputs.asfaComfortable * Math.pow(1 + inputs.inflation, result.yearlyData[0].year - new Date().getFullYear()))}</strong></p>
+                `;
+                break;
+            case 'agedCareCosts':
+                title = 'Expected Aged Care Costs';
+                content = `
+                    <p><strong>Formula:</strong> (Annual Aged Care Cost * Duration) * Probability</p>
+                    <p><strong>Values:</strong> (${formatCurrency(result.agedCareCosts.annualCost)} * ${inputs.agedCareDuration} years) * ${formatPercent(result.agedCareCosts.probability)} = <strong>${formatCurrency(result.agedCareCosts.expectedCost)}</strong></p>
+                `;
+                break;
+            default:
+                title = 'Calculation Details';
+                content = '<p>Details for this calculation are not yet available.</p>';
+                break;
+        }
+
+        return { title, content };
     }
 
     // Add CSS styles for suggestion modifications

@@ -1,13 +1,12 @@
 // enhanced-monte-carlo.js - Advanced Monte Carlo Simulation Engine
 // Enhanced with regime awareness, correlation modeling, and volatility clustering
 
-import { ENHANCED_CONFIG } from './config.js';
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import { randomNormal, median, getCurrentRateRegime, getPropertyCyclePhase } from './utils.js';
 
 export class EnhancedMonteCarloEngine {
-    constructor() {
-        this.config = ENHANCED_CONFIG;
+    constructor(config) {
+        this.config = config;
         this.financialConfig = ENHANCED_FINANCIAL_CONFIG;
         this.regimeState = {
             currentEquityRegime: null,

@@ -1,13 +1,12 @@
 // risk-profiling-engine.js - Advanced Three-Dimensional Risk Assessment Engine
 // Comprehensive risk assessment covering capacity, tolerance, and requirement
 
-import { ENHANCED_CONFIG } from './config.js';
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import { formatCurrency, formatPercent } from './utils.js';
 
 export class RiskProfilingEngine {
-    constructor() {
-        this.config = ENHANCED_CONFIG;
+    constructor(config) {
+        this.config = config;
         this.financialConfig = ENHANCED_FINANCIAL_CONFIG;
 
         // Three-dimensional risk framework

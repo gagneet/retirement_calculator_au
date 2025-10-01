@@ -243,6 +243,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js" integrity="sha512-+EeCylkt9WHJk5tGJxYdecHOcXFRME7qnbsfeMsdQL6NUPYm2+uGFmyleEqsmVoap/f3dN/sc3BX9t9kHXkHHg==" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.2/jspdf.plugin.autotable.min.js" integrity="sha512-JizZOUNesiGhMcp9fsA/9W31FOat6QysBM8hSj6ir8iIANIUJ2mhko7Lo1+j0ErftmJ8SebMZLm9iielKjeIEQ==" crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- The stylesheet will be injected automatically by Webpack -->
 
     <!-- Prevent flash of unstyled content -->
@@ -589,7 +590,12 @@
         </nav>
 
         <!-- Theme Toggle Button -->
-        <div class="absolute top-8 right-0">
+        <div class="absolute top-8 right-0 flex items-center space-x-4">
+            <div class="relative">
+                <select id="version-selector" class="text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+            </div>
             <button id="themeToggle" class="theme-toggle tooltip" aria-label="Toggle theme" type="button">
                 <svg class="theme-toggle-icon sun-icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" width="20" height="20" style="display: block;" aria-hidden="false">
                     <path d="M12 7a5 5 0 100 10 5 5 0 000-10zM12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="none" stroke-width="0"/>
@@ -2270,18 +2276,13 @@
                 <div>
                     <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Navigation</h3>
                     <ul class="space-y-3">
-                        <li><a href="index.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-calculator w-4 mr-2"></i>Main Calculator
-                        </a></li>
-                        <li><a href="how-to-use.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-graduation-cap w-4 mr-2"></i>How to Use Guide
-                        </a></li>
-                        <li><a href="comparison.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-balance-scale w-4 mr-2"></i>Scenario Comparison
-                        </a></li>
-                        <li><a href="contact.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-envelope w-4 mr-2"></i>Feedback & Contact
-                        </a></li>
+                        <li><a href="index.html" class="text-gray-400 hover:text-white transition text-sm flex items-center"><i class="fas fa-calculator w-5 mr-2 text-center"></i>Main Calculator</a></li>
+                        <li><a href="how-to-use.html" class="text-gray-400 hover:text-white transition text-sm flex items-center"><i class="fas fa-book-open w-5 mr-2 text-center"></i>How to Use Guide</a></li>
+                        <li><a href="comparison.html" class="text-gray-400 hover:text-white transition text-sm flex items-center"><i class="fas fa-vials w-5 mr-2 text-center"></i>Scenario Comparison</a></li>
+                        <li><a href="contact.html" class="text-gray-400 hover:text-white transition text-sm flex items-center"><i class="fas fa-comments w-5 mr-2 text-center"></i>Feedback & Contact</a></li>
+                        <li><a href="assumptions.html" class="text-gray-400 hover:text-white transition text-sm flex items-center"><i class="fas fa-clipboard-list w-5 mr-2 text-center"></i>Assumptions</a></li>
+                        <li><a href="methodology.html" class="text-gray-400 hover:text-white transition text-sm flex items-center"><i class="fas fa-chart-bar w-5 mr-2 text-center"></i>Methodology</a></li>
+                        <li><a href="changelog.html" class="text-gray-400 hover:text-white transition text-sm flex items-center"><i class="fas fa-history w-5 mr-2 text-center"></i>Changelog</a></li>
                     </ul>
                 </div>
 
@@ -2289,21 +2290,11 @@
                 <div>
                     <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Key Features</h3>
                     <ul class="space-y-3">
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-chart-line text-blue-400 w-4 mr-2"></i>Monte Carlo Simulation
-                        </li>
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-robot text-purple-400 w-4 mr-2"></i>AI Recommendations
-                        </li>
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-home text-green-400 w-4 mr-2"></i>Property Analysis
-                        </li>
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-shield-alt text-indigo-400 w-4 mr-2"></i>Age Pension Calculator
-                        </li>
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-file-export text-orange-400 w-4 mr-2"></i>Professional Reports
-                        </li>
+                        <li class="text-gray-400 text-sm flex items-center"><i class="fas fa-dice w-5 mr-2 text-center"></i>Monte Carlo Simulation</li>
+                        <li class="text-gray-400 text-sm flex items-center"><i class="fas fa-robot w-5 mr-2 text-center"></i>AI Recommendations</li>
+                        <li class="text-gray-400 text-sm flex items-center"><i class="fas fa-home w-5 mr-2 text-center"></i>Property Analysis</li>
+                        <li class="text-gray-400 text-sm flex items-center"><i class="fas fa-landmark w-5 mr-2 text-center"></i>Age Pension Calculator</li>
+                        <li class="text-gray-400 text-sm flex items-center"><i class="fas fa-file-pdf w-5 mr-2 text-center"></i>Professional Reports</li>
                     </ul>
                 </div>
 
@@ -2311,15 +2302,9 @@
                 <div>
                     <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Support & Legal</h3>
                     <ul class="space-y-3">
-                        <li><a href="privacy.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-user-shield w-4 mr-2"></i>Privacy Policy
-                        </a></li>
-                        <li><a href="terms.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-file-contract w-4 mr-2"></i>Terms of Use
-                        </a></li>
-                        <li><button id="clearCacheBtn" class="text-gray-400 hover:text-white transition text-sm flex items-center text-left">
-                            <i class="fas fa-trash-alt w-4 mr-2"></i>Clear Cache
-                        </button></li>
+                        <li><a href="privacy.html" class="text-gray-400 hover:text-white transition text-sm flex items-center"><i class="fas fa-user-secret w-5 mr-2 text-center"></i>Privacy Policy</a></li>
+                        <li><a href="terms.html" class="text-gray-400 hover:text-white transition text-sm flex items-center"><i class="fas fa-file-contract w-5 mr-2 text-center"></i>Terms of Use</a></li>
+                        <li><button id="clearCacheBtn" class="text-gray-400 hover:text-white transition text-sm flex items-center text-left"><i class="fas fa-trash-alt w-5 mr-2 text-center"></i>Clear Cache</button></li>
                     </ul>
 
                     <!-- Quick Actions -->
@@ -2338,6 +2323,7 @@
                 <div class="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
                     <div class="text-sm text-gray-400">
                         <p>&copy; 2025 Australian Retirement Calculator. Educational tool for retirement planning guidance.</p>
+                        <p class="mt-2">Version 1.0.0 - Last Updated: 2025-09-30</p>
                     </div>
                     <div class="flex items-center space-x-4 text-xs text-gray-500">
                         <span>🇦🇺 Made for Australia</span>
@@ -2363,6 +2349,19 @@
 </div>
 
 <!-- Webpack will inject the bundled script here -->
+
+<!-- Calculation Transparency Modal -->
+<div id="calculation-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-2xl p-8 max-w-2xl w-full mx-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 id="modal-title" class="text-2xl font-bold text-gray-900 dark:text-white">Calculation Details</h2>
+            <button id="close-modal" class="text-gray-500 hover:text-gray-700">&times;</button>
+        </div>
+        <div id="modal-content" class="text-sm text-gray-700 dark:text-gray-400">
+            <!-- Content will be populated by JavaScript -->
+        </div>
+    </div>
+</div>
 
 <!-- Hidden file input for returning user data
 <input type="file" id="returning-user-file-input" class="hidden" accept=".json">

@@ -1,6 +1,5 @@
 // js/simulator.js - Financial Simulation Engine with Investment Property Support
 
-import { ENHANCED_CONFIG } from './config.js';
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import { EnhancedMonteCarloEngine } from './enhanced-monte-carlo.js';
 import {
@@ -18,9 +17,9 @@ import {
 } from './utils.js';
 
 export class RetirementSimulator {
-    constructor() {
+    constructor(config) {
         // Merge original config with enhanced financial config
-        this.config = ENHANCED_CONFIG;
+        this.config = config;
         this.financialConfig = ENHANCED_FINANCIAL_CONFIG;
         this.enhancedMonteCarloEngine = new EnhancedMonteCarloEngine();
         this.previousReturns = {

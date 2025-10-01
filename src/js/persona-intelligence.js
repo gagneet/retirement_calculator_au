@@ -1,15 +1,13 @@
 // persona-intelligence.js - AI-Powered Persona-Based Recommendation Engine
 // Provides contextual, personalized financial advice based on user profiles and situations
 
-import { ENHANCED_CONFIG } from './config.js';
-import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import { formatCurrency, formatPercent } from './utils.js';
 
 export class PersonaIntelligenceEngine {
-    constructor(simulator) {
+    constructor(simulator, config) {
         this.simulator = simulator;
-        this.config = ENHANCED_CONFIG;
-        this.financialConfig = ENHANCED_FINANCIAL_CONFIG;
+        this.config = config;
+        this.financialConfig = config.financials;
 
         // Define persona archetypes
         this.personas = this.initializePersonas();
