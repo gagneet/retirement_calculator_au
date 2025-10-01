@@ -258,7 +258,7 @@ export const ENHANCED_CONFIG = {
         },
         healthcare: {
             currentHealthcareCosts: 3500,
-            healthcareInflation: 6.1, // Based on ABS data April 2024 - health sector third highest inflation in Australia
+            healthcareInflation: 0.061, // 6.1% as decimal, based on ABS data April 2024 - health sector third highest inflation in Australia
             hasPrivateHealth: "comprehensive",
             chronicConditions: "none",
             agedCareProbability: 65,
