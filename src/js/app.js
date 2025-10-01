@@ -130,6 +130,28 @@ class RetirementCalculatorApp {
 
         // Initialize advanced engines after loading
         this.initializeAdvancedEngines();
+        this.initializeDisclaimer();
+    }
+
+    initializeDisclaimer() {
+        const disclaimerModal = document.getElementById('disclaimer-modal');
+        const acceptButton = document.getElementById('accept-disclaimer');
+
+        if (!disclaimerModal || !acceptButton) {
+            console.error('Disclaimer elements not found');
+            return;
+        }
+
+        const disclaimerAccepted = localStorage.getItem('disclaimerAccepted');
+
+        if (!disclaimerAccepted) {
+            disclaimerModal.classList.remove('hidden');
+        }
+
+        acceptButton.addEventListener('click', () => {
+            localStorage.setItem('disclaimerAccepted', 'true');
+            disclaimerModal.classList.add('hidden');
+        });
     }
 
     async initializeAdvancedEngines() {
@@ -210,7 +232,7 @@ class RetirementCalculatorApp {
 
             } else {
                 console.log('❌ No returningUserBtn found');
-                }
+            }
 
             // Check if onboarding was completed before
             if (this.onboardingWizard.isCompleted) {
@@ -354,11 +376,11 @@ class RetirementCalculatorApp {
                             <span class="font-medium">${results.userAge} years</span>
                         </div>
                         ${results.partnerAge && results.partnerAge > 0 ?
-                            `<div class="flex justify-between">
+            `<div class="flex justify-between">
                                 <span>Partner Age:</span>
                                 <span class="font-medium">${results.partnerAge} years</span>
                             </div>` : ''
-                        }
+        }
                         <div class="flex justify-between">
                             <span>Target Retirement Age:</span>
                             <span class="font-medium">${results.retirementAge}</span>

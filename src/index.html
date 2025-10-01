@@ -497,8 +497,35 @@
     </style>
 </head>
 <body>
+<!-- Comprehensive Disclaimer Modal -->
+<div id="disclaimer-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-2xl p-8 max-w-2xl w-full mx-auto transform transition-all duration-300 ease-out">
+        <div class="text-center">
+            <svg class="mx-auto h-12 w-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <h2 class="mt-4 text-2xl font-bold text-gray-900 dark:text-white">Important Information</h2>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">Please read and acknowledge the following before using this tool.</p>
+        </div>
+        <div class="mt-6 space-y-4 text-sm text-gray-700 dark:text-gray-400 max-h-60 overflow-y-auto pr-2">
+            <p><strong>Financial Well-being Tool (FWT) Classification:</strong> This tool is classified as a Financial Well-being Tool under ASIC's regulatory framework. It is designed to help you understand your retirement outlook based on the information you provide. It is not a substitute for professional financial advice.</p>
+            <p><strong>General Information Only:</strong> The information provided by this calculator is general in nature and does not take into account your personal financial situation, objectives, or needs. It should not be considered as personal financial, legal, or tax advice.</p>
+            <p><strong>AI-Powered Recommendations Disclaimer:</strong> This tool uses an AI-powered recommendation engine to provide suggestions. These recommendations are based on simplified models and the data you input. They do not constitute personal financial advice and may not be suitable for your individual circumstances. The AI's suggestions are intended for educational purposes to help you explore potential strategies.</p>
+            <p><strong>Consult a Licensed Professional:</strong> Before making any financial decisions, you should consult with a licensed financial advisor who can assess your individual situation and provide tailored advice.</p>
+            <p><strong>Limitation of Liability:</strong> The developers and providers of this tool are not liable for any loss or damage arising from your use of or reliance on the information provided.</p>
+            <p><strong>Complaints:</strong> If you have a complaint, please contact us through our <a href="contact.html" class="text-blue-500 hover:underline">feedback page</a>. If your complaint is not resolved to your satisfaction, you may be able to lodge a complaint with the Australian Financial Complaints Authority (AFCA). Visit <a href="https://www.afca.org.au" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">www.afca.org.au</a> for more information.</p>
+        </div>
+        <div class="mt-8 text-center">
+            <button id="accept-disclaimer" class="w-full bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
+                I Acknowledge & Accept
+            </button>
+        </div>
+    </div>
+</div>
 <div class="container mx-auto p-4 md:p-8">
     <header class="text-center mb-8 relative">
+        <!-- FWT Classification Statement -->
+        <div class="fwt-statement bg-blue-100 dark:bg-blue-900 border-b-2 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 text-xs text-center py-1 px-4">
+            <p>This is a <a href="httpshttps://asic.gov.au/regulatory-resources/financial-services/financial-product-advice/financial-wellbeing-tools/" target="_blank" rel="noopener noreferrer" class="font-semibold hover:underline">Financial Well-being Tool</a> intended for educational purposes only.</p>
+        </div>
         <!-- Navigation Menu -->
         <nav class="absolute top-0 left-0 z-10">
             <div class="relative">
@@ -1599,7 +1626,7 @@
                 </div>
             </div>
 
-            <!-- Buttons moved to action-buttons-container above -->
+            <!-- Buttons moved to action-buttons-container above
             <div class="mt-6 space-y-3 hidden" id="original-buttons-section-deprecated">
                 <button id="btnCalculateMain" class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
                     Calculate Enhanced Projection
@@ -1634,8 +1661,9 @@
                         </div>
                     </div>
                 </div>
+                 -->
 
-                <!-- User Data Import/Export Section -->
+                <!-- User Data Import/Export Section
                 <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <h4 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1660,6 +1688,7 @@
                     </div>
                 </div>
             </div>
+            -->
         </div>
     </div>
 
@@ -2211,8 +2240,12 @@
     </div>
 
     <!-- Comprehensive Site Footer -->
-    <footer class="bg-gray-900 text-white mt-16">
+    <footer class="site-footer bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 mt-16 border-t border-gray-200 dark:border-gray-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <!-- Footer Disclaimer -->
+            <div class="footer-disclaimer text-xs text-center text-gray-500 dark:text-gray-400 mb-8 p-4 bg-gray-200 dark:bg-gray-800 rounded-lg">
+                <p><strong>Important Disclaimer:</strong> This calculator is a Financial Well-being Tool for educational purposes only and does not constitute personal financial advice. The projections and AI-powered recommendations are based on simplified models and the data you provide. All financial decisions should be made in consultation with a licensed financial advisor. We are not liable for any decisions made based on the use of this tool. If you have a complaint, you may be able to approach the Australian Financial Complaints Authority (AFCA).</p>
+            </div>
             <!-- Main Footer Content -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
 
@@ -2330,8 +2363,9 @@
 
 <!-- Webpack will inject the bundled script here -->
 
-<!-- Hidden file input for returning user data -->
+<!-- Hidden file input for returning user data
 <input type="file" id="returning-user-file-input" class="hidden" accept=".json">
+ -->
 
 <!-- Error handling and loading timeout -->
 <script>

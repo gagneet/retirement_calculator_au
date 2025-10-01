@@ -169,19 +169,19 @@ header .absolute.top-0.right-0 {
 /* Force visibility for Edge - show/hide logic */
 /* --- Default (light theme): show sun, hide moon --- */
 #themeToggle .sun-icon {
-  opacity: 1;
-  visibility: visible;
+    opacity: 1;
+    visibility: visible;
 }
 
 #themeToggle .moon-icon {
-  opacity: 0;
-  visibility: hidden;
+    opacity: 0;
+    visibility: hidden;
 }
 
 /* Dark mode icon states */
 [data-theme="dark"] #themeToggle .sun-icon {
-  opacity: 0;
-  visibility: hidden;
+    opacity: 0;
+    visibility: hidden;
 }
 
 [data-theme="dark"] #themeToggle .moon-icon {
@@ -1265,6 +1265,72 @@ select:focus {
 [data-theme="dark"] #riskToleranceTooltip {
     background-color: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
+}
+
+/* Disclaimer Modal Styles */
+#disclaimer-modal {
+    transition: opacity 0.3s ease-in-out;
+}
+
+#disclaimer-modal .dark\\:bg-gray-900 {
+    background-color: #1f2937;
+}
+
+#disclaimer-modal h2 {
+    color: #111827;
+}
+[data-theme="dark"] #disclaimer-modal h2 {
+    color: #ffffff;
+}
+
+#disclaimer-modal p {
+    color: #4b5563;
+}
+[data-theme="dark"] #disclaimer-modal p {
+    color: #d1d5db;
+}
+
+#disclaimer-modal a {
+    color: #3b82f6;
+}
+
+/* FWT Classification Statement Styles */
+.fwt-statement {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    font-size: 0.8rem;
+    padding: 0.25rem 0;
+}
+
+/* Footer Disclaimer Styles */
+.site-footer {
+    background-color: #f9fafb;
+}
+[data-theme="dark"] .site-footer {
+    background-color: #111827;
+}
+
+.footer-disclaimer {
+    background-color: #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    font-size: 0.75rem;
+    color: #4b5563;
+}
+[data-theme="dark"] .footer-disclaimer {
+    background-color: #374151;
+    color: #9ca3af;
+}
+
+/* AI Disclaimer Styles */
+.recommendation-card.disclaimer {
+    background-color: #eff6ff;
+    border-left-color: #3b82f6;
+}
+[data-theme="dark"] .recommendation-card.disclaimer {
+    background-color: #1e40af;
+    border-left-color: #60a5fa;
 }
 
 /* Enhanced tooltip styling for cross-browser compatibility */
