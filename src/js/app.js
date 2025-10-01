@@ -4902,7 +4902,7 @@ class RetirementCalculatorApp {
             const importedData = await importUserData();
             if (importedData) {
                 // Populate the form with imported data
-                populateFormFromData(importedData.userData);
+                populateFormFromData(importedData.userData, importedData.version);
 
                 // Trigger currency and percentage input formatting
                 initializeCurrencyInputs();

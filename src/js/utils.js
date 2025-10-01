@@ -1307,11 +1307,48 @@ export const exportToJSON = (data, filename = 'retirement-data.json') => {
 
 // User Data Export/Import Functionality
 export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
+    // Create a deep copy to avoid modifying the original inputs object
+    const formattedInputs = JSON.parse(JSON.stringify(inputs));
+
+    const currencyFields = [
+        'yourSalary', 'partnerSalary', 'yourCurrentSuper', 'partnerCurrentSuper',
+        'currentSavings', 'currentStocks', 'monthlyStockContribution', 'homeValue',
+        'mortgageBalance', 'monthlyMortgagePayment', 'investmentPropertyValue',
+        'investmentPropertyLoan', 'weeklyRentalIncome', 'annualPropertyExpenses',
+        'trustNetAssets', 'trustAnnualDistributions', 'currentHealthcareCosts',
+        'agedCareAnnualCost', 'asfaComfortable', 'agePensionMax',
+        'pensionAssetThreshold', 'pensionAssetLimit', 'pensionIncomeThreshold'
+    ];
+
+    const percentageFields = [
+        'percentIncomeSaved', 'mortgageRate', 'investmentPropertyRate',
+        'propertyGrowthRate', 'capitalGainsTaxRate', 'healthcareInflation',
+        'agedCareProbability', 'inflation', 'investmentReturn', 'returnDeclineRate',
+        'savingsReturn', 'superReturn', 'salaryGrowthRate', 'leanYearsReduction',
+        'dividendYield', 'frankingRate', 'returnVolatility',
+        'shockProbability', 'shockMagnitude'
+    ];
+
+    // Format currency and percentage fields
+    for (const key in formattedInputs) {
+        if (formattedInputs.hasOwnProperty(key)) {
+            const value = parseFloat(formattedInputs[key]);
+            if (!isNaN(value)) {
+                if (currencyFields.includes(key)) {
+                    formattedInputs[key] = parseFloat(value.toFixed(2));
+                } else if (percentageFields.includes(key)) {
+                    // Store percentages as decimals
+                    formattedInputs[key] = parseFloat((value / 100).toFixed(4));
+                }
+            }
+        }
+    }
+
     const exportData = {
         version: '3.0',
         exportDate: new Date().toISOString(),
         scenarioName: scenarioName,
-        userData: inputs,
+        userData: formattedInputs,
         metadata: {
             calculatorVersion: '2025.3',
             description: 'Australian Retirement Calculator - User Input Data',
@@ -1377,7 +1414,8 @@ export const importUserData = () => {
                             userData: data.userData,
                             scenarioName: data.scenarioName,
                             exportDate: data.exportDate,
-                            metadata: data.metadata
+                            metadata: data.metadata,
+                            version: data.version
                         });
                     } else {
                         // User cancelled
@@ -1401,10 +1439,19 @@ export const importUserData = () => {
     });
 };
 
-export const populateFormFromData = (userData) => {
+export const populateFormFromData = (userData, version = '2.0') => {
     let fieldsPopulated = 0;
     let fieldsSkipped = 0;
     const skippedFields = [];
+
+    const percentageFields = [
+        'percentIncomeSaved', 'mortgageRate', 'investmentPropertyRate',
+        'propertyGrowthRate', 'capitalGainsTaxRate', 'healthcareInflation',
+        'agedCareProbability', 'inflation', 'investmentReturn', 'returnDeclineRate',
+        'savingsReturn', 'superReturn', 'salaryGrowthRate', 'leanYearsReduction',
+        'dividendYield', 'frankingRate', 'returnVolatility',
+        'shockProbability', 'shockMagnitude'
+    ];
 
     console.log('Populating form with userData:', userData);
 
@@ -1427,7 +1474,6 @@ export const populateFormFromData = (userData) => {
             } else {
                 // Handle field mapping for legacy/alternative field names
                 let targetKey = key;
-                let targetValue = value;
 
                 // Map returnRate to specific investment return fields
                 if (key === 'returnRate') {
@@ -1453,17 +1499,8 @@ export const populateFormFromData = (userData) => {
                     } else if (element.type === 'select-one') {
                         element.value = value;
                     } else {
-                        // Handle percentage values (convert back from decimal)
-                        const percentageFields = [
-                            'Rate', 'inflation', 'Return', 'percentIncomeSaved', 'Volatility',
-                            'Growth', 'Probability', 'Magnitude', 'franking', 'salaryGrowthRate',
-                            'returnDeclineRate', 'healthcareInflation', 'propertyGrowthRate',
-                            'capitalGainsTaxRate', 'dividendYield', 'frankingRate', 'returnVolatility'
-                        ];
-
-                        if (percentageFields.some(field => key.includes(field)) && typeof value === 'number') {
-                            // Only convert if value is a decimal (less than 1 for rates)
-                            if (value < 1 && value > 0) {
+                        if (percentageFields.includes(key) && typeof value === 'number') {
+                            if (version === '3.0') {
                                 element.value = (value * 100).toFixed(2);
                             } else {
                                 element.value = value;
