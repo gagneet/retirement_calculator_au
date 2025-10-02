@@ -1,3 +1,4 @@
+import { trackButtonClick, trackDataAction } from './analytics.js';
 import '../css/styles.css';
 // js/app.js - Main Application Controller
 
@@ -4995,6 +4996,7 @@ class RetirementCalculatorApp {
         const inputs = this.collectInputs();
         const scenarioName = prompt('Enter a name for this scenario:', 'My Retirement Plan') || 'My Retirement Plan';
         exportUserData(inputs, scenarioName);
+        trackDataAction('Export User Data');
     }
 
     async importUserInputs() {
@@ -5032,6 +5034,7 @@ class RetirementCalculatorApp {
                 this.calculateRetirement(false);
 
                 showNotification(`Successfully loaded scenario: ${importedData.scenarioName || 'Imported Data'}`, 'success');
+                trackDataAction('Import User Data');
             }
         } catch (error) {
             showNotification(error.message || 'Failed to import data.', 'error');
@@ -5114,6 +5117,16 @@ class RetirementCalculatorApp {
     }
 
     // Event listeners
+    instrumentClick(buttonId, eventLabel, handler) {
+        const button = $(buttonId);
+        if (button) {
+            button.addEventListener('click', () => {
+                trackButtonClick(eventLabel);
+                handler.call(this);
+            });
+        }
+    }
+
     setupEventListeners() {
         console.log('setupEventListeners called!');
         // Prevent duplicate event listener setup
@@ -5123,112 +5136,26 @@ class RetirementCalculatorApp {
         }
         this.eventListenersSetup = true;
 
-        // Main calculation button
-        const btnCalculate = $('btnCalculate');
-        if (btnCalculate) {
-            btnCalculate.addEventListener('click', () => this.calculateRetirement(true));
-        }
-
-        // Recommendation Engine button
-        const btnGenerateRecommendations = $('btnGenerateRecommendations');
-        if (btnGenerateRecommendations) {
-            btnGenerateRecommendations.addEventListener('click', () => this.runRecommendationEngine());
-        }
-
-        // Generate Suggestions button
-        const btnGenerateSuggestions = $('generateSuggestionsBtn');
-        if (btnGenerateSuggestions) {
-            btnGenerateSuggestions.addEventListener('click', () => this.generatePersonalizedSuggestions());
-        }
-
-        // Generate Overseas Scenarios button
-        const btnGenerateOverseasScenarios = $('generateOverseasScenarios');
-        if (btnGenerateOverseasScenarios) {
-            btnGenerateOverseasScenarios.addEventListener('click', () => this.generateOverseasScenarios());
-        }
-
-        // Monte Carlo button
-        const btnMonteCarlo = $('btnMonteCarlo');
-        if (btnMonteCarlo) {
-            btnMonteCarlo.addEventListener('click', () => this.runMonteCarloSimulation());
-        }
-
-        // Scenario comparison button
-        const btnScenarioMatrix = $('btnScenarioMatrix');
-        if (btnScenarioMatrix) {
-            btnScenarioMatrix.addEventListener('click', () => this.runScenarioComparison());
-        }
-
-        // Healthcare analysis button
-        const btnHealthcareAnalysis = $('btnHealthcareAnalysis');
-        if (btnHealthcareAnalysis) {
-            btnHealthcareAnalysis.addEventListener('click', () => this.runHealthcareAnalysis());
-        }
-
-        // Risk profiling button
-        const btnRiskProfiling = $('btnRiskProfiling');
-        if (btnRiskProfiling) {
-            btnRiskProfiling.addEventListener('click', () => this.runAdvancedRiskProfiling());
-        }
-
-        // Dynamic allocation button
-        const btnDynamicAllocation = $('btnDynamicAllocation');
-        if (btnDynamicAllocation) {
-            btnDynamicAllocation.addEventListener('click', () => this.runDynamicAllocationAnalysis());
-        }
-
-        // Stress test button
-        const btnStressTest = $('btnStressTest');
-        if (btnStressTest) {
-            btnStressTest.addEventListener('click', () => this.runStressTest());
-        }
-
-        // Retirement solver button
-        const btnRetirementSolver = $('btnRetirementSolver');
-        if (btnRetirementSolver) {
-            btnRetirementSolver.addEventListener('click', () => this.runRetirementSolver());
-        }
-
-        // Scenario comparison button
-        const btnScenarioComparison = $('btnScenarioComparison');
-        if (btnScenarioComparison) {
-            btnScenarioComparison.addEventListener('click', () => {
-                // Initialize scenario comparison tab
-                this.initializeScenarioComparison();
-                // TODO: Save current inputs before navigating
-                // This removes the navigation to new page for Scenario's
-                // this.saveInputs();
-                // Navigate to comparison page
-                // window.location.href = 'comparison.html';
-            });
-        }
-
-        // Reset to defaults button
-        const btnResetDefaults = $('btnResetDefaults');
-        if (btnResetDefaults) {
-            btnResetDefaults.addEventListener('click', () => this.resetToDefaults());
-        }
-
-        // Clear Cache button
-        const btnClearCache = $('clearCacheBtn');
-        if (btnClearCache) {
-            btnClearCache.addEventListener('click', () => this.clearCache());
-        }
+        // Main calculation buttons
+        this.instrumentClick('btnCalculate', 'Calculate Enhanced Projection', this.calculateRetirement.bind(this, true));
+        this.instrumentClick('btnGenerateRecommendations', 'Generate AI Recommendations', this.runRecommendationEngine);
+        this.instrumentClick('generateSuggestionsBtn', 'Generate Personalized Suggestions', this.generatePersonalizedSuggestions);
+        this.instrumentClick('generateOverseasScenarios', 'Generate Overseas Scenarios', this.generateOverseasScenarios);
+        this.instrumentClick('btnMonteCarlo', 'Run Enhanced Monte Carlo', this.runMonteCarloSimulation);
+        this.instrumentClick('btnScenarioMatrix', 'Compare Strategies', this.runScenarioComparison);
+        this.instrumentClick('btnHealthcareAnalysis', 'Healthcare Costs', this.runHealthcareAnalysis);
+        this.instrumentClick('btnRiskProfiling', 'Risk Analysis', this.runAdvancedRiskProfiling);
+        this.instrumentClick('btnDynamicAllocation', 'Asset Allocation', this.runDynamicAllocationAnalysis);
+        this.instrumentClick('btnStressTest', 'Run Stress Test', this.runStressTest);
+        this.instrumentClick('btnRetirementSolver', 'When Can I Retire?', this.runRetirementSolver);
+        this.instrumentClick('btnScenarioComparison', 'Compare Scenarios', this.initializeScenarioComparison);
+        this.instrumentClick('btnResetDefaults', 'Reset to Defaults', this.resetToDefaults);
+        this.instrumentClick('clearCacheBtn', 'Clear Cache', this.clearCache);
 
         // Scenario comparison controls
-        const btnSelectAllScenarios = $('btnSelectAllScenarios');
-        const btnDeselectAllScenarios = $('btnDeselectAllScenarios');
-        const btnRunComparison = $('btnRunComparison');
-
-        if (btnSelectAllScenarios) {
-            btnSelectAllScenarios.addEventListener('click', () => this.toggleAllScenarios(true));
-        }
-        if (btnDeselectAllScenarios) {
-            btnDeselectAllScenarios.addEventListener('click', () => this.toggleAllScenarios(false));
-        }
-        if (btnRunComparison) {
-            btnRunComparison.addEventListener('click', () => this.runScenarioComparison());
-        }
+        this.instrumentClick('btnSelectAllScenarios', 'Select All Scenarios', () => this.toggleAllScenarios(true));
+        this.instrumentClick('btnDeselectAllScenarios', 'Deselect All Scenarios', () => this.toggleAllScenarios(false));
+        this.instrumentClick('btnRunComparison', 'Run Comparison', this.runScenarioComparison);
 
         // Export dropdown functionality - delay to ensure DOM is ready
         setTimeout(() => {

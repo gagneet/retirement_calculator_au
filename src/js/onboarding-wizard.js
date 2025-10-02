@@ -1,3 +1,4 @@
+import { trackOnboardingChoice } from './analytics.js';
 // js/onboarding-wizard.js - User Onboarding Wizard Component
 // 5-step wizard for collecting initial retirement planning data
 
@@ -400,6 +401,7 @@ export class OnboardingWizard {
     }
 
     startNewUser() {
+        trackOnboardingChoice('New User');
         $('onboarding-initial').classList.add('hidden');
         this.showAvatarSelection();
     }
@@ -520,6 +522,7 @@ export class OnboardingWizard {
     }
 
     async loadExistingUser() {
+        trackOnboardingChoice('Returning User');
         // Use the app's import functionality which includes confirmation dialog
         // and proper data handling
         if (window.app && window.app.importUserInputs) {

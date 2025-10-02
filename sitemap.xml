@@ -1,51 +1,66 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
-        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <!-- Main Calculator Page -->
     <url>
         <loc>https://retirement.gagneet.com/</loc>
-        <lastmod>2024-01-15</lastmod>
+        <lastmod>2025-10-01</lastmod>
         <changefreq>monthly</changefreq>
         <priority>1.0</priority>
     </url>
-
-    <!-- Individual Calculator Sections (potential future pages) -->
+    <!-- How to Use Guide -->
     <url>
-        <loc>https://retirement.gagneet.com/#summary</loc>
-        <lastmod>2024-01-15</lastmod>
+        <loc>https://retirement.gagneet.com/how-to-use.html</loc>
+        <lastmod>2025-10-01</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <!-- Scenario Comparison Tool -->
+    <url>
+        <loc>https://retirement.gagneet.com/comparison.html</loc>
+        <lastmod>2025-10-01</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
-
+    <!-- Methodology Page -->
     <url>
-        <loc>https://retirement.gagneet.com/#recommendations</loc>
-        <lastmod>2024-01-15</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.8</priority>
-    </url>
-
-    <url>
-        <loc>https://retirement.gagneet.com/#projection</loc>
-        <lastmod>2024-01-15</lastmod>
-        <changefreq>monthly</changefreq>
+        <loc>https://retirement.gagneet.com/methodology.html</loc>
+        <lastmod>2025-10-01</lastmod>
+        <changefreq>yearly</changefreq>
         <priority>0.7</priority>
     </url>
-
+    <!-- Assumptions Page -->
     <url>
-        <loc>https://retirement.gagneet.com/#property</loc>
-        <lastmod>2024-01-15</lastmod>
-        <changefreq>monthly</changefreq>
+        <loc>https://retirement.gagneet.com/assumptions.html</loc>
+        <lastmod>2025-10-01</lastmod>
+        <changefreq>yearly</changefreq>
         <priority>0.7</priority>
     </url>
-
+    <!-- Contact Page -->
     <url>
-        <loc>https://retirement.gagneet.com/#charts</loc>
-        <lastmod>2024-01-15</lastmod>
-        <changefreq>monthly</changefreq>
+        <loc>https://retirement.gagneet.com/contact.html</loc>
+        <lastmod>2025-10-01</lastmod>
+        <changefreq>yearly</changefreq>
         <priority>0.6</priority>
     </url>
-
+    <!-- Changelog Page -->
+    <url>
+        <loc>https://retirement.gagneet.com/changelog.html</loc>
+        <lastmod>2025-10-01</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+    <!-- Privacy Policy Page -->
+    <url>
+        <loc>https://retirement.gagneet.com/privacy.html</loc>
+        <lastmod>2025-10-01</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <!-- Terms of Use Page -->
+    <url>
+        <loc>https://retirement.gagneet.com/terms.html</loc>
+        <lastmod>2025-10-01</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
 </urlset>

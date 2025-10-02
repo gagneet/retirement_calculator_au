@@ -98,5 +98,20 @@ module.exports = {
             filename: 'how-to-use.html',
             chunks: [], // No webpack JS chunks needed - uses CDN and inline scripts
         }),
+        new HtmlWebpackPlugin({
+            template: './src/assumptions.html',
+            filename: 'assumptions.html',
+            chunks: [],
+        }),
+        new HtmlWebpackPlugin({
+            template: './src/changelog.html',
+            filename: 'changelog.html',
+            chunks: [],
+        }),
+        new HtmlWebpackPlugin({
+            template: './src/methodology.html',
+            filename: 'methodology.html',
+            chunks: [],
+        }),
     ],
 };
