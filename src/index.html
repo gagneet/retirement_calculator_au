@@ -2919,6 +2919,156 @@
     });
 </script>
 
+<!-- Financial Dependents Interactive Functionality -->
+<script>
+    // Global functions for dependent details management
+    function showDependentDetails() {
+        const detailsSection = document.getElementById('dependentDetailsSection');
+        const summarySection = document.getElementById('dependentSummarySection');
+
+        if (detailsSection) {
+            detailsSection.classList.remove('hidden');
+        }
+        if (summarySection) {
+            summarySection.classList.add('hidden');
+        }
+    }
+
+    function collapseDependentDetails() {
+        const detailsSection = document.getElementById('dependentDetailsSection');
+        const summarySection = document.getElementById('dependentSummarySection');
+
+        if (detailsSection) {
+            detailsSection.classList.add('hidden');
+        }
+
+        // Update summary and show it
+        updateDependentSummary();
+
+        if (summarySection) {
+            summarySection.classList.remove('hidden');
+        }
+    }
+
+    function showAllCategories() {
+        // Show all dependent category rows
+        const categoryRows = document.querySelectorAll('.dependent-category-row');
+        categoryRows.forEach(row => {
+            row.style.display = 'grid';
+        });
+    }
+
+    function updateDependentSummary() {
+        const summaryText = document.getElementById('dependentSummaryText');
+        if (!summaryText) return;
+
+        // Calculate total dependents and contribution
+        let totalCount = 0;
+        let totalMonthlyContribution = 0;
+        const categories = [];
+
+        // Define category data with their monthly costs
+        const categoryData = [
+            { id: 'childrenUnder5', name: 'Children (0-5)', monthlyCost: 4050 },
+            { id: 'childrenPrimary', name: 'Children (6-12)', monthlyCost: 800 },
+            { id: 'teenagers', name: 'Teenagers (13-18)', monthlyCost: 600 },
+            { id: 'adultDisabled', name: 'Adult w/ Disabilities', monthlyCost: 1000 },
+            { id: 'elderlyIndependent', name: 'Elderly (Independent)', monthlyCost: 500 },
+            { id: 'elderlyFullTime', name: 'Elderly (Full-time care)', monthlyCost: 4500 },
+            { id: 'adultUnemployed', name: 'Adult (Unemployed)', monthlyCost: 800 }
+        ];
+
+        categoryData.forEach(cat => {
+            const countEl = document.getElementById(cat.id);
+            const percentEl = document.getElementById(cat.id + 'Percent');
+
+            if (countEl && percentEl) {
+                const count = parseInt(countEl.value) || 0;
+                const percent = parseInt(percentEl.value) || 0;
+
+                if (count > 0) {
+                    totalCount += count;
+                    const contribution = (cat.monthlyCost * count * percent) / 100;
+                    totalMonthlyContribution += contribution;
+                    categories.push(`${count} ${cat.name}`);
+                }
+            }
+        });
+
+        // Update the summary text
+        if (totalCount === 0) {
+            summaryText.textContent = 'No dependents configured. Click to add.';
+        } else {
+            summaryText.innerHTML = `
+                <strong>${totalCount}</strong> dependent${totalCount > 1 ? 's' : ''}
+                (${categories.slice(0, 2).join(', ')}${categories.length > 2 ? ', +' + (categories.length - 2) + ' more' : ''})<br>
+                <span class="text-green-600 font-semibold">Your monthly contribution: $${Math.round(totalMonthlyContribution).toLocaleString()}</span>
+            `;
+        }
+    }
+
+    // Initialize dependent details functionality when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        const totalDependentsInput = document.getElementById('totalDependentsCount');
+        const detailsSection = document.getElementById('dependentDetailsSection');
+        const summarySection = document.getElementById('dependentSummarySection');
+
+        // Show/hide details section based on total count
+        if (totalDependentsInput) {
+            totalDependentsInput.addEventListener('input', function() {
+                const count = parseInt(this.value) || 0;
+
+                if (count > 0) {
+                    if (detailsSection) {
+                        detailsSection.classList.remove('hidden');
+                    }
+                    if (summarySection) {
+                        summarySection.classList.add('hidden');
+                    }
+                } else {
+                    if (detailsSection) {
+                        detailsSection.classList.add('hidden');
+                    }
+                    if (summarySection) {
+                        summarySection.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
+        // Add event listeners to all dependent category inputs to prevent auto-collapse
+        const categoryInputs = document.querySelectorAll('.dependent-category-row input[type="number"]');
+        categoryInputs.forEach(input => {
+            // Use 'input' event instead of 'change' for real-time updates
+            input.addEventListener('input', function() {
+                // Update summary in real-time but don't collapse
+                updateDependentSummary();
+
+                // Only show/hide rows based on whether they have values
+                const row = this.closest('.dependent-category-row');
+                if (row) {
+                    const countInput = row.querySelector('input[type="number"]:first-of-type');
+                    const count = parseInt(countInput.value) || 0;
+
+                    // Keep row visible if it has a count
+                    if (count > 0) {
+                        row.style.display = 'grid';
+                    }
+                }
+            });
+
+            // Prevent auto-collapse on blur
+            input.addEventListener('blur', function() {
+                // Just update the summary, don't collapse
+                updateDependentSummary();
+            });
+        });
+
+        // Initialize summary on page load
+        updateDependentSummary();
+    });
+</script>
+
 <!-- ACTION DETAIL MODAL (for outcome view action implementation steps) -->
 <div id="action-detail-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 9999; align-items: center; justify-content: center;">
     <div style="background: var(--bg-secondary); border-radius: 16px; padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
