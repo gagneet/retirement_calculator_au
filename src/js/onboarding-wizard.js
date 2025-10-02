@@ -1819,6 +1819,9 @@ export class OnboardingWizard {
         this.updateDataFromForms();
         this.isCompleted = true;
 
+        // Mark that user has completed onboarding (for homepage)
+        localStorage.setItem('hasVisitedCalculator', 'true');
+
         // Save the onboarding data
         this.saveProgress();
 
@@ -1848,6 +1851,14 @@ export class OnboardingWizard {
 
         // Populate the Advanced Calculator with onboarding data
         this.populateAdvancedCalculator();
+
+        // Trigger calculation to populate outcome tab
+        // Wait a bit for fields to be populated, then run calculation
+        setTimeout(() => {
+            if (window.app && window.app.calculateRetirement) {
+                window.app.calculateRetirement(false); // Don't scroll to results
+            }
+        }, 500);
     }
 
     populateEnhancedSummary() {
