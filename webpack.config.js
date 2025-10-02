@@ -71,7 +71,12 @@ module.exports = {
         new HtmlWebpackPlugin({
             template: './src/index.html',
             filename: 'index.html',
-            chunks: ['main'],
+            chunks: [], // Simple start page with inline JavaScript
+        }),
+        new HtmlWebpackPlugin({
+            template: './src/advanced.html',
+            filename: 'advanced.html',
+            chunks: ['main'], // Advanced calculator uses main app.js
         }),
         new HtmlWebpackPlugin({
             template: './src/contact.html',

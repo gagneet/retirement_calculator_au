@@ -766,8 +766,11 @@ class RetirementCalculatorApp {
                 this.runOutcomeCalculation(inputs);
             } catch (outcomeError) {
                 console.error('Outcome calculation error:', outcomeError);
-                // Allow continuing even if outcome calculation fails
-                showNotification('Could not generate outcome-based recommendations.', 'warning');
+                console.error('Error details:', outcomeError.message, outcomeError.stack);
+                // Only show notification if this isn't the initial calculation with default data
+                if (inputs.yourCurrentAge && inputs.yourCurrentAge !== this.config.DEFAULTS.personal.yourCurrentAge) {
+                    showNotification('Could not generate outcome-based recommendations.', 'warning');
+                }
             }
 
             // Update UI components with individual error handling
@@ -814,13 +817,13 @@ class RetirementCalculatorApp {
             }
 
 
-            // Show outcome tab and conditionally scroll to results
+            // Show enhanced summary tab and conditionally scroll to results
             if (shouldScrollToResults) {
-                showTab('outcome', true);
+                showTab('summary', true);
                 showNotification('Calculation completed successfully', 'success');
             } else {
                 // For initial load, just switch tabs without scrolling or notification
-                showTab('outcome', false);
+                showTab('summary', false);
             }
 
         } catch (error) {
@@ -1628,6 +1631,10 @@ class RetirementCalculatorApp {
             this.displayScenarioMatrix(matrixResults);
 
             updateProgress(100, "Scenario analysis complete!");
+
+            // Switch to scenarios tab to show comparison results
+            showTab('scenarios', true);
+            showNotification('Scenario comparison complete!', 'success');
             setTimeout(() => updateProgress(0), 1000);
 
         } catch (error) {
@@ -1895,6 +1902,10 @@ class RetirementCalculatorApp {
             });
 
             updateProgress(100, "Healthcare analysis complete!");
+
+            // Switch to summary tab to show results and scroll to them
+            showTab('summary', true);
+            showNotification('Healthcare analysis complete!', 'success');
             setTimeout(() => updateProgress(0), 1000);
 
         } catch (error) {
@@ -1937,6 +1948,10 @@ class RetirementCalculatorApp {
             this.displayAdvancedRiskProfile(riskProfile);
 
             updateProgress(100, "Risk analysis complete!");
+
+            // Switch to risk analysis tab to show results
+            showTab('riskAnalysis', true);
+            showNotification('Risk analysis complete!', 'success');
             setTimeout(() => updateProgress(0), 1000);
 
         } catch (error) {
@@ -1989,6 +2004,10 @@ class RetirementCalculatorApp {
             this.displayDynamicAllocationStrategy(allocationStrategy);
 
             updateProgress(100, "Allocation analysis complete!");
+
+            // Switch to charts tab to show allocation results
+            showTab('charts', true);
+            showNotification('Asset allocation analysis complete!', 'success');
             setTimeout(() => updateProgress(0), 1000);
 
         } catch (error) {
@@ -5460,11 +5479,19 @@ class RetirementCalculatorApp {
 
     // Initial calculation
     performInitialCalculation() {
-        // Delay initial calculation to ensure DOM is ready
-        // Don't scroll to results on initial load - just populate data silently
-        setTimeout(() => {
-            this.calculateRetirement(false);
-        }, 100);
+        // Skip initial calculation if coming from onboarding or first visit
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromOnboarding = urlParams.get('onboarding') === 'true';
+        const hasCompleted = localStorage.getItem('hasVisitedCalculator') === 'true';
+
+        // Only run initial calculation if NOT coming from onboarding
+        if (!fromOnboarding && hasCompleted) {
+            // Delay initial calculation to ensure DOM is ready
+            // Don't scroll to results on initial load - just populate data silently
+            setTimeout(() => {
+                this.calculateRetirement(false);
+            }, 100);
+        }
     }
 
     // Risk tolerance display methods
@@ -6205,28 +6232,48 @@ class RetirementCalculatorApp {
     runOutcomeCalculation(inputs) {
         console.log('🎯 Running outcome-based calculation...');
 
-        // Initialize outcome engine
-        this.outcomeEngine = new OutcomeEngine(inputs);
-        const outcome = this.outcomeEngine.calculateConservativeOutcome();
-        this.currentOutcome = outcome;
+        // Validate inputs before running outcome calculation
+        const currentAge = inputs.currentAge || inputs.yourCurrentAge || inputs.age || 0;
+        const retirementAge = inputs.retirementAge || 67;
 
-        // Generate action suggestions
-        this.actionGenerator = new ActionGenerator(inputs, outcome);
-        const actions = this.actionGenerator.generateActions();
+        // Skip outcome calculation if critical data is missing or invalid
+        if (currentAge <= 0 || currentAge >= 100) {
+            console.warn('⚠️ Skipping outcome calculation: Invalid current age', currentAge);
+            return;
+        }
 
-        // Initialize What-If engine
-        this.whatIfEngine = new WhatIfEngine(inputs, outcome);
+        if (retirementAge <= currentAge) {
+            console.warn('⚠️ Skipping outcome calculation: Retirement age must be greater than current age', {retirementAge, currentAge});
+            return;
+        }
 
-        // Run resilience scenarios
-        this.resilienceEngine = new ResilienceScenarioEngine(inputs, outcome);
-        const resilience = this.resilienceEngine.runAllScenarios();
-        this.currentResilience = resilience;
+        try {
+            // Initialize outcome engine
+            this.outcomeEngine = new OutcomeEngine(inputs);
+            const outcome = this.outcomeEngine.calculateConservativeOutcome();
+            this.currentOutcome = outcome;
 
-        // Display outcome results
-        this.displayOutcomeResults(outcome, actions, resilience);
+            // Generate action suggestions
+            this.actionGenerator = new ActionGenerator(inputs, outcome);
+            const actions = this.actionGenerator.generateActions();
 
-        console.log('✅ Outcome calculation completed:', outcome);
-        console.log('🛡️ Resilience analysis completed:', resilience);
+            // Initialize What-If engine
+            this.whatIfEngine = new WhatIfEngine(inputs, outcome);
+
+            // Run resilience scenarios
+            this.resilienceEngine = new ResilienceScenarioEngine(inputs, outcome);
+            const resilience = this.resilienceEngine.runAllScenarios();
+            this.currentResilience = resilience;
+
+            // Display outcome results
+            this.displayOutcomeResults(outcome, actions, resilience);
+
+            console.log('✅ Outcome calculation completed:', outcome);
+            console.log('🛡️ Resilience analysis completed:', resilience);
+        } catch (error) {
+            console.error('❌ Error in outcome calculation:', error);
+            throw error; // Re-throw to be caught by the outer try-catch
+        }
     }
 
     displayOutcomeResults(outcome, actions, resilience) {
