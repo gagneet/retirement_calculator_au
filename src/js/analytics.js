@@ -6,22 +6,31 @@
  */
 
 /**
- * Sends a custom event to Google Analytics.
+ * Sends a custom event to Google Analytics (GA4).
  *
- * @param {string} action - The action for the event (e.g., 'click').
+ * @param {string} action - The event name (e.g., 'click').
  * @param {string} category - The category of the event (e.g., 'Button').
  * @param {string} label - The label for the event (e.g., 'Calculate Projection').
  * @param {number} [value] - An optional numeric value for the event.
  */
 export function trackEvent(action, category, label, value) {
+    // Validate and sanitize inputs
+    if (typeof action !== 'string' || typeof category !== 'string' || typeof label !== 'string') {
+        console.warn('Invalid analytics parameters: action, category, and label must be strings');
+        return;
+    }
+
+    // Sanitize strings to prevent injection
+    const sanitizedAction = action.replace(/[<>\"'&]/g, '').substring(0, 100);
+    const sanitizedCategory = category.replace(/[<>\"'&]/g, '').substring(0, 100);
+    const sanitizedLabel = label.replace(/[<>\"'&]/g, '').substring(0, 500);
+
     if (typeof window.gtag === 'function') {
-        window.gtag('event', action, {
-            'event_category': category,
-            'event_label': label,
-            'value': value
+        window.gtag('event', sanitizedAction, {
+            'category': sanitizedCategory,
+            'label': sanitizedLabel,
+            'value': typeof value === 'number' ? value : undefined
         });
-    } else {
-        console.log(`GA Event (blocked): Action=${action}, Category=${category}, Label=${label}`);
     }
 }
 
@@ -40,7 +49,7 @@ export function trackButtonClick(buttonName) {
  * @param {string} choice - The choice made by the user (e.g., 'New User', 'Returning User').
  */
 export function trackOnboardingChoice(choice) {
-    trackEvent('onboarding', 'User Flow', choice);
+    trackEvent('onboarding_choice', 'User Flow', choice);
 }
 
 /**
