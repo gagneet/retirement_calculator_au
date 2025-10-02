@@ -595,21 +595,21 @@ class RetirementCalculatorApp {
             // Enhanced dependent details
             dependentDetails: {
                 childrenUnder5: safeGetValue('childrenUnder5', 0),
-                childrenUnder5Percent: safeGetValue('childrenUnder5Percent', 70),
+                childrenUnder5Percent: safeGetValue('childrenUnder5Percent', 70) / 100,
                 childrenPrimary: safeGetValue('childrenPrimary', 0),
-                childrenPrimaryPercent: safeGetValue('childrenPrimaryPercent', 70),
+                childrenPrimaryPercent: safeGetValue('childrenPrimaryPercent', 70) / 100,
                 teenagers: safeGetValue('teenagers', 0),
-                teenagersPercent: safeGetValue('teenagersPercent', 80),
+                teenagersPercent: safeGetValue('teenagersPercent', 80) / 100,
                 adultDisabled: safeGetValue('adultDisabled', 0),
-                adultDisabledPercent: safeGetValue('adultDisabledPercent', 20),
+                adultDisabledPercent: safeGetValue('adultDisabledPercent', 20) / 100,
                 elderlyIndependent: safeGetValue('elderlyIndependent', 0),
-                elderlyIndependentPercent: safeGetValue('elderlyIndependentPercent', 50),
+                elderlyIndependentPercent: safeGetValue('elderlyIndependentPercent', 50) / 100,
                 elderlyHomeCare: safeGetValue('elderlyHomeCare', 0),
-                elderlyHomeCarePercent: safeGetValue('elderlyHomeCarePercent', 30),
+                elderlyHomeCarePercent: safeGetValue('elderlyHomeCarePercent', 30) / 100,
                 elderlyResidential: safeGetValue('elderlyResidential', 0),
-                elderlyResidentialPercent: safeGetValue('elderlyResidentialPercent', 40),
+                elderlyResidentialPercent: safeGetValue('elderlyResidentialPercent', 40) / 100,
                 otherDependents: safeGetValue('otherDependents', 0),
-                otherDependentsPercent: safeGetValue('otherDependentsPercent', 60)
+                otherDependentsPercent: safeGetValue('otherDependentsPercent', 60) / 100
             },
 
             // Financial details
@@ -663,12 +663,12 @@ class RetirementCalculatorApp {
             useGlidePath: safeGetChecked('useGlidePath', config.allocation.useGlidePath),
             glidePathRule: safeGetSelectValue('glidePathRule', config.allocation.glidePathRule),
             frankingCreditBenefit: safeGetValue('frankingCreditBenefit', config.allocation.frankingCreditBenefit),
-            australianEquityAllocation: safeGetValue('australianEquityAllocation', config.allocation.australianEquityAllocation),
+            australianEquityAllocation: safeGetValue('australianEquityAllocation', config.allocation.australianEquityAllocation) / 100,
             dividendYield: safeGetValue('dividendYield', config.allocation.dividendYield) / 100,
             frankingRate: safeGetValue('frankingRate', config.allocation.frankingRate) / 100,
-            allocEquities: safeGetValue('allocEquities', config.allocation.allocEquities),
-            allocBonds: safeGetValue('allocBonds', config.allocation.allocBonds),
-            allocCash: safeGetValue('allocCash', config.allocation.allocCash),
+            allocEquities: safeGetValue('allocEquities', config.allocation.allocEquities) / 100,
+            allocBonds: safeGetValue('allocBonds', config.allocation.allocBonds) / 100,
+            allocCash: safeGetValue('allocCash', config.allocation.allocCash) / 100,
 
             // Pension system
             asfaComfortable: safeGetValue('asfaComfortable', config.pension.asfaComfortable),
@@ -682,7 +682,7 @@ class RetirementCalculatorApp {
             trustType: safeGetSelectValue('trustType', config.trust.trustType),
             trustControlLevel: safeGetSelectValue('trustControlLevel', config.trust.trustControlLevel),
             trustNetAssets: safeGetValue('trustNetAssets', config.trust.trustNetAssets),
-            trustAttributionPercentage: safeGetValue('trustAttributionPercentage', config.trust.trustAttributionPercentage),
+            trustAttributionPercentage: safeGetValue('trustAttributionPercentage', config.trust.trustAttributionPercentage) / 100,
             trustAnnualDistributions: safeGetValue('trustAnnualDistributions', config.trust.trustAnnualDistributions),
             homeInTrust: safeGetChecked('homeInTrust', config.trust.homeInTrust),
             investmentPropertyInTrust: safeGetChecked('investmentPropertyInTrust', config.trust.investmentPropertyInTrust),
@@ -5571,7 +5571,7 @@ class RetirementCalculatorApp {
                 'yourLifespan', 'partnerLifespan'
             ],
             riskProfile: [
-                'riskTolerance', 'hasEmergencyFund', 'hasDebt', 'dependents'
+                'riskTolerance', 'hasEmergencyFund', 'hasDebt', 'dependents', 'totalDependentsCount'
             ],
             finances: [
                 'yourSalary', 'partnerSalary', 'yourCurrentSuper', 'partnerCurrentSuper',
@@ -5596,7 +5596,8 @@ class RetirementCalculatorApp {
             economic: [
                 'inflation', 'investmentReturn', 'returnDeclineRate', 'savingsReturn',
                 'superReturn', 'useGlidePath', 'glidePathRule', 'australianEquityAllocation',
-                'dividendYield', 'frankingRate', 'frankingCreditBenefit'
+                'dividendYield', 'frankingRate', 'frankingCreditBenefit',
+                'allocEquities', 'allocBonds', 'allocCash'
             ],
             salaryProgression: [
                 'salaryGrowthRate', 'leanYearsStart', 'leanYearsReduction'
@@ -5681,6 +5682,18 @@ class RetirementCalculatorApp {
         const config = ENHANCED_CONFIG.DEFAULTS;
         const inputIds = Object.values(this.getAllFormInputs()).flat();
 
+        const percentageFieldIds = [
+            'percentIncomeSaved', 'mortgageRate', 'investmentPropertyRate',
+            'propertyGrowthRate', 'capitalGainsTaxRate', 'healthcareInflation',
+            'agedCareProbability', 'inflation', 'investmentReturn',
+            'returnDeclineRate', 'savingsReturn', 'superReturn',
+            'salaryGrowthRate', 'leanYearsReduction', 'australianEquityAllocation',
+            'dividendYield', 'frankingRate', 'returnVolatility', 'shockProbability', 'shockMagnitude',
+            'childrenUnder5Percent', 'childrenPrimaryPercent', 'teenagersPercent', 'adultDisabledPercent',
+            'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent',
+            'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage'
+        ];
+
         inputIds.forEach(inputId => {
             const element = $(inputId);
             if (element) {
@@ -5694,13 +5707,23 @@ class RetirementCalculatorApp {
                         element.checked = true;
                     }
                 } else {
-                    element.value = defaultValue || '';
+                    // Handle percentage fields correctly for display
+                    if (percentageFieldIds.includes(inputId) && typeof defaultValue === 'number') {
+                        element.value = (defaultValue * 100).toFixed(2);
+                    } else {
+                        element.value = defaultValue || '';
+                    }
                 }
             }
         });
 
         // Clear localStorage
         localStorage.removeItem('retirement-calculator-inputs');
+
+        // Manually trigger formatting for all inputs after resetting
+        initializeCurrencyInputs();
+        initializePercentageInputs();
+        initializeNumericInputs();
 
         // Update risk tolerance display
         const riskTolerance = $('riskTolerance');
@@ -5733,6 +5756,7 @@ class RetirementCalculatorApp {
             'hasEmergencyFund': config.risk.hasEmergencyFund,
             'hasDebt': config.risk.hasDebt,
             'dependents': config.risk.dependents,
+            'totalDependentsCount': 0,
 
             // Finances
             'yourSalary': config.financial.yourSalary,
@@ -5791,6 +5815,9 @@ class RetirementCalculatorApp {
             'dividendYield': config.allocation.dividendYield,
             'frankingRate': config.allocation.frankingRate,
             'frankingCreditBenefit': config.allocation.frankingCreditBenefit,
+            'allocEquities': config.allocation.allocEquities,
+            'allocBonds': config.allocation.allocBonds,
+            'allocCash': config.allocation.allocCash,
 
             // Salary Progression
             'salaryGrowthRate': config.economic.salaryGrowthRate,

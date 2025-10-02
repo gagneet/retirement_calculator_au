@@ -263,7 +263,8 @@ export const initializePercentageInputs = () => {
         'salaryGrowthRate', 'leanYearsReduction', 'australianEquityAllocation',
         'dividendYield', 'frankingRate', 'returnVolatility', 'shockProbability', 'shockMagnitude',
         'childrenUnder5Percent', 'childrenPrimaryPercent', 'teenagersPercent', 'adultDisabledPercent',
-        'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent'
+        'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent',
+        'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage'
     ];
 
     percentageFieldIds.forEach(id => {
@@ -1694,7 +1695,23 @@ export const populateFormFromData = (userData, version = '2.0') => {
         'shockProbability', 'shockMagnitude'
     ];
 
+    const dependentPercentageFields = [
+        'childrenUnder5Percent', 'childrenPrimaryPercent', 'teenagersPercent', 'adultDisabledPercent',
+        'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent'
+    ];
+
     console.log('Populating form with userData:', userData);
+
+    // Manually trigger dependent section visibility BEFORE populating other fields
+    if (userData.dependents && userData.dependents > 0) {
+        const totalDependentsEl = $('totalDependentsCount');
+        if (totalDependentsEl) {
+            totalDependentsEl.value = userData.dependents;
+            // Trigger the input event to make the details section visible
+            totalDependentsEl.dispatchEvent(new Event('input', { bubbles: true }));
+            console.log('✓ Triggered visibility for dependent details section.');
+        }
+    }
 
     Object.entries(userData).forEach(([key, value]) => {
         try {
@@ -1704,9 +1721,18 @@ export const populateFormFromData = (userData, version = '2.0') => {
                 Object.entries(value).forEach(([detailKey, detailValue]) => {
                     const element = $(detailKey);
                     if (element) {
-                        element.value = detailValue;
+                        if (dependentPercentageFields.includes(detailKey) && typeof detailValue === 'number') {
+                            // Heuristic to handle both old (e.g., 70) and new (e.g., 0.70) formats
+                            if (version === '3.0' && Math.abs(detailValue) < 2.0) {
+                                element.value = (detailValue * 100).toFixed(2);
+                            } else {
+                                element.value = detailValue;
+                            }
+                        } else {
+                            element.value = detailValue;
+                        }
                         fieldsPopulated++;
-                        console.log(`✓ Populated dependent detail: ${detailKey} = ${detailValue}`);
+                        console.log(`✓ Populated dependent detail: ${detailKey} = ${element.value}`);
                     } else {
                         skippedFields.push(detailKey);
                         console.log(`✗ Element not found: ${detailKey}`);
