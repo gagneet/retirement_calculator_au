@@ -272,6 +272,204 @@
                 opacity: .8;
             }
         }
+
+        .animate-badge-unlock {
+            animation: badge-unlock 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Progress step connector animation */
+        .step-connector-filled {
+            background: linear-gradient(90deg, #10b981, #059669);
+            animation: fill-progress 0.8s ease-out;
+        }
+
+        /* ============================================
+           FORM COLOR CODING - Visual Hierarchy
+           ============================================ */
+
+        /* Required Core Fields - Soft Blue Accent */
+        .field-required {
+            background: linear-gradient(to right, #EFF6FF 0%, #ffffff 100%);
+            border-left: 4px solid #3B82F6;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .field-required:hover {
+            background: #EFF6FF;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+        }
+
+        .field-required label {
+            font-weight: 600;
+            color: #1E40AF;
+        }
+
+        /* Optional Enhancement Sections - Color Coded by Category */
+
+        /* Personal & Risk Profile - Indigo/Purple Theme */
+        .section-personal-risk {
+            background: linear-gradient(135deg, #F5F3FF 0%, #ffffff 100%);
+            border-left: 4px solid #8B5CF6;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(139, 92, 246, 0.1);
+        }
+
+        .section-personal-risk h2,
+        .section-personal-risk h3 {
+            color: #6D28D9;
+        }
+
+        .section-personal-risk .advanced-section {
+            background: #FAF5FF;
+            border-left: 3px solid #A78BFA;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Property Portfolio - Green Theme */
+        .section-property {
+            background: linear-gradient(135deg, #F0FDF4 0%, #ffffff 100%);
+            border-left: 4px solid #10B981;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .section-property h2,
+        .section-property h3 {
+            color: #047857;
+        }
+
+        .section-property .advanced-section {
+            background: #ECFDF5;
+            border-left: 3px solid #34D399;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Economic & Asset Allocation - Amber/Yellow Theme */
+        .section-economic {
+            background: linear-gradient(135deg, #FFFBEB 0%, #ffffff 100%);
+            border-left: 4px solid #F59E0B;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(245, 158, 11, 0.1);
+        }
+
+        .section-economic h2,
+        .section-economic h3 {
+            color: #D97706;
+        }
+
+        .section-economic .advanced-section {
+            background: #FEF3C7;
+            border-left: 3px solid #FBBF24;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Pension & Government - Blue Theme */
+        .section-pension {
+            background: linear-gradient(135deg, #EFF6FF 0%, #ffffff 100%);
+            border-left: 4px solid #2563EB;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .section-pension h2,
+        .section-pension h3 {
+            color: #1D4ED8;
+        }
+
+        .section-pension .advanced-section {
+            background: #DBEAFE;
+            border-left: 3px solid #60A5FA;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Section Header Badges */
+        .section-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
+
+        .badge-required {
+            background: #DBEAFE;
+            color: #1E40AF;
+            border: 1px solid #3B82F6;
+        }
+
+        .badge-optional {
+            background: #F3F4F6;
+            color: #6B7280;
+            border: 1px solid #D1D5DB;
+        }
+
+        .badge-enhanced {
+            background: #FEF3C7;
+            color: #92400E;
+            border: 1px solid #F59E0B;
+        }
+
+        /* Input field focus states with color coding */
+        .section-personal-risk input:focus,
+        .section-personal-risk select:focus {
+            border-color: #8B5CF6 !important;
+            ring-color: #8B5CF6 !important;
+        }
+
+        .section-property input:focus,
+        .section-property select:focus {
+            border-color: #10B981 !important;
+            ring-color: #10B981 !important;
+        }
+
+        .section-economic input:focus,
+        .section-economic select:focus {
+            border-color: #F59E0B !important;
+            ring-color: #F59E0B !important;
+        }
+
+        .section-pension input:focus,
+        .section-pension select:focus {
+            border-color: #2563EB !important;
+            ring-color: #2563EB !important;
+        }
+
+        /* Subsection highlighting within colored sections */
+        .subsection-highlight {
+            background: rgba(255, 255, 255, 0.6);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Visual separator for grouped fields */
+        .field-group-separator {
+            height: 1px;
+            background: linear-gradient(to right, transparent, currentColor, transparent);
+            opacity: 0.2;
+            margin: 1.5rem 0;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -380,17 +578,261 @@
                 How It Works
             </h2>
 
-            <div class="space-y-8">
-                <div class="flex items-start space-x-4">
-                    <div class="flex-shrink-0 w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-xl">1</div>
+    <!-- Risk Profile Banner -->
+    <div id="riskProfileBanner" class="mb-6 p-4 rounded-lg border-l-4 border-blue-500 bg-blue-50">
+        <h3 class="font-semibold text-blue-900">Your Risk Profile</h3>
+        <div class="mt-2 grid grid-cols-3 gap-4 text-sm">
+            <div>
+                <div class="font-medium">Risk Capacity</div>
+                <div class="risk-profile-indicator bg-gray-200 mt-1">
+                    <div id="riskCapacityBar" class="h-full bg-blue-500 rounded" style="width: 0%"></div>
+                </div>
+                <div id="riskCapacityText" class="text-xs text-gray-600 mt-1">Calculating...</div>
+            </div>
+            <div>
+                <div class="font-medium">Risk Tolerance</div>
+                <div class="risk-profile-indicator bg-gray-200 mt-1">
+                    <div id="riskToleranceBar" class="h-full bg-green-500 rounded" style="width: 0%"></div>
+                </div>
+                <div id="riskToleranceText" class="text-xs text-gray-600 mt-1">Set below</div>
+            </div>
+            <div>
+                <div class="font-medium">Risk Requirement</div>
+                <div class="risk-profile-indicator bg-gray-200 mt-1">
+                    <div id="riskRequirementBar" class="h-full bg-red-500 rounded" style="width: 0%"></div>
+                </div>
+                <div id="riskRequirementText" class="text-xs text-gray-600 mt-1">Calculating...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Button to show/hide advanced calculator -->
+    <div id="showAdvancedCalculatorButton" class="text-center mb-6 hidden">
+        <button onclick="toggleAdvancedCalculator()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-lg text-lg shadow-lg transition duration-200">
+            📊 Show Advanced Calculator (Optional)
+        </button>
+        <p class="text-sm text-gray-600 mt-2">Customize all parameters for detailed analysis</p>
+    </div>
+
+    <!-- Advanced Calculator Form (hidden by default after onboarding) -->
+    <div id="advancedCalculatorForm" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Column 1: Personal & Risk Profile -->
+        <div class="lg:col-span-1 section-personal-risk">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">
+                Personal & Risk Profile
+                <span class="section-badge badge-required">⭐ Core Fields</span>
+            </h2>
+
+            <div class="space-y-4">
+                <div>
+                    <div class="label-with-tooltip">
+                        <label for="yourCurrentAge" class="text-sm font-medium text-gray-700">Your Current Age</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Age information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Your Current Age</strong>
+                                Enter your age today. This affects superannuation preservation rules, age pension eligibility, and asset allocation recommendations.
+                                <div class="tooltip-example">Example: If you're 49, you can access super at 60</div>
+                            </span>
+                        </div>
+                    </div>
+                    <input type="number" id="yourCurrentAge" value="49" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <div class="label-with-tooltip">
+                        <label for="partnerCurrentAge" class="text-sm font-medium text-gray-700">Partner's Current Age</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Partner age information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Partner's Current Age</strong>
+                                Your partner's age affects age pension calculations as couple rates apply when both are eligible. Leave blank if single.
+                                <div class="tooltip-example">Example: Younger partner delays full age pension benefits</div>
+                            </span>
+                        </div>
+                    </div>
+                    <input type="number" id="partnerCurrentAge" value="42" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <div class="label-with-tooltip">
+                        <label for="retirementAge" class="text-sm font-medium text-gray-700">Your Retirement Age</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Retirement age information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Your Retirement Age</strong>
+                                Age when you plan to stop working. Consider: Age pension starts at 67, but you can access super from preservation age (60-65 depending on birth year).
+                                <div class="tooltip-example">Example: Retire at 65, bridge gap until age pension at 67</div>
+                            </span>
+                        </div>
+                    </div>
+                    <input type="number" id="retirementAge" value="68" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="partnerRetirementAge" class="block text-sm font-medium text-gray-700">Partner's Retirement Age</label>
+                    <input type="number" id="partnerRetirementAge" value="60" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <div class="label-with-tooltip">
+                        <label for="yourLifespan" class="text-sm font-medium text-gray-700">Your Expected Lifespan</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Life expectancy information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Your Expected Lifespan</strong>
+                                How long you expect to live. Australian life expectancy is ~81 for men, ~85 for women. Planning to 90+ ensures your money doesn't run out.
+                                <div class="tooltip-example">Example: Plan to 95 for conservative estimates</div>
+                            </span>
+                        </div>
+                    </div>
+                    <input type="number" id="yourLifespan" value="91" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="partnerLifespan" class="block text-sm font-medium text-gray-700">Partner's Expected Lifespan</label>
+                    <input type="number" id="partnerLifespan" value="93" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+            </div>
+
+            <div class="advanced-section enhancement-highlight">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Risk Tolerance Assessment</h3>
+                <div class="space-y-3">
                     <div>
                         <h3 class="text-xl font-bold text-gray-900 mb-2">Quick Start (5 minutes)</h3>
                         <p class="text-gray-600">Answer simple questions about your age, income, super balance, and goals. We handle all the complex calculations.</p>
                     </div>
                 </div>
 
-                <div class="flex items-start space-x-4">
-                    <div class="flex-shrink-0 w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-xl">2</div>
+            <h3 class="text-lg font-semibold mt-6 mb-4 border-b pb-2">Current Finances</h3>
+            <div class="space-y-4">
+                <div>
+                    <div class="label-with-tooltip">
+                        <label for="yourSalary" class="text-sm font-medium text-gray-700">Your Annual Salary (pre-tax) ($)</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Salary information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Your Annual Salary (pre-tax)</strong>
+                                Gross income before tax and super. Used for tax calculations, super guarantee contributions (12%), and retirement projections.
+                                <div class="tooltip-example">Example: $100k salary = $12k super + $76k take-home (approx)</div>
+                            </span>
+                        </div>
+                    </div>
+                    <input type="text" id="yourSalary" value="164000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="partnerSalary" class="block text-sm font-medium text-gray-700">Partner's Annual Salary (pre-tax) ($)</label>
+                    <input type="text" id="partnerSalary" value="124500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <div class="label-with-tooltip">
+                        <label for="yourCurrentSuper" class="text-sm font-medium text-gray-700">Your Current Superannuation ($)</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Super balance information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Your Current Superannuation</strong>
+                                Total super balance today across all funds. Check your myGov account or latest super statement for accurate figures.
+                                <div class="tooltip-example">Example: $300k at age 50 could grow to $800k+ by retirement</div>
+                            </span>
+                        </div>
+                    </div>
+                    <input type="text" id="yourCurrentSuper" value="300000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="partnerCurrentSuper" class="block text-sm font-medium text-gray-700">Partner's Current Superannuation ($)</label>
+                    <input type="text" id="partnerCurrentSuper" value="150000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <div class="label-with-tooltip">
+                        <label for="currentSavings" class="text-sm font-medium text-gray-700">Current Cash/Savings ($)</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Savings information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Current Cash/Savings</strong>
+                                Bank accounts, term deposits, cash investments. Include emergency fund and any cash earmarked for retirement.
+                                <div class="tooltip-example">Example: $50k emergency fund + $75k investment cash = $125k</div>
+                            </span>
+                        </div>
+                    </div>
+                    <input type="text" id="currentSavings" value="125000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="currentStocks" class="block text-sm font-medium text-gray-700">Current Stock Portfolio ($)</label>
+                    <input type="text" id="currentStocks" value="45000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="monthlyStockContribution" class="block text-sm font-medium text-gray-700">Monthly Stock Contributions ($)</label>
+                    <input type="text" id="monthlyStockContribution" value="800" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <div class="label-with-tooltip">
+                        <label for="percentIncomeSaved" class="text-sm font-medium text-gray-700">% of Post-Tax Income Saved</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Savings rate information">i</span>
+                            <span class="tooltiptext">
+                                <strong>% of Post-Tax Income Saved</strong>
+                                Percentage of after-tax income you save for retirement (excluding super). Higher savings rates dramatically improve retirement outcomes.
+                                <div class="tooltip-example">Example: Save 10% of $80k take-home = $8k annually</div>
+                            </span>
+                        </div>
+                    </div>
+                    <input type="text" id="percentIncomeSaved" value="9" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 2: Property & Investment Property -->
+        <div class="lg:col-span-1 section-property">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">
+                Property Portfolio
+                <span class="section-badge badge-optional">Optional</span>
+            </h2>
+
+            <h3 class="text-lg font-medium text-gray-700 mb-3">Primary Residence</h3>
+            <div class="space-y-4">
+                <div>
+                    <div class="label-with-tooltip">
+                        <label for="homeValue" class="text-sm font-medium text-gray-700">Current Home Value ($)</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Home value information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Current Home Value</strong>
+                                Today's market value of your primary residence. Use recent sales of comparable properties or professional valuation. Home value affects age pension asset test but is partially exempt.
+                                <div class="tooltip-example">Example: $800k home may add ~$200k to age pension assets test</div>
+                            </span>
+                        </div>
+                    </div>
+                    <input type="text" id="homeValue" value="1450000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="mortgageBalance" class="block text-sm font-medium text-gray-700">Outstanding Mortgage ($)</label>
+                    <input type="text" id="mortgageBalance" value="940000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="mortgageRate" class="block text-sm font-medium text-gray-700">Annual Mortgage Rate (%)</label>
+                    <input type="text" id="mortgageRate" value="5.37" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="monthlyMortgagePayment" class="block text-sm font-medium text-gray-700">Monthly Mortgage Payment ($)</label>
+                    <input type="text" id="monthlyMortgagePayment" value="4984" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <div class="label-with-tooltip">
+                        <label for="planToDownsize" class="text-sm font-medium text-gray-700">Plan to Downsize?</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Downsizing information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Plan to Downsize?</strong>
+                                Whether you plan to sell and buy a smaller/cheaper home in retirement. Downsizing can free up capital and reduce living costs. The downsizer contribution allows up to $300k into super.
+                                <div class="tooltip-example">Example: $1.2M home → $800k apartment = $400k freed up</div>
+                            </span>
+                        </div>
+                    </div>
+                    <select id="planToDownsize" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="false">No - Stay in current home</option>
+                        <option value="true">Yes - Downsize and access equity</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="advanced-section enhancement-highlight">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Investment Property</h3>
+                <div class="space-y-3">
                     <div>
                         <h3 class="text-xl font-bold text-gray-900 mb-2">Get Your Reality Check</h3>
                         <p class="text-gray-600">See your projected retirement income, identify shortfalls, and get 3-5 prioritized actions to improve your outcome.</p>
@@ -414,16 +856,585 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- CTA Section -->
-    <div class="hero-gradient text-white py-16">
-        <div class="max-w-4xl mx-auto px-4 text-center">
-            <h2 class="text-3xl md:text-4xl font-bold mb-6">
-                Ready to Plan Your Retirement?
+        <!-- Column 3: Economic & Asset Allocation -->
+        <div class="lg:col-span-1 section-economic">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">
+                Economic & Asset Allocation
+                <span class="section-badge badge-enhanced">💡 Advanced</span>
             </h2>
-            <p class="text-xl mb-8 text-purple-100">
-                Join thousands of Australians who have used this calculator to plan their financial future.
+
+            <div class="space-y-4">
+                <div>
+                    <div class="label-with-tooltip">
+                        <label for="inflation" class="text-sm font-medium text-gray-700">Annual Inflation Rate (%)</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Inflation information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Annual Inflation Rate (%)</strong>
+                                Expected long-term inflation rate. RBA targets 2-3% annually. Higher inflation erodes purchasing power, requiring larger retirement balances to maintain lifestyle.
+                                <div class="tooltip-example">Example: 3% inflation means $100 today = $74 purchasing power in 10 years</div>
+                            </span>
+                        </div>
+                    </div>
+                    <input type="text" id="inflation" value="2.87" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="investmentReturn" class="block text-sm font-medium text-gray-700">Initial Investment Return (%)</label>
+                    <input type="text" id="investmentReturn" value="5.61" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="returnDeclineRate" class="block text-sm font-medium text-gray-700">Return Decline Rate (% p.a.)</label>
+                    <input type="text" id="returnDeclineRate" value="0.03" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="savingsReturn" class="block text-sm font-medium text-gray-700">Savings Return (%)</label>
+                    <input type="text" id="savingsReturn" value="1.40" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <div class="label-with-tooltip">
+                        <label for="superReturn" class="text-sm font-medium text-gray-700">Super Annual Growth (%)</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Super return information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Super Annual Growth (%)</strong>
+                                Expected annual return for your superannuation. Balanced super funds historically return 7-9% long-term. Growth options may achieve 9-11% but with higher volatility.
+                                <div class="tooltip-example">Example: 8% return doubles super balance roughly every 9 years</div>
+                            </span>
+                        </div>
+                    </div>
+                    <input type="text" id="superReturn" value="8.75" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+            </div>
+
+            <div class="enhancement-highlight p-4 rounded-lg mt-4">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Dynamic Asset Allocation</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label for="useGlidePath" class="flex items-center">
+                            <input type="checkbox" id="useGlidePath" checked class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <span class="ml-2 text-sm text-gray-700">Enable Dynamic Allocation</span>
+                        </label>
+                    </div>
+                    <div>
+                        <label for="glidePathRule" class="block text-sm font-medium text-gray-700">Glide Path Strategy</label>
+                        <select id="glidePathRule" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <option value="120minus">120 - Age (Aggressive)</option>
+                            <option value="110minus">110 - Age (Standard)</option>
+                            <option value="100minus">100 - Age (Conservative)</option>
+                        </select>
+                    </div>
+                    <div id="currentAllocationDisplay" class="p-3 bg-blue-50 rounded">
+                        <div class="text-sm font-medium text-blue-900">Current Recommended Allocation</div>
+                        <div id="recommendedAllocation" class="text-sm text-blue-800 mt-1">Calculating...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="enhancement-highlight p-4 rounded-lg mt-4">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Franking Credits</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label for="australianEquityAllocation" class="block text-sm font-medium text-gray-700">Australian Equity % of Total Equities</label>
+                        <input type="text" id="australianEquityAllocation" value="40" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="dividendYield" class="block text-sm font-medium text-gray-700">Expected Dividend Yield (%)</label>
+                        <input type="text" id="dividendYield" value="4.5" step="0.1" min="0" max="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <p class="mt-1 text-xs text-gray-500">Average dividend yield for Australian equities</p>
+                    </div>
+                    <div>
+                        <label for="frankingRate" class="block text-sm font-medium text-gray-700">Franking Rate (%)</label>
+                        <input type="text" id="frankingRate" value="75" step="1" min="0" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <p class="mt-1 text-xs text-gray-500">Percentage of dividends that are franked</p>
+                    </div>
+                    <div>
+                        <label for="frankingCreditBenefit" class="block text-sm font-medium text-gray-700">Franking Credit Benefit Factor</label>
+                        <input type="text" id="frankingCreditBenefit" value="1.2" step="0.1" min="0" max="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <p class="mt-1 text-xs text-gray-500">Scaling factor based on tax position (1.0 = full benefit)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="advanced-section">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Salary Progression</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label for="salaryGrowthRate" class="block text-sm font-medium text-gray-700">Annual Real Salary Growth (%)</label>
+                        <input type="text" id="salaryGrowthRate" value="1.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="leanYearsStart" class="block text-sm font-medium text-gray-700">Lean Years Start (years before retirement)</label>
+                        <input type="text" id="leanYearsStart" value="5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="leanYearsReduction" class="block text-sm font-medium text-gray-700">Lean Years Salary Reduction (%)</label>
+                        <input type="text" id="leanYearsReduction" value="38" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 4: Pension System & Simulation -->
+        <div class="lg:col-span-1 section-pension">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">
+                Australian Pension System
+                <span class="section-badge badge-optional">Optional</span>
+            </h2>
+
+            <div class="space-y-4">
+                <div>
+                    <label for="asfaComfortable" class="block text-sm font-medium text-gray-700">ASFA Comfortable (Couple) p.a.</label>
+                    <input type="text" id="asfaComfortable" value="73875" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    <p class="mt-1 text-xs text-gray-500">March 2025: $73,875 comfortable, $48,184 modest</p>
+                </div>
+                <div>
+                    <label for="agePensionMax" class="block text-sm font-medium text-gray-700">Max Age Pension (Couple) p.a.</label>
+                    <input type="text" id="agePensionMax" value="45037" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <div class="label-with-tooltip">
+                        <label for="pensionAssetThreshold" class="text-sm font-medium text-gray-700">Pension Asset Threshold (Couple)</label>
+                        <div class="tooltip">
+                            <span class="tooltip-icon" aria-label="Asset threshold information">i</span>
+                            <span class="tooltiptext">
+                                <strong>Pension Asset Threshold (Couple)</strong>
+                                Asset value below which couples receive full age pension. Above this threshold, pension reduces by $3 per fortnight for every $1,000 in excess assets. Home is partially exempt.
+                                <div class="tooltip-example">Example: $500k assets = reduced age pension of ~$43k/year</div>
+                            </span>
+                        </div>
+                    </div>
+                    <input type="text" id="pensionAssetThreshold" value="470000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="pensionAssetLimit" class="block text-sm font-medium text-gray-700">Pension Asset Limit (Couple)</label>
+                    <input type="text" id="pensionAssetLimit" value="1031000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="pensionIncomeThreshold" class="block text-sm font-medium text-gray-700">Pension Income Threshold (p.f.)</label>
+                    <input type="text" id="pensionIncomeThreshold" value="372" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+            </div>
+
+            <div class="enhancement-highlight p-4 rounded-lg mt-6">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Simulation Controls</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label for="numRuns" class="block text-sm font-medium text-gray-700">Monte Carlo Runs</label>
+                        <input type="text" id="numRuns" value="5000" min="1000" step="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <div class="label-with-tooltip">
+                            <label for="returnVolatility" class="text-sm font-medium text-gray-700">Return Volatility (%)</label>
+                            <div class="tooltip">
+                                <span class="tooltip-icon" aria-label="Volatility information">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Return Volatility (%)</strong>
+                                    Standard deviation of annual returns (risk measure). Conservative portfolios: 5-8%, Balanced: 10-15%, Growth: 15-20%. Higher volatility means more variable year-to-year returns.
+                                    <div class="tooltip-example">Example: 12% volatility means returns typically vary ±24% from average</div>
+                                </span>
+                            </div>
+                        </div>
+                        <input type="text" id="returnVolatility" value="12" min="1" max="50" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="enableShocks" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <span class="ml-2 text-sm text-gray-700">Enable Market Shocks</span>
+                        </label>
+                    </div>
+                    <div id="shockControls" class="hidden space-y-2">
+                        <div>
+                            <label for="shockProbability" class="block text-sm font-medium text-gray-700">Shock Probability (%)</label>
+                            <input type="text" id="shockProbability" value="5" min="0" max="20" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="shockMagnitude" class="block text-sm font-medium text-gray-700">Shock Magnitude (%)</label>
+                            <input type="text" id="shockMagnitude" value="-25" max="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buttons moved to action-buttons-container above
+            <div class="mt-6 space-y-3 hidden" id="original-buttons-section-deprecated">
+                <button id="btnCalculateMain" class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                    Calculate Enhanced Projection
+                </button>
+                <button id="btnMonteCarlo" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Run Enhanced Monte Carlo
+                </button>
+                <button id="btnStressTest" class="w-full px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
+                    Run Stress Test Scenarios
+                </button>
+                <button id="btnRetirementSolver" class="w-full px-4 py-2 border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium">
+                    When Can I Retire?
+                </button>
+                <button id="btnGenerateRecommendations" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                    Generate AI Recommendations
+                </button>
+                <button id="btnScenarioComparison" class="w-full px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors font-medium">
+                    Compare Scenarios
+                </button>
+                <button id="btnResetDefaults" class="w-full px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium">
+                    Reset to Defaults
+                </button>
+                <div class="relative inline-block w-full" id="exportContainer2">
+                    <button id="btnExport2" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center">
+                        Export Enhanced Report <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="exportDropdown2" class="absolute bottom-full mb-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
+                        <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                            <a href="#" id="btnExportCSV2" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as CSV</a>
+                            <a href="#" id="btnExportXLSX2" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as XLSX</a>
+                            <a href="#" id="btnExportPDF2" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Export as PDF</a>
+                        </div>
+                    </div>
+                </div>
+                 -->
+
+                <!-- User Data Import/Export Section
+                <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        Save & Load Your Data
+                    </h4>
+                    <p class="text-xs text-blue-700 mb-3">Export your input data to save your scenarios, or import previously saved data. Your privacy is protected - no data is sent to servers.</p>
+                    <div class="flex gap-2">
+                        <button id="btnExportUserData" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center justify-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Save Data
+                        </button>
+                        <button id="btnImportUserData" class="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm flex items-center justify-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                            </svg>
+                            Load Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+            -->
+        </div>
+    </div>
+    <!-- End of advancedCalculatorForm -->
+
+    <!-- JavaScript for toggle functionality -->
+    <script>
+        function toggleAdvancedCalculator() {
+            const form = document.getElementById('advancedCalculatorForm');
+            const button = document.getElementById('showAdvancedCalculatorButton');
+
+            if (form.style.display === 'none') {
+                form.style.display = 'grid';
+                button.querySelector('button').innerHTML = '📊 Hide Advanced Calculator';
+            } else {
+                form.style.display = 'none';
+                button.querySelector('button').innerHTML = '📊 Show Advanced Calculator (Optional)';
+            }
+        }
+
+        // Check if user has completed onboarding
+        window.addEventListener('DOMContentLoaded', function() {
+            const hasCompleted = localStorage.getItem('hasVisitedCalculator') === 'true';
+
+            if (hasCompleted) {
+                const form = document.getElementById('advancedCalculatorForm');
+                const button = document.getElementById('showAdvancedCalculatorButton');
+
+                if (form) form.style.display = 'none';
+                if (button) button.classList.remove('hidden');
+            }
+        });
+    </script>
+
+    <!-- Enhanced Results Section -->
+    <div class="mt-8 bg-white rounded-lg shadow-md">
+        <div class="flex border-b flex-wrap">
+            <button class="tab-button active" onclick="showTab('outcome')">🎯 Your Outcome</button>
+            <button class="tab-button" onclick="showTab('summary')">Enhanced Summary</button>
+            <button class="tab-button" onclick="showTab('suggestions')">💡 Suggestions</button>
+            <button class="tab-button" onclick="showTab('recommendations')">AI Recommendations</button>
+            <button class="tab-button" onclick="showTab('projection')">Year-by-Year</button>
+            <button class="tab-button" onclick="showTab('property')">Property Analysis</button>
+            <button class="tab-button" onclick="showTab('riskAnalysis')">Risk Analysis</button>
+            <button class="tab-button" onclick="showTab('charts')">Advanced Charts</button>
+            <button class="tab-button" onclick="showTab('optimization')">Optimization</button>
+            <button class="tab-button" onclick="showTab('overseas')">🌍 Overseas</button>
+            <button class="tab-button" onclick="showTab('scenarios')">Scenario Compare</button>
+        </div>
+
+        <!-- Outcome View Tab (NEW - Simplified outcome-focused view) -->
+        <div id="outcome-tab" class="tab-content active p-6">
+            <div id="outcome-view-container" class="outcome-view-container">
+
+                <!-- REALITY CHECK CARD -->
+                <div class="reality-check-card">
+                    <h2 class="reality-check-title">Your Retirement Reality Check</h2>
+
+                    <!-- GOAL BOX -->
+                    <div class="goal-box">
+                        <div class="goal-box-title">YOUR GOAL</div>
+                        <div class="goal-box-content">
+                            <div id="outcome-goal-age">Retire at age <span class="goal-box-highlight" id="outcome-retirement-age">65</span> (<span id="outcome-years-to-go">12</span> years from now)</div>
+                            <div id="outcome-goal-lifestyle">
+                                <span id="outcome-lifestyle-type">Comfortable</span> lifestyle:
+                                <span class="goal-box-highlight" id="outcome-target-income">$73,000</span>/year
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PROJECTION BOX -->
+                    <div class="projection-box">
+                        <div class="projection-box-title">YOUR PROJECTION (Conservative)</div>
+                        <div class="projection-box-content">
+                            <div>Superannuation at retirement: <span class="projection-highlight" id="outcome-super-balance">$380,000</span></div>
+                            <div>Age Pension: <span class="projection-highlight" id="outcome-age-pension">$18,000</span>/year</div>
+                            <div>Your annual income: <span class="projection-highlight" id="outcome-annual-income">$33,200</span>/year</div>
+                            <div style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-tertiary);">
+                                Based on conservative 6.5% super returns, 2.6% inflation
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GAP/SURPLUS INDICATOR -->
+                    <div id="outcome-gap-indicator" class="gap-indicator shortfall">
+                        <div class="gap-indicator-icon">⚠️</div>
+                        <div class="gap-indicator-amount" id="outcome-gap-amount">$17,800/year</div>
+                        <div class="gap-indicator-subtitle" id="outcome-gap-subtitle">
+                            <span id="outcome-gap-weekly">$342/week</span> shortfall
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ACTION PLAN SECTION -->
+                <div class="action-plan-section">
+                    <h3 class="action-plan-title">Your Action Plan</h3>
+                    <p class="action-plan-intro">
+                        Choose 2-3 of these strategies to close the gap. Each shows the exact impact on your retirement income.
+                    </p>
+
+                    <!-- ACTION CARDS CONTAINER -->
+                    <div id="outcome-action-cards" class="action-cards-container">
+                        <!-- Action cards will be dynamically inserted by JavaScript -->
+                    </div>
+
+                    <!-- COMBINED IMPACT BOX (shown when multiple actions selected) -->
+                    <div id="outcome-combined-impact" class="combined-impact-box" style="display: none;">
+                        <div class="combined-impact-title">
+                            If You Do These Actions Combined
+                        </div>
+                        <div class="combined-impact-details">
+                            <div class="combined-impact-stat">
+                                <div class="combined-impact-stat-value" id="combined-gap-closed">Gap CLOSED</div>
+                                <div class="combined-impact-stat-label">Result</div>
+                            </div>
+                            <div class="combined-impact-stat">
+                                <div class="combined-impact-stat-value" id="combined-new-income">$54,300</div>
+                                <div class="combined-impact-stat-label">Projected Income/Year</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- WHAT-IF TOOL SECTION -->
+                <div class="what-if-section">
+                    <h3 class="what-if-title">What-If Calculator</h3>
+                    <p class="what-if-intro">
+                        Try different scenarios to see their impact. Adjust the sliders to explore options.
+                    </p>
+
+                    <div class="what-if-controls">
+
+                        <!-- Super Contribution What-If -->
+                        <div class="what-if-control-group">
+                            <label class="what-if-control-label" for="whatif-super-slider">
+                                What if I save an extra amount to super each month?
+                            </label>
+                            <div class="what-if-slider-container">
+                                <input
+                                    type="range"
+                                    id="whatif-super-slider"
+                                    class="what-if-slider"
+                                    min="0"
+                                    max="1000"
+                                    step="50"
+                                    value="0"
+                                    oninput="app.updateWhatIfSuper(this.value)"
+                                >
+                                <span class="what-if-value-display" id="whatif-super-value">$0/month</span>
+                            </div>
+                            <div class="what-if-impact-display" id="whatif-super-impact" style="display: none;">
+                                <div class="what-if-impact-text">Impact on retirement:</div>
+                                <div class="what-if-impact-value" id="whatif-super-impact-value">
+                                    Adds $47,500 to super by retirement
+                                </div>
+                                <div class="what-if-impact-text" style="margin-top: 0.5rem;">
+                                    Extra income: <span id="whatif-super-extra-income">$1,900/year</span>
+                                </div>
+                                <div class="what-if-impact-text">
+                                    New gap: <span id="whatif-super-new-gap">$15,900</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mortgage Payment What-If -->
+                        <div class="what-if-control-group" id="whatif-mortgage-group">
+                            <label class="what-if-control-label" for="whatif-mortgage-slider">
+                                What if I pay extra on my mortgage each month?
+                            </label>
+                            <div class="what-if-slider-container">
+                                <input
+                                    type="range"
+                                    id="whatif-mortgage-slider"
+                                    class="what-if-slider"
+                                    min="0"
+                                    max="1000"
+                                    step="50"
+                                    value="0"
+                                    oninput="app.updateWhatIfMortgage(this.value)"
+                                >
+                                <span class="what-if-value-display" id="whatif-mortgage-value">$0/month</span>
+                            </div>
+                            <div class="what-if-impact-display" id="whatif-mortgage-impact" style="display: none;">
+                                <div class="what-if-impact-text">Impact on retirement:</div>
+                                <div class="what-if-impact-value" id="whatif-mortgage-years-saved">
+                                    Paid off 3 years early
+                                </div>
+                                <div class="what-if-impact-text" style="margin-top: 0.5rem;">
+                                    Save <span id="whatif-mortgage-interest-saved">$58,000</span> in interest
+                                </div>
+                                <div class="what-if-impact-text">
+                                    Impact on gap: <span id="whatif-mortgage-impact-gap">$2,400/year</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Retirement Age What-If -->
+                        <div class="what-if-control-group">
+                            <label class="what-if-control-label" for="whatif-retirement-slider">
+                                What if I delay retirement?
+                            </label>
+                            <div class="what-if-slider-container">
+                                <input
+                                    type="range"
+                                    id="whatif-retirement-slider"
+                                    class="what-if-slider"
+                                    min="0"
+                                    max="10"
+                                    step="1"
+                                    value="0"
+                                    oninput="app.updateWhatIfRetirementAge(this.value)"
+                                >
+                                <span class="what-if-value-display" id="whatif-retirement-value">0 years later</span>
+                            </div>
+                            <div class="what-if-impact-display" id="whatif-retirement-impact" style="display: none;">
+                                <div class="what-if-impact-text">Impact on retirement:</div>
+                                <div class="what-if-impact-value">
+                                    Super grows to <span id="whatif-retirement-extra-super">$425,000</span>
+                                </div>
+                                <div class="what-if-impact-text" style="margin-top: 0.5rem;">
+                                    Extra income: <span id="whatif-retirement-extra-income">$8,000/year</span>
+                                </div>
+                                <div class="what-if-impact-text">
+                                    New gap: <span id="whatif-retirement-new-gap">$9,800</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- RESILIENCE TESTING SECTION (Phase 4) -->
+                <div id="outcome-resilience-section" class="resilience-section hidden">
+                    <h3 class="resilience-title">🛡️ Resilience Testing</h3>
+                    <p class="resilience-intro">
+                        How well would your retirement plan withstand adverse life events? Here are the top risks and how to protect against them.
+                    </p>
+
+                    <!-- Overall Resilience Score -->
+                    <div class="resilience-score-card">
+                        <div class="resilience-score-header">Overall Resilience Score</div>
+                        <div id="resilience-score-display" class="resilience-score-display">
+                            <div class="resilience-score-number"><span id="resilience-score">75</span>/100</div>
+                            <div class="resilience-score-rating" id="resilience-rating">GOOD</div>
+                        </div>
+                        <div class="resilience-score-description">
+                            Your retirement plan has good resilience against adverse events
+                        </div>
+                    </div>
+
+                    <!-- Top 3 Risks -->
+                    <div class="resilience-risks-container">
+                        <h4 class="section-subtitle">Top 3 Risks to Your Retirement</h4>
+                        <div id="resilience-top-risks" class="resilience-risks-grid">
+                            <!-- Risk cards will be dynamically inserted -->
+                        </div>
+                    </div>
+
+                    <!-- Top Resilience Recommendations -->
+                    <div class="resilience-recommendations-container">
+                        <h4 class="section-subtitle">Top 5 Resilience Recommendations</h4>
+                        <div id="resilience-recommendations" class="resilience-recommendations-list">
+                            <!-- Recommendations will be dynamically inserted -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACTION BUTTONS -->
+                <div class="outcome-action-buttons">
+                    <button class="outcome-btn outcome-btn-primary" onclick="app.showAdvancedAnalysis()">
+                        📊 See Advanced Analysis
+                    </button>
+                    <button class="outcome-btn outcome-btn-secondary" onclick="app.saveOutcomePlan()">
+                        💾 Save My Plan
+                    </button>
+                    <button class="outcome-btn outcome-btn-success" onclick="app.exportOutcomePDF()">
+                        📄 Export to PDF
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Enhanced Summary Tab -->
+        <div id="summary-tab" class="tab-content p-6">
+            <h2 class="text-2xl font-semibold mb-4">Enhanced Retirement Summary</h2>
+            <div id="summaryResults" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6">
+                <!-- Enhanced summary content will be populated by JavaScript -->
+            </div>
+            <div id="finalResult" class="mt-4 p-4 rounded-lg">
+                <!-- Final result will be populated by JavaScript -->
+            </div>
+            <div id="enhancedRecommendations" class="mt-4 p-4 bg-green-50 rounded-lg">
+                <h4 class="font-semibold text-green-900">AI-Powered Recommendations</h4>
+                <ul id="enhancedRecommendationsList" class="list-disc ml-5 mt-2 text-sm text-green-800">
+                    <!-- Enhanced recommendations will be populated -->
+                </ul>
+            </div>
+
+            <!-- Back to Top Button -->
+            <div class="mt-6 text-center">
+                <button onclick="scrollToActionButtons()" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                    </svg>
+                    Back to Action Buttons
+                </button>
+            </div>
+        </div>
+
+        <!-- AI Recommendations Tab Content -->
+        <div id="recommendations-tab" class="tab-content p-6">
+            <h2 class="text-2xl font-semibold mb-4">AI-Powered Recommendation Engine</h2>
+            <p class="text-gray-600 mb-4">
+                This engine analyzes your financial situation and runs dozens of scenarios to identify the most impactful strategies to improve your retirement outcome. Click the "Generate AI Recommendations" button to start.
             </p>
             <button id="startOnboardingBtn2" class="bg-white text-purple-600 hover:bg-purple-50 font-bold py-4 px-8 rounded-lg text-xl shadow-lg transition duration-200">
                 🚀 Start Your Free Retirement Plan

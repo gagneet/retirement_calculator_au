@@ -1819,7 +1819,7 @@ export class OnboardingWizard {
         this.updateDataFromForms();
         this.isCompleted = true;
 
-        // Mark that user has completed onboarding (for homepage)
+        // Mark that user has completed onboarding (for homepage and toggle button)
         localStorage.setItem('hasVisitedCalculator', 'true');
 
         // Save the onboarding data
@@ -1852,8 +1852,13 @@ export class OnboardingWizard {
         // Populate the Advanced Calculator with onboarding data
         this.populateAdvancedCalculator();
 
+        // Hide the advanced calculator form and show the toggle button
+        const form = document.getElementById('advancedCalculatorForm');
+        const button = document.getElementById('showAdvancedCalculatorButton');
+        if (form) form.style.display = 'none';
+        if (button) button.classList.remove('hidden');
+
         // Trigger calculation to populate outcome tab
-        // Wait a bit for fields to be populated, then run calculation
         setTimeout(() => {
             if (window.app && window.app.calculateRetirement) {
                 window.app.calculateRetirement(false); // Don't scroll to results
