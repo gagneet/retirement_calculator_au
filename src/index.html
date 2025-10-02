@@ -1702,7 +1702,8 @@
     <!-- Enhanced Results Section -->
     <div class="mt-8 bg-white rounded-lg shadow-md">
         <div class="flex border-b flex-wrap">
-            <button class="tab-button active" onclick="showTab('summary')">Enhanced Summary</button>
+            <button class="tab-button active" onclick="showTab('outcome')">🎯 Your Outcome</button>
+            <button class="tab-button" onclick="showTab('summary')">Enhanced Summary</button>
             <button class="tab-button" onclick="showTab('suggestions')">💡 Suggestions</button>
             <button class="tab-button" onclick="showTab('recommendations')">AI Recommendations</button>
             <button class="tab-button" onclick="showTab('projection')">Year-by-Year</button>
@@ -1714,8 +1715,243 @@
             <button class="tab-button" onclick="showTab('scenarios')">Scenario Compare</button>
         </div>
 
+        <!-- Outcome View Tab (NEW - Simplified outcome-focused view) -->
+        <div id="outcome-tab" class="tab-content active p-6">
+            <div id="outcome-view-container" class="outcome-view-container">
+
+                <!-- REALITY CHECK CARD -->
+                <div class="reality-check-card">
+                    <h2 class="reality-check-title">Your Retirement Reality Check</h2>
+
+                    <!-- GOAL BOX -->
+                    <div class="goal-box">
+                        <div class="goal-box-title">YOUR GOAL</div>
+                        <div class="goal-box-content">
+                            <div id="outcome-goal-age">Retire at age <span class="goal-box-highlight" id="outcome-retirement-age">65</span> (<span id="outcome-years-to-go">12</span> years from now)</div>
+                            <div id="outcome-goal-lifestyle">
+                                <span id="outcome-lifestyle-type">Comfortable</span> lifestyle:
+                                <span class="goal-box-highlight" id="outcome-target-income">$73,000</span>/year
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PROJECTION BOX -->
+                    <div class="projection-box">
+                        <div class="projection-box-title">YOUR PROJECTION (Conservative)</div>
+                        <div class="projection-box-content">
+                            <div>Superannuation at retirement: <span class="projection-highlight" id="outcome-super-balance">$380,000</span></div>
+                            <div>Age Pension: <span class="projection-highlight" id="outcome-age-pension">$18,000</span>/year</div>
+                            <div>Your annual income: <span class="projection-highlight" id="outcome-annual-income">$33,200</span>/year</div>
+                            <div style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-tertiary);">
+                                Based on conservative 6.5% super returns, 2.6% inflation
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GAP/SURPLUS INDICATOR -->
+                    <div id="outcome-gap-indicator" class="gap-indicator shortfall">
+                        <div class="gap-indicator-icon">⚠️</div>
+                        <div class="gap-indicator-amount" id="outcome-gap-amount">$17,800/year</div>
+                        <div class="gap-indicator-subtitle" id="outcome-gap-subtitle">
+                            <span id="outcome-gap-weekly">$342/week</span> shortfall
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ACTION PLAN SECTION -->
+                <div class="action-plan-section">
+                    <h3 class="action-plan-title">Your Action Plan</h3>
+                    <p class="action-plan-intro">
+                        Choose 2-3 of these strategies to close the gap. Each shows the exact impact on your retirement income.
+                    </p>
+
+                    <!-- ACTION CARDS CONTAINER -->
+                    <div id="outcome-action-cards" class="action-cards-container">
+                        <!-- Action cards will be dynamically inserted by JavaScript -->
+                    </div>
+
+                    <!-- COMBINED IMPACT BOX (shown when multiple actions selected) -->
+                    <div id="outcome-combined-impact" class="combined-impact-box" style="display: none;">
+                        <div class="combined-impact-title">
+                            If You Do These Actions Combined
+                        </div>
+                        <div class="combined-impact-details">
+                            <div class="combined-impact-stat">
+                                <div class="combined-impact-stat-value" id="combined-gap-closed">Gap CLOSED</div>
+                                <div class="combined-impact-stat-label">Result</div>
+                            </div>
+                            <div class="combined-impact-stat">
+                                <div class="combined-impact-stat-value" id="combined-new-income">$54,300</div>
+                                <div class="combined-impact-stat-label">Projected Income/Year</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- WHAT-IF TOOL SECTION -->
+                <div class="what-if-section">
+                    <h3 class="what-if-title">What-If Calculator</h3>
+                    <p class="what-if-intro">
+                        Try different scenarios to see their impact. Adjust the sliders to explore options.
+                    </p>
+
+                    <div class="what-if-controls">
+
+                        <!-- Super Contribution What-If -->
+                        <div class="what-if-control-group">
+                            <label class="what-if-control-label" for="whatif-super-slider">
+                                What if I save an extra amount to super each month?
+                            </label>
+                            <div class="what-if-slider-container">
+                                <input
+                                    type="range"
+                                    id="whatif-super-slider"
+                                    class="what-if-slider"
+                                    min="0"
+                                    max="1000"
+                                    step="50"
+                                    value="0"
+                                    oninput="app.updateWhatIfSuper(this.value)"
+                                >
+                                <span class="what-if-value-display" id="whatif-super-value">$0/month</span>
+                            </div>
+                            <div class="what-if-impact-display" id="whatif-super-impact" style="display: none;">
+                                <div class="what-if-impact-text">Impact on retirement:</div>
+                                <div class="what-if-impact-value" id="whatif-super-impact-value">
+                                    Adds $47,500 to super by retirement
+                                </div>
+                                <div class="what-if-impact-text" style="margin-top: 0.5rem;">
+                                    Extra income: <span id="whatif-super-extra-income">$1,900/year</span>
+                                </div>
+                                <div class="what-if-impact-text">
+                                    New gap: <span id="whatif-super-new-gap">$15,900</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mortgage Payment What-If -->
+                        <div class="what-if-control-group" id="whatif-mortgage-group">
+                            <label class="what-if-control-label" for="whatif-mortgage-slider">
+                                What if I pay extra on my mortgage each month?
+                            </label>
+                            <div class="what-if-slider-container">
+                                <input
+                                    type="range"
+                                    id="whatif-mortgage-slider"
+                                    class="what-if-slider"
+                                    min="0"
+                                    max="1000"
+                                    step="50"
+                                    value="0"
+                                    oninput="app.updateWhatIfMortgage(this.value)"
+                                >
+                                <span class="what-if-value-display" id="whatif-mortgage-value">$0/month</span>
+                            </div>
+                            <div class="what-if-impact-display" id="whatif-mortgage-impact" style="display: none;">
+                                <div class="what-if-impact-text">Impact on retirement:</div>
+                                <div class="what-if-impact-value" id="whatif-mortgage-years-saved">
+                                    Paid off 3 years early
+                                </div>
+                                <div class="what-if-impact-text" style="margin-top: 0.5rem;">
+                                    Save <span id="whatif-mortgage-interest-saved">$58,000</span> in interest
+                                </div>
+                                <div class="what-if-impact-text">
+                                    Impact on gap: <span id="whatif-mortgage-impact-gap">$2,400/year</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Retirement Age What-If -->
+                        <div class="what-if-control-group">
+                            <label class="what-if-control-label" for="whatif-retirement-slider">
+                                What if I delay retirement?
+                            </label>
+                            <div class="what-if-slider-container">
+                                <input
+                                    type="range"
+                                    id="whatif-retirement-slider"
+                                    class="what-if-slider"
+                                    min="0"
+                                    max="10"
+                                    step="1"
+                                    value="0"
+                                    oninput="app.updateWhatIfRetirementAge(this.value)"
+                                >
+                                <span class="what-if-value-display" id="whatif-retirement-value">0 years later</span>
+                            </div>
+                            <div class="what-if-impact-display" id="whatif-retirement-impact" style="display: none;">
+                                <div class="what-if-impact-text">Impact on retirement:</div>
+                                <div class="what-if-impact-value">
+                                    Super grows to <span id="whatif-retirement-extra-super">$425,000</span>
+                                </div>
+                                <div class="what-if-impact-text" style="margin-top: 0.5rem;">
+                                    Extra income: <span id="whatif-retirement-extra-income">$8,000/year</span>
+                                </div>
+                                <div class="what-if-impact-text">
+                                    New gap: <span id="whatif-retirement-new-gap">$9,800</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- RESILIENCE TESTING SECTION (Phase 4) -->
+                <div id="outcome-resilience-section" class="resilience-section hidden">
+                    <h3 class="resilience-title">🛡️ Resilience Testing</h3>
+                    <p class="resilience-intro">
+                        How well would your retirement plan withstand adverse life events? Here are the top risks and how to protect against them.
+                    </p>
+
+                    <!-- Overall Resilience Score -->
+                    <div class="resilience-score-card">
+                        <div class="resilience-score-header">Overall Resilience Score</div>
+                        <div id="resilience-score-display" class="resilience-score-display">
+                            <div class="resilience-score-number"><span id="resilience-score">75</span>/100</div>
+                            <div class="resilience-score-rating" id="resilience-rating">GOOD</div>
+                        </div>
+                        <div class="resilience-score-description">
+                            Your retirement plan has good resilience against adverse events
+                        </div>
+                    </div>
+
+                    <!-- Top 3 Risks -->
+                    <div class="resilience-risks-container">
+                        <h4 class="section-subtitle">Top 3 Risks to Your Retirement</h4>
+                        <div id="resilience-top-risks" class="resilience-risks-grid">
+                            <!-- Risk cards will be dynamically inserted -->
+                        </div>
+                    </div>
+
+                    <!-- Top Resilience Recommendations -->
+                    <div class="resilience-recommendations-container">
+                        <h4 class="section-subtitle">Top 5 Resilience Recommendations</h4>
+                        <div id="resilience-recommendations" class="resilience-recommendations-list">
+                            <!-- Recommendations will be dynamically inserted -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACTION BUTTONS -->
+                <div class="outcome-action-buttons">
+                    <button class="outcome-btn outcome-btn-primary" onclick="app.showAdvancedAnalysis()">
+                        📊 See Advanced Analysis
+                    </button>
+                    <button class="outcome-btn outcome-btn-secondary" onclick="app.saveOutcomePlan()">
+                        💾 Save My Plan
+                    </button>
+                    <button class="outcome-btn outcome-btn-success" onclick="app.exportOutcomePDF()">
+                        📄 Export to PDF
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
         <!-- Enhanced Summary Tab -->
-        <div id="summary-tab" class="tab-content active p-6">
+        <div id="summary-tab" class="tab-content p-6">
             <h2 class="text-2xl font-semibold mb-4">Enhanced Retirement Summary</h2>
             <div id="summaryResults" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6">
                 <!-- Enhanced summary content will be populated by JavaScript -->
@@ -2682,6 +2918,40 @@
         }
     });
 </script>
+
+<!-- ACTION DETAIL MODAL (for outcome view action implementation steps) -->
+<div id="action-detail-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: var(--bg-secondary); border-radius: 16px; padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 id="action-detail-title" style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
+                <!-- Action title -->
+            </h3>
+            <button onclick="app.closeActionDetail()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">
+                ✕
+            </button>
+        </div>
+        <div id="action-detail-content">
+            <!-- Action detail steps will be inserted here -->
+        </div>
+    </div>
+</div>
+
+<!-- RESILIENCE SCENARIO DETAIL MODAL (Phase 4) -->
+<div id="resilience-detail-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: var(--bg-secondary); border-radius: 16px; padding: 2rem; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 id="resilience-detail-title" style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
+                <!-- Scenario title -->
+            </h3>
+            <button onclick="app.closeResilienceScenarioDetail()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">
+                ✕
+            </button>
+        </div>
+        <div id="resilience-detail-content">
+            <!-- Scenario detail content will be inserted here -->
+        </div>
+    </div>
+</div>
 
 </body>
 </html>

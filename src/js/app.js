@@ -1,5 +1,6 @@
 import { trackButtonClick, trackDataAction } from './analytics.js';
 import '../css/styles.css';
+import '../css/outcome-styles.css';
 // js/app.js - Main Application Controller
 
 import versionManager from './version-manager.js';
@@ -17,6 +18,10 @@ import { PropertyAnalysisEngine } from './property-analysis.js';
 import { HousingOptimizer } from './housing-optimizer.js';
 import { OverseasRetirementAnalyzer } from './overseas-retirement.js';
 import { COUNTRY_PROFILES } from './country-profiles.js';
+import { OutcomeEngine } from './outcome-engine.js';
+import { ActionGenerator } from './action-generator.js';
+import { WhatIfEngine } from './what-if-engine.js';
+import { ResilienceScenarioEngine } from './resilience-scenarios.js';
 // js/app.js - Main Application Controller
 
 // Import new engines with error handling
@@ -83,6 +88,12 @@ class RetirementCalculatorApp {
         this.riskProfiling = null; // Will be initialized after dynamic import
         this.dynamicAllocation = null; // Will be initialized after dynamic import
         this.onboardingWizard = null; // Will be initialized after DOM is ready
+        this.outcomeEngine = null; // Outcome-based calculator engine
+        this.actionGenerator = null; // Action suggestion generator
+        this.whatIfEngine = null; // What-if scenario testing engine
+        this.resilienceEngine = null; // Resilience scenario testing engine
+        this.currentOutcome = null; // Current outcome calculation results
+        this.currentResilience = null; // Current resilience analysis results
         this.currentResults = null;
         this.isCalculating = false;
         this.isImporting = false;
@@ -750,6 +761,15 @@ class RetirementCalculatorApp {
                 throw new Error(`Core simulation failed. Please check your financial inputs. Details: ${simError.message}`);
             }
 
+            // Run outcome-based calculation
+            try {
+                this.runOutcomeCalculation(inputs);
+            } catch (outcomeError) {
+                console.error('Outcome calculation error:', outcomeError);
+                // Allow continuing even if outcome calculation fails
+                showNotification('Could not generate outcome-based recommendations.', 'warning');
+            }
+
             // Update UI components with individual error handling
             try {
                 this.updateRiskProfile(inputs);
@@ -794,13 +814,13 @@ class RetirementCalculatorApp {
             }
 
 
-            // Show summary tab and conditionally scroll to results
+            // Show outcome tab and conditionally scroll to results
             if (shouldScrollToResults) {
-                showTab('summary', true);
+                showTab('outcome', true);
                 showNotification('Calculation completed successfully', 'success');
             } else {
                 // For initial load, just switch tabs without scrolling or notification
-                showTab('summary', false);
+                showTab('outcome', false);
             }
 
         } catch (error) {
@@ -6176,6 +6196,478 @@ class RetirementCalculatorApp {
             'major_change': 'border-l-red-500'
         };
         return colorMap[type] || colorMap['medium_term'];
+    }
+
+    // ========================================
+    // OUTCOME-BASED CALCULATOR METHODS
+    // ========================================
+
+    runOutcomeCalculation(inputs) {
+        console.log('🎯 Running outcome-based calculation...');
+
+        // Initialize outcome engine
+        this.outcomeEngine = new OutcomeEngine(inputs);
+        const outcome = this.outcomeEngine.calculateConservativeOutcome();
+        this.currentOutcome = outcome;
+
+        // Generate action suggestions
+        this.actionGenerator = new ActionGenerator(inputs, outcome);
+        const actions = this.actionGenerator.generateActions();
+
+        // Initialize What-If engine
+        this.whatIfEngine = new WhatIfEngine(inputs, outcome);
+
+        // Run resilience scenarios
+        this.resilienceEngine = new ResilienceScenarioEngine(inputs, outcome);
+        const resilience = this.resilienceEngine.runAllScenarios();
+        this.currentResilience = resilience;
+
+        // Display outcome results
+        this.displayOutcomeResults(outcome, actions, resilience);
+
+        console.log('✅ Outcome calculation completed:', outcome);
+        console.log('🛡️ Resilience analysis completed:', resilience);
+    }
+
+    displayOutcomeResults(outcome, actions, resilience) {
+        // Update reality check card
+        safeSetText('outcome-retirement-age', outcome.yearsToRetirement + outcome.inputs.currentAge);
+        safeSetText('outcome-target-income', formatCurrency(outcome.targetIncome));
+        safeSetText('outcome-super-balance', formatCurrency(outcome.superAtRetirement));
+        safeSetText('outcome-age-pension', formatCurrency(outcome.agePension));
+        safeSetText('outcome-annual-income', formatCurrency(outcome.sustainableIncome));
+
+        // Update gap/surplus indicator
+        const gapIndicator = $('outcome-gap-indicator');
+        const gapAmount = $('outcome-gap-amount');
+        if (gapIndicator && gapAmount) {
+            if (outcome.status === 'SHORTFALL') {
+                gapIndicator.className = 'gap-indicator shortfall';
+                gapAmount.textContent = `${formatCurrency(Math.abs(outcome.gap))}/year`;
+                $('outcome-gap-subtitle').textContent = `${formatCurrency(Math.abs(outcome.gapPerWeek))}/week shortfall`;
+            } else {
+                gapIndicator.className = 'gap-indicator surplus';
+                gapAmount.textContent = `${formatCurrency(outcome.gap)}/year surplus`;
+                $('outcome-gap-subtitle').textContent = 'You\'re on track for a comfortable retirement!';
+            }
+        }
+
+        // Display action cards
+        this.displayActionCards(actions);
+
+        // Display resilience analysis
+        if (resilience) {
+            this.displayResilienceAnalysis(resilience);
+        }
+
+        // Show outcome view
+        const outcomeContainer = $('outcome-view-container');
+        if (outcomeContainer) {
+            outcomeContainer.classList.remove('hidden');
+        }
+    }
+
+    displayActionCards(actions) {
+        const container = $('outcome-action-cards');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        actions.slice(0, 5).forEach((action, index) => {
+            const card = document.createElement('div');
+            card.className = `action-card priority-${action.priority.toLowerCase()}`;
+            card.setAttribute('data-action-id', action.id);
+
+            card.innerHTML = `
+                <div class="action-card-header">
+                    <div class="action-priority-badge">${action.priority}</div>
+                    <div class="action-number">#${index + 1}</div>
+                </div>
+                <h4 class="action-card-title">${action.title}</h4>
+                <div class="action-impact">
+                    <div class="action-impact-label">Impact on Gap:</div>
+                    <div class="action-impact-value">+${formatCurrency(action.impactOnGap)}/year</div>
+                </div>
+                <div class="action-cost">
+                    <div class="action-cost-label">Net Monthly Cost:</div>
+                    <div class="action-cost-value">${formatCurrency(action.netCost)}/month</div>
+                </div>
+                ${action.taxSavings ? `
+                <div class="action-tax-savings">
+                    <div>Tax Savings: ${formatCurrency(action.taxSavings)}/year</div>
+                </div>
+                ` : ''}
+                <div class="action-implementation">
+                    <div class="action-effort">Effort: ${action.effort}</div>
+                    <div class="action-time">Time: ${action.timeToImplement}</div>
+                </div>
+                <button class="action-view-details-btn" onclick="app.showActionDetail('${action.id}')">
+                    View Implementation Steps
+                </button>
+                <label class="action-select-checkbox">
+                    <input type="checkbox" onchange="app.updateCombinedImpact()">
+                    <span>Include in My Plan</span>
+                </label>
+            `;
+
+            container.appendChild(card);
+        });
+    }
+
+    showActionDetail(actionId) {
+        const action = this.actionGenerator.actions.find(a => a.id === actionId);
+        if (!action) return;
+
+        const modal = $('action-detail-modal');
+        const title = $('action-detail-title');
+        const content = $('action-detail-content');
+
+        if (!modal || !title || !content) return;
+
+        title.textContent = action.title;
+
+        let stepsHTML = '<div class="action-steps">';
+        action.howToImplement.forEach(step => {
+            stepsHTML += `
+                <div class="action-step">
+                    <div class="action-step-number">Step ${step.step}</div>
+                    <div class="action-step-content">
+                        <div class="action-step-action">${step.action}</div>
+                        <div class="action-step-detail">${step.detail}</div>
+                    </div>
+                </div>
+            `;
+        });
+        stepsHTML += '</div>';
+
+        content.innerHTML = stepsHTML;
+        modal.style.display = 'flex';
+    }
+
+    closeActionDetail() {
+        const modal = $('action-detail-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    updateCombinedImpact() {
+        const selectedActions = [];
+        document.querySelectorAll('.action-card input[type="checkbox"]:checked').forEach(checkbox => {
+            const card = checkbox.closest('.action-card');
+            const actionId = card.getAttribute('data-action-id');
+            selectedActions.push(actionId);
+        });
+
+        if (selectedActions.length === 0) {
+            const combinedBox = $('outcome-combined-impact');
+            if (combinedBox) {
+                combinedBox.style.display = 'none';
+            }
+            return;
+        }
+
+        const combined = this.actionGenerator.calculateCombinedImpact(selectedActions);
+
+        const combinedBox = $('outcome-combined-impact');
+        if (combinedBox) {
+            combinedBox.style.display = 'block';
+
+            const gapClosedEl = $('combined-gap-closed');
+            const newIncomeEl = $('combined-new-income');
+
+            if (gapClosedEl) {
+                gapClosedEl.textContent = combined.gapClosed ? 'Gap CLOSED ✓' : `Gap reduced by ${combined.percentClosed}%`;
+                gapClosedEl.className = combined.gapClosed ? 'text-green-600 font-bold' : 'text-yellow-600 font-bold';
+            }
+
+            if (newIncomeEl) {
+                const newIncome = this.currentOutcome.sustainableIncome + combined.totalImpact;
+                newIncomeEl.textContent = formatCurrency(newIncome);
+            }
+        }
+    }
+
+    // What-If Calculator Methods
+    updateWhatIfSuper(value) {
+        const monthlyExtra = parseInt(value);
+        safeSetText('whatif-super-value', `${formatCurrency(monthlyExtra)}/month`);
+
+        if (monthlyExtra === 0) {
+            $('whatif-super-impact').style.display = 'none';
+            return;
+        }
+
+        const result = this.whatIfEngine.testExtraSuperContribution(monthlyExtra);
+
+        const impactDiv = $('whatif-super-impact');
+        if (impactDiv) {
+            impactDiv.style.display = 'block';
+            safeSetText('whatif-super-impact-value', formatCurrency(result.extraSuper));
+            safeSetText('whatif-super-extra-income', formatCurrency(result.extraIncome));
+            safeSetText('whatif-super-new-gap', formatCurrency(result.newGap));
+        }
+    }
+
+    updateWhatIfMortgage(value) {
+        const monthlyExtra = parseInt(value);
+        safeSetText('whatif-mortgage-value', `${formatCurrency(monthlyExtra)}/month`);
+
+        if (monthlyExtra === 0) {
+            $('whatif-mortgage-impact').style.display = 'none';
+            return;
+        }
+
+        const result = this.whatIfEngine.testExtraMortgagePayment(monthlyExtra);
+
+        const impactDiv = $('whatif-mortgage-impact');
+        if (impactDiv) {
+            impactDiv.style.display = 'block';
+            safeSetText('whatif-mortgage-years-saved', result.yearsSaved);
+            safeSetText('whatif-mortgage-interest-saved', formatCurrency(result.interestSaved));
+            safeSetText('whatif-mortgage-impact-gap', formatCurrency(result.impactOnGap));
+        }
+    }
+
+    updateWhatIfRetirementAge(value) {
+        const extraYears = parseInt(value);
+        safeSetText('whatif-retirement-value', `${extraYears} years later`);
+
+        if (extraYears === 0) {
+            $('whatif-retirement-impact').style.display = 'none';
+            return;
+        }
+
+        const result = this.whatIfEngine.testDelayRetirement(extraYears);
+
+        const impactDiv = $('whatif-retirement-impact');
+        if (impactDiv) {
+            impactDiv.style.display = 'block';
+            safeSetText('whatif-retirement-extra-super', formatCurrency(result.extraSuper));
+            safeSetText('whatif-retirement-extra-income', formatCurrency(result.extraIncome));
+            safeSetText('whatif-retirement-new-gap', formatCurrency(result.newGap));
+        }
+    }
+
+    showAdvancedAnalysis() {
+        // Switch to the charts tab to show advanced Monte Carlo analysis
+        showTab('charts');
+        showNotification('Switched to advanced analysis view', 'info');
+    }
+
+    saveOutcomePlan() {
+        const selectedActions = [];
+        document.querySelectorAll('.action-card input[type="checkbox"]:checked').forEach(checkbox => {
+            const card = checkbox.closest('.action-card');
+            const actionId = card.getAttribute('data-action-id');
+            const action = this.actionGenerator.actions.find(a => a.id === actionId);
+            if (action) {
+                selectedActions.push(action);
+            }
+        });
+
+        const planData = {
+            outcome: this.currentOutcome,
+            selectedActions: selectedActions,
+            timestamp: new Date().toISOString()
+        };
+
+        saveToLocalStorage('outcome_plan', planData);
+        showNotification('Your outcome plan has been saved!', 'success');
+    }
+
+    exportOutcomePDF() {
+        showNotification('PDF export feature coming soon!', 'info');
+        // TODO: Implement PDF export using jsPDF
+    }
+
+    // ========================================
+    // RESILIENCE SCENARIO METHODS
+    // ========================================
+
+    displayResilienceAnalysis(resilience) {
+        const container = $('outcome-resilience-section');
+        if (!container) return;
+
+        const { overallResilience, topRisks, recommendations } = resilience;
+
+        // Update resilience score
+        safeSetText('resilience-score', overallResilience.score);
+        safeSetText('resilience-rating', overallResilience.rating);
+
+        const scoreEl = $('resilience-score-display');
+        if (scoreEl) {
+            scoreEl.className = 'resilience-score-display';
+            if (overallResilience.score >= 80) scoreEl.classList.add('excellent');
+            else if (overallResilience.score >= 60) scoreEl.classList.add('good');
+            else if (overallResilience.score >= 40) scoreEl.classList.add('moderate');
+            else scoreEl.classList.add('poor');
+        }
+
+        // Display top 3 risks
+        const risksContainer = $('resilience-top-risks');
+        if (risksContainer && topRisks.length > 0) {
+            risksContainer.innerHTML = '';
+
+            topRisks.slice(0, 3).forEach((scenario, index) => {
+                const riskCard = document.createElement('div');
+                riskCard.className = 'resilience-risk-card';
+
+                let probabilityClass = 'prob-low';
+                if (scenario.probability === 'HIGH') probabilityClass = 'prob-high';
+                else if (scenario.probability === 'MEDIUM') probabilityClass = 'prob-medium';
+
+                riskCard.innerHTML = `
+                    <div class="risk-card-header">
+                        <span class="risk-card-number">#${index + 1}</span>
+                        <span class="risk-card-probability ${probabilityClass}">${scenario.probability} probability</span>
+                    </div>
+                    <h4 class="risk-card-title">${scenario.name}</h4>
+                    <p class="risk-card-description">${scenario.description}</p>
+                    <div class="risk-card-impact">
+                        <div class="risk-impact-label">Potential Impact:</div>
+                        <div class="risk-impact-severity">
+                            <div class="severity-bar" style="width: ${scenario.impactSeverity * 10}%"></div>
+                        </div>
+                        <div class="risk-impact-text">${scenario.impactSeverity.toFixed(1)}/10 severity</div>
+                    </div>
+                    <button class="risk-view-details-btn" onclick="app.showResilienceScenarioDetail('${scenario.id}')">
+                        View Recovery Plan
+                    </button>
+                `;
+
+                risksContainer.appendChild(riskCard);
+            });
+        }
+
+        // Display top recommendations
+        const recsContainer = $('resilience-recommendations');
+        if (recsContainer && recommendations.length > 0) {
+            recsContainer.innerHTML = '';
+
+            recommendations.forEach((rec, index) => {
+                const recItem = document.createElement('div');
+                recItem.className = `resilience-recommendation-item priority-${rec.priority.toLowerCase()}`;
+
+                recItem.innerHTML = `
+                    <div class="rec-number">${index + 1}</div>
+                    <div class="rec-content">
+                        <div class="rec-title">${rec.action}</div>
+                        <div class="rec-details">
+                            <div class="rec-current">Current: ${rec.current}</div>
+                            <div class="rec-target">Target: ${rec.target}</div>
+                        </div>
+                        <div class="rec-protects">Protects against: ${rec.protectsAgainst}</div>
+                    </div>
+                    <div class="rec-priority-badge">${rec.priority}</div>
+                `;
+
+                recsContainer.appendChild(recItem);
+            });
+        }
+
+        // Show the resilience section
+        container.classList.remove('hidden');
+    }
+
+    showResilienceScenarioDetail(scenarioId) {
+        if (!this.currentResilience) return;
+
+        const scenario = this.currentResilience.scenarios.find(s => s.id === scenarioId);
+        if (!scenario || !scenario.applicable) return;
+
+        const modal = $('resilience-detail-modal');
+        const title = $('resilience-detail-title');
+        const content = $('resilience-detail-content');
+
+        if (!modal || !title || !content) return;
+
+        title.textContent = scenario.name;
+
+        let detailHTML = `
+            <div class="scenario-detail-section">
+                <h4>📊 Impact Analysis</h4>
+                <div class="impact-metrics">
+        `;
+
+        // Display impact metrics based on scenario
+        for (const [key, value] of Object.entries(scenario.impact)) {
+            const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+            detailHTML += `
+                <div class="impact-metric">
+                    <span class="metric-label">${label}:</span>
+                    <span class="metric-value">${typeof value === 'number' ? formatCurrency(value) : value}</span>
+                </div>
+            `;
+        }
+
+        detailHTML += `
+                </div>
+            </div>
+
+            <div class="scenario-detail-section">
+                <h4>🎯 Recovery Actions</h4>
+                <div class="recovery-actions">
+        `;
+
+        scenario.recoveryActions.forEach((action, index) => {
+            detailHTML += `
+                <div class="recovery-action-item">
+                    <div class="recovery-action-number">${index + 1}</div>
+                    <div class="recovery-action-content">
+                        <div class="recovery-action-title">${action.action}</div>
+                        <div class="recovery-action-detail">${action.detail}</div>
+                        <div class="recovery-action-meta">
+                            <span class="timeline">Timeline: ${action.timeline}</span>
+                            ${action.impactReduction > 0 ? `<span class="impact-reduction">Reduces impact by ${formatCurrency(action.impactReduction)}/year</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        detailHTML += `
+                </div>
+            </div>
+
+            <div class="scenario-detail-section">
+                <h4>🛡️ Preventive Measures</h4>
+                <div class="preventive-measures">
+        `;
+
+        scenario.preventiveMeasures.forEach((measure, index) => {
+            detailHTML += `
+                <div class="preventive-measure-item priority-${measure.priority.toLowerCase()}">
+                    <div class="measure-priority-badge">${measure.priority}</div>
+                    <div class="measure-content">
+                        <div class="measure-title">${measure.measure}</div>
+                        <div class="measure-status">
+                            <div>Current: <span class="current-status">${measure.current}</span></div>
+                            <div>Target: <span class="target-status">${measure.target}</span></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        detailHTML += `
+                </div>
+            </div>
+
+            <div class="scenario-detail-footer">
+                <strong>Recovery Timeline:</strong> ${scenario.recoveryTimeline}
+            </div>
+        `;
+
+        content.innerHTML = detailHTML;
+        modal.style.display = 'flex';
+    }
+
+    closeResilienceScenarioDetail() {
+        const modal = $('resilience-detail-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
     }
 }
 
