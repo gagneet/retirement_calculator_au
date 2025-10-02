@@ -264,16 +264,16 @@ export const ENHANCED_CONFIG = {
             investmentPropertyRate: 0.062,  // 6.2% as decimal
             weeklyRentalIncome: 554,
             annualPropertyExpenses: 9675,
-            propertyGrowthRate: 5.8,  // Updated 2025-10-01: CoreLogic median 2000-2025 (was 4.5%)
+            propertyGrowthRate: 0.058,  // Updated 2025-10-01: CoreLogic median 2000-2025 - 5.8% as decimal
             sellPropertyYears: 15,
             capitalGainsTaxRate: 0.225  // 22.5% as decimal
         },
         healthcare: {
             currentHealthcareCosts: 3500,
-            healthcareInflation: 0.038, // Updated 2025-10-01: AIHW median 2000-2025 (was 0.061 - too high)
+            healthcareInflation: 0.0382, // Updated 2025-10-01: AIHW median 2000-2025 - 3.82% as decimal
             hasPrivateHealth: "comprehensive",
             chronicConditions: "none",
-            agedCareProbability: 65,
+            agedCareProbability: 0.22, // Updated to 22% as decimal
             agedCareStartAge: 85,
             agedCareDuration: 2.5,  // Updated 2025-10-01: AIHW median stay (was 3.5)
             agedCareAnnualCost: 75000
@@ -281,20 +281,20 @@ export const ENHANCED_CONFIG = {
         economic: {
             inflation: 0.026,   // Updated 2025-10-01: RBA/ABS median 2000-2025 (was 0.0287)
             investmentReturn: 0.0561,  // 5.61% as decimal
-            returnDeclineRate: 0.03,
+            returnDeclineRate: 0.0003, // 0.03% as decimal
             savingsReturn: 0.0140,  // 1.40% as decimal
             superReturn: 0.075,  // Updated 2025-10-01: APRA balanced fund median (was 0.0875)
             salaryGrowthRate: 0.015,  // 1.5% as decimal
             leanYearsStart: 5,
-            leanYearsReduction: 25
+            leanYearsReduction: 0.38 // 38% as decimal
         },
         allocation: {
             useGlidePath: true,
             glidePathRule: "110minus",
             frankingCreditBenefit: 1.2,
             australianEquityAllocation: 40,
-            dividendYield: 4.5,
-            frankingRate: 75,
+            dividendYield: 0.045, // 4.5% as decimal
+            frankingRate: 0.75, // 75% as decimal
             allocEquities: 60,
             allocBonds: 30,
             allocCash: 10

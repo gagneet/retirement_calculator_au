@@ -631,8 +631,8 @@ class RetirementCalculatorApp {
 
             // Healthcare & aged care
             currentHealthcareCosts: safeGetValue('currentHealthcareCosts', config.healthcare.currentHealthcareCosts),
-            healthcareInflation: safeGetValue('healthcareInflation', config.healthcare.healthcareInflation),
-            agedCareProbability: safeGetValue('agedCareProbability', config.healthcare.agedCareProbability),
+            healthcareInflation: safeGetValue('healthcareInflation', config.healthcare.healthcareInflation) / 100,
+            agedCareProbability: safeGetValue('agedCareProbability', config.healthcare.agedCareProbability) / 100,
             agedCareStartAge: safeGetValue('agedCareStartAge', config.healthcare.agedCareStartAge),
             agedCareDuration: safeGetValue('agedCareDuration', config.healthcare.agedCareDuration),
             agedCareAnnualCost: safeGetValue('agedCareAnnualCost', config.healthcare.agedCareAnnualCost),
@@ -640,20 +640,20 @@ class RetirementCalculatorApp {
             // Economic assumptions
             inflation: safeGetValue('inflation', config.economic.inflation) / 100,
             investmentReturn: safeGetValue('investmentReturn', config.economic.investmentReturn) / 100,
-            returnDeclineRate: safeGetValue('returnDeclineRate', config.economic.returnDeclineRate),
+            returnDeclineRate: safeGetValue('returnDeclineRate', config.economic.returnDeclineRate) / 100,
             savingsReturn: safeGetValue('savingsReturn', config.economic.savingsReturn) / 100,
             superReturn: safeGetValue('superReturn', config.economic.superReturn) / 100,
             superContributionRate: ENHANCED_CONFIG.SUPER_GUARANTEE_RATE,
             salaryGrowthRate: safeGetValue('salaryGrowthRate', config.economic.salaryGrowthRate) / 100,
             leanYearsStart: safeGetValue('leanYearsStart', config.economic.leanYearsStart),
-            leanYearsReduction: safeGetValue('leanYearsReduction', config.economic.leanYearsReduction),
+            leanYearsReduction: safeGetValue('leanYearsReduction', config.economic.leanYearsReduction) / 100,
 
             // Dynamic allocation
             useGlidePath: safeGetChecked('useGlidePath', config.allocation.useGlidePath),
             glidePathRule: safeGetSelectValue('glidePathRule', config.allocation.glidePathRule),
             frankingCreditBenefit: safeGetValue('frankingCreditBenefit', config.allocation.frankingCreditBenefit),
             australianEquityAllocation: safeGetValue('australianEquityAllocation', config.allocation.australianEquityAllocation),
-            dividendYield: safeGetValue('dividendYield', config.allocation.dividendYield),
+            dividendYield: safeGetValue('dividendYield', config.allocation.dividendYield) / 100,
             frankingRate: safeGetValue('frankingRate', config.allocation.frankingRate) / 100,
             allocEquities: safeGetValue('allocEquities', config.allocation.allocEquities),
             allocBonds: safeGetValue('allocBonds', config.allocation.allocBonds),
