@@ -1,3 +1,4 @@
+import * as analytics from './analytics.js';
 import '../css/styles.css';
 // js/app.js - Main Application Controller
 
@@ -4995,6 +4996,7 @@ class RetirementCalculatorApp {
         const inputs = this.collectInputs();
         const scenarioName = prompt('Enter a name for this scenario:', 'My Retirement Plan') || 'My Retirement Plan';
         exportUserData(inputs, scenarioName);
+        analytics.trackDataAction('Export User Data');
     }
 
     async importUserInputs() {
@@ -5032,6 +5034,7 @@ class RetirementCalculatorApp {
                 this.calculateRetirement(false);
 
                 showNotification(`Successfully loaded scenario: ${importedData.scenarioName || 'Imported Data'}`, 'success');
+                analytics.trackDataAction('Import User Data');
             }
         } catch (error) {
             showNotification(error.message || 'Failed to import data.', 'error');
@@ -5126,13 +5129,19 @@ class RetirementCalculatorApp {
         // Main calculation button
         const btnCalculate = $('btnCalculate');
         if (btnCalculate) {
-            btnCalculate.addEventListener('click', () => this.calculateRetirement(true));
+            btnCalculate.addEventListener('click', () => {
+                analytics.trackButtonClick('Calculate Enhanced Projection');
+                this.calculateRetirement(true);
+            });
         }
 
         // Recommendation Engine button
         const btnGenerateRecommendations = $('btnGenerateRecommendations');
         if (btnGenerateRecommendations) {
-            btnGenerateRecommendations.addEventListener('click', () => this.runRecommendationEngine());
+            btnGenerateRecommendations.addEventListener('click', () => {
+                analytics.trackButtonClick('Generate AI Recommendations');
+                this.runRecommendationEngine();
+            });
         }
 
         // Generate Suggestions button
@@ -5150,43 +5159,64 @@ class RetirementCalculatorApp {
         // Monte Carlo button
         const btnMonteCarlo = $('btnMonteCarlo');
         if (btnMonteCarlo) {
-            btnMonteCarlo.addEventListener('click', () => this.runMonteCarloSimulation());
+            btnMonteCarlo.addEventListener('click', () => {
+                analytics.trackButtonClick('Run Enhanced Monte Carlo');
+                this.runMonteCarloSimulation();
+            });
         }
 
         // Scenario comparison button
         const btnScenarioMatrix = $('btnScenarioMatrix');
         if (btnScenarioMatrix) {
-            btnScenarioMatrix.addEventListener('click', () => this.runScenarioComparison());
+            btnScenarioMatrix.addEventListener('click', () => {
+                analytics.trackButtonClick('Compare Strategies');
+                this.runScenarioComparison();
+            });
         }
 
         // Healthcare analysis button
         const btnHealthcareAnalysis = $('btnHealthcareAnalysis');
         if (btnHealthcareAnalysis) {
-            btnHealthcareAnalysis.addEventListener('click', () => this.runHealthcareAnalysis());
+            btnHealthcareAnalysis.addEventListener('click', () => {
+                analytics.trackButtonClick('Healthcare Costs');
+                this.runHealthcareAnalysis();
+            });
         }
 
         // Risk profiling button
         const btnRiskProfiling = $('btnRiskProfiling');
         if (btnRiskProfiling) {
-            btnRiskProfiling.addEventListener('click', () => this.runAdvancedRiskProfiling());
+            btnRiskProfiling.addEventListener('click', () => {
+                analytics.trackButtonClick('Risk Analysis');
+                this.runAdvancedRiskProfiling();
+            });
         }
 
         // Dynamic allocation button
         const btnDynamicAllocation = $('btnDynamicAllocation');
         if (btnDynamicAllocation) {
-            btnDynamicAllocation.addEventListener('click', () => this.runDynamicAllocationAnalysis());
+            btnDynamicAllocation.addEventListener('click', () => {
+                analytics.trackButtonClick('Asset Allocation');
+                this.runDynamicAllocationAnalysis();
+            });
         }
 
         // Stress test button
         const btnStressTest = $('btnStressTest');
         if (btnStressTest) {
-            btnStressTest.addEventListener('click', () => this.runStressTest());
+            btnStressTest.addEventListener('click', () => {
+                analytics.trackButtonClick('Run Stress Test');
+                this.runStressTest();
+            });
         }
 
         // Retirement solver button
         const btnRetirementSolver = $('btnRetirementSolver');
         if (btnRetirementSolver) {
-            btnRetirementSolver.addEventListener('click', () => this.runRetirementSolver());
+            btnRetirementSolver.addEventListener('click', () => {
+                analytics.trackButtonClick('When Can I Retire?');
+                this.runRetirementSolver();
+            });
         }
 
         // Scenario comparison button
