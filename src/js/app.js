@@ -814,13 +814,13 @@ class RetirementCalculatorApp {
             }
 
 
-            // Show outcome tab and conditionally scroll to results
+            // Show enhanced summary tab and conditionally scroll to results
             if (shouldScrollToResults) {
-                showTab('outcome', true);
+                showTab('summary', true);
                 showNotification('Calculation completed successfully', 'success');
             } else {
                 // For initial load, just switch tabs without scrolling or notification
-                showTab('outcome', false);
+                showTab('summary', false);
             }
 
         } catch (error) {
@@ -1628,6 +1628,10 @@ class RetirementCalculatorApp {
             this.displayScenarioMatrix(matrixResults);
 
             updateProgress(100, "Scenario analysis complete!");
+
+            // Switch to scenarios tab to show comparison results
+            showTab('scenarios', true);
+            showNotification('Scenario comparison complete!', 'success');
             setTimeout(() => updateProgress(0), 1000);
 
         } catch (error) {
@@ -1895,6 +1899,10 @@ class RetirementCalculatorApp {
             });
 
             updateProgress(100, "Healthcare analysis complete!");
+
+            // Switch to summary tab to show results and scroll to them
+            showTab('summary', true);
+            showNotification('Healthcare analysis complete!', 'success');
             setTimeout(() => updateProgress(0), 1000);
 
         } catch (error) {
@@ -1937,6 +1945,10 @@ class RetirementCalculatorApp {
             this.displayAdvancedRiskProfile(riskProfile);
 
             updateProgress(100, "Risk analysis complete!");
+
+            // Switch to risk analysis tab to show results
+            showTab('riskAnalysis', true);
+            showNotification('Risk analysis complete!', 'success');
             setTimeout(() => updateProgress(0), 1000);
 
         } catch (error) {
@@ -1989,6 +2001,10 @@ class RetirementCalculatorApp {
             this.displayDynamicAllocationStrategy(allocationStrategy);
 
             updateProgress(100, "Allocation analysis complete!");
+
+            // Switch to charts tab to show allocation results
+            showTab('charts', true);
+            showNotification('Asset allocation analysis complete!', 'success');
             setTimeout(() => updateProgress(0), 1000);
 
         } catch (error) {

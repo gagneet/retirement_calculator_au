@@ -495,6 +495,194 @@
             background: linear-gradient(90deg, #10b981, #059669);
             animation: fill-progress 0.8s ease-out;
         }
+
+        /* ============================================
+           FORM COLOR CODING - Visual Hierarchy
+           ============================================ */
+
+        /* Required Core Fields - Soft Blue Accent */
+        .field-required {
+            background: linear-gradient(to right, #EFF6FF 0%, #ffffff 100%);
+            border-left: 4px solid #3B82F6;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .field-required:hover {
+            background: #EFF6FF;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+        }
+
+        .field-required label {
+            font-weight: 600;
+            color: #1E40AF;
+        }
+
+        /* Optional Enhancement Sections - Color Coded by Category */
+
+        /* Personal & Risk Profile - Indigo/Purple Theme */
+        .section-personal-risk {
+            background: linear-gradient(135deg, #F5F3FF 0%, #ffffff 100%);
+            border-left: 4px solid #8B5CF6;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(139, 92, 246, 0.1);
+        }
+
+        .section-personal-risk h2,
+        .section-personal-risk h3 {
+            color: #6D28D9;
+        }
+
+        .section-personal-risk .advanced-section {
+            background: #FAF5FF;
+            border-left: 3px solid #A78BFA;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Property Portfolio - Green Theme */
+        .section-property {
+            background: linear-gradient(135deg, #F0FDF4 0%, #ffffff 100%);
+            border-left: 4px solid #10B981;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .section-property h2,
+        .section-property h3 {
+            color: #047857;
+        }
+
+        .section-property .advanced-section {
+            background: #ECFDF5;
+            border-left: 3px solid #34D399;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Economic & Asset Allocation - Amber/Yellow Theme */
+        .section-economic {
+            background: linear-gradient(135deg, #FFFBEB 0%, #ffffff 100%);
+            border-left: 4px solid #F59E0B;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(245, 158, 11, 0.1);
+        }
+
+        .section-economic h2,
+        .section-economic h3 {
+            color: #D97706;
+        }
+
+        .section-economic .advanced-section {
+            background: #FEF3C7;
+            border-left: 3px solid #FBBF24;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Pension & Government - Blue Theme */
+        .section-pension {
+            background: linear-gradient(135deg, #EFF6FF 0%, #ffffff 100%);
+            border-left: 4px solid #2563EB;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .section-pension h2,
+        .section-pension h3 {
+            color: #1D4ED8;
+        }
+
+        .section-pension .advanced-section {
+            background: #DBEAFE;
+            border-left: 3px solid #60A5FA;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Section Header Badges */
+        .section-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
+
+        .badge-required {
+            background: #DBEAFE;
+            color: #1E40AF;
+            border: 1px solid #3B82F6;
+        }
+
+        .badge-optional {
+            background: #F3F4F6;
+            color: #6B7280;
+            border: 1px solid #D1D5DB;
+        }
+
+        .badge-enhanced {
+            background: #FEF3C7;
+            color: #92400E;
+            border: 1px solid #F59E0B;
+        }
+
+        /* Input field focus states with color coding */
+        .section-personal-risk input:focus,
+        .section-personal-risk select:focus {
+            border-color: #8B5CF6 !important;
+            ring-color: #8B5CF6 !important;
+        }
+
+        .section-property input:focus,
+        .section-property select:focus {
+            border-color: #10B981 !important;
+            ring-color: #10B981 !important;
+        }
+
+        .section-economic input:focus,
+        .section-economic select:focus {
+            border-color: #F59E0B !important;
+            ring-color: #F59E0B !important;
+        }
+
+        .section-pension input:focus,
+        .section-pension select:focus {
+            border-color: #2563EB !important;
+            ring-color: #2563EB !important;
+        }
+
+        /* Subsection highlighting within colored sections */
+        .subsection-highlight {
+            background: rgba(255, 255, 255, 0.6);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Visual separator for grouped fields */
+        .field-group-separator {
+            height: 1px;
+            background: linear-gradient(to right, transparent, currentColor, transparent);
+            opacity: 0.2;
+            margin: 1.5rem 0;
+        }
     </style>
 </head>
 <body>
@@ -783,10 +971,22 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <!-- Button to show/hide advanced calculator -->
+    <div id="showAdvancedCalculatorButton" class="text-center mb-6 hidden">
+        <button onclick="toggleAdvancedCalculator()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-lg text-lg shadow-lg transition duration-200">
+            📊 Show Advanced Calculator (Optional)
+        </button>
+        <p class="text-sm text-gray-600 mt-2">Customize all parameters for detailed analysis</p>
+    </div>
+
+    <!-- Advanced Calculator Form (hidden by default after onboarding) -->
+    <div id="advancedCalculatorForm" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <!-- Column 1: Personal & Risk Profile -->
-        <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4 border-b pb-2">Personal & Risk Profile</h2>
+        <div class="lg:col-span-1 section-personal-risk">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">
+                Personal & Risk Profile
+                <span class="section-badge badge-required">⭐ Core Fields</span>
+            </h2>
 
             <div class="space-y-4">
                 <div>
@@ -1192,8 +1392,11 @@
         </div>
 
         <!-- Column 2: Property & Investment Property -->
-        <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4 border-b pb-2">Property Portfolio</h2>
+        <div class="lg:col-span-1 section-property">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">
+                Property Portfolio
+                <span class="section-badge badge-optional">Optional</span>
+            </h2>
 
             <h3 class="text-lg font-medium text-gray-700 mb-3">Primary Residence</h3>
             <div class="space-y-4">
@@ -1441,8 +1644,11 @@
         </div>
 
         <!-- Column 3: Economic & Asset Allocation -->
-        <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4 border-b pb-2">Economic & Asset Allocation</h2>
+        <div class="lg:col-span-1 section-economic">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">
+                Economic & Asset Allocation
+                <span class="section-badge badge-enhanced">💡 Advanced</span>
+            </h2>
 
             <div class="space-y-4">
                 <div>
@@ -1556,8 +1762,11 @@
         </div>
 
         <!-- Column 4: Pension System & Simulation -->
-        <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4 border-b pb-2">Australian Pension System</h2>
+        <div class="lg:col-span-1 section-pension">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">
+                Australian Pension System
+                <span class="section-badge badge-optional">Optional</span>
+            </h2>
 
             <div class="space-y-4">
                 <div>
@@ -1698,6 +1907,36 @@
             -->
         </div>
     </div>
+    <!-- End of advancedCalculatorForm -->
+
+    <!-- JavaScript for toggle functionality -->
+    <script>
+        function toggleAdvancedCalculator() {
+            const form = document.getElementById('advancedCalculatorForm');
+            const button = document.getElementById('showAdvancedCalculatorButton');
+
+            if (form.style.display === 'none') {
+                form.style.display = 'grid';
+                button.querySelector('button').innerHTML = '📊 Hide Advanced Calculator';
+            } else {
+                form.style.display = 'none';
+                button.querySelector('button').innerHTML = '📊 Show Advanced Calculator (Optional)';
+            }
+        }
+
+        // Check if user has completed onboarding
+        window.addEventListener('DOMContentLoaded', function() {
+            const hasCompleted = localStorage.getItem('hasVisitedCalculator') === 'true';
+
+            if (hasCompleted) {
+                const form = document.getElementById('advancedCalculatorForm');
+                const button = document.getElementById('showAdvancedCalculatorButton');
+
+                if (form) form.style.display = 'none';
+                if (button) button.classList.remove('hidden');
+            }
+        });
+    </script>
 
     <!-- Enhanced Results Section -->
     <div class="mt-8 bg-white rounded-lg shadow-md">
