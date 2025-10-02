@@ -2,34 +2,45 @@
 // All Australian-specific constants, rules, and default values
 
 export const ENHANCED_CONFIG = {
-    version: '1.0.0',
-    lastUpdated: '2025-09-30',
+    version: '1.1.0',
+    lastUpdated: '2025-10-01',
 
-    // Core Australian system constants
+    // Core Australian system constants (Updated Sept 2025 - Services Australia)
     SUPER_GUARANTEE_RATE: 0.12,
-    DEMING_THRESHOLD: 106200,
-    SINGLE_PENSION_MAX: 28000,
-    SINGLE_ASSET_THRESHOLD: 301750,
-    SINGLE_ASSET_LIMIT: 686500,
-    SINGLE_INCOME_THRESHOLD: 212,
+    // Deeming thresholds (Sept 2025)
+    DEMING_THRESHOLD_SINGLE: 64200,      // Lower deeming rate threshold - singles
+    DEMING_THRESHOLD_COUPLE: 106200,     // Lower deeming rate threshold - couples
+    DEMING_RATE_LOWER: 0.0075,           // 0.75% on amounts below threshold
+    DEMING_RATE_UPPER: 0.0275,           // 2.75% on amounts above threshold
+    // Age Pension maximums (Sept 2025)
+    SINGLE_PENSION_MAX: 30646,           // $1,178.70/fortnight × 26 (updated from $28,000)
+    COUPLE_PENSION_MAX: 46202,           // $1,777.00/fortnight × 26
+    // Asset test thresholds - homeowners (Sept 2025)
+    SINGLE_ASSET_THRESHOLD: 321500,      // Full pension limit (updated from $301,750)
+    SINGLE_ASSET_LIMIT: 714500,          // Part pension cutoff (updated from $686,500)
+    COUPLE_ASSET_THRESHOLD: 481500,      // Couple full pension limit
+    COUPLE_ASSET_LIMIT: 1074000,         // Couple part pension cutoff
+    // Income test thresholds (Sept 2025)
+    SINGLE_INCOME_THRESHOLD: 218,        // Per fortnight (updated from $212)
+    COUPLE_INCOME_THRESHOLD: 380,        // Per fortnight combined
     HOME_EQUITY_ACCESS_RATE: 0.7,
     CGT_DISCOUNT: 0.5,
     FRANKING_CREDIT_RATE: 0.3,
 
     sources: {
-        SUPER_GUARANTEE_RATE: { source: 'ATO', lastUpdated: '2024-07-01' },
-        DEMING_THRESHOLD: { source: 'Services Australia', lastUpdated: '2024-07-01' },
-        SINGLE_PENSION_MAX: { source: 'Services Australia', lastUpdated: '2024-09-20' },
-        SINGLE_ASSET_THRESHOLD: { source: 'Services Australia', lastUpdated: '2024-07-01' },
-        SINGLE_ASSET_LIMIT: { source: 'Services Australia', lastUpdated: '2024-07-01' },
-        SINGLE_INCOME_THRESHOLD: { source: 'Services Australia', lastUpdated: '2024-09-20' },
-        HOME_EQUITY_ACCESS_RATE: { source: 'Services Australia', lastUpdated: '2024-07-01' },
-        CGT_DISCOUNT: { source: 'ATO', lastUpdated: '2024-07-01' },
-        FRANKING_CREDIT_RATE: { source: 'ATO', lastUpdated: '2024-07-01' },
-        inflation: { source: 'ABS', lastUpdated: '2024-04-24' },
-        investmentReturn: { source: 'Internal Analysis', lastUpdated: '2024-07-01' },
-        salaryGrowthRate: { source: 'ABS', lastUpdated: '2024-05-15' },
-        superReturn: { source: 'Internal Analysis', lastUpdated: '2024-07-01' }
+        SUPER_GUARANTEE_RATE: { source: 'ATO', lastUpdated: '2025-10-01' },
+        DEMING_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2025-09-20', note: 'Updated to Sept 2025 rates' },
+        PENSION_MAXIMUMS: { source: 'Services Australia', lastUpdated: '2025-09-20', note: 'Sept 2025 indexation' },
+        ASSET_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2025-09-20', note: 'Sept 2025 indexation' },
+        INCOME_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2025-09-20', note: 'Sept 2025 indexation' },
+        HOME_EQUITY_ACCESS_RATE: { source: 'Services Australia', lastUpdated: '2025-10-01' },
+        CGT_DISCOUNT: { source: 'ATO', lastUpdated: '2025-10-01' },
+        FRANKING_CREDIT_RATE: { source: 'ATO', lastUpdated: '2025-10-01' },
+        inflation: { source: 'RBA/ABS', lastUpdated: '2025-10-01', medianValue: true, note: 'Using 2.6% median 2000-2025' },
+        investmentReturn: { source: 'APRA/Market Analysis', lastUpdated: '2025-10-01', medianValue: true },
+        salaryGrowthRate: { source: 'ABS', lastUpdated: '2025-10-01' },
+        superReturn: { source: 'APRA', lastUpdated: '2025-10-01', medianValue: true, note: 'Using 7.5% median balanced fund' },
+        healthcareInflation: { source: 'AIHW', lastUpdated: '2025-10-01', medianValue: true, note: 'Using 3.8% median 2000-2025' }
     },
     
     // Enhanced healthcare and aged care costs (2024 values)
@@ -79,12 +90,13 @@ export const ENHANCED_CONFIG = {
         { min: 190001, max: Infinity, rate: 0.45 }
     ],
     
-    // Healthcare inflation rates by condition
+    // Healthcare inflation rates by condition (Updated 2025-10-01 to AIHW median values)
+    // NOTE: Previous settings were too high. AIHW median 2000-2025 is 3.8%, not 6%+
     HEALTHCARE_INFLATION: {
-        none: 4.5,
-        minor: 4.75,
-        moderate: 6.0,
-        major: 9.0
+        none: 3.5,      // Below median - minimal healthcare needs
+        minor: 3.8,     // Median - typical healthcare needs (AIHW 2000-2025 median)
+        moderate: 4.5,  // Above median - increased healthcare needs
+        major: 6.5      // Significantly above median - major health conditions
     },
     
     // Historical Australian market patterns and volatility modeling
@@ -252,26 +264,26 @@ export const ENHANCED_CONFIG = {
             investmentPropertyRate: 0.062,  // 6.2% as decimal
             weeklyRentalIncome: 554,
             annualPropertyExpenses: 9675,
-            propertyGrowthRate: 4.5,  // Stored as percentage
+            propertyGrowthRate: 5.8,  // Updated 2025-10-01: CoreLogic median 2000-2025 (was 4.5%)
             sellPropertyYears: 15,
             capitalGainsTaxRate: 0.225  // 22.5% as decimal
         },
         healthcare: {
             currentHealthcareCosts: 3500,
-            healthcareInflation: 0.061, // 6.1% as decimal, based on ABS data April 2024 - health sector third highest inflation in Australia
+            healthcareInflation: 0.038, // Updated 2025-10-01: AIHW median 2000-2025 (was 0.061 - too high)
             hasPrivateHealth: "comprehensive",
             chronicConditions: "none",
             agedCareProbability: 65,
             agedCareStartAge: 85,
-            agedCareDuration: 3.5,
+            agedCareDuration: 2.5,  // Updated 2025-10-01: AIHW median stay (was 3.5)
             agedCareAnnualCost: 75000
         },
         economic: {
-            inflation: 0.0287,  // 2.87% as decimal
+            inflation: 0.026,   // Updated 2025-10-01: RBA/ABS median 2000-2025 (was 0.0287)
             investmentReturn: 0.0561,  // 5.61% as decimal
             returnDeclineRate: 0.03,
             savingsReturn: 0.0140,  // 1.40% as decimal
-            superReturn: 0.0875,  // 8.75% as decimal
+            superReturn: 0.075,  // Updated 2025-10-01: APRA balanced fund median (was 0.0875)
             salaryGrowthRate: 0.015,  // 1.5% as decimal
             leanYearsStart: 5,
             leanYearsReduction: 25
@@ -312,11 +324,11 @@ export const ENHANCED_CONFIG = {
             shockMagnitude: -0.25  // -25% as decimal
         },
         pension: {
-            asfaComfortable: 73875,
-            agePensionMax: 45037,
-            pensionAssetThreshold: 470000,
-            pensionAssetLimit: 1031000,
-            pensionIncomeThreshold: 372
+            asfaComfortable: 73031,      // Updated 2025-10-01: ASFA March 2025 (was 73875)
+            agePensionMax: 46202,        // Updated 2025-10-01: Sept 2025 couple max (was 45037)
+            pensionAssetThreshold: 481500,  // Updated 2025-10-01: Couple homeowner Sept 2025 (was 470000)
+            pensionAssetLimit: 1074000,  // Updated 2025-10-01: Couple homeowner Sept 2025 (was 1031000)
+            pensionIncomeThreshold: 380  // Updated 2025-10-01: Couple Sept 2025 fortnightly (was 372)
         }
     },
     
