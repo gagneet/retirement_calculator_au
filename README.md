@@ -67,26 +67,36 @@ A comprehensive, AI-powered retirement planning calculator specifically designed
 
 ```
 retirement-calculator/
-├── index.html                          # Main HTML structure with enhanced UI
-├── css/
-│   └── styles.css                      # Comprehensive stylesheet with responsive design
-├── js/
-│   ├── config.js                       # Australian system constants and configuration
-│   ├── utils.js                        # Utility functions and helpers
-│   ├── simulator.js                    # Core financial simulation engine
-│   ├── charts.js                       # Chart rendering with Chart.js
-│   ├── app.js                          # Main application controller (enhanced)
-│   ├── recommendation.js               # Basic recommendation engine
-│   ├── market-data.js                  # 🆕 Australian market data and cycles engine
-│   └── decision-support-engine.js      # 🆕 Comprehensive AI decision support system
-├── README.md                           # This comprehensive documentation
-├── CLAUDE.md                           # Development guidance for AI assistants
-└── COMPREHENSIVE_RECOMMENDATIONS_IMPLEMENTATION.md  # 🆕 Implementation details
+├── src/
+│   ├── js/                             # JavaScript source files
+│   │   ├── app.js                      # Main application logic
+│   │   ├── simulator.js                # Core financial simulation engine
+│   │   ├── decision-support-engine.js  # AI decision support system
+│   │   └── ...                         # Other feature modules
+│   ├── css/
+│   │   └── styles.css                  # Main stylesheet
+│   ├── assets/                         # Images, fonts, and other static assets
+│   ├── advanced.html                   # Main calculator HTML template
+│   ├── index.html                      # Landing page HTML template
+│   └── ...                             # Other HTML page templates
+├── dist/                               # Build output directory (generated)
+│   ├── advanced.html                   # Processed calculator page
+│   ├── index.html                      # Processed landing page
+│   ├── main.[contenthash].js           # Bundled JavaScript
+│   └── ...                             # Other generated assets
+├── package.json                        # Project dependencies and scripts
+├── webpack.config.js                   # Webpack build configuration
+└── README.md                           # This documentation
 ```
 
 ## 🔧 **Setup Instructions**
 
-### **Quick Start**
+### **Prerequisites**
+
+- **Node.js**: Version 14.x or higher
+- **npm**: Version 6.x or higher (usually comes with Node.js)
+
+### **Quick Start: Installation & Setup**
 
 1. **Download/Clone the Repository**:
    ```bash
@@ -94,23 +104,39 @@ retirement-calculator/
    cd retirement_calculator_au
    ```
 
-2. **Serve Files Locally** (Required for ES6 modules):
+2.  **Install Dependencies**:
+    This will install all the necessary development dependencies listed in `package.json`.
+    ```bash
+    npm install
+    ```
 
+3.  **Build the Application**:
+    This command runs the webpack build process, which bundles the source files from `src/` and places the output in the `dist/` directory.
+    ```bash
+    npm run build
+    ```
+
+4. **Serve Files Locally** (Required for ES6 modules):
+    To view the application, you need to serve the files from the `dist` directory. You can use any simple web server.
    **Option 1 - Python 3 (Recommended)**:
    ```bash
    python -m http.server 8000
-   # Then open http://localhost:8000
+   # Then, open `http://localhost:8000` in your browser. The main calculator is at `http://localhost:8000/advanced.html`.
    ```
 
    **Option 2 - Python 2**:
    ```bash
    python -m SimpleHTTPServer 8000
-   # Then open http://localhost:8000
+   # Then, open `http://localhost:8000` in your browser. The main calculator is at `http://localhost:8000/advanced.html`.
    ```
 
    **Option 3 - Node.js with npx**:
-   ```bash
-   npx serve .
+    **Using `npx` (no installation required)**:
+    ```bash
+    npx serve dist
+    ```
+    The command will output the local URL.
+
    # Typically serves on http://localhost:3000
    ```
 
@@ -118,13 +144,13 @@ retirement-calculator/
    ```bash
    npm install -g http-server
    http-server -p 8000
-   # Then open http://localhost:8000
+   # Then, open `http://localhost:8000` in your browser. The main calculator is at `http://localhost:8000/advanced.html`.
    ```
 
    **Option 5 - PHP**:
    ```bash
    php -S localhost:8000
-   # Then open http://localhost:8000
+   # Then, open `http://localhost:8000` in your browser. The main calculator is at `http://localhost:8000/advanced.html`.
    ```
 
    **Option 6 - Using VS Code Live Server Extension**:
@@ -191,6 +217,27 @@ EXPOSE 80
 5. **Healthcare Planning**: Current costs and aged-care expectations
 6. **Economic Assumptions**: Inflation, returns, and allocation preferences
 7. **🆕 Generate AI Recommendations**: Click the enhanced recommendation button
+
+### **Onboarding Experience**
+
+For new users, the calculator offers a guided onboarding wizard to simplify the initial data entry process. This 5-step journey includes gamification elements like avatars and progress badges to make retirement planning more engaging. The wizard covers:
+1.  **Household Information**: Your age, location, and family structure.
+2.  **Financials**: Income, superannuation, and other investments.
+3.  **Property**: Details about your primary residence and any investment properties.
+4.  **Goals**: Your desired retirement age, lifestyle, and risk tolerance.
+5.  **Review**: A summary of your inputs before generating the initial plan.
+
+Once completed, your data is automatically transferred to the advanced calculator, giving you a comprehensive starting point for deeper analysis.
+
+### **Advanced Calculator Usage**
+
+For returning users or those who skip the onboarding, the advanced calculator provides a comprehensive interface for detailed financial planning. Key sections include:
+
+1.  **Personal & Financial Details**: Enter your age, income, superannuation, savings, and other investments.
+2.  **Property & Assets**: Model your home and investment properties.
+3.  **Goals & Assumptions**: Define your retirement goals and customize economic assumptions.
+4.  **Run Simulations**: Use the action buttons to run detailed Monte Carlo simulations, stress tests, and scenario comparisons.
+5.  **Review Recommendations**: The **Persona Intelligence Engine** analyzes your profile and provides tailored recommendations based on your financial situation and goals.
 
 ### **NEW: Comprehensive Decision Support**
 1. **Generate Analysis**: Click "Generate AI Recommendations" for comprehensive analysis
@@ -465,6 +512,24 @@ To contribute to this project:
 
 ## 📋 **Module Responsibilities (Updated)**
 
+### **Core Modules**
+- **`app.js`**: The main application controller. Initializes all modules, handles UI event listeners, and coordinates the overall application flow.
+- **`simulator.js`**: The core financial simulation engine that runs retirement projections based on user inputs.
+- **`utils.js`**: A collection of utility functions for DOM manipulation, number/currency formatting, and common financial calculations.
+- **`charts.js`**: Responsible for rendering all charts and visualizations using Chart.js.
+- **`config.js`**: Contains all static configuration, including tax brackets, superannuation rules, default values, and constants.
+
+### **Onboarding & User Experience**
+- **`onboarding-wizard.js`**: Manages the 5-step guided onboarding experience for new users, including UI, data collection, and gamification elements.
+- **`persona-intelligence.js`**: An AI-powered engine that identifies the user's financial persona (e.g., "Young High Earner," "Family Focused") to provide tailored, contextual recommendations.
+
+### **Financial Engines & Analysis**
+- **`decision-support-engine.js`**: The primary engine for generating high-level strategic recommendations across 8 key financial areas.
+- **`enhanced-monte-carlo.js`**: Runs the complex Monte Carlo simulations to determine the probability of success for the user's retirement plan.
+- **`market-data.js`**: Contains data and logic related to Australian property market cycles for city-specific analysis.
+- **`tax-optimizer.js`**: Includes functions and logic specifically for tax optimization strategies.
+- **`property-analysis.js`**: Handles detailed analysis of investment properties, including cash flow and capital gains.
+
 ### **`config.js`**
 - Australian pension system constants and thresholds
 - Tax brackets and rates (2024-25)
@@ -544,11 +609,11 @@ This project is designed for educational and personal use. All financial calcula
 
 ## 📞 **Support and Updates**
 
-- **Last Updated**: September 2025
+- **Last Updated**: October 2025
 - **Compatible With**: Australian financial regulations as of 2025-26 financial year
 - **Superannuation Caps**: Updated for 2025 contribution limits and $3M tax
-- **Property Data**: Includes 2024-2025 market analysis
-- **Tax Brackets**: 2024-25 Australian tax year
+- **Property Data**: Includes 2001-2026 market analysis
+- **Tax Brackets**: 2025-26 Australian tax year
 
 ---
 
