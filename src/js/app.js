@@ -50,6 +50,8 @@ async function loadAdvancedEngines() {
 import {
     $,
     safeGetValue,
+    getRawValue,
+    parseFormattedNumber,
     safeGetChecked,
     safeGetSelectValue,
     safeSetValue,
@@ -595,21 +597,21 @@ class RetirementCalculatorApp {
             // Enhanced dependent details
             dependentDetails: {
                 childrenUnder5: safeGetValue('childrenUnder5', 0),
-                childrenUnder5Percent: safeGetValue('childrenUnder5Percent', 70) / 100,
+                childrenUnder5Percent: parseFormattedNumber(getRawValue('childrenUnder5Percent', '70')),
                 childrenPrimary: safeGetValue('childrenPrimary', 0),
-                childrenPrimaryPercent: safeGetValue('childrenPrimaryPercent', 70) / 100,
+                childrenPrimaryPercent: parseFormattedNumber(getRawValue('childrenPrimaryPercent', '70')),
                 teenagers: safeGetValue('teenagers', 0),
-                teenagersPercent: safeGetValue('teenagersPercent', 80) / 100,
+                teenagersPercent: parseFormattedNumber(getRawValue('teenagersPercent', '80')),
                 adultDisabled: safeGetValue('adultDisabled', 0),
-                adultDisabledPercent: safeGetValue('adultDisabledPercent', 20) / 100,
+                adultDisabledPercent: parseFormattedNumber(getRawValue('adultDisabledPercent', '20')),
                 elderlyIndependent: safeGetValue('elderlyIndependent', 0),
-                elderlyIndependentPercent: safeGetValue('elderlyIndependentPercent', 50) / 100,
+                elderlyIndependentPercent: parseFormattedNumber(getRawValue('elderlyIndependentPercent', '50')),
                 elderlyHomeCare: safeGetValue('elderlyHomeCare', 0),
-                elderlyHomeCarePercent: safeGetValue('elderlyHomeCarePercent', 30) / 100,
+                elderlyHomeCarePercent: parseFormattedNumber(getRawValue('elderlyHomeCarePercent', '30')),
                 elderlyResidential: safeGetValue('elderlyResidential', 0),
-                elderlyResidentialPercent: safeGetValue('elderlyResidentialPercent', 40) / 100,
+                elderlyResidentialPercent: parseFormattedNumber(getRawValue('elderlyResidentialPercent', '40')),
                 otherDependents: safeGetValue('otherDependents', 0),
-                otherDependentsPercent: safeGetValue('otherDependentsPercent', 60) / 100
+                otherDependentsPercent: parseFormattedNumber(getRawValue('otherDependentsPercent', '60'))
             },
 
             // Financial details

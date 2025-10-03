@@ -3,6 +3,16 @@
 // DOM manipulation utilities
 export const $ = (id) => document.getElementById(id);
 
+// Get raw input value without extra processing
+export const getRawValue = (id, defaultVal = 0) => {
+    const elem = $(id);
+    if (!elem) return defaultVal;
+    const rawValue = elem.value.trim();
+    if (rawValue === '') return defaultVal;
+    // Directly return the string value for the caller to process
+    return rawValue;
+};
+
 // Utility to parse formatted numeric input values (currency, percentages)
 export const parseFormattedNumber = (formattedValue) => {
     // Remove all non-numeric characters except decimal point and minus
@@ -1567,7 +1577,7 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
         'agedCareProbability', 'inflation', 'investmentReturn', 'returnDeclineRate',
         'savingsReturn', 'superReturn', 'salaryGrowthRate', 'leanYearsReduction',
         'dividendYield', 'frankingRate', 'returnVolatility',
-        'shockProbability', 'shockMagnitude'
+        'shockProbability', 'shockMagnitude', 'australianEquityAllocation', 'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage'
     ];
 
     // Format currency and percentage fields
@@ -2237,6 +2247,7 @@ export const addTooltipBottomStyles = () => {
 
 export default {
     $,
+    getRawValue,
     safeGetValue,
     safeGetChecked,
     safeGetSelectValue,

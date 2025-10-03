@@ -585,65 +585,12 @@ export class RetirementSimulator {
         const numerator = portfolioReturn - (allocCash * cashBaseReturn);
         const denominator = allocEquities + (allocBonds * bondMultiplier);
 
-        // Return 0 if the portfolio is all cash or denominator is non-positive
+        // Return 0 if the portfolio is all cash or the denominator is non-positive
         return (denominator > 0) ? (numerator / denominator) : 0;
     }
 
-    // calculatePortfolioReturn(allocations, baseReturn, year, declineRate, useVolatility = false, prevReturn = null) {
-    //     // This function now correctly calculates portfolio returns for both deterministic
-    //     // and stochastic scenarios by de-leveraging the blended return and using the
-    //     // enhanced Monte Carlo engine for random return generation.
-    //
-    //     const returnExpectations = this.financialConfig.assetAllocation.RETURN_EXPECTATIONS;
-    //     const baseReturnAssumptions = this.financialConfig.monteCarloSimulation.BASE_RETURN_ASSUMPTIONS;
-    //
-    //     // Ensure allocations are treated as decimals for calculation
-    //     const allocEquities = (allocations.equity || 0) / 100;
-    //     const allocBonds = (allocations.bonds || 0) / 100;
-    //     const allocCash = (allocations.cash || 0) / 100;
-    //
-    //     // De-leverage the blended 'baseReturn' to find the underlying base equity return
-    //     const bondMultiplier = returnExpectations.BOND_MULTIPLIER.value;
-    //     const cashBaseReturn = baseReturnAssumptions.CASH_BASE_RETURN.value;
-    //     const denominator = allocEquities + (allocBonds * bondMultiplier);
-    //
-    //     let equityBase = 0;
-    //     if (denominator > 0) {
-    //         // R_base_eq = (R_portfolio - w_c * R_cash) / (w_eq + w_b * bond_multiplier)
-    //         equityBase = (baseReturn - (allocCash * cashBaseReturn)) / denominator;
-    //     }
-    //
-    //     console.log(`Year ${year}: PortfolioReturn=${baseReturn.toFixed(4)}, Allocations: E=${allocEquities.toFixed(2)} B=${allocBonds.toFixed(2)} C=${allocCash.toFixed(2)}, Calculated EquityBase=${equityBase.toFixed(4)}`);
-    //
-    //     if (useVolatility) {
-    //         // For stochastic simulations, generate a single year of random returns
-    //         // using the sophisticated regime-aware engine. This ensures even the older
-    //         // Monte Carlo simulation benefits from the enhanced logic.
-    //         const baseReturnsForScenario = {
-    //             equity: equityBase,
-    //             bonds: equityBase * bondMultiplier,
-    //             property: equityBase * baseReturnAssumptions.PROPERTY_MULTIPLIER.value,
-    //             cash: cashBaseReturn
-    //         };
-    //
-    //         const randomReturns = this.enhancedMonteCarloEngine.generateRegimeAwareReturns(baseReturnsForScenario, year);
-    //
-    //         return allocEquities * randomReturns.equity +
-    //             allocBonds * randomReturns.bonds +
-    //             allocCash * randomReturns.cash;
-    //     } else {
-    //         // For deterministic scenarios, use the de-leveraged base returns.
-    //         const deterministicEquityReturn = this.getReturnForYear(equityBase, year, declineRate);
-    //         const deterministicBondReturn = this.getReturnForYear(equityBase * bondMultiplier, year, declineRate * 0.5);
-    //
-    //         return allocEquities * deterministicEquityReturn +
-    //             allocBonds * deterministicBondReturn +
-    //             allocCash * cashBaseReturn;
-    //     }
-    // }
-
     calculatePortfolioReturn(allocations, baseReturn, year, declineRate, useVolatility = false) {
-        // 1. Fetch fixed configuration values
+        // Fetch fixed configuration values
         const returnExpectations = this.financialConfig.assetAllocation.RETURN_EXPECTATIONS;
         const baseReturnAssumptions = this.financialConfig.monteCarloSimulation.BASE_RETURN_ASSUMPTIONS;
 
@@ -662,11 +609,11 @@ export class RetirementSimulator {
             cash: allocCash
         };
 
-        // 2. Calculate the underlying base equity return (de-leverage)
+        // Calculate the underlying base equity return (de-leverage)
         const equityBase = this.getEquityBaseReturn(baseReturn, decimalAllocations, bondMultiplier, cashBaseReturn);
 
         if (useVolatility) {
-            // 3. STOCHASTIC: Generate returns using the dedicated engine
+            // STOCHASTIC: Generate returns using the dedicated engine
             const baseReturnsForScenario = {
                 equity: equityBase,
                 bonds: equityBase * bondMultiplier,
@@ -684,7 +631,7 @@ export class RetirementSimulator {
                 allocBonds * randomReturns.bonds +
                 allocCash * randomReturns.cash;
         } else {
-            // 4. DETERMINISTIC: Use the de-leveraged base returns with time-based decline
+            // DETERMINISTIC: Use the de-leveraged base returns with time-based decline
             // Note: declineRate is now an equity-specific input. Bond decline rate is scaled.
             const deterministicEquityReturn = this.getReturnForYear(equityBase, year, declineRate);
             // Use a configuration value for bond decline rate if possible, or stick to the existing assumption
