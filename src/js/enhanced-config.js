@@ -244,6 +244,10 @@ export const ENHANCED_FINANCIAL_CONFIG = {
                 value: 0.6,
                 description: "Bond return expectation (60% of equity)"
             },
+            BOND_DECLINE_MULTIPLIER: {
+                value: 0.5,
+                description: "Bond return decline rate (50% of equity decline rate)"
+            },
             CASH_MULTIPLIER: {
                 value: 0.3,
                 description: "Cash return expectation (30% of equity)"
