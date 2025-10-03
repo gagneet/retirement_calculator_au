@@ -1335,6 +1335,37 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
         yPos = doc.lastAutoTable.finalY + 15;
     }
 
+    // AI Recommendations Section
+    if (analysis.aiRecommendations && analysis.aiRecommendations.length > 0) {
+        if (yPos > 160) {
+            doc.addPage();
+            yPos = 20;
+        }
+
+        doc.setFontSize(16);
+        doc.setTextColor(0, 71, 171);
+        doc.text("AI-Generated Recommendations", 14, yPos);
+        yPos += 10;
+
+        const aiBody = analysis.aiRecommendations.slice(0, 10).map(rec => [
+            rec.category || 'General',
+            rec.action || rec.recommendation || rec.title,
+            rec.priority || 'Medium',
+            rec.timing || 'As needed'
+        ]);
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Category', 'Recommendation', 'Priority', 'Timing']],
+            body: aiBody,
+            theme: 'striped',
+            headStyles: { fillColor: [111, 66, 193] },
+            styles: { fontSize: 8 }
+        });
+
+        yPos = doc.lastAutoTable.finalY + 15;
+    }
+
     // --- Risk Analysis Section ---
     if (yPos > 180) {
         doc.addPage();
@@ -2651,23 +2682,16 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         doc.text("Scenario Comparisons", 14, yPos);
         yPos += 10;
 
-        const baseScenario = analysis.scenarioComparisons[0];
-        const scenarioBody = analysis.scenarioComparisons.slice(0, 8).map(scenario => {
-            const improvement = baseScenario.successRate ? (scenario.successRate - baseScenario.successRate) : 0;
-            const recommendation = scenario.name === baseScenario.name ? 'Baseline' :
-                (improvement > 0 ? 'Recommended' : 'Not Recommended');
-
-            return [
-                scenario.name || 'Scenario',
-                formatCurrency(scenario.medianBalance || 0),
-                improvement ? `${improvement > 0 ? '+' : ''}${(improvement * 100).toFixed(1)}%` : 'N/A',
-                recommendation
-            ];
-        });
+        const scenarioBody = analysis.scenarioComparisons.slice(0, 8).map(scenario => [
+            scenario.name || 'Scenario',
+            formatCurrency(scenario.finalBalance || 0),
+            scenario.improvement ? `+${(scenario.improvement * 100).toFixed(1)}%` : 'N/A',
+            scenario.recommendation || 'Review scenario'
+        ]);
 
         doc.autoTable({
             startY: yPos,
-            head: [['Scenario', 'Median Balance', 'Success Rate Change', 'Notes']],
+            head: [['Scenario', 'Final Balance', 'Improvement', 'Notes']],
             body: scenarioBody,
             theme: 'grid',
             headStyles: { fillColor: [23, 162, 184] },
@@ -2820,6 +2844,99 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
                     0: { cellWidth: 40 },
                     1: { cellWidth: 100 },
                     2: { cellWidth: 25 }
+                }
+            });
+        }
+    }
+
+    // Persona-Based AI Recommendations Section
+    if (analysis.personaRecommendations) {
+        doc.addPage();
+        yPos = 20;
+
+        doc.setFontSize(18);
+        doc.setTextColor(0, 71, 171);
+        doc.text("AI Persona-Based Recommendations", 14, yPos);
+        yPos += 10;
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text("Personalized recommendations based on your financial profile", 14, yPos);
+        yPos += 10;
+
+        // Persona analysis
+        if (analysis.personaRecommendations.personaAnalysis) {
+            const persona = analysis.personaRecommendations.personaAnalysis.primaryPersona;
+            if (persona) {
+                doc.setFontSize(12);
+                doc.setTextColor(0);
+                doc.text(`Your Financial Persona: ${persona.name}`, 14, yPos);
+                yPos += 6;
+
+                doc.setFontSize(9);
+                doc.setTextColor(80);
+                const descriptionLines = doc.splitTextToSize(persona.description || '', 175);
+                doc.text(descriptionLines, 14, yPos);
+                yPos += (descriptionLines.length * 5) + 8;
+            }
+        }
+
+        // Recommendations
+        if (analysis.personaRecommendations.recommendations && analysis.personaRecommendations.recommendations.length > 0) {
+            const recommendationsBody = analysis.personaRecommendations.recommendations.slice(0, 10).map(rec => [
+                rec.category || 'General',
+                rec.title || rec.action || 'Recommendation',
+                rec.priority || 'Medium',
+                rec.difficulty || rec.timeframe || 'Review'
+            ]);
+
+            doc.autoTable({
+                startY: yPos,
+                head: [['Category', 'Recommendation', 'Priority', 'Difficulty']],
+                body: recommendationsBody,
+                theme: 'striped',
+                headStyles: { fillColor: [139, 92, 246] },
+                styles: { fontSize: 8, cellPadding: 3 },
+                columnStyles: {
+                    0: { cellWidth: 35 },
+                    1: { cellWidth: 80 },
+                    2: { cellWidth: 30 },
+                    3: { cellWidth: 30 }
+                }
+            });
+
+            yPos = doc.lastAutoTable.finalY + 12;
+        }
+
+        // Key insights
+        if (analysis.personaRecommendations.insights && analysis.personaRecommendations.insights.length > 0) {
+            if (yPos > 200) {
+                doc.addPage();
+                yPos = 20;
+            }
+
+            doc.setFontSize(14);
+            doc.setTextColor(0, 71, 171);
+            doc.text("Persona Insights", 14, yPos);
+            yPos += 8;
+
+            const insightsBody = analysis.personaRecommendations.insights.slice(0, 5).map(insight => [
+                insight.type || 'General',
+                insight.title || 'Insight',
+                insight.description || ''
+            ]);
+
+            doc.autoTable({
+                startY: yPos,
+                head: [['Type', 'Title', 'Description']],
+                body: insightsBody,
+                theme: 'grid',
+                headStyles: { fillColor: [139, 92, 246] },
+                styles: { fontSize: 8, cellPadding: 3 },
+                columnStyles: {
+                    0: { cellWidth: 30 },
+                    1: { cellWidth: 45 },
+                    2: { cellWidth: 100 }
                 }
             });
         }

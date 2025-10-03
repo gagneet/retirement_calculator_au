@@ -1603,7 +1603,7 @@ class RetirementCalculatorApp {
     }
 
     // Run comprehensive scenario comparison matrix
-    async runScenarioMatrixComparison() {
+    async runScenarioComparison() {
         if (this.isCalculating) return;
 
         this.isCalculating = true;
@@ -5236,7 +5236,7 @@ class RetirementCalculatorApp {
         this.instrumentClick('generateSuggestionsBtn', 'Generate Personalized Suggestions', this.generatePersonalizedSuggestions);
         this.instrumentClick('generateOverseasScenarios', 'Generate Overseas Scenarios', this.generateOverseasScenarios);
         this.instrumentClick('btnMonteCarlo', 'Run Enhanced Monte Carlo', this.runMonteCarloSimulation);
-        this.instrumentClick('btnScenarioMatrix', 'Compare Strategies', this.runScenarioMatrixComparison);
+        this.instrumentClick('btnScenarioMatrix', 'Compare Strategies', this.runScenarioComparison);
         this.instrumentClick('btnHealthcareAnalysis', 'Healthcare Costs', this.runHealthcareAnalysis);
         this.instrumentClick('btnRiskProfiling', 'Risk Analysis', this.runAdvancedRiskProfiling);
         this.instrumentClick('btnDynamicAllocation', 'Asset Allocation', this.runDynamicAllocationAnalysis);
