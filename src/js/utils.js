@@ -233,8 +233,8 @@ export const addPercentageFormatting = (inputElement) => {
         if (originalValue !== '' && !isNaN(numericValue)) {
             // Format with commas and 2 decimal places for percentages
             const formattedNumber = numericValue.toLocaleString('en-AU', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
+                minimumFractionDigits: 4,
+                maximumFractionDigits: 4,
             });
             inputElement.value = `${formattedNumber}%`;
         }
@@ -689,7 +689,7 @@ const calculateStandardCouplePension = (person1, person2, homeowner, config) => 
     // Combined income and assets
     const combinedIncome = (person1.salary || 0) + (person2.salary || 0);
     const combinedAssets = (person1.super || 0) + (person2.super || 0) +
-                           (person1.investments || 0) + (person2.investments || 0);
+        (person1.investments || 0) + (person2.investments || 0);
 
     // Use couple thresholds
     const assetThreshold = homeowner ? 470000 : 712500;
@@ -748,7 +748,7 @@ const calculateNonPensionerCouplePension = (person1, person2, homeowner, config)
     // CRITICAL: Combine income and assets from BOTH partners
     const combinedIncome = (person1.salary || 0) + (person2.salary || 0);
     const combinedAssets = (person1.super || 0) + (person2.super || 0) +
-                           (person1.investments || 0) + (person2.investments || 0);
+        (person1.investments || 0) + (person2.investments || 0);
 
     // Apply COUPLE thresholds (not single) even though only one receives payment
     const assetThreshold = homeowner ? 470000 : 712500;

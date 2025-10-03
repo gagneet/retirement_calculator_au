@@ -1071,11 +1071,11 @@
                             </span>
                         </div>
                     </div>
-                    <input type="number" id="yourLifespan" value="91" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    <input type="number" id="yourLifespan" value="85" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
                     <label for="partnerLifespan" class="block text-sm font-medium text-gray-700">Partner's Expected Lifespan</label>
-                    <input type="number" id="partnerLifespan" value="93" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    <input type="number" id="partnerLifespan" value="85" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
             </div>
 
@@ -1161,7 +1161,7 @@
                         <!-- Simple dependent count input -->
                         <div class="mt-2">
                             <label for="totalDependentsCount" class="block text-sm font-medium text-gray-700">Number of Financial Dependents</label>
-                            <input type="number" id="totalDependentsCount" value="1" min="0" max="20" class="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <input type="number" id="totalDependentsCount" value="2" min="0" max="20" class="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             <p class="mt-1 text-xs text-gray-500">Enter a number greater than 0 to see detailed breakdown options</p>
                         </div>
 
@@ -1216,7 +1216,7 @@
                                     <p class="text-xs text-gray-500">School, activities ~$800/month</p>
                                 </div>
                                 <div class="col-span-2 text-center">
-                                    <input type="number" id="childrenPrimary" value="1" min="0" max="10" class="w-full rounded border-gray-300 text-sm">
+                                    <input type="number" id="childrenPrimary" value="2" min="0" max="10" class="w-full rounded border-gray-300 text-sm">
                                 </div>
                                 <div class="col-span-3 text-center">
                                     <input type="number" id="childrenPrimaryPercent" value="38" min="0" max="100" class="w-full rounded border-gray-300 text-sm">
@@ -1398,7 +1398,7 @@
                 </div>
                 <div>
                     <label for="monthlyStockContribution" class="block text-sm font-medium text-gray-700">Monthly Stock Contributions ($)</label>
-                    <input type="text" id="monthlyStockContribution" value="800" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    <input type="text" id="monthlyStockContribution" value="900" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
                 <div>
                     <div class="label-with-tooltip">
@@ -1649,7 +1649,7 @@
                     </div>
                     <div>
                         <label for="agedCareDuration" class="block text-sm font-medium text-gray-700">Expected Duration (years)</label>
-                        <input type="text" id="agedCareDuration" value="11.5" step="0.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <input type="text" id="agedCareDuration" value="3" step="0.5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                     <div>
                         <div class="label-with-tooltip">
@@ -1905,32 +1905,32 @@
                 </div>
                  -->
 
-                <!-- User Data Import/Export Section
-                <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+            <!-- User Data Import/Export Section
+            <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    Save & Load Your Data
+                </h4>
+                <p class="text-xs text-blue-700 mb-3">Export your input data to save your scenarios, or import previously saved data. Your privacy is protected - no data is sent to servers.</p>
+                <div class="flex gap-2">
+                    <button id="btnExportUserData" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center justify-center">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
-                        Save & Load Your Data
-                    </h4>
-                    <p class="text-xs text-blue-700 mb-3">Export your input data to save your scenarios, or import previously saved data. Your privacy is protected - no data is sent to servers.</p>
-                    <div class="flex gap-2">
-                        <button id="btnExportUserData" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center justify-center">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Save Data
-                        </button>
-                        <button id="btnImportUserData" class="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm flex items-center justify-center">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
-                            </svg>
-                            Load Data
-                        </button>
-                    </div>
+                        Save Data
+                    </button>
+                    <button id="btnImportUserData" class="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm flex items-center justify-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                        </svg>
+                        Load Data
+                    </button>
                 </div>
             </div>
-            -->
+        </div>
+        -->
         </div>
     </div>
 
@@ -2041,14 +2041,14 @@
                             </label>
                             <div class="what-if-slider-container">
                                 <input
-                                    type="range"
-                                    id="whatif-super-slider"
-                                    class="what-if-slider"
-                                    min="0"
-                                    max="1000"
-                                    step="50"
-                                    value="0"
-                                    oninput="app.updateWhatIfSuper(this.value)"
+                                        type="range"
+                                        id="whatif-super-slider"
+                                        class="what-if-slider"
+                                        min="0"
+                                        max="1000"
+                                        step="50"
+                                        value="0"
+                                        oninput="app.updateWhatIfSuper(this.value)"
                                 >
                                 <span class="what-if-value-display" id="whatif-super-value">$0/month</span>
                             </div>
@@ -2073,14 +2073,14 @@
                             </label>
                             <div class="what-if-slider-container">
                                 <input
-                                    type="range"
-                                    id="whatif-mortgage-slider"
-                                    class="what-if-slider"
-                                    min="0"
-                                    max="1000"
-                                    step="50"
-                                    value="0"
-                                    oninput="app.updateWhatIfMortgage(this.value)"
+                                        type="range"
+                                        id="whatif-mortgage-slider"
+                                        class="what-if-slider"
+                                        min="0"
+                                        max="1000"
+                                        step="50"
+                                        value="0"
+                                        oninput="app.updateWhatIfMortgage(this.value)"
                                 >
                                 <span class="what-if-value-display" id="whatif-mortgage-value">$0/month</span>
                             </div>
@@ -2105,14 +2105,14 @@
                             </label>
                             <div class="what-if-slider-container">
                                 <input
-                                    type="range"
-                                    id="whatif-retirement-slider"
-                                    class="what-if-slider"
-                                    min="0"
-                                    max="10"
-                                    step="1"
-                                    value="0"
-                                    oninput="app.updateWhatIfRetirementAge(this.value)"
+                                        type="range"
+                                        id="whatif-retirement-slider"
+                                        class="what-if-slider"
+                                        min="0"
+                                        max="10"
+                                        step="1"
+                                        value="0"
+                                        oninput="app.updateWhatIfRetirementAge(this.value)"
                                 >
                                 <span class="what-if-value-display" id="whatif-retirement-value">0 years later</span>
                             </div>
@@ -3339,107 +3339,107 @@
 </div>
 
 <script>
-// Load data from simple view if coming from there
-(function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const fromSimple = urlParams.get('from') === 'simple';
+    // Load data from simple view if coming from there
+    (function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromSimple = urlParams.get('from') === 'simple';
 
-    if (fromSimple) {
-        const simpleData = sessionStorage.getItem('simpleStartInputs');
-        if (simpleData) {
-            try {
-                const data = JSON.parse(simpleData);
+        if (fromSimple) {
+            const simpleData = sessionStorage.getItem('simpleStartInputs');
+            if (simpleData) {
+                try {
+                    const data = JSON.parse(simpleData);
 
-                // Wait for DOM to be ready
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', () => populateFields(data));
-                } else {
-                    populateFields(data);
+                    // Wait for DOM to be ready
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', () => populateFields(data));
+                    } else {
+                        populateFields(data);
+                    }
+                } catch (error) {
+                    console.error('Error loading data from simple view:', error);
                 }
-            } catch (error) {
-                console.error('Error loading data from simple view:', error);
             }
         }
-    }
 
-    function populateFields(data) {
-        // Populate fields with data from simple view
-        setFieldValue('yourCurrentAge', data.yourAge);
-        setFieldValue('retirementAge', data.retirementAge);
-        setFieldValue('yourSalary', data.yourSalary);
-        setFieldValue('yourCurrentSuper', data.yourSuper);
-        setFieldValue('currentSavings', data.savings);
-        setFieldValue('currentStocks', 0); // Default
+        function populateFields(data) {
+            // Populate fields with data from simple view
+            setFieldValue('yourCurrentAge', data.yourAge);
+            setFieldValue('retirementAge', data.retirementAge);
+            setFieldValue('yourSalary', data.yourSalary);
+            setFieldValue('yourCurrentSuper', data.yourSuper);
+            setFieldValue('currentSavings', data.savings);
+            setFieldValue('currentStocks', 0); // Default
 
-        // Partner fields
-        if (data.partnerAge && data.partnerAge > 0) {
-            setFieldValue('partnerCurrentAge', data.partnerAge);
-            setFieldValue('partnerSalary', data.partnerSalary || 0);
-            setFieldValue('partnerCurrentSuper', data.partnerSuper || 0);
-            setFieldValue('partnerRetirementAge', data.retirementAge); // Same as user
-        }
-
-        // Home status
-        if (data.homeStatus === 'own') {
-            setFieldValue('homeValue', 810000); // Default home value
-            setFieldValue('mortgageBalance', 0);
-        } else if (data.homeStatus === 'mortgage') {
-            setFieldValue('homeValue', 810000); // Default home value
-            setFieldValue('mortgageBalance', data.mortgageBalance || 0);
-        } else if (data.homeStatus === 'rent') {
-            setFieldValue('homeValue', 0);
-            setFieldValue('mortgageBalance', 0);
-        }
-
-        // Show a notification
-        setTimeout(() => {
-            if (window.showNotification) {
-                window.showNotification('Your data has been loaded from the simple view. Click Calculate to see advanced analysis.', 'success');
+            // Partner fields
+            if (data.partnerAge && data.partnerAge > 0) {
+                setFieldValue('partnerCurrentAge', data.partnerAge);
+                setFieldValue('partnerSalary', data.partnerSalary || 0);
+                setFieldValue('partnerCurrentSuper', data.partnerSuper || 0);
+                setFieldValue('partnerRetirementAge', data.retirementAge); // Same as user
             }
-        }, 1000);
-    }
 
-    function setFieldValue(id, value) {
-        const field = document.getElementById(id);
-        if (field && value !== undefined && value !== null) {
-            field.value = value;
+            // Home status
+            if (data.homeStatus === 'own') {
+                setFieldValue('homeValue', 810000); // Default home value
+                setFieldValue('mortgageBalance', 0);
+            } else if (data.homeStatus === 'mortgage') {
+                setFieldValue('homeValue', 810000); // Default home value
+                setFieldValue('mortgageBalance', data.mortgageBalance || 0);
+            } else if (data.homeStatus === 'rent') {
+                setFieldValue('homeValue', 0);
+                setFieldValue('mortgageBalance', 0);
+            }
 
-            // Trigger change event for any listeners
-            const event = new Event('change', { bubbles: true });
-            field.dispatchEvent(event);
+            // Show a notification
+            setTimeout(() => {
+                if (window.showNotification) {
+                    window.showNotification('Your data has been loaded from the simple view. Click Calculate to see advanced analysis.', 'success');
+                }
+            }, 1000);
         }
-    }
-})();
 
-// Toggle advanced calculator visibility
-function toggleAdvancedCalculator() {
-    const form = document.getElementById('advancedCalculatorForm');
-    const button = document.getElementById('showAdvancedCalculatorButton');
+        function setFieldValue(id, value) {
+            const field = document.getElementById(id);
+            if (field && value !== undefined && value !== null) {
+                field.value = value;
 
-    if (form.style.display === 'none') {
-        form.style.display = 'grid';
-        button.querySelector('button').innerHTML = '📊 Hide Advanced Calculator';
-    } else {
-        form.style.display = 'none';
-        button.querySelector('button').innerHTML = '📊 Show Advanced Calculator (Optional)';
-    }
-}
+                // Trigger change event for any listeners
+                const event = new Event('change', { bubbles: true });
+                field.dispatchEvent(event);
+            }
+        }
+    })();
 
-// Check if user just completed onboarding
-window.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const fromOnboarding = urlParams.get('onboarding') === 'true';
-    const hasCompleted = localStorage.getItem('hasVisitedCalculator') === 'true';
-
-    // If coming from onboarding or user has completed it before, hide the advanced calculator
-    if (fromOnboarding || hasCompleted) {
+    // Toggle advanced calculator visibility
+    function toggleAdvancedCalculator() {
         const form = document.getElementById('advancedCalculatorForm');
         const button = document.getElementById('showAdvancedCalculatorButton');
 
-        if (form) form.style.display = 'none';
-        if (button) button.classList.remove('hidden');
+        if (form.style.display === 'none') {
+            form.style.display = 'grid';
+            button.querySelector('button').innerHTML = '📊 Hide Advanced Calculator';
+        } else {
+            form.style.display = 'none';
+            button.querySelector('button').innerHTML = '📊 Show Advanced Calculator (Optional)';
+        }
     }
-});
+
+    // Check if user just completed onboarding
+    window.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromOnboarding = urlParams.get('onboarding') === 'true';
+        const hasCompleted = localStorage.getItem('hasVisitedCalculator') === 'true';
+
+        // If coming from onboarding or user has completed it before, hide the advanced calculator
+        if (fromOnboarding || hasCompleted) {
+            const form = document.getElementById('advancedCalculatorForm');
+            const button = document.getElementById('showAdvancedCalculatorButton');
+
+            if (form) form.style.display = 'none';
+            if (button) button.classList.remove('hidden');
+        }
+    });
 </script>
 
 </body>

@@ -61,12 +61,12 @@ export class OnboardingWizard {
                 partnerAge: '', // Partner age when applicable
                 retirementAge: 67, // Australian Age Pension age
                 dependents: {
-                    children: 0,
+                    children: 2,
                     elderlyParents: 0
                 },
                 livingArrangements: {
                     homeOwnership: 'own',
-                    monthlyExpenses: 0
+                    monthlyExpenses: 4518
                 },
                 health: {
                     currentHealth: 'good',
@@ -84,7 +84,8 @@ export class OnboardingWizard {
                 otherInvestments: {
                     shares: defaults.financial.currentStocks,
                     managedFunds: 0,
-                    termDeposits: 0
+                    termDeposits: 0,
+                    monthlyContribution: 900
                 },
                 income: {
                     salary: defaults.financial.yourSalary,
@@ -139,7 +140,6 @@ export class OnboardingWizard {
         this.createWizardHTML();
         this.setupEventListeners();
         this.loadSavedData();
-        this.showStep(1);
     }
 
     // Gamification: Facts and insights system
@@ -228,7 +228,7 @@ export class OnboardingWizard {
 
     startOnboarding() {
         // Method to start the onboarding process - called by the main app
-        this.init();
+        this.showAvatarSelection();
     }
 
     createWizardHTML() {
@@ -341,9 +341,9 @@ export class OnboardingWizard {
                                 <div class="step-indicator w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${this.getStepIndicatorClass(step.id)}"
                                      data-step="${step.id}">
                                     ${this.gamification.completedSteps.has(step.id) ?
-                                        `<span class="text-white text-xl animate-bounce-once">✓</span>` :
-                                        `<span class="step-icon text-lg">${step.icon}</span>`
-                                    }
+            `<span class="text-white text-xl animate-bounce-once">✓</span>` :
+            `<span class="step-icon text-lg">${step.icon}</span>`
+        }
                                 </div>
                                 <div class="step-label text-xs mt-2 text-center transition-colors duration-200 ${this.getStepLabelClass(step.id)}">
                                     ${step.name}
@@ -402,54 +402,45 @@ export class OnboardingWizard {
 
     startNewUser() {
         trackOnboardingChoice('New User');
-        $('onboarding-initial').classList.add('hidden');
-        this.showAvatarSelection();
+        console.log("startNewUser called");
+        const initialSection = $('onboarding-initial');
+        if (initialSection) {
+            initialSection.classList.add('hidden');
+        }
+        const wizardContent = $('onboarding-wizard-content');
+        if (wizardContent) {
+            wizardContent.classList.remove('hidden');
+            this.showStep(1);
+        }
     }
 
     // Gamification: Avatar selection screen
     showAvatarSelection() {
-        const container = $('onboarding-container');
-        if (container) {
-            // First ensure the wizard HTML structure exists
-            container.innerHTML = this.generateWizardHTML();
-
-            // Now create and show the avatar selection screen
+        const wizardEl = $('onboarding-wizard');
+        if (wizardEl) {
             const avatarSelectionHTML = `
                 <div id="avatar-selection" class="bg-white rounded-lg shadow-lg p-6 mb-8">
                     <div class="text-center py-8">
                         <h2 class="text-2xl font-bold text-gray-900 mb-4">Choose Your Avatar</h2>
                         <p class="text-gray-600 mb-8">Pick a character that represents you on this retirement planning journey!</p>
-
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-md mx-auto mb-8">
                             ${this.avatarOptions.map(avatar => `
                                 <div class="avatar-option cursor-pointer p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-lg transform hover:scale-105 ${
-                                    avatar.id === this.gamification.selectedAvatar ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-200' : 'border-gray-300 hover:border-blue-300'
-                                }"
+                avatar.id === this.gamification.selectedAvatar ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-200' : 'border-gray-300 hover:border-blue-300'
+            }"
                                      data-avatar="${avatar.id}">
                                     <div class="text-4xl mb-2">${avatar.icon}</div>
                                     <div class="text-sm font-medium text-gray-700">${avatar.name}</div>
                                 </div>
                             `).join('')}
                         </div>
-
                         <button id="confirm-avatar-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-colors">
                             Start Planning! 🚀
                         </button>
                     </div>
                 </div>
             `;
-
-            // Hide the initial and wizard content sections
-            const initialSection = $('onboarding-initial');
-            const wizardContent = $('onboarding-wizard-content');
-
-            if (initialSection) initialSection.classList.add('hidden');
-            if (wizardContent) wizardContent.classList.add('hidden');
-
-            // Add the avatar selection to the container
-            container.insertAdjacentHTML('beforeend', avatarSelectionHTML);
-
-            // Add avatar selection listeners with a small delay to ensure DOM is ready
+            wizardEl.insertAdjacentHTML('beforeend', avatarSelectionHTML);
             setTimeout(() => {
                 this.setupAvatarSelection();
             }, 50);
@@ -692,12 +683,12 @@ export class OnboardingWizard {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">🎂 Your Current Age</label>
                             ${this.createEnhancedInput('household-age', household.age, 'number', {
-                                min: 18,
-                                max: 100,
-                                tooltip: 'Your age affects super preservation rules, Age Pension eligibility, and investment time horizon',
-                                placeholder: '34',
-                                gamingLevel: 2
-                            })}
+            min: 18,
+            max: 100,
+            tooltip: 'Your age affects super preservation rules, Age Pension eligibility, and investment time horizon',
+            placeholder: '34',
+            gamingLevel: 2
+        })}
                             <p class="text-xs text-gray-500 mt-1">🗓️ This affects superannuation preservation rules and Age Pension eligibility</p>
                         </div>
 
@@ -709,6 +700,9 @@ export class OnboardingWizard {
                                 <option value="brisbane" ${household.location === 'brisbane' ? 'selected' : ''}>Brisbane</option>
                                 <option value="perth" ${household.location === 'perth' ? 'selected' : ''}>Perth</option>
                                 <option value="adelaide" ${household.location === 'adelaide' ? 'selected' : ''}>Adelaide</option>
+                                <option value="canberra" ${household.location === 'canberra' ? 'selected' : ''}>Canberra</option>
+                                <option value="darwin" ${household.location === 'darwin' ? 'selected' : ''}>Darwin</option>
+                                <option value="howard" ${household.location === 'howard' ? 'selected' : ''}>Howard</option>
                                 <option value="regional" ${household.location === 'regional' ? 'selected' : ''}>Regional</option>
                             </select>
                         </div>
@@ -737,10 +731,10 @@ export class OnboardingWizard {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Age Pension Age</label>
-                            <input type="number" id="household-retirement-age" value="${household.retirementAge}" min="55" max="80"
-                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <p class="text-xs text-gray-500 mt-1">Age when you plan to access Age Pension (currently 67 for most people). You can access super earlier from preservation age (60-65)</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Age Pension Start</label>
+                            <input type="number" id="household-retirement-age" value="67"
+                                class="w-full rounded-md border-gray-300 shadow-sm bg-gray-100 cursor-not-allowed" readonly>
+                            <p class="text-xs text-gray-500 mt-1">The age you can start receiving the Age Pension is set by the government (currently 67).</p>
                         </div>
                     </div>
 
@@ -804,7 +798,7 @@ export class OnboardingWizard {
                                         <option value="excellent" ${household.health.currentHealth === 'excellent' ? 'selected' : ''}>Excellent</option>
                                         <option value="good" ${household.health.currentHealth === 'good' ? 'selected' : ''}>Good</option>
                                         <option value="fair" ${household.health.currentHealth === 'fair' ? 'selected' : ''}>Fair</option>
-                                        <option value="poor" ${household.health.currentHealth === 'poor' ? 'selected' : ''}>Poor</option>
+                                <option value="poor" ${household.health.currentHealth === 'poor' ? 'selected' : ''}>Poor</option>
                                     </select>
                                 </div>
                                 <div>
@@ -838,11 +832,11 @@ export class OnboardingWizard {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">💼 Your Annual Salary</label>
                             ${this.createEnhancedInput('finances-salary', finances.income.salary, 'currency', {
-                                min: 0,
-                                tooltip: 'Your gross annual salary before tax',
-                                placeholder: '75,000',
-                                gamingLevel: 2
-                            })}
+            min: 0,
+            tooltip: 'Your gross annual salary before tax',
+            placeholder: '75,000',
+            gamingLevel: 2
+        })}
                             <p class="text-xs text-gray-500 mt-1">💡 Used to calculate superannuation contributions automatically</p>
                         </div>
 
@@ -850,11 +844,11 @@ export class OnboardingWizard {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">👫 Partner's Annual Salary</label>
                             ${this.createEnhancedInput('finances-partner-salary', finances.income.partnerSalary || 0, 'currency', {
-                                min: 0,
-                                tooltip: 'Partner\'s gross annual salary before tax',
-                                placeholder: '65,000',
-                                gamingLevel: 2
-                            })}
+            min: 0,
+            tooltip: 'Partner\'s gross annual salary before tax',
+            placeholder: '65,000',
+            gamingLevel: 2
+        })}
                             <p class="text-xs text-gray-500 mt-1">💡 Partner's gross annual salary before tax</p>
                         </div>
                         ` : ''}
@@ -862,12 +856,12 @@ export class OnboardingWizard {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">💰 Monthly Savings Rate</label>
                             ${this.createEnhancedInput('finances-savings-rate', finances.savingsRate || 15, 'percentage', {
-                                min: 0,
-                                max: 100,
-                                tooltip: 'Percentage of after-tax income saved monthly',
-                                placeholder: '15.0',
-                                gamingLevel: 2
-                            })}
+            min: 0,
+            max: 100,
+            tooltip: 'Percentage of after-tax income saved monthly',
+            placeholder: '15.0',
+            gamingLevel: 2
+        })}
                             <p class="text-xs text-gray-500 mt-1">📊 Typical range: 10-20% for retirement planning</p>
                         </div>
                     </div>
@@ -879,11 +873,11 @@ export class OnboardingWizard {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">🏦 Current Super Balance</label>
                             ${this.createEnhancedInput('finances-super-balance', finances.superannuation.currentBalance, 'currency', {
-                                min: 0,
-                                tooltip: 'Total superannuation balance across all funds',
-                                placeholder: '150,000',
-                                gamingLevel: 3
-                            })}
+            min: 0,
+            tooltip: 'Total superannuation balance across all funds',
+            placeholder: '150,000',
+            gamingLevel: 3
+        })}
                             <p class="text-xs text-gray-500 mt-1">💼 Your total superannuation balance across all funds</p>
                         </div>
 
@@ -895,7 +889,7 @@ export class OnboardingWizard {
                                     id="finances-employer-contrib"
                                     value="${formatNumber(finances.superannuation.employerContributions)}"
                                     maxlength="14"
-                                    class="w-full max-w-[140px] px-3 py-2 text-sm font-mono text-right bg-gray-100 border-2 border-gray-300 rounded-lg cursor-not-allowed"
+                                    class="w-full max-w-[140px] pl-7 pr-3 py-2 text-sm font-mono text-right bg-gray-100 border-2 border-gray-300 rounded-lg cursor-not-allowed"
                                     readonly
                                     title="Automatically calculated as 12% of your salary (Super Guarantee)"
                                 />
@@ -907,11 +901,11 @@ export class OnboardingWizard {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">💪 Additional Contributions (Annual)</label>
                             ${this.createEnhancedInput('finances-voluntary-contrib', finances.superannuation.voluntaryContributions, 'currency', {
-                                min: 0,
-                                tooltip: 'Salary sacrifice or after-tax contributions you make to boost your super',
-                                placeholder: '5,000',
-                                gamingLevel: 2
-                            })}
+            min: 0,
+            tooltip: 'Salary sacrifice or after-tax contributions you make to boost your super',
+            placeholder: '5,000',
+            gamingLevel: 2
+        })}
                             <p class="text-xs text-gray-500 mt-1">💡 Salary sacrifice or after-tax contributions you make</p>
                         </div>
 
@@ -919,11 +913,11 @@ export class OnboardingWizard {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">👫 Partner's Super Balance</label>
                             ${this.createEnhancedInput('finances-partner-super', finances.superannuation.partnerCurrentBalance || 0, 'currency', {
-                                min: 0,
-                                tooltip: 'Partner\'s total superannuation balance across all funds',
-                                placeholder: '120,000',
-                                gamingLevel: 2
-                            })}
+            min: 0,
+            tooltip: 'Partner\'s total superannuation balance across all funds',
+            placeholder: '120,000',
+            gamingLevel: 2
+        })}
                             <p class="text-xs text-gray-500 mt-1">💼 Partner's total superannuation balance</p>
                         </div>
                         ` : ''}
@@ -937,33 +931,33 @@ export class OnboardingWizard {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">🛡️ Emergency Fund (Cash Savings)</label>
                             ${this.createEnhancedInput('finances-emergency-fund', finances.emergencyFund, 'currency', {
-                                min: 0,
-                                tooltip: 'Cash savings in bank accounts, term deposits - aim for 3-6 months expenses',
-                                placeholder: '25,000',
-                                gamingLevel: 2
-                            })}
+            min: 0,
+            tooltip: 'Cash savings in bank accounts, term deposits - aim for 3-6 months expenses',
+            placeholder: '25,000',
+            gamingLevel: 2
+        })}
                             <p class="text-xs text-gray-500 mt-1">💡 Cash savings in bank accounts, term deposits, etc.</p>
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">📈 Share Portfolio Value</label>
                             ${this.createEnhancedInput('finances-shares', finances.otherInvestments.shares, 'currency', {
-                                min: 0,
-                                tooltip: 'Current value of shares, ETFs, managed funds outside superannuation',
-                                placeholder: '50,000',
-                                gamingLevel: 2
-                            })}
+            min: 0,
+            tooltip: 'Current value of shares, ETFs, managed funds outside superannuation',
+            placeholder: '50,000',
+            gamingLevel: 2
+        })}
                             <p class="text-xs text-gray-500 mt-1">📊 Current value of shares, ETFs, managed funds outside super</p>
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">📅 Monthly Investment Contribution</label>
                             ${this.createEnhancedInput('finances-monthly-investment', finances.otherInvestments.monthlyContribution, 'currency', {
-                                min: 0,
-                                tooltip: 'How much you invest monthly outside of superannuation in shares, ETFs, etc.',
-                                placeholder: '1,000',
-                                gamingLevel: 2
-                            })}
+            min: 0,
+            tooltip: 'How much you invest monthly outside of superannuation in shares, ETFs, etc.',
+            placeholder: '1,000',
+            gamingLevel: 2
+        })}
                             <p class="text-xs text-gray-500 mt-1">📊 Regular monthly investments outside superannuation</p>
                         </div>
                     </div>
@@ -977,22 +971,22 @@ export class OnboardingWizard {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">💳 Total Credit Card Limits</label>
                             ${this.createEnhancedInput('finances-credit-cards', finances.debt.creditCards, 'currency', {
-                                min: 0,
-                                tooltip: 'Total credit card limits available to you - helps assess your debt capacity',
-                                placeholder: '15,000',
-                                gamingLevel: 2
-                            })}
+            min: 0,
+            tooltip: 'Total credit card limits available to you - helps assess your debt capacity',
+            placeholder: '15,000',
+            gamingLevel: 2
+        })}
                             <p class="text-xs text-gray-500 mt-1">💡 Total credit card limits available to you</p>
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">🏦 Any other debts like a Personal Loan, etc.</label>
                             ${this.createEnhancedInput('finances-personal-loans', finances.debt.personalLoans, 'currency', {
-                                min: 0,
-                                tooltip: 'Personal loans, car loans, or any other debts (excluding home loan)',
-                                placeholder: '8,000',
-                                gamingLevel: 2
-                            })}
+            min: 0,
+            tooltip: 'Personal loans, car loans, or any other debts (excluding home loan)',
+            placeholder: '8,000',
+            gamingLevel: 2
+        })}
                             <p class="text-xs text-gray-500 mt-1">Car loans, unsecured personal loans</p>
                         </div>
                     </div>
@@ -1050,42 +1044,42 @@ export class OnboardingWizard {
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">🏠 Purchase Price</label>
                                 ${this.createEnhancedInput('property-purchase-price', property.homeDetails.purchasePrice, 'currency', {
-                                    min: 0,
-                                    tooltip: 'What you originally paid for the property - used for capital gains calculations',
-                                    placeholder: '650,000',
-                                    gamingLevel: 2
-                                })}
+            min: 0,
+            tooltip: 'What you originally paid for the property - used for capital gains calculations',
+            placeholder: '650,000',
+            gamingLevel: 2
+        })}
                                 <p class="text-xs text-gray-500 mt-1">💰 What you originally paid for the property</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">📊 Current Value</label>
                                 ${this.createEnhancedInput('property-current-value', property.homeDetails.currentValue, 'currency', {
-                                    min: 0,
-                                    tooltip: 'Current estimated market value of your property - check recent sales or get an appraisal',
-                                    placeholder: '850,000',
-                                    gamingLevel: 2
-                                })}
+            min: 0,
+            tooltip: 'Current estimated market value of your property - check recent sales or get an appraisal',
+            placeholder: '850,000',
+            gamingLevel: 2
+        })}
                                 <p class="text-xs text-gray-500 mt-1">🏡 Current estimated market value</p>
                             </div>
-                            <div id="loan-remaining-field" class="${property.homeStatus === 'own' ? 'hidden' : ''}">
+                            <div id="loan-remaining-field" class="${property.homeStatus !== 'mortgage' ? 'hidden' : ''}">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">🏦 Loan Remaining</label>
                                 ${this.createEnhancedInput('property-loan-remaining', property.homeDetails.loanRemaining, 'currency', {
-                                    min: 0,
-                                    tooltip: 'Outstanding mortgage balance remaining on your home loan',
-                                    placeholder: '420,000',
-                                    gamingLevel: 2
-                                })}
+            min: 0,
+            tooltip: 'Outstanding mortgage balance remaining on your home loan',
+            placeholder: '420,000',
+            gamingLevel: 2
+        })}
                                 <p class="text-xs text-gray-500 mt-1">💳 Outstanding mortgage balance</p>
                             </div>
-                            <div id="home-loan-rate-field" class="${property.homeStatus === 'own' ? 'hidden' : ''}">
+                            <div id="home-loan-rate-field" class="${property.homeStatus !== 'mortgage' ? 'hidden' : ''}">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">📈 Home Loan Interest Rate</label>
                                 ${this.createEnhancedInput('property-loan-rate', property.homeDetails.loanRate || 6.5, 'percentage', {
-                                    min: 0,
-                                    max: 15,
-                                    tooltip: 'Current interest rate on your home loan - affects repayments and equity growth',
-                                    placeholder: '6.5',
-                                    gamingLevel: 2
-                                })}
+            min: 0,
+            max: 15,
+            tooltip: 'Current interest rate on your home loan - affects repayments and equity growth',
+            placeholder: '6.5',
+            gamingLevel: 2
+        })}
                                 <p class="text-xs text-gray-500 mt-1">📊 Current interest rate on your home loan</p>
                             </div>
                         </div>
@@ -1107,62 +1101,62 @@ export class OnboardingWizard {
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">🏗️ Purchase Price</label>
                                     ${this.createEnhancedInput('investment-purchase-price', property.investmentProperty.details.purchasePrice, 'currency', {
-                                        min: 0,
-                                        tooltip: 'What you paid for the investment property - used for capital gains tax calculations',
-                                        placeholder: '580,000',
-                                        gamingLevel: 2
-                                    })}
+            min: 0,
+            tooltip: 'What you paid for the investment property - used for capital gains tax calculations',
+            placeholder: '580,000',
+            gamingLevel: 2
+        })}
                                     <p class="text-xs text-gray-500 mt-1">💰 What you paid for the investment property</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">📊 Current Value</label>
                                     ${this.createEnhancedInput('investment-current-value', property.investmentProperty.details.currentValue, 'currency', {
-                                        min: 0,
-                                        tooltip: 'Current estimated market value of your investment property',
-                                        placeholder: '750,000',
-                                        gamingLevel: 2
-                                    })}
+            min: 0,
+            tooltip: 'Current estimated market value of your investment property',
+            placeholder: '750,000',
+            gamingLevel: 2
+        })}
                                     <p class="text-xs text-gray-500 mt-1">🏡 Current estimated market value</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">🏦 Loan Remaining</label>
                                     ${this.createEnhancedInput('investment-loan-remaining', property.investmentProperty.details.loanRemaining, 'currency', {
-                                        min: 0,
-                                        tooltip: 'Outstanding investment property loan balance',
-                                        placeholder: '480,000',
-                                        gamingLevel: 2
-                                    })}
+            min: 0,
+            tooltip: 'Outstanding investment property loan balance',
+            placeholder: '480,000',
+            gamingLevel: 2
+        })}
                                     <p class="text-xs text-gray-500 mt-1">💳 Outstanding investment loan balance</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">📈 Investment Loan Interest Rate</label>
                                     ${this.createEnhancedInput('investment-loan-rate', property.investmentProperty.details.loanRate || 7.5, 'percentage', {
-                                        min: 0,
-                                        max: 15,
-                                        tooltip: 'Interest rate on investment property loan - usually higher than home loans',
-                                        placeholder: '7.5',
-                                        gamingLevel: 2
-                                    })}
+            min: 0,
+            max: 15,
+            tooltip: 'Interest rate on investment property loan - usually higher than home loans',
+            placeholder: '7.5',
+            gamingLevel: 2
+        })}
                                     <p class="text-xs text-gray-500 mt-1">📊 Interest rate on investment property loan</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">💰 Weekly Rent</label>
                                     ${this.createEnhancedInput('investment-weekly-rent', property.investmentProperty.details.weeklyRent, 'currency', {
-                                        min: 0,
-                                        tooltip: 'Weekly rental income received from tenants',
-                                        placeholder: '650',
-                                        gamingLevel: 2
-                                    })}
+            min: 0,
+            tooltip: 'Weekly rental income received from tenants',
+            placeholder: '650',
+            gamingLevel: 2
+        })}
                                     <p class="text-xs text-gray-500 mt-1">🏠 Weekly rental income from tenants</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">💸 Annual Expenses</label>
                                     ${this.createEnhancedInput('investment-expenses', property.investmentProperty.details.expenses, 'currency', {
-                                        min: 0,
-                                        tooltip: 'Annual property expenses: rates, insurance, maintenance, management fees, repairs',
-                                        placeholder: '8,000',
-                                        gamingLevel: 2
-                                    })}
+            min: 0,
+            tooltip: 'Annual property expenses: rates, insurance, maintenance, management fees, repairs',
+            placeholder: '8,000',
+            gamingLevel: 2
+        })}
                                     <p class="text-xs text-gray-500 mt-1">🧾 Rates, insurance, maintenance, management fees</p>
                                 </div>
                             </div>
@@ -1187,12 +1181,12 @@ export class OnboardingWizard {
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">🎂 Preferred Retirement Age</label>
                                 ${this.createEnhancedInput('goals-retirement-age', goals.retirementAge, 'number', {
-                                    min: 55,
-                                    max: 80,
-                                    tooltip: 'When would you like to stop working? Consider super preservation age and pension age',
-                                    placeholder: '67',
-                                    gamingLevel: 2
-                                })}
+            min: 55,
+            max: 80,
+            tooltip: 'When would you like to stop working? Consider super preservation age and pension age',
+            placeholder: '67',
+            gamingLevel: 2
+        })}
                                 <p class="text-xs text-gray-500 mt-1">🗓️ When would you like to stop working?</p>
                             </div>
                         </div>
@@ -1203,13 +1197,13 @@ export class OnboardingWizard {
                         <h3 class="text-lg font-semibold text-gray-800 mb-4">Desired Retirement Lifestyle</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">💰 Desired Annual Income</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">💰 Desired Annual Income (current, not inflation adjusted for retirement)</label>
                                 ${this.createEnhancedInput('goals-income-needed', goals.lifestyleGoals.incomeNeeded, 'currency', {
-                                    min: 0,
-                                    tooltip: 'How much income do you want per year in retirement? Consider ASFA standards: Modest ~$48k, Comfortable ~$74k',
-                                    placeholder: '74000',
-                                    gamingLevel: 2
-                                })}
+            min: 0,
+            tooltip: 'How much income do you want per year in retirement? Consider ASFA standards: Modest ~$48k, Comfortable ~$74k',
+            placeholder: '74000',
+            gamingLevel: 2
+        })}
                                 <div class="mt-2 text-xs text-gray-600">
                                     <div class="flex justify-between">
                                         <span>ASFA Modest:</span>
@@ -1258,11 +1252,11 @@ export class OnboardingWizard {
                             <div id="inheritance-amount-field" class="${goals.legacyPlanning.leaveInheritance === 'no' ? 'hidden' : ''}">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">🏛️ Target Inheritance Amount</label>
                                 ${this.createEnhancedInput('goals-inheritance-amount', goals.legacyPlanning.inheritanceAmount, 'currency', {
-                                    min: 0,
-                                    tooltip: 'The amount you aim to leave as inheritance. This affects how much you can spend in retirement',
-                                    placeholder: '100000',
-                                    gamingLevel: 2
-                                })}
+            min: 0,
+            tooltip: 'The amount you aim to leave as inheritance. This affects how much you can spend in retirement',
+            placeholder: '100000',
+            gamingLevel: 2
+        })}
                                 <p class="text-xs text-gray-500 mt-1">💡 Approximate amount you'd like to leave</p>
                             </div>
                         </div>
@@ -1429,25 +1423,25 @@ export class OnboardingWizard {
                         <h3 class="text-lg font-semibold text-purple-800 mb-4">🏆 Your Achievements</h3>
                         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                             ${Array.from({length: 5}, (_, i) => {
-                                const stepNum = i + 1;
-                                const badge = this.gamification.stepBadges.get(stepNum);
-                                const isCompleted = this.gamification.completedSteps.has(stepNum);
+            const stepNum = i + 1;
+            const badge = this.gamification.stepBadges.get(stepNum);
+            const isCompleted = this.gamification.completedSteps.has(stepNum);
 
-                                return `
+            return `
                                     <div class="flex flex-col items-center p-3 rounded-lg transition-all duration-200 ${
-                                        isCompleted ? 'bg-white shadow-lg border-2 border-green-300 transform hover:scale-105' : 'bg-gray-100 opacity-50'
-                                    }">
+                isCompleted ? 'bg-white shadow-lg border-2 border-green-300 transform hover:scale-105' : 'bg-gray-100 opacity-50'
+            }">
                                         <div class="text-2xl mb-1 ${isCompleted ? 'animate-pulse' : ''}">${badge ? badge.icon : '🔒'}</div>
                                         <div class="text-xs font-medium text-center ${isCompleted ? 'text-gray-800' : 'text-gray-500'}">${badge ? badge.title : 'Locked'}</div>
                                         ${isCompleted ? `<div class="text-xs text-green-600 mt-1">✓ Complete</div>` : ''}
                                     </div>
                                 `;
-                            }).join('')}
+        }).join('')}
                         </div>
                         <div class="mt-4 text-center">
                             <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full ${
-                                this.gamification.completedSteps.size === 5 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                            }">
+            this.gamification.completedSteps.size === 5 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+        }">
                                 <span class="text-sm font-medium">Progress:</span>
                                 <span class="font-bold">${this.gamification.completedSteps.size}/5</span>
                                 ${this.gamification.completedSteps.size === 5 ? '<span class="text-xs">🎉 Master Level!</span>' : ''}
@@ -1518,6 +1512,7 @@ export class OnboardingWizard {
             radio.addEventListener('change', (e) => {
                 const homeDetails = $('home-details');
                 const loanField = $('loan-remaining-field');
+                const rateField = $('home-loan-rate-field');
 
                 if (e.target.value === 'rent') {
                     homeDetails.classList.add('hidden');
@@ -1525,9 +1520,11 @@ export class OnboardingWizard {
                     homeDetails.classList.remove('hidden');
                     if (e.target.value === 'own') {
                         loanField.classList.add('hidden');
+                        if (rateField) rateField.classList.add('hidden');
                         safeSetValue('property-loan-remaining', 0);
-                    } else {
+                    } else { // mortgage
                         loanField.classList.remove('hidden');
+                        if (rateField) rateField.classList.remove('hidden');
                     }
                 }
             });
@@ -1637,6 +1634,11 @@ export class OnboardingWizard {
             if (this.currentStep < this.totalSteps) {
                 setTimeout(() => {
                     this.showStep(this.currentStep + 1);
+                    // Scroll to the top of the wizard container for the next step
+                    const wizardContainer = $('onboarding-wizard');
+                    if (wizardContainer) {
+                        wizardContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
                 }, this.gamification.celebrationShown.has(completedStep) ? 0 : 1000); // Delay if showing celebration
             }
         }
@@ -1737,8 +1739,20 @@ export class OnboardingWizard {
         this.data.household.partnerAge = safeGetValue('household-partner-age') || this.data.household.partnerAge;
         this.data.household.retirementAge = safeGetValue('household-retirement-age') || this.data.household.retirementAge;
 
-        // Update living arrangements
-        this.data.household.livingArrangements.homeOwnership = document.querySelector('#household-home-ownership')?.value || this.data.household.livingArrangements.homeOwnership;
+        // Update living arrangements and sync property status
+        const householdOwnershipSelect = document.querySelector('#household-home-ownership');
+        if (householdOwnershipSelect) {
+            this.data.household.livingArrangements.homeOwnership = householdOwnershipSelect.value;
+        }
+
+        const propertyOwnershipRadios = document.querySelector('input[name="home-status"]:checked');
+        if (propertyOwnershipRadios) {
+            this.data.property.homeStatus = propertyOwnershipRadios.value;
+            this.data.household.livingArrangements.homeOwnership = propertyOwnershipRadios.value;
+        } else if (householdOwnershipSelect) {
+            this.data.property.homeStatus = householdOwnershipSelect.value;
+        }
+
         this.data.household.livingArrangements.monthlyExpenses = safeGetValue('household-expenses') || this.data.household.livingArrangements.monthlyExpenses;
 
         // Update finances data
@@ -1756,10 +1770,6 @@ export class OnboardingWizard {
         this.data.finances.debt.personalLoans = safeGetValue('finances-personal-loans') || this.data.finances.debt.personalLoans;
 
         // Update property data
-        const homeStatus = document.querySelector('input[name="home-status"]:checked')?.value;
-        if (homeStatus) {
-            this.data.property.homeStatus = homeStatus;
-        }
         this.data.property.homeDetails.purchasePrice = safeGetValue('property-purchase-price') || this.data.property.homeDetails.purchasePrice;
         this.data.property.homeDetails.currentValue = safeGetValue('property-current-value') || this.data.property.homeDetails.currentValue;
         this.data.property.homeDetails.loanRemaining = safeGetValue('property-loan-remaining') || this.data.property.homeDetails.loanRemaining;
@@ -1841,6 +1851,7 @@ export class OnboardingWizard {
         if (enhancedSummaryContainer) {
             enhancedSummaryContainer.classList.remove('hidden');
             this.populateEnhancedSummary();
+            enhancedSummaryContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         // Show the Action Buttons container (which now includes all the buttons)
@@ -1905,11 +1916,11 @@ export class OnboardingWizard {
                             <span class="font-medium">${basicResults.userAge} years</span>
                         </div>
                         ${basicResults.partnerAge && basicResults.maritalStatus !== 'single' ?
-                            `<div class="flex justify-between">
+            `<div class="flex justify-between">
                                 <span>Partner Age:</span>
                                 <span class="font-medium">${basicResults.partnerAge} years</span>
                             </div>` : ''
-                        }
+        }
                         <div class="flex justify-between">
                             <span>Target Retirement Age:</span>
                             <span class="font-medium">${basicResults.retirementAge}</span>
@@ -2125,9 +2136,9 @@ export class OnboardingWizard {
                     </h3>
                     <p class="text-sm ${basicResults.goalMet ? 'text-green-700' : 'text-red-700'}">
                         ${basicResults.goalMet
-                            ? 'Your current plan should provide the income you need in retirement'
-                            : 'You may need to adjust your savings or retirement plans'
-                        }
+            ? 'Your current plan should provide the income you need in retirement'
+            : 'You may need to adjust your savings or retirement plans'
+        }
                     </p>
                 </div>
 
@@ -2141,9 +2152,9 @@ export class OnboardingWizard {
                     </div>
                     <div class="text-sm text-gray-600">
                         ${basicResults.remainingAssets > 0
-                            ? 'Assets remaining for inheritance or additional security'
-                            : 'Assets may be depleted - consider adjusting your plan'
-                        }
+            ? 'Assets remaining for inheritance or additional security'
+            : 'Assets may be depleted - consider adjusting your plan'
+        }
                     </div>
                 </div>
 
@@ -2418,9 +2429,9 @@ export class OnboardingWizard {
         // Format display value based on type
         let displayValue = value || '';
         if (value && type === 'currency') {
-            displayValue = formatNumber(parseFloat(value));
+            displayValue = formatNumber(parseFloat(value), 2);
         } else if (value && type === 'percentage') {
-            displayValue = parseFloat(value).toFixed(1);
+            displayValue = parseFloat(value).toFixed(4);
         } else if (value && type === 'number') {
             displayValue = parseFloat(value).toString();
         }
@@ -2443,19 +2454,19 @@ export class OnboardingWizard {
                     ${required ? 'required' : ''}
                 />
                 ${type === 'currency' ?
-                    `<div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm font-bold pointer-events-none">$</div>` : ''
-                }
+            `<div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm font-bold pointer-events-none">$</div>` : ''
+        }
                 ${type === 'percentage' ?
-                    `<div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm font-bold pointer-events-none">%</div>` : ''
-                }
+            `<div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm font-bold pointer-events-none">%</div>` : ''
+        }
                 ${gamingLevel >= 2 ?
-                    `<div class="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 animate-pulse"></div>` : ''
-                }
+            `<div class="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 animate-pulse"></div>` : ''
+        }
                 ${tooltip ?
-                    `<div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10 whitespace-nowrap">
+            `<div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10 whitespace-nowrap">
                         ${tooltip}
                     </div>` : ''
-                }
+        }
             </div>
         `;
 

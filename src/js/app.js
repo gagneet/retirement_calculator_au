@@ -5121,6 +5121,17 @@ class RetirementCalculatorApp {
         const partnerSalary = $('partnerSalary');
         if (yourSalary) yourSalary.addEventListener('blur', updateCGTRate);
         if (partnerSalary) partnerSalary.addEventListener('blur', updateCGTRate);
+
+        // Dynamic calculation for 'Expected Age Care Start Date'
+        const yourLifespan = $('yourLifespan');
+        if (yourLifespan) {
+            const updateAgedCareStart = () => {
+                const lifespan = safeGetValue('yourLifespan', 85);
+                safeSetValue('agedCareStartAge', lifespan + 3);
+            };
+            yourLifespan.addEventListener('input', updateAgedCareStart);
+            updateAgedCareStart(); // Initial calculation
+        }
     }
 
     enhanceAdvancedCalculatorInputs() {
