@@ -1603,7 +1603,7 @@ class RetirementCalculatorApp {
     }
 
     // Run comprehensive scenario comparison matrix
-    async runScenarioComparison() {
+    async runScenarioMatrixComparison() {
         if (this.isCalculating) return;
 
         this.isCalculating = true;
@@ -3279,6 +3279,10 @@ class RetirementCalculatorApp {
                 personaRecommendations
             );
 
+            // Store results for export
+            this.currentRecommendations = enhancedRecommendations.merged.topPriority;
+            this.currentPersonaRecommendations = personaRecommendations;
+
             updateProgress(90, 'Formatting enhanced recommendations...');
             this.displayEnhancedRecommendations(enhancedRecommendations);
 
@@ -3339,8 +3343,9 @@ class RetirementCalculatorApp {
             updateProgress(50, 'Generating actionable suggestions...');
             const scenarios = await recommendationEngine.generateRecommendations();
 
-            // Store scenarios for Try This functionality
+            // Store scenarios for Try This functionality and export
             this.lastGeneratedSuggestions = scenarios;
+            this.currentSuggestions = scenarios;
 
             updateProgress(80, 'Categorizing suggestions...');
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -4794,6 +4799,9 @@ class RetirementCalculatorApp {
 
             const results = await this.simulator.runScenarioComparison(inputs, selectedScenarios, progressCallback);
 
+            // Store results for export
+            this.currentScenarioComparisons = results.scenarios;
+
             // Display results
             this.displayScenarioComparisonResults(results);
 
@@ -5228,7 +5236,7 @@ class RetirementCalculatorApp {
         this.instrumentClick('generateSuggestionsBtn', 'Generate Personalized Suggestions', this.generatePersonalizedSuggestions);
         this.instrumentClick('generateOverseasScenarios', 'Generate Overseas Scenarios', this.generateOverseasScenarios);
         this.instrumentClick('btnMonteCarlo', 'Run Enhanced Monte Carlo', this.runMonteCarloSimulation);
-        this.instrumentClick('btnScenarioMatrix', 'Compare Strategies', this.runScenarioComparison);
+        this.instrumentClick('btnScenarioMatrix', 'Compare Strategies', this.runScenarioMatrixComparison);
         this.instrumentClick('btnHealthcareAnalysis', 'Healthcare Costs', this.runHealthcareAnalysis);
         this.instrumentClick('btnRiskProfiling', 'Risk Analysis', this.runAdvancedRiskProfiling);
         this.instrumentClick('btnDynamicAllocation', 'Asset Allocation', this.runDynamicAllocationAnalysis);

@@ -2353,8 +2353,8 @@ function extractAnalysisData(inputs, results, app) {
         }
 
         // User-generated Suggestions (if available)
-        if (app?.lastGeneratedSuggestions && app.lastGeneratedSuggestions.length > 0) {
-            analysis.suggestions = app.lastGeneratedSuggestions;
+        if (app?.currentSuggestions && app.currentSuggestions.length > 0) {
+            analysis.suggestions = app.currentSuggestions;
         }
 
         // Scenario Matrix Analysis (if available)
@@ -2651,16 +2651,23 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         doc.text("Scenario Comparisons", 14, yPos);
         yPos += 10;
 
-        const scenarioBody = analysis.scenarioComparisons.slice(0, 8).map(scenario => [
-            scenario.name || 'Scenario',
-            formatCurrency(scenario.finalBalance || 0),
-            scenario.improvement ? `+${(scenario.improvement * 100).toFixed(1)}%` : 'N/A',
-            scenario.recommendation || 'Review scenario'
-        ]);
+        const baseScenario = analysis.scenarioComparisons[0];
+        const scenarioBody = analysis.scenarioComparisons.slice(0, 8).map(scenario => {
+            const improvement = baseScenario.successRate ? (scenario.successRate - baseScenario.successRate) : 0;
+            const recommendation = scenario.name === baseScenario.name ? 'Baseline' :
+                (improvement > 0 ? 'Recommended' : 'Not Recommended');
+
+            return [
+                scenario.name || 'Scenario',
+                formatCurrency(scenario.medianBalance || 0),
+                improvement ? `${improvement > 0 ? '+' : ''}${(improvement * 100).toFixed(1)}%` : 'N/A',
+                recommendation
+            ];
+        });
 
         doc.autoTable({
             startY: yPos,
-            head: [['Scenario', 'Final Balance', 'Improvement', 'Notes']],
+            head: [['Scenario', 'Median Balance', 'Success Rate Change', 'Notes']],
             body: scenarioBody,
             theme: 'grid',
             headStyles: { fillColor: [23, 162, 184] },
