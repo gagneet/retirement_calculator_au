@@ -3039,6 +3039,18 @@
                         Run Comparison
                     </button>
                 </div>
+
+                <!-- Scenario Comparison Progress Bar -->
+                <div id="scenarioComparisonProgress" class="hidden mt-4">
+                    <div class="mb-2 flex justify-between items-center">
+                        <span class="text-sm font-medium text-purple-700" id="scenarioProgressText">Initializing...</span>
+                        <span class="text-sm text-purple-600" id="scenarioProgressPercent">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-purple-600 h-2.5 rounded-full transition-all duration-300"
+                             id="scenarioProgressBar" style="width: 0%"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- Scenario Comparison Results -->

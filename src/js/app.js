@@ -1606,6 +1606,12 @@ class RetirementCalculatorApp {
 
         this.isCalculating = true;
 
+        // Show scenario comparison progress bar
+        const progressContainer = document.getElementById('scenarioComparisonProgress');
+        const progressBar = document.getElementById('scenarioProgressBar');
+        const progressText = document.getElementById('scenarioProgressText');
+        const progressPercent = document.getElementById('scenarioProgressPercent');
+
         try {
             const inputs = this.collectInputs();
 
@@ -1615,13 +1621,29 @@ class RetirementCalculatorApp {
                 return;
             }
 
+            // Show progress container
+            if (progressContainer) {
+                progressContainer.classList.remove('hidden');
+            }
+
             const progressCallback = async (percentage, message) => {
+                // Update scenario comparison progress bar
+                if (progressBar) {
+                    progressBar.style.width = `${percentage}%`;
+                }
+                if (progressText) {
+                    progressText.textContent = message;
+                }
+                if (progressPercent) {
+                    progressPercent.textContent = `${Math.round(percentage)}%`;
+                }
+                // Also update main progress bar
                 updateProgress(percentage, message);
                 await new Promise(resolve => setTimeout(resolve, 10));
             };
 
             // Show progress
-            updateProgress(0, "Generating scenario variations...");
+            await progressCallback(0, "Generating scenario variations...");
 
             const matrixResults = await this.scenarioMatrix.generateScenarioMatrix(
                 inputs, progressCallback
@@ -1630,16 +1652,27 @@ class RetirementCalculatorApp {
             // Display results
             this.displayScenarioMatrix(matrixResults);
 
-            updateProgress(100, "Scenario analysis complete!");
+            await progressCallback(100, "Scenario analysis complete!");
 
             // Switch to scenarios tab to show comparison results
             showTab('scenarios', true);
             showNotification('Scenario comparison complete!', 'success');
-            setTimeout(() => updateProgress(0), 1000);
+
+            // Hide progress after a delay
+            setTimeout(() => {
+                if (progressContainer) {
+                    progressContainer.classList.add('hidden');
+                }
+                updateProgress(0);
+            }, 1500);
 
         } catch (error) {
             console.error('Scenario comparison error:', error);
             showNotification('Failed to run scenario comparison. Please try again.', 'error');
+            // Hide progress on error
+            if (progressContainer) {
+                progressContainer.classList.add('hidden');
+            }
         } finally {
             this.isCalculating = false;
         }

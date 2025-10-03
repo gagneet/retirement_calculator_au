@@ -1966,9 +1966,9 @@ export class RetirementSimulator {
                 name: "Conservative Portfolio (30/50/20)",
                 description: "Use defensive allocation: 30% equities, 50% bonds, 20% cash for market uncertainty",
                 modifications: {
-                    allocEquities: 30,
-                    allocBonds: 50,
-                    allocCash: 20,
+                    allocEquities: 0.30,
+                    allocBonds: 0.50,
+                    allocCash: 0.20,
                     useGlidePath: false
                 }
             },
