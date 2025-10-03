@@ -1036,7 +1036,8 @@ export const exportToXLSX = (inputs, results, chartManager, app = null) => {
 
     const wb = XLSX.utils.book_new();
 
-    // Get enhanced analysis data
+    // Get additional analysis data from app if available
+    const monteCarloResults = app?.currentMonteCarloResults || results.monteCarloResults || null;
     const enhancedAnalysis = extractAnalysisData(inputs, results, app);
 
     // --- Summary Sheet ---
@@ -1336,7 +1337,7 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
     }
 
     // AI Recommendations Section
-    if (analysis.aiRecommendations && analysis.aiRecommendations.length > 0) {
+    if (enhancedAnalysis.aiRecommendations && enhancedAnalysis.aiRecommendations.length > 0) {
         if (yPos > 160) {
             doc.addPage();
             yPos = 20;
@@ -1347,7 +1348,7 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
         doc.text("AI-Generated Recommendations", 14, yPos);
         yPos += 10;
 
-        const aiBody = analysis.aiRecommendations.slice(0, 10).map(rec => [
+        const aiBody = enhancedAnalysis.aiRecommendations.slice(0, 10).map(rec => [
             rec.category || 'General',
             rec.action || rec.recommendation || rec.title,
             rec.priority || 'Medium',
@@ -2640,7 +2641,7 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
     }
 
     // AI Recommendations Section
-    if (analysis.aiRecommendations && analysis.aiRecommendations.length > 0) {
+    if (enhancedAnalysis.aiRecommendations && enhancedAnalysis.aiRecommendations.length > 0) {
         if (yPos > 160) {
             doc.addPage();
             yPos = 20;
@@ -2651,7 +2652,7 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         doc.text("AI-Generated Recommendations", 14, yPos);
         yPos += 10;
 
-        const aiBody = analysis.aiRecommendations.slice(0, 10).map(rec => [
+        const aiBody = enhancedAnalysis.aiRecommendations.slice(0, 10).map(rec => [
             rec.category || 'General',
             rec.action || rec.recommendation || rec.title,
             rec.priority || 'Medium',
@@ -3148,7 +3149,7 @@ function addEnhancedAnalysisToXLSX(wb, analysis) {
     }
 
     // AI Recommendations Sheet
-    if (analysis.aiRecommendations && analysis.aiRecommendations.length > 0) {
+    if (enhancedAnalysis.aiRecommendations && enhancedAnalysis.aiRecommendations.length > 0) {
         const aiData = [
             ['AI-Generated Recommendations', '', '', ''],
             ['Category', 'Recommendation', 'Priority', 'Timing'],
