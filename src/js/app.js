@@ -6142,11 +6142,19 @@ class RetirementCalculatorApp {
         ];
 
         const populatedCategories = [];
+        let hasUnconfiguredDependents = false;
+
         categories.forEach(category => {
             const count = parseInt(safeGetValue(category.id, 0)) || 0;
             const percent = parseInt(safeGetValue(category.id + 'Percent', 0)) || 0;
-            if (count > 0 && percent > 0) {
-                populatedCategories.push(`${count} ${category.name} (${percent}%)`);
+
+            if (count > 0) {
+                if (percent > 0) {
+                    populatedCategories.push(`${count} ${category.name} (${percent}%)`);
+                } else {
+                    hasUnconfiguredDependents = true;
+                    populatedCategories.push(`${count} ${category.name} (pending %)`);
+                }
             }
         });
 
@@ -6154,8 +6162,17 @@ class RetirementCalculatorApp {
         if (summaryTextEl) {
             if (populatedCategories.length > 0) {
                 summaryTextEl.textContent = populatedCategories.join(', ');
+                if (hasUnconfiguredDependents) {
+                    summaryTextEl.classList.add('text-yellow-600');
+                    summaryTextEl.classList.remove('text-gray-600');
+                } else {
+                    summaryTextEl.classList.remove('text-yellow-600');
+                    summaryTextEl.classList.add('text-gray-600');
+                }
             } else {
                 summaryTextEl.textContent = 'No dependents configured - Click to add';
+                summaryTextEl.classList.remove('text-yellow-600');
+                summaryTextEl.classList.add('text-gray-600');
             }
         }
     }
@@ -6166,13 +6183,24 @@ class RetirementCalculatorApp {
             'elderlyIndependent', 'elderlyHomeCare', 'elderlyResidential', 'otherDependents'
         ];
 
+        // First, determine if any category has been populated
+        const anyCategoryPopulated = categories.some(category => {
+            const count = parseInt(safeGetValue(category, 0)) || 0;
+            return count > 0;
+        });
+
+        if (!anyCategoryPopulated) {
+            // If no categories have a count, no need to hide anything, return to default state
+            return;
+        }
+
+        // If at least one category is populated, hide all others
         categories.forEach(category => {
             const count = parseInt(safeGetValue(category, 0)) || 0;
-            const percent = parseInt(safeGetValue(category + 'Percent', 0)) || 0;
             const rowElement = $(category + 'Row');
 
             if (rowElement) {
-                if (count > 0 && percent > 0) {
+                if (count > 0) {
                     rowElement.classList.remove('hidden');
                 } else {
                     rowElement.classList.add('hidden');

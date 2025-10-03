@@ -233,8 +233,8 @@ export const addPercentageFormatting = (inputElement) => {
         if (originalValue !== '' && !isNaN(numericValue)) {
             // Format with commas and 2 decimal places for percentages
             const formattedNumber = numericValue.toLocaleString('en-AU', {
-                minimumFractionDigits: 4,
-                maximumFractionDigits: 4,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
             });
             inputElement.value = `${formattedNumber}%`;
         }
