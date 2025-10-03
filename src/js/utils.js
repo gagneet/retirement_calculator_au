@@ -1734,7 +1734,7 @@ export const populateFormFromData = (userData, version = '2.0') => {
         'agedCareProbability', 'inflation', 'investmentReturn', 'returnDeclineRate',
         'savingsReturn', 'superReturn', 'salaryGrowthRate', 'leanYearsReduction',
         'dividendYield', 'frankingRate', 'returnVolatility',
-        'shockProbability', 'shockMagnitude'
+        'shockProbability', 'shockMagnitude', 'australianEquityAllocation', 'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage'
     ];
 
     const dependentPercentageFields = [
