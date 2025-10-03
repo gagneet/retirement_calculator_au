@@ -351,17 +351,39 @@ export class EnhancedMonteCarloEngine {
 
         for (let year = 0; year < years; year++) {
             const baseReturnAssumptions = this.financialConfig.monteCarloSimulation.BASE_RETURN_ASSUMPTIONS;
+
+            // De-leverage the blended investment return to find the base equity return,
+            // taking into account the user's specific asset allocation.
+            const portfolioReturn = inputs.investmentReturn;
+            const allocEquities = inputs.allocEquities;
+            const allocBonds = inputs.allocBonds;
+            const allocCash = inputs.allocCash;
+
+            const bondMultiplier = baseReturnAssumptions.BOND_MULTIPLIER.value;
+            const cashBaseReturn = baseReturnAssumptions.CASH_BASE_RETURN.value;
+
+            // R_portfolio = w_eq * R_eq + w_b * R_b + w_c * R_c
+            // R_portfolio = w_eq * R_base_eq + w_b * (R_base_eq * bond_multiplier) + w_c * R_cash
+            // R_base_eq = (R_portfolio - w_c * R_cash) / (w_eq + w_b * bond_multiplier)
+            const denominator = allocEquities + (allocBonds * bondMultiplier);
+            let equityEquivalentBase = 0;
+
+            if (denominator > 0) {
+                equityEquivalentBase = (portfolioReturn - (allocCash * cashBaseReturn)) / denominator;
+            }
+
             const baseReturns = {
-                equity: inputs.investmentReturn,  // Already converted to decimal in collectInputs
-                bonds: inputs.investmentReturn * baseReturnAssumptions.BOND_MULTIPLIER.value,
-                property: inputs.investmentReturn * baseReturnAssumptions.PROPERTY_MULTIPLIER.value,
-                cash: baseReturnAssumptions.CASH_BASE_RETURN.value
+                equity: equityEquivalentBase,
+                bonds: equityEquivalentBase * bondMultiplier,
+                property: equityEquivalentBase * baseReturnAssumptions.PROPERTY_MULTIPLIER.value, // Assume property scales with equity
+                cash: cashBaseReturn
             };
 
             const returns = this.generateRegimeAwareReturns(baseReturns, year);
             scenarioSequence.push(returns);
         }
 
+        console.log("Base returns for MC simulation:", scenarioSequence[0]);
         return scenarioSequence;
     }
 
@@ -385,7 +407,7 @@ export class EnhancedMonteCarloEngine {
         // Value at Risk (VaR) and Conditional VaR
         const var95 = percentiles.p5;
         const cvar95 = outcomes.filter(o => o <= var95).reduce((sum, val) => sum + val, 0) /
-                      outcomes.filter(o => o <= var95).length;
+            outcomes.filter(o => o <= var95).length;
 
         return {
             outcomes,

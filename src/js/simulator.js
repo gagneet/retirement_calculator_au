@@ -42,7 +42,7 @@ export class RetirementSimulator {
         // Portfolio-to-income ratio analysis
         const totalIncome = inputs.yourSalary + inputs.partnerSalary;
         const currentAssets = inputs.yourCurrentSuper + inputs.partnerCurrentSuper +
-                            inputs.currentSavings + inputs.currentStocks;
+            inputs.currentSavings + inputs.currentStocks;
         const portfolioToIncomeRatio = totalIncome > 0 ? currentAssets / totalIncome : 0;
 
         if (portfolioToIncomeRatio > 10) score += 25; // Very high capacity
@@ -92,7 +92,7 @@ export class RetirementSimulator {
         const yearsToRetirement = Math.max(1, inputs.retirementAge - inputs.yourCurrentAge);
         const targetAssets = inputs.asfaComfortable * 25; // 4% rule estimate
         const currentAssets = inputs.yourCurrentSuper + inputs.partnerCurrentSuper +
-                            inputs.currentSavings + inputs.currentStocks;
+            inputs.currentSavings + inputs.currentStocks;
 
         // Base calculation using required return approach
         const growthNeeded = targetAssets / Math.max(1, currentAssets);
@@ -309,9 +309,9 @@ export class RetirementSimulator {
         return {
             equity: equityPercent,
             bonds: Math.max(allocConfig.MINIMUM_ALLOCATIONS.BOND_MIN.value,
-                          (100 - equityPercent) * allocConfig.DYNAMIC_ALLOCATION_RATIOS.BOND_WEIGHT.value),
+                (100 - equityPercent) * allocConfig.DYNAMIC_ALLOCATION_RATIOS.BOND_WEIGHT.value),
             cash: Math.max(allocConfig.MINIMUM_ALLOCATIONS.CASH_MIN.value,
-                          (100 - equityPercent) * allocConfig.DYNAMIC_ALLOCATION_RATIOS.CASH_WEIGHT.value)
+                (100 - equityPercent) * allocConfig.DYNAMIC_ALLOCATION_RATIOS.CASH_WEIGHT.value)
         };
     }
 
@@ -575,43 +575,120 @@ export class RetirementSimulator {
         return actualReturn;
     }
 
-    calculatePortfolioReturn(allocations, baseReturn, year, declineRate, useVolatility = false, prevReturn = null) {
+    // Assuming this utility is available on 'this' or imported
+    getEquityBaseReturn(portfolioReturn, allocations, bondMultiplier, cashBaseReturn) {
+        const allocEquities = (allocations.equity || 0) / 100;
+        const allocBonds = (allocations.bonds || 0) / 100;
+        const allocCash = (allocations.cash || 0) / 100;
+
+        const numerator = portfolioReturn - (allocCash * cashBaseReturn);
+        const denominator = allocEquities + (allocBonds * bondMultiplier);
+
+        // Return 0 if the portfolio is all cash or denominator is non-positive
+        return (denominator > 0) ? (numerator / denominator) : 0;
+    }
+
+    // calculatePortfolioReturn(allocations, baseReturn, year, declineRate, useVolatility = false, prevReturn = null) {
+    //     // This function now correctly calculates portfolio returns for both deterministic
+    //     // and stochastic scenarios by de-leveraging the blended return and using the
+    //     // enhanced Monte Carlo engine for random return generation.
+    //
+    //     const returnExpectations = this.financialConfig.assetAllocation.RETURN_EXPECTATIONS;
+    //     const baseReturnAssumptions = this.financialConfig.monteCarloSimulation.BASE_RETURN_ASSUMPTIONS;
+    //
+    //     // Ensure allocations are treated as decimals for calculation
+    //     const allocEquities = (allocations.equity || 0) / 100;
+    //     const allocBonds = (allocations.bonds || 0) / 100;
+    //     const allocCash = (allocations.cash || 0) / 100;
+    //
+    //     // De-leverage the blended 'baseReturn' to find the underlying base equity return
+    //     const bondMultiplier = returnExpectations.BOND_MULTIPLIER.value;
+    //     const cashBaseReturn = baseReturnAssumptions.CASH_BASE_RETURN.value;
+    //     const denominator = allocEquities + (allocBonds * bondMultiplier);
+    //
+    //     let equityBase = 0;
+    //     if (denominator > 0) {
+    //         // R_base_eq = (R_portfolio - w_c * R_cash) / (w_eq + w_b * bond_multiplier)
+    //         equityBase = (baseReturn - (allocCash * cashBaseReturn)) / denominator;
+    //     }
+    //
+    //     console.log(`Year ${year}: PortfolioReturn=${baseReturn.toFixed(4)}, Allocations: E=${allocEquities.toFixed(2)} B=${allocBonds.toFixed(2)} C=${allocCash.toFixed(2)}, Calculated EquityBase=${equityBase.toFixed(4)}`);
+    //
+    //     if (useVolatility) {
+    //         // For stochastic simulations, generate a single year of random returns
+    //         // using the sophisticated regime-aware engine. This ensures even the older
+    //         // Monte Carlo simulation benefits from the enhanced logic.
+    //         const baseReturnsForScenario = {
+    //             equity: equityBase,
+    //             bonds: equityBase * bondMultiplier,
+    //             property: equityBase * baseReturnAssumptions.PROPERTY_MULTIPLIER.value,
+    //             cash: cashBaseReturn
+    //         };
+    //
+    //         const randomReturns = this.enhancedMonteCarloEngine.generateRegimeAwareReturns(baseReturnsForScenario, year);
+    //
+    //         return allocEquities * randomReturns.equity +
+    //             allocBonds * randomReturns.bonds +
+    //             allocCash * randomReturns.cash;
+    //     } else {
+    //         // For deterministic scenarios, use the de-leveraged base returns.
+    //         const deterministicEquityReturn = this.getReturnForYear(equityBase, year, declineRate);
+    //         const deterministicBondReturn = this.getReturnForYear(equityBase * bondMultiplier, year, declineRate * 0.5);
+    //
+    //         return allocEquities * deterministicEquityReturn +
+    //             allocBonds * deterministicBondReturn +
+    //             allocCash * cashBaseReturn;
+    //     }
+    // }
+
+    calculatePortfolioReturn(allocations, baseReturn, year, declineRate, useVolatility = false) {
+        // 1. Fetch fixed configuration values
+        const returnExpectations = this.financialConfig.assetAllocation.RETURN_EXPECTATIONS;
+        const baseReturnAssumptions = this.financialConfig.monteCarloSimulation.BASE_RETURN_ASSUMPTIONS;
+
+        const bondMultiplier = returnExpectations.BOND_MULTIPLIER.value;
+        const cashBaseReturn = baseReturnAssumptions.CASH_BASE_RETURN.value;
+
+        // 2. Calculate the underlying base equity return (de-leverage)
+        const equityBase = this.getEquityBaseReturn(baseReturn, allocations, bondMultiplier, cashBaseReturn);
+
+        // Ensure allocations are treated as decimals
+        const allocEquities = (allocations.equity || 0) / 100;
+        const allocBonds = (allocations.bonds || 0) / 100;
+        const allocCash = (allocations.cash || 0) / 100;
+
         if (useVolatility) {
-            // Use enhanced regime-aware calculation
-            const marketReturn = this.calculateEnhancedMarketReturn(year, baseReturn, useVolatility, prevReturn);
-            const rateRegime = getCurrentRateRegime(year + 2024);
+            // 3. STOCHASTIC: Generate returns using the dedicated engine
+            const baseReturnsForScenario = {
+                equity: equityBase,
+                bonds: equityBase * bondMultiplier,
+                // Include other assets as needed, e.g., property
+                property: equityBase * baseReturnAssumptions.PROPERTY_MULTIPLIER.value,
+                cash: cashBaseReturn
+            };
 
-            const equityReturn = marketReturn;
-            // Use user's base return scaled for bonds/cash, then add interest rate environment adjustments
-            const returnExpectations = this.financialConfig.assetAllocation.RETURN_EXPECTATIONS;
-            const baseBondReturn = baseReturn * returnExpectations.BOND_MULTIPLIER.value;
-            const baseCashReturn = baseReturn * returnExpectations.CASH_MULTIPLIER.value;
+            const randomReturns = this.enhancedMonteCarloEngine.generateRegimeAwareReturns(
+                baseReturnsForScenario,
+                year // pass year for time-series modeling/regime changes
+            );
 
-            // Add interest rate regime adjustments to user's base expectations
-            const normalRate = this.financialConfig.assetAllocation.NORMAL_RATE_BASELINE.value;
-            const adjustmentFactors = this.financialConfig.assetAllocation.RATE_ADJUSTMENT_FACTORS;
-            const returnLimits = this.financialConfig.assetAllocation.RETURN_LIMITS;
-            const volatility = this.financialConfig.monteCarlo.VOLATILITY_PARAMETERS.BOND_VOLATILITY.value;
-
-            const rateAdjustment = (rateRegime.rate - normalRate);
-            const bondReturn = Math.max(returnLimits.BOND_FLOOR.value,
-                baseBondReturn + rateAdjustment * adjustmentFactors.BOND_SENSITIVITY.value + randomNormal(0, volatility));
-            const cashReturn = Math.max(returnLimits.CASH_FLOOR.value,
-                baseCashReturn + rateAdjustment * adjustmentFactors.CASH_SENSITIVITY.value);
-
-            return (allocations.equity / 100) * equityReturn +
-                (allocations.bonds / 100) * bondReturn +
-                (allocations.cash / 100) * cashReturn;
+            return allocEquities * randomReturns.equity +
+                allocBonds * randomReturns.bonds +
+                allocCash * randomReturns.cash;
         } else {
-            // Original calculation for deterministic scenarios
-            const returnExpectations = this.financialConfig.assetAllocation.RETURN_EXPECTATIONS;
-            const equityReturn = this.getReturnForYear(baseReturn * returnExpectations.EQUITY_MULTIPLIER.value, year, declineRate);
-            const bondReturn = this.getReturnForYear(baseReturn * returnExpectations.BOND_MULTIPLIER.value, year, declineRate * 0.5);
-            const cashReturn = this.getReturnForYear(baseReturn * returnExpectations.CASH_MULTIPLIER.value, year, 0);
+            // 4. DETERMINISTIC: Use the de-leveraged base returns with time-based decline
+            // Note: declineRate is now an equity-specific input. Bond decline rate is scaled.
+            const deterministicEquityReturn = this.getReturnForYear(equityBase, year, declineRate);
+            // Use a configuration value for bond decline rate if possible, or stick to the existing assumption
+            const deterministicBondReturn = this.getReturnForYear(
+                equityBase * bondMultiplier,
+                year,
+                declineRate * returnExpectations.BOND_DECLINE_MULTIPLIER.value // Preferred: use config value
+            );
 
-            return (allocations.equity / 100) * equityReturn +
-                (allocations.bonds / 100) * bondReturn +
-                (allocations.cash / 100) * cashReturn;
+            return allocEquities * deterministicEquityReturn +
+                allocBonds * deterministicBondReturn +
+                allocCash * cashBaseReturn; // Cash return is fixed for deterministic scenarios
         }
     }
 
@@ -671,10 +748,11 @@ export class RetirementSimulator {
             if (inputs.useGlidePath) {
                 allocation = this.calculateDynamicAllocation(yourCurrentAge, inputs.glidePathRule);
             } else {
+                // Convert decimal from input to percentage for consistent use
                 allocation = {
-                    equity: inputs.allocEquities || 60,
-                    bonds: inputs.allocBonds || 30,
-                    cash: inputs.allocCash || 10
+                    equity: inputs.allocEquities * 100,
+                    bonds: inputs.allocBonds * 100,
+                    cash: inputs.allocCash * 100
                 };
             }
             if (yourCurrentAge <= inputs.retirementAge) {
@@ -695,8 +773,8 @@ export class RetirementSimulator {
             if (scenarioReturns && scenarioReturns[year - 1]) {
                 const scenarioReturn = scenarioReturns[year - 1];
                 returnRate = (allocation.equity / 100) * scenarioReturn.equity +
-                           (allocation.bonds / 100) * scenarioReturn.bonds +
-                           (allocation.cash / 100) * scenarioReturn.cash;
+                    (allocation.bonds / 100) * scenarioReturn.bonds +
+                    (allocation.cash / 100) * scenarioReturn.cash;
 
                 // Track regime information for analysis
                 if (scenarioReturn.regimeInfo) {
@@ -859,13 +937,17 @@ export class RetirementSimulator {
 
             // Determine couple status: must not be single calculation AND both partners must be alive
             const isCouple = !inputs.isSingleCalculation &&
-                           yourCurrentAge <= inputs.yourLifespan &&
-                           partnerCurrentAge <= inputs.partnerLifespan;
+                yourCurrentAge <= inputs.yourLifespan &&
+                partnerCurrentAge <= inputs.partnerLifespan;
 
             // Dynamic allocation in retirement
             const allocation = inputs.useGlidePath ?
                 this.calculateDynamicAllocation(yourCurrentAge, inputs.glidePathRule) :
-                { equity: inputs.allocEquities, bonds: inputs.allocBonds, cash: inputs.allocCash };
+                {
+                    equity: inputs.allocEquities * 100,
+                    bonds: inputs.allocBonds * 100,
+                    cash: inputs.allocCash * 100
+                };
 
             // Enhanced healthcare costs
             const healthcareCost = this.projectHealthcareCosts(
@@ -2290,9 +2372,9 @@ export class RetirementSimulator {
             monthlyCapacity: monthlyDisposableIncome,
             opportunities,
             status: monthlyDisposableIncome < 0 ? 'deficit' :
-                   monthlyDisposableIncome < 200 ? 'critical' :
-                   monthlyDisposableIncome < 500 ? 'tight' :
-                   monthlyDisposableIncome < 1000 ? 'moderate' : 'strong'
+                monthlyDisposableIncome < 200 ? 'critical' :
+                    monthlyDisposableIncome < 500 ? 'tight' :
+                        monthlyDisposableIncome < 1000 ? 'moderate' : 'strong'
         };
     }
 

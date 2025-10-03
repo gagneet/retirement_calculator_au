@@ -1997,6 +1997,22 @@
                         <div class="text-sm font-medium text-blue-900">Current Recommended Allocation</div>
                         <div class="text-sm text-blue-800 mt-1" id="recommendedAllocation">Calculating...</div>
                     </div>
+
+                    <!-- Custom Allocation Section (hidden by default) -->
+                    <div id="customAllocationSection" class="hidden mt-3 space-y-2">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="allocEquities">Equities (%)</label>
+                            <input type="text" id="allocEquities" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value="60">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="allocBonds">Bonds (%)</label>
+                            <input type="text" id="allocBonds" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value="30">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="allocCash">Cash (%)</label>
+                            <input type="text" id="allocCash" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value="10">
+                        </div>
+                    </div>
                 </div>
             </div>
 
