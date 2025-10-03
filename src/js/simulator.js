@@ -575,11 +575,12 @@ export class RetirementSimulator {
         return actualReturn;
     }
 
-    // Assuming this utility is available on 'this' or imported
+    // Calculate the base equity return by de-leveraging the portfolio return
+    // NOTE: allocations parameter should contain decimal values (0.60, 0.30, 0.10), not percentages (60, 30, 10)
     getEquityBaseReturn(portfolioReturn, allocations, bondMultiplier, cashBaseReturn) {
-        const allocEquities = (allocations.equity || 0) / 100;
-        const allocBonds = (allocations.bonds || 0) / 100;
-        const allocCash = (allocations.cash || 0) / 100;
+        const allocEquities = allocations.equity || 0;
+        const allocBonds = allocations.bonds || 0;
+        const allocCash = allocations.cash || 0;
 
         const numerator = portfolioReturn - (allocCash * cashBaseReturn);
         const denominator = allocEquities + (allocBonds * bondMultiplier);
@@ -649,13 +650,20 @@ export class RetirementSimulator {
         const bondMultiplier = returnExpectations.BOND_MULTIPLIER.value;
         const cashBaseReturn = baseReturnAssumptions.CASH_BASE_RETURN.value;
 
-        // 2. Calculate the underlying base equity return (de-leverage)
-        const equityBase = this.getEquityBaseReturn(baseReturn, allocations, bondMultiplier, cashBaseReturn);
-
-        // Ensure allocations are treated as decimals
+        // Convert allocations from percentages to decimals once at the start
         const allocEquities = (allocations.equity || 0) / 100;
         const allocBonds = (allocations.bonds || 0) / 100;
         const allocCash = (allocations.cash || 0) / 100;
+
+        // Create decimal allocations object for getEquityBaseReturn
+        const decimalAllocations = {
+            equity: allocEquities,
+            bonds: allocBonds,
+            cash: allocCash
+        };
+
+        // 2. Calculate the underlying base equity return (de-leverage)
+        const equityBase = this.getEquityBaseReturn(baseReturn, decimalAllocations, bondMultiplier, cashBaseReturn);
 
         if (useVolatility) {
             // 3. STOCHASTIC: Generate returns using the dedicated engine
