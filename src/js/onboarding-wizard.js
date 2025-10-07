@@ -1961,6 +1961,142 @@ export class OnboardingWizard {
                 </div>
             </div>
 
+            <div class="bg-gradient-to-r from-purple-50 to-indigo-50 p-6 rounded-lg border border-purple-200 mb-6">
+                <h3 class="text-lg font-semibold text-purple-900 mb-3 flex items-center">
+                    <span class="text-2xl mr-2">📊</span>
+                    <span>Calculation Parameters Used</span>
+                </h3>
+                <p class="text-sm text-purple-700 mb-4 italic">
+                    The projections above are based on the following assumptions and parameters from Australian financial standards and your inputs:
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div class="bg-white/70 p-4 rounded-lg">
+                        <h4 class="font-semibold text-purple-800 mb-2">Economic Assumptions</h4>
+                        <div class="space-y-1 text-xs text-gray-700">
+                            <div class="flex justify-between">
+                                <span>Inflation Rate:</span>
+                                <span class="font-medium">${(this.config.DEFAULTS.economic.inflation * 100).toFixed(2)}% p.a.</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Super Growth Rate:</span>
+                                <span class="font-medium">${(this.config.DEFAULTS.economic.superReturn * 100).toFixed(2)}% p.a.</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Investment Return:</span>
+                                <span class="font-medium">${(this.config.DEFAULTS.economic.investmentReturn * 100).toFixed(2)}% p.a.</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Savings Return:</span>
+                                <span class="font-medium">${(this.config.DEFAULTS.economic.savingsReturn * 100).toFixed(2)}% p.a.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${this.data.property.homeStatus !== 'rent' || this.data.property.investmentProperty.hasInvestment ? `
+                    <div class="bg-white/70 p-4 rounded-lg">
+                        <h4 class="font-semibold text-purple-800 mb-2">Property Parameters</h4>
+                        <div class="space-y-1 text-xs text-gray-700">
+                            ${this.data.property.homeStatus !== 'rent' ? `
+                            <div class="flex justify-between">
+                                <span>Home Value Growth:</span>
+                                <span class="font-medium">${(this.config.DEFAULTS.property.propertyGrowthRate * 100).toFixed(2)}% p.a.</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Current Mortgage:</span>
+                                <span class="font-medium">$${this.data.property.homeDetails.loanRemaining.toLocaleString()}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Mortgage Rate:</span>
+                                <span class="font-medium">${this.data.property.homeDetails.loanRate.toFixed(2)}%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Home Equity Access:</span>
+                                <span class="font-medium">${(this.config.HOME_EQUITY_ACCESS_RATE * 100).toFixed(0)}% of value</span>
+                            </div>
+                            ` : ''}
+                            ${this.data.property.investmentProperty.hasInvestment ? `
+                            <div class="flex justify-between">
+                                <span>Investment Property:</span>
+                                <span class="font-medium">$${this.data.property.investmentProperty.details.currentValue.toLocaleString()}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>IP Loan Remaining:</span>
+                                <span class="font-medium">$${this.data.property.investmentProperty.details.loanRemaining.toLocaleString()}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>IP Loan Rate:</span>
+                                <span class="font-medium">${this.data.property.investmentProperty.details.loanRate.toFixed(2)}%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Weekly Rent Income:</span>
+                                <span class="font-medium">$${this.data.property.investmentProperty.details.weeklyRent.toLocaleString()}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ` : `
+                    <div class="bg-white/70 p-4 rounded-lg">
+                        <h4 class="font-semibold text-purple-800 mb-2">Property Parameters</h4>
+                        <div class="space-y-1 text-xs text-gray-700">
+                            <div class="text-gray-600 italic">
+                                Currently renting - no property assets
+                            </div>
+                        </div>
+                    </div>
+                    `}
+
+                    <div class="bg-white/70 p-4 rounded-lg">
+                        <h4 class="font-semibold text-purple-800 mb-2">Your Financial Inputs</h4>
+                        <div class="space-y-1 text-xs text-gray-700">
+                            <div class="flex justify-between">
+                                <span>Current Super Balance:</span>
+                                <span class="font-medium">$${basicResults.currentSuper.toLocaleString()}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Annual Contributions:</span>
+                                <span class="font-medium">$${(this.data.finances.superannuation.employerContributions + this.data.finances.superannuation.voluntaryContributions).toLocaleString()}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Current Savings:</span>
+                                <span class="font-medium">$${this.data.finances.emergencyFund.toLocaleString()}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Shares/Investments:</span>
+                                <span class="font-medium">$${this.data.finances.otherInvestments.shares.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/70 p-4 rounded-lg">
+                        <h4 class="font-semibold text-purple-800 mb-2">Healthcare & Aged Care</h4>
+                        <div class="space-y-1 text-xs text-gray-700">
+                            <div class="flex justify-between">
+                                <span>Healthcare Inflation:</span>
+                                <span class="font-medium">${(this.config.DEFAULTS.healthcare.healthcareInflation * 100).toFixed(2)}% p.a.</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Aged Care Probability:</span>
+                                <span class="font-medium">${(this.config.DEFAULTS.healthcare.agedCareProbability * 100).toFixed(0)}%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Aged Care Duration:</span>
+                                <span class="font-medium">${this.config.DEFAULTS.healthcare.agedCareDuration} years</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Annual Aged Care Cost:</span>
+                                <span class="font-medium">$${this.config.DEFAULTS.healthcare.agedCareAnnualCost.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-3 bg-white/50 rounded border border-purple-300">
+                    <p class="text-xs text-gray-700 leading-relaxed">
+                        <strong>Methodology:</strong> Using inflation of ${(this.config.DEFAULTS.economic.inflation * 100).toFixed(2)}%, with ${this.data.property.homeStatus !== 'rent' ? `a mortgage rate of ${this.data.property.homeDetails.loanRate.toFixed(2)}% and remaining mortgage of $${this.data.property.homeDetails.loanRemaining.toLocaleString()}` : 'no mortgage'}, ${this.data.property.investmentProperty.hasInvestment ? `investment property held for ${basicResults.yearsToRetirement} years growing at ${(this.config.DEFAULTS.property.propertyGrowthRate * 100).toFixed(2)}%` : 'no investment property'}, superannuation growing at ${(this.config.DEFAULTS.economic.superReturn * 100).toFixed(2)}% with $${(this.data.finances.superannuation.employerContributions + this.data.finances.superannuation.voluntaryContributions).toLocaleString()} annual contributions over ${basicResults.yearsToRetirement} years, investments growing at ${(this.config.DEFAULTS.economic.investmentReturn * 100).toFixed(2)}%, and healthcare inflation at ${(this.config.DEFAULTS.healthcare.healthcareInflation * 100).toFixed(2)}%. Age Pension eligibility based on ${basicResults.maritalStatus !== 'single' ? 'couple' : 'single'} asset test thresholds and income deeming rates from Services Australia (Sept 2025). Aged care costs projected with ${(this.config.DEFAULTS.healthcare.agedCareProbability * 100).toFixed(0)}% probability starting around age ${this.config.DEFAULTS.healthcare.agedCareStartAge}.
+                    </p>
+                </div>
+            </div>
+
             <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
                 <h3 class="text-lg font-semibold text-blue-800 mb-2">🚀 Next Steps</h3>
                 <p class="text-blue-700 mb-3">Your onboarding data has been transferred to the Advanced Calculator below. Use the action buttons to:</p>
