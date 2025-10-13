@@ -1337,7 +1337,7 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
     }
 
     // AI Recommendations Section
-    if (enhancedAnalysis.aiRecommendations && enhancedAnalysis.aiRecommendations.length > 0) {
+    if (analysis.aiRecommendations && analysis.aiRecommendations.length > 0) {
         if (yPos > 160) {
             doc.addPage();
             yPos = 20;
@@ -1348,7 +1348,7 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
         doc.text("AI-Generated Recommendations", 14, yPos);
         yPos += 10;
 
-        const aiBody = enhancedAnalysis.aiRecommendations.slice(0, 10).map(rec => [
+        const aiBody = analysis.aiRecommendations.slice(0, 10).map(rec => [
             rec.category || 'General',
             rec.action || rec.recommendation || rec.title,
             rec.priority || 'Medium',
@@ -2641,7 +2641,7 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
     }
 
     // AI Recommendations Section
-    if (enhancedAnalysis.aiRecommendations && enhancedAnalysis.aiRecommendations.length > 0) {
+    if (analysis.aiRecommendations && analysis.aiRecommendations.length > 0) {
         if (yPos > 160) {
             doc.addPage();
             yPos = 20;
@@ -2652,7 +2652,7 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         doc.text("AI-Generated Recommendations", 14, yPos);
         yPos += 10;
 
-        const aiBody = enhancedAnalysis.aiRecommendations.slice(0, 10).map(rec => [
+        const aiBody = analysis.aiRecommendations.slice(0, 10).map(rec => [
             rec.category || 'General',
             rec.action || rec.recommendation || rec.title,
             rec.priority || 'Medium',
@@ -3149,7 +3149,7 @@ function addEnhancedAnalysisToXLSX(wb, analysis) {
     }
 
     // AI Recommendations Sheet
-    if (enhancedAnalysis.aiRecommendations && enhancedAnalysis.aiRecommendations.length > 0) {
+    if (analysis.aiRecommendations && analysis.aiRecommendations.length > 0) {
         const aiData = [
             ['AI-Generated Recommendations', '', '', ''],
             ['Category', 'Recommendation', 'Priority', 'Timing'],
