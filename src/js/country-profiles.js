@@ -465,6 +465,888 @@ export const COUNTRY_PROFILES = {
             'Over-tourism',
             'Volcanic/earthquake risk'
         ]
+    },
+
+    // ============================================================
+    // NEW ZEALAND - Social Security Agreement country
+    // ============================================================
+    NEW_ZEALAND: {
+        name: 'New Zealand',
+        region: 'Australasia',
+        currency: 'NZD',
+        distanceFromAustralia: 2200,
+        flightTime: '3-4 hours direct',
+        overview: 'Closest English-speaking destination with reciprocal rights for Australian citizens',
+
+        socialSecurityAgreement: true,
+        agreementDetails: {
+            since: '1994',
+            coverage: 'Age, disability, survivors and carer payments',
+            note: 'Special Category Visa allows Australians to live and work indefinitely'
+        },
+
+        agePension: {
+            portability: 'FULL_WITH_AGREEMENT',
+            formerResidentRule: false,
+            note: 'Agreement allows indefinite portability. NZ Superannuation may also be available.'
+        },
+
+        visa: {
+            type: 'Special Category Visa (subclass 444) or NZ Permanent Residency',
+            duration: 'Indefinite for Australian citizens',
+            requirements: ['Australian citizen or eligible passport holder', 'Clean criminal record'],
+            easeOfAccess: 'EASY',
+            cost: 'Free for Australian citizens',
+            pathToCitizenship: 'After 5 years of permanent residency'
+        },
+
+        costOfLiving: {
+            index: 0.88,
+            breakdown: {
+                accommodation: 'AUD $1,500-3,500/month',
+                food: 'AUD $600-1,000/month',
+                transport: 'AUD $200-350/month',
+                utilities: 'AUD $200-350/month'
+            },
+            note: 'Similar to Australia - Auckland expensive, South Island more affordable',
+            healthcareNote: 'Public healthcare access available (residency required)'
+        },
+
+        healthcare: {
+            system: 'Universal public (district health boards) + private',
+            quality: 'Excellent - comparable to Australia',
+            rating: 8.5,
+            costs: 'Public healthcare available to residents. Private insurance AUD $100-250/month.',
+            insurance: 'Optional. Public system available.',
+            considerations: [
+                'Must enrol with a GP (General Practice) for primary care',
+                'ACC covers accident injuries (no-fault)',
+                'Some wait times in public system'
+            ]
+        },
+
+        tax: {
+            doubleTaxAgreement: true,
+            superTaxation: 'Australian super not taxed in NZ if compliant fund',
+            agreementSummary: 'Comprehensive DTA prevents double taxation on pensions and investments',
+            residencyThreshold: '183+ days determines tax residency'
+        },
+
+        climate: 'Temperate - four distinct seasons, milder than southern Australia',
+
+        popularLocations: [
+            {
+                name: 'Queenstown',
+                description: 'Adventure capital, lakes, mountains',
+                cost: 'HIGH',
+                pros: ['Stunning scenery', 'Active lifestyle', 'Safe'],
+                cons: ['Very expensive', 'Cold winters', 'Remote']
+            },
+            {
+                name: 'Nelson/Marlborough',
+                description: 'Sunniest city, wine country, relaxed',
+                cost: 'MEDIUM',
+                pros: ['Sunshine', 'Wine', 'Beaches', 'Art scene'],
+                cons: ['Smaller city', 'Limited services']
+            },
+            {
+                name: 'Bay of Islands',
+                description: 'Subtropical, sailing, beaches',
+                cost: 'MEDIUM',
+                pros: ['Warm climate', 'Beaches', 'Boating'],
+                cons: ['Remote', 'Limited amenities']
+            }
+        ],
+
+        languageBarrier: 'NONE',
+        languageNote: 'English is the primary language',
+
+        risks: {
+            overall: 'VERY LOW',
+            currency: 'LOW',
+            healthcare: 'VERY LOW',
+            political: 'VERY LOW'
+        },
+
+        bestFor: [
+            'Wanting to stay close to family in Australia',
+            'Similar lifestyle and culture to Australia',
+            'English-speaking retirement',
+            'Outdoor and adventure lifestyle'
+        ],
+
+        challenges: [
+            'Cost of living nearly as high as Australia',
+            'Limited cost-of-living savings',
+            'Earthquakes (Wellington, Canterbury)',
+            'Housing affordability in major cities',
+            'Less tax advantage compared to other destinations'
+        ]
+    },
+
+    // ============================================================
+    // SPAIN - Social Security Agreement country
+    // ============================================================
+    SPAIN: {
+        name: 'Spain',
+        region: 'Southern Europe',
+        currency: 'EUR',
+        distanceFromAustralia: 17500,
+        flightTime: '23-25 hours',
+        overview: 'Excellent climate, food, culture and healthcare at moderate cost',
+
+        socialSecurityAgreement: true,
+        agreementDetails: {
+            since: '2002',
+            coverage: 'Age, disability and survivors benefits'
+        },
+
+        agePension: {
+            portability: 'FULL_WITH_AGREEMENT',
+            formerResidentRule: false,
+            note: 'Agreement allows indefinite portability with easier qualification'
+        },
+
+        visa: {
+            type: 'Non-Lucrative Visa (Visa de Residencia no Lucrativa)',
+            duration: '1 year renewable, permanent residency after 5 years',
+            requirements: [
+                'Passive income: €28,800+/year single (€2,400/month)',
+                'Private health insurance',
+                'Clean criminal record',
+                'Accommodation proof'
+            ],
+            easeOfAccess: 'MODERATE',
+            cost: '€80-100 + fees',
+            pathToCitizenship: 'After 10 years legal residency (or 2 for SSA countries)'
+        },
+
+        costOfLiving: {
+            index: 0.60,
+            breakdown: {
+                accommodation: 'AUD $700-1,800/month',
+                food: 'AUD $350-600/month',
+                transport: 'AUD $80-200/month',
+                utilities: 'AUD $120-200/month'
+            },
+            note: 'Madrid/Barcelona expensive, interior and coastal towns very affordable',
+            healthcareNote: 'Public: free for residents. Private insurance AUD $80-150/month.'
+        },
+
+        healthcare: {
+            system: 'Universal public (SNS) + excellent private',
+            quality: 'Excellent - ranked among top 10 globally',
+            rating: 8.8,
+            costs: 'Public healthcare free for legal residents. Private very affordable.',
+            insurance: 'Required for visa. AUD $80-150/month for comprehensive private.',
+            considerations: [
+                'One of the best public healthcare systems in Europe',
+                'Private clinics and hospitals widely available',
+                'Many English-speaking doctors, especially in expat areas'
+            ]
+        },
+
+        tax: {
+            doubleTaxAgreement: true,
+            superTaxation: 'Australian super withdrawals generally not taxed in Spain if already taxed',
+            agreementSummary: 'Comprehensive DTA covers pensions, dividends, interest and royalties',
+            residencyThreshold: '183 days per year determines Spanish tax residency'
+        },
+
+        climate: 'Mediterranean - hot dry summers, mild winters (varies by region)',
+
+        popularLocations: [
+            {
+                name: 'Costa del Sol (Málaga)',
+                description: 'Sunshine coast, large expat community, golf',
+                cost: 'MEDIUM',
+                pros: ['Excellent weather', 'Large Aussie/British community', 'Great beaches'],
+                cons: ['Can be touristy', 'Traffic in summer']
+            },
+            {
+                name: 'Valencia',
+                description: 'Vibrant city, beach, affordable',
+                cost: 'MEDIUM-LOW',
+                pros: ['City lifestyle', 'Beach', 'Affordable', 'Great food'],
+                cons: ['Hot summers', 'Occasional flooding risk']
+            },
+            {
+                name: 'Mallorca/Balearic Islands',
+                description: 'Mediterranean islands, popular with Europeans',
+                cost: 'MEDIUM-HIGH',
+                pros: ['Beautiful', 'Mediterranean', 'Modern facilities'],
+                cons: ['Crowded in summer', 'Expensive in tourist season']
+            }
+        ],
+
+        languageBarrier: 'MEDIUM',
+        languageNote: 'Spanish essential outside tourist areas. Many expat communities provide English support.',
+
+        risks: {
+            overall: 'LOW',
+            currency: 'MEDIUM',
+            healthcare: 'LOW',
+            political: 'LOW',
+            politicalNote: 'Stable democracy, EU member'
+        },
+
+        bestFor: [
+            'Mediterranean lifestyle seekers',
+            'Food and wine enthusiasts',
+            'Golf and beach retirement',
+            'Those wanting European culture at lower cost than France/Italy'
+        ],
+
+        challenges: [
+            'Spanish language required for daily life',
+            'Bureaucracy and slower pace of administration',
+            'Very hot summers in inland areas',
+            'Far from Australia (23+ hours)',
+            'Non-Lucrative Visa income requirements'
+        ]
+    },
+
+    // ============================================================
+    // ITALY - Social Security Agreement country
+    // ============================================================
+    ITALY: {
+        name: 'Italy',
+        region: 'Southern Europe',
+        currency: 'EUR',
+        distanceFromAustralia: 16000,
+        flightTime: '22-24 hours',
+        overview: 'World-class culture, cuisine and history with special flat-tax for foreign retirees',
+
+        socialSecurityAgreement: true,
+        agreementDetails: {
+            since: '1991',
+            coverage: 'Age, disability and survivors benefits'
+        },
+
+        agePension: {
+            portability: 'FULL_WITH_AGREEMENT',
+            formerResidentRule: false,
+            note: 'Agreement allows indefinite portability'
+        },
+
+        visa: {
+            type: 'Elective Residency Visa (Visto per Residenza Elettiva)',
+            duration: '1 year renewable, permanent residency after 5 years',
+            requirements: [
+                'Passive income: €31,000/year minimum',
+                'Comprehensive health insurance',
+                'Clean criminal record',
+                'Accommodation proof (lease or purchase)'
+            ],
+            easeOfAccess: 'MODERATE',
+            cost: '€116 + fees',
+            note: '7% flat tax regime available in regions with population under 20,000'
+        },
+
+        costOfLiving: {
+            index: 0.62,
+            breakdown: {
+                accommodation: 'AUD $700-2,000/month (varies enormously by region)',
+                food: 'AUD $400-700/month',
+                transport: 'AUD $100-200/month',
+                utilities: 'AUD $150-250/month'
+            },
+            note: 'Northern cities (Milan, Rome) expensive. Southern Italy (Puglia, Calabria, Sicily) remarkably affordable.',
+            healthcareNote: 'Public: available for residents. Private insurance AUD $100-200/month.'
+        },
+
+        healthcare: {
+            system: 'Universal public (Servizio Sanitario Nazionale) + private',
+            quality: 'Very good - regional variation. Top quality in northern cities.',
+            rating: 8.3,
+            costs: 'Public healthcare available to legal residents. Affordable co-payments.',
+            insurance: 'Supplemental private insurance recommended AUD $80-150/month.',
+            considerations: [
+                'Quality varies significantly by region (north vs south)',
+                'Excellent private hospitals in major cities',
+                'Some English-speaking doctors in tourist areas and major cities'
+            ]
+        },
+
+        tax: {
+            doubleTaxAgreement: true,
+            nhrScheme: {
+                name: '7% Flat Tax Regime for Foreign Retirees',
+                duration: '10 years (renewable once)',
+                benefits: [
+                    'Only 7% tax on all foreign-source income (pension, super, investments)',
+                    'Available in qualifying southern Italian municipalities',
+                    'Population < 20,000 in qualifying regions (Sicily, Sardinia, Calabria, Campania, etc.)',
+                    'Completely exempts from wealth reporting requirements'
+                ],
+                note: 'Excellent tax incentive for first 10 years. Requires spending 90+ days per year in Italy.'
+            },
+            superTaxation: 'Under 7% regime: Australian super taxed at only 7%',
+            agreementSummary: 'DTA prevents double taxation on most income types'
+        },
+
+        climate: 'Mediterranean - warm dry summers, mild winters. Significant regional variation.',
+
+        popularLocations: [
+            {
+                name: 'Puglia (Apulia)',
+                description: 'Southern heel - stunning coastline, trulli houses, affordable',
+                cost: 'LOW-MEDIUM',
+                pros: ['Very affordable', '7% tax regime', 'Beautiful', 'Excellent food'],
+                cons: ['Limited English', 'Heat in summer', 'Slower pace of services']
+            },
+            {
+                name: 'Sicily',
+                description: 'Mediterranean island - culture, food, affordability',
+                cost: 'LOW',
+                pros: ['Cheapest option in Italy', '7% tax regime', 'Rich culture', 'Amazing food'],
+                cons: ['Language barrier', 'Infrastructure gaps', 'Very hot summers']
+            },
+            {
+                name: 'Tuscany',
+                description: 'Rolling hills, wine, Renaissance art - quintessential Italy',
+                cost: 'MEDIUM-HIGH',
+                pros: ['Iconic Italian lifestyle', 'Wine', 'Art and culture'],
+                cons: ['Expensive', 'No 7% tax regime', 'Crowded with tourists']
+            }
+        ],
+
+        languageBarrier: 'HIGH',
+        languageNote: 'Italian essential. Very limited English outside tourist areas and major cities.',
+
+        risks: {
+            overall: 'LOW-MEDIUM',
+            currency: 'MEDIUM',
+            healthcare: 'LOW',
+            political: 'LOW-MEDIUM',
+            politicalNote: 'EU member but politically volatile at times'
+        },
+
+        bestFor: [
+            'Food and culture enthusiasts',
+            'Seeking the 7% flat tax regime',
+            'Slow living in beautiful surroundings',
+            'Those with Italian heritage (citizenship by descent possible)',
+            'Art, history and architecture lovers'
+        ],
+
+        challenges: [
+            'Language barrier is significant',
+            'Italian bureaucracy',
+            'Far from Australia (22+ hours)',
+            'Regional infrastructure disparity (north vs south)',
+            '7% tax regime requires living in smaller towns'
+        ],
+
+        additionalNotes: [
+            '🌟 7% flat tax: Only 7% on all foreign income for 10 years in qualifying southern towns',
+            '🏛️ Italian citizenship by descent available (no generational limit)',
+            '🍷 World-class food, wine and culture at lower cost than northern Europe'
+        ]
+    },
+
+    // ============================================================
+    // CANADA - Social Security Agreement country
+    // ============================================================
+    CANADA: {
+        name: 'Canada',
+        region: 'North America',
+        currency: 'CAD',
+        distanceFromAustralia: 15000,
+        flightTime: '18-22 hours',
+        overview: 'English-speaking, stable, excellent healthcare - higher cost of living',
+
+        socialSecurityAgreement: true,
+        agreementDetails: {
+            since: '1990',
+            coverage: 'Age, disability and survivors benefits'
+        },
+
+        agePension: {
+            portability: 'FULL_WITH_AGREEMENT',
+            formerResidentRule: false,
+            note: 'Agreement allows indefinite portability. Canadian OAS may supplement.'
+        },
+
+        visa: {
+            type: 'Super Visa (parents/grandparents) or Permanent Residency',
+            duration: 'Super Visa: up to 5 years per visit. PR: indefinite.',
+            requirements: [
+                'Super Visa: Canadian citizen/PR child/grandchild, medical insurance CAD $100k+',
+                'PR: Express Entry points system (age, language, skills)',
+                'Retirees: Quebec Investor/Entrepreneur program or sponsorship'
+            ],
+            easeOfAccess: 'HARD',
+            cost: 'CAD $150-1,500 depending on visa type',
+            note: 'No dedicated retirement visa - requires family sponsorship or provincial programs'
+        },
+
+        costOfLiving: {
+            index: 0.85,
+            breakdown: {
+                accommodation: 'AUD $1,800-4,000/month (city); AUD $900-2,000 (rural)',
+                food: 'AUD $700-1,200/month',
+                transport: 'AUD $300-600/month',
+                utilities: 'AUD $250-400/month (heating significant in winter)'
+            },
+            note: 'Vancouver and Toronto very expensive. Maritime provinces and Quebec more affordable.',
+            healthcareNote: 'Provincial healthcare free for residents (3-month waiting period). Dental/vision extra.'
+        },
+
+        healthcare: {
+            system: 'Universal provincial (Medicare) + supplemental private',
+            quality: 'Excellent - among world\'s best',
+            rating: 8.8,
+            costs: 'Provincial healthcare free once registered. Dental/vision/prescription extra.',
+            insurance: 'Supplemental for dental/vision: AUD $100-200/month.',
+            considerations: [
+                '3-month waiting period for provincial coverage in most provinces',
+                'Dental and vision not covered by provincial plans',
+                'Some wait times for specialists and elective procedures',
+                'Prescription drug coverage varies by province'
+            ]
+        },
+
+        tax: {
+            doubleTaxAgreement: true,
+            superTaxation: 'Australian super withdrawals taxed as pension income in Canada',
+            agreementSummary: 'Comprehensive DTA covers pensions, dividends, interest. No double taxation on Australian pension.',
+            residencyThreshold: '183 days per year typically determines Canadian tax residency'
+        },
+
+        climate: 'Continental - cold winters, warm summers. West Coast (BC) milder.',
+
+        popularLocations: [
+            {
+                name: 'Victoria, British Columbia',
+                description: 'Mild climate, English, gardens, retiree-friendly',
+                cost: 'MEDIUM-HIGH',
+                pros: ['Mildest Canadian climate', 'English speaking', 'Beautiful'],
+                cons: ['Expensive', 'Very far from Australia']
+            },
+            {
+                name: 'Kelowna, British Columbia',
+                description: 'Wine country, lakes, outdoor lifestyle',
+                cost: 'MEDIUM',
+                pros: ['Lakes', 'Wine', 'Active', 'Good weather for Canada'],
+                cons: ['Cold winters', 'Wildfire smoke risk in summer']
+            },
+            {
+                name: 'Nova Scotia / Maritime Provinces',
+                description: 'Atlantic coast, affordable, English, safe',
+                cost: 'LOW-MEDIUM',
+                pros: ['Affordable', 'Safe', 'Beautiful coastline', 'English'],
+                cons: ['Cold', 'Limited services', 'Far from major centres']
+            }
+        ],
+
+        languageBarrier: 'NONE (English) / MEDIUM (French Quebec)',
+        languageNote: 'English widely spoken across most of Canada. French required in Quebec.',
+
+        risks: {
+            overall: 'VERY LOW',
+            currency: 'LOW',
+            healthcare: 'VERY LOW',
+            political: 'VERY LOW'
+        },
+
+        bestFor: [
+            'Those with family in Canada',
+            'English-speaking environment seekers',
+            'Winter sports enthusiasts',
+            'Nature and outdoor lifestyle lovers',
+            'Those wanting a stable, safe Western country'
+        ],
+
+        challenges: [
+            'Harsh winters in most regions',
+            'High cost of living compared to Southeast Asia/Europe',
+            'No dedicated retirement visa pathway',
+            'Very far from Australia (18-22 hours)',
+            'High taxes in some provinces'
+        ]
+    },
+
+    // ============================================================
+    // JAPAN - Social Security Agreement country
+    // ============================================================
+    JAPAN: {
+        name: 'Japan',
+        region: 'East Asia',
+        currency: 'JPY',
+        distanceFromAustralia: 8000,
+        flightTime: '9-11 hours direct',
+        overview: 'Safe, clean, excellent healthcare, unique culture and cuisine',
+
+        socialSecurityAgreement: true,
+        agreementDetails: {
+            since: '2009',
+            coverage: 'Age, disability, survivors and unemployment benefits',
+            note: 'Allows exemption from Japanese pension contributions for temporary residents'
+        },
+
+        agePension: {
+            portability: 'FULL_WITH_AGREEMENT',
+            formerResidentRule: false,
+            note: 'Agreement allows indefinite portability'
+        },
+
+        visa: {
+            type: 'Long-Term Resident Visa or Specified Skilled Worker / Dependent Visa',
+            duration: '1-5 years renewable',
+            requirements: [
+                'Age 60+ long-term resident visa available',
+                'Sufficient financial means (typically ¥3M+/year or savings ¥30M+)',
+                'Health insurance coverage',
+                'Clean criminal record'
+            ],
+            easeOfAccess: 'MODERATE',
+            cost: '¥6,000-8,000 application fee',
+            note: 'Japan has become more open to foreign retirees. "Digital nomad" and investment visas also available.'
+        },
+
+        costOfLiving: {
+            index: 0.70,
+            breakdown: {
+                accommodation: 'AUD $600-2,000/month (varies by region)',
+                food: 'AUD $400-700/month',
+                transport: 'AUD $150-300/month',
+                utilities: 'AUD $150-300/month'
+            },
+            note: 'Tokyo/Osaka expensive but rural Japan and smaller cities very affordable. Excellent public transport.',
+            healthcareNote: 'National health insurance required. AUD $100-200/month. Excellent quality.'
+        },
+
+        healthcare: {
+            system: 'Universal national health insurance (NHI)',
+            quality: 'World-class - top-ranked globally for longevity',
+            rating: 9.5,
+            costs: 'NHI covers 70% of costs. Monthly premium AUD $100-200. Out-of-pocket very low.',
+            insurance: 'National Health Insurance mandatory: AUD $100-200/month',
+            considerations: [
+                'Must join National Health Insurance system',
+                'World\'s highest life expectancy - reflects healthcare quality',
+                'Very advanced and technologically sophisticated medical system',
+                'Language barrier can be challenge in rural hospitals'
+            ]
+        },
+
+        tax: {
+            doubleTaxAgreement: true,
+            superTaxation: 'Australian super typically classified as pension income in Japan',
+            agreementSummary: 'DTA prevents double taxation. Pension income taxed only in Australia if Australian resident for tax.',
+            residencyThreshold: '183 days or resident registration creates Japanese tax obligations'
+        },
+
+        climate: 'Temperate with distinct seasons. Hot humid summers, cold winters (varies by region).',
+
+        popularLocations: [
+            {
+                name: 'Kyoto',
+                description: 'Historical capital, temples, traditional culture',
+                cost: 'MEDIUM',
+                pros: ['Incredible culture', 'Walkable', 'Excellent food', 'English services growing'],
+                cons: ['Very hot summers', 'Language barrier', 'Cultural adjustment']
+            },
+            {
+                name: 'Fukuoka (Kyushu)',
+                description: 'Affordable, warm climate, growing expat community',
+                cost: 'MEDIUM-LOW',
+                pros: ['Warm', 'Affordable', 'Food city', 'Good English services'],
+                cons: ['Less international than Tokyo']
+            },
+            {
+                name: 'Okinawa',
+                description: 'Subtropical islands, beaches, famous for longevity',
+                cost: 'LOW-MEDIUM',
+                pros: ['Tropical', 'Beaches', 'Relaxed', 'Longevity culture'],
+                cons: ['Typhoon risk', 'Remote', 'Limited English']
+            }
+        ],
+
+        languageBarrier: 'HIGH',
+        languageNote: 'Japanese language very helpful. Growing English signage but daily life requires Japanese.',
+
+        risks: {
+            overall: 'LOW',
+            currency: 'MEDIUM',
+            healthcare: 'VERY LOW',
+            political: 'VERY LOW',
+            environmental: 'Earthquakes and typhoons'
+        },
+
+        bestFor: [
+            'Safety-conscious retirees (one of world\'s safest countries)',
+            'Those fascinated by Japanese culture and cuisine',
+            'Healthcare-focused retirement',
+            'Technology and innovation enthusiasts',
+            'Nature and seasons lovers'
+        ],
+
+        challenges: [
+            'Language barrier is significant',
+            'Cultural differences and adaptation',
+            'Earthquakes and natural disasters',
+            'Hot humid summers',
+            'Bureaucracy and paperwork in Japanese'
+        ],
+
+        additionalNotes: [
+            '🏥 World\'s best life expectancy and healthcare system',
+            '🛡️ One of the world\'s safest countries',
+            '🍱 World-class cuisine and food culture'
+        ]
+    },
+
+    // ============================================================
+    // MALAYSIA - No formal Social Security Agreement but highly popular
+    // ============================================================
+    MALAYSIA: {
+        name: 'Malaysia',
+        region: 'Southeast Asia',
+        currency: 'MYR',
+        distanceFromAustralia: 5500,
+        flightTime: '7-8 hours direct',
+        overview: 'English-friendly, affordable, excellent food and excellent MM2H retirement visa program',
+
+        socialSecurityAgreement: false,
+
+        agePension: {
+            portability: 'PROPORTIONAL_AFTER_26_WEEKS',
+            formerResidentRule: true,
+            note: 'No agreement - general portability rules apply. Age Pension is portable.'
+        },
+
+        visa: {
+            type: 'Malaysia My Second Home (MM2H)',
+            duration: '5 years renewable long-term',
+            requirements: [
+                'Age 35+',
+                'Minimum offshore funds deposit: RM 1,000,000 (AUD ~$330k) for Silver Tier',
+                'Monthly income: RM 40,000 (AUD ~$13k/month) for Platinum Tier',
+                'Health insurance with medical coverage in Malaysia',
+                'Clean criminal record'
+            ],
+            easeOfAccess: 'MODERATE',
+            cost: 'RM 5,000 (AUD ~$1,600) + annual renewal',
+            note: 'Three tiers: Silver, Gold, Platinum with different requirements. Requirements increased significantly in 2021.'
+        },
+
+        costOfLiving: {
+            index: 0.42,
+            breakdown: {
+                accommodation: 'AUD $500-1,800/month',
+                food: 'AUD $250-500/month',
+                transport: 'AUD $100-200/month',
+                utilities: 'AUD $80-150/month'
+            },
+            note: 'Kuala Lumpur more expensive, Penang and East Malaysia very affordable. English widely spoken.',
+            healthcareNote: 'Excellent private healthcare. AUD $150-300/month for expat insurance.'
+        },
+
+        healthcare: {
+            system: 'Public + excellent private',
+            quality: 'Excellent private hospitals - medical tourism destination',
+            rating: 8.5,
+            costs: 'Private healthcare very affordable. International insurance AUD $150-300/month.',
+            insurance: 'International health insurance recommended: AUD $150-300/month',
+            considerations: [
+                'World-class private hospitals (Pantai, Gleneagles, Prince Court)',
+                'Medical tourism hub - very affordable procedures',
+                'JCI-accredited hospitals available',
+                'Limited public healthcare access for foreigners'
+            ]
+        },
+
+        tax: {
+            doubleTaxAgreement: true,
+            superTaxation: 'Australian super withdrawals generally not taxed in Malaysia under DTA',
+            agreementSummary: 'DTA covers pension income, dividends and interest. Malaysia does not tax foreign-source income.',
+            residencyThreshold: '182 days per year for Malaysian tax residency. Foreign income not taxed.',
+            note: 'Malaysia does NOT tax foreign-sourced income for individuals - major advantage'
+        },
+
+        climate: 'Tropical - hot and humid year-round. Two monsoon seasons.',
+
+        popularLocations: [
+            {
+                name: 'Penang (George Town)',
+                description: 'UNESCO heritage island, food capital of Asia, affordable',
+                cost: 'LOW-MEDIUM',
+                pros: ['World-class food', 'Heritage culture', 'English spoken', 'Affordable', 'Medical facilities'],
+                cons: ['Traffic', 'Humidity', 'Limited public transport']
+            },
+            {
+                name: 'Kuala Lumpur',
+                description: 'Cosmopolitan capital, world-class facilities, international',
+                cost: 'MEDIUM',
+                pros: ['International lifestyle', 'Shopping', 'Healthcare', 'Connectivity'],
+                cons: ['Traffic', 'Air quality', 'More expensive for Malaysia']
+            },
+            {
+                name: 'Ipoh',
+                description: 'Colonial charm, food culture, affordable, close to Penang',
+                cost: 'LOW',
+                pros: ['Very affordable', 'Charm', 'Food', 'Growing expat community'],
+                cons: ['Smaller city', 'Limited international flights']
+            }
+        ],
+
+        languageBarrier: 'LOW',
+        languageNote: 'English widely spoken in cities and business - legacy of British administration.',
+
+        risks: {
+            overall: 'LOW-MEDIUM',
+            currency: 'MEDIUM',
+            healthcare: 'LOW',
+            political: 'LOW',
+            environmental: 'Flooding risk in some areas'
+        },
+
+        bestFor: [
+            'English-speaking retirement in Asia',
+            'Food lovers (some of Asia\'s best cuisine)',
+            'Affordable luxury lifestyle',
+            'Close proximity to Australia',
+            'Medical tourism and healthcare'
+        ],
+
+        challenges: [
+            'MM2H visa requirements significantly increased since 2021',
+            'Hot and humid climate year-round',
+            'Political uncertainty (though stable)',
+            'Traffic congestion in Kuala Lumpur',
+            'Air quality issues from regional haze'
+        ],
+
+        additionalNotes: [
+            '🍜 Asia\'s food capital - Penang consistently ranked best food city in the world',
+            '🏥 World-class private healthcare at 20-30% of Australian costs',
+            '💰 Foreign income not taxed - major advantage for retirees'
+        ]
+    },
+
+    // ============================================================
+    // PHILIPPINES - Popular destination, no formal SSA
+    // ============================================================
+    PHILIPPINES: {
+        name: 'Philippines',
+        region: 'Southeast Asia',
+        currency: 'PHP',
+        distanceFromAustralia: 5500,
+        flightTime: '7-9 hours direct',
+        overview: 'English-speaking, very affordable, beach paradise, large expat community',
+
+        socialSecurityAgreement: false,
+
+        agePension: {
+            portability: 'PROPORTIONAL_AFTER_26_WEEKS',
+            formerResidentRule: true,
+            note: 'No agreement - general portability rules apply'
+        },
+
+        visa: {
+            type: 'Special Resident Retiree Visa (SRRV)',
+            duration: 'Permanent (lifetime)',
+            requirements: [
+                'Age 35+',
+                'USD $10,000 deposit (bank account in Philippines) for age 50+',
+                'USD $20,000 deposit for age 35-49',
+                'Additional USD $10,000 if not receiving monthly pension',
+                'Health insurance',
+                'PRA membership fee: USD $1,400'
+            ],
+            easeOfAccess: 'EASY',
+            cost: 'USD $1,400 + deposit (refundable on departure)',
+            pathToCitizenship: 'Possible after 10 years, requires renouncing Australian citizenship'
+        },
+
+        costOfLiving: {
+            index: 0.38,
+            breakdown: {
+                accommodation: 'AUD $300-1,200/month (varies enormously)',
+                food: 'AUD $200-450/month',
+                transport: 'AUD $80-200/month',
+                utilities: 'AUD $100-200/month'
+            },
+            note: 'One of Asia\'s most affordable. Can live very comfortably on Age Pension.',
+            healthcareNote: 'Private insurance: AUD $100-250/month. Excellent private hospitals in major cities.'
+        },
+
+        healthcare: {
+            system: 'Mix of public (PhilHealth) + excellent private in major cities',
+            quality: 'Variable. Excellent in Manila, Cebu. Limited in rural areas.',
+            rating: 7.0,
+            costs: 'Affordable private care. USD $50-150 for specialist consultation.',
+            insurance: 'International health insurance essential: AUD $100-250/month',
+            considerations: [
+                'Manila has JCI-accredited world-class hospitals',
+                'Limited quality care outside major cities',
+                'Medical evacuation to Singapore/Australia for serious cases',
+                'Dental care very affordable'
+            ]
+        },
+
+        tax: {
+            doubleTaxAgreement: true,
+            superTaxation: 'Generally not taxed under DTA arrangements',
+            agreementSummary: 'DTA exists - prevents double taxation on pension and passive income',
+            residencyThreshold: '183 days per year creates Philippine tax residency'
+        },
+
+        climate: 'Tropical - hot year-round. Typhoon season June-November.',
+
+        popularLocations: [
+            {
+                name: 'Cebu City / Mactan Island',
+                description: 'Major hub, beaches, international airport, large expat community',
+                cost: 'LOW-MEDIUM',
+                pros: ['Good infrastructure', 'Beaches', 'International airport', 'Large expat community'],
+                cons: ['Traffic', 'Typhoon risk', 'Heat and humidity']
+            },
+            {
+                name: 'Davao (Mindanao)',
+                description: 'Safer large city in Mindanao, affordable, Mount Apo nearby',
+                cost: 'LOW',
+                pros: ['Affordable', 'Lower crime than Manila', 'Fresh produce', 'Mt. Apo'],
+                cons: ['Remote', 'Limited international connections', 'Far south location']
+            },
+            {
+                name: 'Boracay / Palawan',
+                description: 'World-class beaches, tropical paradise',
+                cost: 'MEDIUM',
+                pros: ['Stunning beaches', 'Natural beauty', 'Tourist infrastructure'],
+                cons: ['Very touristy', 'Infrastructure limitations', 'Typhoon risk']
+            }
+        ],
+
+        languageBarrier: 'LOW',
+        languageNote: 'Filipino English fluency is very high - official government and business language.',
+
+        risks: {
+            overall: 'MEDIUM',
+            currency: 'MEDIUM-HIGH',
+            healthcare: 'MEDIUM',
+            political: 'MEDIUM',
+            environmental: 'Typhoons, volcanic activity, earthquakes'
+        },
+
+        bestFor: [
+            'Budget-conscious retirees',
+            'Beach and island lifestyle',
+            'English-speaking Asian destination',
+            'Those with Filipino connections or heritage',
+            'Active social expat communities'
+        ],
+
+        challenges: [
+            'Natural disasters (typhoons, earthquakes, volcanoes)',
+            'Political instability',
+            'Traffic in major cities',
+            'Air pollution in Manila',
+            'Healthcare quality outside major cities',
+            'High crime risk in some areas - requires local knowledge'
+        ]
     }
 };
 

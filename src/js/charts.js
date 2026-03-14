@@ -765,6 +765,214 @@ export class ChartManager {
         this.renderRiskAnalysisChart({});
     }
 
+    /**
+     * Render a bar chart comparing annual living costs across selected countries.
+     * @param {Array<{name: string, annualCostAUD: number, pensionAUD: number, hasSocialSecurityAgreement: boolean}>} countryData
+     */
+    renderOverseasCostComparison(countryData) {
+        this.destroyChart('overseasCostChart');
+        const canvas = document.getElementById('overseasCostChart');
+        if (!canvas || !countryData || countryData.length === 0) return;
+
+        const ctx = canvas.getContext('2d');
+        const labels = countryData.map(c => c.name);
+        const costData = countryData.map(c => c.annualCostAUD);
+        const pensionData = countryData.map(c => c.pensionAUD);
+
+        this.charts['overseasCostChart'] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Est. Annual Cost (AUD)',
+                        data: costData,
+                        backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                        borderColor: 'rgba(99, 102, 241, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Est. Age Pension Overseas (AUD)',
+                        data: pensionData,
+                        backgroundColor: 'rgba(52, 211, 153, 0.7)',
+                        borderColor: 'rgba(52, 211, 153, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Annual Cost of Living vs Age Pension Overseas by Country'
+                    },
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.raw)}/year`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (value) => formatCurrency(value)
+                        },
+                        title: { display: true, text: 'Annual Amount (AUD)' }
+                    },
+                    x: {
+                        title: { display: true, text: 'Country' }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Render a bar chart comparing pension portability across countries.
+     * @param {Array<{name: string, inAustralia: number, overseas: number, hasSocialSecurityAgreement: boolean, awlrPct: number}>} portabilityData
+     */
+    renderOverseasPensionPortability(portabilityData) {
+        this.destroyChart('overseasPensionChart');
+        const canvas = document.getElementById('overseasPensionChart');
+        if (!canvas || !portabilityData || portabilityData.length === 0) return;
+
+        const ctx = canvas.getContext('2d');
+        const labels = portabilityData.map(c => c.name);
+        const inAustralia = portabilityData.map(c => c.inAustralia);
+        const overseas = portabilityData.map(c => c.overseas);
+
+        const backgroundColors = portabilityData.map(c =>
+            c.hasSocialSecurityAgreement ? 'rgba(52, 211, 153, 0.7)' : 'rgba(251, 191, 36, 0.7)'
+        );
+        const borderColors = portabilityData.map(c =>
+            c.hasSocialSecurityAgreement ? 'rgba(52, 211, 153, 1)' : 'rgba(251, 191, 36, 1)'
+        );
+
+        this.charts['overseasPensionChart'] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Full Rate (in Australia)',
+                        data: inAustralia,
+                        backgroundColor: 'rgba(99, 102, 241, 0.4)',
+                        borderColor: 'rgba(99, 102, 241, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Portable Rate (overseas after 26 wks)',
+                        data: overseas,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Age Pension: In-Australia vs Overseas Portable Rate',
+                        font: { size: 13 }
+                    },
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.raw)}/year`,
+                            afterBody: (items) => {
+                                const idx = items[0].dataIndex;
+                                const d = portabilityData[idx];
+                                return d.hasSocialSecurityAgreement
+                                    ? ['✅ Social Security Agreement country']
+                                    : [`AWLR Portability: ${d.awlrPct}%`];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: (v) => formatCurrency(v) },
+                        title: { display: true, text: 'Annual Pension (AUD)' }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Render a radar chart comparing countries across multiple suitability dimensions.
+     * @param {Array<{name: string, costScore: number, healthcareScore: number, visaScore: number, distanceScore: number, taxScore: number, safetyScore: number}>} radarData
+     */
+    renderOverseasSuitabilityRadar(radarData) {
+        this.destroyChart('overseasRadarChart');
+        const canvas = document.getElementById('overseasRadarChart');
+        if (!canvas || !radarData || radarData.length === 0) return;
+
+        const ctx = canvas.getContext('2d');
+        const colors = [
+            'rgba(99, 102, 241, 0.3)', 'rgba(52, 211, 153, 0.3)',
+            'rgba(251, 191, 36, 0.3)', 'rgba(239, 68, 68, 0.3)',
+            'rgba(168, 85, 247, 0.3)'
+        ];
+        const borderColors = [
+            'rgba(99, 102, 241, 1)', 'rgba(52, 211, 153, 1)',
+            'rgba(251, 191, 36, 1)', 'rgba(239, 68, 68, 1)',
+            'rgba(168, 85, 247, 1)'
+        ];
+
+        this.charts['overseasRadarChart'] = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Affordability', 'Healthcare', 'Visa Ease', 'Proximity', 'Tax Benefits', 'Safety'],
+                datasets: radarData.map((country, i) => ({
+                    label: country.name,
+                    data: [
+                        country.costScore,
+                        country.healthcareScore,
+                        country.visaScore,
+                        country.distanceScore,
+                        country.taxScore,
+                        country.safetyScore
+                    ],
+                    backgroundColor: colors[i % colors.length],
+                    borderColor: borderColors[i % borderColors.length],
+                    borderWidth: 2,
+                    pointBackgroundColor: borderColors[i % borderColors.length]
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 1.4,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Country Suitability Comparison (Score out of 10)'
+                    },
+                    legend: { position: 'top' }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 10,
+                        ticks: { stepSize: 2 },
+                        pointLabels: { font: { size: 12 } }
+                    }
+                }
+            }
+        });
+    }
+
     // Utility method to get chart data for export
     getChartData(chartId) {
         if (this.charts[chartId]) {

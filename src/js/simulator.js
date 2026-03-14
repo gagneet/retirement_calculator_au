@@ -1,6 +1,7 @@
 // js/simulator.js - Financial Simulation Engine with Investment Property Support
 
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
+import { ENHANCED_CONFIG } from './config.js';
 import { EnhancedMonteCarloEngine } from './enhanced-monte-carlo.js';
 import {
     calculatePostTaxIncome,
@@ -666,9 +667,9 @@ export class RetirementSimulator {
         const yearsInRetirement = Math.max(0, maxYearsFromNow - yearsToRetirement);
 
         // Pre-retirement accumulation phase
-        let futureSuper = inputs.yourCurrentSuper + inputs.partnerCurrentSuper;
-        let futureSavings = inputs.currentSavings;
-        let futureStocks = inputs.currentStocks;
+        let accumulatedSuperBalance = inputs.yourCurrentSuper + inputs.partnerCurrentSuper;
+        let accumulatedSavingsBalance = inputs.currentSavings;
+        let accumulatedInvestmentPortfolio = inputs.currentStocks;
         let propertyWasSold = false;
         let propertyEquity = 0;
 
@@ -770,9 +771,9 @@ export class RetirementSimulator {
             }
 
             // Apply returns
-            futureSuper *= (1 + inputs.superReturn);
-            futureSavings *= (1 + inputs.savingsReturn);
-            futureStocks *= (1 + returnRate);
+            accumulatedSuperBalance *= (1 + inputs.superReturn);
+            accumulatedSavingsBalance *= (1 + inputs.savingsReturn);
+            accumulatedInvestmentPortfolio *= (1 + returnRate);
 
             // Add contributions
             const yourYearsToWork = Math.min(inputs.retirementAge, inputs.yourLifespan) - inputs.yourCurrentAge;
@@ -792,9 +793,9 @@ export class RetirementSimulator {
                 yearlySuperContribution += partnerSalary * inputs.superContributionRate;
             }
 
-            futureSuper += yearlySuperContribution;
-            futureSavings += yearlyPostTaxIncome * inputs.percentIncomeSaved;
-            futureStocks += inputs.monthlyStockContribution * 12;
+            accumulatedSuperBalance += yearlySuperContribution;
+            accumulatedSavingsBalance += yearlyPostTaxIncome * inputs.percentIncomeSaved;
+            accumulatedInvestmentPortfolio += inputs.monthlyStockContribution * 12;
 
             // Property calculations
             if (inputs.hasInvestmentProperty && yourCurrentAge <= inputs.retirementAge) {
@@ -803,34 +804,35 @@ export class RetirementSimulator {
                     propertyHistory.push(propertyCashFlow);
 
                     // Add property cash flow to savings
-                    futureSavings += propertyCashFlow.netCashFlow;
+                    accumulatedSavingsBalance += propertyCashFlow.netCashFlow;
 
                     // Check if property should be sold
                     if (inputs.sellPropertyYears > 0 && year === inputs.sellPropertyYears) {
                         const saleResult = this.calculatePropertySale(inputs, year);
                         if (saleResult) {
-                            futureStocks += saleResult.netProceeds;
+                            accumulatedInvestmentPortfolio += saleResult.netProceeds;
                             propertyWasSold = true;
                             propertyHistory[propertyHistory.length - 1].saleResult = saleResult;
                         }
                     } else {
                         // Calculate current property equity with enhanced cycle-based returns
+                        // inputs.propertyGrowthRate is already in decimal form (e.g. 0.05 for 5%)
                         let propertyReturn;
                         if (useRandomReturns) {
                             propertyReturn = this.calculateEnhancedPropertyReturn(
                                 year,
-                                inputs.propertyGrowthRate / 100,
+                                inputs.propertyGrowthRate,
                                 true,
                                 this.previousReturns.property
                             );
                             this.previousReturns.property = propertyReturn;
                         } else {
-                            propertyReturn = inputs.propertyGrowthRate / 100;
+                            propertyReturn = inputs.propertyGrowthRate;
                         }
 
                         const currentValue = this.calculatePropertyValue(
                             inputs.investmentPropertyValue,
-                            propertyReturn * 100,  // Convert back to percentage for the method
+                            propertyReturn,
                             year
                         );
                         const remainingLoan = this.calculatePropertyLoanBalance(
@@ -864,7 +866,7 @@ export class RetirementSimulator {
         const accessibleHomeEquity = inputs.planToDownsize ? homeEquityAtRetirement * this.config.HOME_EQUITY_ACCESS_RATE : 0;
 
         // Retirement phase simulation
-        let currentBalance = futureSuper + futureSavings + futureStocks + accessibleHomeEquity;
+        let currentBalance = accumulatedSuperBalance + accumulatedSavingsBalance + accumulatedInvestmentPortfolio + accessibleHomeEquity;
         const agedCareCosts = this.calculateAgedCareCosts(inputs);
 
         // Calculate non-liquid assets
@@ -969,13 +971,7 @@ export class RetirementSimulator {
             if (useRandomReturns) {
                 // Use realistic expense analysis with proper error handling
                 try {
-                    const cashFlowAnalysis = this.calculateCashFlowAnalysis(inputs);
-                    const currentExpenses = cashFlowAnalysis.expenses || {};
-
-                    // Safe expense extraction with fallbacks
-                    const housingExpense = currentExpenses.housing?.monthlyTotal || inputs.monthlyMortgagePayment || 3000;
-                    const livingExpense = currentExpenses.living?.monthlyTotal || 2500;
-                    const mortgagePayment = currentExpenses.housing?.mortgagePayment || inputs.monthlyMortgagePayment || 0;
+                    const { housingExpense, livingExpense, mortgagePayment } = this.extractBaseExpensesFromCashFlow(inputs);
 
                     // Calculate retirement expenses (many costs reduce in retirement)
                     const retirementHousing = Math.max(
@@ -986,14 +982,14 @@ export class RetirementSimulator {
                     const retirementChildcare = 0; // No childcare in retirement
 
                     const baseMonthlyExpenses = retirementHousing + retirementLiving + retirementChildcare;
-                    const baseAnnualExpenses = baseMonthlyExpenses * 12;
+                    const baseAnnualExpenses = baseMonthlyExpenses * ENHANCED_CONFIG.MONTHS_IN_YEAR;
 
                     // Apply inflation to get expenses in retirement year
                     const expensesWithInflation = baseAnnualExpenses * Math.pow(1 + inputs.inflation, retirementYear);
 
                     // Add realistic randomization based on expense categories
-                    const housingVariation = retirementHousing * 12 * (Math.random() - 0.5) * 0.3; // ±30% housing variation
-                    const livingVariation = retirementLiving * 12 * (Math.random() - 0.5) * 0.4; // ±40% living variation
+                    const housingVariation = retirementHousing * ENHANCED_CONFIG.MONTHS_IN_YEAR * (Math.random() - 0.5) * 0.3; // ±30% housing variation
+                    const livingVariation = retirementLiving * ENHANCED_CONFIG.MONTHS_IN_YEAR * (Math.random() - 0.5) * 0.4; // ±40% living variation
                     const discretionaryVariation = (Math.random() - 0.5) * 20000; // ±$10,000 discretionary spending
 
                     baseIncomeNeeded = Math.max(
@@ -1010,13 +1006,7 @@ export class RetirementSimulator {
             } else {
                 // For deterministic runs, use more realistic baseline with error handling
                 try {
-                    const cashFlowAnalysis = this.calculateCashFlowAnalysis(inputs);
-                    const currentExpenses = cashFlowAnalysis.expenses || {};
-
-                    // Safe expense extraction with fallbacks
-                    const housingExpense = currentExpenses.housing?.monthlyTotal || inputs.monthlyMortgagePayment || 3000;
-                    const livingExpense = currentExpenses.living?.monthlyTotal || 2500;
-                    const mortgagePayment = currentExpenses.housing?.mortgagePayment || inputs.monthlyMortgagePayment || 0;
+                    const { housingExpense, livingExpense, mortgagePayment } = this.extractBaseExpensesFromCashFlow(inputs);
 
                     // Conservative retirement expense estimate
                     const retirementHousing = Math.max(
@@ -1025,7 +1015,7 @@ export class RetirementSimulator {
                     );
                     const retirementLiving = livingExpense * 0.9; // 10% reduction
                     const baseMonthlyExpenses = retirementHousing + retirementLiving;
-                    const baseAnnualExpenses = baseMonthlyExpenses * 12;
+                    const baseAnnualExpenses = baseMonthlyExpenses * ENHANCED_CONFIG.MONTHS_IN_YEAR;
 
                     // Apply inflation
                     baseIncomeNeeded = Math.max(
@@ -1205,14 +1195,14 @@ export class RetirementSimulator {
             propertyHistory,
             regimeHistory, // Include regime history for enhanced analysis
             agedCareCosts,
-            totalFinancialAssets: futureSuper + futureSavings + futureStocks,
+            totalFinancialAssets: accumulatedSuperBalance + accumulatedSavingsBalance + accumulatedInvestmentPortfolio,
             accessibleHomeEquity,
             homeEquity: homeEquityAtRetirement,
             propertyEquity,
             propertyWasSold,
-            futureSuper,
-            futureSavings,
-            futureStocks
+            accumulatedSuperBalance,
+            accumulatedSavingsBalance,
+            accumulatedInvestmentPortfolio
         };
     }
 
@@ -1935,6 +1925,28 @@ export class RetirementSimulator {
     // ========== CASH FLOW ANALYSIS ENGINE ==========
 
     /**
+     * Extract base retirement expense estimates from cash flow analysis with safe fallbacks.
+     * Returns the raw monthly expense components before retirement-phase adjustments are applied.
+     * @param {Object} inputs - User financial inputs
+     * @returns {{ housingExpense: number, livingExpense: number, mortgagePayment: number }}
+     */
+    extractBaseExpensesFromCashFlow(inputs) {
+        const cashFlowAnalysis = this.calculateCashFlowAnalysis(inputs);
+        const currentExpenses = cashFlowAnalysis.expenses || {};
+
+        const housingExpense = currentExpenses.housing?.monthlyTotal
+            || inputs.monthlyMortgagePayment
+            || this.config.EXPENSE_FALLBACKS.DEFAULT_MONTHLY_HOUSING_COST;
+        const livingExpense = currentExpenses.living?.monthlyTotal
+            || this.config.EXPENSE_FALLBACKS.DEFAULT_MONTHLY_LIVING_COST;
+        const mortgagePayment = currentExpenses.housing?.mortgagePayment
+            || inputs.monthlyMortgagePayment
+            || 0;
+
+        return { housingExpense, livingExpense, mortgagePayment };
+    }
+
+    /**
      * Comprehensive cash flow analysis based on Australian household expense data
      * @param {Object} inputs - User financial inputs
      * @returns {Object} Detailed cash flow breakdown and constraints
@@ -2109,9 +2121,9 @@ export class RetirementSimulator {
 
                 totalHousingCosts += investmentMortgagePayment;
 
-                // Subtract rental income (weekly rent × 4.33 for monthly)
+                // Subtract rental income (weekly rent × average weeks per month)
                 const weeklyRent = inputs.weeklyRentalIncome || 0;
-                const monthlyRentalIncome = weeklyRent * 4.33;
+                const monthlyRentalIncome = weeklyRent * ENHANCED_CONFIG.AVERAGE_WEEKS_PER_MONTH;
                 totalHousingCosts -= monthlyRentalIncome;
             }
         }
@@ -2394,7 +2406,7 @@ export class RetirementSimulator {
                 // Rental income
                 const weeklyRent = inputs.weeklyRentalIncome || 0;
                 if (weeklyRent > 0) {
-                    const monthlyRentalIncome = weeklyRent * 4.33;
+                    const monthlyRentalIncome = weeklyRent * ENHANCED_CONFIG.AVERAGE_WEEKS_PER_MONTH;
                     components.push(`Less rental income: -$${monthlyRentalIncome.toFixed(0)}/month`);
                 }
             }

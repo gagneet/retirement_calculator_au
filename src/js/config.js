@@ -16,16 +16,27 @@ export const ENHANCED_CONFIG = {
     SINGLE_PENSION_MAX: 30646,           // $1,178.70/fortnight × 26 (updated from $28,000)
     COUPLE_PENSION_MAX: 46202,           // $1,777.00/fortnight × 26
     // Asset test thresholds - homeowners (Sept 2025)
-    SINGLE_ASSET_THRESHOLD: 321500,      // Full pension limit (updated from $301,750)
-    SINGLE_ASSET_LIMIT: 714500,          // Part pension cutoff (updated from $686,500)
-    COUPLE_ASSET_THRESHOLD: 481500,      // Couple full pension limit
-    COUPLE_ASSET_LIMIT: 1074000,         // Couple part pension cutoff
+    SINGLE_ASSET_THRESHOLD: 321500,              // Full pension limit (homeowner)
+    SINGLE_ASSET_LIMIT: 714500,                  // Part pension cutoff (homeowner)
+    SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER: 563500, // Full pension limit (non-homeowner, +$242,000 supplement)
+    SINGLE_ASSET_LIMIT_NON_HOMEOWNER: 956500,     // Part pension cutoff (non-homeowner, +$242,000 supplement)
+    COUPLE_ASSET_THRESHOLD: 481500,              // Couple full pension limit (homeowner)
+    COUPLE_ASSET_LIMIT: 1074000,                 // Couple part pension cutoff (homeowner)
+    COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER: 723500, // Couple full pension limit (non-homeowner, +$242,000 supplement)
+    COUPLE_ASSET_LIMIT_NON_HOMEOWNER: 1316000,    // Couple part pension cutoff (non-homeowner, +$242,000 supplement)
+    // Non-homeowner supplement (the additional amount added to all thresholds, Sept 2025)
+    NON_HOMEOWNER_ASSET_SUPPLEMENT: 242000,
     // Income test thresholds (Sept 2025)
     SINGLE_INCOME_THRESHOLD: 218,        // Per fortnight (updated from $212)
     COUPLE_INCOME_THRESHOLD: 380,        // Per fortnight combined
     HOME_EQUITY_ACCESS_RATE: 0.7,
     CGT_DISCOUNT: 0.5,
     FRANKING_CREDIT_RATE: 0.3,
+    // Calendar constants used across financial calculations
+    WEEKS_IN_YEAR: 52,
+    FORTNIGHTS_IN_YEAR: 26,
+    MONTHS_IN_YEAR: 12,
+    AVERAGE_WEEKS_PER_MONTH: 52 / 12,    // ≈4.333 - used to convert weekly amounts to monthly
 
     sources: {
         SUPER_GUARANTEE_RATE: { source: 'ATO', lastUpdated: '2025-10-01' },
@@ -58,6 +69,48 @@ export const ENHANCED_CONFIG = {
         DEPRECIATION_RATE: 0.025,
         MAINTENANCE_PERCENT: 0.01,
         VACANCY_RATE: 0.04
+    },
+
+    // Fallback monthly expense estimates used when cash flow analysis is unavailable.
+    // These represent typical Australian household costs (2025 ABS Household Expenditure Survey).
+    EXPENSE_FALLBACKS: {
+        DEFAULT_MONTHLY_HOUSING_COST: 3000,  // Rent/mortgage estimate when no data available
+        DEFAULT_MONTHLY_LIVING_COST: 2500    // Food, transport, utilities estimate
+    },
+
+    // ===== OVERSEAS RETIREMENT CONSTANTS (Sept 2025) =====
+    // Sources: Services Australia, Department of Social Services, ATO
+    OVERSEAS_RETIREMENT: {
+        // Age Pension portability rules
+        PENSION_AGE: 67,                          // Current qualifying age for Age Pension
+        AWLR_START_AGE: 16,                       // AWLR counted from age 16
+        AWLR_END_AGE: 67,                         // AWLR counted to pension age (67 years)
+        AWLR_TOTAL_YEARS: 51,                     // Total possible AWLR years (67 - 16)
+        AWLR_REQUIRED_FOR_FULL: 35,               // Years of AWLR required for full portable pension
+        SHORT_ABSENCE_WEEKS: 6,                   // Full pension + supplements up to 6 weeks
+        PORTABILITY_THRESHOLD_WEEKS: 26,          // After 26 weeks, AWLR-proportional rate applies
+
+        // Pension supplement annual amounts lost when living overseas (Sept 2025 rates)
+        // Pension Supplement (basic rate retained but top-up lost) + Energy Supplement
+        // Single:        $78.40 + $14.10 = $92.50/fortnight × 26 = ~$2,405/year
+        // Couple (each): $59.10 + $10.60 = $69.70/fortnight per person × 26 = ~$1,812/year per person
+        // Note: PENSION_SUPPLEMENT_REDUCTION_COUPLE is the per-person reduction; applies once each
+        PENSION_SUPPLEMENT_REDUCTION_SINGLE: 2405,    // Annual reduction for a single person living overseas
+        PENSION_SUPPLEMENT_REDUCTION_COUPLE: 1812,    // Annual reduction per person for each member of a couple overseas
+
+        // ASFA comfortable retirement standard (2025, used for overseas cost comparisons)
+        ASFA_SINGLE_ANNUAL: 51814,
+        ASFA_COUPLE_ANNUAL: 73031,
+
+        // Countries with Australian Social Security Agreements (as of 2025)
+        // Source: Department of Social Services - dss.gov.au/international-social-security-agreements
+        AGREEMENT_COUNTRIES: [
+            'austria', 'belgium', 'canada', 'chile', 'croatia', 'cyprus', 'czech-republic',
+            'denmark', 'estonia', 'finland', 'germany', 'greece', 'hungary', 'india',
+            'ireland', 'italy', 'japan', 'south-korea', 'latvia', 'malta', 'netherlands',
+            'new-zealand', 'north-macedonia', 'norway', 'poland', 'portugal', 'serbia',
+            'slovak-republic', 'slovenia', 'spain', 'switzerland', 'usa', 'uruguay'
+        ]
     },
 
     // Risk profiling thresholds
