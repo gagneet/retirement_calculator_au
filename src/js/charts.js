@@ -5,6 +5,29 @@ import { formatCurrency, formatPercent, percentile } from './utils.js';
 export class ChartManager {
     constructor() {
         this.charts = {};
+        // Optional callback invoked when a chart data point is clicked.
+        // Signature: (chartId, datasetLabel, label, value, extraContext) => void
+        this.onDataPointClick = null;
+    }
+
+    /**
+     * Build a Chart.js onClick handler that calls this.onDataPointClick if set.
+     * @param {string} chartId - Identifier for the chart
+     * @param {Function} [extraContextFn] - Optional fn(index, datasetIndex) → object with extra context
+     */
+    _buildClickHandler(chartId, extraContextFn) {
+        return (event, elements) => {
+            if (!this.onDataPointClick || elements.length === 0) return;
+            const el = elements[0];
+            const chart = el.element.$context.chart;
+            const datasetIndex = el.datasetIndex;
+            const index = el.index;
+            const dataset = chart.data.datasets[datasetIndex];
+            const label = chart.data.labels?.[index] ?? index;
+            const value = dataset.data[index];
+            const extra = extraContextFn ? extraContextFn(index, datasetIndex, chart) : {};
+            this.onDataPointClick(chartId, dataset.label ?? '', label, value, extra);
+        };
     }
 
     // Destroy all charts
@@ -81,7 +104,8 @@ export class ChartManager {
                         backgroundColor: 'rgba(79, 70, 229, 0.1)',
                         fill: false,
                         tension: 0.1,
-                        pointRadius: 0,
+                        pointRadius: 3,
+                        pointHoverRadius: 6,
                         borderWidth: 2
                     }
                 ]
@@ -104,6 +128,10 @@ export class ChartManager {
                         }
                     }
                 },
+                onClick: this._buildClickHandler('fanChart', (index, _di, chart) => ({
+                    age: chart.data.labels[index],
+                    description: 'Portfolio balance at this age in your projected retirement timeline.'
+                })),
                 scales: {
                     x: {
                         title: { display: true, text: 'Age (years)' },
@@ -237,6 +265,11 @@ export class ChartManager {
                         }
                     }
                 },
+                onClick: this._buildClickHandler('fanChart', (index, datasetIndex, chart) => ({
+                    age: chart.data.labels[index],
+                    percentileLabel: chart.data.datasets[datasetIndex]?.label,
+                    description: 'Monte Carlo projection: range of possible portfolio balances at this age based on thousands of simulated market scenarios.'
+                })),
                 scales: {
                     x: { title: { display: true, text: 'Age (years)' } },
                     y: {
@@ -452,6 +485,11 @@ export class ChartManager {
                         text: 'Dynamic Asset Allocation Over Time'
                     }
                 },
+                onClick: this._buildClickHandler('allocationChart', (index, datasetIndex, chart) => ({
+                    age: chart.data.labels[index],
+                    assetClass: chart.data.datasets[datasetIndex]?.label,
+                    description: 'Your asset allocation shifts automatically over time — higher equity when young for growth, more bonds/cash near and in retirement for stability.'
+                })),
                 scales: {
                     x: {
                         title: { display: true, text: 'Age (years)' }
@@ -523,6 +561,11 @@ export class ChartManager {
                         }
                     }
                 },
+                onClick: this._buildClickHandler('propertyChart', (index, datasetIndex, chart) => ({
+                    year: chart.data.labels[index],
+                    assetType: chart.data.datasets[datasetIndex]?.label,
+                    description: 'Click a year to see the projected value of your portfolio vs your investment property at that point in time.'
+                })),
                 scales: {
                     x: { title: { display: true, text: 'Year' } },
                     y: {
@@ -578,6 +621,10 @@ export class ChartManager {
                     },
                     legend: { display: false }
                 },
+                onClick: this._buildClickHandler('healthcareChart', (index, _di, chart) => ({
+                    year: chart.data.labels[index],
+                    description: 'Healthcare costs typically grow faster than general inflation as you age. This projection accounts for increasing medical needs over time.'
+                })),
                 scales: {
                     x: { title: { display: true, text: 'Year' } },
                     y: {
@@ -639,6 +686,15 @@ export class ChartManager {
                             }
                         }
                     }
+                },
+                onClick: (event, elements) => {
+                    if (!this.onDataPointClick || elements.length === 0) return;
+                    const el = elements[0];
+                    const scenario = scenarios[el.index];
+                    this.onDataPointClick('sequenceRiskChart', 'Risk Scenarios', scenario.name, scenario.impact, {
+                        probability: scenario.probability,
+                        description: `This scenario has a ${scenario.probability}% probability of occurring and could reduce your portfolio by ${Math.abs(scenario.impact)}%. ${scenario.impact < 0 ? 'Diversification, an emergency fund, and a cash buffer in early retirement can help mitigate this risk.' : 'Positive scenario with no major market shocks.'}`
+                    });
                 },
                 scales: {
                     x: {
@@ -719,6 +775,11 @@ export class ChartManager {
                         }
                     }
                 },
+                onClick: this._buildClickHandler('propertyCashFlowChart', (index, datasetIndex, chart) => ({
+                    year: chart.data.labels[index],
+                    cashFlowType: chart.data.datasets[datasetIndex]?.label,
+                    description: 'Click a year to see the breakdown of rental income, expenses, interest costs, and net cash flow for your investment property.'
+                })),
                 scales: {
                     x: { title: { display: true, text: 'Year' } },
                     y: {
@@ -816,6 +877,17 @@ export class ChartManager {
                         }
                     }
                 },
+                onClick: this._buildClickHandler('overseasCostChart', (index, datasetIndex, chart) => {
+                    const country = countryData[index];
+                    return {
+                        country: chart.data.labels[index],
+                        hasSocialSecurityAgreement: country?.hasSocialSecurityAgreement,
+                        description: [
+                            `${chart.data.labels[index]}: Annual living cost ${formatCurrency(country?.annualCostAUD ?? 0)} vs portable Age Pension ${formatCurrency(country?.pensionAUD ?? 0)}/year.`,
+                            country?.hasSocialSecurityAgreement ? '✅ Australia has a Social Security Agreement with this country.' : ''
+                        ].filter(Boolean).join(' ')
+                    };
+                }),
                 scales: {
                     y: {
                         beginAtZero: true,
@@ -898,6 +970,15 @@ export class ChartManager {
                         }
                     }
                 },
+                onClick: this._buildClickHandler('overseasPensionChart', (index, _di, chart) => {
+                    const d = portabilityData[index];
+                    return {
+                        country: chart.data.labels[index],
+                        hasSocialSecurityAgreement: d?.hasSocialSecurityAgreement,
+                        awlrPct: d?.awlrPct,
+                        description: `${chart.data.labels[index]} — Pension in Australia: ${formatCurrency(d?.inAustralia ?? 0)}/yr. Portable overseas rate: ${formatCurrency(d?.overseas ?? 0)}/yr.${d?.hasSocialSecurityAgreement ? ' ✅ Social Security Agreement applies — pension portable indefinitely.' : ` AWLR portability: ${d?.awlrPct}%.`}`
+                    };
+                }),
                 scales: {
                     y: {
                         beginAtZero: true,
