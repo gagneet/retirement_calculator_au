@@ -76,6 +76,24 @@ import {
     initializeNumericInputs
 } from './utils.js';
 
+/**
+ * Maps form select values for overseas country to COUNTRY_PROFILES keys.
+ * Defined once here to avoid repetition across multiple methods.
+ */
+const OVERSEAS_COUNTRY_PROFILE_KEY_MAP = {
+    'portugal': 'PORTUGAL',
+    'spain': 'SPAIN',
+    'italy': 'ITALY',
+    'canada': 'CANADA',
+    'newzealand': 'NEW_ZEALAND',
+    'india': 'INDIA',
+    'thailand': 'THAILAND',
+    'bali': 'BALI',
+    'japan': 'JAPAN',
+    'malaysia': 'MALAYSIA',
+    'philippines': 'PHILIPPINES'
+};
+
 class RetirementCalculatorApp {
     constructor() {
         this.config = versionManager.getLatestConfig();
@@ -4045,13 +4063,6 @@ class RetirementCalculatorApp {
      * Compares the selected country against a set of reference destinations.
      */
     buildOverseasChartData(config, baseInputs, analyzer) {
-        // Countries to compare (always show 4-6 destinations for context)
-        const profileKeyMap = {
-            'portugal': 'PORTUGAL', 'spain': 'SPAIN', 'italy': 'ITALY',
-            'canada': 'CANADA', 'newzealand': 'NEW_ZEALAND', 'india': 'INDIA',
-            'thailand': 'THAILAND', 'bali': 'BALI', 'japan': 'JAPAN',
-            'malaysia': 'MALAYSIA', 'philippines': 'PHILIPPINES'
-        };
         // Always show selected country + 4 popular alternatives for comparison
         const defaultComparisons = ['thailand', 'portugal', 'malaysia', 'bali', 'newzealand'];
         const selectedKey = config.country;
@@ -4062,7 +4073,7 @@ class RetirementCalculatorApp {
         const suitabilityRadar = [];
 
         for (const key of compareKeys) {
-            const profileKey = profileKeyMap[key];
+            const profileKey = OVERSEAS_COUNTRY_PROFILE_KEY_MAP[key];
             if (!profileKey || !COUNTRY_PROFILES[profileKey]) continue;
 
             const profile = COUNTRY_PROFILES[profileKey];
@@ -4107,17 +4118,21 @@ class RetirementCalculatorApp {
 
     // Collect overseas configuration from form inputs
     collectOverseasConfig() {
-        const residenceYears = safeGetValue('australianResidenceYears', '');
+        const residenceYearsRaw = getRawValue('australianResidenceYears', '');
         return {
-            country: safeGetValue('overseasCountry', ''),
+            country: safeGetSelectValue('overseasCountry', ''),
             departureAge: parseInt(safeGetValue('overseasAge', 65)),
-            returnFrequency: safeGetValue('returnFrequency', 'annually'),
+            returnFrequency: safeGetSelectValue('returnFrequency', 'annually'),
             maintainResidency: safeGetChecked('maintainResidency', false),
-            propertyStrategy: safeGetValue('propertyStrategy', 'keep-personal'),
-            trustBeneficiaries: safeGetValue('trustBeneficiaries', 'you-only'),
-            superAccess: safeGetValue('superAccess', 'pension-mode'),
+            propertyStrategy: safeGetSelectValue('propertyStrategy', 'keep-personal'),
+            trustBeneficiaries: safeGetSelectValue('trustBeneficiaries', 'you-only'),
+            superAccess: safeGetSelectValue('superAccess', 'pension-mode'),
             estimatedLivingCosts: parseFloat(safeGetValue('estimatedLivingCosts', 60000)),
-            australianResidenceYears: residenceYears !== '' ? parseInt(residenceYears) : null
+            australianResidenceYears: (() => {
+                if (residenceYearsRaw === '') return null;
+                const parsed = parseInt(residenceYearsRaw, 10);
+                return isNaN(parsed) ? null : parsed;
+            })()
         };
     }
 
@@ -4233,21 +4248,7 @@ class RetirementCalculatorApp {
 
     // Get country-specific data from COUNTRY_PROFILES, falling back to a simple map
     getCountryData(country) {
-        // Map form values to COUNTRY_PROFILES keys
-        const profileKeyMap = {
-            'portugal': 'PORTUGAL',
-            'spain': 'SPAIN',
-            'italy': 'ITALY',
-            'canada': 'CANADA',
-            'newzealand': 'NEW_ZEALAND',
-            'india': 'INDIA',
-            'thailand': 'THAILAND',
-            'bali': 'BALI',
-            'japan': 'JAPAN',
-            'malaysia': 'MALAYSIA',
-            'philippines': 'PHILIPPINES'
-        };
-        const profileKey = profileKeyMap[country];
+        const profileKey = OVERSEAS_COUNTRY_PROFILE_KEY_MAP[country];
         if (profileKey) {
             const profile = COUNTRY_PROFILES?.[profileKey];
             if (profile) {
@@ -4298,11 +4299,9 @@ class RetirementCalculatorApp {
 
     // Calculate various impacts using real OverseasRetirementAnalyzer data where available
     calculateOverseasImpact(config, baseInputs, type) {
-        const countryData = this.getCountryData(config.country);
         // Calculate effective annual income in retirement
         const pensionAnalyzer = this._buildOverseasAnalyzer(config, baseInputs);
-        const profileKeyMap = { 'portugal': 'PORTUGAL', 'spain': 'SPAIN', 'italy': 'ITALY', 'canada': 'CANADA', 'newzealand': 'NEW_ZEALAND', 'india': 'INDIA', 'thailand': 'THAILAND', 'bali': 'BALI', 'japan': 'JAPAN', 'malaysia': 'MALAYSIA', 'philippines': 'PHILIPPINES' };
-        const profileKey = profileKeyMap[config.country];
+        const profileKey = OVERSEAS_COUNTRY_PROFILE_KEY_MAP[config.country];
         if (profileKey) {
             const analysis = pensionAnalyzer.analyzeCountry(profileKey);
             if (analysis && !analysis.error) {
@@ -4320,13 +4319,11 @@ class RetirementCalculatorApp {
 
     calculateAgePensionImpact(config, baseInputs) {
         const analyzer = this._buildOverseasAnalyzer(config, baseInputs);
-        const profileKeyMap = { 'portugal': 'PORTUGAL', 'spain': 'SPAIN', 'italy': 'ITALY', 'canada': 'CANADA', 'newzealand': 'NEW_ZEALAND', 'india': 'INDIA', 'thailand': 'THAILAND', 'bali': 'BALI', 'japan': 'JAPAN', 'malaysia': 'MALAYSIA', 'philippines': 'PHILIPPINES' };
-        const profileKey = profileKeyMap[config.country];
+        const profileKey = OVERSEAS_COUNTRY_PROFILE_KEY_MAP[config.country];
         if (profileKey) {
             const profile = COUNTRY_PROFILES?.[profileKey];
             if (profile) {
                 const portability = analyzer.calculatePensionPortability(profile);
-                const inAus = portability.pensionCalculation.inAustralia;
                 const overseas = portability.pensionCalculation.overseas;
                 if (portability.hasAgreement && portability.fullPortability) {
                     return `Full rate (SSA country): ~$${overseas.toLocaleString()}/year`;
