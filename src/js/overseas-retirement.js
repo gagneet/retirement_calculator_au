@@ -2,9 +2,16 @@
  * Overseas Retirement Analyzer
  * Analyzes Age Pension portability, tax implications, and financial viability
  * for retiring in popular overseas destinations
+ *
+ * Sources:
+ * - Services Australia: servicesaustralia.gov.au
+ * - Department of Social Services: dss.gov.au/international-social-security-agreements
+ * - ATO: ato.gov.au
+ * - SuperGuide: superguide.com.au
  */
 
 import { COUNTRY_PROFILES } from './country-profiles.js';
+import { ENHANCED_CONFIG } from './config.js';
 
 export class OverseasRetirementAnalyzer {
     constructor(personalDetails, financialData) {
@@ -40,61 +47,71 @@ export class OverseasRetirementAnalyzer {
     /**
      * Calculate Age Pension portability for country
      * Uses AWLR (Australian Working Life Residence) calculation
+     * Source: Services Australia - servicesaustralia.gov.au/travel-outside-australia-rules-for-age-pension
      */
     calculatePensionPortability(country) {
         const age = this.person.age || 65;
         const yearsInAustralia = this.person.australianResidenceYears || (age - 18);
 
-        // AWLR: Australian Working Life Residence (age 16 to 67)
-        const workingLifePeriod = 67 - 16; // 51 years
-        const AWLR = Math.min(yearsInAustralia, workingLifePeriod);
-        const requiredForFull = 35; // Post 1 July 2014 rules
-        const hasFullPortability = AWLR >= requiredForFull;
-        const proportionalRate = Math.min(AWLR / requiredForFull, 1.0);
+        // AWLR: Australian Working Life Residence (age 16 to pension age 67)
+        const cfg = ENHANCED_CONFIG.OVERSEAS_RETIREMENT;
+        const AWLR = Math.min(yearsInAustralia, cfg.AWLR_TOTAL_YEARS);
+        const hasFullPortability = AWLR >= cfg.AWLR_REQUIRED_FOR_FULL;
+        const proportionalRate = Math.min(AWLR / cfg.AWLR_REQUIRED_FOR_FULL, 1.0);
 
         const hasAgreement = country.socialSecurityAgreement;
 
-        // Estimate current Age Pension
+        // Estimate current Age Pension using Sept 2025 thresholds from config
         const currentPension = this.estimateCurrentAgePension();
 
-        // Calculate overseas pension (with supplement reduction)
+        // After 26 weeks overseas: apply AWLR proportion AND lose pension supplement top-up
+        // The basic pension supplement rate is retained but the top-up and Energy Supplement are lost
         const overseasPension = currentPension * proportionalRate;
-        const supplementReduction = this.person.partnered ? 650 : 865; // Annual supplement lost overseas
+        const supplementReduction = this.person.partnered
+            ? cfg.PENSION_SUPPLEMENT_REDUCTION_COUPLE
+            : cfg.PENSION_SUPPLEMENT_REDUCTION_SINGLE;
         const finalOverseasPension = Math.max(0, overseasPension - supplementReduction);
+
+        // Weeks before portability rules kick in
+        const portabilityKickIn = cfg.PORTABILITY_THRESHOLD_WEEKS;
 
         return {
             AWLR,
-            AWLRPercentage: ((AWLR / requiredForFull) * 100).toFixed(1),
+            AWLRPercentage: ((AWLR / cfg.AWLR_REQUIRED_FOR_FULL) * 100).toFixed(1),
             fullPortability: hasFullPortability,
             hasAgreement,
+            portabilityKickIn,
             rules: hasAgreement ? {
                 status: 'SOCIAL_SECURITY_AGREEMENT',
-                initialPeriod: 'Full rate for first 26 weeks',
+                initialPeriod: `Full rate for first ${portabilityKickIn} weeks`,
                 afterSixMonths: hasFullPortability
-                    ? 'Continue full rate indefinitely'
-                    : `Reduced to ${(proportionalRate * 100).toFixed(1)}% of eligible amount`,
+                    ? 'Continue full rate indefinitely (agreement country)'
+                    : `Proportional rate: ${(proportionalRate * 100).toFixed(1)}% of eligible amount`,
                 advantages: [
                     'No 2-year former resident waiting period',
-                    'Pension portable indefinitely',
+                    'Pension portable indefinitely while in agreement country',
                     'Can apply while overseas',
-                    'Easier to qualify'
+                    'Periods in agreement country may count toward AWLR',
+                    'Easier eligibility rules'
                 ]
             } : {
                 status: 'NO_AGREEMENT',
-                initialPeriod: 'Full rate for first 26 weeks',
+                initialPeriod: `Full rate for first ${portabilityKickIn} weeks`,
                 afterSixMonths: hasFullPortability
-                    ? 'Continue full rate'
-                    : `Reduced to ${(proportionalRate * 100).toFixed(1)}%`,
+                    ? 'Continue full rate (35+ years AWLR)'
+                    : `Reduced to ${(proportionalRate * 100).toFixed(1)}% (AWLR: ${AWLR} of ${cfg.AWLR_REQUIRED_FOR_FULL} years)`,
                 disadvantages: [
-                    '⚠️ 2-year former resident rule applies if return to Australia',
-                    'Must be in Australia to initially apply',
-                    'More complex portability rules'
+                    '⚠️ 2-year former resident waiting period applies on return to Australia',
+                    'Must be in Australia to initially apply for Age Pension',
+                    'Pension Supplement top-up and Energy Supplement stop after 26 weeks',
+                    'Pensioner Concession Card cancelled after 6 weeks overseas'
                 ]
             },
             pensionCalculation: {
                 inAustralia: Math.round(currentPension),
                 overseas: Math.round(finalOverseasPension),
                 reduction: Math.round(currentPension - finalOverseasPension),
+                supplementLost: Math.round(supplementReduction),
                 reductionPercent: currentPension > 0
                     ? (((currentPension - finalOverseasPension) / currentPension) * 100).toFixed(1)
                     : '0'
@@ -103,25 +120,58 @@ export class OverseasRetirementAnalyzer {
     }
 
     /**
-     * Estimate current Age Pension entitlement
+     * Estimate current Age Pension entitlement using Sept 2025 config rates.
+     * Uses both the asset test and income test; returns the lower result.
+     * Deeming rates applied per Services Australia (Sept 2025):
+     *   - 0.75% on the first $64,200 (single) / $106,200 (couple)
+     *   - 2.75% on amounts above the threshold
      */
     estimateCurrentAgePension() {
         const totalAssets = (this.finances.superBalance || 0) +
                            (this.finances.investmentBalance || 0);
+        const investmentBalance = this.finances.investmentBalance || 0;
         const homeowner = (this.finances.homeValue || 0) > 0;
+        const cfg = ENHANCED_CONFIG;
 
-        // Simplified thresholds
-        const threshold = homeowner
-            ? (this.person.partnered ? 470000 : 314000)
-            : (this.person.partnered ? 712500 : 556500);
+        // Use actual tiered deeming rates from config (Services Australia Sept 2025)
+        const deemingThreshold = this.person.partnered
+            ? cfg.DEMING_THRESHOLD_COUPLE
+            : cfg.DEMING_THRESHOLD_SINGLE;
+        const lowerDeemedIncome = Math.min(investmentBalance, deemingThreshold) * cfg.DEMING_RATE_LOWER;
+        const upperDeemedIncome = Math.max(0, investmentBalance - deemingThreshold) * cfg.DEMING_RATE_UPPER;
+        const annualDeemedIncome = lowerDeemedIncome + upperDeemedIncome;
 
-        const maxRate = this.person.partnered ? 46202 : 30667; // Annual
+        // Use current Sept 2025 config thresholds
+        const assetThreshold = homeowner
+            ? (this.person.partnered ? cfg.COUPLE_ASSET_THRESHOLD : cfg.SINGLE_ASSET_THRESHOLD)
+            : (this.person.partnered ? cfg.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER : cfg.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER);
+        const assetLimit = homeowner
+            ? (this.person.partnered ? cfg.COUPLE_ASSET_LIMIT : cfg.SINGLE_ASSET_LIMIT)
+            : (this.person.partnered ? cfg.COUPLE_ASSET_LIMIT_NON_HOMEOWNER : cfg.SINGLE_ASSET_LIMIT_NON_HOMEOWNER);
+        const incomeThreshold = this.person.partnered ? cfg.COUPLE_INCOME_THRESHOLD : cfg.SINGLE_INCOME_THRESHOLD;
+        const maxRate = this.person.partnered ? cfg.COUPLE_PENSION_MAX : cfg.SINGLE_PENSION_MAX;
 
-        if (totalAssets <= threshold) return maxRate;
+        // Asset test: $3 per fortnight reduction for every $1,000 over threshold
+        let pensionFromAssets;
+        if (totalAssets <= assetThreshold) {
+            pensionFromAssets = maxRate;
+        } else if (totalAssets < assetLimit) {
+            const excessAssets = totalAssets - assetThreshold;
+            const reduction = (excessAssets / 1000) * 3 * cfg.FORTNIGHTS_IN_YEAR;
+            pensionFromAssets = Math.max(0, maxRate - reduction);
+        } else {
+            pensionFromAssets = 0;
+        }
 
-        const excess = totalAssets - threshold;
-        const reduction = (excess / 1000) * 3 * 26; // $3 per fortnight per $1000
-        return Math.max(0, maxRate - reduction);
+        // Income test: 50 cents per dollar over fortnightly threshold
+        const fortnightlyDeemedIncome = annualDeemedIncome / cfg.FORTNIGHTS_IN_YEAR;
+        let pensionFromIncome = maxRate;
+        if (fortnightlyDeemedIncome > incomeThreshold) {
+            const reduction = (fortnightlyDeemedIncome - incomeThreshold) * 0.5 * cfg.FORTNIGHTS_IN_YEAR;
+            pensionFromIncome = Math.max(0, maxRate - reduction);
+        }
+
+        return Math.min(pensionFromAssets, pensionFromIncome);
     }
 
     /**
@@ -163,11 +213,14 @@ export class OverseasRetirementAnalyzer {
     }
 
     /**
-     * Compare cost of living
+     * Compare cost of living against ASFA comfortable retirement standard
      */
     compareCostOfLiving(country) {
-        // ASFA comfortable standard
-        const australiaCost = this.person.partnered ? 73031 : 51814; // Annual
+        // ASFA comfortable standard (2025) from config
+        const cfgOverseas = ENHANCED_CONFIG.OVERSEAS_RETIREMENT;
+        const australiaCost = this.person.partnered
+            ? cfgOverseas.ASFA_COUPLE_ANNUAL
+            : cfgOverseas.ASFA_SINGLE_ANNUAL;
         const countryCost = australiaCost * country.costOfLiving.index;
 
         return {

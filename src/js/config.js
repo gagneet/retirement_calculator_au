@@ -78,6 +78,41 @@ export const ENHANCED_CONFIG = {
         DEFAULT_MONTHLY_LIVING_COST: 2500    // Food, transport, utilities estimate
     },
 
+    // ===== OVERSEAS RETIREMENT CONSTANTS (Sept 2025) =====
+    // Sources: Services Australia, Department of Social Services, ATO
+    OVERSEAS_RETIREMENT: {
+        // Age Pension portability rules
+        PENSION_AGE: 67,                          // Current qualifying age for Age Pension
+        AWLR_START_AGE: 16,                       // AWLR counted from age 16
+        AWLR_END_AGE: 67,                         // AWLR counted to pension age (67 years)
+        AWLR_TOTAL_YEARS: 51,                     // Total possible AWLR years (67 - 16)
+        AWLR_REQUIRED_FOR_FULL: 35,               // Years of AWLR required for full portable pension
+        SHORT_ABSENCE_WEEKS: 6,                   // Full pension + supplements up to 6 weeks
+        PORTABILITY_THRESHOLD_WEEKS: 26,          // After 26 weeks, AWLR-proportional rate applies
+
+        // Pension supplement annual amounts lost when living overseas (Sept 2025 rates)
+        // Pension Supplement (basic rate retained but top-up lost) + Energy Supplement
+        // Single:        $78.40 + $14.10 = $92.50/fortnight × 26 = ~$2,405/year
+        // Couple (each): $59.10 + $10.60 = $69.70/fortnight per person × 26 = ~$1,812/year per person
+        // Note: PENSION_SUPPLEMENT_REDUCTION_COUPLE is the per-person reduction; applies once each
+        PENSION_SUPPLEMENT_REDUCTION_SINGLE: 2405,    // Annual reduction for a single person living overseas
+        PENSION_SUPPLEMENT_REDUCTION_COUPLE: 1812,    // Annual reduction per person for each member of a couple overseas
+
+        // ASFA comfortable retirement standard (2025, used for overseas cost comparisons)
+        ASFA_SINGLE_ANNUAL: 51814,
+        ASFA_COUPLE_ANNUAL: 73031,
+
+        // Countries with Australian Social Security Agreements (as of 2025)
+        // Source: Department of Social Services - dss.gov.au/international-social-security-agreements
+        AGREEMENT_COUNTRIES: [
+            'austria', 'belgium', 'canada', 'chile', 'croatia', 'cyprus', 'czech-republic',
+            'denmark', 'estonia', 'finland', 'germany', 'greece', 'hungary', 'india',
+            'ireland', 'italy', 'japan', 'south-korea', 'latvia', 'malta', 'netherlands',
+            'new-zealand', 'north-macedonia', 'norway', 'poland', 'portugal', 'serbia',
+            'slovak-republic', 'slovenia', 'spain', 'switzerland', 'usa', 'uruguay'
+        ]
+    },
+
     // Risk profiling thresholds
     RISK_THRESHOLDS: {
         capacity: {
