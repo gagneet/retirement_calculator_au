@@ -51,7 +51,15 @@ export class OverseasRetirementAnalyzer {
      */
     calculatePensionPortability(country) {
         const age = this.person.age || 65;
-        const yearsInAustralia = this.person.australianResidenceYears || (age - 18);
+        const retirementAge = this.person.retirementAge || age;
+
+        // Use ageCameToAustralia to calculate effective residency if provided
+        const residencyYears = this.person.australianResidenceYears > 0
+            ? this.person.australianResidenceYears
+            : this.person.ageCameToAustralia > 0
+                ? Math.max(0, retirementAge - this.person.ageCameToAustralia)
+                : (age - 18);
+        const yearsInAustralia = residencyYears;
 
         // AWLR: Australian Working Life Residence (age 16 to pension age 67)
         const cfg = ENHANCED_CONFIG.OVERSEAS_RETIREMENT;

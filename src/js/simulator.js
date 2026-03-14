@@ -519,7 +519,7 @@ export class RetirementSimulator {
     }
 
     // Salary progression with lean years
-    getSalaryForYear(baseSalary, year, inputs) {
+    getSalaryForYear(baseSalary, year, inputs, isPartner = false) {
         const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
         const realGrowthRate = inputs.salaryGrowthRate / 100;
         const inflationRate = inputs.inflation;
@@ -529,6 +529,31 @@ export class RetirementSimulator {
         const leanYearsStartYear = yearsToRetirement - inputs.leanYearsStart;
         if (year >= leanYearsStartYear) {
             salary *= (1 - inputs.leanYearsReduction / 100);
+        }
+
+        // Apply reduced income scenario if enabled.
+        // reducedIncomeSalary is in today's dollars, so inflate only from the year
+        // of reduction (not from year 0 of the simulation).
+        if (inputs.enableReducedIncome) {
+            if (isPartner) {
+                if (inputs.partnerReducedIncomeAge > 0 && inputs.partnerReducedIncomeSalary > 0 &&
+                    inputs.partnerCurrentAge > 0) {
+                    const partnerCurrentAge = inputs.partnerCurrentAge + year;
+                    if (partnerCurrentAge >= inputs.partnerReducedIncomeAge) {
+                        const reductionYear = inputs.partnerReducedIncomeAge - inputs.partnerCurrentAge;
+                        const yearsAfterReduction = Math.max(0, year - reductionYear);
+                        salary = inputs.partnerReducedIncomeSalary * Math.pow(1 + inflationRate, yearsAfterReduction);
+                    }
+                }
+            } else {
+                const currentAge = inputs.yourCurrentAge + year;
+                if (inputs.reducedIncomeAge > 0 && inputs.reducedIncomeSalary > 0 &&
+                    currentAge >= inputs.reducedIncomeAge) {
+                    const reductionYear = inputs.reducedIncomeAge - inputs.yourCurrentAge;
+                    const yearsAfterReduction = Math.max(0, year - reductionYear);
+                    salary = inputs.reducedIncomeSalary * Math.pow(1 + inflationRate, yearsAfterReduction);
+                }
+            }
         }
 
         return salary;
@@ -788,7 +813,7 @@ export class RetirementSimulator {
                 yearlySuperContribution += yourSalary * inputs.superContributionRate;
             }
             if (year <= partnerYearsToWork) {
-                const partnerSalary = this.getSalaryForYear(inputs.partnerSalary, year, inputs);
+                const partnerSalary = this.getSalaryForYear(inputs.partnerSalary, year, inputs, true);
                 yearlyPostTaxIncome += calculatePostTaxIncome(partnerSalary, this.config.TAX_BRACKETS);
                 yearlySuperContribution += partnerSalary * inputs.superContributionRate;
             }

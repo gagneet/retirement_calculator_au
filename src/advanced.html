@@ -773,16 +773,15 @@
     </div>
 </div>
 <div class="container mx-auto p-4 md:p-8">
-    <header class="text-center mb-8 relative">
-        <!-- FWT Classification Statement -->
-        <div class="fwt-statement bg-blue-100 dark:bg-blue-900 border-b-2 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 text-xs text-center py-1 px-4">
-            <p>This is a <a class="font-semibold hover:underline" href="https://moneysmart.gov.au/plan-for-your-retirement"
+    <header class="text-center mb-8">
+        <!-- Sticky top bar: FWT statement + nav/version/theme controls in one row -->
+        <div class="fwt-statement sticky top-0 z-20 flex items-center justify-between bg-blue-100 dark:bg-blue-900 border-b-2 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200 text-xs py-1 px-2">
+            <p class="flex-1 text-center min-w-0">This is a <a class="font-semibold hover:underline" href="https://moneysmart.gov.au/plan-for-your-retirement"
                             rel="noopener noreferrer" target="_blank">Financial Well-being
                 Tool</a> intended for educational purposes only.</p>
-        </div>
-
+            <div class="flex items-center space-x-1 flex-shrink-0 ml-2">
         <!-- Navigation Menu -->
-        <nav class="absolute top-8 left-0 z-10">
+        <nav class="relative z-10">
             <div class="relative">
                 <button aria-label="Navigation menu"
                         class="flex items-center px-3 py-2 text-sm text-gray-700 hover:text-indigo-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -876,8 +875,8 @@
             </div>
         </nav>
 
-        <!-- Theme Toggle Button -->
-        <div class="absolute top-8 right-0 flex items-center space-x-4">
+        <!-- Version and Theme Toggle -->
+        <div class="flex items-center space-x-2">
             <div class="relative">
                 <select class="text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                         id="version-selector">
@@ -897,8 +896,10 @@
                 <span class="tooltiptext">Toggle Dark Mode</span>
             </button>
         </div>
+            </div>
+        </div>
 
-        <div class="flex items-center justify-center mb-4 mt-4">
+        <div class="flex items-center justify-center mb-4">
             <img alt="Australian Retirement Calculator - Professional Financial Planning Tool" class="h-16 w-auto"
                  src="assets/logo.svg">
         </div>
@@ -1206,6 +1207,72 @@
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerLifespan" type="number"
                            min="60" max="120" value="85">
                 </div>
+                <!-- Age Came to Australia - Item 7 -->
+                <div class="col-span-2 mt-2">
+                    <div class="bg-indigo-50 dark:bg-indigo-900 rounded-lg p-3 border border-indigo-200 dark:border-indigo-700">
+                        <h4 class="text-sm font-semibold text-indigo-800 dark:text-indigo-200 mb-3">🇦🇺 Australian Residency &amp; Earnings History</h4>
+                        <div class="grid grid-cols-1 gap-3">
+                            <div>
+                                <div class="label-with-tooltip">
+                                    <label class="text-sm font-medium text-gray-700" for="ageCameToAustralia">Your Age When You Came to Australia</label>
+                                    <div class="tooltip">
+                                        <span aria-label="Age came to Australia" class="tooltip-icon">i</span>
+                                        <span class="tooltiptext">
+                                            <strong>Age Came to Australia</strong>
+                                            Age when you first arrived to live in Australia. Used to calculate your Australian residency period for Age Pension (AWLR) purposes. The Age Pension requires 10 years continuous Australian residence, with pro-rata calculations for partial residency.
+                                            <div class="tooltip-example">Example: Arrived at age 30, currently 49 = 19 years residency</div>
+                                        </span>
+                                    </div>
+                                </div>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="ageCameToAustralia" type="number"
+                                       min="0" max="80" placeholder="e.g. 25 (leave blank if born here)">
+                            </div>
+                            <div>
+                                <div class="label-with-tooltip">
+                                    <label class="text-sm font-medium text-gray-700" for="ageStartedEarningAustralia">Your Age When You Started Earning in Australia</label>
+                                    <div class="tooltip">
+                                        <span aria-label="Age started earning" class="tooltip-icon">i</span>
+                                        <span class="tooltiptext">
+                                            <strong>Age Started Earning in Australia</strong>
+                                            Age when you first started receiving Australian income and superannuation contributions. Superannuation guarantee contributions are compulsory for most workers from their first job. Earlier start = larger super balance. Leave blank if same as age came to Australia.
+                                            <div class="tooltip-example">Example: Came at 25 but started work at 26 after studying</div>
+                                        </span>
+                                    </div>
+                                </div>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="ageStartedEarningAustralia" type="number"
+                                       min="15" max="80" placeholder="e.g. 26 (leave blank if born/earned here)">
+                            </div>
+                            <div>
+                                <div class="label-with-tooltip">
+                                    <label class="text-sm font-medium text-gray-700" for="partnerAgeCameToAustralia">Partner's Age When They Came to Australia</label>
+                                    <div class="tooltip">
+                                        <span aria-label="Partner age came to Australia" class="tooltip-icon">i</span>
+                                        <span class="tooltiptext">
+                                            <strong>Partner's Age Came to Australia</strong>
+                                            Partner's age when they first arrived to live in Australia. Affects their Age Pension Australian Working Life Residence (AWLR) calculation. Leave blank if partner was born in Australia.
+                                        </span>
+                                    </div>
+                                </div>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerAgeCameToAustralia" type="number"
+                                       min="0" max="80" placeholder="e.g. 28 (leave blank if born here)">
+                            </div>
+                            <div>
+                                <div class="label-with-tooltip">
+                                    <label class="text-sm font-medium text-gray-700" for="partnerAgeStartedEarningAustralia">Partner's Age When They Started Earning in Australia</label>
+                                    <div class="tooltip">
+                                        <span aria-label="Partner age started earning" class="tooltip-icon">i</span>
+                                        <span class="tooltiptext">
+                                            <strong>Partner's Age Started Earning in Australia</strong>
+                                            Age when partner first started receiving Australian income and super contributions. Leave blank if same as age came to Australia.
+                                        </span>
+                                    </div>
+                                </div>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerAgeStartedEarningAustralia" type="number"
+                                       min="15" max="80" placeholder="e.g. 29 (leave blank if born/earned here)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="advanced-section enhancement-highlight">
@@ -1511,6 +1578,60 @@
                 </div>
             </div>
 
+                <!-- Aged Parents and Family Carers Section - Item 9 -->
+                <div>
+                    <div class="bg-purple-50 dark:bg-purple-900 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
+                        <div class="label-with-tooltip mb-3">
+                            <h4 class="text-sm font-semibold text-purple-800 dark:text-purple-200">👴👵 Aged Parents &amp; Family Carers</h4>
+                            <div class="tooltip tooltip-right">
+                                <span aria-label="Aged parents info" class="tooltip-icon">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Aged Parents &amp; Family Carers</strong>
+                                    Caring for aged parents or family members can affect your work capacity, income, and superannuation contributions. The Australian Carer Payment and Carer Allowance provide government support. If parents are non-citizens overseas, there is no Age Pension portability for them; if they come to Australia, they may access aged care services but not the Age Pension until qualifying.
+                                    <div class="tooltip-example">Example: Caring for a parent reduces work hours, lowering super contributions for 3 years</div>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <input class="rounded border-gray-300 text-indigo-600 shadow-sm" id="isCarerForParents" type="checkbox">
+                                <label class="ml-2 text-sm text-gray-700" for="isCarerForParents">I am a carer for aged parents / family members</label>
+                            </div>
+                            <div class="carer-fields hidden" id="carerFields">
+                                <div class="grid grid-cols-1 gap-3">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700" for="carerReducedWorkPercent">Reduction in Work Capacity Due to Caring (%)</label>
+                                        <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="carerReducedWorkPercent" type="number"
+                                               min="0" max="100" value="20" placeholder="e.g. 20">
+                                        <p class="mt-1 text-xs text-gray-500">Estimated % reduction in your income/work capacity due to caring responsibilities</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700" for="carerYearsExpected">Expected Years of Caring</label>
+                                        <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="carerYearsExpected" type="number"
+                                               min="1" max="20" value="5" placeholder="e.g. 5">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700" for="agedParentsLocation">Aged Parents Location</label>
+                                        <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="agedParentsLocation">
+                                            <option value="australia">In Australia (Australian citizens/residents)</option>
+                                            <option value="australia-non-citizen">In Australia (non-citizens/temporary visa)</option>
+                                            <option value="overseas">Overseas (no Australian Age Pension)</option>
+                                            <option value="mixed">Mixed (some in Australia, some overseas)</option>
+                                        </select>
+                                        <p class="mt-1 text-xs text-gray-500">Non-citizen parents overseas do not receive Australian Age Pension</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700" for="carerAnnualExpense">Annual Financial Support to Parents/Family ($)</label>
+                                        <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="carerAnnualExpense" type="text"
+                                               value="" placeholder="e.g. 15000">
+                                        <p class="mt-1 text-xs text-gray-500">Annual funds sent or spent supporting parents (reduces your savings capacity)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             <div class="field-group-separator"></div>
 
             <h3 class="text-lg font-semibold mt-6 mb-4 border-b pb-2">Current Finances</h3>
@@ -1536,6 +1657,50 @@
                         (pre-tax) ($)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerSalary" type="text"
                            value="124500">
+                </div>
+                <!-- Reduced Income Scenario - Item 10 -->
+                <div class="col-span-2 mt-2">
+                    <div class="bg-amber-50 dark:bg-amber-900 rounded-lg p-3 border border-amber-200 dark:border-amber-700">
+                        <div class="label-with-tooltip mb-2">
+                            <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200">📉 Reduced Income Scenario</h4>
+                            <div class="tooltip tooltip-right">
+                                <span aria-label="Reduced income info" class="tooltip-icon">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Reduced Income After a Certain Age</strong>
+                                    Model a scenario where your income drops at a specific age due to health issues, career change, part-time work, or other reasons before full retirement. This affects superannuation contributions, income tax, and savings accumulation from that point forward.
+                                    <div class="tooltip-example">Example: Earn $200,000 currently, but at age 56 move to a $110,000 role</div>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex items-center mb-3">
+                            <input class="rounded border-gray-300 text-indigo-600 shadow-sm" id="enableReducedIncome" type="checkbox">
+                            <label class="ml-2 text-sm text-gray-700" for="enableReducedIncome">Enable reduced income scenario</label>
+                        </div>
+                        <div class="grid grid-cols-1 gap-3 reduced-income-fields" id="reducedIncomeFields" style="display:none;">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700" for="reducedIncomeAge">Age When Income Reduces</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="reducedIncomeAge" type="number"
+                                       min="40" max="85" value="56">
+                                <p class="mt-1 text-xs text-gray-500">Age at which your salary changes (e.g. 56)</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700" for="reducedIncomeSalary">Reduced Annual Salary ($)</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="reducedIncomeSalary" type="text"
+                                       value="" placeholder="e.g. 110000">
+                                <p class="mt-1 text-xs text-gray-500">Your new annual gross salary after income reduction</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700" for="partnerReducedIncomeAge">Partner's Age When Income Reduces</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerReducedIncomeAge" type="number"
+                                       min="40" max="85" placeholder="e.g. 54 (leave blank if not applicable)">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700" for="partnerReducedIncomeSalary">Partner's Reduced Annual Salary ($)</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerReducedIncomeSalary" type="text"
+                                       value="" placeholder="e.g. 70000">
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="field-required">
                     <div class="label-with-tooltip">

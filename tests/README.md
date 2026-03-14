@@ -9,8 +9,9 @@ tests/
 ├── __mocks__/
 │   └── fileMock.js          # Mock for CSS/LESS/SCSS imports
 ├── unit/
-│   ├── chart-safety.test.js  # Fix 2: Chart.js undefined safety checks
-│   ├── navigation.test.js    # Fix 3 & 4: Redirect loop prevention & button visibility
+│   ├── chart-safety.test.js  # Chart.js undefined safety checks
+│   ├── navigation.test.js    # Redirect loop prevention & button visibility
+│   ├── new-fields.test.js    # New fields: AU residency, reduced income, carer impact (Items 7, 9, 10)
 │   └── tax-calculations.test.js  # Australian tax bracket calculations
 ├── integration/
 │   └── outcome-tab.test.js   # Fix 5: Outcome tab overview bar visibility
@@ -55,6 +56,12 @@ npx jest --testPathPattern=tests/ --watch
 - Tests Capital Gains Tax with 50% discount for 12+ month holdings
 - Tests Age Pension asset test taper logic
 - Tests homeowner vs non-homeowner thresholds (+$242,000 supplement)
+
+**`new-fields.test.js`**
+- Tests Australian residency years calculation when `ageCameToAustralia` is provided
+- Tests superannuation contribution years based on `ageStartedEarningAustralia`
+- Tests reduced income scenario: salary switches at specified age
+- Tests carer work-capacity reduction impact on income
 
 ### Integration Tests
 
