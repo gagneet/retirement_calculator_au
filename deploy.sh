@@ -19,13 +19,13 @@ if ! command -v npm &> /dev/null; then
     exit 1
 fi
 
-# 2. Install/update dependencies if needed
-if [ ! -d node_modules ] || [ package.json -nt node_modules ]; then
-    echo "Installing dependencies..." | tee -a "$LOG_FILE"
-    npm install 2>&1 | tee -a "$LOG_FILE"
-fi
+# 2. Clean and install dependencies for a reproducible build
+echo "Installing dependencies (clean install)..." | tee -a "$LOG_FILE"
+npm ci 2>&1 | tee -a "$LOG_FILE"
 
-# 3. Run webpack build
+# 3. Clean dist directory and run webpack build
+echo "Cleaning previous build..." | tee -a "$LOG_FILE"
+rm -rf "$DIST_DIR"
 echo "Building application..." | tee -a "$LOG_FILE"
 npm run build 2>&1 | tee -a "$LOG_FILE"
 

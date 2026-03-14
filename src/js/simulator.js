@@ -519,7 +519,7 @@ export class RetirementSimulator {
     }
 
     // Salary progression with lean years
-    getSalaryForYear(baseSalary, year, inputs) {
+    getSalaryForYear(baseSalary, year, inputs, isPartner = false) {
         const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
         const realGrowthRate = inputs.salaryGrowthRate / 100;
         const inflationRate = inputs.inflation;
@@ -529,6 +529,25 @@ export class RetirementSimulator {
         const leanYearsStartYear = yearsToRetirement - inputs.leanYearsStart;
         if (year >= leanYearsStartYear) {
             salary *= (1 - inputs.leanYearsReduction / 100);
+        }
+
+        // Apply reduced income scenario if enabled
+        if (inputs.enableReducedIncome) {
+            const currentAge = inputs.yourCurrentAge + year;
+            if (isPartner) {
+                if (inputs.partnerReducedIncomeAge > 0 && inputs.partnerReducedIncomeSalary > 0 &&
+                    inputs.partnerCurrentAge > 0) {
+                    const partnerCurrentAge = inputs.partnerCurrentAge + year;
+                    if (partnerCurrentAge >= inputs.partnerReducedIncomeAge) {
+                        salary = inputs.partnerReducedIncomeSalary * Math.pow(1 + inflationRate, year);
+                    }
+                }
+            } else {
+                if (inputs.reducedIncomeAge > 0 && inputs.reducedIncomeSalary > 0 &&
+                    currentAge >= inputs.reducedIncomeAge) {
+                    salary = inputs.reducedIncomeSalary * Math.pow(1 + inflationRate, year);
+                }
+            }
         }
 
         return salary;
@@ -788,7 +807,7 @@ export class RetirementSimulator {
                 yearlySuperContribution += yourSalary * inputs.superContributionRate;
             }
             if (year <= partnerYearsToWork) {
-                const partnerSalary = this.getSalaryForYear(inputs.partnerSalary, year, inputs);
+                const partnerSalary = this.getSalaryForYear(inputs.partnerSalary, year, inputs, true);
                 yearlyPostTaxIncome += calculatePostTaxIncome(partnerSalary, this.config.TAX_BRACKETS);
                 yearlySuperContribution += partnerSalary * inputs.superContributionRate;
             }

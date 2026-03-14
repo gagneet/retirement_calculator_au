@@ -715,6 +715,26 @@ class RetirementCalculatorApp {
             shockMagnitude: safeGetValue('shockMagnitude', config.simulation.shockMagnitude) / 100,
             numRuns: safeGetValue('numRuns', config.simulation.numRuns),
 
+            // Australian residency history (Item 7)
+            ageCameToAustralia: safeGetValue('ageCameToAustralia', 0),
+            ageStartedEarningAustralia: safeGetValue('ageStartedEarningAustralia', 0),
+            partnerAgeCameToAustralia: safeGetValue('partnerAgeCameToAustralia', 0),
+            partnerAgeStartedEarningAustralia: safeGetValue('partnerAgeStartedEarningAustralia', 0),
+
+            // Reduced income scenario (Item 10)
+            enableReducedIncome: safeGetChecked('enableReducedIncome', false),
+            reducedIncomeAge: safeGetValue('reducedIncomeAge', 0),
+            reducedIncomeSalary: parseFormattedNumber(getRawValue('reducedIncomeSalary', '0')),
+            partnerReducedIncomeAge: safeGetValue('partnerReducedIncomeAge', 0),
+            partnerReducedIncomeSalary: parseFormattedNumber(getRawValue('partnerReducedIncomeSalary', '0')),
+
+            // Carer / aged parents (Item 9)
+            isCarerForParents: safeGetChecked('isCarerForParents', false),
+            carerReducedWorkPercent: safeGetValue('carerReducedWorkPercent', 0) / 100,
+            carerYearsExpected: safeGetValue('carerYearsExpected', 0),
+            agedParentsLocation: safeGetSelectValue('agedParentsLocation', 'australia'),
+            carerAnnualExpense: parseFormattedNumber(getRawValue('carerAnnualExpense', '0')),
+
             // Partnership status for calculations
             isSingleCalculation: finalPartnerAge === 0
         };
@@ -4355,13 +4375,17 @@ class RetirementCalculatorApp {
 
     // Build an OverseasRetirementAnalyzer instance from current form inputs
     _buildOverseasAnalyzer(config, baseInputs) {
-        // Use explicitly provided residence years, or estimate from current age (conservative default)
+        // Use explicitly provided residence years, or calculate from ageCameToAustralia, or estimate from current age
         const australianResidenceYears = config.australianResidenceYears !== null && config.australianResidenceYears !== undefined
             ? config.australianResidenceYears
-            : Math.max(0, (baseInputs.yourCurrentAge || 65) - 18);
+            : (baseInputs.ageCameToAustralia > 0
+                ? Math.max(0, (baseInputs.retirementAge || baseInputs.yourCurrentAge || 67) - baseInputs.ageCameToAustralia)
+                : Math.max(0, (baseInputs.yourCurrentAge || 65) - 18));
         const personalDetails = {
             age: baseInputs.yourCurrentAge,
+            retirementAge: baseInputs.retirementAge,
             australianResidenceYears,
+            ageCameToAustralia: baseInputs.ageCameToAustralia || 0,
             partnered: (baseInputs.partnerCurrentAge || 0) > 0
         };
         const financialData = {
@@ -5453,6 +5477,18 @@ class RetirementCalculatorApp {
             hasInvestmentProperty.addEventListener('change', togglePropertySection);
             togglePropertySection(); // Initial state
         }
+
+        // Toggle reduced income fields
+        document.getElementById('enableReducedIncome')?.addEventListener('change', function() {
+            const fields = document.getElementById('reducedIncomeFields');
+            if (fields) fields.style.display = this.checked ? 'block' : 'none';
+        });
+
+        // Toggle carer fields
+        document.getElementById('isCarerForParents')?.addEventListener('change', function() {
+            const fields = document.getElementById('carerFields');
+            if (fields) fields.classList.toggle('hidden', !this.checked);
+        });
 
         // Update CGT rate based on marginal tax rate
         const updateCGTRate = () => {
