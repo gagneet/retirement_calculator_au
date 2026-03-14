@@ -1,5 +1,7 @@
 // js/utils.js - Utility Functions for Enhanced Retirement Calculator
 
+import { ENHANCED_CONFIG } from './config.js';
+
 // DOM manipulation utilities
 export const $ = (id) => document.getElementById(id);
 
@@ -658,6 +660,42 @@ export const calculateAgePension = (assets, income, isCouple, maxPension, assetT
 };
 
 /**
+ * Shared helper: Apply age pension asset and income means tests.
+ * Returns the annual pension amount and the name of the limiting test.
+ * @param {number} assets - Total assessable assets
+ * @param {number} income - Total annual income
+ * @param {number} maxPension - Maximum annual pension amount
+ * @param {number} assetThreshold - Asset threshold for full pension
+ * @param {number} assetLimit - Asset cutoff (pension reduces to zero above this)
+ * @param {number} incomeThreshold - Income threshold per fortnight
+ * @returns {{ annualPension: number, limitingTest: string }}
+ */
+const applyAgePensionMeansTest = (assets, income, maxPension, assetThreshold, assetLimit, incomeThreshold) => {
+    // Asset test: $3 per fortnight reduction for every $1,000 over the threshold
+    let pensionFromAssets = 0;
+    if (assets <= assetThreshold) {
+        pensionFromAssets = maxPension;
+    } else if (assets < assetLimit) {
+        const excessAssets = assets - assetThreshold;
+        const reduction = (excessAssets / 1000) * 3 * ENHANCED_CONFIG.FORTNIGHTS_IN_YEAR;
+        pensionFromAssets = Math.max(0, maxPension - reduction);
+    }
+
+    // Income test: 50 cents per dollar above the fortnightly threshold
+    let pensionFromIncome = maxPension;
+    const fortnightlyIncome = income / ENHANCED_CONFIG.FORTNIGHTS_IN_YEAR;
+    if (fortnightlyIncome > incomeThreshold) {
+        const excessIncome = fortnightlyIncome - incomeThreshold;
+        const reduction = excessIncome * 0.5 * ENHANCED_CONFIG.FORTNIGHTS_IN_YEAR;
+        pensionFromIncome = Math.max(0, maxPension - reduction);
+    }
+
+    const annualPension = Math.min(pensionFromAssets, pensionFromIncome);
+    const limitingTest = pensionFromAssets < pensionFromIncome ? 'Assets Test' : 'Income Test';
+    return { annualPension, limitingTest };
+};
+
+/**
  * Enhanced Age Pension calculation for couples with non-pensioner partner
  * Handles critical case where one partner is under Age Pension age (67)
  * @param {Object} person1 - First partner details {age, super, investments, salary}
@@ -694,39 +732,22 @@ export const calculateAgePensionForCouple = (person1, person2, homeowner, config
  * Calculate Age Pension when both partners are eligible (standard case)
  */
 const calculateStandardCouplePension = (person1, person2, homeowner, config) => {
-    const PENSION_AGE = 67;
-
     // Combined income and assets
     const combinedIncome = (person1.salary || 0) + (person2.salary || 0);
     const combinedAssets = (person1.super || 0) + (person2.super || 0) +
         (person1.investments || 0) + (person2.investments || 0);
 
-    // Use couple thresholds
-    const assetThreshold = homeowner ? 470000 : 712500;
-    const assetLimit = homeowner ? 1031000 : 1273500;
-    const incomeThreshold = 380; // Fortnight
-    const maxRate = 1777 * 26; // Combined annual couple rate
+    // Use current couple thresholds from config (Sept 2025 rates)
+    const assetThreshold = homeowner
+        ? ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD
+        : ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER;
+    const assetLimit = homeowner
+        ? ENHANCED_CONFIG.COUPLE_ASSET_LIMIT
+        : ENHANCED_CONFIG.COUPLE_ASSET_LIMIT_NON_HOMEOWNER;
+    const incomeThreshold = ENHANCED_CONFIG.COUPLE_INCOME_THRESHOLD;
+    const maxRate = ENHANCED_CONFIG.COUPLE_PENSION_MAX;
 
-    // Asset test
-    let pensionFromAssets = 0;
-    if (combinedAssets <= assetThreshold) {
-        pensionFromAssets = maxRate;
-    } else if (combinedAssets < assetLimit) {
-        const excessAssets = combinedAssets - assetThreshold;
-        const reduction = (excessAssets / 1000) * 3 * 26; // $3 per fortnight per $1000
-        pensionFromAssets = Math.max(0, maxRate - reduction);
-    }
-
-    // Income test
-    let pensionFromIncome = maxRate;
-    const fortnightlyIncome = combinedIncome / 26;
-    if (fortnightlyIncome > incomeThreshold) {
-        const excessIncome = fortnightlyIncome - incomeThreshold;
-        const reduction = excessIncome * 0.5 * 26; // 50 cents per dollar
-        pensionFromIncome = Math.max(0, maxRate - reduction);
-    }
-
-    const annualPension = Math.min(pensionFromAssets, pensionFromIncome);
+    const { annualPension, limitingTest } = applyAgePensionMeansTest(combinedAssets, combinedIncome, maxRate, assetThreshold, assetLimit, incomeThreshold);
 
     return {
         eligible: true,
@@ -738,9 +759,9 @@ const calculateStandardCouplePension = (person1, person2, homeowner, config) => 
         },
         currentPension: {
             annual: Math.round(annualPension),
-            fortnight: Math.round(annualPension / 26)
+            fortnight: Math.round(annualPension / ENHANCED_CONFIG.FORTNIGHTS_IN_YEAR)
         },
-        limitingTest: pensionFromAssets < pensionFromIncome ? 'Assets Test' : 'Income Test'
+        limitingTest
     };
 };
 
@@ -761,33 +782,20 @@ const calculateNonPensionerCouplePension = (person1, person2, homeowner, config)
         (person1.investments || 0) + (person2.investments || 0);
 
     // Apply COUPLE thresholds (not single) even though only one receives payment
-    const assetThreshold = homeowner ? 470000 : 712500;
-    const assetLimit = homeowner ? 1031000 : 1273500;
-    const incomeThreshold = 380; // Couple rate fortnight
-    const maxRate = 1777 * 26; // Combined couple rate
+    // Use current Sept 2025 rates from config
+    const assetThreshold = homeowner
+        ? ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD
+        : ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER;
+    const assetLimit = homeowner
+        ? ENHANCED_CONFIG.COUPLE_ASSET_LIMIT
+        : ENHANCED_CONFIG.COUPLE_ASSET_LIMIT_NON_HOMEOWNER;
+    const incomeThreshold = ENHANCED_CONFIG.COUPLE_INCOME_THRESHOLD;
+    const maxRate = ENHANCED_CONFIG.COUPLE_PENSION_MAX;
 
-    // Asset test using combined assets
-    let pensionFromAssets = 0;
-    if (combinedAssets <= assetThreshold) {
-        pensionFromAssets = maxRate;
-    } else if (combinedAssets < assetLimit) {
-        const excessAssets = combinedAssets - assetThreshold;
-        const reduction = (excessAssets / 1000) * 3 * 26;
-        pensionFromAssets = Math.max(0, maxRate - reduction);
-    }
-
-    // Income test using combined income
-    let pensionFromIncome = maxRate;
-    const fortnightlyIncome = combinedIncome / 26;
-    if (fortnightlyIncome > incomeThreshold) {
-        const excessIncome = fortnightlyIncome - incomeThreshold;
-        const reduction = excessIncome * 0.5 * 26;
-        pensionFromIncome = Math.max(0, maxRate - reduction);
-    }
+    const meansTest = applyAgePensionMeansTest(combinedAssets, combinedIncome, maxRate, assetThreshold, assetLimit, incomeThreshold);
 
     // Take lower result, but only ONE person receives it (divide by 2)
-    const coupleRate = Math.min(pensionFromAssets, pensionFromIncome);
-    const actualPension = coupleRate / 2; // Only one recipient
+    const actualPension = meansTest.annualPension / 2; // Only one recipient
 
     // Project future when both eligible
     const yearsUntil = PENSION_AGE - nonEligible.age;
@@ -817,9 +825,9 @@ const calculateNonPensionerCouplePension = (person1, person2, homeowner, config)
         },
         currentPension: {
             annual: Math.round(actualPension),
-            fortnight: Math.round(actualPension / 26)
+            fortnight: Math.round(actualPension / ENHANCED_CONFIG.FORTNIGHTS_IN_YEAR)
         },
-        limitingTest: pensionFromAssets < pensionFromIncome ? 'Assets Test' : 'Income Test',
+        limitingTest: meansTest.limitingTest,
         whenBothEligible: {
             yearsUntil,
             expectedPension: futureProjection.currentPension.annual,
@@ -882,7 +890,7 @@ const generatePartnerStrategies = (person1, person2, eligible, nonEligible, comb
     }
 
     // Strategy 4: Asset reallocation
-    if (combinedAssets > 470000 && combinedAssets < 600000) {
+    if (combinedAssets > ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD && combinedAssets < ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD + 120000) {
         strategies.push({
             type: 'Asset Reallocation',
             priority: 'LOW',
@@ -1097,9 +1105,9 @@ export const exportToXLSX = (inputs, results, chartManager, app = null) => {
         ['Economic', 'Super Annual Growth (%)', formatPercent(inputs.superReturn, 2)],
 
         ['--- RESULTS ---', '---', '---'],
-        ['Results', 'Future Super', formatCurrency(results.futureSuper)],
-        ['Results', 'Future Savings', formatCurrency(results.futureSavings)],
-        ['Results', 'Future Investments', formatCurrency(results.futureStocks)],
+        ['Results', 'Future Super', formatCurrency(results.accumulatedSuperBalance)],
+        ['Results', 'Future Savings', formatCurrency(results.accumulatedSavingsBalance)],
+        ['Results', 'Future Investments', formatCurrency(results.accumulatedInvestmentPortfolio)],
         ['Results', 'Accessible Home Equity', formatCurrency(results.accessibleHomeEquity)],
         ['Results', 'Property Equity', formatCurrency(results.propertyEquity)],
         ['Results', 'Total Assets at Retirement', formatCurrency(results.totalFinancialAssets + results.accessibleHomeEquity)],

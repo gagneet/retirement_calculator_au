@@ -16,16 +16,27 @@ export const ENHANCED_CONFIG = {
     SINGLE_PENSION_MAX: 30646,           // $1,178.70/fortnight × 26 (updated from $28,000)
     COUPLE_PENSION_MAX: 46202,           // $1,777.00/fortnight × 26
     // Asset test thresholds - homeowners (Sept 2025)
-    SINGLE_ASSET_THRESHOLD: 321500,      // Full pension limit (updated from $301,750)
-    SINGLE_ASSET_LIMIT: 714500,          // Part pension cutoff (updated from $686,500)
-    COUPLE_ASSET_THRESHOLD: 481500,      // Couple full pension limit
-    COUPLE_ASSET_LIMIT: 1074000,         // Couple part pension cutoff
+    SINGLE_ASSET_THRESHOLD: 321500,              // Full pension limit (homeowner)
+    SINGLE_ASSET_LIMIT: 714500,                  // Part pension cutoff (homeowner)
+    SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER: 563500, // Full pension limit (non-homeowner, +$242,000 supplement)
+    SINGLE_ASSET_LIMIT_NON_HOMEOWNER: 956500,     // Part pension cutoff (non-homeowner, +$242,000 supplement)
+    COUPLE_ASSET_THRESHOLD: 481500,              // Couple full pension limit (homeowner)
+    COUPLE_ASSET_LIMIT: 1074000,                 // Couple part pension cutoff (homeowner)
+    COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER: 723500, // Couple full pension limit (non-homeowner, +$242,000 supplement)
+    COUPLE_ASSET_LIMIT_NON_HOMEOWNER: 1316000,    // Couple part pension cutoff (non-homeowner, +$242,000 supplement)
+    // Non-homeowner supplement (the additional amount added to all thresholds, Sept 2025)
+    NON_HOMEOWNER_ASSET_SUPPLEMENT: 242000,
     // Income test thresholds (Sept 2025)
     SINGLE_INCOME_THRESHOLD: 218,        // Per fortnight (updated from $212)
     COUPLE_INCOME_THRESHOLD: 380,        // Per fortnight combined
     HOME_EQUITY_ACCESS_RATE: 0.7,
     CGT_DISCOUNT: 0.5,
     FRANKING_CREDIT_RATE: 0.3,
+    // Calendar constants used across financial calculations
+    WEEKS_IN_YEAR: 52,
+    FORTNIGHTS_IN_YEAR: 26,
+    MONTHS_IN_YEAR: 12,
+    AVERAGE_WEEKS_PER_MONTH: 52 / 12,    // ≈4.333 - used to convert weekly amounts to monthly
 
     sources: {
         SUPER_GUARANTEE_RATE: { source: 'ATO', lastUpdated: '2025-10-01' },
@@ -58,6 +69,13 @@ export const ENHANCED_CONFIG = {
         DEPRECIATION_RATE: 0.025,
         MAINTENANCE_PERCENT: 0.01,
         VACANCY_RATE: 0.04
+    },
+
+    // Fallback monthly expense estimates used when cash flow analysis is unavailable.
+    // These represent typical Australian household costs (2025 ABS Household Expenditure Survey).
+    EXPENSE_FALLBACKS: {
+        DEFAULT_MONTHLY_HOUSING_COST: 3000,  // Rent/mortgage estimate when no data available
+        DEFAULT_MONTHLY_LIVING_COST: 2500    // Food, transport, utilities estimate
     },
 
     // Risk profiling thresholds

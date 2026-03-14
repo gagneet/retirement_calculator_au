@@ -850,15 +850,15 @@ class RetirementCalculatorApp {
             </div>
             <div class="p-3 bg-blue-50 rounded flex justify-between">
                 <strong>Future Super:</strong>
-                <span class="font-semibold">${formatCurrency(result.futureSuper)} <a href="#" class="show-calc-link" data-calc-id="futureSuper">(show)</a></span>
+                <span class="font-semibold">${formatCurrency(result.accumulatedSuperBalance)} <a href="#" class="show-calc-link" data-calc-id="accumulatedSuperBalance">(show)</a></span>
             </div>
             <div class="p-3 bg-blue-50 rounded flex justify-between">
                 <strong>Future Savings:</strong>
-                <span class="font-semibold">${formatCurrency(result.futureSavings)} <a href="#" class="show-calc-link" data-calc-id="futureSavings">(show)</a></span>
+                <span class="font-semibold">${formatCurrency(result.accumulatedSavingsBalance)} <a href="#" class="show-calc-link" data-calc-id="accumulatedSavingsBalance">(show)</a></span>
             </div>
             <div class="p-3 bg-blue-50 rounded flex justify-between">
                 <strong>Future Investments:</strong>
-                <span class="font-semibold">${formatCurrency(result.futureStocks)} <a href="#" class="show-calc-link" data-calc-id="futureStocks">(show)</a></span>
+                <span class="font-semibold">${formatCurrency(result.accumulatedInvestmentPortfolio)} <a href="#" class="show-calc-link" data-calc-id="accumulatedInvestmentPortfolio">(show)</a></span>
             </div>
             <div class="p-3 bg-green-50 rounded flex justify-between">
                 <strong>Accessible Home Equity:</strong>
@@ -3731,25 +3731,25 @@ class RetirementCalculatorApp {
                     <p><strong>Values:</strong> ${inputs.retirementAge} - ${inputs.yourCurrentAge} = <strong>${result.yearlyData[0].year - new Date().getFullYear()} years</strong></p>
                 `;
                 break;
-            case 'futureSuper':
+            case 'accumulatedSuperBalance':
                 title = 'Future Superannuation';
                 content = `
                     <p>This is a year-by-year projection. The value shown is the sum of your and your partner's superannuation balances at retirement age.</p>
-                    <p><strong>Final Value:</strong> ${formatCurrency(result.futureSuper)}</p>
+                    <p><strong>Final Value:</strong> ${formatCurrency(result.accumulatedSuperBalance)}</p>
                 `;
                 break;
-            case 'futureSavings':
+            case 'accumulatedSavingsBalance':
                 title = 'Future Savings';
                 content = `
                     <p>This is a year-by-year projection of your cash savings, including interest earned and any additional savings from your income.</p>
-                    <p><strong>Final Value:</strong> ${formatCurrency(result.futureSavings)}</p>
+                    <p><strong>Final Value:</strong> ${formatCurrency(result.accumulatedSavingsBalance)}</p>
                 `;
                 break;
-            case 'futureStocks':
+            case 'accumulatedInvestmentPortfolio':
                 title = 'Future Investments';
                 content = `
                     <p>This is a year-by-year projection of your stock portfolio, including investment returns and monthly contributions.</p>
-                    <p><strong>Final Value:</strong> ${formatCurrency(result.futureStocks)}</p>
+                    <p><strong>Final Value:</strong> ${formatCurrency(result.accumulatedInvestmentPortfolio)}</p>
                 `;
                 break;
             case 'accessibleHomeEquity':
@@ -3770,7 +3770,7 @@ class RetirementCalculatorApp {
                 title = 'Total Assets at Retirement';
                 content = `
                     <p><strong>Formula:</strong> Future Super + Future Savings + Future Investments + Accessible Home Equity</p>
-                    <p><strong>Values:</strong> ${formatCurrency(result.futureSuper)} + ${formatCurrency(result.futureSavings)} + ${formatCurrency(result.futureStocks)} + ${formatCurrency(result.accessibleHomeEquity)} = <strong>${formatCurrency(result.totalFinancialAssets + result.accessibleHomeEquity)}</strong></p>
+                    <p><strong>Values:</strong> ${formatCurrency(result.accumulatedSuperBalance)} + ${formatCurrency(result.accumulatedSavingsBalance)} + ${formatCurrency(result.accumulatedInvestmentPortfolio)} + ${formatCurrency(result.accessibleHomeEquity)} = <strong>${formatCurrency(result.totalFinancialAssets + result.accessibleHomeEquity)}</strong></p>
                 `;
                 break;
             case 'incomeNeeded':
