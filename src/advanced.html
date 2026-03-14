@@ -2260,6 +2260,14 @@
         <div class="tab-content active p-6" id="outcome-tab">
             <div class="outcome-view-container" id="outcome-view-container">
 
+                <!-- OVERVIEW STATS BAR (populated after calculation) -->
+                <div class="outcome-overview-bar" id="outcome-overview-stats">
+                    <div class="outcome-overview-placeholder">
+                        <span>📊</span>
+                        <p>Run the calculation to see your retirement overview here.</p>
+                    </div>
+                </div>
+
                 <!-- REALITY CHECK CARD -->
                 <div class="reality-check-card">
                     <h2 class="reality-check-title">Your Retirement Reality Check</h2>
@@ -3763,6 +3771,25 @@
         updateDependentSummary();
     });
 </script>
+
+<!-- CHART DETAIL POPUP MODAL (shown when a chart data point is clicked) -->
+<div id="chart-detail-modal"
+     style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: var(--bg-secondary, #fff); border-radius: 16px; padding: 2rem; max-width: 640px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h3 id="chart-detail-title" style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary, #111827);">
+                Data Point Details
+            </h3>
+            <button onclick="app.closeChartDetail()"
+                    style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary, #6b7280); line-height: 1;">
+                ✕
+            </button>
+        </div>
+        <div id="chart-detail-content" style="font-size: 0.95rem; color: var(--text-secondary, #374151); line-height: 1.6;">
+            <!-- Content injected by app.showChartDetail() -->
+        </div>
+    </div>
+</div>
 
 <!-- ACTION DETAIL MODAL (for outcome view action implementation steps) -->
 <div id="action-detail-modal"

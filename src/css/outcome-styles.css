@@ -1229,3 +1229,80 @@
         gap: 0.5rem;
     }
 }
+
+/* =================================================================
+   OUTCOME OVERVIEW STATS BAR
+   Populated after calculation with key metrics from full simulation
+   ================================================================= */
+
+.outcome-overview-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, #1e40af 0%, #4338ca 100%);
+    border-radius: 14px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 20px rgba(67, 56, 202, 0.25);
+}
+
+.outcome-overview-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.95rem;
+}
+
+.outcome-overview-placeholder span {
+    font-size: 1.5rem;
+}
+
+.outcome-overview-placeholder p {
+    margin: 0;
+}
+
+.outcome-overview-stat {
+    flex: 1 1 160px;
+    min-width: 140px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    padding: 0.875rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: background 0.2s ease;
+}
+
+.outcome-overview-stat:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.outcome-overview-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 0.3rem;
+}
+
+.outcome-overview-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+}
+
+.outcome-overview-sublabel {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.55);
+    margin-top: 0.2rem;
+}
+
+@media (max-width: 640px) {
+    .outcome-overview-bar {
+        flex-direction: column;
+    }
+    .outcome-overview-stat {
+        flex: 1 1 auto;
+    }
+}

@@ -13,12 +13,12 @@
   "license": "ISC",
   "devDependencies": {
     "copy-webpack-plugin": "^14.0.0",
-    "css-loader": "^7.1.2",
+    "css-loader": "^7.1.4",
     "css-minimizer-webpack-plugin": "^8.0.0",
-    "html-webpack-plugin": "^5.6.4",
-    "mini-css-extract-plugin": "^2.9.4",
-    "terser-webpack-plugin": "^5.3.14",
-    "webpack": "^5.105.0",
+    "html-webpack-plugin": "^5.6.6",
+    "mini-css-extract-plugin": "^2.10.1",
+    "terser-webpack-plugin": "^5.4.0",
+    "webpack": "^5.105.4",
     "webpack-cli": "^7.0.0"
   }
 }

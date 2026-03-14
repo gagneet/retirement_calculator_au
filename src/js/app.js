@@ -76,6 +76,24 @@ import {
     initializeNumericInputs
 } from './utils.js';
 
+/**
+ * Maps form select values for overseas country to COUNTRY_PROFILES keys.
+ * Defined once here to avoid repetition across multiple methods.
+ */
+const OVERSEAS_COUNTRY_PROFILE_KEY_MAP = {
+    'portugal': 'PORTUGAL',
+    'spain': 'SPAIN',
+    'italy': 'ITALY',
+    'canada': 'CANADA',
+    'newzealand': 'NEW_ZEALAND',
+    'india': 'INDIA',
+    'thailand': 'THAILAND',
+    'bali': 'BALI',
+    'japan': 'JAPAN',
+    'malaysia': 'MALAYSIA',
+    'philippines': 'PHILIPPINES'
+};
+
 class RetirementCalculatorApp {
     constructor() {
         this.config = versionManager.getLatestConfig();
@@ -741,8 +759,83 @@ class RetirementCalculatorApp {
         if (!this.chartManager) {
             const { default: ChartManager } = await import(/* webpackChunkName: "charts" */ './charts.js');
             this.chartManager = new ChartManager();
+            // Wire up click handler so any chart data-point click opens the detail popup
+            this.chartManager.onDataPointClick = (chartId, datasetLabel, label, value, extra) => {
+                this.showChartDetail(chartId, datasetLabel, label, value, extra);
+            };
         }
         return this.chartManager;
+    }
+
+    /**
+     * Open the chart detail popup with context about the clicked data point.
+     * @param {string} chartId
+     * @param {string} datasetLabel
+     * @param {string|number} label  - x-axis label (age, year, country, etc.)
+     * @param {number} value         - y-axis value
+     * @param {Object} extra         - additional context from _buildClickHandler
+     */
+    showChartDetail(chartId, datasetLabel, label, value, extra = {}) {
+        const modal = $('chart-detail-modal');
+        const titleEl = $('chart-detail-title');
+        const contentEl = $('chart-detail-content');
+        if (!modal || !titleEl || !contentEl) return;
+
+        // Build a human-readable title
+        const chartTitles = {
+            fanChart: 'Portfolio Balance Projection',
+            allocationChart: 'Asset Allocation',
+            propertyChart: 'Portfolio vs Property',
+            healthcareChart: 'Healthcare Costs',
+            propertyCashFlowChart: 'Property Cash Flow',
+            sequenceRiskChart: 'Sequence of Returns Risk',
+            overseasCostChart: 'Overseas Cost of Living',
+            overseasPensionChart: 'Age Pension Portability'
+        };
+        titleEl.textContent = chartTitles[chartId] || 'Chart Details';
+
+        // Format the value depending on whether it is numeric
+        const formattedValue = (typeof value === 'number' && !isNaN(value))
+            ? formatCurrency(Math.abs(value))
+            : String(value ?? '');
+
+        const labelKey = extra.age ? 'Age' : extra.year ? 'Year' : extra.country ? 'Country' : 'Label';
+        const labelValue = extra.age ?? extra.year ?? extra.country ?? label;
+
+        contentEl.innerHTML = `
+            <div style="display:grid;gap:0.75rem;">
+                <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:140px;background:#f3f4f6;border-radius:8px;padding:0.75rem;">
+                        <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;margin-bottom:0.25rem;">${labelKey}</div>
+                        <div style="font-weight:700;font-size:1.1rem;color:#111827;">${labelValue}</div>
+                    </div>
+                    ${datasetLabel ? `
+                    <div style="flex:1;min-width:140px;background:#f3f4f6;border-radius:8px;padding:0.75rem;">
+                        <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;margin-bottom:0.25rem;">Series</div>
+                        <div style="font-weight:600;color:#374151;">${datasetLabel}</div>
+                    </div>` : ''}
+                    <div style="flex:1;min-width:140px;background:#eff6ff;border-radius:8px;padding:0.75rem;">
+                        <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#3b82f6;margin-bottom:0.25rem;">Value</div>
+                        <div style="font-weight:700;font-size:1.1rem;color:#1d4ed8;">${formattedValue}</div>
+                    </div>
+                </div>
+                ${extra.description ? `
+                <div style="background:#fafafa;border-left:3px solid #4f46e5;border-radius:0 8px 8px 0;padding:0.875rem 1rem;color:#374151;line-height:1.6;">
+                    ${extra.description}
+                </div>` : ''}
+                ${extra.probability !== undefined ? `
+                <div style="background:#fef3c7;border-radius:8px;padding:0.75rem;color:#92400e;">
+                    <strong>Probability:</strong> ${extra.probability}%
+                </div>` : ''}
+            </div>
+        `;
+
+        modal.style.display = 'flex';
+    }
+
+    closeChartDetail() {
+        const modal = $('chart-detail-modal');
+        if (modal) modal.style.display = 'none';
     }
 
     // Main calculation function
@@ -4045,13 +4138,6 @@ class RetirementCalculatorApp {
      * Compares the selected country against a set of reference destinations.
      */
     buildOverseasChartData(config, baseInputs, analyzer) {
-        // Countries to compare (always show 4-6 destinations for context)
-        const profileKeyMap = {
-            'portugal': 'PORTUGAL', 'spain': 'SPAIN', 'italy': 'ITALY',
-            'canada': 'CANADA', 'newzealand': 'NEW_ZEALAND', 'india': 'INDIA',
-            'thailand': 'THAILAND', 'bali': 'BALI', 'japan': 'JAPAN',
-            'malaysia': 'MALAYSIA', 'philippines': 'PHILIPPINES'
-        };
         // Always show selected country + 4 popular alternatives for comparison
         const defaultComparisons = ['thailand', 'portugal', 'malaysia', 'bali', 'newzealand'];
         const selectedKey = config.country;
@@ -4062,7 +4148,7 @@ class RetirementCalculatorApp {
         const suitabilityRadar = [];
 
         for (const key of compareKeys) {
-            const profileKey = profileKeyMap[key];
+            const profileKey = OVERSEAS_COUNTRY_PROFILE_KEY_MAP[key];
             if (!profileKey || !COUNTRY_PROFILES[profileKey]) continue;
 
             const profile = COUNTRY_PROFILES[profileKey];
@@ -4107,17 +4193,21 @@ class RetirementCalculatorApp {
 
     // Collect overseas configuration from form inputs
     collectOverseasConfig() {
-        const residenceYears = safeGetValue('australianResidenceYears', '');
+        const residenceYearsRaw = getRawValue('australianResidenceYears', '');
         return {
-            country: safeGetValue('overseasCountry', ''),
+            country: safeGetSelectValue('overseasCountry', ''),
             departureAge: parseInt(safeGetValue('overseasAge', 65)),
-            returnFrequency: safeGetValue('returnFrequency', 'annually'),
+            returnFrequency: safeGetSelectValue('returnFrequency', 'annually'),
             maintainResidency: safeGetChecked('maintainResidency', false),
-            propertyStrategy: safeGetValue('propertyStrategy', 'keep-personal'),
-            trustBeneficiaries: safeGetValue('trustBeneficiaries', 'you-only'),
-            superAccess: safeGetValue('superAccess', 'pension-mode'),
+            propertyStrategy: safeGetSelectValue('propertyStrategy', 'keep-personal'),
+            trustBeneficiaries: safeGetSelectValue('trustBeneficiaries', 'you-only'),
+            superAccess: safeGetSelectValue('superAccess', 'pension-mode'),
             estimatedLivingCosts: parseFloat(safeGetValue('estimatedLivingCosts', 60000)),
-            australianResidenceYears: residenceYears !== '' ? parseInt(residenceYears) : null
+            australianResidenceYears: (() => {
+                if (residenceYearsRaw === '') return null;
+                const parsed = parseInt(residenceYearsRaw, 10);
+                return isNaN(parsed) ? null : parsed;
+            })()
         };
     }
 
@@ -4233,21 +4323,7 @@ class RetirementCalculatorApp {
 
     // Get country-specific data from COUNTRY_PROFILES, falling back to a simple map
     getCountryData(country) {
-        // Map form values to COUNTRY_PROFILES keys
-        const profileKeyMap = {
-            'portugal': 'PORTUGAL',
-            'spain': 'SPAIN',
-            'italy': 'ITALY',
-            'canada': 'CANADA',
-            'newzealand': 'NEW_ZEALAND',
-            'india': 'INDIA',
-            'thailand': 'THAILAND',
-            'bali': 'BALI',
-            'japan': 'JAPAN',
-            'malaysia': 'MALAYSIA',
-            'philippines': 'PHILIPPINES'
-        };
-        const profileKey = profileKeyMap[country];
+        const profileKey = OVERSEAS_COUNTRY_PROFILE_KEY_MAP[country];
         if (profileKey) {
             const profile = COUNTRY_PROFILES?.[profileKey];
             if (profile) {
@@ -4298,11 +4374,9 @@ class RetirementCalculatorApp {
 
     // Calculate various impacts using real OverseasRetirementAnalyzer data where available
     calculateOverseasImpact(config, baseInputs, type) {
-        const countryData = this.getCountryData(config.country);
         // Calculate effective annual income in retirement
         const pensionAnalyzer = this._buildOverseasAnalyzer(config, baseInputs);
-        const profileKeyMap = { 'portugal': 'PORTUGAL', 'spain': 'SPAIN', 'italy': 'ITALY', 'canada': 'CANADA', 'newzealand': 'NEW_ZEALAND', 'india': 'INDIA', 'thailand': 'THAILAND', 'bali': 'BALI', 'japan': 'JAPAN', 'malaysia': 'MALAYSIA', 'philippines': 'PHILIPPINES' };
-        const profileKey = profileKeyMap[config.country];
+        const profileKey = OVERSEAS_COUNTRY_PROFILE_KEY_MAP[config.country];
         if (profileKey) {
             const analysis = pensionAnalyzer.analyzeCountry(profileKey);
             if (analysis && !analysis.error) {
@@ -4320,13 +4394,11 @@ class RetirementCalculatorApp {
 
     calculateAgePensionImpact(config, baseInputs) {
         const analyzer = this._buildOverseasAnalyzer(config, baseInputs);
-        const profileKeyMap = { 'portugal': 'PORTUGAL', 'spain': 'SPAIN', 'italy': 'ITALY', 'canada': 'CANADA', 'newzealand': 'NEW_ZEALAND', 'india': 'INDIA', 'thailand': 'THAILAND', 'bali': 'BALI', 'japan': 'JAPAN', 'malaysia': 'MALAYSIA', 'philippines': 'PHILIPPINES' };
-        const profileKey = profileKeyMap[config.country];
+        const profileKey = OVERSEAS_COUNTRY_PROFILE_KEY_MAP[config.country];
         if (profileKey) {
             const profile = COUNTRY_PROFILES?.[profileKey];
             if (profile) {
                 const portability = analyzer.calculatePensionPortability(profile);
-                const inAus = portability.pensionCalculation.inAustralia;
                 const overseas = portability.pensionCalculation.overseas;
                 if (portability.hasAgreement && portability.fullPortability) {
                     return `Full rate (SSA country): ~$${overseas.toLocaleString()}/year`;
@@ -6638,26 +6710,42 @@ class RetirementCalculatorApp {
 
     displayOutcomeResults(outcome, actions, resilience) {
         // Update reality check card
-        safeSetText('outcome-retirement-age', outcome.yearsToRetirement + outcome.inputs.currentAge);
+        // Fix: outcome.retirementAge is the correct property (not outcome.inputs.currentAge)
+        safeSetText('outcome-retirement-age', outcome.retirementAge);
+        safeSetText('outcome-years-to-go', outcome.yearsToRetirement);
         safeSetText('outcome-target-income', formatCurrency(outcome.targetIncome));
         safeSetText('outcome-super-balance', formatCurrency(outcome.superAtRetirement));
         safeSetText('outcome-age-pension', formatCurrency(outcome.agePension));
         safeSetText('outcome-annual-income', formatCurrency(outcome.sustainableIncome));
 
+        // Update lifestyle type label
+        const lifestyleType = outcome.targetIncome >= 90000 ? 'Comfortable+' : 'Comfortable';
+        safeSetText('outcome-lifestyle-type', lifestyleType);
+
         // Update gap/surplus indicator
         const gapIndicator = $('outcome-gap-indicator');
         const gapAmount = $('outcome-gap-amount');
+        const gapSubtitle = $('outcome-gap-subtitle');
+        const gapWeeklyEl = $('outcome-gap-weekly');
         if (gapIndicator && gapAmount) {
             if (outcome.status === 'SHORTFALL') {
                 gapIndicator.className = 'gap-indicator shortfall';
                 gapAmount.textContent = `${formatCurrency(Math.abs(outcome.gap))}/year`;
-                $('outcome-gap-subtitle').textContent = `${formatCurrency(Math.abs(outcome.gapPerWeek))}/week shortfall`;
+                // Update the existing weekly span directly to avoid duplicate IDs
+                if (gapWeeklyEl) {
+                    gapWeeklyEl.textContent = formatCurrency(Math.abs(outcome.gapPerWeek));
+                } else if (gapSubtitle) {
+                    gapSubtitle.textContent = `${formatCurrency(Math.abs(outcome.gapPerWeek))}/week shortfall`;
+                }
             } else {
                 gapIndicator.className = 'gap-indicator surplus';
-                gapAmount.textContent = `${formatCurrency(outcome.gap)}/year surplus`;
-                $('outcome-gap-subtitle').textContent = 'You\'re on track for a comfortable retirement!';
+                gapAmount.textContent = `${formatCurrency(Math.abs(outcome.gap))}/year surplus`;
+                if (gapSubtitle) gapSubtitle.textContent = 'You\'re on track for a comfortable retirement!';
             }
         }
+
+        // Populate full-simulation overview if simulation results are available
+        this.displayOutcomeOverview(outcome);
 
         // Display action cards
         this.displayActionCards(actions);
@@ -6667,11 +6755,65 @@ class RetirementCalculatorApp {
             this.displayResilienceAnalysis(resilience);
         }
 
-        // Show outcome view
+        // Show outcome view (add 'active' class which enables display:block per CSS)
         const outcomeContainer = $('outcome-view-container');
         if (outcomeContainer) {
-            outcomeContainer.classList.remove('hidden');
+            outcomeContainer.classList.add('active');
         }
+    }
+
+    /**
+     * Populate the outcome overview stats bar using the full simulation results
+     * (currentResults) and the conservative outcome engine result.
+     */
+    displayOutcomeOverview(outcome) {
+        const overviewEl = $('outcome-overview-stats');
+        if (!overviewEl) return;
+
+        const sim = this.currentResults;
+
+        const totalAssets = sim
+            ? formatCurrency(sim.totalFinancialAssets + (sim.accessibleHomeEquity || 0))
+            : formatCurrency(outcome.superAtRetirement);
+
+        const projectedSuper = sim
+            ? formatCurrency(sim.accumulatedSuperBalance)
+            : formatCurrency(outcome.superAtRetirement);
+
+        const sustainableIncome = formatCurrency(outcome.sustainableIncome);
+        const targetIncome = formatCurrency(outcome.targetIncome);
+
+        const statusColor = outcome.status === 'SHORTFALL' ? '#ef4444' : '#22c55e';
+        const statusIcon = outcome.status === 'SHORTFALL' ? '⚠️' : '✅';
+        const statusLabel = outcome.status === 'SHORTFALL' ? 'Shortfall' : 'On Track';
+
+        overviewEl.innerHTML = `
+            <div class="outcome-overview-stat">
+                <div class="outcome-overview-label">Total Assets at Retirement</div>
+                <div class="outcome-overview-value">${totalAssets}</div>
+                <div class="outcome-overview-sublabel">${sim ? 'Full simulation' : 'Conservative estimate'}</div>
+            </div>
+            <div class="outcome-overview-stat">
+                <div class="outcome-overview-label">Super at Retirement</div>
+                <div class="outcome-overview-value">${projectedSuper}</div>
+                <div class="outcome-overview-sublabel">${sim ? 'Projected (full model)' : 'Conservative estimate'}</div>
+            </div>
+            <div class="outcome-overview-stat">
+                <div class="outcome-overview-label">Sustainable Annual Income</div>
+                <div class="outcome-overview-value">${sustainableIncome}</div>
+                <div class="outcome-overview-sublabel">4% drawdown + Age Pension</div>
+            </div>
+            <div class="outcome-overview-stat">
+                <div class="outcome-overview-label">Target Income</div>
+                <div class="outcome-overview-value">${targetIncome}</div>
+                <div class="outcome-overview-sublabel">ASFA comfortable standard</div>
+            </div>
+            <div class="outcome-overview-stat">
+                <div class="outcome-overview-label">Status</div>
+                <div class="outcome-overview-value" style="color: ${statusColor};">${statusIcon} ${statusLabel}</div>
+                <div class="outcome-overview-sublabel">${outcome.yearsToRetirement} years to go</div>
+            </div>
+        `;
     }
 
     displayActionCards(actions) {
