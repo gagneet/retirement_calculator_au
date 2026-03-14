@@ -6,16 +6,33 @@
   "scripts": {
     "build": "webpack",
     "deploy": "bash deploy.sh",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --testPathPatterns=tests/"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "transform": {
+      "^.+\\.js$": "babel-jest"
+    },
+    "moduleNameMapper": {
+      "\\.(css|less|scss)$": "<rootDir>/tests/__mocks__/fileMock.js"
+    }
+  },
+  "babel": {
+    "presets": [["@babel/preset-env", {"targets": {"node": "current"}}]]
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.0",
+    "babel-jest": "^30.3.0",
     "copy-webpack-plugin": "^14.0.0",
     "css-loader": "^7.1.4",
     "css-minimizer-webpack-plugin": "^8.0.0",
     "html-webpack-plugin": "^5.6.6",
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0",
     "mini-css-extract-plugin": "^2.10.1",
     "terser-webpack-plugin": "^5.4.0",
     "webpack": "^5.105.4",

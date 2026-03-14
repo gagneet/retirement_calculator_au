@@ -246,8 +246,8 @@
     </script>
     <!-- Note: The 'autoSendContentViewEvent' error in the console is from an external script and is not part of this codebase. -->
     <!--  The CDN scripts lack integrity hashes for security verification. Consider adding integrity attributes to ensure the scripts haven't been tampered with, similar to the existing Chart.js CDN. -->
-    <script crossorigin="anonymous" integrity="sha256-Lye89HGy1p3XhJT24hcvsoRw64Q4IOL5a7hdOflhjTA="
-            src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-SERKgtTty1vsDxll+qzd4Y2cF9swY9BCq62i9wXJ9Uo="
+            src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
     <script crossorigin="anonymous"
             integrity="sha256-yVBhl8r4CaB1tt7h2g02+xnacVj/6KiOewyWxdhiPJk=" src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script crossorigin="anonymous"
@@ -797,7 +797,7 @@
                      id="navDropdown">
                     <div class="py-1">
                         <a class="flex items-center px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 bg-blue-50"
-                           href="index.html">
+                           href="index.html?skip=true">
                             <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path d="M10 19l-7-7m0 0l7-7m-7 7h18" stroke-linecap="round" stroke-linejoin="round"
                                       stroke-width="2"></path>
@@ -2258,15 +2258,16 @@
 
         <!-- Outcome View Tab (NEW - Simplified outcome-focused view) -->
         <div class="tab-content active p-6" id="outcome-tab">
-            <div class="outcome-view-container" id="outcome-view-container">
 
-                <!-- OVERVIEW STATS BAR (populated after calculation) -->
+                <!-- OVERVIEW STATS BAR - always visible with placeholder before calculation -->
                 <div class="outcome-overview-bar" id="outcome-overview-stats">
                     <div class="outcome-overview-placeholder">
                         <span>📊</span>
                         <p>Run the calculation to see your retirement overview here.</p>
                     </div>
                 </div>
+
+            <div class="outcome-view-container" id="outcome-view-container">
 
                 <!-- REALITY CHECK CARD -->
                 <div class="reality-check-card">
@@ -3922,13 +3923,23 @@
         const fromOnboarding = urlParams.get('onboarding') === 'true';
         const hasCompleted = localStorage.getItem('hasVisitedCalculator') === 'true';
 
-        // If coming from onboarding or user has completed it before, hide the advanced calculator
-        if (fromOnboarding || hasCompleted) {
-            const form = document.getElementById('advancedCalculatorForm');
-            const button = document.getElementById('showAdvancedCalculatorButton');
+        const form = document.getElementById('advancedCalculatorForm');
+        const button = document.getElementById('showAdvancedCalculatorButton');
 
+        // If coming from onboarding or user has completed it before, hide the advanced calculator form
+        if (fromOnboarding || hasCompleted) {
             if (form) form.style.display = 'none';
-            if (button) button.classList.remove('hidden');
+            if (button) {
+                button.classList.remove('hidden');
+                // Text is already 'Show Advanced Calculator (Optional)' from HTML
+            }
+        } else {
+            // Direct access without onboarding - form is visible, show button with 'Hide' text
+            if (button) {
+                button.classList.remove('hidden');
+                const btn = button.querySelector('button');
+                if (btn) btn.innerHTML = '📊 Hide Advanced Calculator';
+            }
         }
     });
 </script>

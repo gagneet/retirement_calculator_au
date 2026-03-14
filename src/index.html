@@ -1248,13 +1248,21 @@
         // Check if user has completed onboarding
         window.addEventListener('DOMContentLoaded', function () {
             const hasCompleted = localStorage.getItem('hasVisitedCalculator') === 'true';
+            const form = document.getElementById('advancedCalculatorForm');
+            const button = document.getElementById('showAdvancedCalculatorButton');
 
             if (hasCompleted) {
-                const form = document.getElementById('advancedCalculatorForm');
-                const button = document.getElementById('showAdvancedCalculatorButton');
-
                 if (form) form.style.display = 'none';
-                if (button) button.classList.remove('hidden');
+                if (button) {
+                    button.classList.remove('hidden');
+                }
+            } else {
+                // Form is visible by default - show button with 'Hide' text
+                if (button) {
+                    button.classList.remove('hidden');
+                    const btn = button.querySelector('button');
+                    if (btn) btn.innerHTML = '📊 Hide Advanced Calculator';
+                }
             }
         });
     </script>
@@ -1277,6 +1285,15 @@
 
         <!-- Outcome View Tab (NEW - Simplified outcome-focused view) -->
         <div class="tab-content active p-6" id="outcome-tab">
+
+                <!-- OVERVIEW STATS BAR - always visible with placeholder before calculation -->
+                <div class="outcome-overview-bar" id="outcome-overview-stats">
+                    <div class="outcome-overview-placeholder">
+                        <span>📊</span>
+                        <p>Run the calculation to see your retirement overview here.</p>
+                    </div>
+                </div>
+
             <div class="outcome-view-container" id="outcome-view-container">
 
                 <!-- REALITY CHECK CARD -->
@@ -1594,8 +1611,10 @@
     <script>
         // Check if user has seen homepage before
         const hasVisitedBefore = localStorage.getItem('hasVisitedCalculator');
+        const urlParams = new URLSearchParams(window.location.search);
+        const skipRedirect = urlParams.get('skip') === 'true';
 
-        if (!hasVisitedBefore) {
+        if (!hasVisitedBefore && !skipRedirect) {
             // First-time visitor - auto-start onboarding immediately
             sessionStorage.setItem('startOnboarding', 'true');
             window.location.href = 'advanced.html?onboarding=true';

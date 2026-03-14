@@ -44,7 +44,7 @@ export class ChartManager {
             // First, try to get chart from Chart.js global registry
             const canvas = document.getElementById(chartId);
             if (canvas) {
-                const existingChart = Chart.getChart(canvas);
+                const existingChart = typeof Chart !== 'undefined' ? Chart.getChart(canvas) : null;
                 if (existingChart) {
                     existingChart.destroy();
                 }
@@ -78,10 +78,12 @@ export class ChartManager {
         if (!canvas) return;
 
         // Double-check for any existing chart on this canvas
-        const existingChart = Chart.getChart(canvas);
-        if (existingChart) {
-            console.warn('Found existing chart on fanChart canvas, destroying it');
-            existingChart.destroy();
+        if (typeof Chart !== 'undefined') {
+            const existingChart = Chart.getChart(canvas);
+            if (existingChart) {
+                console.warn('Found existing chart on fanChart canvas, destroying it');
+                existingChart.destroy();
+            }
         }
 
         const ctx = canvas.getContext('2d');
@@ -158,10 +160,12 @@ export class ChartManager {
         if (!canvas || !paths || paths.length === 0) return;
 
         // Double-check for any existing chart on this canvas
-        const existingChart = Chart.getChart(canvas);
-        if (existingChart) {
-            console.warn('Found existing chart on fanChart canvas, destroying it');
-            existingChart.destroy();
+        if (typeof Chart !== 'undefined') {
+            const existingChart = Chart.getChart(canvas);
+            if (existingChart) {
+                console.warn('Found existing chart on fanChart canvas, destroying it');
+                existingChart.destroy();
+            }
         }
 
         // Ensure canvas is properly reset
