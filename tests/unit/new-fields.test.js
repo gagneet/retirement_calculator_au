@@ -55,6 +55,8 @@ const effectiveSalary = (inputs, age) => {
 
 /**
  * Calculate effective work income accounting for carer responsibilities.
+ * @param {Object} inputs - carerReducedWorkPercent is a decimal fraction (0–1),
+ *   e.g. 0.2 means 20% reduction. This matches the collectInputs() division by 100.
  */
 const effectiveCarerSalary = (inputs, salary) => {
     if (inputs.isCarerForParents && inputs.carerReducedWorkPercent > 0) {

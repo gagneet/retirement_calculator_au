@@ -531,21 +531,27 @@ export class RetirementSimulator {
             salary *= (1 - inputs.leanYearsReduction / 100);
         }
 
-        // Apply reduced income scenario if enabled
+        // Apply reduced income scenario if enabled.
+        // reducedIncomeSalary is in today's dollars, so inflate only from the year
+        // of reduction (not from year 0 of the simulation).
         if (inputs.enableReducedIncome) {
-            const currentAge = inputs.yourCurrentAge + year;
             if (isPartner) {
                 if (inputs.partnerReducedIncomeAge > 0 && inputs.partnerReducedIncomeSalary > 0 &&
                     inputs.partnerCurrentAge > 0) {
                     const partnerCurrentAge = inputs.partnerCurrentAge + year;
                     if (partnerCurrentAge >= inputs.partnerReducedIncomeAge) {
-                        salary = inputs.partnerReducedIncomeSalary * Math.pow(1 + inflationRate, year);
+                        const reductionYear = inputs.partnerReducedIncomeAge - inputs.partnerCurrentAge;
+                        const yearsAfterReduction = Math.max(0, year - reductionYear);
+                        salary = inputs.partnerReducedIncomeSalary * Math.pow(1 + inflationRate, yearsAfterReduction);
                     }
                 }
             } else {
+                const currentAge = inputs.yourCurrentAge + year;
                 if (inputs.reducedIncomeAge > 0 && inputs.reducedIncomeSalary > 0 &&
                     currentAge >= inputs.reducedIncomeAge) {
-                    salary = inputs.reducedIncomeSalary * Math.pow(1 + inflationRate, year);
+                    const reductionYear = inputs.reducedIncomeAge - inputs.yourCurrentAge;
+                    const yearsAfterReduction = Math.max(0, year - reductionYear);
+                    salary = inputs.reducedIncomeSalary * Math.pow(1 + inflationRate, yearsAfterReduction);
                 }
             }
         }
