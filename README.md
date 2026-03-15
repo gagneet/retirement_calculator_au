@@ -2,6 +2,23 @@
 
 A comprehensive, AI-powered retirement planning calculator specifically designed for the Australian financial system. Features advanced modeling capabilities including investment property analysis, trust structures, superannuation optimization, and a sophisticated **decision support engine** that provides actionable recommendations across 8 strategic areas.
 
+## Recent Updates (2026)
+
+### PDF Export Fix and Enhancements
+Fixed an undefined variable bug that caused PDF export to fail silently. The PDF report now includes a Table of Contents, all projection years (not capped at 25), a Personalized Suggestions section, a Persona-Based Recommendations section, and visual section dividers for improved readability.
+
+### XLSX Export Enhancements
+The multi-sheet XLSX workbook now includes two additional sheets: **Suggestions** (user-specific quick-win actions ranked by impact) and **Persona Recommendations** (personalized recommendations based on the detected user persona such as High Earner, Business Owner, or Property Investor).
+
+### Home Page Structure Fix
+Fixed a broken 4-column grid layout in `index.html` where the Property, Economic, and Pension columns were incorrectly nested inside the Personal & Risk Profile column. Added the missing `action-buttons-container` div that houses Calculate, Monte Carlo, Stress Test, and other action buttons. Fixed the How It Works section to correctly display Quick Start content outside the calculator form.
+
+### SEO Improvements
+Added `sitemap.xml` to the `src/` directory with an entry for `advanced.html` and updated `lastmod` dates to 2026-03-15. Updated the root `sitemap.xml` with all current pages and the advanced calculator entry. Robots.txt references the production sitemap URL.
+
+### Advanced Calculator
+Column structure verified and working correctly with the 4-column grid (`lg:grid-cols-4`) displaying Personal & Risk Profile, Property Portfolio, Economic & Asset Allocation, and Age Pension as equal siblings.
+
 ## 🎯 **NEW: Comprehensive Decision Support Engine**
 
 **Evolution from Descriptive to Prescriptive**: This calculator now provides actionable, prioritized recommendations rather than just analysis. The AI engine evaluates your entire financial situation and suggests specific actions with timing, confidence levels, and expected benefits.
