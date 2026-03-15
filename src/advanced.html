@@ -994,11 +994,10 @@
     </div>
 
     <!-- Action Buttons Section (Initially Hidden) -->
-    <div class="hidden mb-8" id="action-buttons-container">
+    <div class="mb-8" id="action-buttons-container">
         <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
             <h3 class="text-lg font-semibold mb-4 text-gray-800">🚀 Advanced Analysis Tools</h3>
-            <p class="text-gray-600 mb-4">Your onboarding data has been transferred to the calculator below. Use these
-                tools to run detailed analysis:</p>
+            <p class="text-gray-600 mb-4">Use these tools to run detailed retirement analysis based on your data in the calculator below:</p>
 
             <!-- Calculator Action Buttons -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
@@ -1127,7 +1126,7 @@
     </div>
 
     <!-- Advanced Calculator Form (hidden by default after onboarding) -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6" id="advancedCalculatorForm">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start" id="advancedCalculatorForm">
         <!-- Column 1: Personal & Risk Profile -->
         <div class="lg:col-span-1 section-personal-risk">
             <h2 class="text-xl font-semibold mb-4 border-b pb-2">
@@ -1214,7 +1213,7 @@
                 </div>
                 <!-- Age Came to Australia - Item 7 -->
                 <div class="col-span-2 mt-2">
-                    <div class="bg-indigo-50 dark:bg-indigo-900 rounded-lg p-3 border border-indigo-200 dark:border-indigo-700">
+                    <div class="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
                         <h4 class="text-sm font-semibold text-indigo-800 dark:text-indigo-200 mb-3">🇦🇺 Australian Residency &amp; Earnings History</h4>
                         <div class="grid grid-cols-1 gap-3">
                             <div>
@@ -1606,7 +1605,7 @@
             </div>
 
                 <div>
-                    <div class="bg-purple-50 dark:bg-purple-900 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
+                    <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
                         <div class="label-with-tooltip mb-3">
                             <h4 class="text-sm font-semibold text-purple-800 dark:text-purple-200">👴👵 Aged Parents &amp; Family Carers</h4>
                             <div class="tooltip tooltip-right">
@@ -1686,7 +1685,7 @@
                 </div>
                 <!-- Reduced Income Scenario - Item 10 -->
                 <div class="col-span-2 mt-2">
-                    <div class="bg-amber-50 dark:bg-amber-900 rounded-lg p-3 border border-amber-200 dark:border-amber-700">
+                    <div class="bg-amber-50 rounded-lg p-3 border border-amber-200">
                         <div class="label-with-tooltip mb-2">
                             <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200">📉 Reduced Income Scenario</h4>
                             <div class="tooltip tooltip-right">
@@ -2863,6 +2862,17 @@
             <div class="space-y-4" id="recommendationsContainer">
                 <!-- Recommendations will be populated here by JavaScript -->
             </div>
+
+            <!-- Back to Action Buttons -->
+            <div class="mt-6 text-center">
+                <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                        onclick="scrollToActionButtons()">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Back to Action Buttons
+                </button>
+            </div>
         </div>
 
         <!-- Suggestions Tab Content -->
@@ -2979,6 +2989,17 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Back to Action Buttons -->
+            <div class="mt-6 text-center">
+                <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                        onclick="scrollToActionButtons()">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Back to Action Buttons
+                </button>
+            </div>
         </div>
 
         <!-- Year-by-Year Tab -->
@@ -3034,6 +3055,17 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Back to Action Buttons -->
+            <div class="mt-6 text-center">
+                <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                        onclick="scrollToActionButtons()">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Back to Action Buttons
+                </button>
+            </div>
         </div>
 
         <!-- Property Analysis Tab -->
@@ -3042,6 +3074,17 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="propertyAnalysis">
                 <!-- Property analysis will be populated -->
             </div>
+
+            <!-- Back to Action Buttons -->
+            <div class="mt-6 text-center">
+                <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                        onclick="scrollToActionButtons()">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Back to Action Buttons
+                </button>
+            </div>
         </div>
 
         <!-- Risk Analysis Tab -->
@@ -3049,6 +3092,17 @@
             <h2 class="text-2xl font-semibold mb-4">Risk Analysis</h2>
             <div class="w-full" id="riskAnalysisContent">
                 <!-- Risk analysis will be populated -->
+            </div>
+
+            <!-- Back to Action Buttons -->
+            <div class="mt-6 text-center">
+                <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                        onclick="scrollToActionButtons()">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Back to Action Buttons
+                </button>
             </div>
         </div>
 
@@ -3102,6 +3156,17 @@
                     <canvas id="propertyChart"></canvas>
                 </div>
             </div>
+
+            <!-- Back to Action Buttons -->
+            <div class="mt-6 text-center">
+                <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                        onclick="scrollToActionButtons()">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Back to Action Buttons
+                </button>
+            </div>
         </div>
 
         <!-- Optimization Tab -->
@@ -3139,6 +3204,17 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="optimizationContent">
                 <!-- Optimization strategies will be populated -->
+            </div>
+
+            <!-- Back to Action Buttons -->
+            <div class="mt-6 text-center">
+                <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                        onclick="scrollToActionButtons()">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Back to Action Buttons
+                </button>
             </div>
         </div>
 
@@ -3339,6 +3415,17 @@
                     <p>• <strong>Professional Advice:</strong> Complex area requiring tax and legal expertise</p>
                 </div>
             </div>
+
+            <!-- Back to Action Buttons -->
+            <div class="mt-6 text-center">
+                <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                        onclick="scrollToActionButtons()">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Back to Action Buttons
+                </button>
+            </div>
         </div>
 
         <!-- Scenario Comparison Tab -->
@@ -3449,6 +3536,17 @@
                         <canvas height="400" id="scenarioComparisonChart" width="800"></canvas>
                     </div>
                 </div>
+            </div>
+
+            <!-- Back to Action Buttons -->
+            <div class="mt-6 text-center">
+                <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                        onclick="scrollToActionButtons()">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Back to Action Buttons
+                </button>
             </div>
         </div>
 
@@ -3564,6 +3662,17 @@
                 <div class="mb-6 bg-white border rounded-lg p-5" id="simRecommendationsSection">
                     <h3 class="text-lg font-semibold mb-3">💡 Personalised Recommendations</h3>
                     <div id="simRecommendationsList"></div>
+                </div>
+
+                <!-- Back to Action Buttons -->
+                <div class="mt-6 text-center">
+                    <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                            onclick="scrollToActionButtons()">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                        </svg>
+                        Back to Action Buttons
+                    </button>
                 </div>
 
             </div>
