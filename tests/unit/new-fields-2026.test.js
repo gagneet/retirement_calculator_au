@@ -229,7 +229,7 @@ describe('Education Costs for Dependents (PART 4)', () => {
         expect(calcAnnualEducationCost(inputs)).toBe(5000 + 25000);
     });
 
-    test('university support adds $15,000 per child', () => {
+    test('university support adds $15,000 per child per year while studying', () => {
         const inputs = { teenagers: 1, educationCostPerChild: 5000, universitySupport: true };
         expect(calcAnnualEducationCost(inputs)).toBe(5000 + 15000);
     });
