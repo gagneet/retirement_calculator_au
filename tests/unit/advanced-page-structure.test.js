@@ -1,0 +1,198 @@
+/**
+ * Tests for src/advanced.html structural correctness and UX fixes.
+ *
+ * Verifies:
+ *  1. Action buttons container is visible by default (no hidden class)
+ *  2. Calculator form uses 4-column grid with md breakpoint
+ *  3. Dark-mode problem blocks do NOT have dark background overrides
+ *  4. All result tabs include a "Back to Action Buttons" link
+ *  5. Sections are ordered correctly as siblings in the grid
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+describe('Advanced page structure (advanced.html)', () => {
+    let html;
+
+    beforeAll(() => {
+        const filePath = path.join(__dirname, '../../src/advanced.html');
+        html = fs.readFileSync(filePath, 'utf-8');
+    });
+
+    // -------------------------------------------------------------------------
+    // File sanity
+    // -------------------------------------------------------------------------
+
+    test('file exists and is non-empty', () => {
+        expect(html).toBeTruthy();
+        expect(html.length).toBeGreaterThan(10000);
+    });
+
+    // -------------------------------------------------------------------------
+    // Fix 1: Column layout
+    // -------------------------------------------------------------------------
+
+    test('advancedCalculatorForm uses lg:grid-cols-4 for desktop', () => {
+        expect(html).toContain('lg:grid-cols-4');
+    });
+
+    test('advancedCalculatorForm uses md:grid-cols-2 for tablet breakpoint', () => {
+        const formIdx = html.indexOf('id="advancedCalculatorForm"');
+        expect(formIdx).toBeGreaterThan(-1);
+        // The grid class declaration is near the id attribute
+        const nearby = html.substring(Math.max(0, formIdx - 200), formIdx + 200);
+        expect(nearby).toContain('md:grid-cols-2');
+    });
+
+    test('advancedCalculatorForm has items-start for top alignment', () => {
+        const formIdx = html.indexOf('id="advancedCalculatorForm"');
+        expect(formIdx).toBeGreaterThan(-1);
+        const nearby = html.substring(Math.max(0, formIdx - 200), formIdx + 200);
+        expect(nearby).toContain('items-start');
+    });
+
+    // -------------------------------------------------------------------------
+    // Fix 3: Action buttons visible on page load
+    // -------------------------------------------------------------------------
+
+    test('action-buttons-container does NOT have class="hidden" on load', () => {
+        // The container div should not start with class="hidden mb-8"
+        expect(html).not.toContain('class="hidden mb-8" id="action-buttons-container"');
+        expect(html).not.toContain('class="hidden" id="action-buttons-container"');
+    });
+
+    test('action-buttons-container is present', () => {
+        expect(html).toContain('id="action-buttons-container"');
+    });
+
+    test('Advanced Analysis Tools heading is present', () => {
+        expect(html).toContain('Advanced Analysis Tools');
+    });
+
+    // -------------------------------------------------------------------------
+    // Fix 2: Dark text on dark backgrounds removed
+    // -------------------------------------------------------------------------
+
+    test('Australian Residency block does not have dark:bg-indigo-900', () => {
+        // The block containing Australian Residency should NOT have the dark bg
+        const blockStart = html.indexOf('Australian Residency');
+        expect(blockStart).toBeGreaterThan(-1);
+        // Look for the wrapping div ~200 chars before the heading
+        const context = html.substring(Math.max(0, blockStart - 300), blockStart + 100);
+        expect(context).not.toContain('dark:bg-indigo-900');
+    });
+
+    test('Aged Parents block does not have dark:bg-purple-900', () => {
+        const blockStart = html.indexOf('Aged Parents');
+        expect(blockStart).toBeGreaterThan(-1);
+        const context = html.substring(Math.max(0, blockStart - 300), blockStart + 100);
+        expect(context).not.toContain('dark:bg-purple-900');
+    });
+
+    test('Reduced Income Scenario block does not have dark:bg-amber-900', () => {
+        const blockStart = html.indexOf('Reduced Income Scenario');
+        expect(blockStart).toBeGreaterThan(-1);
+        const context = html.substring(Math.max(0, blockStart - 300), blockStart + 100);
+        expect(context).not.toContain('dark:bg-amber-900');
+    });
+
+    // -------------------------------------------------------------------------
+    // Fix 4: Back to Action Buttons in all result tabs
+    // -------------------------------------------------------------------------
+
+    const tabsRequiringBackButton = [
+        'summary-tab',
+        'recommendations-tab',
+        'suggestions-tab',
+        'projection-tab',
+        'property-tab',
+        'riskAnalysis-tab',
+        'charts-tab',
+        'optimization-tab',
+        'overseas-tab',
+        'scenarios-tab',
+        'lifeSimulator-tab',
+    ];
+
+    tabsRequiringBackButton.forEach((tabId) => {
+        test(`${tabId} contains a "Back to Action Buttons" link`, () => {
+            const tabStart = html.indexOf(`id="${tabId}"`);
+            expect(tabStart).toBeGreaterThan(-1);
+
+            // Find the next tab or end of tabs container
+            const nextTabMatch = html.indexOf('class="tab-content', tabStart + 1);
+            const tabEnd = nextTabMatch > -1 ? nextTabMatch : html.length;
+
+            const tabContent = html.substring(tabStart, tabEnd);
+            expect(tabContent).toContain('Back to Action Buttons');
+        });
+    });
+
+    // -------------------------------------------------------------------------
+    // Section ordering in grid
+    // -------------------------------------------------------------------------
+
+    test('four section columns appear in correct order in the grid', () => {
+        const pos1 = html.indexOf('section-personal-risk"');
+        const pos2 = html.indexOf('section-property"');
+        const pos3 = html.indexOf('section-economic"');
+        const pos4 = html.indexOf('section-pension"');
+
+        expect(pos1).toBeGreaterThan(-1);
+        expect(pos2).toBeGreaterThan(pos1);
+        expect(pos3).toBeGreaterThan(pos2);
+        expect(pos4).toBeGreaterThan(pos3);
+    });
+
+    // -------------------------------------------------------------------------
+    // Key button IDs
+    // -------------------------------------------------------------------------
+
+    test('btnCalculate exists', () => {
+        expect(html).toContain('id="btnCalculate"');
+    });
+
+    test('btnMonteCarlo exists', () => {
+        expect(html).toContain('id="btnMonteCarlo"');
+    });
+
+    test('btnGenerateRecommendations exists', () => {
+        expect(html).toContain('id="btnGenerateRecommendations"');
+    });
+
+    test('btnRiskProfiling exists', () => {
+        expect(html).toContain('id="btnRiskProfiling"');
+    });
+
+    test('btnDynamicAllocation exists', () => {
+        expect(html).toContain('id="btnDynamicAllocation"');
+    });
+
+    test('btnStressTest exists', () => {
+        expect(html).toContain('id="btnStressTest"');
+    });
+
+    // -------------------------------------------------------------------------
+    // Tab structure
+    // -------------------------------------------------------------------------
+
+    test('all 12 tab buttons are present', () => {
+        expect(html).toContain("showTab('outcome')");
+        expect(html).toContain("showTab('summary')");
+        expect(html).toContain("showTab('suggestions')");
+        expect(html).toContain("showTab('recommendations')");
+        expect(html).toContain("showTab('projection')");
+        expect(html).toContain("showTab('property')");
+        expect(html).toContain("showTab('riskAnalysis')");
+        expect(html).toContain("showTab('charts')");
+        expect(html).toContain("showTab('optimization')");
+        expect(html).toContain("showTab('overseas')");
+        expect(html).toContain("showTab('scenarios')");
+        expect(html).toContain("showTab('lifeSimulator')");
+    });
+
+    test('scrollToActionButtons function is defined', () => {
+        expect(html).toContain('function scrollToActionButtons');
+    });
+});

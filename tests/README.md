@@ -7,20 +7,21 @@ This directory contains the Jest-based test suite for the Australian Retirement 
 ```
 tests/
 ├── __mocks__/
-│   └── fileMock.js                    # Mock for CSS/LESS/SCSS imports
+│   └── fileMock.js                        # Mock for CSS/LESS/SCSS imports
 ├── unit/
-│   ├── chart-safety.test.js           # Chart.js undefined safety checks
-│   ├── export-functions.test.js       # CSV, XLSX, PDF export functions
-│   ├── home-page-structure.test.js    # index.html action buttons & HTML structure
-│   ├── life-simulation-engine.test.js # Life simulation engine calculations
-│   ├── navigation.test.js             # Redirect loop prevention & button visibility
-│   ├── new-fields.test.js             # New fields: AU residency, reduced income, carer impact (Items 7, 9, 10)
-│   ├── new-fields-2026.test.js        # 2026 schema: education costs, overseas income, etc.
-│   ├── sitemap-seo.test.js            # sitemap.xml completeness and HTTPS URL validation
-│   └── tax-calculations.test.js       # Australian tax bracket calculations
+│   ├── advanced-page-structure.test.js    # advanced.html UX fixes: action buttons, grid, dark mode, back links
+│   ├── chart-safety.test.js               # Chart.js undefined safety checks
+│   ├── export-functions.test.js           # CSV, XLSX, PDF export functions
+│   ├── home-page-structure.test.js        # index.html action buttons & HTML structure
+│   ├── life-simulation-engine.test.js     # Life simulation engine calculations
+│   ├── navigation.test.js                 # Redirect loop prevention & button visibility
+│   ├── new-fields.test.js                 # New fields: AU residency, reduced income, carer impact (Items 7, 9, 10)
+│   ├── new-fields-2026.test.js            # 2026 schema: education costs, overseas income, etc.
+│   ├── sitemap-seo.test.js                # sitemap.xml completeness and HTTPS URL validation
+│   └── tax-calculations.test.js           # Australian tax bracket calculations
 ├── integration/
-│   └── outcome-tab.test.js            # Fix 5: Outcome tab overview bar visibility
-└── README.md                          # This file
+│   └── outcome-tab.test.js                # Fix 5: Outcome tab overview bar visibility
+└── README.md                              # This file
 ```
 
 ## Running Tests
@@ -84,6 +85,18 @@ npx jest --testPathPattern=tests/ --watch
 - Checks that all `<priority>` values are between 0 and 1 (inclusive)
 - Validates that all `<lastmod>` dates follow the `YYYY-MM-DD` format
 - Confirms the root URL has priority `1.0` and `advanced.html` has priority >= 0.8
+
+**`advanced-page-structure.test.js`**
+- Verifies `action-buttons-container` does NOT have `class="hidden"` on load (Fix: always visible)
+- Confirms the calculator grid has `md:grid-cols-2` breakpoint and `items-start` alignment
+- Verifies the Australian Residency block has no `dark:bg-indigo-900` override
+- Verifies the Aged Parents block has no `dark:bg-purple-900` override
+- Verifies the Reduced Income block has no `dark:bg-amber-900` override
+- Confirms all 11 result tabs contain a "Back to Action Buttons" link (summary, recommendations, suggestions, projection, property, riskAnalysis, charts, optimization, overseas, scenarios, lifeSimulator)
+- Validates correct section ordering in the 4-column grid
+- Checks all 6 key action button IDs exist
+- Confirms all 12 tab `showTab()` calls are present
+- Verifies `scrollToActionButtons` function is defined
 
 **`home-page-structure.test.js`**
 - Verifies the `action-buttons-container` div exists in `src/index.html`
