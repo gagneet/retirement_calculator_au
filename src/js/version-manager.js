@@ -4,6 +4,11 @@ import { ENHANCED_CONFIG as config_v1_0_0 } from './config.js';
 import { ENHANCED_CONFIG_V0_9_0 } from './config-v0.9.0.js';
 
 const versions = {
+    '2026.1': {
+        date: '2026-03-01',
+        config: config_v1_0_0,
+        changelog: 'Schema 2026.1: Added SMSF modelling, global risk factors, property improvements (vacancy rate, maintenance inflation, land tax), trust tax rate, education costs for dependents, super strategy fields, and scenario modes (baseline/optimistic/pessimistic/crisis).'
+    },
     '1.0.0': {
         date: '2025-09-30',
         config: config_v1_0_0,
@@ -16,7 +21,7 @@ const versions = {
     }
 };
 
-const LATEST_VERSION = '1.0.0';
+const LATEST_VERSION = '2026.1';
 
 /**
  * Retrieves the configuration for a specific version, merging with the latest for completeness.

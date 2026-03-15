@@ -755,6 +755,11 @@
             <p><strong>Consult a Licensed Professional:</strong> Before making any financial decisions, you should
                 consult with a licensed financial advisor who can assess your individual situation and provide tailored
                 advice.</p>
+            <p><strong>Useful Resources:</strong> For independent guidance, visit
+                <a class="text-blue-500 hover:underline" href="https://moneysmart.gov.au/plan-for-your-retirement" rel="noopener noreferrer" target="_blank">ASIC MoneySmart</a>,
+                <a class="text-blue-500 hover:underline" href="https://www.superguide.com.au" rel="noopener noreferrer" target="_blank">SuperGuide</a>, and the
+                <a class="text-blue-500 hover:underline" href="https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super" rel="noopener noreferrer" target="_blank">ATO Superannuation</a> page.
+            </p>
             <p><strong>Limitation of Liability:</strong> The developers and providers of this tool are not liable for
                 any loss or damage arising from your use of or reliance on the information provided.</p>
             <p><strong>Complaints:</strong> If you have a complaint, please contact us through our <a
@@ -767,7 +772,7 @@
         <div class="mt-8 text-center">
             <button class="w-full bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl"
                     id="accept-disclaimer">
-                I Acknowledge & Accept
+                I Acknowledge &amp; Accept
             </button>
         </div>
     </div>
@@ -1576,9 +1581,30 @@
                         <input id="dependents" type="hidden" value="2">
                     </div>
                 </div>
+                <!-- Education costs for dependent children (PART 4) -->
+                <div class="mt-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg space-y-3">
+                    <h4 class="text-sm font-semibold text-indigo-800">📚 Education Costs (Dependent Children)</h4>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="educationCostPerChild">Annual Education Cost per Child ($)</label>
+                        <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="educationCostPerChild" type="text"
+                               value="0">
+                        <p class="mt-1 text-xs text-gray-500">Average annual cost per child for school fees, uniforms, activities</p>
+                    </div>
+                    <div>
+                        <label class="flex items-center" for="privateSchool">
+                            <input class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" id="privateSchool" type="checkbox">
+                            <span class="ml-2 text-sm text-gray-700">Private School (adds ~$25,000/child/yr as a mid-range estimate)</span>
+                        </label>
+                    </div>
+                    <div>
+                        <label class="flex items-center" for="universitySupport">
+                            <input class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" id="universitySupport" type="checkbox">
+                            <span class="ml-2 text-sm text-gray-700">Supporting children through university (adds ~$15,000/child/yr as a mid-range estimate while studying)</span>
+                        </label>
+                    </div>
+                </div>
             </div>
 
-                <!-- Aged Parents and Family Carers Section - Item 9 -->
                 <div>
                     <div class="bg-purple-50 dark:bg-purple-900 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
                         <div class="label-with-tooltip mb-3">
@@ -1723,6 +1749,28 @@
                         Superannuation ($)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerCurrentSuper" type="text"
                            value="150000">
+                </div>
+                <!-- Super strategy fields (PART 2) -->
+                <div class="p-3 bg-green-50 border border-green-200 rounded-lg space-y-3">
+                    <h4 class="text-sm font-semibold text-green-800">💼 Super Strategy (Optional)</h4>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="concessionalCapUsed">Concessional Contributions Used This Year ($)</label>
+                        <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="concessionalCapUsed" type="text"
+                               value="0">
+                        <p class="mt-1 text-xs text-gray-500">Annual concessional cap is $30,000 (2024–25). Unused amounts can be carried forward for 5 years.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="spouseContribution">Annual Spouse Contribution ($)</label>
+                        <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="spouseContribution" type="text"
+                               value="0">
+                        <p class="mt-1 text-xs text-gray-500">Non-concessional contribution to lower-earning spouse's fund. Eligible for up to $540 tax offset.</p>
+                    </div>
+                    <div>
+                        <label class="flex items-center" for="downsizeContribution">
+                            <input class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" id="downsizeContribution" type="checkbox">
+                            <span class="ml-2 text-sm text-gray-700">Plan to use Downsizer Contribution (up to $300,000 per person from home sale, age 55+)</span>
+                        </label>
+                    </div>
                 </div>
                 <div>
                     <div class="label-with-tooltip">
@@ -1893,12 +1941,66 @@
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="capitalGainsTaxRate" type="text"
                                    value="22.5">
                         </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="vacancyRate">Vacancy Rate (%)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="vacancyRate" type="text"
+                                   value="4" min="0" max="25">
+                            <p class="mt-1 text-xs text-gray-500">Expected weeks vacant per year as a percentage (e.g. 4 = ~2 weeks p.a.)</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="maintenanceInflation">Maintenance Cost Inflation (%/yr)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="maintenanceInflation" type="text"
+                                   value="3.5" step="0.1">
+                            <p class="mt-1 text-xs text-gray-500">Annual rate at which property maintenance costs increase</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="landTax">Annual Land Tax ($)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="landTax" type="text"
+                                   value="0">
+                            <p class="mt-1 text-xs text-gray-500">State land tax applicable to investment property (varies by state)</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            <!-- SMSF Section (PART 3) -->
             <div class="enhancement-highlight p-4 rounded-lg mt-4">
-                <h3 class="text-lg font-medium text-gray-700 mb-3">Trust Structures</h3>
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Self-Managed Super Fund (SMSF)</h3>
+                <div class="space-y-3">
+                    <div class="p-3 bg-yellow-50 rounded text-sm">
+                        <p class="text-yellow-800 mb-1"><strong>SMSF Regulatory Note:</strong> ASIC recommends an SMSF balance of at least $200,000–$500,000 to justify the ongoing costs. Balances below $300,000 may result in higher fees as a proportion of assets.</p>
+                        <p class="text-yellow-700 text-xs">SMSF admin and compliance costs are additional to investment returns. Consult a licensed SMSF auditor or financial advisor.</p>
+                    </div>
+                    <div>
+                        <label class="flex items-center" for="hasSMSF">
+                            <input class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" id="hasSMSF" type="checkbox">
+                            <span class="ml-2 text-sm text-gray-700">Have a Self-Managed Super Fund (SMSF)</span>
+                        </label>
+                    </div>
+                    <div class="hidden space-y-3" id="smsfSection">
+                        <div id="smsfLowBalanceWarning" class="hidden p-2 bg-orange-50 border border-orange-200 rounded text-sm text-orange-800">
+                            ⚠️ SMSF balance below $300,000: admin costs may represent a disproportionate share of assets. Consider consolidating into a retail or industry super fund.
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="smsfAdminCosts">Annual SMSF Admin &amp; Compliance Costs ($)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="smsfAdminCosts" type="text"
+                                   value="3500">
+                            <p class="mt-1 text-xs text-gray-500">Audit, accounting, ASIC fees, and admin costs (typically $3,000–$6,000/yr)</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="smsfInvestmentStrategy">SMSF Investment Strategy</label>
+                            <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="smsfInvestmentStrategy">
+                                <option value="balanced">Balanced (60% equities, 40% other)</option>
+                                <option value="growth">Growth (80% equities, 20% other)</option>
+                                <option value="highGrowth">High Growth (90%+ equities)</option>
+                                <option value="conservative">Conservative (40% equities, 60% other)</option>
+                                <option value="directProperty">Direct Property in SMSF (liquidity risk)</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Strategy affects return expectations and liquidity risk</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
                 <div class="space-y-3">
                     <div class="p-3 bg-blue-50 rounded text-sm">
                         <p class="text-blue-800 mb-2"><strong>Important:</strong> Trust assets may be attributed to you
@@ -2000,6 +2102,24 @@
                                        type="checkbox">
                                 <span class="ml-2 text-sm text-gray-700">Share Portfolio Held in Trust</span>
                             </label>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="trustTaxRate">Trust Tax Rate (%)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="trustTaxRate" type="text"
+                                   value="30" min="0" max="47">
+                            <p class="mt-1 text-xs text-gray-500">Effective tax rate applied to undistributed trust income (typically 30–47%)</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="familyTrustIncomeDistribution">Annual Income Distributed from Trust ($)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="familyTrustIncomeDistribution" type="text"
+                                   value="0">
+                            <p class="mt-1 text-xs text-gray-500">Total annual distributions to all beneficiaries (income test impact)</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="beneficiaryAllocation">Your Share of Trust Distributions (%)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="beneficiaryAllocation" type="text"
+                                   value="100" min="0" max="100">
+                            <p class="mt-1 text-xs text-gray-500">Percentage of trust distributions allocated to you (affects income test)</p>
                         </div>
                     </div>
                 </div>
@@ -2335,6 +2455,36 @@
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="shockMagnitude" max="0" type="text"
                                    value="-25">
                         </div>
+                    </div>
+                    <!-- Scenario Mode (PART 1) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="scenarioMode">Scenario Mode</label>
+                        <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="scenarioMode">
+                            <option value="baseline">Baseline (expected)</option>
+                            <option value="optimistic">Optimistic (+1% returns, lower inflation)</option>
+                            <option value="pessimistic">Pessimistic (-1% returns, higher inflation)</option>
+                            <option value="crisis">Crisis (sequence-of-returns shock + inflation spike)</option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">Adjust return and inflation assumptions for scenario planning</p>
+                    </div>
+                    <!-- Global Risk Fields (PART 10) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="globalRiskFactor">Global Risk Factor (0–1)</label>
+                        <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="globalRiskFactor" type="text"
+                               value="0" min="0" max="1" step="0.1">
+                        <p class="mt-1 text-xs text-gray-500">Weighting for global macro risks (war, recession). 0 = none, 1 = high. Applied to return volatility.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="extremeInflationProbability">Extreme Inflation Probability (%/yr)</label>
+                        <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="extremeInflationProbability" type="text"
+                               value="2" min="0" max="20">
+                        <p class="mt-1 text-xs text-gray-500">Annual probability of an inflation spike year (&gt;8%) eroding purchasing power</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="propertyCrashProbability">Property Crash Probability (%/yr)</label>
+                        <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="propertyCrashProbability" type="text"
+                               value="3" min="0" max="20">
+                        <p class="mt-1 text-xs text-gray-500">Annual probability of a severe property value decline (&gt;15%)</p>
                     </div>
                 </div>
             </div>

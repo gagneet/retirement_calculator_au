@@ -451,8 +451,17 @@ export class RetirementSimulator {
         if (!inputs.hasInvestmentProperty) return null;
 
         const inflationRate = inputs.inflation;
-        const currentRental = inputs.weeklyRentalIncome * 52 * Math.pow(1 + inflationRate, year);
-        const currentExpenses = inputs.annualPropertyExpenses * Math.pow(1 + inflationRate, year);
+        const vacancyRate = inputs.vacancyRate || 0.04; // default 4% vacancy
+        const maintenanceInflationRate = inputs.maintenanceInflation || inflationRate;
+        const annualLandTax = (inputs.landTax || 0) * Math.pow(1 + inflationRate, year);
+
+        // Gross rental adjusted for vacancy rate
+        const grossRental = inputs.weeklyRentalIncome * 52 * Math.pow(1 + inflationRate, year);
+        const currentRental = grossRental * (1 - vacancyRate);
+
+        // Expenses grow at maintenance-specific inflation rate
+        const currentExpenses = inputs.annualPropertyExpenses * Math.pow(1 + maintenanceInflationRate, year)
+            + annualLandTax;
 
         // Calculate interest cost
         const currentLoanBalance = this.calculatePropertyLoanBalance(
@@ -468,7 +477,9 @@ export class RetirementSimulator {
         const depreciation = buildingValue * this.config.PROPERTY_COSTS.DEPRECIATION_RATE;
 
         return {
-            grossRental: currentRental,
+            grossRental: grossRental,
+            vacancyLoss: grossRental * vacancyRate,
+            effectiveRental: currentRental,
             expenses: currentExpenses,
             interestCost: annualInterest,
             depreciation: depreciation,
@@ -557,6 +568,17 @@ export class RetirementSimulator {
         }
 
         return salary;
+    }
+
+    // Return scenario mode adjustments for scenario planning (PART 1)
+    _getScenarioAdjustments(scenarioMode) {
+        const modes = {
+            baseline:   { returnDelta: 0,     inflationDelta: 0,     volatilityMultiplier: 1.0 },
+            optimistic: { returnDelta: 0.01,  inflationDelta: -0.005, volatilityMultiplier: 0.8 },
+            pessimistic:{ returnDelta: -0.01, inflationDelta: 0.005,  volatilityMultiplier: 1.3 },
+            crisis:     { returnDelta: -0.02, inflationDelta: 0.02,   volatilityMultiplier: 2.0 }
+        };
+        return modes[scenarioMode] || modes.baseline;
     }
 
     // Enhanced portfolio return calculation with market regimes
@@ -681,6 +703,19 @@ export class RetirementSimulator {
             property: null
         };
 
+        // Apply scenario mode adjustments (PART 1)
+        const scenarioAdjustments = this._getScenarioAdjustments(inputs.scenarioMode || 'baseline');
+        const effectiveInputs = scenarioAdjustments
+            ? {
+                ...inputs,
+                investmentReturn: inputs.investmentReturn + scenarioAdjustments.returnDelta,
+                superReturn: inputs.superReturn + scenarioAdjustments.returnDelta,
+                savingsReturn: inputs.savingsReturn + scenarioAdjustments.returnDelta,
+                inflation: inputs.inflation + scenarioAdjustments.inflationDelta,
+                returnVolatility: inputs.returnVolatility * scenarioAdjustments.volatilityMultiplier
+            }
+            : inputs;
+
         const maxLifespan = Math.max(inputs.yourLifespan, inputs.partnerLifespan);
         const yearsToRetirement = Math.max(0, inputs.retirementAge - inputs.yourCurrentAge);
 
@@ -690,6 +725,9 @@ export class RetirementSimulator {
             inputs.partnerLifespan - inputs.partnerCurrentAge
         );
         const yearsInRetirement = Math.max(0, maxYearsFromNow - yearsToRetirement);
+
+        // Use scenario-adjusted inputs for all financial calculations
+        inputs = effectiveInputs; // eslint-disable-line no-param-reassign
 
         // Pre-retirement accumulation phase
         let accumulatedSuperBalance = inputs.yourCurrentSuper + inputs.partnerCurrentSuper;
@@ -800,6 +838,11 @@ export class RetirementSimulator {
             accumulatedSavingsBalance *= (1 + inputs.savingsReturn);
             accumulatedInvestmentPortfolio *= (1 + returnRate);
 
+            // Deduct SMSF admin costs from super balance
+            if (inputs.hasSMSF && inputs.smsfAdminCosts > 0) {
+                accumulatedSuperBalance = Math.max(0, accumulatedSuperBalance - inputs.smsfAdminCosts);
+            }
+
             // Add contributions
             const yourYearsToWork = Math.min(inputs.retirementAge, inputs.yourLifespan) - inputs.yourCurrentAge;
             const partnerYearsToWork = Math.min(inputs.partnerRetirementAge, inputs.partnerLifespan) - inputs.partnerCurrentAge;
@@ -821,6 +864,20 @@ export class RetirementSimulator {
             accumulatedSuperBalance += yearlySuperContribution;
             accumulatedSavingsBalance += yearlyPostTaxIncome * inputs.percentIncomeSaved;
             accumulatedInvestmentPortfolio += inputs.monthlyStockContribution * 12;
+
+            // Deduct education costs for dependent children (PART 4)
+            if (inputs.educationCostPerChild > 0) {
+                const childCount = (inputs.childrenUnder5 || 0) + (inputs.childrenPrimary || 0) + (inputs.teenagers || 0);
+                let annualEdCost = inputs.educationCostPerChild * childCount;
+                if (inputs.privateSchool) {
+                    annualEdCost += 25000 * childCount; // private school premium ~$25k/child
+                }
+                if (inputs.universitySupport) {
+                    annualEdCost += 15000 * childCount; // university support ~$15k/child
+                }
+                annualEdCost *= Math.pow(1 + inputs.inflation, year); // inflate over time
+                accumulatedSavingsBalance = Math.max(0, accumulatedSavingsBalance - annualEdCost);
+            }
 
             // Property calculations
             if (inputs.hasInvestmentProperty && yourCurrentAge <= inputs.retirementAge) {
@@ -1127,6 +1184,26 @@ export class RetirementSimulator {
                 if (inputs.enableShocks && Math.random() < inputs.shockProbability) {
                     const shockEffect = inputs.shockMagnitude * (allocation.equity / 100);
                     actualReturn += shockEffect;
+                }
+
+                // Apply global risk factor (PART 10): increases volatility of returns
+                if (inputs.globalRiskFactor > 0) {
+                    const globalRiskVolatility = inputs.globalRiskFactor * 0.05; // up to 5% extra volatility
+                    actualReturn += (Math.random() * 2 - 1) * globalRiskVolatility;
+                }
+
+                // Apply extreme inflation shock probability (PART 10)
+                if (inputs.extremeInflationProbability > 0 && Math.random() < inputs.extremeInflationProbability) {
+                    // Extreme inflation year reduces real portfolio value
+                    actualReturn -= 0.03; // additional ~3% real return drag
+                }
+
+                // Apply property crash probability to property-linked income (PART 10)
+                if (inputs.hasInvestmentProperty && inputs.propertyCrashProbability > 0 &&
+                    Math.random() < inputs.propertyCrashProbability) {
+                    // A property crash year: reduce property income contribution for this year
+                    // (already reflected via lower property growth; we also cut rental income)
+                    actualReturn -= 0.01;
                 }
             } else {
                 // Use deterministic calculation

@@ -735,6 +735,39 @@ class RetirementCalculatorApp {
             agedParentsLocation: safeGetSelectValue('agedParentsLocation', 'australia'),
             carerAnnualExpense: parseFormattedNumber(getRawValue('carerAnnualExpense', '0')),
 
+            // SMSF (PART 3)
+            hasSMSF: safeGetChecked('hasSMSF', false),
+            smsfAdminCosts: parseFormattedNumber(getRawValue('smsfAdminCosts', '3500')),
+            smsfInvestmentStrategy: safeGetSelectValue('smsfInvestmentStrategy', 'balanced'),
+
+            // Property improvements (PART 8)
+            vacancyRate: safeGetValue('vacancyRate', 4) / 100,
+            maintenanceInflation: safeGetValue('maintenanceInflation', 3.5) / 100,
+            landTax: parseFormattedNumber(getRawValue('landTax', '0')),
+
+            // Trust improvements (PART 7)
+            trustTaxRate: safeGetValue('trustTaxRate', 30) / 100,
+            familyTrustIncomeDistribution: parseFormattedNumber(getRawValue('familyTrustIncomeDistribution', '0')),
+            beneficiaryAllocation: safeGetValue('beneficiaryAllocation', 100) / 100,
+
+            // Education costs (PART 4)
+            educationCostPerChild: parseFormattedNumber(getRawValue('educationCostPerChild', '0')),
+            privateSchool: safeGetChecked('privateSchool', false),
+            universitySupport: safeGetChecked('universitySupport', false),
+
+            // Super strategy (PART 2)
+            concessionalCapUsed: parseFormattedNumber(getRawValue('concessionalCapUsed', '0')),
+            spouseContribution: parseFormattedNumber(getRawValue('spouseContribution', '0')),
+            downsizeContribution: safeGetChecked('downsizeContribution', false),
+
+            // Scenario mode (PART 1)
+            scenarioMode: safeGetSelectValue('scenarioMode', 'baseline'),
+
+            // Global risk factors (PART 10)
+            globalRiskFactor: safeGetValue('globalRiskFactor', 0),
+            extremeInflationProbability: safeGetValue('extremeInflationProbability', 2) / 100,
+            propertyCrashProbability: safeGetValue('propertyCrashProbability', 3) / 100,
+
             // Partnership status for calculations
             isSingleCalculation: finalPartnerAge === 0
         };
@@ -5490,6 +5523,23 @@ class RetirementCalculatorApp {
             if (fields) fields.classList.toggle('hidden', !this.checked);
         });
 
+        // Toggle SMSF section (PART 3)
+        const hasSMSF = document.getElementById('hasSMSF');
+        const smsfSection = document.getElementById('smsfSection');
+        if (hasSMSF && smsfSection) {
+            const toggleSMSF = () => {
+                smsfSection.classList.toggle('hidden', !hasSMSF.checked);
+                if (hasSMSF.checked) {
+                    const superBalance = (safeGetValue('yourCurrentSuper', 0) || 0) +
+                        (safeGetValue('partnerCurrentSuper', 0) || 0);
+                    const warning = document.getElementById('smsfLowBalanceWarning');
+                    if (warning) warning.classList.toggle('hidden', superBalance >= 300000);
+                }
+            };
+            hasSMSF.addEventListener('change', toggleSMSF);
+            toggleSMSF();
+        }
+
         // Update CGT rate based on marginal tax rate
         const updateCGTRate = () => {
             const totalSalary = safeGetValue('yourSalary', 0) + safeGetValue('partnerSalary', 0);
@@ -5995,12 +6045,16 @@ class RetirementCalculatorApp {
                 'planToDownsize', 'hasInvestmentProperty', 'investmentPropertyValue',
                 'investmentPropertyLoan', 'investmentPropertyRate', 'weeklyRentalIncome',
                 'annualPropertyExpenses', 'propertyGrowthRate', 'sellPropertyYears',
-                'capitalGainsTaxRate'
+                'capitalGainsTaxRate', 'vacancyRate', 'maintenanceInflation', 'landTax'
+            ],
+            smsf: [
+                'hasSMSF', 'smsfAdminCosts', 'smsfInvestmentStrategy'
             ],
             trust: [
                 'hasTrustAssets', 'trustType', 'trustControlLevel', 'trustNetAssets',
                 'trustAttributionPercentage', 'trustAnnualDistributions', 'homeInTrust',
-                'investmentPropertyInTrust', 'stocksInTrust'
+                'investmentPropertyInTrust', 'stocksInTrust',
+                'trustTaxRate', 'familyTrustIncomeDistribution', 'beneficiaryAllocation'
             ],
             healthcare: [
                 'currentHealthcareCosts', 'healthcareInflation', 'agedCareProbability',
@@ -6020,7 +6074,14 @@ class RetirementCalculatorApp {
                 'pensionAssetLimit', 'pensionIncomeThreshold'
             ],
             simulation: [
-                'numRuns', 'returnVolatility', 'enableShocks', 'shockProbability', 'shockMagnitude'
+                'numRuns', 'returnVolatility', 'enableShocks', 'shockProbability', 'shockMagnitude',
+                'scenarioMode', 'globalRiskFactor', 'extremeInflationProbability', 'propertyCrashProbability'
+            ],
+            education: [
+                'educationCostPerChild', 'privateSchool', 'universitySupport'
+            ],
+            superStrategy: [
+                'concessionalCapUsed', 'spouseContribution', 'downsizeContribution'
             ]
         };
     }
@@ -6249,7 +6310,28 @@ class RetirementCalculatorApp {
             'returnVolatility': config.simulation.returnVolatility,
             'enableShocks': config.simulation.enableShocks,
             'shockProbability': config.simulation.shockProbability,
-            'shockMagnitude': config.simulation.shockMagnitude
+            'shockMagnitude': config.simulation.shockMagnitude,
+
+            // New fields 2026.1
+            'scenarioMode': 'baseline',
+            'globalRiskFactor': 0,
+            'extremeInflationProbability': 2,
+            'propertyCrashProbability': 3,
+            'vacancyRate': 4,
+            'maintenanceInflation': 3.5,
+            'landTax': 0,
+            'hasSMSF': false,
+            'smsfAdminCosts': 3500,
+            'smsfInvestmentStrategy': 'balanced',
+            'trustTaxRate': 30,
+            'familyTrustIncomeDistribution': 0,
+            'beneficiaryAllocation': 100,
+            'educationCostPerChild': 0,
+            'privateSchool': false,
+            'universitySupport': false,
+            'concessionalCapUsed': 0,
+            'spouseContribution': 0,
+            'downsizeContribution': false
         };
 
         return defaultMap[inputId];

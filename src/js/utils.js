@@ -1608,7 +1608,10 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
         'investmentPropertyLoan', 'weeklyRentalIncome', 'annualPropertyExpenses',
         'trustNetAssets', 'trustAnnualDistributions', 'currentHealthcareCosts',
         'agedCareAnnualCost', 'asfaComfortable', 'agePensionMax',
-        'pensionAssetThreshold', 'pensionAssetLimit', 'pensionIncomeThreshold'
+        'pensionAssetThreshold', 'pensionAssetLimit', 'pensionIncomeThreshold',
+        'smsfAdminCosts', 'landTax', 'familyTrustIncomeDistribution',
+        'educationCostPerChild', 'concessionalCapUsed', 'spouseContribution',
+        'carerAnnualExpense'
     ];
 
     const percentageFields = [
@@ -1617,7 +1620,9 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
         'agedCareProbability', 'inflation', 'investmentReturn', 'returnDeclineRate',
         'savingsReturn', 'superReturn', 'salaryGrowthRate', 'leanYearsReduction',
         'dividendYield', 'frankingRate', 'returnVolatility',
-        'shockProbability', 'shockMagnitude', 'australianEquityAllocation', 'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage'
+        'shockProbability', 'shockMagnitude', 'australianEquityAllocation', 'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
+        'vacancyRate', 'maintenanceInflation', 'trustTaxRate', 'beneficiaryAllocation',
+        'extremeInflationProbability', 'propertyCrashProbability'
     ];
 
     // Format currency and percentage fields
@@ -1637,12 +1642,12 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
     }
 
     const exportData = {
-        version: '3.0',
+        version: '4.0',
         exportDate: new Date().toISOString(),
         scenarioName: scenarioName,
         userData: formattedInputs,
         metadata: {
-            calculatorVersion: '2025.3',
+            calculatorVersion: '2026.1',
             description: 'Australian Retirement Calculator - User Input Data',
             fields: Object.keys(inputs).length,
             note: 'This file contains only your input data, no calculation results. Your privacy is protected.'
@@ -1695,10 +1700,10 @@ export const importUserData = () => {
 
                     if (window.confirm(confirmationMessage)) {
                         // User confirmed, proceed with loading
-                        const supportedVersions = ['1.0', '2.0', '3.0'];
+                        const supportedVersions = ['1.0', '2.0', '3.0', '4.0'];
                         if (!supportedVersions.includes(data.version)) {
                             showNotification('File version may not be fully compatible. Import will be attempted.', 'warning');
-                        } else if (data.version !== '3.0') {
+                        } else if (data.version !== '4.0') {
                             showNotification('Imported older file format - some features may need adjustment.', 'info');
                         }
 
