@@ -155,7 +155,7 @@ describe('IncomeEngine – calcInvestmentIncome', () => {
     });
 
     test('returns zero for zero assets', () => {
-        expect(calcInvestmentIncome(0, { dividendYield: 0.04, allocEquities: 60 })).toBe(0);
+        expect(calcInvestmentIncome(0, { dividendYield: 0.04, allocEquities: 0.6 })).toBe(0);
     });
 });
 

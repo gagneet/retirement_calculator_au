@@ -23,14 +23,14 @@ export const growInvestmentAssets = (currentAssets, netContribution, inputs, sho
         returnVolatility = 0.12,
     } = inputs;
 
-    // Blended expected return
+    // Blended expected return (allocations are in decimal form, e.g. 0.6 for 60%)
     const equityReturn  = investmentReturn * 1.2;   // Equities above average return
     const bondReturn    = investmentReturn * 0.5;
     const cashReturn    = 0.014;
 
-    const blendedReturn = (allocEquities / 100) * equityReturn
-                        + (allocBonds  / 100) * bondReturn
-                        + (allocCash   / 100) * cashReturn;
+    const blendedReturn = allocEquities * equityReturn
+                        + allocBonds    * bondReturn
+                        + allocCash     * cashReturn;
 
     // Apply deterministic return (Monte Carlo volatility is handled by shock engine)
     const grown = (currentAssets + netContribution) * (1 + blendedReturn) * shockFactor;

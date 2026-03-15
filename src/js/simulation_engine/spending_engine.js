@@ -24,13 +24,13 @@ export const SPENDING_STRATEGIES = {
 /**
  * Inflation-adjusted fixed spending.
  *
- * @param {number} baseSpendig   – initial retirement spending
+ * @param {number} baseSpending  – initial retirement spending
  * @param {number} inflation     – annual inflation rate
  * @param {number} yearsRetired  – years since retirement
  * @returns {number}
  */
-export const fixedSpending = (baseSpendig, inflation, yearsRetired) => {
-    return baseSpendig * Math.pow(1 + inflation, yearsRetired);
+export const fixedSpending = (baseSpending, inflation, yearsRetired) => {
+    return baseSpending * Math.pow(1 + inflation, yearsRetired);
 };
 
 // ── Strategy 2: Guardrails ────────────────────────────────────────────────────
