@@ -4,6 +4,15 @@ A comprehensive, AI-powered retirement planning calculator specifically designed
 
 ## Recent Updates (2026)
 
+### Advanced Calculator UX Fixes (March 2026)
+- **4-column grid responsive layout**: Added `md:grid-cols-2` breakpoint so all four calculator sections (Personal & Risk Profile, Property Portfolio, Economic & Asset Allocation, Australian Pension System) display as 2 columns on tablets and 4 columns on desktop with `items-start` alignment.
+- **Action buttons always visible**: The "🚀 Advanced Analysis Tools" section is now visible by default when browsing to the Advanced Calculator page, without requiring JSON import or onboarding completion.
+- **Dark mode text visibility**: Removed dark-mode background overrides (`dark:bg-indigo-900`, `dark:bg-purple-900`, `dark:bg-amber-900`) from the Australian Residency & Earnings History, Aged Parents & Family Carers, and Reduced Income Scenario blocks. These blocks now maintain a light background in both light and dark mode, ensuring all label text remains readable.
+- **Back to Action Buttons**: Added a "Back to Action Buttons" navigation link at the bottom of every result tab — AI Recommendations, Suggestions, Year-by-Year, Property Analysis, Risk Analysis, Advanced Charts, Optimization, Overseas, Scenario Compare, and Life Simulator — so users can easily return to the action controls after viewing analysis results.
+
+### Tests for Advanced Page Structure
+Added `tests/unit/advanced-page-structure.test.js` with 30 tests covering: action-button visibility, 4-column grid with `md:grid-cols-2` and `items-start`, absence of dark-mode background overrides on the three problem blocks, presence of "Back to Action Buttons" in all result tabs, correct section ordering, all key button IDs, and tab structure.
+
 ### PDF Export Fix and Enhancements
 Fixed an undefined variable bug that caused PDF export to fail silently. The PDF report now includes a Table of Contents, all projection years (not capped at 25), a Personalized Suggestions section, a Persona-Based Recommendations section, and visual section dividers for improved readability.
 
