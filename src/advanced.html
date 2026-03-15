@@ -2569,6 +2569,7 @@
             <button class="tab-button" onclick="showTab('optimization')">Optimization</button>
             <button class="tab-button" onclick="showTab('overseas')">🌍 Overseas</button>
             <button class="tab-button" onclick="showTab('scenarios')">Scenario Compare</button>
+            <button class="tab-button" onclick="showTab('lifeSimulator')">🔮 Life Simulator</button>
         </div>
 
         <!-- Outcome View Tab (NEW - Simplified outcome-focused view) -->
@@ -3450,6 +3451,126 @@
                 </div>
             </div>
         </div>
+
+        <!-- Financial Life Simulator Tab -->
+        <div class="tab-content p-6" id="lifeSimulator-tab">
+            <h2 class="text-2xl font-semibold mb-2">🔮 Financial Life Simulator</h2>
+            <p class="text-gray-600 mb-6">Simulate your complete financial life year-by-year — from now to your expected lifespan — using the data you've already entered.</p>
+
+            <!-- Spending Strategy Selector -->
+            <div class="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <h3 class="text-lg font-semibold text-indigo-900 mb-3">⚙️ Simulation Settings</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="simSpendingStrategy">Retirement Spending Strategy</label>
+                        <select class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="simSpendingStrategy">
+                            <option value="fixed">Fixed (inflation-adjusted)</option>
+                            <option value="guardrails">Guardrails (adjust to portfolio)</option>
+                            <option value="percentage">Percentage withdrawal (4.5%)</option>
+                            <option value="floor_upside">Floor &amp; Upside (essential + discretionary)</option>
+                            <option value="guyton_klinger">Guyton-Klinger rules</option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">How withdrawals adjust to market performance in retirement</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="simNumRuns">Monte Carlo Runs</label>
+                        <select class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="simNumRuns">
+                            <option value="200">200 (quick estimate)</option>
+                            <option value="500" selected>500 (recommended)</option>
+                            <option value="1000">1,000 (detailed)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
+                            id="btnRunLifeSimulator" onclick="app.runLifeSimulator()">
+                        ▶ Run Life Simulation
+                    </button>
+                    <span class="ml-3 text-sm text-gray-500" id="simStatus"></span>
+                </div>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                <strong>⚠️ General Information Only:</strong> This simulator provides general financial projections only.
+                It does not constitute financial advice. Users should consult a licensed financial adviser before making financial decisions.
+            </div>
+
+            <!-- Results area -->
+            <div class="hidden" id="lifeSimResults">
+
+                <!-- Success probability banner -->
+                <div class="mb-6 p-5 rounded-xl text-center" id="simSuccessBanner">
+                    <div class="text-4xl font-bold mb-1" id="simSuccessRate">–</div>
+                    <div class="text-lg font-medium" id="simSuccessLabel">Retirement Success Probability</div>
+                    <div class="text-sm mt-1 opacity-80" id="simSuccessDetail"></div>
+                </div>
+
+                <!-- Key metrics grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white border rounded-lg p-4 text-center">
+                        <div class="text-xs text-gray-500 mb-1">Wealth at Retirement</div>
+                        <div class="text-xl font-bold text-green-700" id="simRetirementWealth">–</div>
+                    </div>
+                    <div class="bg-white border rounded-lg p-4 text-center">
+                        <div class="text-xs text-gray-500 mb-1">Median Final Net Worth</div>
+                        <div class="text-xl font-bold text-blue-700" id="simFinalNetWorth">–</div>
+                    </div>
+                    <div class="bg-white border rounded-lg p-4 text-center">
+                        <div class="text-xs text-gray-500 mb-1">Worst-Case Ruin Age</div>
+                        <div class="text-xl font-bold text-red-600" id="simRuinAge">–</div>
+                    </div>
+                    <div class="bg-white border rounded-lg p-4 text-center">
+                        <div class="text-xs text-gray-500 mb-1">Lifestyle Cut Risk</div>
+                        <div class="text-xl font-bold text-orange-600" id="simLifestyleCut">–</div>
+                    </div>
+                </div>
+
+                <!-- Percentile net worth table -->
+                <div class="mb-6 bg-white border rounded-lg p-4">
+                    <h3 class="text-lg font-semibold mb-3">Outcome Distribution (Final Net Worth)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-2 text-left text-gray-600">Percentile</th>
+                                    <th class="px-4 py-2 text-right text-gray-600">Final Net Worth</th>
+                                    <th class="px-4 py-2 text-left text-gray-600">What This Means</th>
+                                </tr>
+                            </thead>
+                            <tbody id="simPercentilesTable">
+                                <tr><td colspan="3" class="px-4 py-2 text-gray-400">Run simulation to see results</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Year-by-year timeline chart placeholder -->
+                <div class="mb-6 bg-white border rounded-lg p-4">
+                    <h3 class="text-lg font-semibold mb-3">Life Timeline — Net Worth Projection</h3>
+                    <div class="relative" style="height: 300px;">
+                        <canvas id="lifeSimTimelineChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Strategy comparison -->
+                <div class="mb-6" id="simStrategiesSection">
+                    <h3 class="text-lg font-semibold mb-3">📊 Strategy Comparison</h3>
+                    <p class="text-sm text-gray-600 mb-3">The simulator automatically tests strategies that could improve your retirement outcome.</p>
+                    <div class="space-y-2" id="simStrategiesList"></div>
+                </div>
+
+                <!-- Recommendations -->
+                <div class="mb-6 bg-white border rounded-lg p-5" id="simRecommendationsSection">
+                    <h3 class="text-lg font-semibold mb-3">💡 Personalised Recommendations</h3>
+                    <div id="simRecommendationsList"></div>
+                </div>
+
+            </div>
+            <!-- /#lifeSimResults -->
+
+        </div>
+        <!-- /#lifeSimulator-tab -->
     </div>
 
     <!-- Comprehensive Site Footer -->

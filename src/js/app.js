@@ -22,6 +22,7 @@ import { OutcomeEngine } from './outcome-engine.js';
 import { ActionGenerator } from './action-generator.js';
 import { WhatIfEngine } from './what-if-engine.js';
 import { ResilienceScenarioEngine } from './resilience-scenarios.js';
+import { runFullSimulation } from './simulation_engine/index.js';
 // js/app.js - Main Application Controller
 
 // Import new engines with error handling
@@ -5489,6 +5490,213 @@ class RetirementCalculatorApp {
         } finally {
             // Reset the flag immediately after the operation completes
             this.isImporting = false;
+        }
+    }
+
+    /**
+     * Run the Financial Life Simulation Engine and render results.
+     */
+    async runLifeSimulator() {
+        const btnRun   = $('btnRunLifeSimulator');
+        const statusEl = $('simStatus');
+        const resultsEl = $('lifeSimResults');
+
+        if (!btnRun) return;
+
+        btnRun.disabled = true;
+        if (statusEl) statusEl.textContent = 'Running simulation…';
+
+        try {
+            const inputs = this.collectInputs();
+
+            // Merge spending strategy and MC run count from simulator UI
+            const spendingStrategyEl = $('simSpendingStrategy');
+            const numRunsEl          = $('simNumRuns');
+            if (spendingStrategyEl) inputs.spendingStrategy = spendingStrategyEl.value;
+            if (numRunsEl)          inputs.numRuns = parseInt(numRunsEl.value, 10) || 500;
+
+            // Run the full simulation (baseline + MC + strategies + recommendations)
+            const { baseline, monteCarlo, strategies, recommendations } =
+                await runFullSimulation(inputs, { numRuns: inputs.numRuns });
+
+            // ── Render results ────────────────────────────────────────────────
+            if (resultsEl) resultsEl.classList.remove('hidden');
+
+            // Success banner
+            const successRate     = recommendations.successProbability;
+            const successBanner   = $('simSuccessBanner');
+            const successRateEl   = $('simSuccessRate');
+            const successLabelEl  = $('simSuccessLabel');
+            const successDetailEl = $('simSuccessDetail');
+            if (successBanner) {
+                const colour = successRate >= 85 ? 'bg-green-100 text-green-800'
+                             : successRate >= 70 ? 'bg-blue-100 text-blue-800'
+                             : successRate >= 50 ? 'bg-yellow-100 text-yellow-800'
+                             :                    'bg-red-100 text-red-800';
+                successBanner.className = `mb-6 p-5 rounded-xl text-center ${colour}`;
+            }
+            if (successRateEl)   successRateEl.textContent   = `${successRate}%`;
+            if (successLabelEl)  successLabelEl.textContent  = 'Retirement Success Probability';
+            if (successDetailEl) successDetailEl.textContent =
+                `Based on ${monteCarlo.runs.toLocaleString()} Monte Carlo simulations — ` +
+                `outcome: ${recommendations.outcome}`;
+
+            // Key metrics
+            const fmt = (v) => v != null && !isNaN(v)
+                ? `$${Math.round(v).toLocaleString('en-AU')}` : '–';
+            const simRetirementWealth = $('simRetirementWealth');
+            const simFinalNetWorth    = $('simFinalNetWorth');
+            const simRuinAge          = $('simRuinAge');
+            const simLifestyleCut     = $('simLifestyleCut');
+            if (simRetirementWealth) simRetirementWealth.textContent = fmt(baseline.retirementWealth);
+            if (simFinalNetWorth)    simFinalNetWorth.textContent    = fmt(monteCarlo.medianFinalNetWorth);
+            if (simRuinAge)          simRuinAge.textContent          =
+                monteCarlo.worstCaseRuinAge ? `Age ${monteCarlo.worstCaseRuinAge}` : 'None';
+            if (simLifestyleCut)     simLifestyleCut.textContent     =
+                `${Math.round(monteCarlo.lifestyleCutProbability)}%`;
+
+            // Percentile table (advanced.html only)
+            const percTable = $('simPercentilesTable');
+            if (percTable && monteCarlo.percentiles) {
+                const p = monteCarlo.percentiles;
+                const rows = [
+                    [10, p.p10NetWorth, 'Worst 10% of scenarios'],
+                    [25, p.p25NetWorth, 'Below-average outcome'],
+                    [50, p.p50NetWorth, 'Median (most likely)'],
+                    [75, p.p75NetWorth, 'Above-average outcome'],
+                    [90, p.p90NetWorth, 'Best 10% of scenarios'],
+                ];
+                percTable.innerHTML = rows.map(([pct, val, label]) =>
+                    `<tr class="border-t">
+                        <td class="px-4 py-2 text-gray-600">P${pct}</td>
+                        <td class="px-4 py-2 text-right font-medium">${fmt(val)}</td>
+                        <td class="px-4 py-2 text-gray-500">${label}</td>
+                    </tr>`
+                ).join('');
+            }
+
+            // Timeline chart
+            const timelineCanvas = $('lifeSimTimelineChart');
+            if (timelineCanvas && baseline.timeline && baseline.timeline.length > 0) {
+                await this._renderLifeSimChart(timelineCanvas, baseline.timeline);
+            }
+
+            // Strategy list (advanced.html only)
+            const strategiesList = $('simStrategiesList');
+            if (strategiesList && strategies.length > 0) {
+                strategiesList.innerHTML = strategies.slice(0, 5).map(s => {
+                    const delta   = s.netWorthDelta;
+                    const colour  = delta >= 0 ? 'text-green-600' : 'text-red-600';
+                    const prefix  = delta >= 0 ? '+' : '';
+                    const outcome = s.success ? '✅' : '⚠️';
+                    return `<div class="flex items-center justify-between p-3 bg-white border rounded-lg">
+                        <span class="text-sm">${outcome} ${s.description}</span>
+                        <span class="text-sm font-medium ${colour}">${prefix}${fmt(delta)}</span>
+                    </div>`;
+                }).join('');
+            }
+
+            // Recommendations
+            const recList = $('simRecommendationsList');
+            if (recList && recommendations.recommendations.length > 0) {
+                recList.innerHTML = recommendations.recommendations.map((r, i) => {
+                    const impact = r.impactAud != null
+                        ? `<span class="ml-2 text-xs text-green-700 font-medium">(potential impact: ${fmt(r.impactAud)})</span>`
+                        : '';
+                    return `<div class="mb-4 p-4 bg-gray-50 border-l-4 border-indigo-400 rounded-r-lg">
+                        <div class="font-semibold text-gray-800">${i + 1}. ${r.title}${impact}</div>
+                        <p class="mt-1 text-sm text-gray-600">${r.detail}</p>
+                    </div>`;
+                }).join('');
+            } else if (recList) {
+                recList.innerHTML = `<p class="text-green-700 font-medium">🎉 Your retirement plan looks solid — no critical changes recommended at this stage.</p>`;
+            }
+
+            if (statusEl) statusEl.textContent = 'Simulation complete.';
+            showNotification('Life simulation complete', 'success');
+
+        } catch (err) {
+            console.error('Life simulation error:', err);
+            showNotification('Life simulation error: ' + err.message, 'error');
+            if (statusEl) statusEl.textContent = 'Error — please check inputs.';
+        } finally {
+            btnRun.disabled = false;
+        }
+    }
+
+    /**
+     * Render the life simulation timeline chart.
+     * Uses Chart.js (already loaded as part of the charts bundle).
+     */
+    async _renderLifeSimChart(canvas, timeline) {
+        try {
+            const chartManager = await this.getChartManager();
+            if (!chartManager) return;
+
+            const ages      = timeline.map(s => s.age);
+            const netWorths = timeline.map(s => Math.max(0, s.netWorth));
+            const superBals = timeline.map(s => Math.max(0, s.superBalance + s.partnerSuperBalance));
+            const investBals = timeline.map(s => Math.max(0, s.investmentAssets));
+
+            chartManager.renderChart(canvas.id, {
+                type: 'line',
+                data: {
+                    labels: ages,
+                    datasets: [
+                        {
+                            label: 'Net Worth',
+                            data: netWorths,
+                            borderColor: 'rgb(79, 70, 229)',
+                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                        },
+                        {
+                            label: 'Super Balance',
+                            data: superBals,
+                            borderColor: 'rgb(16, 185, 129)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: false,
+                            tension: 0.3,
+                        },
+                        {
+                            label: 'Investment Assets',
+                            data: investBals,
+                            borderColor: 'rgb(245, 158, 11)',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            fill: false,
+                            tension: 0.3,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend:  { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => {
+                                    const val = ctx.parsed.y;
+                                    return `${ctx.dataset.label}: $${Math.round(val).toLocaleString('en-AU')}`;
+                                },
+                            },
+                        },
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Age' } },
+                        y: {
+                            title: { display: true, text: 'Amount (AUD)' },
+                            ticks: {
+                                callback: (v) => `$${(v / 1000000).toFixed(1)}M`,
+                            },
+                        },
+                    },
+                },
+            });
+        } catch (e) {
+            // Chart rendering is non-critical; suppress errors
+            console.warn('Life sim chart render failed:', e.message);
         }
     }
 
