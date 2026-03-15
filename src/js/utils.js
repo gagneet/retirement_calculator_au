@@ -1279,6 +1279,44 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
     doc.text("This report is for informational purposes only and does not constitute financial advice.", 14, 65);
     doc.text("Please consult with a licensed financial adviser before making investment decisions.", 14, 72);
 
+    // --- Table of Contents ---
+    doc.addPage();
+    doc.setFontSize(18);
+    doc.setTextColor(0, 71, 171);
+    doc.text("Table of Contents", 14, 20);
+
+    const tocItems = [
+        ['1', 'Executive Summary', '3'],
+    ];
+    if (monteCarloResults) tocItems.push(['2', 'Monte Carlo Simulation Results', '4']);
+    tocItems.push(['', 'AI-Generated Recommendations', '']);
+    tocItems.push(['', 'Risk Analysis', '']);
+    tocItems.push(['', 'Key Assumptions', '']);
+    tocItems.push(['', 'Enhanced Financial Summary', '']);
+    tocItems.push(['', 'Comprehensive Risk Analysis', '']);
+    if (enhancedAnalysis.propertyAnalysis) tocItems.push(['', 'Investment Property Analysis', '']);
+    tocItems.push(['', 'Optimization Strategies', '']);
+    if (enhancedAnalysis.aiRecommendations?.length > 0) tocItems.push(['', 'AI-Generated Recommendations (Enhanced)', '']);
+    if (enhancedAnalysis.scenarioComparisons?.length > 0) tocItems.push(['', 'Scenario Comparisons', '']);
+    if (enhancedAnalysis.suggestions?.length > 0) tocItems.push(['', 'Personalized Suggestions', '']);
+    if (enhancedAnalysis.scenarioMatrix) tocItems.push(['', 'Scenario Comparison Matrix', '']);
+    if (enhancedAnalysis.personaRecommendations) tocItems.push(['', 'AI Persona-Based Recommendations', '']);
+    tocItems.push(['', 'Visual Analysis (Charts)', '']);
+    tocItems.push(['', 'Detailed Financial Projections', '']);
+
+    doc.autoTable({
+        startY: 28,
+        head: [['#', 'Section', 'Page']],
+        body: tocItems,
+        theme: 'plain',
+        headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+        styles: { fontSize: 10, cellPadding: 3 },
+        columnStyles: {
+            0: { cellWidth: 10 },
+            2: { cellWidth: 15, halign: 'right' }
+        }
+    });
+
     // --- Executive Summary ---
     doc.setFontSize(18);
     doc.setTextColor(0);
@@ -1345,7 +1383,7 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
     }
 
     // AI Recommendations Section
-    if (analysis.aiRecommendations && analysis.aiRecommendations.length > 0) {
+    if (enhancedAnalysis.aiRecommendations && enhancedAnalysis.aiRecommendations.length > 0) {
         if (yPos > 160) {
             doc.addPage();
             yPos = 20;
@@ -1356,7 +1394,7 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
         doc.text("AI-Generated Recommendations", 14, yPos);
         yPos += 10;
 
-        const aiBody = analysis.aiRecommendations.slice(0, 10).map(rec => [
+        const aiBody = enhancedAnalysis.aiRecommendations.slice(0, 10).map(rec => [
             rec.category || 'General',
             rec.action || rec.recommendation || rec.title,
             rec.priority || 'Medium',
@@ -1503,10 +1541,11 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
 
     doc.setFontSize(12);
     doc.setTextColor(0);
-    doc.text("Year-by-Year Analysis (First 25 Years)", 14, 32);
+    const projYears = results.yearlyData.length;
+    doc.text(`Year-by-Year Analysis (All ${projYears} Years)`, 14, 32);
 
     const head = [['Year', 'Age', 'Start Balance', 'Non-Liquid Assets', 'Growth', 'Yearly Withdrawal', 'Property Income', 'Healthcare', 'Aged Care', 'Pension Income', 'End Balance', 'Total Net Worth']];
-    const body = results.yearlyData.slice(0, 25).map(d => {
+    const body = results.yearlyData.map(d => {
         // Format age display as "YourAge/PartnerAge" with '-' for deceased
         let ageDisplay = d.yourAge;
         if (d.partnerAge !== undefined) {
@@ -2528,9 +2567,12 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         yPos = 20;
 
         doc.setFontSize(18);
-        doc.setTextColor(0, 71, 171);
+        doc.setTextColor(0, 123, 191);
         doc.text("Enhanced Financial Summary", 14, yPos);
-        yPos += 15;
+        yPos += 6;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 9;
 
         const readiness = analysis.enhancedSummary.financialReadiness;
         const enhancedSummaryBody = [
@@ -2562,9 +2604,12 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         }
 
         doc.setFontSize(16);
-        doc.setTextColor(0, 71, 171);
+        doc.setTextColor(220, 53, 69);
         doc.text("Comprehensive Risk Analysis", 14, yPos);
-        yPos += 10;
+        yPos += 5;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 7;
 
         const riskData = analysis.riskAnalysis;
         const riskBody = [
@@ -2596,9 +2641,12 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         }
 
         doc.setFontSize(16);
-        doc.setTextColor(0, 71, 171);
+        doc.setTextColor(40, 167, 69);
         doc.text("Investment Property Analysis", 14, yPos);
-        yPos += 10;
+        yPos += 5;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 7;
 
         const propData = analysis.propertyAnalysis;
         const propertyBody = [
@@ -2630,9 +2678,12 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         }
 
         doc.setFontSize(16);
-        doc.setTextColor(0, 71, 171);
+        doc.setTextColor(0);
         doc.text("Optimization Strategies", 14, yPos);
-        yPos += 10;
+        yPos += 5;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 7;
 
         const optimizationBody = analysis.optimizationStrategies.map(strategy => [
             strategy.category,
@@ -2661,9 +2712,12 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         }
 
         doc.setFontSize(16);
-        doc.setTextColor(0, 71, 171);
+        doc.setTextColor(111, 66, 193);
         doc.text("AI-Generated Recommendations", 14, yPos);
-        yPos += 10;
+        yPos += 5;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 7;
 
         const aiBody = analysis.aiRecommendations.slice(0, 10).map(rec => [
             rec.category || 'General',
@@ -2692,9 +2746,12 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         }
 
         doc.setFontSize(16);
-        doc.setTextColor(0, 71, 171);
+        doc.setTextColor(245, 158, 11);
         doc.text("Scenario Comparisons", 14, yPos);
-        yPos += 10;
+        yPos += 5;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 7;
 
         const scenarioBody = analysis.scenarioComparisons.slice(0, 8).map(scenario => [
             scenario.name || 'Scenario',
@@ -2723,14 +2780,17 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         }
 
         doc.setFontSize(16);
-        doc.setTextColor(0, 71, 171);
+        doc.setTextColor(79, 70, 229);
         doc.text("Personalized Suggestions", 14, yPos);
-        yPos += 10;
+        yPos += 5;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 7;
 
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text("User-generated suggestions based on comprehensive analysis", 14, yPos);
-        yPos += 10;
+        doc.text(`${analysis.suggestions.length} personalized strategies to improve your retirement outcome`, 14, yPos);
+        yPos += 8;
 
         const suggestionsBody = analysis.suggestions.slice(0, 12).map(suggestion => {
             const name = suggestion.name || suggestion.title || 'Suggestion';
@@ -2767,14 +2827,17 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         yPos = 20;
 
         doc.setFontSize(18);
-        doc.setTextColor(0, 71, 171);
+        doc.setTextColor(79, 70, 229);
         doc.text("Scenario Comparison Matrix", 14, yPos);
-        yPos += 10;
+        yPos += 6;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 8;
 
         doc.setFontSize(10);
         doc.setTextColor(100);
         doc.text("Comprehensive comparison of different retirement strategies", 14, yPos);
-        yPos += 10;
+        yPos += 8;
 
         // Summary statistics
         if (analysis.scenarioMatrix.summary) {
@@ -2869,9 +2932,12 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         yPos = 20;
 
         doc.setFontSize(18);
-        doc.setTextColor(0, 71, 171);
+        doc.setTextColor(16, 185, 129);
         doc.text("AI Persona-Based Recommendations", 14, yPos);
-        yPos += 10;
+        yPos += 6;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 8;
 
         doc.setFontSize(10);
         doc.setTextColor(100);
@@ -2909,7 +2975,7 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
                 head: [['Category', 'Recommendation', 'Priority', 'Difficulty']],
                 body: recommendationsBody,
                 theme: 'striped',
-                headStyles: { fillColor: [139, 92, 246] },
+                headStyles: { fillColor: [16, 185, 129] },
                 styles: { fontSize: 8, cellPadding: 3 },
                 columnStyles: {
                     0: { cellWidth: 35 },
@@ -2930,9 +2996,12 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
             }
 
             doc.setFontSize(14);
-            doc.setTextColor(0, 71, 171);
+            doc.setTextColor(16, 185, 129);
             doc.text("Persona Insights", 14, yPos);
-            yPos += 8;
+            yPos += 5;
+            doc.setDrawColor(200, 200, 200);
+            doc.line(14, yPos, 196, yPos);
+            yPos += 7;
 
             const insightsBody = analysis.personaRecommendations.insights.slice(0, 5).map(insight => [
                 insight.type || 'General',
@@ -2945,100 +3014,7 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
                 head: [['Type', 'Title', 'Description']],
                 body: insightsBody,
                 theme: 'grid',
-                headStyles: { fillColor: [139, 92, 246] },
-                styles: { fontSize: 8, cellPadding: 3 },
-                columnStyles: {
-                    0: { cellWidth: 30 },
-                    1: { cellWidth: 45 },
-                    2: { cellWidth: 100 }
-                }
-            });
-        }
-    }
-
-    // Persona-Based AI Recommendations Section
-    if (analysis.personaRecommendations) {
-        doc.addPage();
-        yPos = 20;
-
-        doc.setFontSize(18);
-        doc.setTextColor(0, 71, 171);
-        doc.text("AI Persona-Based Recommendations", 14, yPos);
-        yPos += 10;
-
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text("Personalized recommendations based on your financial profile", 14, yPos);
-        yPos += 10;
-
-        // Persona analysis
-        if (analysis.personaRecommendations.personaAnalysis) {
-            const persona = analysis.personaRecommendations.personaAnalysis.primaryPersona;
-            if (persona) {
-                doc.setFontSize(12);
-                doc.setTextColor(0);
-                doc.text(`Your Financial Persona: ${persona.name}`, 14, yPos);
-                yPos += 6;
-
-                doc.setFontSize(9);
-                doc.setTextColor(80);
-                const descriptionLines = doc.splitTextToSize(persona.description || '', 175);
-                doc.text(descriptionLines, 14, yPos);
-                yPos += (descriptionLines.length * 5) + 8;
-            }
-        }
-
-        // Recommendations
-        if (analysis.personaRecommendations.recommendations && analysis.personaRecommendations.recommendations.length > 0) {
-            const recommendationsBody = analysis.personaRecommendations.recommendations.slice(0, 10).map(rec => [
-                rec.category || 'General',
-                rec.title || rec.action || 'Recommendation',
-                rec.priority || 'Medium',
-                rec.difficulty || rec.timeframe || 'Review'
-            ]);
-
-            doc.autoTable({
-                startY: yPos,
-                head: [['Category', 'Recommendation', 'Priority', 'Difficulty']],
-                body: recommendationsBody,
-                theme: 'striped',
-                headStyles: { fillColor: [139, 92, 246] },
-                styles: { fontSize: 8, cellPadding: 3 },
-                columnStyles: {
-                    0: { cellWidth: 35 },
-                    1: { cellWidth: 80 },
-                    2: { cellWidth: 30 },
-                    3: { cellWidth: 30 }
-                }
-            });
-
-            yPos = doc.lastAutoTable.finalY + 12;
-        }
-
-        // Key insights
-        if (analysis.personaRecommendations.insights && analysis.personaRecommendations.insights.length > 0) {
-            if (yPos > 200) {
-                doc.addPage();
-                yPos = 20;
-            }
-
-            doc.setFontSize(14);
-            doc.setTextColor(0, 71, 171);
-            doc.text("Persona Insights", 14, yPos);
-            yPos += 8;
-
-            const insightsBody = analysis.personaRecommendations.insights.slice(0, 5).map(insight => [
-                insight.type || 'General',
-                insight.title || 'Insight',
-                insight.description || ''
-            ]);
-
-            doc.autoTable({
-                startY: yPos,
-                head: [['Type', 'Title', 'Description']],
-                body: insightsBody,
-                theme: 'grid',
-                headStyles: { fillColor: [139, 92, 246] },
+                headStyles: { fillColor: [16, 185, 129] },
                 styles: { fontSize: 8, cellPadding: 3 },
                 columnStyles: {
                     0: { cellWidth: 30 },
@@ -3193,5 +3169,48 @@ function addEnhancedAnalysisToXLSX(wb, analysis) {
 
         const ws_scenarios = XLSX.utils.aoa_to_sheet(scenarioData);
         XLSX.utils.book_append_sheet(wb, ws_scenarios, 'Scenario Compare');
+    }
+
+    // Suggestions Sheet
+    if (analysis.suggestions && analysis.suggestions.length > 0) {
+        const suggestionsData = [
+            ['Personalized Suggestions', '', '', '', ''],
+            ['#', 'Category', 'Strategy', 'Description', 'Impact/Benefit'],
+            ...analysis.suggestions.slice(0, 30).map((s, i) => [
+                i + 1,
+                s.category || 'General',
+                s.title || s.name || 'Improvement Strategy',
+                s.description || s.recommendation || '',
+                s.impact || s.estimatedImprovement || s.medianBalanceDiff
+                    ? (s.medianBalanceDiff ? `$${Math.round(s.medianBalanceDiff).toLocaleString()}` : (s.impact || s.estimatedImprovement || 'Review details'))
+                    : 'Review details'
+            ])
+        ];
+
+        const ws_suggestions = XLSX.utils.aoa_to_sheet(suggestionsData);
+        XLSX.utils.book_append_sheet(wb, ws_suggestions, 'Suggestions');
+    }
+
+    // Persona Recommendations Sheet
+    if (analysis.personaRecommendations) {
+        const personaRecs = Array.isArray(analysis.personaRecommendations)
+            ? analysis.personaRecommendations
+            : (analysis.personaRecommendations.recommendations || []);
+
+        if (personaRecs.length > 0) {
+            const personaSheetData = [
+                ['Persona-Based Recommendations', '', '', ''],
+                ['Category', 'Recommendation', 'Priority', 'Difficulty/Timeframe'],
+                ...personaRecs.slice(0, 20).map(rec => [
+                    rec.category || rec.persona || rec.type || 'Your Profile',
+                    rec.title || rec.recommendation || rec.action || '',
+                    rec.priority || 'Medium',
+                    rec.difficulty || rec.timeframe || 'Review'
+                ])
+            ];
+
+            const ws_persona = XLSX.utils.aoa_to_sheet(personaSheetData);
+            XLSX.utils.book_append_sheet(wb, ws_persona, 'Persona Recommendations');
+        }
     }
 }
