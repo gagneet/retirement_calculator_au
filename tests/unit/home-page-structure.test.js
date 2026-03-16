@@ -173,4 +173,33 @@ describe('Home page structure (index.html)', () => {
     test('advancedCalculatorForm uses a 4-column grid layout', () => {
         expect(htmlContent).toContain('lg:grid-cols-4');
     });
+
+    // -------------------------------------------------------------------------
+    // Landing page: Advanced Calculator collapsed by default
+    // -------------------------------------------------------------------------
+
+    test('showAdvancedCalculatorButton does NOT have "hidden" class (always visible)', () => {
+        // The old markup had: class="text-center mb-6 hidden" id="showAdvancedCalculatorButton"
+        // Now: class="text-center mb-6" id="showAdvancedCalculatorButton" (no hidden)
+        expect(htmlContent).not.toContain('hidden" id="showAdvancedCalculatorButton"');
+    });
+
+    test('advancedCalculatorForm has style="display:none" (collapsed by default)', () => {
+        // Form must be hidden on load; user expands via the toggle button
+        expect(htmlContent).toMatch(/id="advancedCalculatorForm"[^>]*style="display:none"/);
+    });
+
+    test('no auto-redirect to advanced.html for first-time visitors', () => {
+        // The old conditional that auto-redirected first-time visitors must be gone
+        expect(htmlContent).not.toContain('hasVisitedBefore');
+        expect(htmlContent).not.toContain('skipRedirect');
+    });
+
+    test('startOnboardingBtn exists for user-initiated onboarding', () => {
+        expect(htmlContent).toContain('id="startOnboardingBtn"');
+    });
+
+    test('startOnboardingBtn2 exists for secondary onboarding CTA', () => {
+        expect(htmlContent).toContain('id="startOnboardingBtn2"');
+    });
 });

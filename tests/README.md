@@ -51,10 +51,13 @@ npx jest --testPathPattern=tests/ --watch
 - Covers the `renderFanChart` guard that was added to prevent crashes
 
 **`navigation.test.js`**
-- Tests that first-time visitors are redirected to onboarding
-- Tests that `?skip=true` query parameter bypasses the onboarding redirect
-- Tests that returning visitors (with `hasVisitedCalculator` in localStorage) are not redirected
-- Tests the show/hide button logic for the advanced calculator form
+- Verifies `index.html` is the main landing page — no auto-redirect to `advanced.html` for first-time or returning visitors
+- Confirms the old `hasVisitedBefore`/`skipRedirect` auto-redirect conditional has been removed
+- Tests `startOnboardingBtn` and `startOnboardingBtn2` click handlers set `sessionStorage.startOnboarding` and target `advanced.html?onboarding=true`
+- Tests `advancedCalculatorForm` is hidden (`style="display:none"`) on page load for all visitor types
+- Tests `showAdvancedCalculatorButton` does NOT have the `hidden` class (always visible)
+- Tests `DOMContentLoaded` handler collapses the form and shows "Show Advanced Calculator (Optional)" text
+- Tests `toggleAdvancedCalculator()`: first toggle expands with "Hide" text, second collapses with "Show" text, three toggles ends expanded
 
 **`tax-calculations.test.js`**
 - Tests Australian 2024-25 income tax bracket calculations
@@ -119,6 +122,10 @@ npx jest --testPathPattern=tests/ --watch
 - Confirms the How It Works section contains "Quick Start" text and that it appears before the `advancedCalculatorForm` grid (not inside the calculator form)
 - Verifies `action-buttons-container` appears before `advancedCalculatorForm`
 - Confirms the 4-column grid layout class `lg:grid-cols-4` is present
+- Verifies `showAdvancedCalculatorButton` does NOT have the `hidden` class (always visible on load)
+- Verifies `advancedCalculatorForm` has `style="display:none"` (collapsed by default for all visitors)
+- Confirms the old auto-redirect variables (`hasVisitedBefore`, `skipRedirect`) are absent from `index.html`
+- Verifies `startOnboardingBtn` and `startOnboardingBtn2` IDs exist for user-initiated onboarding
 
 ### Integration Tests
 
