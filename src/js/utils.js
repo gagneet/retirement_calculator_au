@@ -274,10 +274,11 @@ export const initializePercentageInputs = () => {
         'returnDeclineRate', 'savingsReturn', 'superReturn',
         'salaryGrowthRate', 'leanYearsReduction', 'australianEquityAllocation',
         'dividendYield', 'frankingRate', 'returnVolatility', 'shockProbability', 'shockMagnitude',
-        'childrenUnder5Percent', 'childrenPrimaryPercent', 'teenagersPercent', 'adultDisabledPercent',
-        'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent',
         'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage'
     ];
+    // Note: dependent percentage fields (childrenUnder5Percent, childrenPrimaryPercent, etc.)
+    // are type="number" inputs and must NOT use addPercentageFormatting — setting a value
+    // like "70.00%" on a number input causes the browser to reject it (value becomes "").
 
     percentageFieldIds.forEach(id => {
         const element = $(id);
@@ -1786,7 +1787,9 @@ export const populateFormFromData = (userData, version = '2.0') => {
         'agedCareProbability', 'inflation', 'investmentReturn', 'returnDeclineRate',
         'savingsReturn', 'superReturn', 'salaryGrowthRate', 'leanYearsReduction',
         'dividendYield', 'frankingRate', 'returnVolatility',
-        'shockProbability', 'shockMagnitude', 'australianEquityAllocation', 'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage'
+        'shockProbability', 'shockMagnitude', 'australianEquityAllocation', 'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
+        'carerReducedWorkPercent', 'vacancyRate', 'maintenanceInflation',
+        'trustTaxRate', 'beneficiaryAllocation', 'extremeInflationProbability', 'propertyCrashProbability'
     ];
 
     const dependentPercentageFields = [
@@ -1816,8 +1819,9 @@ export const populateFormFromData = (userData, version = '2.0') => {
                     const element = $(detailKey);
                     if (element) {
                         if (dependentPercentageFields.includes(detailKey) && typeof detailValue === 'number') {
-                            // Heuristic to handle both old (e.g., 70) and new (e.g., 0.70) formats
-                            if (version === '3.0' && Math.abs(detailValue) < 2.0) {
+                            // Versions 3.0+ store as decimals (e.g., 0.70 for 70%); older versions as whole numbers
+                            const storedAsDecimal = (version === '3.0' || version === '4.0') && Math.abs(detailValue) < 2.0;
+                            if (storedAsDecimal) {
                                 element.value = (detailValue * 100).toFixed(2);
                             } else {
                                 element.value = detailValue;
@@ -1861,7 +1865,10 @@ export const populateFormFromData = (userData, version = '2.0') => {
                         element.value = value;
                     } else {
                         if (percentageFields.includes(key) && typeof value === 'number') {
-                            if (version === '3.0') {
+                            // Versions 3.0+ store percentages as decimals (e.g., 0.09 for 9%)
+                            // Versions 1.0/2.0 stored as whole numbers (e.g., 9 for 9%)
+                            const storedAsDecimal = version === '3.0' || version === '4.0';
+                            if (storedAsDecimal) {
                                 element.value = (value * 100).toFixed(2);
                             } else {
                                 element.value = value;

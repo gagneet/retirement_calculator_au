@@ -274,7 +274,7 @@ class RetirementCalculatorApp {
 
                 console.log('🎯 About to populate form with userData:', data.userData);
                 // Populate form with imported data
-                populateFormFromData(data.userData);
+                populateFormFromData(data.userData, data.version);
 
                 // Trigger currency and percentage input formatting
                 initializeCurrencyInputs();
@@ -486,7 +486,7 @@ class RetirementCalculatorApp {
                 }
 
                 // Populate form with imported data
-                populateFormFromData(data.userData);
+                populateFormFromData(data.userData, data.version);
 
                 // Trigger currency and percentage input formatting
                 initializeCurrencyInputs();
