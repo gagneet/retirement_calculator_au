@@ -703,7 +703,7 @@
     </div>
 
     <!-- Button to show/hide advanced calculator -->
-    <div class="text-center mb-6 hidden" id="showAdvancedCalculatorButton">
+    <div class="text-center mb-6" id="showAdvancedCalculatorButton">
         <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-lg text-lg shadow-lg transition duration-200"
                 onclick="toggleAdvancedCalculator()">
             📊 Show Advanced Calculator (Optional)
@@ -711,8 +711,8 @@
         <p class="text-sm text-gray-600 mt-2">Customize all parameters for detailed analysis</p>
     </div>
 
-    <!-- Advanced Calculator Form (hidden by default after onboarding) -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6" id="advancedCalculatorForm">
+    <!-- Advanced Calculator Form (collapsed by default) -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6" id="advancedCalculatorForm" style="display:none">
         <!-- Column 1: Personal & Risk Profile -->
         <div class="lg:col-span-1 section-personal-risk">
             <h2 class="text-xl font-semibold mb-4 border-b pb-2">
@@ -1291,24 +1291,14 @@
             }
         }
 
-        // Check if user has completed onboarding
+        // Advanced Calculator is always collapsed on page load
         window.addEventListener('DOMContentLoaded', function () {
-            const hasCompleted = localStorage.getItem('hasVisitedCalculator') === 'true';
             const form = document.getElementById('advancedCalculatorForm');
             const button = document.getElementById('showAdvancedCalculatorButton');
-
-            if (hasCompleted) {
-                if (form) form.style.display = 'none';
-                if (button) {
-                    button.classList.remove('hidden');
-                }
-            } else {
-                // Form is visible by default - show button with 'Hide' text
-                if (button) {
-                    button.classList.remove('hidden');
-                    const btn = button.querySelector('button');
-                    if (btn) btn.innerHTML = '📊 Hide Advanced Calculator';
-                }
+            if (form) form.style.display = 'none';
+            if (button) {
+                const btn = button.querySelector('button');
+                if (btn) btn.innerHTML = '📊 Show Advanced Calculator (Optional)';
             }
         });
     </script>
@@ -1739,18 +1729,7 @@
     </footer>
 
     <script>
-        // Check if user has seen homepage before
-        const hasVisitedBefore = localStorage.getItem('hasVisitedCalculator');
-        const urlParams = new URLSearchParams(window.location.search);
-        const skipRedirect = urlParams.get('skip') === 'true';
-
-        if (!hasVisitedBefore && !skipRedirect) {
-            // First-time visitor - auto-start onboarding immediately
-            sessionStorage.setItem('startOnboarding', 'true');
-            window.location.href = 'advanced.html?onboarding=true';
-        }
-
-        // Button click handlers for returning visitors
+        // Onboarding button click handlers
         document.getElementById('startOnboardingBtn').addEventListener('click', function () {
             sessionStorage.setItem('startOnboarding', 'true');
             window.location.href = 'advanced.html?onboarding=true';
