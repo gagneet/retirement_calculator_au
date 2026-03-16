@@ -13,6 +13,7 @@ tests/
 │   ├── chart-safety.test.js               # Chart.js undefined safety checks
 │   ├── export-functions.test.js           # CSV, XLSX, PDF export functions
 │   ├── home-page-structure.test.js        # index.html action buttons & HTML structure
+│   ├── json-import-percentage.test.js     # JSON import: percentage decimal→% conversion for all fields
 │   ├── life-simulation-engine.test.js     # Life simulation engine calculations
 │   ├── navigation.test.js                 # Redirect loop prevention & button visibility
 │   ├── new-fields.test.js                 # New fields: AU residency, reduced income, carer impact (Items 7, 9, 10)
@@ -62,6 +63,14 @@ npx jest --testPathPattern=tests/ --watch
 - Tests Capital Gains Tax with 50% discount for 12+ month holdings
 - Tests Age Pension asset test taper logic
 - Tests homeowner vs non-homeowner thresholds (+$242,000 supplement)
+
+**`json-import-percentage.test.js`**
+- Verifies the seven previously-missing fields are now included in `populateFormFromData`'s `percentageFields` and converted correctly (×100) on v4.0 JSON import: `carerReducedWorkPercent`, `vacancyRate`, `maintenanceInflation`, `trustTaxRate`, `beneficiaryAllocation`, `extremeInflationProbability`, `propertyCrashProbability`
+- Regression-tests known-good fields (`investmentReturn`, `superReturn`, `salaryGrowthRate`, `inflation`, `returnDeclineRate`)
+- Confirms v1.0/v2.0 (non-decimal) imports are NOT multiplied
+- Asserts that all eight dependent percentage fields (`childrenUnder5Percent`, etc.) are absent from `initializePercentageInputs`'s field list — these are `type="number"` inputs and would become blank if `addPercentageFormatting` appended a `%` suffix
+- Verifies `childrenUnder5Percent`, `childrenPrimaryPercent`, `teenagersPercent` are declared `type="number"` in `advanced.html`
+- Confirms `investmentReturn`, `superReturn`, `salaryGrowthRate` have no `step` attribute (semantically invalid on `type="text"`) and are `type="text"`
 
 **`new-fields.test.js`**
 - Tests Australian residency years calculation when `ageCameToAustralia` is provided
