@@ -1,11 +1,14 @@
 /**
- * Tests for JSON import percentage field conversion in populateFormFromData (utils.js).
+ * Tests for JSON import/export percentage field conversion (utils.js + app.js).
  *
  * Verifies:
  *  1. Fields previously missing from percentageFields are now converted (×100) on v4.0 import
  *  2. Dependent percentage fields (type="number") are NOT broken by addPercentageFormatting
  *  3. investmentReturn, superReturn, salaryGrowthRate have no step attribute (type="text")
  *  4. Known-good percentage fields continue to convert correctly
+ *  5. Round-trip: import decimal → ×100 form display → ÷100 on collect = same decimal
+ *  6. app.js passes data.version to populateFormFromData in both import paths
+ *  7. The export double-division root cause: missing version causes storedAsDecimal=false
  *
  * These tests replicate the logic from utils.js populateFormFromData and
  * initializePercentageInputs without importing the ES module (which has browser deps).
@@ -263,5 +266,119 @@ describe('populateFormFromData: all new percentage fields are in POPULATE_PERCEN
         test(`${field} is in POPULATE_PERCENTAGE_FIELDS`, () => {
             expect(POPULATE_PERCENTAGE_FIELDS).toContain(field);
         });
+    });
+});
+
+// ── Round-trip tests ──────────────────────────────────────────────────────────
+//
+// Root cause of "Save Data adds extra zeros" bug:
+//   When populateFormFromData received no version (defaulted to '2.0'), storedAsDecimal
+//   was false, so the form field was set to the raw decimal (e.g. "0.04" for vacancyRate).
+//   collectInputs then read "0.04" and divided by 100 → 0.0004 exported instead of 0.04.
+//   Each import+save cycle multiplied the error: 0.04 → 0.0004 → 0.000004 → ...
+//
+// The fix: populateFormFromData is now called with data.version, so storedAsDecimal=true
+// for v4.0 files. The form is set to 4.00 (0.04×100), and collectInputs gives 4/100=0.04.
+
+/**
+ * Simulate the full import → form → collect round-trip for a percentage field.
+ * Returns the collected decimal value that would be exported.
+ * @param {string} fieldName
+ * @param {number} jsonDecimalValue  e.g. 0.04 for "4%"
+ * @param {string} version           e.g. '4.0'
+ */
+const simulateRoundTrip = (fieldName, jsonDecimalValue, version) => {
+    // Step 1: populateFormFromData sets the form field value
+    const storedAsDecimal = version === '3.0' || version === '4.0';
+    let formDisplayValue;
+    if (POPULATE_PERCENTAGE_FIELDS.includes(fieldName) && typeof jsonDecimalValue === 'number' && storedAsDecimal) {
+        formDisplayValue = parseFloat((jsonDecimalValue * 100).toFixed(2)); // e.g. 4.00
+    } else {
+        formDisplayValue = jsonDecimalValue; // raw decimal e.g. 0.04 (the old bug)
+    }
+
+    // Step 2: collectInputs divides by 100
+    const collectedDecimal = formDisplayValue / 100;
+
+    return { formDisplayValue, collectedDecimal };
+};
+
+describe('Round-trip: import decimal → form display → collectInputs ÷100 = original decimal', () => {
+
+    const cases = [
+        { field: 'vacancyRate',               decimal: 0.04,   display: 4.00 },
+        { field: 'maintenanceInflation',      decimal: 0.035,  display: 3.50 },
+        { field: 'trustTaxRate',              decimal: 0.3,    display: 30.00 },
+        { field: 'beneficiaryAllocation',     decimal: 0.8,    display: 80.00 },
+        { field: 'extremeInflationProbability', decimal: 0.0188, display: 1.88 },
+        { field: 'propertyCrashProbability',  decimal: 0.032,  display: 3.20 },
+        { field: 'carerReducedWorkPercent',   decimal: 0.2,    display: 20.00 },
+        { field: 'investmentReturn',          decimal: 0.038,  display: 3.80 },
+        { field: 'superReturn',               decimal: 0.088,  display: 8.80 },
+        { field: 'inflation',                 decimal: 0.0287, display: 2.87 },
+    ];
+
+    cases.forEach(({ field, decimal, display }) => {
+        test(`${field}: v4.0 import ${decimal} → form ${display} → collect ${decimal}`, () => {
+            const { formDisplayValue, collectedDecimal } = simulateRoundTrip(field, decimal, '4.0');
+            expect(formDisplayValue).toBeCloseTo(display, 2);
+            expect(collectedDecimal).toBeCloseTo(decimal, 6);
+        });
+    });
+
+    test('WITHOUT version (old bug): vacancyRate 0.04 → form 0.04 → collect 0.0004 (wrong)', () => {
+        // This is the exact double-division bug: missing version → raw decimal in form
+        const { formDisplayValue, collectedDecimal } = simulateRoundTrip('vacancyRate', 0.04, '2.0');
+        expect(formDisplayValue).toBeCloseTo(0.04, 6);    // form shows raw decimal
+        expect(collectedDecimal).toBeCloseTo(0.0004, 8);  // exported ÷100 again → wrong
+    });
+
+    test('WITH version (fix): vacancyRate 0.04 → form 4.00 → collect 0.04 (correct)', () => {
+        const { formDisplayValue, collectedDecimal } = simulateRoundTrip('vacancyRate', 0.04, '4.0');
+        expect(formDisplayValue).toBeCloseTo(4.00, 2);
+        expect(collectedDecimal).toBeCloseTo(0.04, 6);
+    });
+
+    test('cascading bug: loading re-exported "new JSON" (0.0004) compounds the error', () => {
+        // The new JSON was created by: import 0.04 (old code, no version) → form 0.04
+        // → collect 0.04/100=0.0004 → exported as 0.0004
+        // If that new JSON is then loaded with old code again: 0.0004 → 0.000004 → ...
+        const round1 = simulateRoundTrip('vacancyRate', 0.04,   '2.0'); // old code
+        const round2 = simulateRoundTrip('vacancyRate', round1.collectedDecimal, '2.0');
+        expect(round1.collectedDecimal).toBeCloseTo(0.0004, 8);
+        expect(round2.collectedDecimal).toBeCloseTo(0.000004, 10);
+    });
+});
+
+// ── app.js: version must be passed to populateFormFromData ────────────────────
+
+describe('app.js: populateFormFromData is called with data.version', () => {
+    const fs = require('fs');
+    const path = require('path');
+    let appJs;
+
+    beforeAll(() => {
+        appJs = fs.readFileSync(path.join(__dirname, '../../src/js/app.js'), 'utf-8');
+    });
+
+    test('first import path passes data.version to populateFormFromData', () => {
+        // Must be: populateFormFromData(data.userData, data.version)
+        // NOT:     populateFormFromData(data.userData)  ← missing version causes storedAsDecimal=false
+        const match = appJs.match(/populateFormFromData\(data\.userData,\s*data\.version\)/g);
+        expect(match).not.toBeNull();
+        expect(match.length).toBeGreaterThanOrEqual(1);
+    });
+
+    test('both import paths pass data.version (direct reader + importUserData paths)', () => {
+        const matches = appJs.match(/populateFormFromData\(data\.userData,\s*data\.version\)/g);
+        expect(matches).not.toBeNull();
+        expect(matches.length).toBeGreaterThanOrEqual(2);
+    });
+
+    test('no call to populateFormFromData omits the version argument', () => {
+        // Find any call that passes userData but NOT version
+        // Pattern: populateFormFromData(data.userData) followed by ) — no second arg
+        const badCalls = appJs.match(/populateFormFromData\(\s*(?:importedData|data)\.userData\s*\)/g);
+        expect(badCalls).toBeNull();
     });
 });

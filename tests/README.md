@@ -71,6 +71,9 @@ npx jest --testPathPattern=tests/ --watch
 - Asserts that all eight dependent percentage fields (`childrenUnder5Percent`, etc.) are absent from `initializePercentageInputs`'s field list — these are `type="number"` inputs and would become blank if `addPercentageFormatting` appended a `%` suffix
 - Verifies `childrenUnder5Percent`, `childrenPrimaryPercent`, `teenagersPercent` are declared `type="number"` in `advanced.html`
 - Confirms `investmentReturn`, `superReturn`, `salaryGrowthRate` have no `step` attribute (semantically invalid on `type="text"`) and are `type="text"`
+- **Round-trip tests**: import decimal → form display (×100) → collectInputs (÷100) = original decimal — confirms the "Save Data adds extra zeros" bug is fixed
+- **Double-division regression**: without version (old bug), `vacancyRate: 0.04` → form `0.04` → export `0.0004`; each re-import+save compounds the error
+- **app.js version-passing**: verifies both import paths call `populateFormFromData(data.userData, data.version)` — the missing `data.version` argument was the root cause of `storedAsDecimal=false` and all export corruption
 
 **`new-fields.test.js`**
 - Tests Australian residency years calculation when `ageCameToAustralia` is provided
