@@ -476,6 +476,15 @@ export const calculateNPV = (cashFlows, discountRate) => {
 };
 
 // Tax calculation utilities
+// Low Income Tax Offset (LITO) 2025-26 — reduces tax payable for incomes below $66,667
+// $700 full offset up to $37,500; phases out 5c/$ to $45k; then 1.5c/$ to $66,667
+export const calculateLITO = (income) => {
+    if (income <= 37500) return 700;
+    if (income <= 45000) return Math.max(0, 700 - (income - 37500) * 0.05);
+    if (income <= 66667) return Math.max(0, 325 - (income - 45000) * 0.015);
+    return 0;
+};
+
 export const calculateAustralianTax = (income, taxBrackets) => {
     let tax = 0;
     let remainingIncome = income;
@@ -494,7 +503,7 @@ export const calculateAustralianTax = (income, taxBrackets) => {
         }
     }
 
-    return tax;
+    return Math.max(0, tax - calculateLITO(income));
 };
 
 // Medicare levy (2025-26 single thresholds — ATO)
@@ -2396,6 +2405,7 @@ export default {
     calculatePMT,
     calculateLoanBalance,
     calculateNPV,
+    calculateLITO,
     calculateAustralianTax,
     calculateMedicareLevy,
     calculateMLS,
