@@ -1162,12 +1162,34 @@ export class RetirementSimulator {
 
             const totalCostWithHealthcare = baseIncomeNeeded + healthcareCost + agedCareCost;
 
+            // AWLR eligibility check: Age Pension requires 10+ years Australian residence
+            // If ageCameToAustralia is set, compute residence years at retirement
+            const ageCameToAustralia = parseFloat(inputs.ageCameToAustralia || 0);
+            const awlrYearsAtRetirement = ageCameToAustralia > 0
+                ? Math.max(0, inputs.retirementAge - ageCameToAustralia)
+                : null; // null = assume full residence (born/raised in AU)
+            const pensionEligibleByResidency = awlrYearsAtRetirement === null || awlrYearsAtRetirement >= 10;
+
             // Enhanced Pension calculation - handles non-pensioner partner scenarios
-            const assessableAssets = currentBalance + propertyEquity - (inputs.planToDownsize ? 0 : homeEquityAtRetirement);
+            // Trust assets: attributed share counts as assessable assets (Centrelink rules)
+            const trustAttributedAssets = inputs.hasTrustAssets
+                ? (parseFloat(inputs.trustNetAssets || 0) * parseFloat(inputs.trustAttributionPercentage || 0))
+                : 0;
+            // If home is held in trust it loses the homeowner exemption
+            const homeExemption = inputs.planToDownsize ? 0
+                : (inputs.homeInTrust ? 0 : homeEquityAtRetirement);
+            const assessableAssets = currentBalance + propertyEquity - homeExemption + trustAttributedAssets;
+            // Trust distributions add to income test (annual distributions × attribution%)
+            const trustDistributionIncome = inputs.hasTrustAssets
+                ? (parseFloat(inputs.trustAnnualDistributions || 0) * parseFloat(inputs.trustAttributionPercentage || 0))
+                : 0;
             let pensionIncome = 0;
             let pensionDetails = null;
 
-            if (isCouple) {
+            if (!pensionEligibleByResidency) {
+                // Not enough Australian residence years — no Age Pension
+                pensionIncome = 0;
+            } else if (isCouple) {
                 // Use enhanced couple pension calculation
                 const person1 = {
                     age: yourCurrentAge,
@@ -1194,10 +1216,10 @@ export class RetirementSimulator {
                     }
                 }
             } else {
-                // Single person - use standard calculation
+                // Single person - income test includes trust distributions
                 pensionIncome = calculateAgePension(
                     assessableAssets,
-                    propertyIncome,
+                    propertyIncome + trustDistributionIncome,
                     false,
                     this.config.SINGLE_PENSION_MAX,
                     this.config.SINGLE_ASSET_THRESHOLD,
@@ -1206,7 +1228,7 @@ export class RetirementSimulator {
                 );
             }
 
-            const totalIncome = pensionIncome + propertyIncome;
+            const totalIncome = pensionIncome + propertyIncome + trustDistributionIncome;
             const netWithdrawalNeeded = Math.max(0, totalCostWithHealthcare - totalIncome);
 
             // Enhanced return calculation with regime modeling
