@@ -139,3 +139,8 @@ Thumbs.db
 
 # Node
 node_modules/
+
+# Playwright
+playwright_modules/
+playwright-report/
+test-results/
