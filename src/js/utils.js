@@ -508,10 +508,24 @@ export const calculateMedicareLevy = (income) => {
     return income * 0.02;
 };
 
-export const calculatePostTaxIncome = (preTaxSalary, taxBrackets) => {
+// Medicare Levy Surcharge (2025-26 single thresholds — ATO)
+// Only applies to individuals WITHOUT private hospital cover earning above $93,000.
+// 1% at $93k+, 1.25% at $108k+, 1.5% at $144k+
+export const calculateMLS = (income, hasPrivateHealthCover) => {
+    if (hasPrivateHealthCover) return 0;
+    if (income <= 93000) return 0;
+    if (income <= 108000) return income * 0.01;
+    if (income <= 144000) return income * 0.0125;
+    return income * 0.015;
+};
+
+// Third parameter hasPrivateHealthCover defaults to true so existing callers are unaffected.
+// Pass the user's actual value in the accumulation loop for correct MLS calculation.
+export const calculatePostTaxIncome = (preTaxSalary, taxBrackets, hasPrivateHealthCover = true) => {
     const tax = calculateAustralianTax(preTaxSalary, taxBrackets);
     const medicare = calculateMedicareLevy(preTaxSalary);
-    return preTaxSalary - tax - medicare;
+    const mls = calculateMLS(preTaxSalary, hasPrivateHealthCover);
+    return preTaxSalary - tax - medicare - mls;
 };
 
 // Investment property utilities
@@ -2384,6 +2398,7 @@ export default {
     calculateNPV,
     calculateAustralianTax,
     calculateMedicareLevy,
+    calculateMLS,
     calculatePostTaxIncome,
     calculatePropertyCashFlow,
     calculatePropertyTotalReturn,
