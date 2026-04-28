@@ -5,6 +5,9 @@ import { ENHANCED_CONFIG } from './config.js';
 import { EnhancedMonteCarloEngine } from './enhanced-monte-carlo.js';
 import {
     calculatePostTaxIncome,
+    calculateAustralianTax,
+    calculateMedicareLevy,
+    calculateMLS,
     calculateLoanBalance,
     calculatePropertyCashFlow,
     calculateCGT,
@@ -847,24 +850,64 @@ export class RetirementSimulator {
             const yourYearsToWork = Math.min(inputs.retirementAge, inputs.yourLifespan) - inputs.yourCurrentAge;
             const partnerYearsToWork = Math.min(inputs.partnerRetirementAge, inputs.partnerLifespan) - inputs.partnerCurrentAge;
 
+            // Year-specific tax rules:
+            // • Tax brackets: 16% → 15% on $18,201–$45,000 from 1 July 2026 (FY 2026-27)
+            // • LISTO: threshold $37k/$500 → $45k/$810 from 1 July 2027 (FY 2027-28)
+            // projectionYear maps simulation year to calendar year (e.g. year 1 in 2026 = calendar 2027)
+            const projectionYear = new Date().getFullYear() + year;
+            const taxBrackets = projectionYear >= 2027
+                ? this.config.TAX_BRACKETS_2026_27
+                : this.config.TAX_BRACKETS;
+            const listoThreshold = projectionYear >= 2028 ? 45000 : 37000;
+            const listoMaxOffset = projectionYear >= 2028 ? 810 : 500;
+            const hasPrivateCover = inputs.hasPrivateHealthCover !== false;
+            const div293Threshold = this.config.DIVISION_293_THRESHOLD || 250000;
+
             let yearlyPostTaxIncome = 0;
             let yearlySuperContribution = 0;
 
             if (year <= yourYearsToWork) {
-                const yourSalary = this.getSalaryForYear(inputs.yourSalary, year, inputs);
-                yearlyPostTaxIncome += calculatePostTaxIncome(yourSalary, this.config.TAX_BRACKETS);
-                // Concessional contributions are taxed at 15% within the super fund.
-                // LISTO refunds up to $500 for incomes ≤ $37,000 (ATO – effective from 1 July 2012).
-                const yourGrossContrib = yourSalary * inputs.superContributionRate;
-                const yourLISTO = yourSalary <= 37000 ? Math.min(yourGrossContrib * 0.15, 500) : 0;
-                yearlySuperContribution += yourGrossContrib * 0.85 + yourLISTO;
+                const yourGrossSalary = this.getSalaryForYear(inputs.yourSalary, year, inputs);
+                // Salary sacrifice: voluntary pre-tax super, capped so total concessional ≤ $30,000
+                const yourEmployerSG = yourGrossSalary * inputs.superContributionRate;
+                const yourSacrifice = Math.min(
+                    inputs.yourAdditionalSuperContribution || 0,
+                    Math.max(0, 30000 - yourEmployerSG)
+                );
+                const yourTaxableSalary = yourGrossSalary - yourSacrifice;
+                yearlyPostTaxIncome += calculatePostTaxIncome(yourTaxableSalary, taxBrackets, hasPrivateCover);
+
+                // Concessional contributions tax: 15% flat; LISTO offsets for low incomes
+                const yourTotalConcessional = yourEmployerSG + yourSacrifice;
+                const yourLISTO = yourTaxableSalary <= listoThreshold
+                    ? Math.min(yourTotalConcessional * 0.15, listoMaxOffset)
+                    : 0;
+                // Division 293: extra 15% where income + concessional > $250,000
+                const yourDiv293 = Math.max(0, Math.min(
+                    yourTotalConcessional,
+                    yourTaxableSalary + yourTotalConcessional - div293Threshold
+                )) * 0.15;
+                yearlySuperContribution += yourTotalConcessional * 0.85 + yourLISTO - yourDiv293;
             }
             if (year <= partnerYearsToWork) {
-                const partnerSalary = this.getSalaryForYear(inputs.partnerSalary, year, inputs, true);
-                yearlyPostTaxIncome += calculatePostTaxIncome(partnerSalary, this.config.TAX_BRACKETS);
-                const partnerGrossContrib = partnerSalary * inputs.superContributionRate;
-                const partnerLISTO = partnerSalary <= 37000 ? Math.min(partnerGrossContrib * 0.15, 500) : 0;
-                yearlySuperContribution += partnerGrossContrib * 0.85 + partnerLISTO;
+                const partnerGrossSalary = this.getSalaryForYear(inputs.partnerSalary, year, inputs, true);
+                const partnerEmployerSG = partnerGrossSalary * inputs.superContributionRate;
+                const partnerSacrifice = Math.min(
+                    inputs.partnerAdditionalSuperContribution || 0,
+                    Math.max(0, 30000 - partnerEmployerSG)
+                );
+                const partnerTaxableSalary = partnerGrossSalary - partnerSacrifice;
+                yearlyPostTaxIncome += calculatePostTaxIncome(partnerTaxableSalary, taxBrackets, hasPrivateCover);
+
+                const partnerTotalConcessional = partnerEmployerSG + partnerSacrifice;
+                const partnerLISTO = partnerTaxableSalary <= listoThreshold
+                    ? Math.min(partnerTotalConcessional * 0.15, listoMaxOffset)
+                    : 0;
+                const partnerDiv293 = Math.max(0, Math.min(
+                    partnerTotalConcessional,
+                    partnerTaxableSalary + partnerTotalConcessional - div293Threshold
+                )) * 0.15;
+                yearlySuperContribution += partnerTotalConcessional * 0.85 + partnerLISTO - partnerDiv293;
             }
 
             accumulatedSuperBalance += yearlySuperContribution;
@@ -2108,27 +2151,8 @@ export class RetirementSimulator {
      * @returns {number} Net annual income
      */
     calculateNetIncome(grossIncome, inputs) {
-        // Australian tax brackets 2025-26
-        const taxBrackets = [
-            { min: 0, max: 18200, rate: 0 },
-            { min: 18201, max: 45000, rate: 0.16 },
-            { min: 45001, max: 135000, rate: 0.30 },
-            { min: 135001, max: 190000, rate: 0.37 },
-            { min: 190001, max: Infinity, rate: 0.45 }
-        ];
-
-        let tax = 0;
-        for (const bracket of taxBrackets) {
-            if (grossIncome > bracket.min) {
-                const taxableAtThisBracket = Math.min(grossIncome, bracket.max) - bracket.min + 1;
-                tax += taxableAtThisBracket * bracket.rate;
-            }
-        }
-
-        // Medicare levy (2%)
-        const medicareLevy = grossIncome * 0.02;
-
-        return grossIncome - tax - medicareLevy;
+        const hasPrivateCover = inputs && inputs.hasPrivateHealthCover !== false;
+        return calculatePostTaxIncome(grossIncome, this.config.TAX_BRACKETS, hasPrivateCover);
     }
 
     /**
