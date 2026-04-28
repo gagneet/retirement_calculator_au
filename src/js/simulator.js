@@ -853,12 +853,18 @@ export class RetirementSimulator {
             if (year <= yourYearsToWork) {
                 const yourSalary = this.getSalaryForYear(inputs.yourSalary, year, inputs);
                 yearlyPostTaxIncome += calculatePostTaxIncome(yourSalary, this.config.TAX_BRACKETS);
-                yearlySuperContribution += yourSalary * inputs.superContributionRate;
+                // Concessional contributions are taxed at 15% within the super fund.
+                // LISTO refunds up to $500 for incomes ≤ $37,000 (ATO – effective from 1 July 2012).
+                const yourGrossContrib = yourSalary * inputs.superContributionRate;
+                const yourLISTO = yourSalary <= 37000 ? Math.min(yourGrossContrib * 0.15, 500) : 0;
+                yearlySuperContribution += yourGrossContrib * 0.85 + yourLISTO;
             }
             if (year <= partnerYearsToWork) {
                 const partnerSalary = this.getSalaryForYear(inputs.partnerSalary, year, inputs, true);
                 yearlyPostTaxIncome += calculatePostTaxIncome(partnerSalary, this.config.TAX_BRACKETS);
-                yearlySuperContribution += partnerSalary * inputs.superContributionRate;
+                const partnerGrossContrib = partnerSalary * inputs.superContributionRate;
+                const partnerLISTO = partnerSalary <= 37000 ? Math.min(partnerGrossContrib * 0.15, 500) : 0;
+                yearlySuperContribution += partnerGrossContrib * 0.85 + partnerLISTO;
             }
 
             accumulatedSuperBalance += yearlySuperContribution;
