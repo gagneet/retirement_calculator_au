@@ -497,9 +497,21 @@ export const calculateAustralianTax = (income, taxBrackets) => {
     return tax;
 };
 
+// Medicare levy (2025-26 single thresholds — ATO)
+// No levy below $27,222; phases in at 10c/$ up to $34,028; full 2% above.
+// Private hospital cover does NOT reduce the standard levy (only affects the MLS surcharge).
+export const calculateMedicareLevy = (income) => {
+    const LOWER = 27222;
+    const UPPER = 34028;
+    if (income <= LOWER) return 0;
+    if (income < UPPER) return (income - LOWER) * 0.1;
+    return income * 0.02;
+};
+
 export const calculatePostTaxIncome = (preTaxSalary, taxBrackets) => {
     const tax = calculateAustralianTax(preTaxSalary, taxBrackets);
-    return preTaxSalary - tax;
+    const medicare = calculateMedicareLevy(preTaxSalary);
+    return preTaxSalary - tax - medicare;
 };
 
 // Investment property utilities
@@ -2371,6 +2383,7 @@ export default {
     calculateLoanBalance,
     calculateNPV,
     calculateAustralianTax,
+    calculateMedicareLevy,
     calculatePostTaxIncome,
     calculatePropertyCashFlow,
     calculatePropertyTotalReturn,
