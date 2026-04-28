@@ -92,7 +92,9 @@ const OVERSEAS_COUNTRY_PROFILE_KEY_MAP = {
     'bali': 'BALI',
     'japan': 'JAPAN',
     'malaysia': 'MALAYSIA',
-    'philippines': 'PHILIPPINES'
+    'philippines': 'PHILIPPINES',
+    'vietnam': 'VIETNAM',
+    'usa': 'USA'
 };
 
 class RetirementCalculatorApp {
@@ -1049,6 +1051,48 @@ class RetirementCalculatorApp {
                     <div class="font-bold text-xl">Retirement Shortfall ⚠️</div>
                     <div class="mt-1">Assets projected to be depleted before the end of subject's lifespan</div>
                 `;
+            }
+        }
+
+        // Transfer Balance Cap + age-specific warnings
+        const superWarnings = [];
+        const TRANSFER_BALANCE_CAP_2025 = 2000000;
+        const TRANSFER_BALANCE_CAP_2027 = 2100000;
+        const yearsToRetirementCalc = inputs.retirementAge - inputs.yourCurrentAge;
+        const projectedTBC = yearsToRetirementCalc >= 2 ? TRANSFER_BALANCE_CAP_2027 : TRANSFER_BALANCE_CAP_2025;
+
+        if (result.accumulatedSuperBalance > projectedTBC) {
+            superWarnings.push(`⚠️ <strong>Transfer Balance Cap:</strong> Your projected super ($${Math.round(result.accumulatedSuperBalance / 1000).toLocaleString()}k) exceeds the $${Math.round(projectedTBC / 1000).toLocaleString()}k Transfer Balance Cap. Amounts above the cap cannot move to tax-free pension phase — seek financial advice on excess strategies (e.g. non-concessional withdrawals, account-based vs accumulation split).`);
+        }
+        if (inputs.yourCurrentAge >= 75) {
+            superWarnings.push(`ℹ️ <strong>Super Contributions:</strong> At age 75+ you can only make mandated employer (SG) contributions — voluntary concessional and non-concessional contributions are not permitted.`);
+        } else if (inputs.yourCurrentAge >= 67) {
+            superWarnings.push(`ℹ️ <strong>Work Test:</strong> At age 67–74, personal super contributions (salary sacrifice and personal deductible) require you to meet the work test (40 hours in 30 consecutive days) unless your TSB was < $300k at the prior 30 June.`);
+        }
+        // Residency warning if insufficient AWLR
+        if (inputs.ageCameToAustralia > 0) {
+            const awlrAtRetirement = Math.max(0, inputs.retirementAge - inputs.ageCameToAustralia);
+            if (awlrAtRetirement < 10) {
+                superWarnings.push(`⚠️ <strong>Age Pension Eligibility:</strong> With ${awlrAtRetirement} years of Australian residence at retirement (came at age ${inputs.ageCameToAustralia}), you will NOT meet the 10-year residence requirement for Age Pension. The pension has been removed from your projections.`);
+            } else if (awlrAtRetirement < 35) {
+                const awlrPct = Math.round((awlrAtRetirement / 35) * 100);
+                superWarnings.push(`ℹ️ <strong>Overseas Pension Portability:</strong> With ${awlrAtRetirement} years residence (AWLR), your Age Pension overseas portability is approximately ${awlrPct}% of the full rate.`);
+            }
+        }
+
+        if (superWarnings.length > 0) {
+            const warningEl = $('superContributionWarnings');
+            const warningHTML = `<div class="mt-3 space-y-2">${superWarnings.map(w => `<div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">${w}</div>`).join('')}</div>`;
+            if (warningEl) {
+                warningEl.innerHTML = warningHTML;
+            } else {
+                const summaryEl = $('summaryResults');
+                if (summaryEl) {
+                    const div = document.createElement('div');
+                    div.id = 'superContributionWarnings';
+                    div.innerHTML = warningHTML;
+                    summaryEl.parentNode.insertBefore(div, summaryEl.nextSibling);
+                }
             }
         }
 
@@ -4151,17 +4195,20 @@ class RetirementCalculatorApp {
 
             // Generate scenarios based on configuration
             await new Promise(resolve => setTimeout(resolve, 800)); // Brief processing pause
-            const scenarios = this.generateOverseasScenariosData(overseasConfig, baseInputs);
+
+            // Pass simulation results so scenarios can show portfolio-based retirement runway
+            const simResults = this.currentResults || null;
+            const scenarios = this.generateOverseasScenariosData(overseasConfig, baseInputs, simResults);
 
             // Build country analysis using OverseasRetirementAnalyzer for charting
             const analyzer = this._buildOverseasAnalyzer(overseasConfig, baseInputs);
-            const chartData = this.buildOverseasChartData(overseasConfig, baseInputs, analyzer);
+            const chartData = this.buildOverseasChartData(overseasConfig, baseInputs, analyzer, simResults);
 
             // Update status banner with real data
             this.updateOverseasStatus(overseasConfig, baseInputs, analyzer);
 
-            // Display scenarios
-            this.displayOverseasScenarios(scenarios, chartData);
+            // Display scenarios (includes portfolio runway table)
+            this.displayOverseasScenarios(scenarios, chartData, simResults);
 
             // Render overview charts in the chart section (lazy-load chart manager)
             const chartManager = await this.getChartManager();
@@ -4194,11 +4241,15 @@ class RetirementCalculatorApp {
      * Build structured data for overseas charts.
      * Compares the selected country against a set of reference destinations.
      */
-    buildOverseasChartData(config, baseInputs, analyzer) {
-        // Always show selected country + 4 popular alternatives for comparison
-        const defaultComparisons = ['thailand', 'portugal', 'malaysia', 'bali', 'newzealand'];
+    buildOverseasChartData(config, baseInputs, analyzer, simResults = null) {
+        // Selected country + major comparison destinations
+        const defaultComparisons = ['thailand', 'portugal', 'vietnam', 'india', 'japan', 'italy', 'malaysia', 'bali', 'newzealand', 'usa'];
         const selectedKey = config.country;
-        const compareKeys = [selectedKey, ...defaultComparisons.filter(k => k !== selectedKey)].slice(0, 5);
+        const compareKeys = [selectedKey, ...defaultComparisons.filter(k => k !== selectedKey)].slice(0, 8);
+
+        // Retirement portfolio from simulation results
+        const totalPortfolio = simResults ? (simResults.totalFinancialAssets || 0) : 0;
+        const asfaBase = baseInputs.asfaComfortable || 73000;
 
         const costComparison = [];
         const portability = [];
@@ -4215,11 +4266,23 @@ class RetirementCalculatorApp {
             const pension = countryAnalysis.agePensionPortability.pensionCalculation;
             const cost = countryAnalysis.costOfLiving;
 
+            // Per-country retirement runway using actual simulation results
+            const annualCostInCountry = cost.countryAnnual || (asfaBase * profile.costOfLiving.index);
+            const portablePension = pension.overseas || 0;
+            const annualNetDraw = Math.max(1, annualCostInCountry - portablePension);
+            const yearsLasts = totalPortfolio > 0 ? Math.round(totalPortfolio / annualNetDraw) : null;
+
             costComparison.push({
                 name: profile.name,
-                annualCostAUD: cost.countryAnnual,
+                flag: profile.flag || '',
+                annualCostAUD: annualCostInCountry,
                 pensionAUD: pension.overseas,
-                hasSocialSecurityAgreement: profile.socialSecurityAgreement
+                hasSocialSecurityAgreement: profile.socialSecurityAgreement,
+                yearsLasts,
+                annualNetDraw,
+                costIndex: profile.costOfLiving.index,
+                visaEase: profile.visa?.easeOfAccess || 'MODERATE',
+                isSelected: key === selectedKey
             });
 
             portability.push({
@@ -4269,13 +4332,45 @@ class RetirementCalculatorApp {
     }
 
     // Generate overseas scenarios data based on configuration
-    generateOverseasScenariosData(config, baseInputs) {
+    generateOverseasScenariosData(config, baseInputs, simResults = null) {
         const scenarios = [];
         const currentAge = baseInputs.yourCurrentAge;
         const retirementAge = baseInputs.retirementAge;
 
+        // Extract projected retirement portfolio from simulation results if available
+        const retirementPortfolio = simResults ? {
+            super: simResults.accumulatedSuperBalance || 0,
+            savings: simResults.accumulatedSavingsBalance || 0,
+            investments: simResults.accumulatedInvestmentPortfolio || 0,
+            total: simResults.totalFinancialAssets || 0
+        } : null;
+
         // Country-specific data
         const countryData = this.getCountryData(config.country);
+
+        // Compute retirement runway for the selected country using actual simulation results
+        let runwayData = null;
+        if (retirementPortfolio && retirementPortfolio.total > 0) {
+            const profileKey = OVERSEAS_COUNTRY_PROFILE_KEY_MAP[config.country];
+            const profile = profileKey ? COUNTRY_PROFILES?.[profileKey] : null;
+            const costIndex = profile?.costOfLiving?.index || countryData.costIndex || 0.6;
+            const asfaBase = baseInputs.asfaComfortable || 73000;
+            const annualCostInCountry = asfaBase * costIndex;
+            // Portable pension estimate (simplified: 75% of max if AWLR met, else 40%)
+            const portablePension = baseInputs.agePensionMax
+                ? baseInputs.agePensionMax * (profile?.socialSecurityAgreement ? 0.75 : 0.40)
+                : 0;
+            const annualNetDraw = Math.max(1, annualCostInCountry - portablePension);
+            const yearsPortfolioLasts = retirementPortfolio.total / annualNetDraw;
+            runwayData = {
+                portfolio: retirementPortfolio.total,
+                annualCost: annualCostInCountry,
+                portablePension,
+                annualNetDraw,
+                yearsLasts: Math.round(yearsPortfolioLasts),
+                costIndex
+            };
+        }
 
         // Scenario 1: Depart at retirement vs current plan
         scenarios.push({
@@ -4285,12 +4380,19 @@ class RetirementCalculatorApp {
             agePensionStatus: this.calculateAgePensionImpact(config, baseInputs),
             taxImplications: this.calculateTaxImplications(config, baseInputs),
             riskLevel: config.maintainResidency ? 'MEDIUM' : 'HIGH',
-            timeline: `${2025 + (config.departureAge - currentAge)}`,
+            timeline: `${new Date().getFullYear() + (config.departureAge - currentAge)}`,
+            runwayData,
             keyFactors: [
-                `Living costs: $${config.estimatedLivingCosts.toLocaleString()}/year`,
-                `Age pension: ${this.calculateAgePensionImpact(config, baseInputs)}`,
+                retirementPortfolio
+                    ? `Projected portfolio at retirement: $${Math.round(retirementPortfolio.total / 1000)}k`
+                    : 'Run calculation first to see portfolio-based runway',
+                runwayData
+                    ? `Annual cost in ${countryData.displayName}: $${Math.round(runwayData.annualCost / 1000)}k/yr (${Math.round(countryData.costIndex * 100)}% of AU costs)`
+                    : `Estimated living costs: $${config.estimatedLivingCosts.toLocaleString()}/year`,
+                runwayData
+                    ? `Retirement runway: ~${runwayData.yearsLasts} years from portfolio alone`
+                    : `Age pension: ${this.calculateAgePensionImpact(config, baseInputs)}`,
                 `Tax residency: ${config.maintainResidency ? 'Australian' : countryData.displayName}`,
-                `Property: ${config.propertyStrategy.replace('-', ' ')}`,
                 `Healthcare: ${countryData.healthcareNotes}`
             ]
         });
@@ -4606,9 +4708,96 @@ class RetirementCalculatorApp {
     }
 
     // Display overseas scenarios in the UI
-    displayOverseasScenarios(scenarios, chartData) {
+    displayOverseasScenarios(scenarios, chartData, simResults = null) {
         const container = $('overseasScenariosResults');
         if (!container) return;
+
+        // Render portfolio runway comparison table if we have simulation results
+        let runwayTableId = 'overseasRunwayTable';
+        let existing = document.getElementById(runwayTableId);
+        if (existing) existing.remove();
+
+        const totalPortfolio = simResults ? (simResults.totalFinancialAssets || 0) : 0;
+        const costRows = chartData?.costComparison || [];
+
+        if (totalPortfolio > 0 && costRows.length > 0) {
+            const sorted = [...costRows].sort((a, b) => (b.yearsLasts || 0) - (a.yearsLasts || 0));
+            const runwayDiv = document.createElement('div');
+            runwayDiv.id = runwayTableId;
+            runwayDiv.className = 'mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5';
+            runwayDiv.innerHTML = `
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white text-lg">🌍</div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900">Your Portfolio Retirement Runway by Country</h3>
+                        <p class="text-xs text-gray-600">Based on projected retirement portfolio of <strong>$${Math.round(totalPortfolio / 1000).toLocaleString()}k</strong> — how many years it funds retirement in each country</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-blue-100 text-blue-900">
+                                <th class="text-left py-2 px-3 rounded-tl-lg font-semibold">Country</th>
+                                <th class="text-right py-2 px-3 font-semibold">Annual Cost</th>
+                                <th class="text-right py-2 px-3 font-semibold">Pension (Overseas)</th>
+                                <th class="text-right py-2 px-3 font-semibold">Net Annual Draw</th>
+                                <th class="text-right py-2 px-3 font-semibold">Cost vs AU</th>
+                                <th class="text-center py-2 px-3 font-semibold">Visa</th>
+                                <th class="text-center py-2 px-3 rounded-tr-lg font-semibold">Years Runway</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sorted.map((row, i) => {
+                                const runwayColor = !row.yearsLasts ? 'text-gray-400'
+                                    : row.yearsLasts >= 35 ? 'text-green-700 font-bold'
+                                    : row.yearsLasts >= 25 ? 'text-blue-700 font-semibold'
+                                    : row.yearsLasts >= 15 ? 'text-yellow-700'
+                                    : 'text-red-600';
+                                const runwayBar = row.yearsLasts ? Math.min(100, Math.round(row.yearsLasts / 40 * 100)) : 0;
+                                const visaBadge = row.visaEase === 'EASY' ? 'bg-green-100 text-green-700'
+                                    : row.visaEase === 'MODERATE' ? 'bg-yellow-100 text-yellow-700'
+                                    : 'bg-red-100 text-red-700';
+                                const rowBg = row.isSelected ? 'bg-blue-50 border-l-2 border-blue-400' : (i % 2 === 0 ? 'bg-white' : 'bg-gray-50');
+                                return `<tr class="${rowBg} hover:bg-blue-50 transition-colors">
+                                    <td class="py-2 px-3 font-medium text-gray-900">${row.isSelected ? '★ ' : ''}${row.name}</td>
+                                    <td class="py-2 px-3 text-right text-gray-700">$${Math.round(row.annualCostAUD / 1000)}k</td>
+                                    <td class="py-2 px-3 text-right text-gray-600">$${Math.round((row.pensionAUD || 0) / 1000)}k</td>
+                                    <td class="py-2 px-3 text-right text-gray-700">$${Math.round((row.annualNetDraw || 0) / 1000)}k</td>
+                                    <td class="py-2 px-3 text-right">
+                                        <span class="px-1.5 py-0.5 rounded text-xs ${row.costIndex <= 0.5 ? 'bg-green-100 text-green-700' : row.costIndex <= 0.8 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}">${Math.round(row.costIndex * 100)}%</span>
+                                    </td>
+                                    <td class="py-2 px-3 text-center">
+                                        <span class="px-1.5 py-0.5 rounded text-xs ${visaBadge}">${row.visaEase || '?'}</span>
+                                    </td>
+                                    <td class="py-2 px-3 text-center">
+                                        ${row.yearsLasts ? `<div class="flex items-center gap-1.5 justify-end">
+                                            <div class="flex-1 bg-gray-200 rounded-full h-1.5 max-w-16">
+                                                <div class="h-1.5 rounded-full ${row.yearsLasts >= 35 ? 'bg-green-500' : row.yearsLasts >= 25 ? 'bg-blue-500' : row.yearsLasts >= 15 ? 'bg-yellow-500' : 'bg-red-500'}" style="width:${runwayBar}%"></div>
+                                            </div>
+                                            <span class="${runwayColor}">${row.yearsLasts}y</span>
+                                        </div>` : '<span class="text-gray-400">—</span>'}
+                                    </td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-xs text-gray-500 mt-3">★ = your selected destination. Runway = portfolio ÷ (annual cost − overseas pension). Assumes constant draw; actual returns may extend runway. Seek financial advice for personalised planning.</p>
+            `;
+            container.insertBefore(runwayDiv, container.firstChild);
+        } else if (totalPortfolio === 0) {
+            // Prompt to run calculation first
+            const promptDiv = document.createElement('div');
+            promptDiv.id = runwayTableId;
+            promptDiv.className = 'mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3';
+            promptDiv.innerHTML = `
+                <span class="text-2xl">💡</span>
+                <div>
+                    <p class="text-sm font-semibold text-amber-900">Run the main retirement calculation first</p>
+                    <p class="text-xs text-amber-700">Your projected retirement portfolio will appear here showing how many years it funds retirement in each country.</p>
+                </div>`;
+            container.insertBefore(promptDiv, container.firstChild);
+        }
 
         const grid = container.querySelector('.grid');
         if (!grid) return;

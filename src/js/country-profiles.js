@@ -1347,6 +1347,243 @@ export const COUNTRY_PROFILES = {
             'Healthcare quality outside major cities',
             'High crime risk in some areas - requires local knowledge'
         ]
+    },
+
+    VIETNAM: {
+        name: 'Vietnam',
+        region: 'South-East Asia',
+        currency: 'VND',
+        distanceFromAustralia: 7500,
+        flightTime: '9-10 hours',
+        overview: 'Ultra-low cost of living, vibrant culture, growing expat community, excellent food scene',
+
+        socialSecurityAgreement: false,
+        agePension: {
+            portability: 'PROPORTIONAL_AFTER_26_WEEKS',
+            formerResidentRule: true,
+            note: 'No SSA — general portability rules apply. AWLR determines portable portion.'
+        },
+
+        visa: {
+            type: 'E-visa (90 days) or long-term business/investor visa',
+            duration: 'E-visa 90 days, renewable. No official retirement visa.',
+            requirements: [
+                '90-day e-visa renewable for most nationalities',
+                'Long-term stays via investor or business presence',
+                'Some retirees use back-to-back renewals — grey area in law',
+                'Consider DT visa (temporary resident) via local sponsorship'
+            ],
+            easeOfAccess: 'MODERATE',
+            cost: '~AUD $80-150 for e-visa',
+            pathToCitizenship: 'Very difficult — not a realistic pathway'
+        },
+
+        costOfLiving: {
+            index: 0.30,
+            breakdown: {
+                accommodation: 'AUD $300-700/month (nice 2-bed apartment)',
+                food: 'AUD $150-350/month (excellent, cheap local food)',
+                transport: 'AUD $30-80/month',
+                utilities: 'AUD $40-80/month'
+            },
+            note: 'One of the cheapest retirement destinations in Asia. $30,000-40,000 AUD/year lives very comfortably.',
+            healthcareNote: 'Private insurance AUD $60-180/month. International hospitals in HCMC/Hanoi are excellent.'
+        },
+
+        healthcare: {
+            system: 'Mix of public and private; international hospitals in major cities',
+            quality: 'Good in Hanoi and Ho Chi Minh City, limited in rural areas',
+            rating: 6.5,
+            costs: 'Very affordable — specialist visit ~AUD $30-50',
+            insurance: 'International health insurance strongly recommended AUD $100-250/month',
+            considerations: [
+                'FV Hospital (HCMC) and Vinmec (Hanoi) are world-class',
+                'Medical evacuation insurance recommended for rural areas',
+                'Pharmaceutical quality high in cities',
+                'Air quality in Hanoi/HCMC can be poor in winter months'
+            ]
+        },
+
+        tax: {
+            doubleTaxAgreement: true,
+            superTaxation: 'Australian super taxed in Australia; not taxed in Vietnam under DTA',
+            agreementSummary: 'Australia-Vietnam DTA (1996) prevents double taxation on pensions and super income',
+            residencyThreshold: '183 days per year for Vietnamese tax residency'
+        },
+
+        climate: 'Tropical — Hanoi has distinct seasons; HCMC/Da Nang are warm year-round',
+
+        popularLocations: [
+            {
+                name: 'Da Nang',
+                description: 'Fastest-growing expat hub — beaches, mountains, modern infrastructure',
+                cost: '~AUD $1,800-2,500/month all-inclusive',
+                pros: ['Best beaches', 'Modern city', 'Near Hoi An', 'Lower pollution'],
+                cons: ['Typhoon risk Jul-Nov', 'Limited direct flights']
+            },
+            {
+                name: 'Hanoi',
+                description: 'Capital city — rich culture, French colonial architecture',
+                cost: '~AUD $1,500-2,500/month',
+                pros: ['Cultural hub', 'Cooler climate', 'Good expat community'],
+                cons: ['Air pollution', 'Busy traffic']
+            },
+            {
+                name: 'Ho Chi Minh City',
+                description: 'Modern commercial hub with best international healthcare',
+                cost: '~AUD $1,800-3,000/month',
+                pros: ['Best hospitals', 'Cosmopolitan', 'Great food scene'],
+                cons: ['Hot and humid year-round', 'Heavy traffic']
+            }
+        ],
+
+        languageBarrier: 'HIGH',
+        languageNote: 'Vietnamese is tonal and difficult for English speakers. Tourist areas have English widely spoken.',
+
+        risks: {
+            overall: 'MEDIUM',
+            currency: 'MEDIUM',
+            healthcare: 'MEDIUM',
+            political: 'LOW-MEDIUM',
+            environmental: 'MEDIUM'
+        },
+
+        bestFor: ['Budget retirees', 'Food lovers', 'Cultural immersion', 'Beach lifestyle (Da Nang)', 'Adventure travellers'],
+        challenges: [
+            'No official retirement visa — long-term legal status can be uncertain',
+            'Language barrier for daily life outside expat areas',
+            'Air pollution in major cities',
+            'Typhoon risk in central Vietnam',
+            'Bureaucratic complexity for long-term stays'
+        ],
+
+        additionalNotes: [
+            'Growing expat community — particularly in Da Nang and HCMC',
+            'High-speed internet and modern infrastructure in cities',
+            'Australian Embassy in Hanoi; Consulate in HCMC'
+        ]
+    },
+
+    USA: {
+        name: 'United States of America',
+        region: 'North America',
+        currency: 'USD',
+        distanceFromAustralia: 13500,
+        flightTime: '16-22 hours',
+        overview: 'Family connections, familiar culture and language, but very high cost of living and expensive healthcare',
+
+        socialSecurityAgreement: true,
+        agreementDetails: {
+            since: '2002',
+            coverage: 'US Social Security and Australian Age Pension — periods of coverage can be combined for eligibility'
+        },
+        agePension: {
+            portability: 'PROPORTIONAL_AFTER_26_WEEKS',
+            formerResidentRule: true,
+            note: 'SSA allows combination of Australian and US work periods. Australian Age Pension portable under SSA.'
+        },
+
+        visa: {
+            type: 'B-2 Tourist Visa or Green Card (Permanent Resident)',
+            duration: 'B-2: up to 6 months. Green Card: permanent.',
+            requirements: [
+                'No US retirement visa — B-2 tourist allows up to 6 months per year',
+                'Green Card via family sponsorship (US citizen child/spouse)',
+                'E-3 visa for Australians with specialised skills and US employer',
+                'EB-5 Investor Visa: USD $800,000-1,050,000 investment required',
+                'Australian citizens eligible for ESTA (Visa Waiver, 90 days)'
+            ],
+            easeOfAccess: 'HARD',
+            cost: 'B-2 visa: ~AUD $200. Green Card: significant legal fees.',
+            pathToCitizenship: 'Possible via Green Card after 5 years of permanent residence'
+        },
+
+        costOfLiving: {
+            index: 0.95,
+            breakdown: {
+                accommodation: 'AUD $2,000-4,500/month (varies enormously by state/city)',
+                food: 'AUD $600-1,200/month',
+                transport: 'AUD $300-600/month (car typically essential)',
+                utilities: 'AUD $200-350/month'
+            },
+            note: 'Similar overall cost to Australia but huge regional variation. Florida/Arizona/Midwest cheaper than NY/CA.',
+            healthcareNote: 'Critical issue: Medicare (US) only at 65+ if eligible. Private insurance can be AUD $800-2,500/month pre-65.'
+        },
+
+        healthcare: {
+            system: 'Primarily private — Medicare (US government) from age 65 if US-work-history eligible',
+            quality: 'World-class quality at major hospitals; highly specialised care',
+            rating: 8.5,
+            costs: 'Extremely expensive — a major retirement financial risk. Average retiree spends AUD $500k+ on healthcare in retirement.',
+            insurance: 'Medicare Part B premium ~AUD $380/month (2025). Supplement (Medigap) adds another ~AUD $300-600/month.',
+            considerations: [
+                'Australian Medicare does NOT cover you in the USA',
+                'US Medicare requires 10 years US work history or SSA period combination',
+                'Travel insurance inadequate for long-term stays — need full US health plan',
+                'Healthcare costs are the #1 financial risk for retirees in the USA',
+                'Prescription drug costs much higher than Australia'
+            ]
+        },
+
+        tax: {
+            doubleTaxAgreement: true,
+            superTaxation: 'Complex — super treated as foreign pension; taxed in Australia. US may also seek to tax. Specialist advice essential.',
+            agreementSummary: 'Australia-US DTA (1982) prevents double taxation, but interaction with US super tax rules is complex. Seek specialist tax advice before relocating.',
+            residencyThreshold: '183 days or Green Card holder = US tax resident on worldwide income'
+        },
+
+        climate: 'Highly variable by state. Florida/Arizona = year-round warm. Northeast = cold winters. California = Mediterranean.',
+
+        popularLocations: [
+            {
+                name: 'Florida',
+                description: 'Most popular retirement state — warm, no state income tax, large Australian/expat community',
+                cost: '~AUD $4,500-7,000/month all-inclusive',
+                pros: ['No state income tax', 'Warm year-round', 'Large retiree community'],
+                cons: ['Hurricane risk', 'Extreme summer heat/humidity', 'Traffic']
+            },
+            {
+                name: 'Arizona',
+                description: 'Dry heat, affordable (by US standards), large active retirement communities',
+                cost: '~AUD $3,500-5,500/month',
+                pros: ['Dry climate (arthritis-friendly)', 'Golf and outdoor activities', 'Lower cost than coastal states'],
+                cons: ['Extreme summer heat (45°C+)', 'Car-dependent', 'Far from oceans']
+            },
+            {
+                name: 'California (San Diego)',
+                description: 'Near Australia in culture, excellent weather, but very expensive',
+                cost: '~AUD $6,000-10,000+/month',
+                pros: ['Perfect climate', 'Pacific Ocean', 'Cultural diversity'],
+                cons: ['Among most expensive locations', 'High state income tax', 'Traffic']
+            }
+        ],
+
+        languageBarrier: 'NONE',
+        languageNote: 'English-speaking. Australian English fully understood.',
+
+        risks: {
+            overall: 'LOW',
+            currency: 'MEDIUM',
+            healthcare: 'HIGH',
+            political: 'LOW-MEDIUM'
+        },
+
+        bestFor: ['Family connections (US citizen children/grandchildren)', 'English-speaking preference', 'Medical specialists and top-tier healthcare quality', 'Cultural familiarity'],
+        challenges: [
+            'No retirement visa — visa pathway is the hardest of all popular destinations',
+            'Healthcare costs are extremely high and a major financial risk',
+            'Cost of living similar to or higher than Australia',
+            'Complex tax interaction between US and Australian systems',
+            'Car is essential in most locations',
+            'Huge distance from Australia (18-24 hour flight)'
+        ],
+
+        additionalNotes: [
+            'The US-Australia Social Security Agreement (2002) allows combination of work periods for US Social Security eligibility',
+            'US Social Security benefits are taxable in Australia under the DTA',
+            'Green Card holders taxed on worldwide income in the USA from day one',
+            'FBAR and FATCA reporting obligations apply to financial accounts — specialist advice essential'
+        ]
     }
 };
 
