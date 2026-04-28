@@ -1329,7 +1329,7 @@ export const ENHANCED_CONFIG = {
                 HIGH_INCOME_SUPER_THRESHOLD: { value: 90000, description: "High income threshold for super optimization" },
                 SUPER_PERCENTAGE_THRESHOLD: { value: 0.6, description: "Super as % of assets threshold (60%)" },
                 POTENTIAL_CONTRIBUTION_PERCENTAGE: { value: 0.1, description: "10% of income as potential super contribution" },
-                MAX_CONCESSIONAL_CONTRIBUTION: { value: 27500, description: "Maximum concessional super contribution limit" },
+                MAX_CONCESSIONAL_CONTRIBUTION: { value: 30000, description: "Maximum concessional super contribution limit (2024-25 onwards, indexed from $27,500)" },
                 HIGH_MARGINAL_TAX_THRESHOLD: { value: 0.3, description: "30% marginal tax rate threshold" },
                 TAX_SAVING_PERCENTAGE: { value: 0.05, description: "5% potential tax savings calculation" },
                 LIFE_INSURANCE_MULTIPLIER: { value: 8, description: "8x annual income for life insurance recommendation" },

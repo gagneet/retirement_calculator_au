@@ -82,13 +82,13 @@ export class ScenarioComparisonMatrix {
 
         scenarios.push({
             name: "Max Super Contributions",
-            description: "Maximize superannuation contributions ($27,500/year)",
+            description: "Maximize superannuation contributions ($30,000/year)",
             category: "contributions",
             inputs: {
                 ...baseInputs,
-                yourSuper: Math.min(27500, baseInputs.yourSalary * 0.1),
+                yourSuper: Math.min(30000, baseInputs.yourSalary * 0.1),
                 partnerSuper: baseInputs.isSingleCalculation ? 0 :
-                    Math.min(27500, baseInputs.partnerSalary * 0.1)
+                    Math.min(30000, baseInputs.partnerSalary * 0.1)
             },
             color: "#047857"
         });
