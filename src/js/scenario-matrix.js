@@ -82,13 +82,14 @@ export class ScenarioComparisonMatrix {
 
         scenarios.push({
             name: "Max Super Contributions",
-            description: "Maximize superannuation contributions ($30,000/year)",
+            description: "Maximize superannuation contributions via salary sacrifice to $30,000/year",
             category: "contributions",
             inputs: {
                 ...baseInputs,
-                yourSuper: Math.min(30000, baseInputs.yourSalary * 0.1),
-                partnerSuper: baseInputs.isSingleCalculation ? 0 :
-                    Math.min(30000, baseInputs.partnerSalary * 0.1)
+                // Salary sacrifice = remaining concessional room after 12% employer SG
+                yourAdditionalSuperContribution: Math.max(0, 30000 - baseInputs.yourSalary * 0.12),
+                partnerAdditionalSuperContribution: baseInputs.isSingleCalculation ? 0 :
+                    Math.max(0, 30000 - (baseInputs.partnerSalary || 0) * 0.12)
             },
             color: "#047857"
         });
