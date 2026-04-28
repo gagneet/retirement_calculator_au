@@ -662,6 +662,7 @@ class RetirementCalculatorApp {
             capitalGainsTaxRate: safeGetValue('capitalGainsTaxRate', config.property.capitalGainsTaxRate) / 100,
 
             // Healthcare & aged care
+            hasPrivateHealthCover: safeGetChecked('hasPrivateHealthCover', false),
             currentHealthcareCosts: safeGetValue('currentHealthcareCosts', config.healthcare.currentHealthcareCosts),
             healthcareInflation: safeGetValue('healthcareInflation', config.healthcare.healthcareInflation) / 100,
             agedCareProbability: safeGetValue('agedCareProbability', config.healthcare.agedCareProbability) / 100,
@@ -757,6 +758,8 @@ class RetirementCalculatorApp {
             universitySupport: safeGetChecked('universitySupport', false),
 
             // Super strategy (PART 2)
+            yourAdditionalSuperContribution: parseFormattedNumber(getRawValue('yourAdditionalSuperContribution', '0')),
+            partnerAdditionalSuperContribution: parseFormattedNumber(getRawValue('partnerAdditionalSuperContribution', '0')),
             concessionalCapUsed: parseFormattedNumber(getRawValue('concessionalCapUsed', '0')),
             spouseContribution: parseFormattedNumber(getRawValue('spouseContribution', '0')),
             downsizeContribution: safeGetChecked('downsizeContribution', false),
