@@ -155,6 +155,28 @@ export const ENHANCED_CONFIG = {
     // Division 293 threshold: extra 15% contributions tax when income + concessional > $250,000
     DIVISION_293_THRESHOLD: 250000,
 
+    // Concessional and non-concessional contribution caps (ATO 2024-25 onwards)
+    CONCESSIONAL_CAP: 30000,
+    NON_CONCESSIONAL_CAP: 110000,
+    // NCC cap drops to $0 when total super balance (TSB) reaches this amount
+    TSB_NCC_BLOCK_THRESHOLD: 2000000,
+
+    // Transfer Balance Cap: maximum that can move to tax-free pension phase
+    TRANSFER_BALANCE_CAP: 2000000,       // FY 2025-26
+    TRANSFER_BALANCE_CAP_FY2027: 2100000, // FY 2026-27 (indexed)
+
+    // Minimum pension drawdown rates for account-based pensions (ATO Schedule 7, 2025)
+    // Key: minimum age for the rate; value: minimum annual drawdown as fraction of balance
+    MIN_PENSION_DRAWDOWN_RATES: [
+        { minAge: 0,  maxAge: 64, rate: 0.04 },
+        { minAge: 65, maxAge: 74, rate: 0.05 },
+        { minAge: 75, maxAge: 79, rate: 0.06 },
+        { minAge: 80, maxAge: 84, rate: 0.07 },
+        { minAge: 85, maxAge: 89, rate: 0.09 },
+        { minAge: 90, maxAge: 94, rate: 0.11 },
+        { minAge: 95, maxAge: 999, rate: 0.14 }
+    ],
+
     // Medicare Levy Surcharge thresholds 2025-26 (singles without private hospital cover)
     // Surcharge: 1% at $93k+, 1.25% at $108k+, 1.5% at $144k+
     MLS_THRESHOLDS: [

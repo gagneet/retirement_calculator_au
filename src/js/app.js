@@ -897,6 +897,85 @@ class RetirementCalculatorApp {
         if (modal) modal.style.display = 'none';
     }
 
+    // Validate inputs before simulation runs. Returns array of error strings (empty = valid).
+    validateInputs(inputs) {
+        const errors = [];
+
+        // Ages
+        if (!inputs.yourCurrentAge || inputs.yourCurrentAge < 18 || inputs.yourCurrentAge > 100) {
+            errors.push('Your current age must be between 18 and 100.');
+        }
+        if (inputs.retirementAge <= inputs.yourCurrentAge) {
+            errors.push('Retirement age must be greater than your current age.');
+        }
+        if (inputs.retirementAge > 100) {
+            errors.push('Retirement age must be 100 or below.');
+        }
+        if (inputs.yourLifespan < inputs.retirementAge) {
+            errors.push('Expected lifespan must be greater than or equal to retirement age.');
+        }
+        if (!inputs.isSingleCalculation && inputs.partnerCurrentAge > 0) {
+            if (inputs.partnerCurrentAge < 18 || inputs.partnerCurrentAge > 100) {
+                errors.push("Partner's current age must be between 18 and 100.");
+            }
+            if ((inputs.partnerRetirementAge || 0) <= inputs.partnerCurrentAge) {
+                errors.push("Partner's retirement age must be greater than their current age.");
+            }
+        }
+
+        // Monetary fields — must not be negative
+        const monetaryFields = [
+            ['yourSalary', 'Your annual salary'],
+            ['yourCurrentSuper', 'Your current super balance'],
+            ['currentSavings', 'Current savings'],
+            ['currentStocks', 'Current investments'],
+            ['homeValue', 'Home value'],
+            ['mortgageBalance', 'Mortgage balance'],
+            ['monthlyMortgagePayment', 'Monthly mortgage payment'],
+            ['investmentPropertyValue', 'Investment property value'],
+            ['investmentPropertyLoan', 'Investment property loan'],
+            ['weeklyRentalIncome', 'Weekly rental income'],
+            ['annualPropertyExpenses', 'Annual property expenses'],
+            ['asfaComfortable', 'Target retirement income (ASFA)'],
+        ];
+        for (const [field, label] of monetaryFields) {
+            const val = parseFloat(inputs[field]);
+            if (!isNaN(val) && val < 0) {
+                errors.push(`${label} cannot be negative.`);
+            }
+        }
+
+        // Percentage fields — must be 0–100 when expressed as decimal (0–1)
+        const percentFields = [
+            ['superContributionRate', 'Super contribution rate', 0, 1],
+            ['inflation', 'Inflation rate', 0, 0.3],
+            ['investmentReturn', 'Investment return', -0.5, 0.5],
+            ['percentIncomeSaved', 'Percentage of income saved', 0, 1],
+            ['allocEquities', 'Equities allocation', 0, 1],
+            ['allocBonds', 'Bonds allocation', 0, 1],
+            ['allocCash', 'Cash allocation', 0, 1],
+        ];
+        for (const [field, label, min, max] of percentFields) {
+            const val = parseFloat(inputs[field]);
+            if (!isNaN(val) && (val < min || val > max)) {
+                errors.push(`${label} (${Math.round(val * 100)}%) is outside the expected range.`);
+            }
+        }
+
+        // Allocation must sum to ~100%
+        const allocSum = (inputs.allocEquities || 0) + (inputs.allocBonds || 0) + (inputs.allocCash || 0);
+        if (Math.abs(allocSum - 1) > 0.05) {
+            errors.push(`Asset allocation sums to ${Math.round(allocSum * 100)}% — must equal 100%.`);
+        }
+
+        // Salary must be positive to run a meaningful calculation
+        if ((inputs.yourSalary || 0) <= 0 && (inputs.yourCurrentSuper || 0) <= 0 && (inputs.currentSavings || 0) <= 0) {
+            errors.push('Please enter at least a salary, super balance, or savings amount to calculate.');
+        }
+
+        return errors;
+    }
+
     // Main calculation function
     async calculateRetirement(shouldScrollToResults = true) {
         if (this.isCalculating) return;
@@ -905,6 +984,18 @@ class RetirementCalculatorApp {
 
         try {
             const inputs = this.collectInputs();
+
+            // Validate inputs before running simulation
+            const validationErrors = this.validateInputs(inputs);
+            if (validationErrors.length > 0) {
+                this.isCalculating = false;
+                const errorHTML = validationErrors.map(e => `<li>${e}</li>`).join('');
+                showNotification(
+                    `Please fix the following before calculating:<ul class="mt-1 list-disc pl-4">${errorHTML}</ul>`,
+                    'error'
+                );
+                return;
+            }
 
             let result;
             try {

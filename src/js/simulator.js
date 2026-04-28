@@ -33,6 +33,15 @@ export class RetirementSimulator {
         };
     }
 
+    // Returns the ATO minimum annual pension drawdown rate for a given age (Schedule 7, 2025)
+    getMinDrawdownRate(age) {
+        const rates = this.config.MIN_PENSION_DRAWDOWN_RATES || [];
+        for (const band of rates) {
+            if (age >= band.minAge && age <= band.maxAge) return band.rate;
+        }
+        return 0.04; // fallback — should not be reached with a complete rate table
+    }
+
     // Enhanced Risk profiling calculations with dynamic factors
     calculateRiskCapacity(inputs) {
         let score = 50; // Base score
@@ -866,11 +875,17 @@ export class RetirementSimulator {
             let yearlyPostTaxIncome = 0;
             let yearlySuperContribution = 0;
 
+            // TSB gate: when combined super approaches the Transfer Balance Cap, block voluntary
+            // contributions (salary sacrifice). Employer SG is mandatory and continues.
+            const tbcThreshold = this.config.TRANSFER_BALANCE_CAP || 2000000;
+            const superIsCapped = accumulatedSuperBalance >= tbcThreshold;
+
             if (year <= yourYearsToWork) {
                 const yourGrossSalary = this.getSalaryForYear(inputs.yourSalary, year, inputs);
-                // Salary sacrifice: voluntary pre-tax super, capped so total concessional ≤ $30,000
+                // Salary sacrifice: voluntary pre-tax super, capped so total concessional ≤ $30,000.
+                // Blocked entirely when TSB ≥ Transfer Balance Cap.
                 const yourEmployerSG = yourGrossSalary * inputs.superContributionRate;
-                const yourSacrifice = Math.min(
+                const yourSacrifice = superIsCapped ? 0 : Math.min(
                     inputs.yourAdditionalSuperContribution || 0,
                     Math.max(0, 30000 - yourEmployerSG)
                 );
@@ -892,7 +907,7 @@ export class RetirementSimulator {
             if (year <= partnerYearsToWork) {
                 const partnerGrossSalary = this.getSalaryForYear(inputs.partnerSalary, year, inputs, true);
                 const partnerEmployerSG = partnerGrossSalary * inputs.superContributionRate;
-                const partnerSacrifice = Math.min(
+                const partnerSacrifice = superIsCapped ? 0 : Math.min(
                     inputs.partnerAdditionalSuperContribution || 0,
                     Math.max(0, 30000 - partnerEmployerSG)
                 );
@@ -1216,15 +1231,20 @@ export class RetirementSimulator {
                     }
                 }
             } else {
-                // Single person - income test includes trust distributions
+                // Single person - income test includes trust distributions.
+                // Use user-entered pension parameters when provided; fall back to indexed config values.
+                const effectivePensionMax = (inputs.agePensionMax > 0) ? inputs.agePensionMax : this.config.SINGLE_PENSION_MAX;
+                const effectiveAssetThreshold = (inputs.pensionAssetThreshold > 0) ? inputs.pensionAssetThreshold : this.config.SINGLE_ASSET_THRESHOLD;
+                const effectiveAssetLimit = (inputs.pensionAssetLimit > 0) ? inputs.pensionAssetLimit : this.config.SINGLE_ASSET_LIMIT;
+                const effectiveIncomeThreshold = (inputs.pensionIncomeThreshold > 0) ? inputs.pensionIncomeThreshold : this.config.SINGLE_INCOME_THRESHOLD;
                 pensionIncome = calculateAgePension(
                     assessableAssets,
                     propertyIncome + trustDistributionIncome,
                     false,
-                    this.config.SINGLE_PENSION_MAX,
-                    this.config.SINGLE_ASSET_THRESHOLD,
-                    this.config.SINGLE_ASSET_LIMIT,
-                    this.config.SINGLE_INCOME_THRESHOLD
+                    effectivePensionMax,
+                    effectiveAssetThreshold,
+                    effectiveAssetLimit,
+                    effectiveIncomeThreshold
                 );
             }
 
@@ -1296,9 +1316,16 @@ export class RetirementSimulator {
                 }
             }
 
+            // ATO minimum pension drawdown (Schedule 7, 2025): account-based pensions must
+            // draw at least this percentage of opening balance each year regardless of need.
+            const minDrawdownRate = this.getMinDrawdownRate(yourCurrentAge);
+            const minAnnualDraw = currentBalance * minDrawdownRate;
+            // Actual withdrawal is the greater of income need and ATO minimum
+            const annualWithdrawal = Math.max(netWithdrawalNeeded, minAnnualDraw);
+
             // Monthly withdrawal simulation
             const monthlyReturn = Math.pow(1 + actualReturn, 1/12) - 1;
-            const monthlyWithdrawal = netWithdrawalNeeded / 12;
+            const monthlyWithdrawal = annualWithdrawal / 12;
 
             const startBalance = currentBalance;
             let yearlyGrowth = 0;
@@ -1335,7 +1362,9 @@ export class RetirementSimulator {
                 startBalance,
                 returnRate: actualReturn * 100,
                 growth: yearlyGrowth,
-                withdrawal: netWithdrawalNeeded,
+                withdrawal: annualWithdrawal,
+                minDrawAmount: minAnnualDraw,
+                minDrawRate: minDrawdownRate,
                 healthcareCost,
                 agedCareCost,
                 propertyIncome,
