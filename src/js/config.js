@@ -134,13 +134,34 @@ export const ENHANCED_CONFIG = {
         "100minus": age => Math.max(20, Math.min(70, 100 - age))
     },
 
-    // Australian tax brackets (2025-26)
+    // Australian tax brackets (2025-26) — 16% on $18,201–$45,000
     TAX_BRACKETS: [
         { min: 0, max: 18200, rate: 0 },
         { min: 18201, max: 45000, rate: 0.16 },
         { min: 45001, max: 135000, rate: 0.3 },
         { min: 135001, max: 190000, rate: 0.37 },
         { min: 190001, max: Infinity, rate: 0.45 }
+    ],
+
+    // Australian tax brackets from 1 July 2026 (FY 2026-27 onwards) — 16% drops to 15%
+    TAX_BRACKETS_2026_27: [
+        { min: 0, max: 18200, rate: 0 },
+        { min: 18201, max: 45000, rate: 0.15 },
+        { min: 45001, max: 135000, rate: 0.3 },
+        { min: 135001, max: 190000, rate: 0.37 },
+        { min: 190001, max: Infinity, rate: 0.45 }
+    ],
+
+    // Division 293 threshold: extra 15% contributions tax when income + concessional > $250,000
+    DIVISION_293_THRESHOLD: 250000,
+
+    // Medicare Levy Surcharge thresholds 2025-26 (singles without private hospital cover)
+    // Surcharge: 1% at $93k+, 1.25% at $108k+, 1.5% at $144k+
+    MLS_THRESHOLDS: [
+        { min: 0,      max: 93000,   rate: 0 },
+        { min: 93001,  max: 108000,  rate: 0.01 },
+        { min: 108001, max: 144000,  rate: 0.0125 },
+        { min: 144001, max: Infinity, rate: 0.015 }
     ],
 
     // Healthcare inflation rates by condition (Updated 2025-10-01 to AIHW median values)
