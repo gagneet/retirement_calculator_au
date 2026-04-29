@@ -1904,17 +1904,31 @@ export const populateFormFromData = (userData, version = '2.0') => {
                         element.checked = value === true || value === 'true' || value === 'yes';
                     } else if (element.type === 'select-one') {
                         element.value = value;
+                        // Fallback: numeric float comparison for selects with decimal option values
+                        // (e.g. stored 0.2 won't match option value "0.20")
+                        if (typeof value === 'number' && value !== 0 &&
+                                !Array.from(element.options).some(o => o.selected && o.value !== '')) {
+                            const numVal = parseFloat(value);
+                            if (!isNaN(numVal)) {
+                                const match = Array.from(element.options).find(o =>
+                                    Math.abs(parseFloat(o.value) - numVal) < 1e-9
+                                );
+                                if (match) element.value = match.value;
+                            }
+                        }
                     } else {
                         if (percentageFields.includes(key) && typeof value === 'number') {
                             // Versions 3.0+ store percentages as decimals (e.g., 0.09 for 9%)
                             // Versions 1.0/2.0 stored as whole numbers (e.g., 9 for 9%)
                             const storedAsDecimal = version === '3.0' || version === '4.0';
                             if (storedAsDecimal) {
-                                element.value = (value * 100).toFixed(2);
+                                // Use toPrecision-safe multiplication to avoid floating-point artifacts
+                                element.value = parseFloat((value * 100).toFixed(10)).toFixed(2);
                             } else {
                                 element.value = value;
                             }
                         } else {
+                            // For numeric currency values, keep full precision — the input formatter applies 2dp
                             element.value = value;
                         }
                     }
