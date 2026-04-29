@@ -3,6 +3,10 @@ import '../css/styles.css';
 import '../css/outcome-styles.css';
 // js/app.js - Main Application Controller
 
+// Debug logging — stripped automatically in production by Terser (drop_console: true)
+// eslint-disable-next-line no-console
+const debugLog = process.env.NODE_ENV !== 'production' ? console.log.bind(console) : () => {};
+
 import versionManager from './version-manager.js';
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import { ENHANCED_CONFIG } from './config.js';
@@ -37,7 +41,7 @@ async function loadAdvancedEngines() {
         const allocationModule = await import('./dynamic-allocation-engine.js');
         DynamicAllocationEngine = allocationModule.DynamicAllocationEngine;
 
-        console.log('✅ Advanced engines loaded successfully');
+        debugLog('✅ Advanced engines loaded successfully');
         return true;
     } catch (error) {
         console.error('❌ Failed to load advanced analysis engines:', error);
@@ -135,7 +139,7 @@ class RetirementCalculatorApp {
         this.propertyAnalysis = new PropertyAnalysisEngine(this.config);
         this.onboardingWizard = new OnboardingWizard(this.config);
 
-        console.log(`Re-initialized app with config for version ${config.version}`);
+        debugLog(`Re-initialized app with config for version ${config.version}`);
     }
 
     handleVersionChange(newVersion) {
@@ -147,7 +151,7 @@ class RetirementCalculatorApp {
     }
 
     async initializeApp() {
-        console.log('🚀 initializeApp starting...');
+        debugLog('🚀 initializeApp starting...');
         this.loadSavedInputs(); // Load saved inputs first
         this.setupEventListeners();
         this.setupVersionSelector();
@@ -158,9 +162,9 @@ class RetirementCalculatorApp {
         this.addSuggestionStyles(); // Add CSS styles for suggestion modifications
         this.updateUIElements();
         initializeTrustUI(); // Initialize trust UI functionality
-        console.log('🎯 About to initialize onboarding wizard...');
+        debugLog('🎯 About to initialize onboarding wizard...');
         await this.initializeOnboardingWizard(); // Initialize onboarding wizard
-        console.log('✅ initializeApp completed');
+        debugLog('✅ initializeApp completed');
 
         // Initialize tooltip system
         addTooltipBottomStyles(); // Add bottom positioning styles
@@ -225,7 +229,7 @@ class RetirementCalculatorApp {
         if (loaded && RiskProfilingEngine && DynamicAllocationEngine) {
             this.riskProfiling = new RiskProfilingEngine(this.config);
             this.dynamicAllocation = new DynamicAllocationEngine(this.config);
-            console.log('✅ Advanced engines initialized in app instance');
+            debugLog('✅ Advanced engines initialized in app instance');
         } else {
             console.warn('⚠️ Advanced engines not available - some features will be disabled');
         }
@@ -240,7 +244,7 @@ class RetirementCalculatorApp {
             // App.js only needs to handle URL params that might skip or force onboarding.
             await this.handleOnboardingURLParams();
 
-            console.log('✅ Onboarding wizard initialized successfully');
+            debugLog('✅ Onboarding wizard initialized successfully');
         } catch (error) {
             console.error('❌ Failed to initialize onboarding wizard:', error);
         }
@@ -254,28 +258,28 @@ class RetirementCalculatorApp {
     }
 
     async handleReturningUserFileSelect(event) {
-        console.log('🔍 handleReturningUserFileSelect called', event);
+        debugLog('🔍 handleReturningUserFileSelect called', event);
         const file = event.target.files[0];
         if (!file) {
-            console.log('❌ No file selected');
+            debugLog('❌ No file selected');
             return; // User cancelled the file picker
         }
 
-        console.log('📁 File selected:', file.name, file.size, 'bytes');
+        debugLog('📁 File selected:', file.name, file.size, 'bytes');
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                console.log('📖 File read successfully, parsing JSON...');
+                debugLog('📖 File read successfully, parsing JSON...');
                 const data = JSON.parse(e.target.result);
-                console.log('✅ JSON parsed successfully:', data);
+                debugLog('✅ JSON parsed successfully:', data);
 
                 if (!data.userData || !data.version) {
-                    console.log('❌ Invalid data structure:', { hasUserData: !!data.userData, hasVersion: !!data.version });
+                    debugLog('❌ Invalid data structure:', { hasUserData: !!data.userData, hasVersion: !!data.version });
                     showNotification('Invalid retirement calculator data file format.', 'error');
                     return;
                 }
 
-                console.log('🎯 About to populate form with userData:', data.userData);
+                debugLog('🎯 About to populate form with userData:', data.userData);
                 // Populate form with imported data
                 populateFormFromData(data.userData, data.version);
 
@@ -284,18 +288,18 @@ class RetirementCalculatorApp {
                 initializePercentageInputs();
                 initializeNumericInputs();
 
-                console.log('🌟 About to show enhanced summary...');
+                debugLog('🌟 About to show enhanced summary...');
                 // Show enhanced summary
                 this.showReturningUserEnhancedSummary(data.userData, data.scenarioName);
 
-                console.log('🔘 Showing action buttons...');
+                debugLog('🔘 Showing action buttons...');
                 // Show action buttons for advanced analysis
                 const actionButtonsContainer = $('action-buttons-container');
                 if (actionButtonsContainer) {
                     actionButtonsContainer.classList.remove('hidden');
-                    console.log('✅ Action buttons container shown');
+                    debugLog('✅ Action buttons container shown');
                 } else {
-                    console.log('❌ Action buttons container not found');
+                    debugLog('❌ Action buttons container not found');
                 }
 
                 showNotification(`Successfully loaded: ${data.scenarioName || 'Your Retirement Data'}`, 'success');
@@ -319,23 +323,23 @@ class RetirementCalculatorApp {
     }
 
     showReturningUserEnhancedSummary(userData, scenarioName) {
-        console.log('🚀 showReturningUserEnhancedSummary called with:', { userData, scenarioName });
+        debugLog('🚀 showReturningUserEnhancedSummary called with:', { userData, scenarioName });
 
         // Show the Enhanced Summary container
         const enhancedSummaryContainer = $('enhanced-summary-container');
         if (enhancedSummaryContainer) {
             enhancedSummaryContainer.classList.remove('hidden');
-            console.log('✅ Enhanced summary container shown');
+            debugLog('✅ Enhanced summary container shown');
         } else {
-            console.log('❌ Enhanced summary container not found');
+            debugLog('❌ Enhanced summary container not found');
         }
 
         const enhancedSummaryContent = $('enhanced-summary-content');
         if (!enhancedSummaryContent) {
-            console.log('❌ Enhanced summary content element not found');
+            debugLog('❌ Enhanced summary content element not found');
             return;
         }
-        console.log('✅ Enhanced summary content element found');
+        debugLog('✅ Enhanced summary content element found');
 
         // Calculate projections using imported data
         const results = this.calculateReturningUserProjections(userData);
@@ -506,7 +510,7 @@ class RetirementCalculatorApp {
                 }
 
                 showNotification('Successfully imported your retirement data!', 'success');
-                console.log('✅ Successfully imported returning user data');
+                debugLog('✅ Successfully imported returning user data');
 
             } catch (error) {
                 console.error('❌ Error parsing imported file:', error);
@@ -781,6 +785,19 @@ class RetirementCalculatorApp {
             // Partnership status for calculations
             isSingleCalculation: finalPartnerAge === 0
         };
+
+        // 4C: Validate asset allocation sums to 100%
+        const allocSum = (inputs.allocEquities + inputs.allocBonds + inputs.allocCash) * 100;
+        if (Math.abs(allocSum - 100) > 1) {
+            showNotification(
+                `Asset allocation sums to ${allocSum.toFixed(1)}% (should be 100%). Normalising proportionally.`,
+                'warning'
+            );
+            const scale = 100 / allocSum;
+            inputs.allocEquities *= scale;
+            inputs.allocBonds    *= scale;
+            inputs.allocCash     *= scale;
+        }
 
         return inputs;
     }
@@ -3147,7 +3164,7 @@ class RetirementCalculatorApp {
         try {
             // Enhanced cash flow analysis for prioritizing strategies
             const cashFlowAnalysis = this.simulator.calculateCashFlowAnalysis(inputs);
-            console.log('Cash flow analysis result:', cashFlowAnalysis); // Debug log
+            debugLog('Cash flow analysis result:', cashFlowAnalysis); // Debug log
 
             if (!cashFlowAnalysis || !cashFlowAnalysis.cashFlow) {
                 console.error('Cash flow analysis failed - using fallback');
@@ -3161,7 +3178,7 @@ class RetirementCalculatorApp {
                 hasStrongCapacity: monthlyDisposableIncome > 1000,
                 opportunities: []
             };
-            console.log('Savings capacity:', savingsCapacity); // Debug log
+            debugLog('Savings capacity:', savingsCapacity); // Debug log
 
             // Prioritize strategies based on cash flow constraints
             const cashFlowOptimization = this.analyzeCashFlowOptimization(cashFlowAnalysis, inputs);
@@ -3664,11 +3681,11 @@ class RetirementCalculatorApp {
             await new Promise(resolve => setTimeout(resolve, 100));
 
             // Debug: Log scenarios structure
-            console.log('Generated scenarios:', scenarios);
-            console.log('Scenarios length:', scenarios ? scenarios.length : 'scenarios is null/undefined');
+            debugLog('Generated scenarios:', scenarios);
+            debugLog('Scenarios length:', scenarios ? scenarios.length : 'scenarios is null/undefined');
             if (scenarios && scenarios.length > 0) {
-                console.log('First scenario structure:', scenarios[0]);
-                console.log('First scenario keys:', Object.keys(scenarios[0]));
+                debugLog('First scenario structure:', scenarios[0]);
+                debugLog('First scenario keys:', Object.keys(scenarios[0]));
             }
 
             // Categorize scenarios for the suggestions UI
@@ -6135,10 +6152,10 @@ class RetirementCalculatorApp {
     }
 
     setupEventListeners() {
-        console.log('setupEventListeners called!');
+        debugLog('setupEventListeners called!');
         // Prevent duplicate event listener setup
         if (this.eventListenersSetup) {
-            console.log('Event listeners already setup, returning');
+            debugLog('Event listeners already setup, returning');
             return;
         }
         this.eventListenersSetup = true;
@@ -6171,19 +6188,19 @@ class RetirementCalculatorApp {
     }
 
     setupExportDropdowns() {
-        console.log('Setting up export dropdowns...');
+        debugLog('Setting up export dropdowns...');
 
         const setupDropdown = (buttonId, dropdownId, exportCsvId, exportXlsxId, exportPdfId) => {
             const button = $(buttonId);
             const dropdown = $(dropdownId);
 
-            console.log(`Setting up ${buttonId}:`, { button: !!button, dropdown: !!dropdown });
+            debugLog(`Setting up ${buttonId}:`, { button: !!button, dropdown: !!dropdown });
 
             if (button && dropdown) {
                 // Prevent duplicate listeners
                 if (!button.getAttribute('data-export-listener')) {
                     button.addEventListener('click', (e) => {
-                        console.log(`${buttonId} clicked, toggling dropdown`);
+                        debugLog(`${buttonId} clicked, toggling dropdown`);
                         e.preventDefault();
                         e.stopPropagation();
 
@@ -6192,11 +6209,11 @@ class RetirementCalculatorApp {
                         if (isHidden) {
                             dropdown.classList.remove('hidden');
                             dropdown.style.display = 'block';
-                            console.log(`${dropdownId} shown`);
+                            debugLog(`${dropdownId} shown`);
                         } else {
                             dropdown.classList.add('hidden');
                             dropdown.style.display = 'none';
-                            console.log(`${dropdownId} hidden`);
+                            debugLog(`${dropdownId} hidden`);
                         }
                     });
                     button.setAttribute('data-export-listener', 'true');
@@ -6236,7 +6253,7 @@ class RetirementCalculatorApp {
 
         if (btnExportUserData) {
             btnExportUserData.addEventListener('click', (e) => {
-                console.log('Export User Data clicked');
+                debugLog('Export User Data clicked');
                 e.preventDefault();
                 this.exportUserInputs();
             });
@@ -6244,7 +6261,7 @@ class RetirementCalculatorApp {
 
         if (btnImportUserData) {
             btnImportUserData.addEventListener('click', (e) => {
-                console.log('Import User Data clicked');
+                debugLog('Import User Data clicked');
                 e.preventDefault();
                 this.importUserInputs();
             });
@@ -6725,7 +6742,7 @@ class RetirementCalculatorApp {
 
         const success = saveToLocalStorage('retirement-calculator-inputs', formData);
         if (success) {
-            console.log('Form inputs saved to localStorage');
+            debugLog('Form inputs saved to localStorage');
         }
         return success;
     }
@@ -6989,7 +7006,7 @@ class RetirementCalculatorApp {
             }
         });
 
-        console.log('Auto-save setup completed for form inputs');
+        debugLog('Auto-save setup completed for form inputs');
     }
 
     // Cash Flow Input Validation and UI Enhancement
@@ -7395,7 +7412,7 @@ class RetirementCalculatorApp {
     // ========================================
 
     runOutcomeCalculation(inputs) {
-        console.log('🎯 Running outcome-based calculation...');
+        debugLog('🎯 Running outcome-based calculation...');
 
         // Validate inputs before running outcome calculation
         const currentAge = inputs.currentAge || inputs.yourCurrentAge || inputs.age || 0;
@@ -7433,8 +7450,8 @@ class RetirementCalculatorApp {
             // Display outcome results
             this.displayOutcomeResults(outcome, actions, resilience);
 
-            console.log('✅ Outcome calculation completed:', outcome);
-            console.log('🛡️ Resilience analysis completed:', resilience);
+            debugLog('✅ Outcome calculation completed:', outcome);
+            debugLog('🛡️ Resilience analysis completed:', resilience);
         } catch (error) {
             console.error('❌ Error in outcome calculation:', error);
             throw error; // Re-throw to be caught by the outer try-catch
@@ -7759,8 +7776,7 @@ class RetirementCalculatorApp {
     }
 
     exportOutcomePDF() {
-        showNotification('PDF export feature coming soon!', 'info');
-        // TODO: Implement PDF export using jsPDF
+        this.exportResults('pdf');
     }
 
     // ========================================
@@ -7973,7 +7989,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.app = new RetirementCalculatorApp();
         // Make class available for any legacy code that might need it
         window.RetirementCalculatorApp = RetirementCalculatorApp;
-        console.log('Enhanced Australian Retirement Calculator initialized successfully');
+        debugLog('Enhanced Australian Retirement Calculator initialized successfully');
     } catch (error) {
         console.error('Failed to initialize calculator:', error);
         showDetailedError(error);
