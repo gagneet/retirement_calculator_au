@@ -2461,10 +2461,13 @@ function extractAnalysisData(inputs, results, app) {
         propertyAnalysis: null,
         optimizationStrategies: null,
         aiRecommendations: null,
+        comprehensiveRecommendations: null,
         scenarioComparisons: null,
         suggestions: null,
         scenarioMatrix: null,
-        personaRecommendations: null
+        personaRecommendations: null,
+        actionPlan: null,
+        outcomeActions: null
     };
 
     try {
@@ -2509,6 +2512,24 @@ function extractAnalysisData(inputs, results, app) {
         // Persona-based AI Recommendations (if available)
         if (app?.currentPersonaRecommendations) {
             analysis.personaRecommendations = app.currentPersonaRecommendations;
+        }
+
+        // Full comprehensive recommendations list (all categories, not just top 5)
+        if (app?.currentComprehensiveRecommendations?.length > 0) {
+            analysis.comprehensiveRecommendations = app.currentComprehensiveRecommendations;
+        }
+
+        // Action plan from persona recommendations
+        if (app?.currentActionPlan) {
+            const plan = app.currentActionPlan;
+            if ((plan.immediate?.length > 0) || (plan.next30Days?.length > 0)) {
+                analysis.actionPlan = plan;
+            }
+        }
+
+        // Outcome tab action items
+        if (app?.currentOutcomeActions?.length > 0) {
+            analysis.outcomeActions = app.currentOutcomeActions;
         }
 
     } catch (error) {
@@ -2852,29 +2873,32 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         doc.text(`${analysis.suggestions.length} personalized strategies to improve your retirement outcome`, 14, yPos);
         yPos += 8;
 
-        const suggestionsBody = analysis.suggestions.slice(0, 12).map(suggestion => {
+        const suggestionsBody = analysis.suggestions.slice(0, 20).map(suggestion => {
+            const category = suggestion.exportCategory || suggestion.category || 'general';
+            const categoryLabel = { property: 'Property', income: 'Income', investment: 'Investment', timing: 'Timing', mortgage: 'Mortgage', insurance: 'Insurance' }[category] || category.charAt(0).toUpperCase() + category.slice(1);
             const name = suggestion.name || suggestion.title || 'Suggestion';
-            const description = (suggestion.description || 'No description available').substring(0, 100);
+            const description = (suggestion.description || suggestion.summary || 'No description available').substring(0, 90);
             const impact = suggestion.medianBalanceDiff
                 ? formatCurrency(suggestion.medianBalanceDiff)
                 : (suggestion.successRate ? `${(suggestion.successRate * 100).toFixed(1)}%` : 'N/A');
             const feasibility = suggestion.feasibility || suggestion.difficulty || 'Review';
 
-            return [name, description, impact, feasibility];
+            return [categoryLabel, name, description, impact, feasibility];
         });
 
         doc.autoTable({
             startY: yPos,
-            head: [['Suggestion', 'Description', 'Impact', 'Feasibility']],
+            head: [['Category', 'Suggestion', 'Description', 'Impact', 'Feasibility']],
             body: suggestionsBody,
             theme: 'striped',
             headStyles: { fillColor: [99, 102, 241] },
             styles: { fontSize: 8, cellPadding: 3 },
             columnStyles: {
-                0: { cellWidth: 40 },
-                1: { cellWidth: 70 },
-                2: { cellWidth: 35 },
-                3: { cellWidth: 30 }
+                0: { cellWidth: 22 },
+                1: { cellWidth: 35 },
+                2: { cellWidth: 75 },
+                3: { cellWidth: 25 },
+                4: { cellWidth: 18 }
             }
         });
 
@@ -3084,6 +3108,122 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
             });
         }
     }
+
+    // Comprehensive AI Recommendations (full list grouped by category)
+    if (analysis.comprehensiveRecommendations && analysis.comprehensiveRecommendations.length > 0) {
+        doc.addPage();
+        yPos = 20;
+
+        doc.setFontSize(18);
+        doc.setTextColor(111, 66, 193);
+        doc.text("Comprehensive AI Recommendations", 14, yPos);
+        yPos += 6;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 8;
+
+        const grouped = analysis.comprehensiveRecommendations.reduce((acc, rec) => {
+            const cat = rec.category || 'General';
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(rec);
+            return acc;
+        }, {});
+
+        Object.entries(grouped).forEach(([category, recs]) => {
+            if (yPos > 240) { doc.addPage(); yPos = 20; }
+
+            doc.setFontSize(11);
+            doc.setTextColor(60, 60, 60);
+            doc.text(category, 14, yPos);
+            yPos += 4;
+
+            doc.autoTable({
+                startY: yPos,
+                head: [['Recommendation', 'Priority', 'Confidence']],
+                body: recs.slice(0, 8).map(rec => [
+                    rec.action || rec.title || '',
+                    rec.priority || 'Medium',
+                    rec.confidence ? `${Math.round(rec.confidence * 100)}%` : 'N/A'
+                ]),
+                theme: 'grid',
+                headStyles: { fillColor: [111, 66, 193], fontSize: 8 },
+                styles: { fontSize: 8, cellPadding: 2 },
+                columnStyles: { 0: { cellWidth: 135 }, 1: { cellWidth: 25 }, 2: { cellWidth: 15 } }
+            });
+
+            yPos = doc.lastAutoTable.finalY + 8;
+        });
+    }
+
+    // Priority Action Plan
+    if (analysis.actionPlan) {
+        const immediateActions = analysis.actionPlan.immediate || [];
+        const next30Days = analysis.actionPlan.next30Days || [];
+        if (immediateActions.length > 0 || next30Days.length > 0) {
+            if (yPos > 200) { doc.addPage(); yPos = 20; }
+
+            doc.setFontSize(16);
+            doc.setTextColor(234, 88, 12);
+            doc.text("Priority Action Plan", 14, yPos);
+            yPos += 5;
+            doc.setDrawColor(200, 200, 200);
+            doc.line(14, yPos, 196, yPos);
+            yPos += 7;
+
+            if (immediateActions.length > 0) {
+                doc.autoTable({
+                    startY: yPos,
+                    head: [['Immediate Actions (Do Now)']],
+                    body: immediateActions.slice(0, 10).map(a => [a.title || a.action || String(a)]),
+                    theme: 'striped',
+                    headStyles: { fillColor: [234, 88, 12] },
+                    styles: { fontSize: 9, cellPadding: 3 }
+                });
+                yPos = doc.lastAutoTable.finalY + 8;
+            }
+
+            if (next30Days.length > 0) {
+                if (yPos > 220) { doc.addPage(); yPos = 20; }
+                doc.autoTable({
+                    startY: yPos,
+                    head: [['Next 30 Days']],
+                    body: next30Days.slice(0, 10).map(a => [a.title || a.action || String(a)]),
+                    theme: 'striped',
+                    headStyles: { fillColor: [245, 158, 11] },
+                    styles: { fontSize: 9, cellPadding: 3 }
+                });
+                yPos = doc.lastAutoTable.finalY + 8;
+            }
+        }
+    }
+
+    // Your Outcome — Recommended Actions
+    if (analysis.outcomeActions && analysis.outcomeActions.length > 0) {
+        if (yPos > 200) { doc.addPage(); yPos = 20; }
+
+        doc.setFontSize(16);
+        doc.setTextColor(5, 150, 105);
+        doc.text("Your Outcome — Recommended Actions", 14, yPos);
+        yPos += 5;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 7;
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Action', 'Impact / Description', 'Priority', 'Timeframe']],
+            body: analysis.outcomeActions.slice(0, 15).map(action => [
+                action.title || action.name || String(action),
+                action.impact || action.description || '',
+                action.priority || 'Review',
+                action.timeframe || action.timing || ''
+            ]),
+            theme: 'striped',
+            headStyles: { fillColor: [5, 150, 105] },
+            styles: { fontSize: 8, cellPadding: 3 },
+            columnStyles: { 0: { cellWidth: 55 }, 1: { cellWidth: 80 }, 2: { cellWidth: 25 }, 3: { cellWidth: 15 } }
+        });
+    }
 }
 
 // Enhanced Analysis XLSX Helper
@@ -3233,18 +3373,18 @@ function addEnhancedAnalysisToXLSX(wb, analysis) {
 
     // Suggestions Sheet
     if (analysis.suggestions && analysis.suggestions.length > 0) {
+        const catLabels = { property: 'Property', income: 'Income', investment: 'Investment', timing: 'Timing', mortgage: 'Mortgage', insurance: 'Insurance' };
         const suggestionsData = [
-            ['Personalized Suggestions', '', '', '', ''],
-            ['#', 'Category', 'Strategy', 'Description', 'Impact/Benefit'],
-            ...analysis.suggestions.slice(0, 30).map((s, i) => [
-                i + 1,
-                s.category || 'General',
-                s.title || s.name || 'Improvement Strategy',
-                s.description || s.recommendation || '',
-                s.impact || s.estimatedImprovement || s.medianBalanceDiff
-                    ? (s.medianBalanceDiff ? `$${Math.round(s.medianBalanceDiff).toLocaleString()}` : (s.impact || s.estimatedImprovement || 'Review details'))
-                    : 'Review details'
-            ])
+            ['Personalized Suggestions', '', '', '', '', ''],
+            ['#', 'Category', 'Strategy', 'Description', 'Impact/Benefit', 'Feasibility'],
+            ...analysis.suggestions.slice(0, 30).map((s, i) => {
+                const rawCat = s.exportCategory || s.category || 'general';
+                const category = catLabels[rawCat] || rawCat.charAt(0).toUpperCase() + rawCat.slice(1);
+                const impact = s.medianBalanceDiff
+                    ? `$${Math.round(s.medianBalanceDiff).toLocaleString()}`
+                    : (s.impact || s.estimatedImprovement || 'Review details');
+                return [i + 1, category, s.title || s.name || 'Improvement Strategy', s.description || s.summary || s.recommendation || '', impact, s.feasibility || s.difficulty || ''];
+            })
         ];
 
         const ws_suggestions = XLSX.utils.aoa_to_sheet(suggestionsData);
@@ -3272,5 +3412,73 @@ function addEnhancedAnalysisToXLSX(wb, analysis) {
             const ws_persona = XLSX.utils.aoa_to_sheet(personaSheetData);
             XLSX.utils.book_append_sheet(wb, ws_persona, 'Persona Recommendations');
         }
+    }
+
+    // Comprehensive AI Recommendations Sheet (all categories, full list)
+    if (analysis.comprehensiveRecommendations && analysis.comprehensiveRecommendations.length > 0) {
+        const grouped = analysis.comprehensiveRecommendations.reduce((acc, rec) => {
+            const cat = rec.category || 'General';
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(rec);
+            return acc;
+        }, {});
+
+        const compRecsData = [
+            ['Comprehensive AI Recommendations', '', '', ''],
+            ['Category', 'Recommendation', 'Priority', 'Confidence']
+        ];
+
+        Object.entries(grouped).forEach(([cat, recs]) => {
+            recs.forEach(rec => compRecsData.push([
+                cat,
+                rec.action || rec.title || '',
+                rec.priority || 'Medium',
+                rec.confidence ? `${Math.round(rec.confidence * 100)}%` : 'N/A'
+            ]));
+        });
+
+        const ws_comp = XLSX.utils.aoa_to_sheet(compRecsData);
+        XLSX.utils.book_append_sheet(wb, ws_comp, 'Comprehensive AI Recs');
+    }
+
+    // Action Plan Sheet
+    if (analysis.actionPlan) {
+        const immediateActions = analysis.actionPlan.immediate || [];
+        const next30Days = analysis.actionPlan.next30Days || [];
+        if (immediateActions.length > 0 || next30Days.length > 0) {
+            const actionPlanData = [['Priority Action Plan', '', ''], ['Section', 'Action', 'Description']];
+
+            immediateActions.forEach(a => actionPlanData.push([
+                'Immediate (Do Now)',
+                a.title || a.action || String(a),
+                a.description || ''
+            ]));
+
+            next30Days.forEach(a => actionPlanData.push([
+                'Next 30 Days',
+                a.title || a.action || String(a),
+                a.description || ''
+            ]));
+
+            const ws_plan = XLSX.utils.aoa_to_sheet(actionPlanData);
+            XLSX.utils.book_append_sheet(wb, ws_plan, 'Action Plan');
+        }
+    }
+
+    // Outcome Actions Sheet
+    if (analysis.outcomeActions && analysis.outcomeActions.length > 0) {
+        const outcomeData = [
+            ['Your Outcome — Recommended Actions', '', '', ''],
+            ['Action', 'Impact / Description', 'Priority', 'Timeframe'],
+            ...analysis.outcomeActions.slice(0, 25).map(action => [
+                action.title || action.name || String(action),
+                action.impact || action.description || '',
+                action.priority || 'Review',
+                action.timeframe || action.timing || ''
+            ])
+        ];
+
+        const ws_outcome = XLSX.utils.aoa_to_sheet(outcomeData);
+        XLSX.utils.book_append_sheet(wb, ws_outcome, 'Outcome Actions');
     }
 }

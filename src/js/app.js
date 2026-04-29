@@ -4187,6 +4187,8 @@ class RetirementCalculatorApp {
 
             // Store results for export
             this.currentRecommendations = enhancedRecommendations.merged.topPriority;
+            this.currentComprehensiveRecommendations = comprehensiveRecommendations;
+            this.currentActionPlan = personaRecommendations?.actionPlan || null;
             this.currentPersonaRecommendations = personaRecommendations;
 
             updateProgress(90, 'Formatting enhanced recommendations...');
@@ -4252,6 +4254,12 @@ class RetirementCalculatorApp {
             // Store scenarios for Try This functionality and export
             this.lastGeneratedSuggestions = scenarios;
             this.currentSuggestions = scenarios;
+
+            // Tag each suggestion with its display category so export shows proper grouping
+            const taggedCats = this.categorizeSuggestionsForUI(scenarios);
+            Object.entries(taggedCats).forEach(([cat, items]) => {
+                items.forEach(s => { if (!s.exportCategory) s.exportCategory = cat; });
+            });
 
             updateProgress(80, 'Categorizing suggestions...');
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -8025,6 +8033,7 @@ class RetirementCalculatorApp {
             // Generate action suggestions
             this.actionGenerator = new ActionGenerator(inputs, outcome);
             const actions = this.actionGenerator.generateActions();
+            this.currentOutcomeActions = actions;
 
             // Initialize What-If engine
             this.whatIfEngine = new WhatIfEngine(inputs, outcome);
