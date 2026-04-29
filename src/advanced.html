@@ -1586,7 +1586,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="educationCostPerChild">Annual Education Cost per Child ($)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="educationCostPerChild" type="text"
-                               value="0">
+                               value="0" min="0">
                         <p class="mt-1 text-xs text-gray-500">Average annual cost per child for school fees, uniforms, activities</p>
                     </div>
                     <div>
@@ -1648,7 +1648,7 @@
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700" for="carerAnnualExpense">Annual Financial Support to Parents/Family ($)</label>
                                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="carerAnnualExpense" type="text"
-                                               value="" placeholder="e.g. 15000">
+                                               value="" placeholder="e.g. 15000" min="0">
                                         <p class="mt-1 text-xs text-gray-500">Annual funds sent or spent supporting parents (reduces your savings capacity)</p>
                                     </div>
                                 </div>
@@ -1675,13 +1675,13 @@
                         </div>
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="yourSalary" type="text"
-                           value="164000">
+                           value="164000" min="0">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="partnerSalary">Partner's Annual Salary
                         (pre-tax) ($)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerSalary" type="text"
-                           value="124500">
+                           value="124500" min="0">
                 </div>
                 <!-- Reduced Income Scenario - Item 10 -->
                 <div class="col-span-2 mt-2">
@@ -1711,7 +1711,7 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700" for="reducedIncomeSalary">Reduced Annual Salary ($)</label>
                                 <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="reducedIncomeSalary" type="text"
-                                       value="" placeholder="e.g. 110000">
+                                       value="" placeholder="e.g. 110000" min="0">
                                 <p class="mt-1 text-xs text-gray-500">Your new annual gross salary after income reduction</p>
                             </div>
                             <div>
@@ -1722,7 +1722,7 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700" for="partnerReducedIncomeSalary">Partner's Reduced Annual Salary ($)</label>
                                 <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerReducedIncomeSalary" type="text"
-                                       value="" placeholder="e.g. 70000">
+                                       value="" placeholder="e.g. 70000" min="0">
                             </div>
                         </div>
                     </div>
@@ -1741,13 +1741,13 @@
                         </div>
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="yourCurrentSuper" type="text"
-                           value="300000">
+                           value="300000" min="0">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="partnerCurrentSuper">Partner's Current
                         Superannuation ($)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerCurrentSuper" type="text"
-                           value="150000">
+                           value="150000" min="0">
                 </div>
                 <!-- Super strategy fields (PART 2) -->
                 <div class="p-3 bg-green-50 border border-green-200 rounded-lg space-y-3">
@@ -1768,7 +1768,7 @@
                             </div>
                         </div>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="yourAdditionalSuperContribution" type="text"
-                               value="0">
+                               value="0" min="0" max="30000">
                         <p class="mt-1 text-xs text-gray-500">Pre-tax salary sacrifice on top of employer SG. Total concessional capped at $30,000/year. Reduces your taxable income.</p>
                     </div>
                     <div>
@@ -1783,19 +1783,19 @@
                             </div>
                         </div>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerAdditionalSuperContribution" type="text"
-                               value="0">
+                               value="0" min="0" max="30000">
                         <p class="mt-1 text-xs text-gray-500">Partner's pre-tax salary sacrifice. Capped at remaining concessional room after employer SG.</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="concessionalCapUsed">Concessional Contributions Used This Year ($)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="concessionalCapUsed" type="text"
-                               value="0">
+                               value="0" min="0" max="30000">
                         <p class="mt-1 text-xs text-gray-500">Annual concessional cap is $30,000 (2024–25). Unused amounts can be carried forward for 5 years.</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="spouseContribution">Annual Spouse Contribution ($)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="spouseContribution" type="text"
-                               value="0">
+                               value="0" min="0" max="3000">
                         <p class="mt-1 text-xs text-gray-500">Non-concessional contribution to lower-earning spouse's fund. Eligible for up to $540 tax offset.</p>
                     </div>
                     <div>
@@ -1821,7 +1821,7 @@
                         <div class="hidden space-y-3" id="fhssDetails">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700" for="fhssContributed">Total FHSS-eligible contributions already made ($)</label>
-                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="fhssContributed" type="text" value="0">
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="fhssContributed" type="text" value="0" min="0" max="50000">
                                 <p class="mt-1 text-xs text-gray-500">Voluntary contributions made since 1 July 2017 (max $50,000 total, $15,000/year).</p>
                             </div>
                             <div>
@@ -1847,19 +1847,19 @@
                         </div>
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="currentSavings" type="text"
-                           value="125000">
+                           value="125000" min="0">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="currentStocks">Current Stock Portfolio
                         ($)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="currentStocks" type="text"
-                           value="45000">
+                           value="45000" min="0">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="monthlyStockContribution">Monthly Stock
                         Contributions ($)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="monthlyStockContribution" type="text"
-                           value="900">
+                           value="900" min="0">
                 </div>
                 <div>
                     <div class="label-with-tooltip">
@@ -1875,7 +1875,7 @@
                         </div>
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="percentIncomeSaved" step="0.1" type="text"
-                           value="9">
+                           value="9" min="0" max="100">
                 </div>
             </div>
         </div>
@@ -1902,25 +1902,25 @@
                         </div>
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="homeValue" type="text"
-                           value="1450000">
+                           value="1450000" min="0">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="mortgageBalance">Outstanding Mortgage
                         ($)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="mortgageBalance" type="text"
-                           value="940000">
+                           value="940000" min="0">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="mortgageRate">Annual Mortgage Rate
                         (%)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="mortgageRate" step="0.01" type="text"
-                           value="5.37">
+                           value="5.37" min="0" max="30">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="monthlyMortgagePayment">Monthly Mortgage
                         Payment ($)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="monthlyMortgagePayment" type="text"
-                           value="4984">
+                           value="4984" min="0">
                 </div>
                 <div>
                     <div class="label-with-tooltip">
@@ -1957,19 +1957,19 @@
                             <label class="block text-sm font-medium text-gray-700" for="investmentPropertyValue">Current
                                 Value ($)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="investmentPropertyValue" type="text"
-                                   value="550000">
+                                   value="550000" min="0">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="investmentPropertyLoan">Outstanding
                                 Loan ($)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="investmentPropertyLoan" type="text"
-                                   value="574000">
+                                   value="574000" min="0">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="investmentPropertyRate">Loan
                                 Interest Rate (%)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="investmentPropertyRate" step="0.01" type="text"
-                                   value="6.2">
+                                   value="6.2" min="0" max="30">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="investmentPropertyLoanType">Loan Type</label>
@@ -1983,43 +1983,43 @@
                             <label class="block text-sm font-medium text-gray-700" for="weeklyRentalIncome">Weekly
                                 Rental Income ($)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="weeklyRentalIncome" type="text"
-                                   value="554">
+                                   value="554" min="0">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="annualPropertyExpenses">Annual
                                 Property Expenses ($)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="annualPropertyExpenses" type="text"
-                                   value="11356">
+                                   value="11356" min="0">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="propertyGrowthRate">Annual
                                 Growth Rate (%)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="propertyGrowthRate" step="0.1" type="text"
-                                   value="1.81">
+                                   value="1.81" min="0" max="30">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="sellPropertyYears">Sell Property
                                 in (Years from now)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="sellPropertyYears" type="text"
-                                   value="0">
+                                   value="0" min="0" max="50" step="1">
                             <p class="mt-1 text-xs text-gray-500">Enter 0 to never sell the property.</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="capitalGainsTaxRate">Capital
                                 Gains Tax Rate (%)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="capitalGainsTaxRate" type="text"
-                                   value="22.5">
+                                   value="22.5" min="0" max="100" step="1">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="vacancyRate">Vacancy Rate (%)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="vacancyRate" type="text"
-                                   value="4" min="0" max="25">
+                                   value="4" min="0" max="25" step="1">
                             <p class="mt-1 text-xs text-gray-500">Expected weeks vacant per year as a percentage (e.g. 4 = ~2 weeks p.a.)</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="maintenanceInflation">Maintenance Cost Inflation (%/yr)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="maintenanceInflation" type="text"
-                                   value="3.5" step="0.1">
+                                   value="3.5" step="0.1" min="0" max="20">
                             <p class="mt-1 text-xs text-gray-500">Annual rate at which property maintenance costs increase</p>
                         </div>
                         <div>
@@ -2042,7 +2042,7 @@
                                 <label class="block text-sm font-medium text-gray-700" for="landTax">Annual Land Tax ($)</label>
                                 <span class="text-xs text-blue-500 hidden" id="landTaxAutoLabel">Auto-calculated · override as needed</span>
                             </div>
-                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="landTax" type="text" value="0">
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="landTax" type="text" value="0" min="0">
                             <p class="mt-1 text-xs text-gray-500">Annual land tax for investment property (varies by state and property value). Auto-populated when state is selected.</p>
                         </div>
                     </div>
@@ -2070,7 +2070,7 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="smsfAdminCosts">Annual SMSF Admin &amp; Compliance Costs ($)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="smsfAdminCosts" type="text"
-                                   value="3500">
+                                   value="3500" min="0">
                             <p class="mt-1 text-xs text-gray-500">Audit, accounting, ASIC fees, and admin costs (typically $3,000–$6,000/yr)</p>
                         </div>
                         <div>
@@ -2138,7 +2138,7 @@
                                 </div>
                             </div>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="trustNetAssets" type="text"
-                                   value="0">
+                                   value="0" min="0">
                             <p class="mt-1 text-xs text-gray-500">Total value of trust assets minus liabilities</p>
                         </div>
                         <div>
@@ -2155,7 +2155,7 @@
                                 </div>
                             </div>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="trustAttributionPercentage" max="100" min="0" type="text"
-                                   value="100">
+                                   value="100" step="1">
                             <p class="mt-1 text-xs text-gray-500">Percentage of trust assets/income attributed to you by
                                 Centrelink</p>
                         </div>
@@ -2163,7 +2163,7 @@
                             <label class="block text-sm font-medium text-gray-700" for="trustAnnualDistributions">Annual
                                 Trust Distributions Received</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="trustAnnualDistributions" type="text"
-                                   value="0">
+                                   value="0" min="0">
                             <p class="mt-1 text-xs text-gray-500">Actual distributions received from trust in last
                                 financial year</p>
                         </div>
@@ -2192,19 +2192,19 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="trustTaxRate">Trust Tax Rate (%)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="trustTaxRate" type="text"
-                                   value="30" min="0" max="47">
+                                   value="30" min="0" max="47" step="1">
                             <p class="mt-1 text-xs text-gray-500">Effective tax rate applied to undistributed trust income (typically 30–47%)</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="familyTrustIncomeDistribution">Annual Income Distributed from Trust ($)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="familyTrustIncomeDistribution" type="text"
-                                   value="0">
+                                   value="0" min="0">
                             <p class="mt-1 text-xs text-gray-500">Total annual distributions to all beneficiaries (income test impact)</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="beneficiaryAllocation">Your Share of Trust Distributions (%)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="beneficiaryAllocation" type="text"
-                                   value="100" min="0" max="100">
+                                   value="100" min="0" max="100" step="1">
                             <p class="mt-1 text-xs text-gray-500">Percentage of trust distributions allocated to you (affects income test)</p>
                         </div>
                     </div>
@@ -2240,7 +2240,7 @@
                     <label class="block text-sm font-medium text-gray-700" for="investmentReturn">Initial Investment
                         Return (%)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="investmentReturn" type="text"
-                           value="5.61">
+                           value="5.61" min="0" max="30" step="0.1">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="returnDeclineRate">Return Decline Rate
@@ -2252,7 +2252,7 @@
                     <label class="block text-sm font-medium text-gray-700" for="savingsReturn">Savings Return
                         (%)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="savingsReturn" step="0.01" type="text"
-                           value="1.40">
+                           value="1.40" min="0" max="30">
                 </div>
                 <div>
                     <div class="label-with-tooltip">
@@ -2268,7 +2268,7 @@
                         </div>
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="superReturn" type="text"
-                           value="8.75">
+                           value="8.75" min="0" max="30" step="0.1">
                 </div>
             </div>
 
@@ -2301,15 +2301,15 @@
                     <div id="customAllocationSection" class="hidden mt-3 space-y-2">
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="allocEquities">Equities (%)</label>
-                            <input type="text" id="allocEquities" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value="60">
+                            <input type="text" id="allocEquities" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value="60" min="0" max="100" step="1">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="allocBonds">Bonds (%)</label>
-                            <input type="text" id="allocBonds" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value="30">
+                            <input type="text" id="allocBonds" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value="30" min="0" max="100" step="1">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="allocCash">Cash (%)</label>
-                            <input type="text" id="allocCash" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value="10">
+                            <input type="text" id="allocCash" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value="10" min="0" max="100" step="1">
                         </div>
                     </div>
                 </div>
@@ -2356,19 +2356,19 @@
                         <label class="block text-sm font-medium text-gray-700" for="salaryGrowthRate">Annual Real Salary
                             Growth (%)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="salaryGrowthRate" type="text"
-                               value="1.5">
+                               value="1.5" min="0" max="20" step="0.1">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="leanYearsStart">Lean Years Start
                             (years before retirement)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="leanYearsStart" type="text"
-                               value="5">
+                               value="5" min="1" max="50" step="1">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="leanYearsReduction">Lean Years
                             Salary Reduction (%)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="leanYearsReduction" type="text"
-                               value="38">
+                               value="38" min="0" max="100" step="1">
                     </div>
                 </div>
             </div>
@@ -2408,13 +2408,13 @@
                         <label class="block text-sm font-medium text-gray-700" for="currentHealthcareCosts">Current
                             Annual Healthcare Costs ($)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="currentHealthcareCosts" type="text"
-                               value="5200">
+                               value="5200" min="0">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="healthcareInflation">Healthcare
                             Inflation Rate (%)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="healthcareInflation" step="0.1" type="text"
-                               value="3.82">
+                               value="3.82" min="0" max="30">
                     </div>
                     <div>
                         <div class="label-with-tooltip">
@@ -2446,13 +2446,13 @@
                             </div>
                         </div>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="agedCareStartAge" type="text"
-                               value="88">
+                               value="88" min="60" max="110" step="1">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="agedCareDuration">Expected Duration
                             (years)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="agedCareDuration" step="0.5" type="text"
-                               value="3">
+                               value="3" min="0" max="20">
                     </div>
                     <div>
                         <div class="label-with-tooltip">
@@ -2468,7 +2468,7 @@
                             </div>
                         </div>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="agedCareAnnualCost" type="text"
-                               value="76000">
+                               value="76000" min="0">
                     </div>
                 </div>
             </div>
@@ -2486,14 +2486,14 @@
                     <label class="block text-sm font-medium text-gray-700" for="asfaComfortable">ASFA Comfortable
                         (Couple) p.a.</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="asfaComfortable" type="text"
-                           value="73875">
+                           value="73875" min="0">
                     <p class="mt-1 text-xs text-gray-500">March 2025: $73,875 comfortable, $48,184 modest</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="agePensionMax">Max Age Pension (Couple)
                         p.a.</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="agePensionMax" type="text"
-                           value="45037">
+                           value="45037" min="0">
                 </div>
                 <div>
                     <div class="label-with-tooltip">
@@ -2509,19 +2509,19 @@
                         </div>
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="pensionAssetThreshold" type="text"
-                           value="470000">
+                           value="470000" min="0">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="pensionAssetLimit">Pension Asset Limit
                         (Couple)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="pensionAssetLimit" type="text"
-                           value="1031000">
+                           value="1031000" min="0">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="pensionIncomeThreshold">Pension Income
                         Threshold (p.f.)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="pensionIncomeThreshold" type="text"
-                           value="372">
+                           value="372" min="0">
                 </div>
             </div>
 
@@ -2531,7 +2531,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="numRuns">Monte Carlo Runs</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="numRuns" min="1000" step="1000" type="text"
-                               value="5000">
+                               value="5000" max="50000">
                     </div>
                     <div>
                         <div class="label-with-tooltip">
@@ -2561,7 +2561,7 @@
                             <label class="block text-sm font-medium text-gray-700" for="shockProbability">Shock
                                 Probability (%)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="shockProbability" max="20" min="0" type="text"
-                                   value="5">
+                                   value="5" step="1">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="shockMagnitude">Shock Magnitude
@@ -2591,13 +2591,13 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="extremeInflationProbability">Extreme Inflation Probability (%/yr)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="extremeInflationProbability" type="text"
-                               value="2" min="0" max="20">
+                               value="2" min="0" max="20" step="1">
                         <p class="mt-1 text-xs text-gray-500">Annual probability of an inflation spike year (&gt;8%) eroding purchasing power</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="propertyCrashProbability">Property Crash Probability (%/yr)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="propertyCrashProbability" type="text"
-                               value="3" min="0" max="20">
+                               value="3" min="0" max="20" step="1">
                         <p class="mt-1 text-xs text-gray-500">Annual probability of a severe property value decline (&gt;15%)</p>
                     </div>
                 </div>
