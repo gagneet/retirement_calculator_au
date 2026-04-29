@@ -63,6 +63,9 @@ module.exports = {
                 // HOW-TO page supporting files
                 { from: 'src/js/howto-interactive.js', to: 'js/howto-interactive.js' },
                 { from: 'src/js/animated-demo.js', to: 'js/animated-demo.js' },
+                // Advanced Design Calculator — standalone ES6 modules (no webpack bundling needed)
+                { from: 'src/js/advanced-design-engine.js', to: 'js/advanced-design-engine.js' },
+                { from: 'src/js/advanced-design-ui.js', to: 'js/advanced-design-ui.js' },
             ],
         }),
         new MiniCssExtractPlugin({
@@ -117,6 +120,11 @@ module.exports = {
             template: './src/methodology.html',
             filename: 'methodology.html',
             chunks: [],
+        }),
+        new HtmlWebpackPlugin({
+            template: './src/advanced-design.html',
+            filename: 'advanced-design.html',
+            chunks: [], // Uses standalone ES6 modules via CopyPlugin
         }),
     ],
 };
