@@ -1195,7 +1195,7 @@ class RetirementCalculatorApp {
             const loadingPct = yearsCovered >= 10 ? 0 : Math.min(70, (ageFirstCover - 30) * 2);
             if (loadingPct > 0) {
                 const additionalCost = Math.round(2800 * loadingPct / 100);
-                superWarnings.push(`LHC Loading ${loadingPct}%: Your private hospital premium is ~$${additionalCost.toLocaleString()}/year higher due to delayed cover. Cleared after ${10 - yearsCovered} more years of continuous cover.`);
+                superWarnings.push(`⚠️ <strong>LHC Loading ${loadingPct}%:</strong> Your private hospital premium is ~$${additionalCost.toLocaleString()}/year higher due to delayed cover. Cleared after ${10 - yearsCovered} more years of continuous cover.`);
             }
         }
 

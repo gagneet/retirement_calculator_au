@@ -891,13 +891,15 @@ export class RetirementSimulator {
             const tbcThreshold = this.config.TRANSFER_BALANCE_CAP || 2000000;
             const superIsCapped = accumulatedSuperBalance >= tbcThreshold;
 
+            // Year 1 only: if user has already used some concessional cap this FY, reduce available room.
+            // Declared here so both person and partner if-blocks can reference it.
+            const concessionalAlreadyUsed = (year === 1) ? (inputs.concessionalCapUsed || 0) : 0;
+
             if (year <= yourYearsToWork) {
                 const yourGrossSalary = this.getSalaryForYear(inputs.yourSalary, year, inputs);
                 // Salary sacrifice: voluntary pre-tax super, capped so total concessional ≤ $30,000.
                 // Blocked entirely when TSB ≥ Transfer Balance Cap.
                 const yourEmployerSG = yourGrossSalary * inputs.superContributionRate;
-                // Year 1 only: if user has already used some concessional cap this FY, reduce available room
-                const concessionalAlreadyUsed = (year === 1) ? (inputs.concessionalCapUsed || 0) : 0;
                 const yourSacrifice = superIsCapped ? 0 : Math.min(
                     inputs.yourAdditionalSuperContribution || 0,
                     Math.max(0, 30000 - yourEmployerSG - concessionalAlreadyUsed)
@@ -1227,7 +1229,26 @@ export class RetirementSimulator {
                 }
             }
 
-            const totalCostWithHealthcare = baseIncomeNeeded + healthcareCost + agedCareCost;
+            // LHC loading cost during retirement (mirrors accumulation loop logic)
+            let lhcRetirementCost = 0;
+            if (inputs.ageFirstPrivateCover && inputs.hasPrivateHealthCover) {
+                const ageFirstCoverVal = parseFloat(inputs.ageFirstPrivateCover);
+                const yearsWithoutCover = Math.max(0, ageFirstCoverVal - 30);
+                const yearsCovered = yourCurrentAge - ageFirstCoverVal;
+                const loadingCleared = yearsCovered >= (this.config.LHC_CLEAR_AFTER_YEARS || 10);
+                const loadingPct = loadingCleared ? 0 : Math.min(
+                    this.config.LHC_LOADING_MAX || 0.70,
+                    yearsWithoutCover * (this.config.LHC_LOADING_RATE || 0.02)
+                );
+                if (loadingPct > 0) {
+                    const basePremium = inputs.isSingleCalculation
+                        ? (this.config.LHC_BASE_PREMIUMS?.single || 2800)
+                        : (this.config.LHC_BASE_PREMIUMS?.couple || 5200);
+                    lhcRetirementCost = basePremium * loadingPct * Math.pow(1 + (inputs.inflation || 0.025), retirementYear);
+                }
+            }
+
+            const totalCostWithHealthcare = baseIncomeNeeded + healthcareCost + agedCareCost + lhcRetirementCost;
 
             // AWLR eligibility check: Age Pension requires 10+ years Australian residence
             // If ageCameToAustralia is set, compute residence years at retirement
