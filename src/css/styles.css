@@ -559,6 +559,8 @@ input, select, textarea {
     background-color: var(--bg-secondary) !important;
     color: var(--text-primary) !important;
     border-color: var(--border-primary) !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
     transition: all 0.3s ease;
     text-align: left !important;
 }
