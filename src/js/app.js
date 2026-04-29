@@ -6050,13 +6050,21 @@ class RetirementCalculatorApp {
         });
     }
 
-    async runScenarioComparison() {
+    async runCheckboxScenarioComparison() {
         if (this.isCalculating) return;
         this.isCalculating = true;
 
         try {
             const inputs = this.collectInputs();
             const availableScenarios = this.simulator.getCommonScenarios(inputs);
+
+            // Auto-populate checkboxes if the container is empty
+            const checkboxContainer = $('scenarioCheckboxes');
+            if (checkboxContainer && !checkboxContainer.querySelector('input[type="checkbox"]')) {
+                this.populateScenarioCheckboxes(availableScenarios);
+                // Select all by default when auto-populating
+                document.querySelectorAll('#scenarioCheckboxes input[type="checkbox"]').forEach(cb => { cb.checked = true; });
+            }
 
             // Get selected scenarios
             const selectedIndices = Array.from(document.querySelectorAll('#scenarioCheckboxes input[type="checkbox"]:checked'))
@@ -6375,6 +6383,13 @@ class RetirementCalculatorApp {
                 // Populate the form with imported data
                 populateFormFromData(importedData.userData, importedData.version);
 
+                // Trigger conditional section visibility after loading checkboxes
+                ['enableReducedIncome', 'isCarerForParents', 'hasInvestmentProperty',
+                    'hasSMSF', 'hasTrustAssets'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && el.type === 'checkbox') el.dispatchEvent(new Event('change'));
+                });
+
                 // Trigger currency and percentage input formatting
                 initializeCurrencyInputs();
                 initializePercentageInputs();
@@ -6634,10 +6649,38 @@ class RetirementCalculatorApp {
             togglePropertySection(); // Initial state
         }
 
-        // Toggle reduced income fields
+        // Toggle reduced income fields and sync Lean Years when enabled
+        const syncLeanYearsFromReducedIncome = () => {
+            const enabled = document.getElementById('enableReducedIncome')?.checked;
+            if (!enabled) return;
+
+            const retirementAge = parseFloat(safeGetValue('retirementAge', 0));
+            const reducedIncomeAge = parseFloat(document.getElementById('reducedIncomeAge')?.value || 0);
+            const yourSalary = safeGetValue('yourSalary', 0);
+            const reducedSalary = parseFloat(document.getElementById('reducedIncomeSalary')?.value?.replace(/[^\d.]/g, '') || 0);
+
+            if (reducedIncomeAge > 0 && retirementAge > reducedIncomeAge) {
+                const leanYearsEl = document.getElementById('leanYearsStart');
+                if (leanYearsEl) leanYearsEl.value = Math.round(retirementAge - reducedIncomeAge);
+            }
+
+            if (yourSalary > 0 && reducedSalary >= 0 && reducedSalary < yourSalary) {
+                const reductionPct = ((yourSalary - reducedSalary) / yourSalary * 100).toFixed(2);
+                const leanReductionEl = document.getElementById('leanYearsReduction');
+                if (leanReductionEl) leanReductionEl.value = reductionPct;
+            }
+        };
+
         document.getElementById('enableReducedIncome')?.addEventListener('change', function() {
             const fields = document.getElementById('reducedIncomeFields');
             if (fields) fields.style.display = this.checked ? 'block' : 'none';
+            syncLeanYearsFromReducedIncome();
+        });
+
+        // Re-sync lean years whenever the source fields change (if reduced income is enabled)
+        ['reducedIncomeAge', 'reducedIncomeSalary', 'yourSalary', 'retirementAge'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', syncLeanYearsFromReducedIncome);
+            document.getElementById(id)?.addEventListener('blur', syncLeanYearsFromReducedIncome);
         });
 
         // Toggle carer fields
@@ -6768,7 +6811,7 @@ class RetirementCalculatorApp {
         // Scenario comparison controls
         this.instrumentClick('btnSelectAllScenarios', 'Select All Scenarios', () => this.toggleAllScenarios(true));
         this.instrumentClick('btnDeselectAllScenarios', 'Deselect All Scenarios', () => this.toggleAllScenarios(false));
-        this.instrumentClick('btnRunComparison', 'Run Comparison', this.runScenarioComparison);
+        this.instrumentClick('btnRunComparison', 'Run Comparison', this.runCheckboxScenarioComparison);
 
         // Export dropdown functionality - delay to ensure DOM is ready
         setTimeout(() => {
@@ -7273,9 +7316,9 @@ class RetirementCalculatorApp {
             property: [
                 'homeValue', 'mortgageBalance', 'mortgageRate', 'monthlyMortgagePayment',
                 'planToDownsize', 'hasInvestmentProperty', 'investmentPropertyValue',
-                'investmentPropertyLoan', 'investmentPropertyRate', 'weeklyRentalIncome',
-                'annualPropertyExpenses', 'propertyGrowthRate', 'sellPropertyYears',
-                'capitalGainsTaxRate', 'vacancyRate', 'maintenanceInflation', 'landTax'
+                'investmentPropertyLoan', 'investmentPropertyRate', 'investmentPropertyLoanType',
+                'weeklyRentalIncome', 'annualPropertyExpenses', 'propertyGrowthRate', 'sellPropertyYears',
+                'capitalGainsTaxRate', 'vacancyRate', 'maintenanceInflation', 'landTax', 'propertyState'
             ],
             smsf: [
                 'hasSMSF', 'smsfAdminCosts', 'smsfInvestmentStrategy'
