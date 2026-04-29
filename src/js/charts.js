@@ -2,6 +2,8 @@
 
 import { formatCurrency, formatPercent, percentile } from './utils.js';
 
+const debugLog = process.env.NODE_ENV !== 'production' ? console.log.bind(console) : () => {};
+
 export class ChartManager {
     constructor() {
         this.charts = {};

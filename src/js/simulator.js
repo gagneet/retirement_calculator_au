@@ -1,5 +1,7 @@
 // js/simulator.js - Financial Simulation Engine with Investment Property Support
 
+const debugLog = process.env.NODE_ENV !== 'production' ? console.log.bind(console) : () => {};
+
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import { ENHANCED_CONFIG } from './config.js';
 import { EnhancedMonteCarloEngine } from './enhanced-monte-carlo.js';
@@ -65,13 +67,17 @@ export class RetirementSimulator {
         else if (portfolioToIncomeRatio > 0.5) score += 5;
         else score -= 10; // Low asset base relative to income
 
-        // Enhanced income stability scoring
-        if (totalIncome > 300000) score += 25;
-        else if (totalIncome > 200000) score += 20;
-        else if (totalIncome > 150000) score += 15;
-        else if (totalIncome > 100000) score += 10;
-        else if (totalIncome > 75000) score += 8;
-        else if (totalIncome > 50000) score += 5;
+        // Enhanced income stability scoring — thresholds in config.SIMULATION.RISK_CAPACITY_INCOME_BANDS
+        const incomeBands = this.config.SIMULATION?.RISK_CAPACITY_INCOME_BANDS || [
+            { threshold: 300000, points: 25 },
+            { threshold: 200000, points: 20 },
+            { threshold: 150000, points: 15 },
+            { threshold: 100000, points: 10 },
+            { threshold:  75000, points:  8 },
+            { threshold:  50000, points:  5 },
+        ];
+        const matchedBand = incomeBands.find(b => totalIncome > b.threshold);
+        if (matchedBand) score += matchedBand.points;
         else score -= 5;
 
         // Emergency fund with graduated scoring
@@ -371,8 +377,7 @@ export class RetirementSimulator {
 
     // Calculate franking credit benefit based on tax position (for retirement phase)
     calculateTaxAdjustedFrankingBenefit(frankingCredits, marginalTaxRate = 0) {
-        // In retirement with low taxable income, franking credits are often fully refundable
-        const corporateTaxRate = 0.30;
+        const corporateTaxRate = this.financialConfig?.australianSystem?.CORPORATE_TAX_RATE?.value ?? 0.30;
 
         if (marginalTaxRate < corporateTaxRate) {
             // Full refund of excess franking credits
@@ -406,15 +411,10 @@ export class RetirementSimulator {
 
     // Investment property calculations with cycle-based modeling
     calculatePropertyValue(currentValue, growthRate, years) {
-        // Ensure growthRate is in decimal form (not percentage)
+        const { PROPERTY_GROWTH_MAX_RATE, PROPERTY_GROWTH_MAX_YEARS } = this.config.SIMULATION;
         const rate = growthRate > 1 ? growthRate / 100 : growthRate;
-
-        // Cap years to prevent overflow and unrealistic projections
-        const cappedYears = Math.min(years, 50); // Maximum 50 years of property growth
-
-        // Cap growth rate to reasonable bounds (0% to 20% annually)
-        const cappedRate = Math.max(0, Math.min(rate, 0.20));
-
+        const cappedYears = Math.min(years, PROPERTY_GROWTH_MAX_YEARS);
+        const cappedRate = Math.max(0, Math.min(rate, PROPERTY_GROWTH_MAX_RATE));
         return currentValue * Math.pow(1 + cappedRate, cappedYears);
     }
 
@@ -595,18 +595,18 @@ export class RetirementSimulator {
 
     // Return scenario mode adjustments for scenario planning (PART 1)
     _getScenarioAdjustments(scenarioMode) {
+        const configured = this.config.SIMULATION?.SCENARIO_ADJUSTMENTS || {};
         const modes = {
-            baseline:   { returnDelta: 0,     inflationDelta: 0,     volatilityMultiplier: 1.0 },
-            optimistic: { returnDelta: 0.01,  inflationDelta: -0.005, volatilityMultiplier: 0.8 },
-            pessimistic:{ returnDelta: -0.01, inflationDelta: 0.005,  volatilityMultiplier: 1.3 },
-            crisis:     { returnDelta: -0.02, inflationDelta: 0.02,   volatilityMultiplier: 2.0 }
+            baseline:   { returnDelta: 0, inflationDelta: 0, volatilityMultiplier: 1.0 },
+            ...configured,
         };
         return modes[scenarioMode] || modes.baseline;
     }
 
     // Enhanced portfolio return calculation with market regimes
     getReturnForYear(baseReturn, year, declineRate) {
-        return Math.max(0.01, baseReturn - (declineRate / 100) * year);
+        const minReturn = this.config.SIMULATION?.MIN_ANNUAL_RETURN ?? 0.01;
+        return Math.max(minReturn, baseReturn - (declineRate / 100) * year);
     }
 
     // Regime-aware market return calculation

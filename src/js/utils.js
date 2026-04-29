@@ -2,6 +2,8 @@
 
 import { ENHANCED_CONFIG } from './config.js';
 
+const debugLog = process.env.NODE_ENV !== 'production' ? console.log.bind(console) : () => {};
+
 // DOM manipulation utilities
 export const $ = (id) => document.getElementById(id);
 
@@ -1832,7 +1834,7 @@ export const populateFormFromData = (userData, version = '2.0') => {
         'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent'
     ];
 
-    console.log('Populating form with userData:', userData);
+    debugLog('Populating form with userData:', userData);
 
     // Manually trigger dependent section visibility BEFORE populating other fields
     if (userData.dependents && userData.dependents > 0) {
@@ -1841,7 +1843,7 @@ export const populateFormFromData = (userData, version = '2.0') => {
             totalDependentsEl.value = userData.dependents;
             // Trigger the input event to make the details section visible
             totalDependentsEl.dispatchEvent(new Event('input', { bubbles: true }));
-            console.log('✓ Triggered visibility for dependent details section.');
+            debugLog('✓ Triggered visibility for dependent details section.');
         }
     }
 
@@ -1865,10 +1867,10 @@ export const populateFormFromData = (userData, version = '2.0') => {
                             element.value = detailValue;
                         }
                         fieldsPopulated++;
-                        console.log(`✓ Populated dependent detail: ${detailKey} = ${element.value}`);
+                        debugLog(`✓ Populated dependent detail: ${detailKey} = ${element.value}`);
                     } else {
                         skippedFields.push(detailKey);
-                        console.log(`✗ Element not found: ${detailKey}`);
+                        debugLog(`✗ Element not found: ${detailKey}`);
                     }
                 });
             } else {
@@ -1884,7 +1886,7 @@ export const populateFormFromData = (userData, version = '2.0') => {
                         if (fieldElement) {
                             fieldElement.value = value;
                             fieldsPopulated++;
-                            console.log(`✓ Mapped returnRate to ${fieldName}: ${value}%`);
+                            debugLog(`✓ Mapped returnRate to ${fieldName}: ${value}%`);
                         }
                     });
                     // Don't process the original returnRate key further
@@ -1893,7 +1895,7 @@ export const populateFormFromData = (userData, version = '2.0') => {
 
                 const element = $(targetKey);
                 if (element) {
-                    console.log(`✅ Found element for: ${targetKey}`);  // Debug: found element
+                    debugLog(`✅ Found element for: ${targetKey}`);  // Debug: found element
                     if (element.type === 'checkbox' || element.type === 'radio') {
                         element.checked = value === true || value === 'true' || value === 'yes';
                     } else if (element.type === 'select-one') {
@@ -1913,11 +1915,11 @@ export const populateFormFromData = (userData, version = '2.0') => {
                         }
                     }
                     fieldsPopulated++;
-                    console.log(`✓ Populated field: ${key} = ${value}`);
+                    debugLog(`✓ Populated field: ${key} = ${value}`);
                 } else {
                     fieldsSkipped++;
                     skippedFields.push(key);
-                    console.log(`❌ Element NOT found for: ${key} (looking for DOM element with id='${targetKey}')`);
+                    debugLog(`❌ Element NOT found for: ${key} (looking for DOM element with id='${targetKey}')`);
                 }
             }
         } catch (error) {
@@ -1928,11 +1930,11 @@ export const populateFormFromData = (userData, version = '2.0') => {
     });
 
     if (skippedFields.length > 0) {
-        console.log('Skipped fields:', skippedFields);
+        debugLog('Skipped fields:', skippedFields);
     }
 
     // Debug logging to see what's happening
-    console.log('📊 Import Summary:', {
+    debugLog('📊 Import Summary:', {
         fieldsPopulated,
         fieldsSkipped,
         skippedFields: skippedFields.slice(0, 10), // Show first 10 skipped fields
