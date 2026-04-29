@@ -71,6 +71,53 @@ export const ENHANCED_CONFIG = {
         VACANCY_RATE: 0.04
     },
 
+    // State/territory land tax rates for investment properties (2025-26)
+    // Source: NSW OSR, SRO Victoria, QRO, RevenueSA, State Revenue Office WA, SRO Tasmania
+    // Note: Primary residence is exempt from land tax in all states.
+    // Each bracket: min = threshold, flat = fixed charge above threshold, marginal = rate on excess
+    LAND_TAX_RATES: {
+        NSW: [
+            { min: 0,       flat: 0,     marginal: 0 },
+            { min: 1075000, flat: 100,   marginal: 0.016 },
+            { min: 3376000, flat: 36900, marginal: 0.02 }
+        ],
+        VIC: [
+            { min: 0,       flat: 0,     marginal: 0 },
+            { min: 300000,  flat: 375,   marginal: 0.002 },
+            { min: 600000,  flat: 975,   marginal: 0.005 },
+            { min: 1000000, flat: 2975,  marginal: 0.0085 },
+            { min: 1800000, flat: 9775,  marginal: 0.013 },
+            { min: 3000000, flat: 25375, marginal: 0.0255 }
+        ],
+        QLD: [
+            { min: 0,       flat: 0,     marginal: 0 },
+            { min: 600000,  flat: 0,     marginal: 0.01 },
+            { min: 1000000, flat: 4500,  marginal: 0.0165 },
+            { min: 3000000, flat: 37500, marginal: 0.0275 }
+        ],
+        WA: [
+            { min: 0,       flat: 0,     marginal: 0 },
+            { min: 300000,  flat: 300,   marginal: 0.0015 },
+            { min: 420000,  flat: 480,   marginal: 0.0076 },
+            { min: 1000000, flat: 4888,  marginal: 0.0113 },
+            { min: 1800000, flat: 13928, marginal: 0.026 }
+        ],
+        SA: [
+            { min: 0,       flat: 0,     marginal: 0 },
+            { min: 534000,  flat: 0,     marginal: 0.005 },
+            { min: 1067000, flat: 2665,  marginal: 0.0075 },
+            { min: 1600000, flat: 6663,  marginal: 0.011 }
+        ],
+        TAS: [
+            { min: 0,       flat: 0,     marginal: 0 },
+            { min: 25000,   flat: 50,    marginal: 0.0055 },
+            { min: 350000,  flat: 1838,  marginal: 0.0115 },
+            { min: 750000,  flat: 6438,  marginal: 0.015 }
+        ],
+        ACT: null,
+        NT:  null
+    },
+
     // Fallback monthly expense estimates used when cash flow analysis is unavailable.
     // These represent typical Australian household costs (2025 ABS Household Expenditure Survey).
     EXPENSE_FALLBACKS: {
@@ -185,6 +232,23 @@ export const ENHANCED_CONFIG = {
         { min: 108001, max: 144000,  rate: 0.0125 },
         { min: 144001, max: Infinity, rate: 0.015 }
     ],
+
+    // Lifetime Health Cover (LHC) loading — ABA/Private Healthcare Australia 2025-26
+    // 2% per year without hospital cover from age 30; max 70%; cleared after 10 consecutive years
+    LHC_LOADING_RATE: 0.02,
+    LHC_LOADING_MAX: 0.70,
+    LHC_CLEAR_AFTER_YEARS: 10,
+    // Average private hospital cover premiums (PHIO Annual Report 2024-25)
+    LHC_BASE_PREMIUMS: {
+        single: 2800,
+        couple: 5200,
+        family: 5800
+    },
+
+    // First Home Super Saver Scheme (FHSS) — ATO 2025-26
+    FHSS_ANNUAL_VOLUNTARY_CAP: 15000,  // Max voluntary contributions eligible per year
+    FHSS_LIFETIME_CAP: 50000,          // Maximum releasable amount (from 1 July 2022)
+    FHSS_TAX_OFFSET: 0.30,             // 30% tax offset applied to withdrawal tax
 
     // Healthcare inflation rates by condition (Updated 2025-10-01 to AIHW median values)
     // NOTE: Previous settings were too high. AIHW median 2000-2025 is 3.8%, not 6%+

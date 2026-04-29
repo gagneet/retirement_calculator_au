@@ -74,7 +74,8 @@ import {
     addTooltipBottomStyles,
     initializeCurrencyInputs,
     initializePercentageInputs,
-    initializeNumericInputs
+    initializeNumericInputs,
+    calculateStateLandTax
 } from './utils.js';
 
 /**
@@ -665,6 +666,7 @@ class RetirementCalculatorApp {
 
             // Healthcare & aged care
             hasPrivateHealthCover: safeGetChecked('hasPrivateHealthCover', false),
+            ageFirstPrivateCover: safeGetValue('ageFirstPrivateCover', '') ? parseInt(safeGetValue('ageFirstPrivateCover')) : null,
             currentHealthcareCosts: safeGetValue('currentHealthcareCosts', config.healthcare.currentHealthcareCosts),
             healthcareInflation: safeGetValue('healthcareInflation', config.healthcare.healthcareInflation) / 100,
             agedCareProbability: safeGetValue('agedCareProbability', config.healthcare.agedCareProbability) / 100,
@@ -748,6 +750,8 @@ class RetirementCalculatorApp {
             vacancyRate: safeGetValue('vacancyRate', 4) / 100,
             maintenanceInflation: safeGetValue('maintenanceInflation', 3.5) / 100,
             landTax: parseFormattedNumber(getRawValue('landTax', '0')),
+            investmentPropertyLoanType: safeGetValue('investmentPropertyLoanType', 'pi'),
+            propertyState: safeGetValue('propertyState', ''),
 
             // Trust improvements (PART 7)
             trustTaxRate: safeGetValue('trustTaxRate', 30) / 100,
@@ -1181,6 +1185,17 @@ class RetirementCalculatorApp {
             }
             if (inputs.trustType === 'hybrid') {
                 superWarnings.push(`⚠️ <strong>Hybrid Trust:</strong> Hybrid trusts combine fixed and discretionary elements. Centrelink assessment is complex — seek specialist advice as attribution rules may be unfavourable.`);
+            }
+        }
+
+        // LHC loading warning
+        const ageFirstCover = inputs.ageFirstPrivateCover;
+        if (ageFirstCover && ageFirstCover > 30 && inputs.hasPrivateHealthCover) {
+            const yearsCovered = (inputs.yourCurrentAge || 40) - ageFirstCover;
+            const loadingPct = yearsCovered >= 10 ? 0 : Math.min(70, (ageFirstCover - 30) * 2);
+            if (loadingPct > 0) {
+                const additionalCost = Math.round(2800 * loadingPct / 100);
+                superWarnings.push(`LHC Loading ${loadingPct}%: Your private hospital premium is ~$${additionalCost.toLocaleString()}/year higher due to delayed cover. Cleared after ${10 - yearsCovered} more years of continuous cover.`);
             }
         }
 
@@ -6322,6 +6337,102 @@ class RetirementCalculatorApp {
                 setTimeout(() => this.calculateRetirement(false), 100);
             });
         }
+
+        // Auto-calculate state land tax when state or property value changes
+        const updateLandTax = () => {
+            const state = safeGetValue('propertyState', '');
+            const propValue = parseFormattedNumber(getRawValue('investmentPropertyValue', '0'));
+            if (state && state !== 'ACT' && state !== '' && propValue > 0) {
+                const landTax = calculateStateLandTax(propValue, state, this.config);
+                safeSetValue('landTax', Math.round(landTax).toString());
+                const autoLabel = document.getElementById('landTaxAutoLabel');
+                if (autoLabel) autoLabel.classList.remove('hidden');
+            } else if (state === 'NT') {
+                safeSetValue('landTax', '0');
+                const autoLabel = document.getElementById('landTaxAutoLabel');
+                if (autoLabel) autoLabel.classList.add('hidden');
+            }
+        };
+        const propStateEl = document.getElementById('propertyState');
+        const propValueEl = document.getElementById('investmentPropertyValue');
+        if (propStateEl) propStateEl.addEventListener('change', updateLandTax);
+        if (propValueEl) propValueEl.addEventListener('change', updateLandTax);
+
+        // LHC loading display
+        const updateLhcDisplay = () => {
+            const hasCover = safeGetChecked('hasPrivateHealthCover', false);
+            const lhcSection = document.getElementById('lhcLoadingSection');
+            if (lhcSection) lhcSection.classList.toggle('hidden', !hasCover);
+
+            const ageFirstCoverStr = safeGetValue('ageFirstPrivateCover', '');
+            const lhcInfo = document.getElementById('lhcLoadingInfo');
+            if (!lhcInfo) return;
+
+            if (!hasCover || !ageFirstCoverStr) {
+                lhcInfo.classList.add('hidden');
+                return;
+            }
+
+            const yourAge = parseInt(safeGetValue('yourCurrentAge', '40')) || 40;
+            const ageFirstCover = parseInt(ageFirstCoverStr);
+            const yearsWithoutCover = Math.max(0, ageFirstCover - 30);
+            const yearsCovered = yourAge - ageFirstCover;
+            const loadingCleared = yearsCovered >= 10;
+            const loadingPct = loadingCleared ? 0 : Math.min(70, yearsWithoutCover * 2);
+
+            if (loadingPct > 0) {
+                const basePremium = 2800;
+                const additionalCost = Math.round(basePremium * loadingPct / 100);
+                lhcInfo.textContent = `LHC loading: ${loadingPct}% — adds ~$${additionalCost.toLocaleString()}/year to your hospital premium.`;
+                lhcInfo.classList.remove('hidden');
+            } else if (loadingCleared) {
+                lhcInfo.textContent = `LHC loading cleared — you've held hospital cover for ${yearsCovered} consecutive years.`;
+                lhcInfo.classList.remove('hidden');
+            } else {
+                lhcInfo.classList.add('hidden');
+            }
+        };
+        const privateHealthEl = document.getElementById('hasPrivateHealthCover');
+        const ageFirstCoverEl = document.getElementById('ageFirstPrivateCover');
+        if (privateHealthEl) privateHealthEl.addEventListener('change', updateLhcDisplay);
+        if (ageFirstCoverEl) ageFirstCoverEl.addEventListener('input', updateLhcDisplay);
+
+        // FHSS benefit display
+        const updateFhssDisplay = () => {
+            const hasFHSS = safeGetChecked('hasFHSS', false);
+            const fhssDetails = document.getElementById('fhssDetails');
+            if (fhssDetails) fhssDetails.classList.toggle('hidden', !hasFHSS);
+            if (!hasFHSS) return;
+
+            const contributed = parseFormattedNumber(getRawValue('fhssContributed', '0')) || 0;
+            const fhssBenefit = document.getElementById('fhssBenefitDisplay');
+            if (!fhssBenefit || contributed <= 0) return;
+
+            const capped = Math.min(contributed, 50000);
+            const yourSalary = parseFormattedNumber(getRawValue('yourSalary', '80000')) || 80000;
+
+            // Estimate marginal rate from salary
+            let marginalRate = 0.30;
+            if (yourSalary > 190000) marginalRate = 0.45;
+            else if (yourSalary > 135000) marginalRate = 0.37;
+            else if (yourSalary > 45000) marginalRate = 0.30;
+            else if (yourSalary > 18200) marginalRate = 0.16;
+
+            // After-tax withdrawal: taxed at marginal - 30% offset
+            const effectiveTaxRate = Math.max(0, marginalRate - 0.30);
+            const afterTaxAmount = Math.round(capped * (1 - effectiveTaxRate));
+            const taxSaving = Math.round(capped * (marginalRate - effectiveTaxRate));
+
+            fhssBenefit.innerHTML = `
+                <strong>FHSS-eligible amount:</strong> $${capped.toLocaleString()}<br>
+                <strong>After-tax withdrawal:</strong> ~$${afterTaxAmount.toLocaleString()} (taxed at ${(effectiveTaxRate * 100).toFixed(0)}% effective)<br>
+                <strong>Estimated tax saving vs. saving outside super:</strong> ~$${taxSaving.toLocaleString()}
+            `;
+        };
+        const fhssCheckbox = document.getElementById('hasFHSS');
+        const fhssContribEl = document.getElementById('fhssContributed');
+        if (fhssCheckbox) fhssCheckbox.addEventListener('change', updateFhssDisplay);
+        if (fhssContribEl) fhssContribEl.addEventListener('input', updateFhssDisplay);
 
         // Auto-calculate on significant input changes (debounced)
         const autoCalculateInputs = [

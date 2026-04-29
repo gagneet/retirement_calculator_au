@@ -1805,6 +1805,34 @@
                         </label>
                     </div>
                 </div>
+                <!-- FHSS Panel -->
+                <div class="enhancement-highlight p-4 rounded-lg mt-4" id="fhssPanel">
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">First Home Super Saver (FHSS)</h3>
+                    <div class="p-3 bg-blue-50 rounded text-sm text-blue-800 mb-3">
+                        <strong>How FHSS works:</strong> Voluntary super contributions (concessional or non-concessional) can be released for a first home deposit — up to $15,000/year and $50,000 total. Withdrawals are taxed at your marginal rate minus a 30% offset.
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="flex items-center" for="hasFHSS">
+                                <input class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" id="hasFHSS" type="checkbox">
+                                <span class="ml-2 text-sm text-gray-700">I plan to use FHSS for a first home deposit</span>
+                            </label>
+                        </div>
+                        <div class="hidden space-y-3" id="fhssDetails">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700" for="fhssContributed">Total FHSS-eligible contributions already made ($)</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="fhssContributed" type="text" value="0">
+                                <p class="mt-1 text-xs text-gray-500">Voluntary contributions made since 1 July 2017 (max $50,000 total, $15,000/year).</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Estimated FHSS benefit at your marginal rate</label>
+                                <div class="mt-1 p-3 bg-green-50 border border-green-200 rounded text-sm" id="fhssBenefitDisplay">
+                                    Enter contributions above to see estimated benefit.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div>
                     <div class="label-with-tooltip">
                         <label class="text-sm font-medium text-gray-700" for="currentSavings">Current Cash/Savings
@@ -1944,6 +1972,14 @@
                                    value="6.2">
                         </div>
                         <div>
+                            <label class="block text-sm font-medium text-gray-700" for="investmentPropertyLoanType">Loan Type</label>
+                            <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="investmentPropertyLoanType">
+                                <option value="pi">Principal &amp; Interest (P&amp;I)</option>
+                                <option value="io">Interest Only (IO)</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Interest-only loans have lower repayments but the principal never reduces — you owe the same at sale.</p>
+                        </div>
+                        <div>
                             <label class="block text-sm font-medium text-gray-700" for="weeklyRentalIncome">Weekly
                                 Rental Income ($)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="weeklyRentalIncome" type="text"
@@ -1987,10 +2023,27 @@
                             <p class="mt-1 text-xs text-gray-500">Annual rate at which property maintenance costs increase</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700" for="landTax">Annual Land Tax ($)</label>
-                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="landTax" type="text"
-                                   value="0">
-                            <p class="mt-1 text-xs text-gray-500">State land tax applicable to investment property (varies by state)</p>
+                            <label class="block text-sm font-medium text-gray-700" for="propertyState">Property State / Territory</label>
+                            <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="propertyState">
+                                <option value="">— Select state to auto-calculate land tax —</option>
+                                <option value="NSW">New South Wales (NSW)</option>
+                                <option value="VIC">Victoria (VIC)</option>
+                                <option value="QLD">Queensland (QLD)</option>
+                                <option value="WA">Western Australia (WA)</option>
+                                <option value="SA">South Australia (SA)</option>
+                                <option value="TAS">Tasmania (TAS)</option>
+                                <option value="ACT">ACT (enter manually)</option>
+                                <option value="NT">Northern Territory (no land tax)</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Select state to auto-calculate investment property land tax. ACT uses a combined rates system — enter manually.</p>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <label class="block text-sm font-medium text-gray-700" for="landTax">Annual Land Tax ($)</label>
+                                <span class="text-xs text-blue-500 hidden" id="landTaxAutoLabel">Auto-calculated · override as needed</span>
+                            </div>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="landTax" type="text" value="0">
+                            <p class="mt-1 text-xs text-gray-500">Annual land tax for investment property (varies by state and property value). Auto-populated when state is selected.</p>
                         </div>
                     </div>
                 </div>
@@ -2344,6 +2397,12 @@
                             </div>
                         </div>
                         <p class="mt-1 text-xs text-gray-500">Without private hospital cover, high earners pay the Medicare Levy Surcharge (1%–1.5% of income above $93,000).</p>
+                    </div>
+                    <div id="lhcLoadingSection" class="hidden pl-6">
+                        <label class="block text-sm font-medium text-gray-700" for="ageFirstPrivateCover">Age you first held private hospital cover</label>
+                        <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="ageFirstPrivateCover" type="number" min="18" max="75" placeholder="e.g. 30">
+                        <p class="mt-1 text-xs text-gray-500">If you first got hospital cover after age 30, the LHC loading adds 2% per delayed year to your premium. Cleared after 10 years continuous cover.</p>
+                        <div class="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-800 hidden" id="lhcLoadingInfo"></div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="currentHealthcareCosts">Current

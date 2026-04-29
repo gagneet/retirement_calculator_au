@@ -476,10 +476,12 @@ export class RetirementSimulator {
             + annualLandTax;
 
         // Calculate interest cost
+        const isIO = inputs.investmentPropertyLoanType === 'io';
         const currentLoanBalance = this.calculatePropertyLoanBalance(
             inputs.investmentPropertyLoan,
             inputs.investmentPropertyRate,
-            year
+            year,
+            isIO
         );
         const annualInterest = currentLoanBalance * inputs.investmentPropertyRate;
 
@@ -511,10 +513,12 @@ export class RetirementSimulator {
             saleYear
         );
 
+        const isIO = inputs.investmentPropertyLoanType === 'io';
         const remainingLoan = this.calculatePropertyLoanBalance(
             inputs.investmentPropertyLoan,
             inputs.investmentPropertyRate,
-            saleYear
+            saleYear,
+            isIO
         );
 
         const sellingCosts = saleValue * this.config.PROPERTY_COSTS.SELLING_COSTS_PERCENT;
@@ -942,6 +946,27 @@ export class RetirementSimulator {
                 const inflatedCarerExpense = inputs.carerAnnualExpense * Math.pow(1 + inputs.inflation, year);
                 accumulatedSavingsBalance = Math.max(0, accumulatedSavingsBalance - inflatedCarerExpense);
             }
+
+            // LHC loading: annual additional premium cost when cover was taken out after age 30
+            if (inputs.ageFirstPrivateCover && inputs.hasPrivateHealthCover) {
+                const ageFirstCoverVal = inputs.ageFirstPrivateCover;
+                const yearsWithoutCover = Math.max(0, ageFirstCoverVal - 30);
+                const simCurrentAge = inputs.yourCurrentAge + year - 1;
+                const yearsCovered = simCurrentAge - ageFirstCoverVal;
+                const loadingCleared = yearsCovered >= (this.config.LHC_CLEAR_AFTER_YEARS || 10);
+                const loadingPct = loadingCleared ? 0 : Math.min(
+                    this.config.LHC_LOADING_MAX || 0.70,
+                    yearsWithoutCover * (this.config.LHC_LOADING_RATE || 0.02)
+                );
+                if (loadingPct > 0) {
+                    const basePremium = inputs.isSingleCalculation
+                        ? (this.config.LHC_BASE_PREMIUMS?.single || 2800)
+                        : (this.config.LHC_BASE_PREMIUMS?.couple || 5200);
+                    const lhcAnnualCost = basePremium * loadingPct * Math.pow(1 + (inputs.inflation || 0.025), year - 1);
+                    accumulatedSavingsBalance = Math.max(0, accumulatedSavingsBalance - lhcAnnualCost);
+                }
+            }
+
             accumulatedInvestmentPortfolio += inputs.monthlyStockContribution * 12;
 
             // Deduct education costs for dependent children (PART 4)

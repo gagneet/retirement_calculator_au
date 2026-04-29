@@ -2371,6 +2371,18 @@ export const addTooltipBottomStyles = () => {
     document.head.appendChild(style);
 };
 
+export const calculateStateLandTax = (propertyValue, stateCode, config) => {
+    if (!stateCode || !config || !config.LAND_TAX_RATES) return 0;
+    const brackets = config.LAND_TAX_RATES[stateCode.toUpperCase()];
+    if (!brackets) return 0;
+    for (let i = brackets.length - 1; i >= 0; i--) {
+        if (propertyValue > brackets[i].min) {
+            return brackets[i].flat + (propertyValue - brackets[i].min) * brackets[i].marginal;
+        }
+    }
+    return 0;
+};
+
 export default {
     $,
     getRawValue,
@@ -2409,6 +2421,7 @@ export default {
     calculateAustralianTax,
     calculateMedicareLevy,
     calculateMLS,
+    calculateStateLandTax,
     calculatePostTaxIncome,
     calculatePropertyCashFlow,
     calculatePropertyTotalReturn,
