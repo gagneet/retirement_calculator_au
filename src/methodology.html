@@ -15,61 +15,172 @@
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 
-    <link rel="stylesheet" href="css/style.css">
+    <!-- OG / Twitter Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://retirement.gagneet.com/methodology.html">
+    <meta property="og:title" content="Methodology - Australian Retirement Calculator">
+    <meta property="og:description" content="Understand the methodology behind the Australian Retirement Calculator. Learn how we calculate superannuation, age pension, investment returns, and retirement projections.">
+    <meta property="og:image" content="https://retirement.gagneet.com/assets/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Australian Retirement Calculator Methodology">
+    <meta property="og:site_name" content="Australian Retirement Calculator">
+    <meta property="og:locale" content="en_AU">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Methodology - Australian Retirement Calculator">
+    <meta name="twitter:description" content="Understand the methodology behind the Australian Retirement Calculator. Learn how we calculate superannuation, age pension, investment returns, and retirement projections.">
+    <meta name="twitter:image" content="https://retirement.gagneet.com/assets/og-image.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
 </head>
-<body>
-    <header>
-        <h1>How We Calculate</h1>
-        <nav>
-            <ul>
-                <li><a href="index.html">Calculator</a></li>
-                <li><a href="assumptions.html">Assumptions</a></li>
-                <li><a href="changelog.html">Changelog</a></li>
-            </ul>
-        </nav>
+<body class="bg-gray-50">
+    <header class="bg-gray-900 text-white py-4">
+        <div class="max-w-7xl mx-auto px-4 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-3 text-white hover:text-purple-300 transition">
+                <img src="assets/logo.svg" alt="Logo" class="h-8 w-auto">
+                <span class="font-semibold">Retirement Calculator</span>
+            </a>
+            <nav class="flex gap-4 text-sm">
+                <a href="index.html" class="text-gray-300 hover:text-white transition">Calculator</a>
+                <a href="how-to-use.html" class="text-gray-300 hover:text-white transition">Guide</a>
+                <a href="methodology.html" class="text-gray-300 hover:text-white transition">Methodology</a>
+                <a href="assumptions.html" class="text-gray-300 hover:text-white transition">Assumptions</a>
+            </nav>
+        </div>
     </header>
-    <main>
-        <section>
-            <h2>Core Simulation Engine</h2>
-            <p>The calculator uses a year-by-year simulation to project your financial future. Each year, it calculates your income, expenses, investment returns, and taxes to determine your financial position. This detailed approach allows for greater accuracy and the ability to model complex scenarios.</p>
+    <main class="max-w-4xl mx-auto px-4 py-12">
+        <section class="mb-10">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Core Simulation Engine</h2>
+            <p class="text-gray-600 leading-relaxed mb-3">The calculator uses a year-by-year simulation to project your financial future. Each year, it calculates your income, expenses, investment returns, and taxes to determine your financial position. This detailed approach allows for greater accuracy and the ability to model complex scenarios.</p>
         </section>
-        <section>
-            <h2>Superannuation Projection</h2>
-            <p>Your superannuation balance is projected annually until your retirement age. The calculation for each year is as follows:</p>
-            <pre><code>Ending Balance = (Starting Balance + Contributions) * (1 + Annual Return)</code></pre>
+        <section class="mb-10">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Superannuation Projection</h2>
+            <p class="text-gray-600 leading-relaxed mb-3">Your superannuation balance is projected annually until your retirement age. The calculation for each year is as follows:</p>
+            <pre class="bg-gray-100 rounded p-4 text-sm overflow-x-auto mb-4"><code>Ending Balance = (Starting Balance + Contributions) * (1 + Annual Return)</code></pre>
             <ul>
                 <li><strong>Contributions:</strong> Includes employer contributions (Super Guarantee) and any voluntary contributions you make.</li>
                 <li><strong>Annual Return:</strong> Based on the "Super Annual Growth" assumption you provide.</li>
             </ul>
         </section>
-        <section>
-            <h2>Age Pension Calculation</h2>
-            <p>The Age Pension eligibility is determined by two tests: the Assets Test and the Income Test. You will receive the lower pension amount calculated from these two tests.</p>
-            <h3>Assets Test</h3>
-            <p>Your pension is reduced if your assessable assets are above a certain threshold. The reduction is calculated as:</p>
-            <pre><code>Pension Reduction (per fortnight) = (Your Assets - Asset Threshold) / 1000 * 3</code></pre>
-            <h3>Income Test</h3>
-            <p>Your pension is reduced if your income from all sources (including deemed income from assets) is above a threshold.</p>
-            <pre><code>Pension Reduction (per fortnight) = (Your Deemed Income - Income Threshold) * 0.5</code></pre>
+        <section class="mb-10">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Age Pension Calculation</h2>
+            <p class="text-gray-600 leading-relaxed mb-3">The Age Pension eligibility is determined by two tests: the Assets Test and the Income Test. You will receive the lower pension amount calculated from these two tests.</p>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2 mt-4">Assets Test</h3>
+            <p class="text-gray-600 leading-relaxed mb-3">Your pension is reduced if your assessable assets are above a certain threshold. The reduction is calculated as:</p>
+            <pre class="bg-gray-100 rounded p-4 text-sm overflow-x-auto mb-4"><code>Pension Reduction (per fortnight) = (Your Assets - Asset Threshold) / 1000 * 3</code></pre>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2 mt-4">Income Test</h3>
+            <p class="text-gray-600 leading-relaxed mb-3">Your pension is reduced if your income from all sources (including deemed income from assets) is above a threshold.</p>
+            <pre class="bg-gray-100 rounded p-4 text-sm overflow-x-auto mb-4"><code>Pension Reduction (per fortnight) = (Your Deemed Income - Income Threshold) * 0.5</code></pre>
         </section>
-        <section>
-            <h2>Investment Returns &amp; Dynamic Allocation</h2>
-            <p>Investment returns are calculated based on your asset allocation. If you enable "Dynamic Allocation", your asset mix will automatically adjust as you age, typically becoming more conservative over time. The formula for the equity portion is based on your selected glide path rule (e.g., 110 - Age).</p>
-            <pre><code>Equity % = Glide Path Rule(Your Age)</code></pre>
-            <p>The remaining percentage is allocated to bonds and cash.</p>
+        <section class="mb-10">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Investment Returns &amp; Dynamic Allocation</h2>
+            <p class="text-gray-600 leading-relaxed mb-3">Investment returns are calculated based on your asset allocation. If you enable "Dynamic Allocation", your asset mix will automatically adjust as you age, typically becoming more conservative over time. The formula for the equity portion is based on your selected glide path rule (e.g., 110 - Age).</p>
+            <pre class="bg-gray-100 rounded p-4 text-sm overflow-x-auto mb-4"><code>Equity % = Glide Path Rule(Your Age)</code></pre>
+            <p class="text-gray-600 leading-relaxed mb-3">The remaining percentage is allocated to bonds and cash.</p>
         </section>
-        <section>
-            <h2>Healthcare &amp; Aged Care Costs</h2>
-            <p>Future healthcare costs are projected by inflating your current annual costs by the specified "Healthcare Inflation Rate". Aged care costs are factored in as a potential future liability, based on the probability, start age, duration, and annual cost you provide.</p>
-            <pre><code>Expected Aged Care Cost = (Annual Cost * Duration) * Probability</code></pre>
+        <section class="mb-10">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Healthcare &amp; Aged Care Costs</h2>
+            <p class="text-gray-600 leading-relaxed mb-3">Future healthcare costs are projected by inflating your current annual costs by the specified "Healthcare Inflation Rate". Aged care costs are factored in as a potential future liability, based on the probability, start age, duration, and annual cost you provide.</p>
+            <pre class="bg-gray-100 rounded p-4 text-sm overflow-x-auto mb-4"><code>Expected Aged Care Cost = (Annual Cost * Duration) * Probability</code></pre>
         </section>
-        <section>
-            <h2>Monte Carlo Simulation</h2>
-            <p>The Monte Carlo simulation runs your retirement plan thousands of times, each with a different sequence of random (but realistic) investment returns. This helps you understand the range of possible outcomes and the probability of success for your plan.</p>
+        <section class="mb-10">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Monte Carlo Simulation</h2>
+            <p class="text-gray-600 leading-relaxed mb-3">The Monte Carlo simulation runs your retirement plan thousands of times, each with a different sequence of random (but realistic) investment returns. This helps you understand the range of possible outcomes and the probability of success for your plan.</p>
         </section>
     </main>
-    <footer>
-        <p>Version 3.0.0 - Last Updated: 2025-09-30</p>
+
+    <!-- Site Footer -->
+    <footer class="bg-gray-900 text-white mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <!-- Main Footer Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+
+                <!-- About -->
+                <div>
+                    <div class="flex items-center mb-4">
+                        <img src="assets/logo.svg" alt="Australian Retirement Calculator" class="h-8 w-auto mr-3">
+                        <span class="text-lg font-semibold">Retirement Calculator</span>
+                    </div>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-4">
+                        A free retirement calculator built around Australian super, tax, and pension rules. Private — your data never leaves your browser.
+                    </p>
+                    <div class="flex flex-wrap gap-1">
+                        <span class="inline-block px-2 py-1 bg-green-600 text-xs rounded">✓ Free</span>
+                        <span class="inline-block px-2 py-1 bg-blue-600 text-xs rounded">✓ Private</span>
+                        <span class="inline-block px-2 py-1 bg-purple-600 text-xs rounded">✓ Australian</span>
+                    </div>
+                </div>
+
+                <!-- Pages -->
+                <div>
+                    <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Pages</h3>
+                    <ul class="space-y-2">
+                        <li><a href="index.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-calculator w-4 text-center"></i>Main Calculator</a></li>
+                        <li><a href="advanced.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-sliders-h w-4 text-center"></i>Advanced Calculator</a></li>
+                        <li><a href="how-to-use.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-book-open w-4 text-center"></i>How to Use</a></li>
+                        <li><a href="comparison.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-balance-scale w-4 text-center"></i>Scenario Comparison</a></li>
+                        <li><a href="methodology.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-flask w-4 text-center"></i>Methodology</a></li>
+                        <li><a href="assumptions.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-clipboard-list w-4 text-center"></i>Assumptions</a></li>
+                        <li><a href="changelog.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-history w-4 text-center"></i>Changelog</a></li>
+                        <li><a href="contact.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-envelope w-4 text-center"></i>Feedback &amp; Contact</a></li>
+                    </ul>
+                </div>
+
+                <!-- Official Australian Resources -->
+                <div>
+                    <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Official Resources</h3>
+                    <ul class="space-y-2">
+                        <li><a href="https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2" target="_blank" rel="noopener"><i class="fas fa-external-link-alt w-4 text-center text-xs"></i>ATO — Super &amp; Tax</a></li>
+                        <li><a href="https://www.servicesaustralia.gov.au/age-pension" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2" target="_blank" rel="noopener"><i class="fas fa-external-link-alt w-4 text-center text-xs"></i>Services Australia — Age Pension</a></li>
+                        <li><a href="https://moneysmart.gov.au/retirement-income/superannuation" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2" target="_blank" rel="noopener"><i class="fas fa-external-link-alt w-4 text-center text-xs"></i>ASIC MoneySmart</a></li>
+                        <li><a href="https://www.apra.gov.au/superannuation" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2" target="_blank" rel="noopener"><i class="fas fa-external-link-alt w-4 text-center text-xs"></i>APRA — Super Regulator</a></li>
+                        <li><a href="https://www.afca.org.au/" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2" target="_blank" rel="noopener"><i class="fas fa-external-link-alt w-4 text-center text-xs"></i>AFCA — Complaints</a></li>
+                        <li><a href="https://treasury.gov.au/superannuation" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2" target="_blank" rel="noopener"><i class="fas fa-external-link-alt w-4 text-center text-xs"></i>Treasury — Super Policy</a></li>
+                        <li><a href="https://www.superannuation.asn.au/resources/retirement-standard" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2" target="_blank" rel="noopener"><i class="fas fa-external-link-alt w-4 text-center text-xs"></i>ASFA Retirement Standard</a></li>
+                    </ul>
+                </div>
+
+                <!-- Support & Legal -->
+                <div>
+                    <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Support &amp; Legal</h3>
+                    <ul class="space-y-2">
+                        <li><a href="privacy.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-user-shield w-4 text-center"></i>Privacy Policy</a></li>
+                        <li><a href="terms.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-file-contract w-4 text-center"></i>Terms of Use</a></li>
+                        <li><a href="contact.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-comments w-4 text-center"></i>Feedback &amp; Contact</a></li>
+                    </ul>
+                    <div class="mt-6 space-y-2 text-xs text-gray-500">
+                        <div>🇦🇺 Governed by Australian Law</div>
+                        <div>🔒 No personal data collected</div>
+                        <div>📍 All data processed locally</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Bar -->
+            <div class="border-t border-gray-800 mt-8 pt-8">
+                <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
+                    <p class="text-sm text-gray-400 text-center lg:text-left">
+                        © 2026 Australian Retirement Calculator. Educational tool for retirement planning guidance. Not financial advice.
+                    </p>
+                    <div class="flex items-center gap-4 text-xs text-gray-500">
+                        <span>🇦🇺 Made for Australia</span>
+                        <span>•</span>
+                        <span>2025-26 ATO Rules</span>
+                        <span>•</span>
+                        <span>Data Stays Local</span>
+                    </div>
+                </div>
+                <div class="mt-6 p-4 bg-gray-800 rounded-lg">
+                    <p class="text-xs text-gray-400 leading-relaxed">
+                        <strong class="text-gray-300">Important Disclaimer:</strong> This calculator is for educational and planning purposes only.
+                        Results are estimates based on the inputs provided and should not be considered financial advice.
+                        Australian tax laws, superannuation rules, and pension regulations are subject to change.
+                        Always consult a qualified financial adviser for personalised retirement planning and investment advice.
+                    </p>
+                </div>
+            </div>
+        </div>
     </footer>
 </body>
 </html>
