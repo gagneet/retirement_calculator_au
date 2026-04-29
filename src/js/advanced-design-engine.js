@@ -146,7 +146,7 @@ export class AdvancedDesignEngine {
                 modIncome = baseIncome;
             }
             const rawImpact = modIncome - baseIncome;
-            const impact = d.negative ? -rawImpact : rawImpact;
+            const impact = rawImpact; // keep signed; use Math.abs for ranking, d.negative for wording only
             return {
                 driver: d.key,
                 label: d.label,
@@ -386,9 +386,11 @@ export class AdvancedDesignEngine {
             case 'retirementAge':
                 return `Retiring one year later ${sign} ${fmt(impact)} per year in retirement income.`;
             case 'inflation':
-                return `A 10% rise in the inflation rate ${impact >= 0 ? 'improves' : 'reduces'} modelled income by approximately ${fmt(impact)} per year.`;
-            case 'annualWithdrawal':
-                return `Reducing the annual withdrawal by ${fmt(driver.delta)} extends the fund's longevity by approximately ${fmt(impact)} per year in equivalent value.`;
+                return `A 10% rise in the inflation rate ${impact >= 0 ? 'improves' : 'reduces'} modelled income by approximately ${fmt(Math.abs(impact))} per year.`;
+            case 'annualWithdrawal': {
+                const dir = driver.delta >= 0 ? 'Increasing' : 'Reducing';
+                return `${dir} the annual withdrawal by ${fmt(driver.delta)} changes the fund's longevity by approximately ${fmt(Math.abs(impact))} per year in equivalent value.`;
+            }
             default:
                 return `Changing ${driver.label} by ${driver.delta}${driver.unit} ${sign} ${fmt(impact)} per year.`;
         }

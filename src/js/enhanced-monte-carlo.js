@@ -314,8 +314,9 @@ export class EnhancedMonteCarloEngine {
             }
         }
 
-        // Enhanced analysis
-        outcomes.sort((a, b) => a - b);
+        // Sort outcomes and paths together so path↔outcome pairing is preserved
+        const _paired = outcomes.map((v, i) => [v, paths[i]]).sort((a, b) => a[0] - b[0]);
+        _paired.forEach(([v, p], i) => { outcomes[i] = v; paths[i] = p; });
 
         const analysis = this.calculateEnhancedStatistics(outcomes, paths, regimeStats);
 
@@ -593,10 +594,20 @@ export class EnhancedMonteCarloEngine {
         const worstCaseIdx = firstPositiveIdx >= 0 ? sortedIndices[firstPositiveIdx] : sortedIndices[0];
 
         // pessimistic = 10th percentile, but ensure it's positive when possible
-        const p10RawIdx = sortedIndices[Math.floor(0.1 * n)];
-        const p10Positive = outcomes[p10RawIdx] > 0
-            ? p10RawIdx
-            : (firstPositiveIdx >= 0 ? sortedIndices[firstPositiveIdx] : p10RawIdx);
+        const p10RankInSorted = Math.floor(0.1 * n);
+        const p10RawIdx = sortedIndices[p10RankInSorted];
+        let pessimisticRankInSorted, p10Positive;
+        if (outcomes[p10RawIdx] > 0) {
+            pessimisticRankInSorted = p10RankInSorted;
+            p10Positive = p10RawIdx;
+        } else if (firstPositiveIdx >= 0) {
+            pessimisticRankInSorted = firstPositiveIdx;
+            p10Positive = sortedIndices[firstPositiveIdx];
+        } else {
+            pessimisticRankInSorted = p10RankInSorted;
+            p10Positive = p10RawIdx;
+        }
+        const pessimisticPercentile = Math.max(1, Math.round((pessimisticRankInSorted / n) * 100));
 
         return {
             apocalypse,
@@ -608,7 +619,7 @@ export class EnhancedMonteCarloEngine {
             pessimistic: {
                 outcome: outcomes[p10Positive],
                 path: paths[p10Positive],
-                percentile: 10
+                percentile: pessimisticPercentile
             },
             median: {
                 outcome: outcomes[sortedIndices[Math.floor(0.5 * n)]],

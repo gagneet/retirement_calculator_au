@@ -213,19 +213,29 @@ class AdvancedDesignUI {
         const panel  = document.getElementById('stressTestPanel');
         if (!toggle || !panel) return;
 
-        const seqCheck  = document.getElementById('stressSeqReturns');
-        const crashRow  = document.getElementById('crashYearRow');
-        if (seqCheck && crashRow) {
-            seqCheck.addEventListener('change', () => {
-                crashRow.classList.toggle('hidden', seqCheck.checked);
-            });
-        }
+        const seqCheck   = document.getElementById('stressSeqReturns');
+        const crashRow   = document.getElementById('crashYearRow');
         const crashCheck = document.getElementById('stressMarketCrash');
-        if (crashCheck && crashRow) {
-            crashCheck.addEventListener('change', () => {
-                crashRow.classList.toggle('hidden', !crashCheck.checked);
+
+        const updateCrashYearRowVisibility = () => {
+            if (!crashRow) return;
+            const hide = !!(seqCheck && seqCheck.checked) || !(crashCheck && crashCheck.checked);
+            crashRow.classList.toggle('hidden', hide);
+        };
+
+        if (seqCheck) {
+            seqCheck.addEventListener('change', () => {
+                if (seqCheck.checked && crashCheck) crashCheck.checked = false;
+                updateCrashYearRowVisibility();
             });
         }
+        if (crashCheck) {
+            crashCheck.addEventListener('change', () => {
+                if (crashCheck.checked && seqCheck) seqCheck.checked = false;
+                updateCrashYearRowVisibility();
+            });
+        }
+        updateCrashYearRowVisibility();
 
         toggle.addEventListener('click', () => {
             const icon = toggle.querySelector('[data-accordion-icon]');
@@ -325,10 +335,18 @@ class AdvancedDesignUI {
         const withdrawAudHidden = document.getElementById('withdrawAudRow')?.classList.contains('hidden');
         let annualWithdrawal;
         if (withdrawAudHidden) {
-            // % mode — use estimated retirement balance if available, else 0
             const pct = get('withdrawPct') / 100;
-            const bal = this.lastResults ? this.lastResults.retirementBalance : 500_000;
-            annualWithdrawal = bal * pct;
+            // Estimate retirement balance from current inputs to avoid using stale lastResults
+            const _age    = get('currentAge');
+            const _retAge = get('retirementAge');
+            const _super  = get('currentSuper');
+            const _rate   = (get('superReturn') || 7.5) / 100;
+            const _yrs    = Math.max(0, _retAge - _age);
+            const _estBal = _yrs > 0 && _rate > 0
+                ? _super * Math.pow(1 + _rate, _yrs)
+                  + annualContribution * ((Math.pow(1 + _rate, _yrs) - 1) / _rate)
+                : _super + annualContribution * _yrs;
+            annualWithdrawal = (_estBal || this.lastResults?.retirementBalance || 500_000) * pct;
         } else {
             annualWithdrawal = get('annualWithdrawal');
         }
@@ -612,8 +630,31 @@ class AdvancedDesignUI {
             this.chart = null;
         }
 
+        // Inline plugin for the retirement-age vertical marker (no external plugin needed)
+        const retireLinePlugin = retireIdx >= 0 ? [{
+            id: 'retireLine',
+            afterDraw(chart) {
+                const { ctx, scales: { x: xScale, y: yScale } } = chart;
+                const px = xScale.getPixelForValue(retireIdx);
+                ctx.save();
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 3]);
+                ctx.beginPath();
+                ctx.moveTo(px, yScale.top);
+                ctx.lineTo(px, yScale.bottom);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#ef4444';
+                ctx.font = '11px sans-serif';
+                ctx.fillText(`Retire age ${inputs.retirementAge}`, px + 4, yScale.top + 14);
+                ctx.restore();
+            },
+        }] : [];
+
         this.chart = new Chart(canvas, {
             type: 'line',
+            plugins: retireLinePlugin,
             data: {
                 labels,
                 datasets: [
@@ -667,25 +708,6 @@ class AdvancedDesignUI {
                             },
                         },
                     },
-                    annotation: retireIdx >= 0 ? {
-                        annotations: {
-                            retireLine: {
-                                type: 'line',
-                                xMin: retireIdx,
-                                xMax: retireIdx,
-                                borderColor: 'rgba(239, 68, 68, 0.7)',
-                                borderWidth: 2,
-                                borderDash: [6, 3],
-                                label: {
-                                    content: `Retire age ${inputs.retirementAge}`,
-                                    display: true,
-                                    position: 'start',
-                                    color: '#ef4444',
-                                    font: { size: 11 },
-                                },
-                            },
-                        },
-                    } : {},
                 },
                 scales: {
                     x: {
