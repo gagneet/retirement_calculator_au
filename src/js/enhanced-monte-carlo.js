@@ -314,8 +314,9 @@ export class EnhancedMonteCarloEngine {
             }
         }
 
-        // Enhanced analysis
-        outcomes.sort((a, b) => a - b);
+        // Sort outcomes and paths together so path↔outcome pairing is preserved
+        const _paired = outcomes.map((v, i) => [v, paths[i]]).sort((a, b) => a[0] - b[0]);
+        _paired.forEach(([v, p], i) => { outcomes[i] = v; paths[i] = p; });
 
         const analysis = this.calculateEnhancedStatistics(outcomes, paths, regimeStats);
 
@@ -572,16 +573,53 @@ export class EnhancedMonteCarloEngine {
             .sort((a, b) => a.value - b.value)
             .map(item => item.index);
 
+        // Separate depleted (≤0) from surviving scenarios
+        const depletedCount = outcomes.filter(o => o <= 0).length;
+        const depletedRate = depletedCount / n;
+
+        // Build apocalypse tier from depleted scenarios
+        const apocalypse = depletedCount > 0 ? {
+            depletedCount,
+            depletedRate,
+            depletedPct: Math.round(depletedRate * 100),
+            // Average depletion balance (clamped at 0 for display, but keep raw for context)
+            avgDepletedBalance: outcomes
+                .filter(o => o <= 0)
+                .reduce((sum, v) => sum + v, 0) / depletedCount,
+        } : null;
+
+        // worstCase = lowest POSITIVE outcome (first non-depleted from sorted list)
+        // Falls back to the absolute worst if every scenario depletes
+        const firstPositiveIdx = sortedIndices.findIndex(i => outcomes[i] > 0);
+        const worstCaseIdx = firstPositiveIdx >= 0 ? sortedIndices[firstPositiveIdx] : sortedIndices[0];
+
+        // pessimistic = 10th percentile, but ensure it's positive when possible
+        const p10RankInSorted = Math.floor(0.1 * n);
+        const p10RawIdx = sortedIndices[p10RankInSorted];
+        let pessimisticRankInSorted, p10Positive;
+        if (outcomes[p10RawIdx] > 0) {
+            pessimisticRankInSorted = p10RankInSorted;
+            p10Positive = p10RawIdx;
+        } else if (firstPositiveIdx >= 0) {
+            pessimisticRankInSorted = firstPositiveIdx;
+            p10Positive = sortedIndices[firstPositiveIdx];
+        } else {
+            pessimisticRankInSorted = p10RankInSorted;
+            p10Positive = p10RawIdx;
+        }
+        const pessimisticPercentile = Math.max(1, Math.round((pessimisticRankInSorted / n) * 100));
+
         return {
+            apocalypse,
             worstCase: {
-                outcome: outcomes[sortedIndices[0]],
-                path: paths[sortedIndices[0]],
+                outcome: outcomes[worstCaseIdx],
+                path: paths[worstCaseIdx],
                 percentile: 1
             },
             pessimistic: {
-                outcome: outcomes[sortedIndices[Math.floor(0.1 * n)]],
-                path: paths[sortedIndices[Math.floor(0.1 * n)]],
-                percentile: 10
+                outcome: outcomes[p10Positive],
+                path: paths[p10Positive],
+                percentile: pessimisticPercentile
             },
             median: {
                 outcome: outcomes[sortedIndices[Math.floor(0.5 * n)]],

@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+
+    <!-- Google Analytics - Silent loading with background retry -->
+    <script>
+        (function () {
+            let analyticsRetryCount = 0;
+            const maxRetries = 3;
+            const retryDelay = 30000;
+
+            function loadGoogleAnalytics() {
+                try {
+                    const script = document.createElement('script');
+                    script.async = true;
+                    script.src = 'https://www.googletagmanager.com/gtag/js?id=G-F3BXKGK3QZ';
+                    const loadTimeout = setTimeout(() => {
+                        if (!window.gtag || !window.dataLayer) {
+                            if (analyticsRetryCount < maxRetries) { analyticsRetryCount++; setTimeout(loadGoogleAnalytics, retryDelay); }
+                        }
+                    }, 8000);
+                    script.onload = function () {
+                        clearTimeout(loadTimeout);
+                        window.dataLayer = window.dataLayer || [];
+                        function gtag() { dataLayer.push(arguments); }
+                        gtag('js', new Date());
+                        gtag('config', 'G-F3BXKGK3QZ');
+                    };
+                    script.onerror = function () {
+                        clearTimeout(loadTimeout);
+                        if (analyticsRetryCount < maxRetries) { analyticsRetryCount++; setTimeout(loadGoogleAnalytics, retryDelay); }
+                    };
+                    document.head.appendChild(script);
+                } catch (e) {
+                    if (analyticsRetryCount < maxRetries) { analyticsRetryCount++; setTimeout(loadGoogleAnalytics, retryDelay); }
+                }
+            }
+            loadGoogleAnalytics();
+        })();
+    </script>
+
+    <!-- Google AdSense - Silent loading -->
+    <script>
+        (function () {
+            let adsenseRetryCount = 0;
+            const maxRetries = 3;
+            const retryDelay = 30000;
+            let adsenseBlocked = false;
+            function loadGoogleAdSense() {
+                try {
+                    const script = document.createElement('script');
+                    script.async = true;
+                    script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1599099437795468';
+                    script.crossOrigin = 'anonymous';
+                    const t = setTimeout(() => { adsenseBlocked = true; if (adsenseRetryCount < maxRetries) { adsenseRetryCount++; setTimeout(loadGoogleAdSense, retryDelay); } }, 8000);
+                    script.onload = () => clearTimeout(t);
+                    script.onerror = () => { clearTimeout(t); adsenseBlocked = true; if (adsenseRetryCount < maxRetries) { adsenseRetryCount++; setTimeout(loadGoogleAdSense, retryDelay); } };
+                    document.head.appendChild(script);
+                } catch (e) {
+                    adsenseBlocked = true;
+                }
+            }
+            loadGoogleAdSense();
+        })();
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Design Calculator | Australian Retirement Modelling Sandbox</title>
+
+    <!-- SEO -->
+    <meta name="description" content="An educational Australian retirement modelling sandbox for experienced users. Test assumptions, explore trade-offs, and model superannuation, savings, and Age Pension outcomes. General information only — not financial advice.">
+    <meta name="keywords" content="Australian retirement calculator, superannuation modelling, retirement income projection, Age Pension estimate, sensitivity analysis, scenario comparison, retirement sandbox">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="en-AU">
+    <meta name="geo.region" content="AU">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://retirement.gagneet.com/advanced-design.html">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://retirement.gagneet.com/advanced-design.html">
+    <meta property="og:title" content="Advanced Design Calculator | Australian Retirement Modelling Sandbox">
+    <meta property="og:description" content="Educational retirement modelling sandbox. Test assumptions and explore trade-offs across conservative, balanced, and aggressive scenarios. General information only.">
+    <meta property="og:image" content="https://retirement.gagneet.com/assets/logo.svg">
+    <meta property="og:site_name" content="Australian Retirement Calculator">
+    <meta property="og:locale" content="en_AU">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://retirement.gagneet.com/advanced-design.html">
+    <meta property="twitter:title" content="Advanced Design Calculator | Australian Retirement Modelling Sandbox">
+    <meta property="twitter:description" content="Educational retirement modelling sandbox. Test assumptions and explore trade-offs. General information only — not financial advice.">
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="icon" type="image/svg+xml" sizes="16x16" href="assets/favicon-16x16.svg">
+    <link rel="icon" type="image/svg+xml" sizes="32x32" href="assets/favicon-32x32.svg">
+    <link rel="apple-touch-icon" sizes="192x192" href="assets/apple-touch-icon.svg">
+    <link rel="manifest" href="assets/site.webmanifest">
+
+    <!-- Tailwind CSS CDN -->
+    <script>
+        const _origWarn = console.warn;
+        console.warn = function (...a) {
+            if (a[0] && a[0].includes && a[0].includes('cdn.tailwindcss.com')) return;
+            _origWarn.apply(console, a);
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        setTimeout(() => { console.warn = _origWarn; }, 100);
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = { corePlugins: { preflight: false } };
+        }
+    </script>
+
+    <!-- Chart.js -->
+    <script crossorigin="anonymous"
+            integrity="sha256-SERKgtTty1vsDxll+qzd4Y2cF9swY9BCq62i9wXJ9Uo="
+            src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer"
+          integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"/>
+
+    <!-- Prevent FOUC -->
+    <script>
+        (function () {
+            const theme = localStorage.getItem('retirement-calc-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            if (theme === 'dark') {
+                document.documentElement.style.backgroundColor = '#111827';
+                document.documentElement.style.color = '#f9fafb';
+            } else {
+                document.documentElement.style.backgroundColor = '#f3f4f6';
+                document.documentElement.style.color = '#111827';
+            }
+        })();
+    </script>
+
+    <style>
+        /* ---- Base ---- */
+        body {
+            font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+            background-color: #f3f4f6;
+            color: #111827;
+        }
+        [data-theme="dark"] body {
+            background-color: #111827;
+            color: #f9fafb;
+        }
+
+        /* ---- Glass card ---- */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            border-radius: 1rem;
+        }
+        [data-theme="dark"] .glass-card {
+            background: rgba(31, 41, 55, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        /* ---- Input styling ---- */
+        .field-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            background: #fff;
+            color: #111827;
+        }
+        .field-input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+        [data-theme="dark"] .field-input {
+            background: #1f2937;
+            border-color: #4b5563;
+            color: #f9fafb;
+        }
+        [data-theme="dark"] .field-input:focus {
+            border-color: #818cf8;
+        }
+
+        /* ---- Section accordion header ---- */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 0.875rem 1rem;
+            border-radius: 0.75rem;
+            user-select: none;
+            background: linear-gradient(135deg, #eef2ff 0%, #fff 100%);
+            border: 1px solid #e0e7ff;
+            transition: background 0.2s;
+        }
+        .section-header:hover { background: #e0e7ff; }
+        [data-theme="dark"] .section-header {
+            background: linear-gradient(135deg, #1e1b4b 0%, #1f2937 100%);
+            border-color: #3730a3;
+        }
+        [data-theme="dark"] .section-header:hover { background: #1e1b4b; }
+
+        /* ---- Preset buttons ---- */
+        .preset-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        /* ---- Info icon ---- */
+        .info-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.1rem;
+            height: 1.1rem;
+            border-radius: 9999px;
+            background: #6366f1;
+            color: #fff;
+            font-size: 0.6rem;
+            font-weight: 700;
+            cursor: help;
+            vertical-align: middle;
+            margin-left: 0.25rem;
+            position: relative;
+        }
+
+        /* ---- Result card ---- */
+        .result-card {
+            background: #fff;
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            border: 1px solid #e5e7eb;
+        }
+        [data-theme="dark"] .result-card {
+            background: #1f2937;
+            border-color: #374151;
+        }
+
+        /* ---- Chart wrapper ---- */
+        #chartWrapper { position: relative; height: 340px; }
+
+        /* ---- Fade-in for results ---- */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        #resultsSection { animation: fadeInUp 0.35s ease-out; }
+
+        /* ---- Sticky top bar ---- */
+        .top-bar {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.35rem 1rem;
+            background: #eff6ff;
+            border-bottom: 2px solid #bfdbfe;
+            color: #1e40af;
+            font-size: 0.75rem;
+        }
+        [data-theme="dark"] .top-bar {
+            background: #1e3a5f;
+            border-color: #3b82f6;
+            color: #93c5fd;
+        }
+
+        /* ---- Nav dropdown ---- */
+        #navDropdown {
+            top: calc(100% + 0.25rem);
+        }
+        [data-theme="dark"] #navDropdown {
+            background: #1f2937;
+            border-color: #374151;
+        }
+        [data-theme="dark"] #navDropdown a {
+            color: #d1d5db;
+        }
+        [data-theme="dark"] #navDropdown a:hover {
+            background: #374151;
+        }
+
+        /* ---- Toggle switch ---- */
+        .toggle-pill {
+            position: relative;
+            display: inline-block;
+            width: 2.5rem;
+            height: 1.25rem;
+        }
+        .toggle-pill input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: #d1d5db;
+            border-radius: 9999px;
+            transition: background 0.2s;
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 1rem;
+            width: 1rem;
+            left: 0.125rem;
+            bottom: 0.125rem;
+            background: #fff;
+            border-radius: 9999px;
+            transition: transform 0.2s;
+        }
+        .toggle-pill input:checked + .toggle-slider { background: #6366f1; }
+        .toggle-pill input:checked + .toggle-slider::before { transform: translateX(1.25rem); }
+
+        /* ---- Scrollable table ---- */
+        .table-scroll { overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .data-table th {
+            padding: 0.6rem 0.75rem;
+            text-align: left;
+            background: #f3f4f6;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        [data-theme="dark"] .data-table th {
+            background: #374151;
+            color: #d1d5db;
+            border-color: #4b5563;
+        }
+        [data-theme="dark"] .data-table tr { border-color: #374151; }
+        [data-theme="dark"] .data-table td { color: #d1d5db; }
+    </style>
+
+</head>
+<body>
+
+<!-- ================================================================
+     TOP BAR — FWT statement + navigation
+     ================================================================ -->
+<div class="top-bar">
+    <p class="flex-1 text-center min-w-0">
+        This is a
+        <a href="https://moneysmart.gov.au/plan-for-your-retirement"
+           rel="noopener noreferrer" target="_blank"
+           class="font-semibold hover:underline">Financial Well-being Tool</a>
+        intended for educational purposes only. General information only — not financial advice.
+    </p>
+    <div class="flex items-center space-x-1 flex-shrink-0 ml-2">
+
+        <!-- Navigation Menu -->
+        <nav class="relative z-10">
+            <button id="navMenuButton" aria-label="Navigation menu"
+                    class="flex items-center px-3 py-1.5 text-sm text-gray-700 hover:text-indigo-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                </svg>
+                Menu
+            </button>
+            <div id="navDropdown"
+                 class="hidden absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <div class="py-1">
+                    <a href="index.html?skip=true"
+                       class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <svg class="w-4 h-4 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M10 19l-7-7m0 0l7-7m-7 7h18" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                        </svg>
+                        Simple Calculator
+                    </a>
+                    <a href="advanced.html"
+                       class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <svg class="w-4 h-4 mr-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M12 17h.01M15 17h.01M3 5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                        </svg>
+                        Advanced Calculator
+                    </a>
+                    <a href="advanced-design.html"
+                       class="flex items-center px-4 py-2 text-sm font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
+                        <svg class="w-4 h-4 mr-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                            <path d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                        </svg>
+                        Design Sandbox (this page)
+                    </a>
+                    <div class="border-t border-gray-100"></div>
+                    <a href="methodology.html"
+                       class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <svg class="w-4 h-4 mr-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 17.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                        </svg>
+                        Methodology
+                    </a>
+                    <a href="how-to-use.html"
+                       class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <svg class="w-4 h-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                        </svg>
+                        How to Use
+                    </a>
+                    <a href="terms.html"
+                       class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <svg class="w-4 h-4 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                        </svg>
+                        Terms &amp; Privacy
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Theme toggle -->
+        <button id="themeToggle" type="button" aria-label="Toggle theme"
+                class="p-1.5 rounded-lg hover:bg-gray-200 transition-colors">
+            <!-- Sun icon (shown in light mode) -->
+            <svg class="sun-icon w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 7a5 5 0 100 10 5 5 0 000-10zM12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            <!-- Moon icon (shown in dark mode) -->
+            <svg class="moon-icon w-4 h-4 text-indigo-300" fill="currentColor" viewBox="0 0 24 24" style="display:none">
+                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+            </svg>
+        </button>
+    </div>
+</div>
+
+
+<style>[data-theme="dark"] .page-title { color: #f9fafb; }</style>
+
+<!-- ================================================================
+     MAIN CONTAINER
+     ================================================================ -->
+<div class="container mx-auto px-4 md:px-6 py-8 max-w-5xl">
+
+    <!-- ---- Page header ---- -->
+    <div class="text-center mb-6">
+        <h1 class="page-title text-3xl md:text-4xl font-bold text-gray-900">
+            Advanced Design Calculator
+        </h1>
+        <p class="mt-2 text-gray-600 text-base max-w-2xl mx-auto">
+            A configurable retirement modelling sandbox. <strong>General information only — not financial advice.</strong>
+        </p>
+        <span class="inline-block mt-2 px-3 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full border border-amber-300">
+            Educational use only &mdash; for experienced users who want to explore assumptions and trade-offs
+        </span>
+    </div>
+
+    <!-- ---- ASIC Disclaimer Banner ---- -->
+    <div class="mb-6 rounded-xl border-2 border-amber-400 bg-amber-50 p-4">
+        <div class="flex items-start justify-between gap-4">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    <p class="font-semibold text-amber-800 text-sm">Important: General Information Only</p>
+                    <div id="disclaimerBody" class="mt-2 text-xs text-amber-700 space-y-2">
+                        <p>This calculator provides <strong>general information only</strong> and does not take into account your personal objectives, financial situation, or needs. It is not intended to be financial advice.</p>
+                        <p>You should consider whether the information is appropriate for you and seek advice from a <strong>licensed financial adviser</strong> before making any financial decisions. For independent guidance, visit <a href="https://moneysmart.gov.au/plan-for-your-retirement" target="_blank" rel="noopener noreferrer" class="underline font-semibold hover:text-amber-900">ASIC MoneySmart</a>.</p>
+                        <p>All results are based on <strong>user-defined assumptions and simplified modelling</strong>. Actual outcomes may differ materially due to market movements, inflation, taxation changes, and personal circumstances.</p>
+                        <p><strong>Jurisdiction:</strong> Australia. Results use 2024-25 financial year rules for Age Pension and superannuation.</p>
+                    </div>
+                </div>
+            </div>
+            <button id="disclaimerCollapseBtn"
+                    class="flex-shrink-0 text-xs text-amber-700 underline hover:text-amber-900 font-medium whitespace-nowrap">
+                Hide details
+            </button>
+        </div>
+    </div>
+
+    <!-- ---- Advanced inputs warning ---- -->
+    <div class="mb-6 flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 text-sm">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>Advanced inputs significantly affect results. Small changes in return rates or inflation can produce materially different outcomes. This is a modelling sandbox for educational exploration.</span>
+    </div>
+
+    <!-- ====================================================
+         INPUT FORM
+         ==================================================== -->
+    <form id="designForm" novalidate class="space-y-4">
+
+        <!-- Validation error box -->
+        <div id="validationErrors" class="hidden px-4 py-3 rounded-lg bg-red-50 border border-red-300 text-red-700 text-sm space-y-1"></div>
+
+        <!-- ---- Section 1: Demographics ---- -->
+        <div class="glass-card overflow-hidden">
+            <button type="button"
+                    data-accordion-toggle="section1Body"
+                    class="section-header w-full text-left">
+                <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold flex items-center justify-center">1</span>
+                    <span class="font-semibold text-gray-800">Demographics</span>
+                </div>
+                <svg data-accordion-icon class="w-5 h-5 text-gray-500 transition-transform" style="transform:rotate(180deg)"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+            <div id="section1Body" class="p-5 grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="currentAge">Current age</label>
+                    <input id="currentAge" type="number" min="18" max="85" value="40" step="1"
+                           class="field-input" placeholder="40">
+                    <p class="text-xs text-gray-500 mt-1">Range: 18–85</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="retirementAge">Planned retirement age</label>
+                    <input id="retirementAge" type="number" min="50" max="75" value="65" step="1"
+                           class="field-input" placeholder="65">
+                    <p class="text-xs text-gray-500 mt-1">Range: 50–75</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="planningHorizon">
+                        Planning horizon (life expectancy)
+                        <span class="info-icon" tabindex="0"
+                              data-tooltip="This models the age to which your funds must last. ABS life expectancy data (2022) shows 65-year-olds averaging 20+ years post-retirement. A conservative approach is to plan to age 90–95.">i</span>
+                    </label>
+                    <input id="planningHorizon" type="number" min="75" max="100" value="90" step="1"
+                           class="field-input" placeholder="90">
+                    <p class="text-xs text-gray-500 mt-1">Range: 75–100</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ---- Section 2: Assets & Contributions ---- -->
+        <div class="glass-card overflow-hidden">
+            <button type="button"
+                    data-accordion-toggle="section2Body"
+                    class="section-header w-full text-left">
+                <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold flex items-center justify-center">2</span>
+                    <span class="font-semibold text-gray-800">Assets &amp; Contributions</span>
+                </div>
+                <svg data-accordion-icon class="w-5 h-5 text-gray-500 transition-transform" style="transform:rotate(180deg)"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+            <div id="section2Body" class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="currentSuper">Current superannuation balance ($)</label>
+                    <input id="currentSuper" type="number" min="0" max="10000000" value="150000" step="1000"
+                           class="field-input" placeholder="150000">
+                    <p class="text-xs text-gray-500 mt-1">Total balance across all super funds</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="currentSalary">Current salary ($ per year)</label>
+                    <input id="currentSalary" type="number" min="0" max="2000000" value="90000" step="1000"
+                           class="field-input" placeholder="90000">
+                    <p class="text-xs text-gray-500 mt-1">Used to compute the income replacement ratio</p>
+                </div>
+
+                <!-- Contribution row — $ or % toggle -->
+                <div class="sm:col-span-2">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-sm font-medium text-gray-700">Annual super contribution</label>
+                        <button type="button" id="contribModeToggle"
+                                class="text-xs text-indigo-600 underline hover:text-indigo-800 font-medium">Switch to %</button>
+                    </div>
+                    <!-- $ row (default visible) -->
+                    <div id="contribAudRow">
+                        <input id="annualContribution" type="number" min="0" max="500000" value="27500" step="500"
+                               class="field-input" placeholder="27500">
+                        <p class="text-xs text-gray-500 mt-1">2024-25 concessional cap: $30,000. Includes employer SG (12% of salary).</p>
+                    </div>
+                    <!-- % row (hidden by default) -->
+                    <div id="contribPctRow" class="hidden">
+                        <div class="flex items-center gap-2">
+                            <input id="contribPct" type="number" min="0" max="100" value="12" step="0.5"
+                                   class="field-input" placeholder="12">
+                            <span class="text-sm text-gray-600 font-medium whitespace-nowrap">% of salary</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Will be multiplied by the salary entered above.</p>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="additionalSavings">Current personal savings ($)</label>
+                    <input id="additionalSavings" type="number" min="0" max="10000000" value="50000" step="1000"
+                           class="field-input" placeholder="50000">
+                    <p class="text-xs text-gray-500 mt-1">Non-super investments, savings accounts, shares, etc.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="annualSavingsContrib">Annual savings contribution ($)</label>
+                    <input id="annualSavingsContrib" type="number" min="0" max="500000" value="10000" step="500"
+                           class="field-input" placeholder="10000">
+                    <p class="text-xs text-gray-500 mt-1">Amount added to personal savings per year</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ---- Section 3: Investment Assumptions ---- -->
+        <div class="glass-card overflow-hidden">
+            <button type="button"
+                    data-accordion-toggle="section3Body"
+                    class="section-header w-full text-left">
+                <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold flex items-center justify-center">3</span>
+                    <span class="font-semibold text-gray-800">Investment Assumptions</span>
+                </div>
+                <svg data-accordion-icon class="w-5 h-5 text-gray-500 transition-transform" style="transform:rotate(180deg)"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+            <div id="section3Body" class="p-5 space-y-5">
+
+                <!-- Preset buttons -->
+                <div class="flex flex-wrap gap-2 mb-2">
+                    <span class="text-xs font-medium text-gray-500 self-center">Scenario presets:</span>
+                    <button type="button" id="preset-conservative"
+                            class="preset-btn bg-blue-100 text-blue-800 hover:bg-blue-200">
+                        Conservative
+                    </button>
+                    <button type="button" id="preset-balanced"
+                            class="preset-btn bg-indigo-100 text-indigo-800 hover:bg-indigo-200">
+                        Balanced
+                    </button>
+                    <button type="button" id="preset-aggressive"
+                            class="preset-btn bg-purple-100 text-purple-800 hover:bg-purple-200">
+                        Aggressive
+                    </button>
+                    <button type="button" id="preset-reset"
+                            class="preset-btn bg-gray-100 text-gray-600 hover:bg-gray-200">
+                        Reset to defaults
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="superReturn">
+                            Expected super return (% p.a.)
+                            <span class="info-icon" tabindex="0"
+                                  data-tooltip="Australian balanced super funds returned a median 7.5% p.a. over 2000–2025 (APRA). Growth-oriented funds returned approximately 8–10%. This is a pre-tax return inside super. Past performance does not guarantee future returns.">i</span>
+                        </label>
+                        <input id="superReturn" type="number" min="2" max="15" value="7.5" step="0.1"
+                               class="field-input" placeholder="7.5">
+                        <p class="text-xs text-gray-500 mt-1">Range: 2%–15% | Historical median ~7.5%</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="savingsReturn">
+                            Expected savings return (% p.a.)
+                            <span class="info-icon" tabindex="0"
+                                  data-tooltip="Diversified Australian portfolios (e.g. shares, property, bonds) returned a median 6–8% p.a. over 2000–2025. Cash accounts currently earn 4–5%. This figure should reflect your investment strategy outside super.">i</span>
+                        </label>
+                        <input id="savingsReturn" type="number" min="2" max="15" value="6.0" step="0.1"
+                               class="field-input" placeholder="6.0">
+                        <p class="text-xs text-gray-500 mt-1">Range: 2%–15% | Historical median ~6–8%</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="inflation">
+                            Inflation rate (% p.a.)
+                            <span class="info-icon" tabindex="0"
+                                  data-tooltip="Australian CPI averaged 2.6% p.a. over 2000–2025 (RBA/ABS). The RBA targets a 2–3% band. Higher inflation erodes purchasing power and increases the cost of retirement withdrawals. Modelled CPI is typically 2–3%.">i</span>
+                        </label>
+                        <input id="inflation" type="number" min="0" max="8" value="2.6" step="0.1"
+                               class="field-input" placeholder="2.6">
+                        <p class="text-xs text-gray-500 mt-1">Range: 0%–8% | RBA target 2–3%</p>
+                    </div>
+                </div>
+
+                <!-- Real vs Nominal toggle -->
+                <div class="flex items-center gap-3 pt-2 border-t border-gray-200">
+                    <label class="toggle-pill">
+                        <input type="checkbox" id="realNominalToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <div>
+                        <p class="text-sm font-medium text-gray-700">Display results in real (today's dollars)</p>
+                        <p class="text-xs text-gray-500">When enabled, all projected amounts are deflated by the inflation rate to reflect purchasing power in today's dollars. When disabled, amounts are nominal (future dollars).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ---- Section 4: Retirement Phase ---- -->
+        <div class="glass-card overflow-hidden">
+            <button type="button"
+                    data-accordion-toggle="section4Body"
+                    class="section-header w-full text-left">
+                <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold flex items-center justify-center">4</span>
+                    <span class="font-semibold text-gray-800">Retirement Phase</span>
+                </div>
+                <svg data-accordion-icon class="w-5 h-5 text-gray-500 transition-transform" style="transform:rotate(180deg)"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+            <div id="section4Body" class="p-5 space-y-5">
+                <!-- Withdrawal — $ or % toggle -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-sm font-medium text-gray-700">
+                            Annual retirement withdrawal
+                            <span class="info-icon" tabindex="0"
+                                  data-tooltip="ASFA Comfortable Retirement Standard (2024) is approximately $51,000/yr for singles and $72,000/yr for couples. The Modest standard is $33,000/yr. This is your target gross annual spending from all sources.">i</span>
+                        </label>
+                        <button type="button" id="withdrawModeToggle"
+                                class="text-xs text-indigo-600 underline hover:text-indigo-800 font-medium">Switch to %</button>
+                    </div>
+                    <!-- $ row (default visible) -->
+                    <div id="withdrawAudRow">
+                        <input id="annualWithdrawal" type="number" min="0" max="500000" value="60000" step="1000"
+                               class="field-input" placeholder="60000">
+                        <p class="text-xs text-gray-500 mt-1">ASFA Comfortable: ~$51,000/yr (single, 2024). Default: $60,000/yr.</p>
+                    </div>
+                    <!-- % row (hidden by default) -->
+                    <div id="withdrawPctRow" class="hidden">
+                        <div class="flex items-center gap-2">
+                            <input id="withdrawPct" type="number" min="1" max="20" value="4" step="0.1"
+                                   class="field-input" placeholder="4">
+                            <span class="text-sm text-gray-600 font-medium whitespace-nowrap">% of retirement balance</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">The "4% rule" is a common starting point, though it was derived from US market data and may not directly apply in Australia.</p>
+                    </div>
+                </div>
+
+                <!-- Inflation-adjusted withdrawals -->
+                <div class="flex items-center gap-3 pt-2 border-t border-gray-200">
+                    <label class="toggle-pill">
+                        <input type="checkbox" id="inflationAdjusted" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <div>
+                        <p class="text-sm font-medium text-gray-700">Increase withdrawals with CPI each year</p>
+                        <p class="text-xs text-gray-500">When enabled, the annual withdrawal is increased each year by the inflation rate, maintaining real purchasing power. Disabling this reduces the modelled withdrawal burden in nominal terms but erodes real income over time.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ---- Advanced Stress Testing (collapsible) ---- -->
+        <div class="glass-card overflow-hidden border border-amber-200">
+            <button type="button" id="stressTestToggle"
+                    class="section-header w-full text-left bg-amber-50 border-amber-200 hover:bg-amber-100">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    <span class="font-semibold text-amber-800">Advanced Stress Testing</span>
+                    <span class="text-xs text-amber-600 font-normal">(optional)</span>
+                </div>
+                <svg data-accordion-icon class="w-5 h-5 text-amber-600 transition-transform"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+            <div id="stressTestPanel" class="hidden p-5 space-y-4">
+                <p class="text-xs text-amber-700 bg-amber-50 rounded-lg p-3 border border-amber-200">
+                    Stress tests simulate adverse market conditions to illustrate how outcomes may differ. These are illustrative scenarios only, not predictions of future market behaviour.
+                </p>
+
+                <!-- Sequence of returns -->
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" id="stressSeqReturns"
+                           class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                    <div>
+                        <p class="text-sm font-medium text-gray-700">Sequence-of-returns stress test</p>
+                        <p class="text-xs text-gray-500">Simulates −10% returns in the first 3 years of retirement. Poor early returns can have an outsized negative impact on portfolio longevity due to the combined effect of withdrawals and losses.</p>
+                    </div>
+                </label>
+
+                <!-- Market crash -->
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" id="stressMarketCrash"
+                           class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                    <div>
+                        <p class="text-sm font-medium text-gray-700">Market crash scenario</p>
+                        <p class="text-xs text-gray-500">Applies a −25% balance shock at a specified retirement year, modelling an event such as a severe market correction.</p>
+                    </div>
+                </label>
+
+                <!-- Crash year (shown when market crash is checked) -->
+                <div id="crashYearRow" class="hidden pl-7">
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="crashYear">Apply crash at retirement year:</label>
+                    <select id="crashYear" class="field-input w-auto">
+                        <option value="1">Year 1 of retirement</option>
+                        <option value="2">Year 2 of retirement</option>
+                        <option value="3">Year 3 of retirement</option>
+                        <option value="4">Year 4 of retirement</option>
+                        <option value="5">Year 5 of retirement</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- ---- Calculate button ---- -->
+        <button type="button" id="calculateBtn"
+                class="w-full py-4 px-6 rounded-xl bg-indigo-700 hover:bg-indigo-800 active:bg-indigo-900 text-white text-base font-bold shadow-lg transition-all focus:outline-none focus:ring-4 focus:ring-indigo-300 disabled:opacity-60 disabled:cursor-not-allowed">
+            Run Model
+        </button>
+
+    </form>
+    <!-- /form -->
+
+
+    <!-- ====================================================
+         RESULTS SECTION (initially hidden)
+         ==================================================== -->
+    <div id="resultsSection" class="hidden mt-8 space-y-6">
+
+        <!-- Results term label -->
+        <p id="res-termLabel" class="text-xs text-center text-gray-500 italic"></p>
+
+        <!-- ---- Primary Results Panel ---- -->
+        <div class="glass-card p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-5 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+                Modelled Outcomes
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Annual retirement income -->
+                <div class="result-card text-center">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Estimated annual income</p>
+                    <p id="res-income" class="text-2xl font-bold text-indigo-700">—</p>
+                    <p class="text-xs text-gray-400 mt-1">per year in retirement</p>
+                </div>
+                <!-- Income replacement ratio -->
+                <div class="result-card text-center">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Income replacement ratio</p>
+                    <p id="res-irr" class="text-sm font-semibold mt-1">—</p>
+                </div>
+                <!-- Retirement balance -->
+                <div class="result-card text-center">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Balance at retirement</p>
+                    <p id="res-balance" class="text-2xl font-bold text-gray-800">—</p>
+                    <p class="text-xs text-gray-400 mt-1">total (super + savings)</p>
+                </div>
+                <!-- Age Pension supplement -->
+                <div class="result-card text-center">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Age Pension estimate</p>
+                    <p id="res-pension" class="text-2xl font-bold text-green-700">—</p>
+                    <p class="text-xs text-gray-400 mt-1">per year supplement</p>
+                </div>
+            </div>
+
+            <!-- Longevity / depletion notice -->
+            <div class="mt-4 px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm">
+                <span class="font-medium text-gray-700">Fund longevity: </span>
+                <span id="res-depletion">—</span>
+            </div>
+        </div>
+
+        <!-- ---- Failure notice (conditional) ---- -->
+        <div id="failureNotice" class="hidden rounded-xl border-2 border-amber-400 bg-amber-50 p-4">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    <p class="font-semibold text-amber-800 mb-1">
+                        Under current assumptions, funds may be exhausted at age <span id="failureAge" class="font-bold">—</span>.
+                    </p>
+                    <p class="text-sm text-amber-700">
+                        This illustrates the model's sensitivity to your chosen assumptions — it is not a prediction. The outcome changes significantly with different return rates, inflation, or withdrawal levels. Consider exploring: retiring later, increasing contributions, or modelling a lower withdrawal rate.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ---- Chart ---- -->
+        <div class="glass-card p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                </svg>
+                Balance Over Time
+            </h2>
+            <p class="text-xs text-gray-500 mb-4">Total portfolio balance (super + savings) projected from current age to planning horizon across three scenarios. Vertical line marks retirement age.</p>
+            <div id="chartWrapper">
+                <canvas id="balanceChart" aria-label="Balance over time chart" role="img"></canvas>
+            </div>
+        </div>
+
+        <!-- ---- Scenario comparison table ---- -->
+        <div class="glass-card p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                Scenario Comparison
+            </h2>
+            <p class="text-xs text-gray-500 mb-3">Compares conservative (5.5% return / 3.5% inflation), balanced (7.5% / 2.6%), and aggressive (9.5% / 2.0%) scenarios using your other inputs.</p>
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Scenario</th>
+                            <th>Modelled annual income</th>
+                            <th>Balance at retirement</th>
+                            <th>Funds last until</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scenarioTableBody">
+                        <tr><td colspan="4" class="py-4 text-center text-gray-400">Run the model to see results.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ---- Sensitivity analysis ---- -->
+        <div class="glass-card p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+                Top 3 Drivers of Outcome
+            </h2>
+            <p class="text-xs text-gray-500 mb-5">
+                Shows which inputs have the largest impact on the modelled annual income. Each figure represents the change in modelled annual income when that input is increased by 10% (or by the unit shown).
+            </p>
+            <div id="sensitivityList">
+                <p class="text-sm text-gray-400">Run the model to see sensitivity analysis.</p>
+            </div>
+        </div>
+
+        <!-- ---- Stress test results (conditional) ---- -->
+        <div id="stressTestResults" class="hidden glass-card p-6 border border-amber-200">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Stress Test Results
+            </h2>
+            <div id="stressTestOutput" class="bg-amber-50 rounded-lg p-4 border border-amber-200"></div>
+        </div>
+
+    </div>
+    <!-- /results -->
+
+
+    <!-- ====================================================
+         HOW THIS IS CALCULATED — methodology accordion
+         ==================================================== -->
+    <div class="mt-8 glass-card overflow-hidden">
+        <button type="button" id="methodologyToggle"
+                class="section-header w-full text-left bg-gray-50 hover:bg-gray-100">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <span class="font-semibold text-gray-700">How this is calculated</span>
+            </div>
+            <svg data-accordion-icon class="w-5 h-5 text-gray-500 transition-transform"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+        <div id="methodologyBody" class="hidden p-6 text-sm text-gray-700 space-y-5">
+
+            <div>
+                <h3 class="font-semibold text-gray-800 mb-2">Accumulation Phase</h3>
+                <p>During the accumulation phase (from current age to retirement age), each year's balance is modelled as:</p>
+                <pre class="bg-gray-100 rounded-lg p-3 font-mono text-xs mt-2 overflow-x-auto">A(t+1) = (A(t) + C) × (1 + r)</pre>
+                <p class="mt-2">Where <code>A</code> is the total balance, <code>C</code> is the annual contribution, and <code>r</code> is the annual return rate. Super and personal savings are tracked separately with their respective return assumptions.</p>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-gray-800 mb-2">Decumulation Phase</h3>
+                <p>During retirement (from retirement age to planning horizon), each year's balance is modelled as:</p>
+                <pre class="bg-gray-100 rounded-lg p-3 font-mono text-xs mt-2 overflow-x-auto">D(t+1) = (D(t) − W_net) × (1 + r)</pre>
+                <p class="mt-2">Where <code>W_net</code> is the net withdrawal after any Age Pension supplement, and <code>r</code> is the return rate. Withdrawals are drawn proportionally from super and savings balances. If inflation-adjusted withdrawals are enabled, <code>W</code> grows by CPI each year.</p>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-gray-800 mb-2">Age Pension Estimate</h3>
+                <p>The model applies a simplified asset-test taper for a single homeowner (2024-25 rules):</p>
+                <ul class="list-disc list-inside mt-2 space-y-1 text-gray-600">
+                    <li>Total assets ≤ $321,500 → full pension ($30,646/yr)</li>
+                    <li>Total assets ≥ $714,500 → nil pension</li>
+                    <li>Between thresholds → linear taper</li>
+                    <li>Pension age: 67 years</li>
+                </ul>
+                <p class="mt-2 text-xs text-gray-500">This is a rough approximation. The actual Age Pension calculation uses both an assets test and an income test, and thresholds vary for couples and non-homeowners. Consult Services Australia for accurate eligibility.</p>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-gray-800 mb-2">Sustainable Income</h3>
+                <p>The modelled annual income is derived from a growing annuity present-value formula, which calculates the maximum sustainable withdrawal level such that funds last to the planning horizon, given the blended return rate and inflation assumption.</p>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-gray-800 mb-2">Real vs Nominal</h3>
+                <p>When "Display in real terms" is enabled, all projected balances and withdrawals are deflated by the cumulative CPI factor to express them in today's purchasing power (real dollars). Nominal figures are raw future amounts without adjustment.</p>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-gray-800 mb-2">Scenario Presets</h3>
+                <table class="text-xs border-collapse w-full">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="border border-gray-200 px-3 py-2 text-left">Scenario</th>
+                            <th class="border border-gray-200 px-3 py-2">Super return</th>
+                            <th class="border border-gray-200 px-3 py-2">Savings return</th>
+                            <th class="border border-gray-200 px-3 py-2">Inflation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="border border-gray-200 px-3 py-2">Conservative</td><td class="border border-gray-200 px-3 py-2 text-center">5.5%</td><td class="border border-gray-200 px-3 py-2 text-center">4.5%</td><td class="border border-gray-200 px-3 py-2 text-center">3.5%</td></tr>
+                        <tr><td class="border border-gray-200 px-3 py-2">Balanced</td><td class="border border-gray-200 px-3 py-2 text-center">7.5%</td><td class="border border-gray-200 px-3 py-2 text-center">6.0%</td><td class="border border-gray-200 px-3 py-2 text-center">2.6%</td></tr>
+                        <tr><td class="border border-gray-200 px-3 py-2">Aggressive</td><td class="border border-gray-200 px-3 py-2 text-center">9.5%</td><td class="border border-gray-200 px-3 py-2 text-center">8.0%</td><td class="border border-gray-200 px-3 py-2 text-center">2.0%</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-gray-800 mb-2">Stress Tests</h3>
+                <ul class="list-disc list-inside space-y-1 text-gray-600">
+                    <li><strong>Sequence-of-returns:</strong> Return rates are set to −10% for the first 3 years of decumulation, then revert to the chosen assumption. This models the risk that poor early returns, combined with withdrawals, accelerate portfolio depletion.</li>
+                    <li><strong>Market crash:</strong> A one-time −25% balance shock is applied at the specified retirement year, modelling a severe correction event. Returns revert to assumptions thereafter.</li>
+                </ul>
+            </div>
+
+            <div class="pt-3 border-t border-gray-200">
+                <p class="text-xs text-gray-500">
+                    <strong>Important:</strong> All results are illustrative projections based on simplified models and user-defined assumptions. They do not account for taxation on investment returns, super contribution tax, means testing complexity, healthcare costs, aged care, estate planning, or individual circumstances. Results are highly sensitive to the return and inflation assumptions. Actual outcomes may differ materially. This tool does not constitute personal financial advice. Jurisdiction: Australia.
+                </p>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ====================================================
+         FOOTER
+         ==================================================== -->
+    <footer class="mt-12 pt-8 border-t border-gray-200 text-xs text-gray-500 text-center space-y-3">
+        <p class="font-semibold text-gray-600">Australian Retirement Calculator — Advanced Design Sandbox</p>
+        <p class="max-w-3xl mx-auto">
+            This calculator provides general information only and does not take into account your personal objectives, financial situation, or needs. It is not intended to be financial advice. All modelled outcomes are based on user-defined assumptions and simplified calculations. Actual results may differ materially due to market movements, inflation, legislative changes, and individual circumstances.
+        </p>
+        <p class="max-w-3xl mx-auto">
+            For personalised retirement advice, consult a licensed Australian financial adviser. For independent guidance, visit
+            <a href="https://moneysmart.gov.au" target="_blank" rel="noopener noreferrer"
+               class="underline hover:text-gray-700">ASIC MoneySmart</a>,
+            <a href="https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super"
+               target="_blank" rel="noopener noreferrer"
+               class="underline hover:text-gray-700">ATO Superannuation</a>, or
+            <a href="https://www.servicesaustralia.gov.au/age-pension"
+               target="_blank" rel="noopener noreferrer"
+               class="underline hover:text-gray-700">Services Australia — Age Pension</a>.
+        </p>
+        <p>Jurisdiction: Australia &nbsp;|&nbsp; Based on 2024-25 financial year rules.</p>
+        <div class="flex justify-center gap-4 mt-2">
+            <a href="terms.html" class="underline hover:text-gray-700">Terms &amp; Privacy</a>
+            <a href="contact.html" class="underline hover:text-gray-700">Feedback &amp; Contact</a>
+            <a href="methodology.html" class="underline hover:text-gray-700">Methodology</a>
+        </div>
+        <p class="mt-4 text-gray-400">&copy; 2025 Australian Retirement Calculator. All rights reserved.</p>
+    </footer>
+
+</div><!-- /container -->
+
+<!-- ES6 module bootstrap -->
+<script type="module" src="js/advanced-design-ui.js"></script>
+
+</body>
+</html>

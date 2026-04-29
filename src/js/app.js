@@ -1180,19 +1180,91 @@ class RetirementCalculatorApp {
 
         // Final result
         const finalResultContainer = $('finalResult');
+        const shortfallActionPanel = $('shortfall-action-panel');
         if (finalResultContainer) {
             if (result.finalBalance > 0) {
-                finalResultContainer.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800';
+                finalResultContainer.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800 border border-green-300';
                 finalResultContainer.innerHTML = `
-                    <div class="font-bold text-xl">Retirement Goal Met ✓</div>
-                    <div class="mt-1">Projected remaining assets at age ${inputs.partnerLifespan}: <strong>${formatCurrency(result.finalBalance)}</strong></div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">✅</span>
+                        <div>
+                            <div class="font-bold text-lg" style="font-family:var(--font-display,'Playfair Display',serif)">Retirement Goal Met</div>
+                            <div class="text-sm mt-0.5">Projected remaining assets at age ${inputs.partnerLifespan || inputs.yourLifespan || 90}: <strong style="font-family:var(--font-data,'JetBrains Mono',monospace)">${formatCurrency(result.finalBalance)}</strong></div>
+                        </div>
+                    </div>
                 `;
+                if (shortfallActionPanel) shortfallActionPanel.classList.add('hidden');
             } else {
-                finalResultContainer.className = 'mt-4 p-4 rounded-lg bg-red-100 text-red-800';
+                const lifespan = inputs.partnerLifespan || inputs.yourLifespan || 90;
+                const yearsToRet = (inputs.retirementAge || 65) - (inputs.yourCurrentAge || 50);
+                const salary = inputs.yourSalary || 0;
+                const superRate = inputs.superContributionRate || 0.115;
+                const addlSuper = inputs.yourAdditionalSuperContribution || 0;
+                const currentConcessional = (salary * superRate) + addlSuper;
+                const remainingSalarySacrifice = Math.max(0, 30000 - currentConcessional);
+                const canSalarySacrifice = remainingSalarySacrifice > 1000 && salary > 0;
+
+                // Rough quantified estimates for each lever
+                const bal = result.accumulatedSuperBalance || 0;
+                const delay2YrsValue = Math.round(bal * 0.15 + salary * superRate * 2);
+                const reduce5kValue = Math.round(5000 * Math.max(5, lifespan - (inputs.retirementAge || 65)));
+                const salarySacrificeAnnual = canSalarySacrifice ? Math.round(Math.min(remainingSalarySacrifice, salary * 0.1)) : 0;
+
+                finalResultContainer.className = 'mt-4 rounded-lg overflow-hidden border border-red-300';
                 finalResultContainer.innerHTML = `
-                    <div class="font-bold text-xl">Retirement Shortfall ⚠️</div>
-                    <div class="mt-1">Assets projected to be depleted before the end of subject's lifespan</div>
+                    <div class="p-4 bg-red-600 text-white flex items-center gap-3">
+                        <span class="text-2xl flex-shrink-0">⚠️</span>
+                        <div>
+                            <div class="font-bold text-lg" style="font-family:var(--font-display,'Playfair Display',serif)">Retirement Shortfall Projected</div>
+                            <div class="text-red-100 text-sm mt-0.5">Modelled assets may be exhausted before age ${lifespan} under current assumptions</div>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-red-50">
+                        <p class="text-sm text-red-800 mb-4 leading-relaxed">Under current assumptions, your modelled portfolio may not sustain income to your planning horizon. The following illustrates how changes to key inputs could affect the outcome — these are educational projections, not predictions. Seek advice from a licensed financial adviser before making decisions.</p>
+                        <h5 class="text-xs font-semibold uppercase tracking-wider text-red-700 mb-3" style="font-family:var(--font-ui,'DM Sans',sans-serif)">Levers to explore:</h5>
+                        <div class="space-y-2">
+                            ${canSalarySacrifice ? `
+                            <div class="shortfall-lever">
+                                <span class="shortfall-lever-icon up">↑</span>
+                                <div class="shortfall-lever-text">
+                                    <strong>Increase salary sacrifice to super:</strong> You may have capacity to contribute up to an extra
+                                    <span class="shortfall-lever-value">${formatCurrency(salarySacrificeAnnual)}/year</span>
+                                    concessionally (taxed at 15%, not your marginal rate). Over ${yearsToRet} years this compounds substantially and reduces taxable income now.
+                                </div>
+                            </div>` : ''}
+                            <div class="shortfall-lever">
+                                <span class="shortfall-lever-icon up">↑</span>
+                                <div class="shortfall-lever-text">
+                                    <strong>Delay retirement by 2 years:</strong> Two more working years adds contributions and shortens the decumulation period. Modelled impact: approximately
+                                    <span class="shortfall-lever-value">+${formatCurrency(delay2YrsValue)}</span>
+                                    to your balance at retirement.
+                                </div>
+                            </div>
+                            <div class="shortfall-lever">
+                                <span class="shortfall-lever-icon down">↓</span>
+                                <div class="shortfall-lever-text">
+                                    <strong>Reduce planned retirement spending by $5,000/year:</strong> Lower annual drawdown extends how long funds last. Over ${lifespan - (inputs.retirementAge || 65)} retirement years this preserves approximately
+                                    <span class="shortfall-lever-value">${formatCurrency(reduce5kValue)}</span>
+                                    in capital (undiscounted).
+                                </div>
+                            </div>
+                            <div class="shortfall-lever">
+                                <span class="shortfall-lever-icon info">→</span>
+                                <div class="shortfall-lever-text">
+                                    <strong>Age Pension safety net:</strong> If your super depletes, the Australian Age Pension provides a baseline income (currently ~$30,646/year for singles, ~$46,202 combined for couples). This is already included in your modelled projections.
+                                </div>
+                            </div>
+                            <div class="shortfall-lever">
+                                <span class="shortfall-lever-icon info">→</span>
+                                <div class="shortfall-lever-text">
+                                    <strong>Review asset allocation:</strong> If holdings are conservative (high cash/bonds), a growth-oriented allocation may improve long-run returns. Run the <em>Risk Analysis</em> and <em>Asset Allocation</em> tools above to model this.
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-red-500 mt-3">Run the Monte Carlo simulation for a probabilistic view. Adjust inputs and recalculate to see updated projections.</p>
+                    </div>
                 `;
+                if (shortfallActionPanel) shortfallActionPanel.classList.remove('hidden');
             }
         }
 
@@ -1277,12 +1349,14 @@ class RetirementCalculatorApp {
         // Get inputs for lifespan information
         const inputs = this.collectInputs();
 
+        const retirementAge = inputs.retirementAge || 65;
+
         result.yearlyData.slice(0, 30).forEach(data => {
             if (data.depleted) {
                 projectionTable.innerHTML += `
                     <tr class="bg-red-100">
-                        <td colspan="11" class="px-4 py-2 text-center font-bold">
-                            Financial assets depleted in ${data.year}
+                        <td colspan="11" class="px-4 py-2 text-center font-bold text-red-800" style="font-family:var(--font-ui,'DM Sans',sans-serif)">
+                            ⚠️ Modelled assets depleted in ${data.year}
                         </td>
                     </tr>
                 `;
@@ -1297,19 +1371,24 @@ class RetirementCalculatorApp {
                 ageDisplay = `${yourAgeStr}/${partnerAgeStr}`;
             }
 
+            const isRetirementYear = data.age === retirementAge || (data.yourAge === retirementAge);
+            const rowClass = isRetirementYear ? 'retirement-row' : '';
+            const endBal = data.endBalance || 0;
+            const netWorth = endBal + (data.nonLiquidAssets || 0);
+
             projectionTable.innerHTML += `
-                <tr>
-                    <td class="px-4 py-2">${data.year}</td>
-                    <td class="px-4 py-2">${ageDisplay}</td>
-                    <td class="px-4 py-2 text-blue-600">${formatCurrency(data.startBalance)}</td>
-                    <td class="px-4 py-2 text-gray-600">${formatCurrency(data.nonLiquidAssets || 0)}</td>
-                    <td class="px-4 py-2 text-green-600">+${formatCurrency(data.growth || 0)}</td>
-                    <td class="px-4 py-2 text-red-600">-${formatCurrency(data.withdrawal || 0)}</td>
-                    <td class="px-4 py-2 text-blue-600">+${formatCurrency(data.propertyIncome || 0)}</td>
-                    <td class="px-4 py-2 text-red-600">-${formatCurrency(data.healthcareCost)}</td>
-                    <td class="px-4 py-2 text-red-600">-${formatCurrency(data.agedCareCost)}</td>
-                    <td class="px-4 py-2 font-semibold">${formatCurrency(data.endBalance)}</td>
-                    <td class="px-4 py-2 font-semibold text-purple-600">${formatCurrency((data.endBalance || 0) + (data.nonLiquidAssets || 0))}</td>
+                <tr class="${rowClass}">
+                    <td class="px-4 py-2 age-cell">${data.year}${isRetirementYear ? ' <span title="Retirement year" style="color:var(--color-gold-500)">★</span>' : ''}</td>
+                    <td class="px-4 py-2 age-cell">${ageDisplay}</td>
+                    <td class="px-4 py-2 num">${formatCurrency(data.startBalance)}</td>
+                    <td class="px-4 py-2 num">${formatCurrency(data.nonLiquidAssets || 0)}</td>
+                    <td class="px-4 py-2 num positive">+${formatCurrency(data.growth || 0)}</td>
+                    <td class="px-4 py-2 num negative">-${formatCurrency(data.withdrawal || 0)}</td>
+                    <td class="px-4 py-2 num positive">+${formatCurrency(data.propertyIncome || 0)}</td>
+                    <td class="px-4 py-2 num negative">-${formatCurrency(data.healthcareCost)}</td>
+                    <td class="px-4 py-2 num negative">-${formatCurrency(data.agedCareCost)}</td>
+                    <td class="px-4 py-2 num ${endBal < 0 ? 'negative' : ''}" style="font-weight:600">${formatCurrency(endBal)}</td>
+                    <td class="px-4 py-2 num" style="font-weight:600;color:#6D28D9">${formatCurrency(netWorth)}</td>
                 </tr>
             `;
         });
@@ -1732,19 +1811,43 @@ class RetirementCalculatorApp {
         const sc = results.scenarios;
         const retirementYears = (inputs.yourLifespan || 90) - (inputs.retirementAge || 67);
 
+        // Apocalypse card — shown only when some scenarios deplete all funds
+        const apocalypseCard = sc?.apocalypse ? (() => {
+            const ap = sc.apocalypse;
+            const pct = ap.depletedPct;
+            const count = ap.depletedCount;
+            const severity = pct >= 50 ? 'critical' : pct >= 20 ? 'high' : 'moderate';
+            const bgClass = severity === 'critical' ? 'bg-black' : 'bg-gray-900';
+            return `
+                    <div class="flex gap-3 p-3 ${bgClass} border border-red-900 rounded-lg">
+                        <div class="flex-shrink-0 w-3 h-full min-h-[3rem] bg-red-900 rounded"></div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <strong class="text-red-400">☠ Apocalypse <span class="font-normal text-xs text-red-500">(funds fully depleted)</span></strong>
+                                <span class="text-red-400 font-semibold text-sm ml-2">${pct}% of scenarios — ${count.toLocaleString()} runs</span>
+                            </div>
+                            <p class="text-xs text-red-300 mt-1">In ${pct}% of all simulated retirements, every dollar of savings was exhausted before end of life. This tier captures scenarios where poor sequence-of-returns, high withdrawal rates, or sustained low growth combined to deplete the entire portfolio. ${pct >= 20 ? 'This proportion is high and warrants urgent action — consider reducing spending, delaying retirement, or boosting contributions.' : 'This is a tail risk; your plan is mostly solid but monitoring is advisable.'}</p>
+                        </div>
+                    </div>`;
+        })() : '';
+
+        const pessimisticPct = sc?.pessimistic?.percentile ?? 10;
+        const pessimisticChance = `1-in-${Math.round(100 / (pessimisticPct || 10))} chance`;
+
         const scenarioCards = sc ? `
             <div class="mt-4">
                 <h4 class="font-semibold text-gray-800 mb-3">What Each Scenario Means in Plain English</h4>
                 <div class="space-y-3">
+                    ${apocalypseCard}
 
                     <div class="flex gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                         <div class="flex-shrink-0 w-3 h-full min-h-[3rem] bg-red-600 rounded"></div>
                         <div class="flex-1">
                             <div class="flex justify-between items-start">
-                                <strong class="text-red-800">Worst Case <span class="font-normal text-xs">(1-in-100 chance)</span></strong>
-                                <span class="text-red-700 font-semibold text-sm ml-2">${sc.worstCase?.outcome <= 0 ? 'Funds Depleted' : formatCurrency(sc.worstCase?.outcome || 0)}</span>
+                                <strong class="text-red-800">Worst Case <span class="font-normal text-xs">(lowest surviving scenario)</span></strong>
+                                <span class="text-red-700 font-semibold text-sm ml-2">${formatCurrency(sc.worstCase?.outcome || 0)}</span>
                             </div>
-                            <p class="text-xs text-red-700 mt-1">Imagine every bad thing happening at once — a stock market crash early in retirement, high inflation eroding your savings, large unexpected medical bills, and low investment returns throughout. Only 1 in 100 retirements are this bad. This is your "stress test" — if you can survive this, you're in great shape.</p>
+                            <p class="text-xs text-red-700 mt-1">The worst outcome where your portfolio still survives to end of life — imagine a stock market crash early in retirement, high inflation eroding your savings, and consistently low returns throughout. This is the floor of scenarios where funds were not fully depleted. Use this as your planning "stress test" number.</p>
                         </div>
                     </div>
 
@@ -1752,10 +1855,10 @@ class RetirementCalculatorApp {
                         <div class="flex-shrink-0 w-3 h-full min-h-[3rem] bg-orange-500 rounded"></div>
                         <div class="flex-1">
                             <div class="flex justify-between items-start">
-                                <strong class="text-orange-800">Pessimistic <span class="font-normal text-xs">(1-in-10 chance)</span></strong>
-                                <span class="text-orange-700 font-semibold text-sm ml-2">${sc.pessimistic?.outcome <= 0 ? 'Funds Depleted' : formatCurrency(sc.pessimistic?.outcome || 0)}</span>
+                                <strong class="text-orange-800">Pessimistic <span class="font-normal text-xs">(${pessimisticChance})</span></strong>
+                                <span class="text-orange-700 font-semibold text-sm ml-2">${formatCurrency(sc.pessimistic?.outcome || 0)}</span>
                             </div>
-                            <p class="text-xs text-orange-700 mt-1">Similar to retiring just before a major event like the 2008 Global Financial Crisis. Markets underperform for several years, your portfolio shrinks before recovering. 1 in 10 people retiring today will experience something like this. It's uncomfortable but survivable with careful planning.</p>
+                            <p class="text-xs text-orange-700 mt-1">Similar to retiring just before a major event like the 2008 Global Financial Crisis. Markets underperform for several years, your portfolio shrinks before recovering. ${pessimisticChance} retirees will experience something like this. It's uncomfortable but survivable with careful planning.</p>
                         </div>
                     </div>
 
@@ -1795,12 +1898,13 @@ class RetirementCalculatorApp {
             </div>
         ` : '';
 
-        // Depletion explanation — shown when any scenario hits $0
-        const worstDepleted = sc?.worstCase?.outcome <= 0;
-        const pessimisticDepleted = sc?.pessimistic?.outcome <= 0;
+        // Depletion explanation — driven by apocalypse tier or median depletion
         const medianDepleted = (sc?.median?.outcome || results.median) <= 0;
+        const hasApocalypse = sc?.apocalypse != null;
+        const worstDepleted = sc?.worstCase?.outcome != null ? sc.worstCase.outcome <= 0 : false;
+        const pessimisticDepleted = sc?.pessimistic?.outcome != null ? sc.pessimistic.outcome <= 0 : false;
 
-        const depletionSection = (worstDepleted || pessimisticDepleted || medianDepleted) ?
+        const depletionSection = (hasApocalypse || medianDepleted) ?
             this.generateDepletionExplanation(results, inputs, { worstDepleted, pessimisticDepleted, medianDepleted }) : '';
 
         return `
@@ -2049,17 +2153,23 @@ class RetirementCalculatorApp {
             <!-- Key Scenarios -->
             ${results.scenarios ? `
             <div class="bg-white p-4 rounded-lg shadow-sm border mb-4">
-                <h5 class="font-medium text-gray-800 mb-1">Final Balance — 5 Key Scenarios</h5>
+                <h5 class="font-medium text-gray-800 mb-1">Final Balance — Key Scenarios</h5>
                 <p class="text-xs text-gray-500 mb-3">What remains in your portfolio at the end of your retirement (age ${(results.inputs?.yourLifespan || results.inputs?.lifespan || 90)})</p>
+                ${results.scenarios.apocalypse ? `
+                <div class="p-3 bg-gray-950 rounded border border-red-900 mb-3" style="background:#0a0a0a">
+                    <div class="text-xs text-red-400 font-semibold mb-1">☠ Apocalypse — Funds Depleted</div>
+                    <div class="font-bold text-red-400 text-sm">${results.scenarios.apocalypse.depletedPct}% of scenarios (${results.scenarios.apocalypse.depletedCount.toLocaleString()} runs)</div>
+                    <div class="text-xs text-red-500 mt-1">Portfolio exhausted before end of life. ${results.scenarios.apocalypse.depletedPct >= 20 ? 'Action recommended — reduce spending or extend working years.' : 'Tail risk only; plan is largely sound.'}</div>
+                </div>` : ''}
                 <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
                     <div class="p-3 bg-red-50 rounded border border-red-200">
-                        <div class="text-xs text-red-600 font-semibold mb-1">Worst Case</div>
-                        <div class="font-bold text-red-700 text-sm">${results.scenarios.worstCase?.outcome <= 0 ? 'Depleted ($0)' : formatCurrency(results.scenarios.worstCase?.outcome || 0)}</div>
-                        <div class="text-xs text-red-500 mt-1">1-in-100 chance. Multiple simultaneous crises.</div>
+                        <div class="text-xs text-red-600 font-semibold mb-1">Worst Surviving</div>
+                        <div class="font-bold text-red-700 text-sm">${formatCurrency(results.scenarios.worstCase?.outcome || 0)}</div>
+                        <div class="text-xs text-red-500 mt-1">Lowest positive outcome. Portfolio survived but barely.</div>
                     </div>
                     <div class="p-3 bg-orange-50 rounded border border-orange-200">
                         <div class="text-xs text-orange-600 font-semibold mb-1">Pessimistic</div>
-                        <div class="font-bold text-orange-700 text-sm">${results.scenarios.pessimistic?.outcome <= 0 ? 'Depleted ($0)' : formatCurrency(results.scenarios.pessimistic?.outcome || 0)}</div>
+                        <div class="font-bold text-orange-700 text-sm">${formatCurrency(results.scenarios.pessimistic?.outcome || 0)}</div>
                         <div class="text-xs text-orange-500 mt-1">1-in-10 chance. A GFC-style period of poor returns.</div>
                     </div>
                     <div class="p-3 bg-blue-50 rounded border border-blue-200">
@@ -4080,6 +4190,8 @@ class RetirementCalculatorApp {
 
             // Store results for export
             this.currentRecommendations = enhancedRecommendations.merged.topPriority;
+            this.currentComprehensiveRecommendations = comprehensiveRecommendations;
+            this.currentActionPlan = personaRecommendations?.actionPlan || null;
             this.currentPersonaRecommendations = personaRecommendations;
 
             updateProgress(90, 'Formatting enhanced recommendations...');
@@ -4145,6 +4257,12 @@ class RetirementCalculatorApp {
             // Store scenarios for Try This functionality and export
             this.lastGeneratedSuggestions = scenarios;
             this.currentSuggestions = scenarios;
+
+            // Tag each suggestion with its display category so export shows proper grouping
+            const taggedCats = this.categorizeSuggestionsForUI(scenarios);
+            Object.entries(taggedCats).forEach(([cat, items]) => {
+                items.forEach(s => { if (!s.exportCategory) s.exportCategory = cat; });
+            });
 
             updateProgress(80, 'Categorizing suggestions...');
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -7194,6 +7312,36 @@ class RetirementCalculatorApp {
             ],
             superStrategy: [
                 'concessionalCapUsed', 'spouseContribution', 'downsizeContribution'
+            ],
+            debts: [
+                'creditCardBalance', 'creditCardRate',
+                'personalLoanBalance', 'personalLoanRate',
+                'carLoanBalance', 'hecsBalance'
+            ],
+            lifestyle: [
+                'annualTravelBudget', 'annualHobbyBudget',
+                'legacyGoal', 'legacyGoalType'
+            ],
+            health: [
+                'hasPrivateHealthCover', 'ageFirstPrivateCover', 'healthCondition'
+            ],
+            residency: [
+                'ageCameToAustralia', 'ageStartedEarningAustralia',
+                'partnerAgeCameToAustralia', 'partnerAgeStartedEarningAustralia'
+            ],
+            reducedIncome: [
+                'enableReducedIncome', 'reducedIncomeAge', 'reducedIncomeSalary',
+                'partnerReducedIncomeAge', 'partnerReducedIncomeSalary'
+            ],
+            carer: [
+                'isCarerForParents', 'carerReducedWorkPercent', 'carerYearsExpected',
+                'agedParentsLocation', 'carerAnnualExpense'
+            ],
+            riskSubQuestions: [
+                'lossReaction', 'investmentExperience', 'marketUnderstanding', 'volatilityComfort'
+            ],
+            additionalIncome: [
+                'businessIncome', 'investmentIncome'
             ]
         };
     }
@@ -7277,7 +7425,8 @@ class RetirementCalculatorApp {
             'dividendYield', 'frankingRate', 'returnVolatility', 'shockProbability', 'shockMagnitude',
             'childrenUnder5Percent', 'childrenPrimaryPercent', 'teenagersPercent', 'adultDisabledPercent',
             'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent',
-            'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage'
+            'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
+            'creditCardRate', 'personalLoanRate', 'carerReducedWorkPercent'
         ];
 
         inputIds.forEach(inputId => {
@@ -7443,7 +7592,56 @@ class RetirementCalculatorApp {
             'universitySupport': false,
             'concessionalCapUsed': 0,
             'spouseContribution': 0,
-            'downsizeContribution': false
+            'downsizeContribution': false,
+
+            // Debts
+            'creditCardBalance': 0,
+            'creditCardRate': 0.20,
+            'personalLoanBalance': 0,
+            'personalLoanRate': 0.09,
+            'carLoanBalance': 0,
+            'hecsBalance': 0,
+
+            // Lifestyle
+            'annualTravelBudget': 0,
+            'annualHobbyBudget': 0,
+            'legacyGoal': 0,
+            'legacyGoalType': 'none',
+
+            // Health
+            'hasPrivateHealthCover': false,
+            'ageFirstPrivateCover': '',
+            'healthCondition': 'good',
+
+            // Residency
+            'ageCameToAustralia': 0,
+            'ageStartedEarningAustralia': 0,
+            'partnerAgeCameToAustralia': 0,
+            'partnerAgeStartedEarningAustralia': 0,
+
+            // Reduced income
+            'enableReducedIncome': false,
+            'reducedIncomeAge': 0,
+            'reducedIncomeSalary': 0,
+            'partnerReducedIncomeAge': 0,
+            'partnerReducedIncomeSalary': 0,
+
+            // Carer
+            'isCarerForParents': false,
+            'carerReducedWorkPercent': 0,
+            'carerYearsExpected': 0,
+            'agedParentsLocation': 'australia',
+            'carerAnnualExpense': 0,
+
+            // Risk sub-questions
+            'lossReaction': 'monitor',
+            'investmentExperience': '2',
+            'marketUnderstanding': 'moderate',
+            'volatilityComfort': '0.15',
+
+            // Additional income
+            'businessIncome': 0,
+            'investmentIncome': 0
         };
 
         return defaultMap[inputId];
@@ -7918,6 +8116,7 @@ class RetirementCalculatorApp {
             // Generate action suggestions
             this.actionGenerator = new ActionGenerator(inputs, outcome);
             const actions = this.actionGenerator.generateActions();
+            this.currentOutcomeActions = actions;
 
             // Initialize What-If engine
             this.whatIfEngine = new WhatIfEngine(inputs, outcome);
@@ -7947,6 +8146,73 @@ class RetirementCalculatorApp {
         safeSetText('outcome-super-balance', formatCurrency(outcome.superAtRetirement));
         safeSetText('outcome-age-pension', formatCurrency(outcome.agePension));
         safeSetText('outcome-annual-income', formatCurrency(outcome.sustainableIncome));
+
+        // Income replacement ratio badge
+        const irBadge = document.getElementById('outcome-income-replacement-badge');
+        if (irBadge && outcome.sustainableIncome && outcome.targetIncome) {
+            const ratio = outcome.sustainableIncome / (outcome.targetIncome || 1);
+            const pct = Math.round(ratio * 100);
+            irBadge.textContent = pct + '%';
+            if (pct >= 70) {
+                irBadge.style.background = '#2D6A4F'; irBadge.style.color = '#fff';
+            } else if (pct >= 50) {
+                irBadge.style.background = '#E07B39'; irBadge.style.color = '#fff';
+            } else {
+                irBadge.style.background = '#B5342A'; irBadge.style.color = '#fff';
+            }
+        }
+
+        // Depletion banner (deterministic mode using outcome.legacy.runOutAge)
+        const depletionBanner = document.getElementById('outcome-depletion-banner');
+        const depletionAgeEl = document.getElementById('outcome-depletion-age');
+        const depletionIcon = document.getElementById('outcome-depletion-icon');
+        const depletionHeading = document.getElementById('outcome-depletion-heading');
+        if (depletionBanner) {
+            const runOutAge = outcome.legacy && outcome.legacy.runOutAge;
+            const planningAge = 95; // CONSERVATIVE_PLANNING_AGE
+            if (runOutAge) {
+                const isCritical = runOutAge < (planningAge - 10);
+                depletionBanner.classList.remove('hidden');
+                depletionBanner.style.borderLeftColor = isCritical ? '#DC2626' : '#F59E0B';
+                depletionBanner.style.background = isCritical ? '#FEF2F2' : '#FFFBEB';
+                if (depletionIcon) depletionIcon.textContent = isCritical ? '🔴' : '⚠️';
+                if (depletionAgeEl) depletionAgeEl.textContent = runOutAge;
+                if (depletionHeading) {
+                    depletionHeading.style.color = isCritical ? '#991B1B' : '#92400E';
+                }
+            } else {
+                depletionBanner.classList.add('hidden');
+            }
+        }
+
+        // Sensitivity analysis (simple version using current outcome data)
+        const sensitivityPanel = document.getElementById('outcome-sensitivity-panel');
+        const sensitivityBars = document.getElementById('outcome-sensitivity-bars');
+        if (sensitivityPanel && sensitivityBars && outcome.sustainableIncome > 0) {
+            sensitivityPanel.style.display = '';
+            const income = outcome.sustainableIncome;
+            // Build simplified sensitivity drivers from available data
+            const drivers = [
+                { label: 'Retirement age (+1 year)', impact: Math.round(income * 0.035), positive: true },
+                { label: 'Super contributions (+$1,000/yr)', impact: Math.round(income * 0.018), positive: true },
+                { label: 'Investment return (+0.5%)', impact: Math.round(income * 0.022), positive: true },
+            ];
+            // Sort by absolute impact
+            drivers.sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
+            const maxImpact = Math.max(...drivers.map(d => Math.abs(d.impact)));
+            sensitivityBars.innerHTML = drivers.map(d => {
+                const pct = maxImpact > 0 ? Math.round((Math.abs(d.impact) / maxImpact) * 100) : 0;
+                const colour = d.positive ? '#2D6A4F' : '#B5342A';
+                const sign = d.positive ? '+' : '-';
+                return `<div class="flex items-center gap-3">
+                    <span class="text-xs text-gray-600 w-52 flex-shrink-0">${d.label}</span>
+                    <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                        <div class="h-2 rounded-full transition-all duration-500" style="width:${pct}%;background:${colour}"></div>
+                    </div>
+                    <span class="text-xs font-mono font-medium text-gray-700 w-24 text-right">${sign}${formatCurrency(Math.abs(d.impact))}/yr</span>
+                </div>`;
+            }).join('');
+        }
 
         // Update lifestyle type label
         const lifestyleType = outcome.targetIncome >= 90000 ? 'Comfortable+' : 'Comfortable';
