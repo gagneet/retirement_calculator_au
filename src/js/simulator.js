@@ -579,6 +579,13 @@ export class RetirementSimulator {
             }
         }
 
+        // Carer income reduction: if caring for parents/family, reduce work capacity
+        // for the first carerYearsExpected years of the simulation
+        if (!isPartner && inputs.isCarerForParents && inputs.carerYearsExpected > 0
+            && year <= inputs.carerYearsExpected) {
+            salary *= (1 - (inputs.carerReducedWorkPercent || 0));
+        }
+
         return salary;
     }
 
@@ -885,9 +892,11 @@ export class RetirementSimulator {
                 // Salary sacrifice: voluntary pre-tax super, capped so total concessional ≤ $30,000.
                 // Blocked entirely when TSB ≥ Transfer Balance Cap.
                 const yourEmployerSG = yourGrossSalary * inputs.superContributionRate;
+                // Year 1 only: if user has already used some concessional cap this FY, reduce available room
+                const concessionalAlreadyUsed = (year === 1) ? (inputs.concessionalCapUsed || 0) : 0;
                 const yourSacrifice = superIsCapped ? 0 : Math.min(
                     inputs.yourAdditionalSuperContribution || 0,
-                    Math.max(0, 30000 - yourEmployerSG)
+                    Math.max(0, 30000 - yourEmployerSG - concessionalAlreadyUsed)
                 );
                 const yourTaxableSalary = yourGrossSalary - yourSacrifice;
                 yearlyPostTaxIncome += calculatePostTaxIncome(yourTaxableSalary, taxBrackets, hasPrivateCover);
@@ -909,7 +918,7 @@ export class RetirementSimulator {
                 const partnerEmployerSG = partnerGrossSalary * inputs.superContributionRate;
                 const partnerSacrifice = superIsCapped ? 0 : Math.min(
                     inputs.partnerAdditionalSuperContribution || 0,
-                    Math.max(0, 30000 - partnerEmployerSG)
+                    Math.max(0, 30000 - partnerEmployerSG - concessionalAlreadyUsed)
                 );
                 const partnerTaxableSalary = partnerGrossSalary - partnerSacrifice;
                 yearlyPostTaxIncome += calculatePostTaxIncome(partnerTaxableSalary, taxBrackets, hasPrivateCover);
@@ -927,6 +936,12 @@ export class RetirementSimulator {
 
             accumulatedSuperBalance += yearlySuperContribution;
             accumulatedSavingsBalance += yearlyPostTaxIncome * inputs.percentIncomeSaved;
+            // Carer expense: direct annual financial support to aged parents/family (inflated)
+            if (inputs.isCarerForParents && inputs.carerAnnualExpense > 0
+                && year <= inputs.carerYearsExpected) {
+                const inflatedCarerExpense = inputs.carerAnnualExpense * Math.pow(1 + inputs.inflation, year);
+                accumulatedSavingsBalance = Math.max(0, accumulatedSavingsBalance - inflatedCarerExpense);
+            }
             accumulatedInvestmentPortfolio += inputs.monthlyStockContribution * 12;
 
             // Deduct education costs for dependent children (PART 4)
@@ -1009,7 +1024,19 @@ export class RetirementSimulator {
             calculateLoanBalance(inputs.mortgageRate, yearsToRetirement, inputs.monthlyMortgagePayment, inputs.mortgageBalance)
         );
         const homeEquityAtRetirement = homeValueAtRetirement - mortgageBalanceAtRetirement;
-        const accessibleHomeEquity = inputs.planToDownsize ? homeEquityAtRetirement * this.config.HOME_EQUITY_ACCESS_RATE : 0;
+        let accessibleHomeEquity = inputs.planToDownsize ? homeEquityAtRetirement * this.config.HOME_EQUITY_ACCESS_RATE : 0;
+
+        // Downsizer contribution (ATO: age 55+, up to $300k/person from primary home sale proceeds)
+        // Reclassifies part of home equity from general pool into super — total currentBalance unchanged.
+        if (inputs.planToDownsize && inputs.downsizeContribution) {
+            const ageAtRetirement = inputs.yourCurrentAge + yearsToRetirement;
+            if (ageAtRetirement >= 55) {
+                const downsizeMax = inputs.isSingleCalculation ? 300000 : 600000;
+                const downsizeAmount = Math.min(accessibleHomeEquity, downsizeMax);
+                accumulatedSuperBalance += downsizeAmount;
+                accessibleHomeEquity -= downsizeAmount; // prevent double-count in currentBalance
+            }
+        }
 
         // Retirement phase simulation
         let currentBalance = accumulatedSuperBalance + accumulatedSavingsBalance + accumulatedInvestmentPortfolio + accessibleHomeEquity;
@@ -1194,10 +1221,17 @@ export class RetirementSimulator {
             const homeExemption = inputs.planToDownsize ? 0
                 : (inputs.homeInTrust ? 0 : homeEquityAtRetirement);
             const assessableAssets = currentBalance + propertyEquity - homeExemption + trustAttributedAssets;
-            // Trust distributions add to income test (annual distributions × attribution%)
-            const trustDistributionIncome = inputs.hasTrustAssets
+            // Trust distributions add to income test (annual distributions × attribution%).
+            // The gross amount is used for the Centrelink income test; net-of-tax amount
+            // is what actually offsets withdrawal needs (trust income is taxable).
+            const trustDistributionGross = inputs.hasTrustAssets
                 ? (parseFloat(inputs.trustAnnualDistributions || 0) * parseFloat(inputs.trustAttributionPercentage || 0))
                 : 0;
+            // Discretionary trust income taxed at individual marginal rate via trustTaxRate field;
+            // unit trust distributions may carry a different rate. Default 0 = no pre-paid tax.
+            const trustTaxRate = parseFloat(inputs.trustTaxRate || 0);
+            const trustDistributionIncome = trustDistributionGross; // gross used for income test
+            const trustDistributionNetIncome = trustDistributionGross * (1 - trustTaxRate);
             let pensionIncome = 0;
             let pensionDetails = null;
 
@@ -1248,7 +1282,8 @@ export class RetirementSimulator {
                 );
             }
 
-            const totalIncome = pensionIncome + propertyIncome + trustDistributionIncome;
+            // Pension income test uses gross trust distributions; withdrawal offset uses net-of-tax
+            const totalIncome = pensionIncome + propertyIncome + trustDistributionNetIncome;
             const netWithdrawalNeeded = Math.max(0, totalCostWithHealthcare - totalIncome);
 
             // Enhanced return calculation with regime modeling

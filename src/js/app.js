@@ -1171,6 +1171,19 @@ class RetirementCalculatorApp {
             }
         }
 
+        // Trust structure warnings based on type and control level
+        if (inputs.hasTrustAssets && inputs.trustNetAssets > 0) {
+            if (inputs.trustControlLevel === 'full-control' && inputs.trustType === 'discretionary') {
+                superWarnings.push(`⚠️ <strong>Discretionary Trust (Full Control):</strong> Centrelink may attribute 100% of the trust's assets to you regardless of your stated attribution percentage, because you exercise full control. Professional Centrelink advice is recommended before retirement.`);
+            }
+            if (inputs.trustType === 'unit') {
+                superWarnings.push(`ℹ️ <strong>Unit Trust:</strong> Your units are assessed at market value as a financial investment. The attribution percentage should reflect the fraction of total units you hold.`);
+            }
+            if (inputs.trustType === 'hybrid') {
+                superWarnings.push(`⚠️ <strong>Hybrid Trust:</strong> Hybrid trusts combine fixed and discretionary elements. Centrelink assessment is complex — seek specialist advice as attribution rules may be unfavourable.`);
+            }
+        }
+
         if (superWarnings.length > 0) {
             const warningEl = $('superContributionWarnings');
             const warningHTML = `<div class="mt-3 space-y-2">${superWarnings.map(w => `<div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">${w}</div>`).join('')}</div>`;
