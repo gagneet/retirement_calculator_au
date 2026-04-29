@@ -256,7 +256,7 @@
     <script crossorigin="anonymous"
             integrity="sha512-JizZOUNesiGhMcp9fsA/9W31FOat6QysBM8hSj6ir8iIANIUJ2mhko7Lo1+j0ErftmJ8SebMZLm9iielKjeIEQ=="
             src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.2/jspdf.plugin.autotable.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link crossorigin="anonymous" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
           integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
           referrerpolicy="no-referrer" rel="stylesheet"/>
@@ -722,6 +722,144 @@
             opacity: 0.2;
             margin: 1.5rem 0;
         }
+
+        /* ── DESIGN.md tokens ─────────────────────────────────────────── */
+        :root {
+            --color-navy-950:     #0D1421;
+            --color-navy-900:     #102040;
+            --color-gold-500:     #C9A227;
+            --color-gold-100:     #FBF5E2;
+            --color-cream-50:     #FAF8F5;
+            --color-cream-100:    #F3F0EA;
+            --color-cream-200:    #E8E3D8;
+            --color-charcoal-900: #1A1A2E;
+            --color-charcoal-700: #374151;
+            --color-income-ok:    #2D6A4F;
+            --color-income-warn:  #E07B39;
+            --color-income-bad:   #B5342A;
+            --color-chart-bal:    #1B4F72;
+            --color-chart-agg:    #148A7E;
+            --color-chart-cons:   #6B7FD6;
+            --font-display:       'Playfair Display', Georgia, serif;
+            --font-data:          'JetBrains Mono', 'Courier New', monospace;
+            --font-ui:            'DM Sans', system-ui, sans-serif;
+        }
+        [data-theme="dark"] {
+            --color-cream-50:     var(--color-navy-900);
+            --color-cream-100:    var(--color-navy-950);
+            --color-cream-200:    #1e3a5c;
+            --color-charcoal-900: #f3f4f6;
+            --color-charcoal-700: #d1d5db;
+        }
+
+        /* Typography utilities */
+        .font-display  { font-family: var(--font-display); }
+        .font-data     { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+        .font-ui-clean { font-family: var(--font-ui); }
+
+        /* Data tables — DESIGN.md editorial style */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .data-table thead th {
+            font-family: var(--font-ui);
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--color-charcoal-700);
+            background: var(--color-cream-100);
+            padding: 0.6rem 0.75rem;
+            border-bottom: 2px solid var(--color-cream-200);
+            text-align: left;
+            white-space: nowrap;
+        }
+        .data-table thead th.text-right { text-align: right; }
+        .data-table tbody tr {
+            border-bottom: 1px solid var(--color-cream-200);
+            transition: background 120ms;
+        }
+        .data-table tbody tr:hover { background: var(--color-cream-50); }
+        .data-table tbody tr.retirement-row {
+            background: var(--color-gold-100);
+            border-top: 2px solid var(--color-gold-500);
+            border-bottom: 2px solid var(--color-gold-500);
+        }
+        .data-table tbody td {
+            padding: 0.5rem 0.75rem;
+            color: var(--color-charcoal-700);
+            vertical-align: middle;
+        }
+        .data-table .num {
+            font-family: var(--font-data);
+            font-size: 0.825rem;
+            text-align: right;
+            color: var(--color-charcoal-900);
+        }
+        .data-table .num.positive { color: var(--color-income-ok); }
+        .data-table .num.negative { color: var(--color-income-bad); }
+        .data-table .age-cell {
+            font-family: var(--font-data);
+            font-weight: 600;
+            color: var(--color-charcoal-900);
+        }
+
+        /* Scenario comparison column colouring */
+        .scenario-col-conservative { background: #EFF6FF; }
+        .scenario-col-balanced     { background: #F0FDF4; }
+        .scenario-col-aggressive   { background: #FEF3C7; }
+        .scenario-col-conservative th { color: #1E40AF; border-bottom: 3px solid #3B82F6; }
+        .scenario-col-balanced th     { color: #166534; border-bottom: 3px solid #22C55E; }
+        .scenario-col-aggressive th   { color: #92400E; border-bottom: 3px solid #F59E0B; }
+
+        /* Shortfall action panel */
+        .shortfall-lever {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.625rem;
+            padding: 0.625rem 0.75rem;
+            background: #fff;
+            border: 1px solid #fca5a5;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .shortfall-lever-icon {
+            font-weight: 700;
+            font-size: 1rem;
+            line-height: 1.4;
+            flex-shrink: 0;
+            width: 1.25rem;
+            text-align: center;
+        }
+        .shortfall-lever-icon.up   { color: var(--color-income-ok); }
+        .shortfall-lever-icon.down { color: var(--color-income-warn); }
+        .shortfall-lever-icon.info { color: #3B82F6; }
+        .shortfall-lever-text { font-size: 0.75rem; color: var(--color-charcoal-700); line-height: 1.5; }
+        .shortfall-lever-text strong { color: var(--color-charcoal-900); }
+        .shortfall-lever-value {
+            font-family: var(--font-data);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-income-ok);
+        }
+
+        /* Summary result tiles — better hierarchy */
+        #summaryResults .p-3 strong {
+            font-family: var(--font-ui);
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            color: var(--color-charcoal-700);
+        }
+        #summaryResults .p-3 span,
+        #summaryResults .p-3 .font-semibold,
+        #summaryResults .p-3 .font-bold {
+            font-family: var(--font-data);
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -993,13 +1131,37 @@
         </div>
     </div>
 
-    <!-- Action Buttons Section (Initially Hidden) -->
+    <!-- Action Buttons Section -->
     <div class="mb-8" id="action-buttons-container">
         <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <h3 class="text-lg font-semibold mb-4 text-gray-800">🚀 Advanced Analysis Tools</h3>
-            <p class="text-gray-600 mb-4">Use these tools to run detailed retirement analysis based on your data in the calculator below:</p>
 
-            <!-- Calculator Action Buttons -->
+            <!-- Header row: title on left, Export button on right — equal-looking layout -->
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-lg font-semibold text-gray-800 font-ui-clean">🚀 Advanced Analysis Tools</h3>
+                <div class="relative flex-shrink-0">
+                    <button class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-sm flex items-center gap-2"
+                            id="btnExport">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Enhanced Report
+                        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                    </button>
+                    <div class="absolute right-0 top-full mt-1 min-w-[11rem] rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-20"
+                         id="exportDropdown">
+                        <div aria-labelledby="options-menu" aria-orientation="vertical" class="py-1" role="menu">
+                            <a class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#"
+                               id="btnExportCSV" role="menuitem">Export as CSV</a>
+                            <a class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#"
+                               id="btnExportXLSX" role="menuitem">Export as XLSX</a>
+                            <a class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#"
+                               id="btnExportPDF" role="menuitem">Export as PDF</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-gray-600 text-sm mb-4">Use these tools to run detailed retirement analysis based on your data in the calculator below:</p>
+
+            <!-- Calculator Action Buttons — 12 items, exactly 2 rows of 6 at lg -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
                 <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
                         id="btnCalculate">
@@ -1033,7 +1195,7 @@
                 </button>
                 <button class="px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors font-medium text-sm"
                         id="btnDynamicAllocation"
-                        title="⚖️ Asset Allocation: Get personalized investment allocation recommendations based on your age, risk profile, and financial goals. Uses glide path strategies (e.g., Rule of 110) and considers Australian market factors like franking credits. SEQUENCE: Run Risk Analysis first, then use this tool.">
+                        title="⚖️ Asset Allocation: Get model-based investment allocation recommendations based on your age, risk profile, and financial goals. Uses glide path strategies (e.g., Rule of 110) and considers Australian market factors like franking credits. SEQUENCE: Run Risk Analysis first, then use this tool.">
                     Asset Allocation
                 </button>
                 <button class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
@@ -1053,31 +1215,6 @@
                         id="btnResetDefaults">
                     Reset to Defaults
                 </button>
-                <div class="relative">
-                    <button class="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm flex items-center justify-center"
-                            id="btnExport">
-                        Export Enhanced Report
-                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                             xmlns="http://www.w3.org/2000/svg">
-                            <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"
-                                  stroke-width="2"></path>
-                        </svg>
-                    </button>
-                    <div class="absolute bottom-full mb-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10"
-                         id="exportDropdown">
-                        <div aria-labelledby="options-menu" aria-orientation="vertical" class="py-1" role="menu">
-                            <a class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#"
-                               id="btnExportCSV" role="menuitem">Export as
-                                CSV</a>
-                            <a class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#"
-                               id="btnExportXLSX" role="menuitem">Export as
-                                XLSX</a>
-                            <a class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#"
-                               id="btnExportPDF" role="menuitem">Export as
-                                PDF</a>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -2339,7 +2476,7 @@
                             <span aria-label="Inflation information" class="tooltip-icon">i</span>
                             <span class="tooltiptext">
                                 <strong>Annual Inflation Rate (%)</strong>
-                                Expected long-term inflation rate. RBA targets 2-3% annually. Higher inflation erodes purchasing power, requiring larger retirement balances to maintain lifestyle.
+                                Expected long-term inflation rate. The RBA targets 2–3% annually. The long-run Australian CPI median was 2.6% over 2000–2025 (RBA/ABS). Values above 4% are considered a stressed/pessimistic assumption.
                                 <div class="tooltip-example">Example: 3% inflation means $100 today = $74 purchasing power in 10 years</div>
                             </span>
                         </div>
@@ -2373,7 +2510,7 @@
                             <span aria-label="Super return information" class="tooltip-icon">i</span>
                             <span class="tooltiptext">
                                 <strong>Super Annual Growth (%)</strong>
-                                Expected annual return for your superannuation. Balanced super funds historically return 7-9% long-term. Growth options may achieve 9-11% but with higher volatility.
+                                Expected annual return for your superannuation fund. Australian balanced super funds returned a median 7.5% p.a. over 2000–2025 (APRA). Growth options: 8.5–9.5%. Conservative options: 5–6%. Values above 9% are considered aggressive assumptions.
                                 <div class="tooltip-example">Example: 8% return doubles super balance roughly every 9 years</div>
                             </span>
                         </div>
@@ -2734,6 +2871,25 @@
                     </div>
                     <!-- Scenario Mode (PART 1) -->
                     <div>
+                        <!-- Scenario quick-select preset buttons -->
+                        <div class="mb-4">
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Quick Scenario Presets</label>
+                            <div class="flex gap-2 flex-wrap" role="group" aria-label="Scenario presets">
+                                <button type="button" id="adv-preset-conservative"
+                                        class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                                        aria-pressed="false">Conservative</button>
+                                <button type="button" id="adv-preset-balanced"
+                                        class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
+                                        aria-pressed="false">Balanced</button>
+                                <button type="button" id="adv-preset-aggressive"
+                                        class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+                                        aria-pressed="false">Aggressive</button>
+                                <button type="button" id="adv-preset-reset"
+                                        class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100"
+                                        aria-pressed="false">↺ Reset</button>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-400">Sets return and inflation assumptions. Run the calculation to see updated projections.</p>
+                        </div>
                         <label class="block text-sm font-medium text-gray-700" for="scenarioMode">Scenario Mode</label>
                         <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="scenarioMode">
                             <option value="baseline">Baseline (expected)</option>
@@ -2852,6 +3008,17 @@
         <!-- Outcome View Tab (NEW - Simplified outcome-focused view) -->
         <div class="tab-content active p-6" id="outcome-tab">
 
+                <!-- Depletion warning banner (hidden until populated by JS) -->
+                <div class="hidden mb-4 border-l-4 rounded-r-lg p-4" id="outcome-depletion-banner" role="alert">
+                    <div class="flex items-start gap-3">
+                        <span class="text-xl flex-shrink-0" id="outcome-depletion-icon" aria-hidden="true">⚠️</span>
+                        <div>
+                            <p class="font-semibold text-sm" id="outcome-depletion-heading">Funds may be exhausted before age <span id="outcome-depletion-age">—</span></p>
+                            <p class="text-xs mt-1 leading-relaxed" id="outcome-depletion-message">Under current assumptions, modelled funds may be exhausted before your planning horizon. This illustrates sensitivity to assumptions — consider exploring a later retirement age, increased contributions, or a lower withdrawal target.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- OVERVIEW STATS BAR - always visible with placeholder before calculation -->
                 <div class="outcome-overview-bar" id="outcome-overview-stats">
                     <div class="outcome-overview-placeholder">
@@ -2891,10 +3058,28 @@
                             </div>
                             <div>Your annual income: <span class="projection-highlight" id="outcome-annual-income">$33,200</span>/year
                             </div>
+                            <div class="mt-2 flex items-center gap-2">
+                                <span class="text-sm text-gray-600">Income replacement ratio:</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold" id="outcome-income-replacement-badge" style="background:#e5e7eb;color:#374151;">—</span>
+                                <span class="text-xs text-gray-400">of pre-retirement salary</span>
+                            </div>
                             <div style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-tertiary);">
                                 Based on conservative 6.5% super returns, 2.6% inflation
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Sensitivity Analysis Panel -->
+                    <div class="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4" id="outcome-sensitivity-panel" style="display:none;">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                            Top Drivers of Your Outcome
+                        </h3>
+                        <p class="text-xs text-gray-500 mb-3">The inputs that most affect your projected retirement income under current assumptions.</p>
+                        <div id="outcome-sensitivity-bars" class="space-y-3">
+                            <!-- populated by JS -->
+                        </div>
+                        <p class="text-xs text-gray-400 mt-3">These illustrate the relative sensitivity of modelled outcomes to input changes — not predictions of future results.</p>
                     </div>
 
                     <!-- GAP/SURPLUS INDICATOR -->
@@ -3103,15 +3288,18 @@
 
         <!-- Enhanced Summary Tab -->
         <div class="tab-content p-6" id="summary-tab">
-            <h2 class="text-2xl font-semibold mb-4">Enhanced Retirement Summary</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6" id="summaryResults">
+            <h2 class="text-2xl font-display mb-1" style="font-family:var(--font-display)">Enhanced Retirement Summary</h2>
+            <p class="text-sm text-gray-500 mb-5">Modelled projections based on your inputs. General information only — not financial advice.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-6" id="summaryResults">
                 <!-- Enhanced summary content will be populated by JavaScript -->
             </div>
-            <div class="mt-4 p-4 rounded-lg" id="finalResult">
+            <div class="mt-4 rounded-lg overflow-hidden" id="finalResult">
                 <!-- Final result will be populated by JavaScript -->
             </div>
-            <div class="mt-4 p-4 bg-green-50 rounded-lg" id="enhancedRecommendations">
-                <h4 class="font-semibold text-green-900">AI-Powered Recommendations</h4>
+            <!-- Shortfall action panel — shown by JS when applicable -->
+            <div class="hidden mt-4" id="shortfall-action-panel"></div>
+            <div class="mt-4 p-4 bg-green-50 rounded-lg border border-green-200" id="enhancedRecommendations">
+                <h4 class="font-semibold text-green-900 text-sm" style="font-family:var(--font-ui)">Suggestions Based on Your Modelled Inputs</h4>
                 <ul class="list-disc ml-5 mt-2 text-sm text-green-800" id="enhancedRecommendationsList">
                     <!-- Enhanced recommendations will be populated -->
                 </ul>
@@ -3157,8 +3345,7 @@
         <div class="tab-content p-6" id="suggestions-tab">
             <h2 class="text-2xl font-semibold mb-4">💡 Actionable Suggestions & What-If Analysis</h2>
             <p class="text-gray-600 mb-6">
-                Based on your financial situation, here are specific actions you can take to optimize your retirement
-                outcome.
+                Based on your financial situation, here are options to explore based on your modelled situation.
                 Each suggestion shows the potential impact and includes a "Try This" button to see exactly how it
                 affects your projections.
             </p>
@@ -3237,7 +3424,7 @@
                         <path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                               fill="currentColor"></path>
                     </svg>
-                    Analyzing your financial situation and generating personalized suggestions...
+                    Analysing your modelled scenario and generating suggestions based on your inputs...
                 </div>
             </div>
 
@@ -3288,7 +3475,7 @@
                     property modeling.</p>
             </div>
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
+                <table class="min-w-full divide-y divide-gray-200 data-table">
                     <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -3791,14 +3978,14 @@
                         </div>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full bg-white border border-gray-200 rounded-lg">
-                            <thead class="bg-gray-50">
+                        <table class="min-w-full bg-white border border-gray-200 rounded-lg data-table">
+                            <thead>
                             <tr>
-                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Scenario</th>
-                                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Success Rate</th>
-                                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Median Balance</th>
-                                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Risk Score</th>
-                                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Recommendation</th>
+                                <th class="px-4 py-3 text-left">Scenario</th>
+                                <th class="px-4 py-3 text-right scenario-col-conservative">Success Rate</th>
+                                <th class="px-4 py-3 text-right scenario-col-balanced">Median Balance</th>
+                                <th class="px-4 py-3 text-right scenario-col-aggressive">Risk Score</th>
+                                <th class="px-4 py-3 text-left">Recommendation</th>
                             </tr>
                             </thead>
                             <tbody id="scenarioComparisonTable">
@@ -4141,6 +4328,28 @@
 
         </div>
         <!-- /#costReality-tab -->
+    </div>
+
+    <!-- Methodology Accordion -->
+    <div class="mt-6 border border-gray-200 rounded-lg overflow-hidden">
+        <button type="button" id="methodology-toggle-adv"
+                class="w-full flex items-center justify-between px-5 py-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                aria-expanded="false" aria-controls="methodology-body-adv">
+            <span class="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                How this is calculated
+            </span>
+            <svg id="methodology-chevron-adv" class="w-5 h-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+        <div id="methodology-body-adv" class="hidden px-5 py-5 text-sm text-gray-700 space-y-4 bg-white">
+            <p><strong>Accumulation phase</strong> (pre-retirement): Each year, contributions are added and compound growth is applied: <code class="bg-gray-100 px-1 rounded">Balance × (1 + return) + contribution</code>. Salary sacrifice and employer SG contributions are included.</p>
+            <p><strong>Decumulation phase</strong> (post-retirement): Annual withdrawals are deducted and remaining balance continues to earn assumed returns: <code class="bg-gray-100 px-1 rounded">Balance × (1 + return) − withdrawal</code>. Age Pension supplements withdrawals once eligible (age 67).</p>
+            <p><strong>Monte Carlo simulation</strong>: When run, the model simulates 1,000+ scenarios with varying return sequences. The success rate shows what proportion of simulations reach your planning horizon with a positive balance.</p>
+            <p><strong>All results are illustrative</strong>. They do not account for individual taxation on investment earnings, contribution tax complexity, means testing nuance, healthcare costs, aged care, or legislative changes. Actual outcomes may differ materially.</p>
+            <p class="text-xs text-gray-400">For full methodology details, see the <a href="methodology.html" class="underline hover:text-gray-700">Methodology page</a>. This tool provides general information only and is not financial advice. Jurisdiction: Australia.</p>
+        </div>
     </div>
 
     <!-- Site Footer -->
@@ -4897,6 +5106,56 @@
                 const btn = button.querySelector('button');
                 if (btn) btn.innerHTML = '📊 Hide Advanced Calculator';
             }
+        }
+    });
+
+    // Scenario preset buttons — wire up after DOM loads
+    (function() {
+        // Presets: [superReturn, investmentReturn, inflation, scenarioMode value]
+        const PRESETS = {
+            conservative: { superReturn: '6.5', investmentReturn: '5.5', inflation: '3.5', mode: 'pessimistic' },
+            balanced:     { superReturn: '7.5', investmentReturn: '7.0', inflation: '2.6', mode: 'baseline' },
+            aggressive:   { superReturn: '9.0', investmentReturn: '9.0', inflation: '2.0', mode: 'optimistic' },
+        };
+        const DEFAULTS = { superReturn: '7.5', investmentReturn: '7.0', inflation: '2.6', mode: 'baseline' };
+
+        function applyPreset(preset, activeId) {
+            const setVal = (id, v) => { const el = document.getElementById(id); if (el) { el.value = v; el.dispatchEvent(new Event('change', {bubbles:true})); } };
+            setVal('superReturn', preset.superReturn);
+            setVal('investmentReturn', preset.investmentReturn);
+            setVal('inflation', preset.inflation);
+            setVal('scenarioMode', preset.mode);
+            // Highlight active button
+            ['adv-preset-conservative','adv-preset-balanced','adv-preset-aggressive','adv-preset-reset'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                const isActive = id === activeId;
+                btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                btn.style.outline = isActive ? '2px solid #C9A227' : '';
+                btn.style.outlineOffset = isActive ? '2px' : '';
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('adv-preset-conservative')?.addEventListener('click', () => applyPreset(PRESETS.conservative, 'adv-preset-conservative'));
+            document.getElementById('adv-preset-balanced')?.addEventListener('click', () => applyPreset(PRESETS.balanced, 'adv-preset-balanced'));
+            document.getElementById('adv-preset-aggressive')?.addEventListener('click', () => applyPreset(PRESETS.aggressive, 'adv-preset-aggressive'));
+            document.getElementById('adv-preset-reset')?.addEventListener('click', () => applyPreset(DEFAULTS, 'adv-preset-reset'));
+        });
+    })();
+
+    // Methodology accordion toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const btn = document.getElementById('methodology-toggle-adv');
+        const body = document.getElementById('methodology-body-adv');
+        const chevron = document.getElementById('methodology-chevron-adv');
+        if (btn && body) {
+            btn.addEventListener('click', function() {
+                const isOpen = !body.classList.contains('hidden');
+                body.classList.toggle('hidden', isOpen);
+                btn.setAttribute('aria-expanded', String(!isOpen));
+                if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+            });
         }
     });
 </script>
