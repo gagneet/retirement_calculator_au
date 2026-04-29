@@ -251,14 +251,14 @@
         });
     </script>
 
-    <!-- Comprehensive Site Footer -->
+    <!-- Site Footer -->
     <footer class="bg-gray-900 text-white mt-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <!-- Main Footer Content -->
+            <!-- Main Footer Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
 
-                <!-- About Section -->
-                <div class="lg:col-span-1">
+                <!-- About -->
+                <div>
                     <div class="flex items-center mb-4">
                         <img src="assets/logo.svg" alt="Australian Retirement Calculator" class="h-8 w-auto mr-3">
                         <span class="text-lg font-semibold">Retirement Calculator</span>
@@ -266,100 +266,78 @@
                     <p class="text-gray-400 text-sm leading-relaxed mb-4">
                         A free retirement calculator built around Australian super, tax, and pension rules. Private — your data never leaves your browser.
                     </p>
-                    <div class="flex space-x-1">
+                    <div class="flex flex-wrap gap-1">
                         <span class="inline-block px-2 py-1 bg-green-600 text-xs rounded">✓ Free</span>
                         <span class="inline-block px-2 py-1 bg-blue-600 text-xs rounded">✓ Private</span>
                         <span class="inline-block px-2 py-1 bg-purple-600 text-xs rounded">✓ Australian</span>
                     </div>
                 </div>
 
-                <!-- Navigation Links -->
+                <!-- Pages -->
                 <div>
-                    <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Navigation</h3>
-                    <ul class="space-y-3">
-                        <li><a href="index.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-calculator w-4 mr-2"></i>Main Calculator
-                        </a></li>
-                        <li><a href="how-to-use.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-graduation-cap w-4 mr-2"></i>How to Use Guide
-                        </a></li>
-                        <li><a href="comparison.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-balance-scale w-4 mr-2"></i>Scenario Comparison
-                        </a></li>
-                        <li><a href="contact.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-envelope w-4 mr-2"></i>Feedback & Contact
-                        </a></li>
+                    <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Pages</h3>
+                    <ul class="space-y-2">
+                        <li><a href="index.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-calculator w-4 text-center"></i>Main Calculator</a></li>
+                        <li><a href="advanced.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-sliders-h w-4 text-center"></i>Advanced Calculator</a></li>
+                        <li><a href="how-to-use.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-book-open w-4 text-center"></i>How to Use</a></li>
+                        <li><a href="comparison.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-balance-scale w-4 text-center"></i>Scenario Comparison</a></li>
+                        <li><a href="methodology.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-flask w-4 text-center"></i>Methodology</a></li>
+                        <li><a href="assumptions.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-clipboard-list w-4 text-center"></i>Assumptions</a></li>
+                        <li><a href="changelog.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-history w-4 text-center"></i>Changelog</a></li>
+                        <li><a href="contact.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-envelope w-4 text-center"></i>Feedback &amp; Contact</a></li>
                     </ul>
                 </div>
 
-                <!-- Key Features -->
+                <!-- Official Australian Resources -->
                 <div>
-                    <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Key Features</h3>
-                    <ul class="space-y-3">
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-chart-line text-blue-400 w-4 mr-2"></i>Monte Carlo Simulation
-                        </li>
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-robot text-purple-400 w-4 mr-2"></i>AI Recommendations
-                        </li>
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-home text-green-400 w-4 mr-2"></i>Property Analysis
-                        </li>
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-shield-alt text-indigo-400 w-4 mr-2"></i>Age Pension Calculator
-                        </li>
-                        <li class="text-gray-400 text-sm flex items-center">
-                            <i class="fas fa-file-export text-orange-400 w-4 mr-2"></i>Professional Reports
-                        </li>
+                    <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Official Resources</h3>
+                    <ul class="space-y-2">
+                        <li><a href="https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2" target="_blank" rel="noopener"><i class="fas fa-external-link-alt w-4 text-center text-xs"></i>ATO — Super &amp; Tax</a></li>
+                        <li><a href="https://www.servicesaustralia.gov.au/age-pension" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2" target="_blank" rel="noopener"><i class="fas fa-external-link-alt w-4 text-center text-xs"></i>Services Australia — Age Pension</a></li>
+                        <li><a href="https://moneysmart.gov.au/retirement-income/superannuation" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2" target="_blank" rel="noopener"><i class="fas fa-external-link-alt w-4 text-center text-xs"></i>ASIC MoneySmart</a></li>
+                        <li><a href="https://www.apra.gov.au/superannuation" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2" target="_blank" rel="noopener"><i class="fas fa-external-link-alt w-4 text-center text-xs"></i>APRA — Super Regulator</a></li>
+                        <li><a href="https://www.afca.org.au/" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2" target="_blank" rel="noopener"><i class="fas fa-external-link-alt w-4 text-center text-xs"></i>AFCA — Complaints</a></li>
+                        <li><a href="https://treasury.gov.au/superannuation" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2" target="_blank" rel="noopener"><i class="fas fa-external-link-alt w-4 text-center text-xs"></i>Treasury — Super Policy</a></li>
+                        <li><a href="https://www.superannuation.asn.au/resources/retirement-standard" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2" target="_blank" rel="noopener"><i class="fas fa-external-link-alt w-4 text-center text-xs"></i>ASFA Retirement Standard</a></li>
                     </ul>
                 </div>
 
                 <!-- Support & Legal -->
                 <div>
-                    <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Support & Legal</h3>
-                    <ul class="space-y-3">
-                        <li><a href="privacy.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-user-shield w-4 mr-2"></i>Privacy Policy
-                        </a></li>
-                        <li><a href="terms.html" class="text-gray-400 hover:text-white transition text-sm flex items-center">
-                            <i class="fas fa-file-contract w-4 mr-2"></i>Terms of Use
-                        </a></li>
+                    <h3 class="text-white font-semibold text-sm uppercase tracking-wider mb-4">Support &amp; Legal</h3>
+                    <ul class="space-y-2">
+                        <li><a href="privacy.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-user-shield w-4 text-center"></i>Privacy Policy</a></li>
+                        <li><a href="terms.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-file-contract w-4 text-center"></i>Terms of Use</a></li>
+                        <li><a href="contact.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-comments w-4 text-center"></i>Feedback &amp; Contact</a></li>
                     </ul>
-
-                    <!-- Comparison Specific -->
-                    <div class="mt-6">
-                        <h4 class="text-white text-sm font-medium mb-3">Quick Actions</h4>
-                        <div class="space-y-2">
-                            <button id="footerCreateScenario" class="block text-xs text-blue-400 hover:text-blue-300 transition">→ Create New Scenario</button>
-                            <button id="footerImportScenario" class="block text-xs text-green-400 hover:text-green-300 transition">→ Import Scenario</button>
-                            <a href="index.html" class="block text-xs text-indigo-400 hover:text-indigo-300 transition">→ Back to Calculator</a>
-                        </div>
+                    <div class="mt-6 space-y-2 text-xs text-gray-500">
+                        <div>🇦🇺 Governed by Australian Law</div>
+                        <div>🔒 No personal data collected</div>
+                        <div>📍 All data processed locally</div>
                     </div>
                 </div>
             </div>
 
             <!-- Bottom Bar -->
             <div class="border-t border-gray-800 mt-8 pt-8">
-                <div class="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
-                    <div class="text-sm text-gray-400">
-                        <p>&copy; 2025 Australian Retirement Calculator. Educational tool for retirement planning guidance.</p>
-                    </div>
-                    <div class="flex items-center space-x-4 text-xs text-gray-500">
+                <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
+                    <p class="text-sm text-gray-400 text-center lg:text-left">
+                        © 2026 Australian Retirement Calculator. Educational tool for retirement planning guidance. Not financial advice.
+                    </p>
+                    <div class="flex items-center gap-4 text-xs text-gray-500">
                         <span>🇦🇺 Made for Australia</span>
                         <span>•</span>
-                        <span>Updated for 2025 Tax Rules</span>
+                        <span>2025-26 ATO Rules</span>
                         <span>•</span>
                         <span>Data Stays Local</span>
                     </div>
                 </div>
-
-                <!-- Disclaimer -->
                 <div class="mt-6 p-4 bg-gray-800 rounded-lg">
                     <p class="text-xs text-gray-400 leading-relaxed">
                         <strong class="text-gray-300">Important Disclaimer:</strong> This calculator is for educational and planning purposes only.
-                        Results are estimates based on the inputs provided and should not be considered as financial advice.
+                        Results are estimates based on the inputs provided and should not be considered financial advice.
                         Australian tax laws, superannuation rules, and pension regulations are subject to change.
-                        Always consult with a qualified financial advisor for personalized retirement planning and investment advice.
+                        Always consult a qualified financial adviser for personalised retirement planning and investment advice.
                     </p>
                 </div>
             </div>
