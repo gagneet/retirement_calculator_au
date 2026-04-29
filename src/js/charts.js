@@ -154,8 +154,8 @@ export class ChartManager {
         });
     }
 
-    // Enhanced fan chart for Monte Carlo results
-    renderMonteCarloFanChart(inputs, paths) {
+    // Enhanced fan chart for Monte Carlo results with named scenario lines
+    renderMonteCarloFanChart(inputs, paths, scenarios) {
         this.destroyChart('fanChart');
 
         const canvas = document.getElementById('fanChart');
@@ -179,18 +179,18 @@ export class ChartManager {
         }
 
         // Set reasonable canvas size to prevent overflow
-        canvas.style.maxHeight = '400px';
+        canvas.style.maxHeight = '450px';
         canvas.style.maxWidth = '100%';
 
         const ctx = canvas.getContext('2d');
         const maxYears = Math.max(...paths.map(p => p.length));
         const years = Array.from({length: maxYears}, (_, i) => inputs.retirementAge + i);
 
-        const median = [], p10 = [], p90 = [], p25 = [], p75 = [];
-
+        // Calculate percentile bands from all paths (for confidence shading)
+        const medianData = [], p10 = [], p90 = [], p25 = [], p75 = [];
         for (let year = 0; year < maxYears; year++) {
             const balancesAtYear = paths.map(p => p[year] ?? 0);
-            median.push(percentile(balancesAtYear, 0.5));
+            medianData.push(percentile(balancesAtYear, 0.5));
             p10.push(percentile(balancesAtYear, 0.1));
             p90.push(percentile(balancesAtYear, 0.9));
             p25.push(percentile(balancesAtYear, 0.25));
@@ -202,59 +202,112 @@ export class ChartManager {
             return;
         }
 
+        // Named scenario lines config - ordered bottom to top visually
+        const scenarioLineConfigs = [
+            { key: 'worstCase',   label: 'Worst Case (1 in 100)',     color: '#dc2626', width: 2, dash: [6, 3] },
+            { key: 'pessimistic', label: 'Pessimistic (1 in 10)',      color: '#f97316', width: 1.5, dash: [4, 2] },
+            { key: 'median',      label: 'Median — Most Likely',       color: '#2563eb', width: 3, dash: [] },
+            { key: 'optimistic',  label: 'Optimistic (Top 10%)',       color: '#16a34a', width: 1.5, dash: [4, 2] },
+            { key: 'bestCase',    label: 'Best Case (Top 1%)',         color: '#059669', width: 2, dash: [6, 3] },
+        ];
+
+        // Tooltip descriptions for each scenario
+        const scenarioDescriptions = {
+            'Worst Case (1 in 100)':    'Only 1% of scenarios end this badly. Assumes multiple crises: market crashes, high inflation, and large unexpected costs occurring together.',
+            'Pessimistic (1 in 10)':    '10% of scenarios are at or below this level. Similar to retiring just before a major market downturn like the 2008 GFC.',
+            'Median — Most Likely':     'The midpoint — half of all simulated outcomes are above this, half below. This is your most realistic expected retirement balance.',
+            'Optimistic (Top 10%)':     '90% of scenarios finish below this level. Markets performed well and expenses stayed manageable.',
+            'Best Case (Top 1%)':       'Only 1% of scenarios reach this level. Everything went right: strong markets, low inflation, and no major unexpected costs.',
+        };
+
+        // Build datasets: confidence bands first (drawn behind scenario lines)
+        const datasets = [
+            {
+                label: '80% Confidence Band (Upper)',
+                data: p90,
+                borderColor: 'rgba(59, 130, 246, 0.15)',
+                backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                fill: '+1',
+                pointRadius: 0,
+                borderWidth: 0.5,
+                order: 20,
+                tension: 0.1
+            },
+            {
+                label: '80% Confidence Band (Lower)',
+                data: p10,
+                borderColor: 'rgba(59, 130, 246, 0.15)',
+                backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                fill: false,
+                pointRadius: 0,
+                borderWidth: 0.5,
+                order: 20,
+                tension: 0.1
+            },
+            {
+                label: '50% Confidence Band (Upper)',
+                data: p75,
+                borderColor: 'rgba(34, 197, 94, 0.2)',
+                backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                fill: '+1',
+                pointRadius: 0,
+                borderWidth: 0.5,
+                order: 19,
+                tension: 0.1
+            },
+            {
+                label: '50% Confidence Band (Lower)',
+                data: p25,
+                borderColor: 'rgba(34, 197, 94, 0.2)',
+                backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                fill: false,
+                pointRadius: 0,
+                borderWidth: 0.5,
+                order: 19,
+                tension: 0.1
+            }
+        ];
+
+        // Add named scenario lines if available
+        if (scenarios) {
+            for (const sc of scenarioLineConfigs) {
+                const scData = scenarios[sc.key];
+                if (!scData?.path) continue;
+                // Clamp to 0 — portfolio cannot go negative in reality
+                const data = Array.from({length: maxYears}, (_, i) => Math.max(0, scData.path[i] ?? 0));
+                datasets.push({
+                    label: sc.label,
+                    data,
+                    borderColor: sc.color,
+                    backgroundColor: 'transparent',
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    borderWidth: sc.width,
+                    borderDash: sc.dash,
+                    order: 1
+                });
+            }
+        } else {
+            // Fallback: just show median line if no named scenarios available
+            datasets.push({
+                label: 'Median (50th percentile)',
+                data: medianData,
+                borderColor: '#2563eb',
+                backgroundColor: 'transparent',
+                fill: false,
+                tension: 0.1,
+                pointRadius: 0,
+                borderWidth: 3,
+                order: 1
+            });
+        }
+
+        const maxP90 = Math.max(...p90.filter(v => !isNaN(v) && isFinite(v)));
+
         this.charts.fanChart = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: years,
-                datasets: [
-                    {
-                        label: 'Median (50th percentile)',
-                        data: median,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        fill: false,
-                        tension: 0.1,
-                        pointRadius: 0,
-                        borderWidth: 3
-                    },
-                    {
-                        label: '90th Percentile',
-                        data: p90,
-                        borderColor: 'rgba(59, 130, 246, 0.3)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                        fill: '+1',
-                        pointRadius: 0,
-                        borderWidth: 1
-                    },
-                    {
-                        label: '10th Percentile',
-                        data: p10,
-                        borderColor: 'rgba(59, 130, 246, 0.3)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                        fill: false,
-                        pointRadius: 0,
-                        borderWidth: 1
-                    },
-                    {
-                        label: '75th Percentile',
-                        data: p75,
-                        borderColor: 'rgba(34, 197, 94, 0.4)',
-                        backgroundColor: 'rgba(34, 197, 94, 0.3)',
-                        fill: '+1',
-                        pointRadius: 0,
-                        borderWidth: 1
-                    },
-                    {
-                        label: '25th Percentile',
-                        data: p25,
-                        borderColor: 'rgba(34, 197, 94, 0.4)',
-                        backgroundColor: 'rgba(34, 197, 94, 0.3)',
-                        fill: false,
-                        pointRadius: 0,
-                        borderWidth: 1
-                    }
-                ]
-            },
+            data: { labels: years, datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
@@ -263,11 +316,33 @@ export class ChartManager {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Monte Carlo Portfolio Balance Projections'
+                        text: 'Monte Carlo Portfolio Balance — 5 Key Scenarios',
+                        font: { size: 14, weight: 'bold' }
+                    },
+                    legend: {
+                        display: true,
+                        labels: {
+                            filter: (item) => !item.text.includes('Confidence Band'),
+                            usePointStyle: true,
+                            pointStyle: 'line',
+                            font: { size: 11 }
+                        }
                     },
                     tooltip: {
                         callbacks: {
-                            label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`
+                            title: (items) => `Age ${items[0].label}`,
+                            label: (ctx) => {
+                                if (ctx.dataset.label.includes('Confidence Band')) return null;
+                                const val = ctx.raw;
+                                const valStr = val <= 0 ? 'Funds Depleted ($0)' : formatCurrency(val);
+                                return `${ctx.dataset.label}: ${valStr}`;
+                            },
+                            afterBody: (items) => {
+                                const named = items.find(i => !i.dataset.label.includes('Confidence Band'));
+                                if (!named) return [];
+                                const desc = scenarioDescriptions[named.dataset.label];
+                                return desc ? ['', desc] : [];
+                            }
                         }
                     }
                 },
@@ -277,17 +352,43 @@ export class ChartManager {
                     description: 'Monte Carlo projection: range of possible portfolio balances at this age based on thousands of simulated market scenarios.'
                 })),
                 scales: {
-                    x: { title: { display: true, text: 'Age (years)' } },
+                    x: { title: { display: true, text: 'Your Age' } },
                     y: {
                         title: { display: true, text: 'Portfolio Balance (AUD)' },
                         beginAtZero: true,
-                        suggestedMax: Math.max(...p90.filter(v => !isNaN(v) && isFinite(v))) * 1.1 || 100000,
-                        ticks: {
-                            callback: (value) => formatCurrency(value)
-                        }
+                        suggestedMax: maxP90 * 1.1 || 100000,
+                        ticks: { callback: (value) => formatCurrency(value) }
                     }
                 }
-            }
+            },
+            plugins: [{
+                id: 'zeroReferenceLine',
+                afterDraw: (chart) => {
+                    const ctx = chart.ctx;
+                    const yScale = chart.scales.y;
+                    const xLeft = chart.chartArea.left;
+                    const xRight = chart.chartArea.right;
+                    const yZero = yScale.getPixelForValue(0);
+
+                    if (yZero >= chart.chartArea.top && yZero <= chart.chartArea.bottom) {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.moveTo(xLeft, yZero);
+                        ctx.lineTo(xRight, yZero);
+                        ctx.strokeStyle = 'rgba(220, 38, 38, 0.6)';
+                        ctx.setLineDash([8, 4]);
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                        ctx.restore();
+
+                        ctx.save();
+                        ctx.fillStyle = 'rgba(220, 38, 38, 0.8)';
+                        ctx.font = 'bold 11px Arial';
+                        ctx.fillText('$0 — Funds Depleted', xLeft + 4, yZero - 4);
+                        ctx.restore();
+                    }
+                }
+            }]
         });
     }
 

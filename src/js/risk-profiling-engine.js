@@ -194,8 +194,10 @@ export class RiskProfilingEngine {
         const yearsToRetirement = Math.max(0, (inputs.retirementAge || 67) - (inputs.yourCurrentAge || 30));
         requirement.factors.timeUrgency = this.scoreRiskFactorByYears('requirement', 'timeUrgency', yearsToRetirement);
 
-        // Goal ambition assessment
-        const targetIncome = inputs.desiredRetirementIncome || ((inputs.yourSalary || 0) + (inputs.partnerSalary || 0)) * 0.8;
+        // Goal ambition assessment — prefer explicit desired income, then ASFA target, then 80% of salary
+        const targetIncome = inputs.desiredRetirementIncome
+            || inputs.asfaComfortable
+            || ((inputs.yourSalary || 0) + (inputs.partnerSalary || 0)) * 0.8;
         const currentIncome = (inputs.yourSalary || 0) + (inputs.partnerSalary || 0);
         const replacementRatio = currentIncome > 0 ? targetIncome / currentIncome : 0.8;
         requirement.factors.goalAmbition = this.scoreGoalAmbition(replacementRatio);
@@ -396,7 +398,7 @@ export class RiskProfilingEngine {
 
         // Fallback calculation based on savings rate and goals
         const currentIncome = (inputs.yourSalary || 0) + (inputs.partnerSalary || 0);
-        const targetRetirementIncome = inputs.desiredRetirementIncome || currentIncome * 0.8;
+        const targetRetirementIncome = inputs.desiredRetirementIncome || inputs.asfaComfortable || currentIncome * 0.8;
         const yearsToRetirement = Math.max(1, (inputs.retirementAge || 67) - (inputs.yourCurrentAge || 30));
         const currentSavings = (inputs.yourCurrentSuper || 0) + (inputs.partnerCurrentSuper || 0) +
             (inputs.currentSavings || 0) + (inputs.currentStocks || 0);

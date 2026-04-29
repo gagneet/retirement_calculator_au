@@ -754,7 +754,9 @@ export class RetirementSimulator {
 
         // Pre-retirement accumulation phase
         let accumulatedSuperBalance = inputs.yourCurrentSuper + inputs.partnerCurrentSuper;
-        let accumulatedSavingsBalance = inputs.currentSavings;
+        // Reduce starting savings by non-mortgage debts (these are liabilities against net worth)
+        const totalOtherDebts = (inputs.creditCardBalance || 0) + (inputs.personalLoanBalance || 0) + (inputs.carLoanBalance || 0);
+        let accumulatedSavingsBalance = Math.max(0, inputs.currentSavings - totalOtherDebts);
         let accumulatedInvestmentPortfolio = inputs.currentStocks;
         let propertyWasSold = false;
         let propertyEquity = 0;
@@ -942,6 +944,27 @@ export class RetirementSimulator {
 
             accumulatedSuperBalance += yearlySuperContribution;
             accumulatedSavingsBalance += yearlyPostTaxIncome * inputs.percentIncomeSaved;
+
+            // High-interest debt drag: annual interest on credit card/personal loan/car loan
+            // Model assumes debts are paid off within ~5 years (repayments reduce balance over time)
+            if (year <= 5 && totalOtherDebts > 0) {
+                const debtYearFraction = Math.max(0, 1 - (year - 1) / 5); // Linear paydown over 5 years
+                const annualDebtInterest = (inputs.creditCardBalance || 0) * (inputs.creditCardRate || 0.2) * debtYearFraction
+                    + (inputs.personalLoanBalance || 0) * (inputs.personalLoanRate || 0.09) * debtYearFraction
+                    + (inputs.carLoanBalance || 0) * 0.08 * debtYearFraction; // Car loan ~8% typical
+                accumulatedSavingsBalance = Math.max(0, accumulatedSavingsBalance - annualDebtInterest);
+            }
+
+            // Additional income sources: business profit + investment distributions (outside super)
+            // These grow in savings at the savings return rate (not the investment return rate)
+            if ((inputs.businessIncome || 0) > 0 || (inputs.investmentIncome || 0) > 0) {
+                const extraIncome = (inputs.businessIncome || 0) + (inputs.investmentIncome || 0);
+                // Apply a simplified 30% average tax rate on business/investment income
+                const afterTaxExtra = extraIncome * 0.70;
+                // Save a portion (same as percentIncomeSaved) and add the rest to savings
+                accumulatedSavingsBalance += afterTaxExtra * Math.max(0.5, inputs.percentIncomeSaved || 0.1);
+            }
+
             // Carer expense: direct annual financial support to aged parents/family (inflated)
             if (inputs.isCarerForParents && inputs.carerAnnualExpense > 0
                 && year <= inputs.carerYearsExpected) {
@@ -1248,7 +1271,15 @@ export class RetirementSimulator {
                 }
             }
 
-            const totalCostWithHealthcare = baseIncomeNeeded + healthcareCost + agedCareCost + lhcRetirementCost;
+            // Travel and hobby expenses in retirement (inflation-adjusted from today's dollars)
+            const travelHobbyBase = (inputs.annualTravelBudget || 0) + (inputs.annualHobbyBudget || 0);
+            const travelHobbyWithInflation = travelHobbyBase * Math.pow(1 + inputs.inflation, retirementYear);
+
+            // Health condition multiplier for healthcare costs
+            const healthMultiplier = { excellent: 0.8, good: 1.0, fair: 1.25, poor: 1.6 }[inputs.healthCondition] || 1.0;
+            const adjustedHealthcareCost = healthcareCost * healthMultiplier;
+
+            const totalCostWithHealthcare = baseIncomeNeeded + adjustedHealthcareCost + agedCareCost + lhcRetirementCost + travelHobbyWithInflation;
 
             // AWLR eligibility check: Age Pension requires 10+ years Australian residence
             // If ageCameToAustralia is set, compute residence years at retirement

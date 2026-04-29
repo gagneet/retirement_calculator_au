@@ -1044,6 +1044,11 @@
                         id="btnScenarioComparison">
                     Compare Scenarios
                 </button>
+                <button class="px-4 py-2 border border-amber-400 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors font-medium text-sm"
+                        id="btnCostReality"
+                        title="💰 Cost Reality Check: See exactly what everyday life will cost at retirement — inflation-adjusted, across three scenarios: home paid off, home with mortgage, and aged care facility. Includes RAD vs DAP comparison for aged care.">
+                    💰 Cost Reality Check
+                </button>
                 <button class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium text-sm"
                         id="btnResetDefaults">
                     Reset to Defaults
@@ -1308,6 +1313,54 @@
                             <span id="riskToleranceDescription">Balanced approach with moderate risk for steady growth</span>
                         </div>
                     </div>
+
+                    <!-- Risk Profiling Sub-Questions — feed risk-profiling-engine.js accurately -->
+                    <div class="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                        <h4 class="text-xs font-semibold text-indigo-800 mb-2">Risk Profile Details
+                            <span class="font-normal text-indigo-600">(improves accuracy of risk assessment)</span>
+                        </h4>
+                        <div class="space-y-2">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700" for="lossReaction">If your portfolio dropped 20% in one year, you would:</label>
+                                <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="lossReaction">
+                                    <option value="panic_sell">Sell everything immediately to stop losses</option>
+                                    <option value="concerned">Feel very worried, sell some investments</option>
+                                    <option value="monitor" selected>Monitor closely but hold most investments</option>
+                                    <option value="hold">Hold steady — markets recover over time</option>
+                                    <option value="buy_more">See it as a buying opportunity and invest more</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700" for="investmentExperience">Years of personal investment experience:</label>
+                                <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="investmentExperience">
+                                    <option value="0">None — just starting out</option>
+                                    <option value="2" selected>1–3 years</option>
+                                    <option value="5">3–7 years</option>
+                                    <option value="10">7–15 years</option>
+                                    <option value="20">15+ years</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700" for="marketUnderstanding">Your understanding of financial markets:</label>
+                                <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="marketUnderstanding">
+                                    <option value="basic">Basic — I know shares go up and down</option>
+                                    <option value="moderate" selected>Moderate — I understand diversification, bonds, cycles</option>
+                                    <option value="advanced">Advanced — I understand macro economics, valuations, derivatives</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700" for="volatilityComfort">Annual portfolio fluctuation I'm comfortable with:</label>
+                                <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="volatilityComfort">
+                                    <option value="0.05">Up to ±5% — very stable (cash/bonds)</option>
+                                    <option value="0.10">Up to ±10% — conservative</option>
+                                    <option value="0.15" selected>Up to ±15% — balanced</option>
+                                    <option value="0.20">Up to ±20% — growth-oriented</option>
+                                    <option value="0.30">Up to ±30%+ — aggressive growth</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
                         <div class="label-with-tooltip">
                             <label class="text-sm font-medium text-gray-700" for="hasEmergencyFund">Emergency Fund
@@ -1877,6 +1930,25 @@
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="percentIncomeSaved" step="0.1" type="text"
                            value="9" min="0" max="100">
                 </div>
+
+                <!-- Additional income sources -->
+                <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <h4 class="text-xs font-semibold text-green-800 mb-2">Additional Income Sources
+                        <span class="font-normal text-green-600">(outside salary — added to accumulation)</span>
+                    </h4>
+                    <div class="space-y-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700" for="businessIncome">Net Business / Self-Employment Income ($/year)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="businessIncome" type="text" value="0" min="0" placeholder="e.g. 30000">
+                            <p class="text-xs text-gray-500 mt-0.5">Net profit from business/freelance after expenses but before personal income tax. Note: business owners may not receive SG super contributions — check your setup.</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700" for="investmentIncome">Annual Investment Income — outside super ($/year)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="investmentIncome" type="text" value="0" min="0" placeholder="e.g. 8000">
+                            <p class="text-xs text-gray-500 mt-0.5">Dividends, trust distributions, or interest from managed funds/ETFs/term deposits outside superannuation.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1939,6 +2011,45 @@
                         <option value="false">No - Stay in current home</option>
                         <option value="true">Yes - Downsize and access equity</option>
                     </select>
+                </div>
+            </div>
+
+            <div class="advanced-section mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <h3 class="text-lg font-medium text-gray-700 mb-3">Other Debts
+                    <span class="ml-2 text-xs font-normal text-gray-500">(affect cash flow &amp; net worth)</span>
+                </h3>
+                <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="creditCardBalance">Credit Card Balance ($)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="creditCardBalance" type="text" value="0" min="0" placeholder="e.g. 8000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="creditCardRate">Credit Card Rate (%)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="creditCardRate" type="text" value="20" min="0" max="40" placeholder="e.g. 20">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="personalLoanBalance">Personal Loan Balance ($)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="personalLoanBalance" type="text" value="0" min="0" placeholder="e.g. 15000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="personalLoanRate">Personal Loan Rate (%)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="personalLoanRate" type="text" value="9" min="0" max="30" placeholder="e.g. 9">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="carLoanBalance">Car Loan Balance ($)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="carLoanBalance" type="text" value="0" min="0" placeholder="e.g. 20000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="hecsBalance">HECS/HELP Balance ($)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="hecsBalance" type="text" value="0" min="0" placeholder="e.g. 30000">
+                        </div>
+                    </div>
+                    <p class="text-xs text-amber-700">High-interest debts (credit cards, personal loans) reduce your effective savings rate. Pay these off before investing — the guaranteed 20% return beats any investment.</p>
                 </div>
             </div>
 
@@ -2405,6 +2516,16 @@
                         <div class="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-800 hidden" id="lhcLoadingInfo"></div>
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-gray-700" for="healthCondition">Current Health Condition</label>
+                        <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="healthCondition">
+                            <option value="excellent">Excellent — No ongoing conditions</option>
+                            <option value="good" selected>Good — Minor manageable conditions</option>
+                            <option value="fair">Fair — Ongoing conditions, regular treatment</option>
+                            <option value="poor">Poor — Serious conditions, significant healthcare needs</option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">Affects projected healthcare cost trajectory and aged care probability. Fair/Poor health increases costs and reduces aged care start age.</p>
+                    </div>
+                    <div>
                         <label class="block text-sm font-medium text-gray-700" for="currentHealthcareCosts">Current
                             Annual Healthcare Costs ($)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="currentHealthcareCosts" type="text"
@@ -2483,12 +2604,53 @@
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700" for="asfaComfortable">ASFA Comfortable
-                        (Couple) p.a.</label>
+                    <label class="block text-sm font-medium text-gray-700" for="asfaComfortable">Desired Annual Income in Retirement
+                        (today's dollars)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="asfaComfortable" type="text"
                            value="73875" min="0">
-                    <p class="mt-1 text-xs text-gray-500">March 2025: $73,875 comfortable, $48,184 modest</p>
+                    <p class="mt-1 text-xs text-gray-500">Enter your target annual spending in <strong>today's dollars</strong> — the simulation automatically adjusts for inflation. ASFA Comfortable standard (Mar 2025): couples $73,875, singles $52,085.</p>
                 </div>
+
+                <!-- Retirement Lifestyle Breakdown -->
+                <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 class="text-sm font-semibold text-blue-800 mb-2">Lifestyle Expense Breakdown (optional)</h4>
+                    <p class="text-xs text-blue-700 mb-3">These are added on top of your base desired income above. Leave at 0 if already included in your target income.</p>
+                    <div class="space-y-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700" for="annualTravelBudget">Annual Travel Budget ($)</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="annualTravelBudget" type="text" value="0" min="0" placeholder="e.g. 10000">
+                                <p class="text-xs text-gray-500 mt-0.5">Domestic &amp; overseas holidays</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700" for="annualHobbyBudget">Annual Hobbies &amp; Recreation ($)</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="annualHobbyBudget" type="text" value="0" min="0" placeholder="e.g. 5000">
+                                <p class="text-xs text-gray-500 mt-0.5">Golf, sports, arts, clubs, etc.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legacy / Inheritance Planning -->
+                <div class="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <h4 class="text-sm font-semibold text-purple-800 mb-2">Legacy &amp; Inheritance Planning</h4>
+                    <div class="space-y-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700" for="legacyGoal">Inheritance / Estate Goal ($)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="legacyGoal" type="text" value="0" min="0" placeholder="e.g. 200000">
+                            <p class="text-xs text-gray-500 mt-0.5">Amount you want to leave to children, charity, or estate. Set to 0 if you plan to spend everything.</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700" for="legacyGoalType">Legacy Priority</label>
+                            <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="legacyGoalType">
+                                <option value="none">No legacy goal — spend everything</option>
+                                <option value="nice_to_have">Nice to have — if money is left over</option>
+                                <option value="important">Important — target this as minimum final balance</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="agePensionMax">Max Age Pension (Couple)
                         p.a.</label>
@@ -2684,6 +2846,7 @@
             <button class="tab-button" onclick="showTab('overseas')">🌍 Overseas</button>
             <button class="tab-button" onclick="showTab('scenarios')">Scenario Compare</button>
             <button class="tab-button" onclick="showTab('lifeSimulator')">🔮 Life Simulator</button>
+            <button class="tab-button" onclick="showTab('costReality')">💰 Cost Reality</button>
         </div>
 
         <!-- Outcome View Tab (NEW - Simplified outcome-focused view) -->
@@ -3796,6 +3959,188 @@
 
         </div>
         <!-- /#lifeSimulator-tab -->
+
+        <!-- ═══════════════════════════════════════════════════════════════════
+             COST REALITY CHECK TAB
+             ═══════════════════════════════════════════════════════════════════ -->
+        <div class="tab-content p-6" id="costReality-tab">
+
+            <!-- Header -->
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-1">💰 Retirement Cost Reality Check</h2>
+                <p class="text-gray-500 text-sm">
+                    What will everyday life actually cost? Inflation-adjusted projections across three scenarios —
+                    showing you the real dollar amounts you'll need at retirement and beyond.
+                </p>
+            </div>
+
+            <!-- Run button + status -->
+            <div class="flex items-center gap-4 mb-6">
+                <button id="btnRunCostReality"
+                    class="px-6 py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold text-sm shadow-sm">
+                    Run Cost Reality Analysis
+                </button>
+                <span id="costRealityStatus" class="text-sm text-gray-500 hidden">
+                    <svg class="inline w-4 h-4 animate-spin mr-1 text-amber-600" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"></path>
+                    </svg>
+                    Calculating…
+                </span>
+            </div>
+
+            <!-- Results container — hidden until data arrives -->
+            <div id="costRealityResults" class="hidden">
+
+                <!-- ── Meta info bar ─────────────────────────────────────── -->
+                <div id="costRealityMeta"
+                     class="flex flex-wrap gap-3 mb-6 p-3 bg-gray-50 rounded-lg border border-gray-200 text-xs text-gray-600">
+                    <!-- filled by JS -->
+                </div>
+
+                <!-- ── Scenario sub-tabs ─────────────────────────────────── -->
+                <div class="flex gap-2 mb-6 border-b border-gray-200 pb-0">
+                    <button onclick="showCostScenario('homePaidOff')" id="cstab-homePaidOff"
+                        class="cost-scenario-tab px-4 py-2 text-sm font-medium border-b-2 border-emerald-500 text-emerald-700 bg-emerald-50 rounded-t-lg">
+                        🏠 Own Home — Paid Off
+                    </button>
+                    <button onclick="showCostScenario('homeMortgage')" id="cstab-homeMortgage"
+                        class="cost-scenario-tab px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-blue-600 hover:border-blue-400 rounded-t-lg transition-colors">
+                        🏦 Own Home — With Mortgage
+                    </button>
+                    <button onclick="showCostScenario('agedCare')" id="cstab-agedCare"
+                        class="cost-scenario-tab px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-amber-600 hover:border-amber-400 rounded-t-lg transition-colors">
+                        🏥 Aged Care Facility
+                    </button>
+                </div>
+
+                <!-- ── Summary cards (4 snapshot columns) ───────────────── -->
+                <div id="costSummaryCards" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <!-- filled by JS per active scenario -->
+                </div>
+
+                <!-- ── Charts row ────────────────────────────────────────── -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+                    <!-- Stacked bar — expense breakdown at retirement -->
+                    <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                        <h3 class="font-semibold text-gray-800 mb-1 text-sm">Annual Expense Breakdown at Retirement</h3>
+                        <p class="text-xs text-gray-400 mb-3">What each spending category will cost in the year you retire (inflation-adjusted)</p>
+                        <div class="relative" style="height:300px">
+                            <canvas id="costBreakdownChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Line chart — year-by-year timeline -->
+                    <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                        <h3 class="font-semibold text-gray-800 mb-1 text-sm">Total Annual Cost — All Three Scenarios</h3>
+                        <p class="text-xs text-gray-400 mb-3">How total yearly costs grow from today to end of life across each scenario</p>
+                        <div class="relative" style="height:300px">
+                            <canvas id="costTimelineChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Expense breakdown table ────────────────────────────── -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
+                    <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                        <h3 class="font-semibold text-gray-800 text-sm">Expense Breakdown by Category</h3>
+                        <p class="text-xs text-gray-400 mt-0.5">Figures in today's dollars escalated at category-specific inflation rates</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
+                                    <th class="text-left px-4 py-2.5 font-medium w-40">Category</th>
+                                    <th class="text-right px-4 py-2.5 font-medium">Today</th>
+                                    <th class="text-right px-4 py-2.5 font-medium">At Retirement</th>
+                                    <th class="text-right px-4 py-2.5 font-medium">10yr In</th>
+                                    <th class="text-right px-4 py-2.5 font-medium">20yr In</th>
+                                </tr>
+                            </thead>
+                            <tbody id="costExpenseTable">
+                                <!-- filled by JS -->
+                            </tbody>
+                            <tfoot id="costExpenseTotal" class="border-t-2 border-gray-200 font-semibold bg-gray-50">
+                                <!-- filled by JS -->
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ── RAD / DAP Calculator (aged care only) ─────────────── -->
+                <div id="radDapSection" class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6 hidden">
+                    <h3 class="font-bold text-amber-900 mb-1 text-base">Aged Care Accommodation: RAD vs DAP</h3>
+                    <p class="text-amber-700 text-xs mb-4">
+                        When entering a residential aged care facility, you can pay for your room as a lump sum
+                        <strong>RAD</strong> (Refundable Accommodation Deposit — refunded to your estate on exit) or
+                        as an ongoing daily charge <strong>DAP</strong> (Daily Accommodation Payment), or a combination.
+                    </p>
+
+                    <!-- RAD input slider -->
+                    <div class="mb-4 flex flex-wrap items-center gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-amber-800 mb-1">RAD Lump Sum Amount</label>
+                            <div class="flex items-center gap-2">
+                                <span class="text-amber-700 font-medium">$</span>
+                                <input type="number" id="radInputAmount" value="500000" step="25000" min="100000" max="2000000"
+                                       class="w-36 px-2 py-1.5 border border-amber-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                       onchange="updateRadDap(this.value)" />
+                                <input type="range" id="radSlider" min="100000" max="2000000" step="25000" value="500000"
+                                       class="w-48 accent-amber-500"
+                                       oninput="document.getElementById('radInputAmount').value=this.value; updateRadDap(this.value)" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RAD/DAP output cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                        <div class="bg-white border border-amber-200 rounded-lg p-3 text-center">
+                            <div class="text-xs text-gray-500 mb-1">Daily Accommodation Payment</div>
+                            <div id="radDapDay" class="text-xl font-bold text-amber-700">—</div>
+                            <div class="text-xs text-gray-400">per day</div>
+                        </div>
+                        <div class="bg-white border border-amber-200 rounded-lg p-3 text-center">
+                            <div class="text-xs text-gray-500 mb-1">DAP Annual Cost</div>
+                            <div id="radDapYear" class="text-xl font-bold text-amber-700">—</div>
+                            <div class="text-xs text-gray-400">per year</div>
+                        </div>
+                        <div class="bg-white border border-amber-200 rounded-lg p-3 text-center">
+                            <div class="text-xs text-gray-500 mb-1">Forgone Investment Return</div>
+                            <div id="radOppCost" class="text-xl font-bold text-blue-700">—</div>
+                            <div class="text-xs text-gray-400">per year (5% return on RAD)</div>
+                        </div>
+                        <div class="bg-white border border-amber-200 rounded-lg p-3 text-center">
+                            <div class="text-xs text-gray-500 mb-1">Better Choice (5yr horizon)</div>
+                            <div id="radRecommendation" class="text-base font-bold text-gray-800">—</div>
+                            <div id="radSaving" class="text-xs text-gray-400">—</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-amber-200 rounded-lg p-3 text-xs text-gray-600 leading-relaxed">
+                        <strong class="text-amber-800">How it works:</strong>
+                        The RAD is fully refundable — your estate gets it back when you leave the facility.
+                        The DAP is an ongoing daily charge calculated using the government's Maximum Permissible Interest Rate (MPIR, currently 7.21% pa).
+                        Paying the RAD in full avoids the DAP stream, but you lose the investment returns you could have earned on that money.
+                        If your expected portfolio return exceeds the MPIR, you may be better off paying DAP and investing the RAD funds.
+                    </div>
+                </div>
+
+                <!-- ── Context & caveats ───────────────────────────────────── -->
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-800 leading-relaxed">
+                    <strong class="text-blue-900">About these projections:</strong>
+                    Figures are inflation-adjusted using category-specific rates (healthcare 6.5%, utilities 5%, general 2.9%).
+                    Aged care fees are based on 2024-25 government rates and include the basic daily fee (~$61/day), an average means-tested care fee, and a lifestyle extras package.
+                    Actual costs will vary by facility, care needs, and individual financial assessment.
+                    Home maintenance assumes $8,000/year for rates, insurance, and upkeep on a paid-off home.
+                    Travel and hobbies use your inputs from the calculator above.
+                </div>
+
+            </div>
+            <!-- /#costRealityResults -->
+
+        </div>
+        <!-- /#costReality-tab -->
     </div>
 
     <!-- Site Footer -->

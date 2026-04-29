@@ -27,6 +27,7 @@ import { ActionGenerator } from './action-generator.js';
 import { WhatIfEngine } from './what-if-engine.js';
 import { ResilienceScenarioEngine } from './resilience-scenarios.js';
 import { runFullSimulation } from './simulation_engine/index.js';
+import { RetirementCostAnalyzer } from './retirement-cost-analyzer.js';
 // js/app.js - Main Application Controller
 
 // Import new engines with error handling
@@ -620,6 +621,16 @@ class RetirementCalculatorApp {
             hasDebt: safeGetSelectValue('hasDebt', config.risk.hasDebt),
             dependents: safeGetValue('dependents', config.risk.dependents),
 
+            // Risk profiling sub-questions (feed risk-profiling-engine.js accurately)
+            lossReaction: safeGetSelectValue('lossReaction', 'monitor'),
+            investmentExperience: parseFloat(safeGetSelectValue('investmentExperience', '2')) || 2,
+            marketUnderstanding: safeGetSelectValue('marketUnderstanding', 'moderate'),
+            volatilityComfort: parseFloat(safeGetSelectValue('volatilityComfort', '0.15')) || 0.15,
+
+            // Additional income sources
+            businessIncome: parseFormattedNumber(getRawValue('businessIncome', '0')),
+            investmentIncome: parseFormattedNumber(getRawValue('investmentIncome', '0')),
+
             // Enhanced dependent details
             dependentDetails: {
                 childrenUnder5: safeGetValue('childrenUnder5', 0),
@@ -783,7 +794,26 @@ class RetirementCalculatorApp {
             propertyCrashProbability: safeGetValue('propertyCrashProbability', 3) / 100,
 
             // Partnership status for calculations
-            isSingleCalculation: finalPartnerAge === 0
+            isSingleCalculation: finalPartnerAge === 0,
+
+            // Other debts (affect net worth and cash flow)
+            creditCardBalance: parseFormattedNumber(getRawValue('creditCardBalance', '0')),
+            creditCardRate: safeGetValue('creditCardRate', 20) / 100,
+            personalLoanBalance: parseFormattedNumber(getRawValue('personalLoanBalance', '0')),
+            personalLoanRate: safeGetValue('personalLoanRate', 9) / 100,
+            carLoanBalance: parseFormattedNumber(getRawValue('carLoanBalance', '0')),
+            hecsBalance: parseFormattedNumber(getRawValue('hecsBalance', '0')),
+
+            // Health condition (affects healthcare cost trajectory and aged care probability)
+            healthCondition: safeGetSelectValue('healthCondition', 'good'),
+
+            // Retirement lifestyle breakdown (added to base desired income)
+            annualTravelBudget: parseFormattedNumber(getRawValue('annualTravelBudget', '0')),
+            annualHobbyBudget: parseFormattedNumber(getRawValue('annualHobbyBudget', '0')),
+
+            // Legacy / inheritance planning
+            legacyGoal: parseFormattedNumber(getRawValue('legacyGoal', '0')),
+            legacyGoalType: safeGetSelectValue('legacyGoalType', 'none')
         };
 
         // 4C: Validate asset allocation sums to 100%
@@ -1699,53 +1729,217 @@ class RetirementCalculatorApp {
     generateMonteCarloNarrative(results, inputs) {
         const successRate = results.successRate * 100;
         const runs = inputs.numRuns || results.paths?.length || 1000;
-        const median = results.median;
-        const p10 = results.percentile10;
-        const p90 = results.percentile90;
+        const sc = results.scenarios;
+        const retirementYears = (inputs.yourLifespan || 90) - (inputs.retirementAge || 67);
 
-        let narrative = `
-            <div class="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-4 mb-6 border border-indigo-200">
-                <h3 class="text-lg font-semibold mb-3 text-indigo-800">🎯 Understanding Your Monte Carlo Analysis</h3>
-                <div class="space-y-3 text-sm text-gray-700">
-                    <p class="leading-relaxed">
-                        <strong>What is Monte Carlo Simulation?</strong><br>
-                        Think of this as running your retirement plan ${runs.toLocaleString()} times with different market conditions.
-                        Each simulation uses realistic but random investment returns based on historical market data. This shows you the range of possible outcomes for your retirement.
-                    </p>
+        const scenarioCards = sc ? `
+            <div class="mt-4">
+                <h4 class="font-semibold text-gray-800 mb-3">What Each Scenario Means in Plain English</h4>
+                <div class="space-y-3">
 
-                    <div class="grid md:grid-cols-2 gap-4 mt-4">
-                        <div class="bg-white rounded p-3 border">
-                            <strong class="text-blue-600">Success Rate: ${successRate.toFixed(1)}%</strong>
-                            <p class="mt-1 text-xs">
-                                ${this.getSuccessRateExplanation(successRate)}
-                            </p>
+                    <div class="flex gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div class="flex-shrink-0 w-3 h-full min-h-[3rem] bg-red-600 rounded"></div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <strong class="text-red-800">Worst Case <span class="font-normal text-xs">(1-in-100 chance)</span></strong>
+                                <span class="text-red-700 font-semibold text-sm ml-2">${sc.worstCase?.outcome <= 0 ? 'Funds Depleted' : formatCurrency(sc.worstCase?.outcome || 0)}</span>
+                            </div>
+                            <p class="text-xs text-red-700 mt-1">Imagine every bad thing happening at once — a stock market crash early in retirement, high inflation eroding your savings, large unexpected medical bills, and low investment returns throughout. Only 1 in 100 retirements are this bad. This is your "stress test" — if you can survive this, you're in great shape.</p>
                         </div>
-                        <div class="bg-white rounded p-3 border">
-                            <strong class="text-green-600">Median Outcome: ${formatCurrency(median)}</strong>
-                            <p class="mt-1 text-xs">
-                                In half of the simulations, you end up with more than this amount. In the other half, you have less.
-                            </p>
+                    </div>
+
+                    <div class="flex gap-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <div class="flex-shrink-0 w-3 h-full min-h-[3rem] bg-orange-500 rounded"></div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <strong class="text-orange-800">Pessimistic <span class="font-normal text-xs">(1-in-10 chance)</span></strong>
+                                <span class="text-orange-700 font-semibold text-sm ml-2">${sc.pessimistic?.outcome <= 0 ? 'Funds Depleted' : formatCurrency(sc.pessimistic?.outcome || 0)}</span>
+                            </div>
+                            <p class="text-xs text-orange-700 mt-1">Similar to retiring just before a major event like the 2008 Global Financial Crisis. Markets underperform for several years, your portfolio shrinks before recovering. 1 in 10 people retiring today will experience something like this. It's uncomfortable but survivable with careful planning.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex-shrink-0 w-3 h-full min-h-[3rem] bg-blue-600 rounded"></div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <strong class="text-blue-800">Median — Your Most Likely Outcome <span class="font-normal text-xs">(50% chance)</span></strong>
+                                <span class="text-blue-700 font-semibold text-sm ml-2">${formatCurrency(sc.median?.outcome || results.median || 0)}</span>
+                            </div>
+                            <p class="text-xs text-blue-700 mt-1">This is the middle of the road — half of all simulations end better than this, half end worse. Markets deliver average historical returns, no major windfalls and no major disasters. If you had to pick one number to plan around, this is it. This is your expected retirement balance after ${retirementYears} years of drawdown.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div class="flex-shrink-0 w-3 h-full min-h-[3rem] bg-green-600 rounded"></div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <strong class="text-green-800">Optimistic <span class="font-normal text-xs">(top 10%)</span></strong>
+                                <span class="text-green-700 font-semibold text-sm ml-2">${formatCurrency(sc.optimistic?.outcome || 0)}</span>
+                            </div>
+                            <p class="text-xs text-green-700 mt-1">Markets perform well — think the long bull run of the 1990s or the post-COVID recovery. Your portfolio grows faster than your spending, leaving a healthy balance even late in retirement. 9 out of 10 scenarios will end with less than this, but it's not out of reach if conditions are favourable.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                        <div class="flex-shrink-0 w-3 h-full min-h-[3rem] bg-emerald-600 rounded"></div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <strong class="text-emerald-800">Best Case <span class="font-normal text-xs">(top 1%)</span></strong>
+                                <span class="text-emerald-700 font-semibold text-sm ml-2">${formatCurrency(sc.bestCase?.outcome || 0)}</span>
+                            </div>
+                            <p class="text-xs text-emerald-700 mt-1">Everything goes right: prolonged market booms, low inflation, no major health crises, and possibly a favourable property market. Only 1 in 100 retirements achieve this level. It makes for a nice aspiration but shouldn't be relied upon for planning.</p>
                         </div>
                     </div>
                 </div>
             </div>
-        `;
+        ` : '';
 
-        return narrative;
+        // Depletion explanation — shown when any scenario hits $0
+        const worstDepleted = sc?.worstCase?.outcome <= 0;
+        const pessimisticDepleted = sc?.pessimistic?.outcome <= 0;
+        const medianDepleted = (sc?.median?.outcome || results.median) <= 0;
+
+        const depletionSection = (worstDepleted || pessimisticDepleted || medianDepleted) ?
+            this.generateDepletionExplanation(results, inputs, { worstDepleted, pessimisticDepleted, medianDepleted }) : '';
+
+        return `
+            <div class="space-y-4 mb-6">
+                <div class="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-4 border border-indigo-200">
+                    <h3 class="text-lg font-semibold mb-3 text-indigo-800">What Is This Simulation Telling You?</h3>
+                    <p class="text-sm text-gray-700 leading-relaxed">
+                        Your retirement plan was run <strong>${runs.toLocaleString()} times</strong>, each time with a different sequence of market returns, inflation rates, and economic conditions — all based on realistic historical ranges. The result is a range of possible futures, from unlucky to lucky.
+                    </p>
+                    <div class="grid md:grid-cols-2 gap-4 mt-4">
+                        <div class="bg-white rounded p-3 border">
+                            <strong class="text-blue-600 text-sm">Success Rate: ${successRate.toFixed(1)}%</strong>
+                            <p class="mt-1 text-xs text-gray-600">${this.getSuccessRateExplanation(successRate)}</p>
+                        </div>
+                        <div class="bg-white rounded p-3 border">
+                            <strong class="text-green-600 text-sm">Most Likely Balance: ${formatCurrency(results.median)}</strong>
+                            <p class="mt-1 text-xs text-gray-600">Half of all simulations end with more than this. Half end with less. Use this as your planning number.</p>
+                        </div>
+                    </div>
+                    ${scenarioCards}
+
+                    ${inputs.legacyGoal > 0 && inputs.legacyGoalType !== 'none' ? `
+                    <div class="mt-3 p-3 bg-purple-50 border border-purple-200 rounded text-sm">
+                        <strong class="text-purple-800">Legacy Goal: ${formatCurrency(inputs.legacyGoal)}</strong>
+                        <p class="text-xs text-purple-700 mt-1">
+                            ${inputs.legacyGoalType === 'important'
+                                ? `This is set as a firm target. The median scenario ends with ${formatCurrency(results.median)} — ${results.median >= inputs.legacyGoal ? '✅ exceeds your legacy goal' : '⚠️ below your legacy goal of ' + formatCurrency(inputs.legacyGoal)}.`
+                                : `This is a "nice to have" goal. Check whether your target scenarios end above ${formatCurrency(inputs.legacyGoal)}.`
+                            }
+                        </p>
+                    </div>` : ''}
+
+                    ${(inputs.creditCardBalance || 0) + (inputs.personalLoanBalance || 0) + (inputs.carLoanBalance || 0) > 0 ? `
+                    <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-sm">
+                        <strong class="text-amber-800">Debt Impact Included</strong>
+                        <p class="text-xs text-amber-700 mt-1">Your other debts (credit cards, personal loans, car loan) have been factored in — they reduce your starting savings balance and add interest cost drag during the first 5 years of the simulation.</p>
+                    </div>` : ''}
+                </div>
+                ${depletionSection}
+            </div>
+        `;
+    }
+
+    // Explains why portfolios deplete and what users can do about it
+    generateDepletionExplanation(results, inputs, { worstDepleted, pessimisticDepleted, medianDepleted }) {
+        const retirementAge = inputs.retirementAge || 67;
+        const lifespan = inputs.yourLifespan || 90;
+        const retirementYears = lifespan - retirementAge;
+        const salary = inputs.yourSalary || 0;
+        const superRate = inputs.superContributionRate || 0.115;
+        const additionalSuper = inputs.yourAdditionalSuperContribution || 0;
+        const savingsRate = inputs.percentIncomeSaved || 0;
+
+        const severity = medianDepleted ? 'critical' : pessimisticDepleted ? 'high' : 'moderate';
+        const severityColour = { critical: 'red', high: 'orange', moderate: 'yellow' }[severity];
+        const severityLabel = { critical: 'Critical — Most Scenarios Depleted', high: 'High Risk', moderate: 'Moderate Risk (Worst Scenarios Only)' }[severity];
+
+        // Calculate potential improvement from salary sacrifice
+        const maxConcessional = 30000;
+        const currentConcessional = (salary * superRate) + additionalSuper;
+        const remainingSalarySacrifice = Math.max(0, maxConcessional - currentConcessional);
+        const annualSuperBoost = Math.min(remainingSalarySacrifice, salary * 0.1);
+
+        const improvementTips = [];
+
+        if (annualSuperBoost > 1000) {
+            improvementTips.push(`<li><strong>Salary sacrifice to super:</strong> You may be able to contribute up to an extra <strong>${formatCurrency(annualSuperBoost)}/year</strong> into super (concessionally taxed at 15%). Over ${Math.max(0, retirementAge - (inputs.yourCurrentAge || 45))} years this compounds significantly and reduces your taxable income now.</li>`);
+        }
+        improvementTips.push(`<li><strong>Delay retirement by 2–3 years:</strong> Working longer does two things — you add more to your super, and you shorten the period your savings must cover. Even 2 extra years can materially improve your success rate.</li>`);
+        improvementTips.push(`<li><strong>Reduce planned retirement spending:</strong> Every $5,000/year less you spend in retirement reduces annual drawdown and extends how long your money lasts. Small lifestyle adjustments compound over ${retirementYears} years.</li>`);
+        if (!inputs.hasInvestmentProperty) {
+            improvementTips.push(`<li><strong>Investment property or SMSF property:</strong> Adding a positively-geared investment property (or via an SMSF) provides rental income in retirement and capital growth, diversifying beyond super and shares.</li>`);
+        }
+        if (savingsRate < 0.1) {
+            improvementTips.push(`<li><strong>Increase savings rate outside super:</strong> Consistently investing even an extra $200–$500/month into ETFs or managed funds during your working years builds a taxable buffer alongside super.</li>`);
+        }
+        improvementTips.push(`<li><strong>Review your asset allocation:</strong> If you're holding large amounts in cash or conservative assets, a more growth-oriented allocation (with appropriate risk management) can improve long-run returns.</li>`);
+        improvementTips.push(`<li><strong>Age Pension safety net:</strong> If your super depletes, the Australian Age Pension provides a baseline income (currently ~$29,000/year for singles, ~$43,900 combined for couples). Your modelling already includes this — but it's worth knowing it's there.</li>`);
+
+        return `
+            <div class="bg-${severityColour}-50 border border-${severityColour}-300 rounded-lg p-4">
+                <h4 class="font-semibold text-${severityColour}-800 mb-2">⚠️ Why Some Scenarios Show $0 — And What You Can Do</h4>
+
+                <div class="text-sm text-${severityColour}-900 mb-3">
+                    <strong>Depletion Risk: ${severityLabel}</strong>
+                    ${medianDepleted ? '<p class="mt-1">More than half of simulated scenarios deplete your portfolio before end of life. This is a serious signal that requires action.</p>' : ''}
+                    ${!medianDepleted && pessimisticDepleted ? '<p class="mt-1">In bad-but-realistic scenarios (bottom 10%), your portfolio runs out before age ' + lifespan + '.</p>' : ''}
+                    ${!pessimisticDepleted && worstDepleted ? '<p class="mt-1">Only the most extreme scenarios (bottom 1%) deplete your portfolio. Your plan is generally solid.</p>' : ''}
+                </div>
+
+                <div class="bg-white rounded p-3 border border-${severityColour}-200 mb-3">
+                    <h5 class="font-medium text-gray-800 mb-2 text-sm">Why does a portfolio run out?</h5>
+                    <ul class="text-xs text-gray-700 space-y-1 list-disc ml-4">
+                        <li><strong>Sequence-of-returns risk:</strong> If markets crash in the first few years of retirement, you're forced to sell assets cheap to fund living costs. Even if markets recover later, the damage is done — you've sold more units than planned.</li>
+                        <li><strong>Withdrawal rate too high:</strong> Drawing more than roughly 4% of your portfolio per year is historically risky over 25+ year retirements. Higher spending leaves less capital to compound.</li>
+                        <li><strong>Longevity:</strong> You're modelling to age ${lifespan} — that's ${retirementYears} years of retirement, which is a long time for investments to potentially disappoint.</li>
+                        <li><strong>Healthcare and aged care costs:</strong> These costs inflate faster than general inflation (6–7% vs 2–3%) and can represent $75,000–$200,000+ over later retirement years.</li>
+                        <li><strong>Inflation erosion:</strong> Even 3% annual inflation halves your purchasing power over 24 years. If your investments don't keep pace, you need to draw more each year.</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white rounded p-3 border border-${severityColour}-200">
+                    <h5 class="font-medium text-gray-800 mb-2 text-sm">What you can do — within your control</h5>
+                    <ul class="text-xs text-gray-700 space-y-2 list-disc ml-4">
+                        ${improvementTips.join('')}
+                    </ul>
+                    <p class="text-xs text-gray-500 mt-3 italic">Update any of these figures in the calculator above and re-run the simulation to see the impact on your scenarios.</p>
+                </div>
+            </div>
+        `;
     }
 
     generateFanChartExplanation(inputs) {
+        const tenYearAge = inputs.retirementAge + 10;
         return `
             <div class="bg-blue-50 rounded-lg p-3 mb-4 text-sm">
-                <h4 class="font-semibold mb-2 text-blue-800">📊 How to Read the Fan Chart</h4>
-                <ul class="space-y-1 text-gray-700">
-                    <li><strong class="text-blue-600">Blue Line (Median):</strong> The "typical" outcome - half of simulations are above this line, half below.</li>
-                    <li><strong class="text-gray-600">Blue Shaded Area:</strong> Shows the range where 80% of outcomes fall (10th to 90th percentile).</li>
-                    <li><strong class="text-green-600">Green Shaded Area:</strong> Shows where 50% of outcomes fall (25th to 75th percentile) - the most likely range.</li>
-                    <li><strong>What it means:</strong> The wider the fan, the more uncertainty. Narrow fans suggest more predictable outcomes.</li>
-                </ul>
-                <div class="mt-2 p-2 bg-blue-100 rounded text-xs">
-                    💡 <strong>Pro tip:</strong> Look at age ${inputs.retirementAge + 10} to see how your portfolio might look 10 years into retirement.
+                <h4 class="font-semibold mb-2 text-blue-800">How to Read This Chart</h4>
+                <div class="grid md:grid-cols-2 gap-3">
+                    <div>
+                        <p class="text-xs text-gray-700 mb-2">Each coloured line is a specific scenario — what your portfolio balance looks like over your retirement if that scenario plays out:</p>
+                        <ul class="space-y-1 text-xs text-gray-700">
+                            <li><span class="inline-block w-3 h-0.5 bg-red-600 mr-1 align-middle"></span> <strong class="text-red-700">Red (dashed) — Worst Case:</strong> 1-in-100 chance. Multiple crises at once.</li>
+                            <li><span class="inline-block w-3 h-0.5 bg-orange-500 mr-1 align-middle"></span> <strong class="text-orange-700">Orange (dashed) — Pessimistic:</strong> 1-in-10 chance. A bad stretch like the GFC.</li>
+                            <li><span class="inline-block w-3 h-0.5 bg-blue-600 mr-1 align-middle"></span> <strong class="text-blue-700">Blue (solid) — Median:</strong> The most likely outcome. Plan around this line.</li>
+                            <li><span class="inline-block w-3 h-0.5 bg-green-600 mr-1 align-middle"></span> <strong class="text-green-700">Green (dashed) — Optimistic:</strong> Top 10%. Markets performed well.</li>
+                            <li><span class="inline-block w-3 h-0.5 bg-emerald-600 mr-1 align-middle"></span> <strong class="text-emerald-700">Emerald (dashed) — Best Case:</strong> Top 1%. Everything went right.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-700 mb-2">The shaded areas show how spread out all ${(inputs.numRuns || 5000).toLocaleString()} simulations are:</p>
+                        <ul class="space-y-1 text-xs text-gray-700">
+                            <li><span class="inline-block w-3 h-3 bg-blue-200 opacity-50 mr-1 align-middle rounded"></span> <strong>Light blue shading:</strong> 80% of outcomes fall in this band.</li>
+                            <li><span class="inline-block w-3 h-3 bg-green-200 opacity-50 mr-1 align-middle rounded"></span> <strong>Light green shading:</strong> 50% (the middle half) fall here — most likely range.</li>
+                            <li><span class="inline-block w-3 h-0.5 bg-red-500 mr-1 align-middle"></span> <strong>Red dashed line at $0:</strong> If a scenario line touches this, funds are depleted.</li>
+                        </ul>
+                        <div class="mt-2 p-2 bg-blue-100 rounded text-xs">
+                            Hover over age <strong>${tenYearAge}</strong> to compare all scenarios 10 years into retirement.
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
@@ -1855,27 +2049,33 @@ class RetirementCalculatorApp {
             <!-- Key Scenarios -->
             ${results.scenarios ? `
             <div class="bg-white p-4 rounded-lg shadow-sm border mb-4">
-                <h5 class="font-medium text-gray-800 mb-3">Key Scenario Outcomes</h5>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
-                    <div class="p-2 bg-red-50 rounded">
-                        <div class="text-xs text-gray-600 mb-1">Worst Case</div>
-                        <div class="font-medium text-red-700">${formatCurrency(results.scenarios.worstCase?.outcome || 0)}</div>
+                <h5 class="font-medium text-gray-800 mb-1">Final Balance — 5 Key Scenarios</h5>
+                <p class="text-xs text-gray-500 mb-3">What remains in your portfolio at the end of your retirement (age ${(results.inputs?.yourLifespan || results.inputs?.lifespan || 90)})</p>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                    <div class="p-3 bg-red-50 rounded border border-red-200">
+                        <div class="text-xs text-red-600 font-semibold mb-1">Worst Case</div>
+                        <div class="font-bold text-red-700 text-sm">${results.scenarios.worstCase?.outcome <= 0 ? 'Depleted ($0)' : formatCurrency(results.scenarios.worstCase?.outcome || 0)}</div>
+                        <div class="text-xs text-red-500 mt-1">1-in-100 chance. Multiple simultaneous crises.</div>
                     </div>
-                    <div class="p-2 bg-orange-50 rounded">
-                        <div class="text-xs text-gray-600 mb-1">Pessimistic</div>
-                        <div class="font-medium text-orange-700">${formatCurrency(results.scenarios.pessimistic?.outcome || 0)}</div>
+                    <div class="p-3 bg-orange-50 rounded border border-orange-200">
+                        <div class="text-xs text-orange-600 font-semibold mb-1">Pessimistic</div>
+                        <div class="font-bold text-orange-700 text-sm">${results.scenarios.pessimistic?.outcome <= 0 ? 'Depleted ($0)' : formatCurrency(results.scenarios.pessimistic?.outcome || 0)}</div>
+                        <div class="text-xs text-orange-500 mt-1">1-in-10 chance. A GFC-style period of poor returns.</div>
                     </div>
-                    <div class="p-2 bg-blue-50 rounded">
-                        <div class="text-xs text-gray-600 mb-1">Median</div>
-                        <div class="font-medium text-blue-700">${formatCurrency(results.scenarios.median?.outcome || 0)}</div>
+                    <div class="p-3 bg-blue-50 rounded border border-blue-200">
+                        <div class="text-xs text-blue-600 font-semibold mb-1">Median</div>
+                        <div class="font-bold text-blue-700 text-sm">${formatCurrency(results.scenarios.median?.outcome || 0)}</div>
+                        <div class="text-xs text-blue-500 mt-1">Most likely outcome. Plan your retirement around this.</div>
                     </div>
-                    <div class="p-2 bg-green-50 rounded">
-                        <div class="text-xs text-gray-600 mb-1">Optimistic</div>
-                        <div class="font-medium text-green-700">${formatCurrency(results.scenarios.optimistic?.outcome || 0)}</div>
+                    <div class="p-3 bg-green-50 rounded border border-green-200">
+                        <div class="text-xs text-green-600 font-semibold mb-1">Optimistic</div>
+                        <div class="font-bold text-green-700 text-sm">${formatCurrency(results.scenarios.optimistic?.outcome || 0)}</div>
+                        <div class="text-xs text-green-500 mt-1">Top 10%. Good sustained market returns.</div>
                     </div>
-                    <div class="p-2 bg-emerald-50 rounded">
-                        <div class="text-xs text-gray-600 mb-1">Best Case</div>
-                        <div class="font-medium text-emerald-700">${formatCurrency(results.scenarios.bestCase?.outcome || 0)}</div>
+                    <div class="p-3 bg-emerald-50 rounded border border-emerald-200">
+                        <div class="text-xs text-emerald-600 font-semibold mb-1">Best Case</div>
+                        <div class="font-bold text-emerald-700 text-sm">${formatCurrency(results.scenarios.bestCase?.outcome || 0)}</div>
+                        <div class="text-xs text-emerald-500 mt-1">Top 1%. Everything went right over full retirement.</div>
                     </div>
                 </div>
             </div>
@@ -2278,6 +2478,275 @@ class RetirementCalculatorApp {
             showNotification('Failed to complete healthcare analysis. Please try again.', 'error');
         } finally {
             this.isCalculating = false;
+        }
+    }
+
+    // ── Retirement Cost Reality Analysis ──────────────────────────────────────
+    async runCostRealityAnalysis() {
+        if (this.isCalculating) return;
+        this.isCalculating = true;
+
+        const statusEl = document.getElementById('costRealityStatus');
+        const resultsEl = document.getElementById('costRealityResults');
+        if (statusEl) statusEl.classList.remove('hidden');
+        if (resultsEl) resultsEl.classList.add('hidden');
+
+        try {
+            const inputs = this.collectInputs();
+            await new Promise(resolve => setTimeout(resolve, 50)); // yield to browser
+
+            const analyzer = new RetirementCostAnalyzer(inputs);
+            const data = analyzer.analyze();
+
+            // Stash for scenario switching and RAD slider
+            this._costRealityData = data;
+            this._costRealityActiveScenario = 'homePaidOff';
+
+            // Meta info bar
+            const meta = data.meta;
+            const metaEl = document.getElementById('costRealityMeta');
+            if (metaEl) {
+                metaEl.innerHTML = [
+                    `<span>Age now: <strong>${meta.currentAge}</strong></span>`,
+                    `<span>Retire at: <strong>${meta.retirementAge}</strong></span>`,
+                    `<span>Years to retire: <strong>${meta.yearsToRetirement}</strong></span>`,
+                    `<span>Life expectancy: <strong>${meta.lifeExpectancy}</strong></span>`,
+                    `<span>Inflation: <strong>${(meta.inflation * 100).toFixed(1)}%</strong></span>`,
+                    `<span>Health: <strong class="capitalize">${meta.healthCondition}</strong></span>`,
+                    meta.mortgageRepayment > 0
+                        ? `<span>Mortgage repayment: <strong>$${Math.round(meta.mortgageRepayment / 1000)}k/yr</strong></span>`
+                        : '',
+                ].filter(Boolean).join('<span class="text-gray-300">|</span>');
+            }
+
+            // Render charts (both)
+            this.renderCostRealityCharts(data);
+
+            // Show results
+            if (resultsEl) resultsEl.classList.remove('hidden');
+
+            // Activate first scenario tab
+            this.showCostScenario('homePaidOff', data);
+
+            // Seed RAD/DAP with analyzer default
+            this.updateRadDapDisplay(data.radAnalysis);
+
+            showNotification('Cost Reality analysis complete!', 'success');
+
+        } catch (err) {
+            console.error('Cost Reality error:', err);
+            showNotification('Failed to run Cost Reality analysis. Please check your inputs.', 'error');
+        } finally {
+            this.isCalculating = false;
+            if (statusEl) statusEl.classList.add('hidden');
+        }
+    }
+
+    showCostScenario(scenario, data) {
+        data = data || this._costRealityData;
+        if (!data) return;
+        this._costRealityActiveScenario = scenario;
+
+        // Tab highlight
+        ['homePaidOff', 'homeMortgage', 'agedCare'].forEach(s => {
+            const btn = document.getElementById(`cstab-${s}`);
+            if (!btn) return;
+            if (s === scenario) {
+                btn.className = 'cost-scenario-tab px-4 py-2 text-sm font-medium border-b-2 ' +
+                    (s === 'homePaidOff'  ? 'border-emerald-500 text-emerald-700 bg-emerald-50' :
+                     s === 'homeMortgage' ? 'border-blue-500 text-blue-700 bg-blue-50' :
+                                           'border-amber-500 text-amber-700 bg-amber-50') +
+                    ' rounded-t-lg';
+            } else {
+                btn.className = 'cost-scenario-tab px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 rounded-t-lg transition-colors';
+            }
+        });
+
+        // RAD/DAP section visibility
+        const radSection = document.getElementById('radDapSection');
+        if (radSection) {
+            radSection.classList.toggle('hidden', scenario !== 'agedCare');
+        }
+
+        // Summary cards
+        const labels = data.snapshotLabels;
+        const totals = data.summaryCards[scenario];
+        const colours = {
+            homePaidOff:  { bg: 'bg-emerald-50',  border: 'border-emerald-200', text: 'text-emerald-700', label: 'text-emerald-600' },
+            homeMortgage: { bg: 'bg-blue-50',      border: 'border-blue-200',    text: 'text-blue-700',    label: 'text-blue-600' },
+            agedCare:     { bg: 'bg-amber-50',     border: 'border-amber-200',   text: 'text-amber-700',   label: 'text-amber-600' },
+        };
+        const c = colours[scenario];
+        const cardsEl = document.getElementById('costSummaryCards');
+        if (cardsEl) {
+            cardsEl.innerHTML = labels.map((lbl, i) => `
+                <div class="${c.bg} ${c.border} border rounded-xl p-4 text-center shadow-sm">
+                    <div class="text-xs font-medium ${c.label} uppercase tracking-wide mb-1">${lbl}</div>
+                    <div class="text-2xl font-bold ${c.text}">$${Math.round(totals[i] / 1000)}k</div>
+                    <div class="text-xs text-gray-400 mt-1">per year</div>
+                    ${i > 0 ? `<div class="text-xs mt-1 ${c.label}">+${Math.round((totals[i] / totals[0] - 1) * 100)}% vs today</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Expense table
+        const tableBody = document.getElementById('costExpenseTable');
+        const tableFoot = document.getElementById('costExpenseTotal');
+        const rows = data.tableRows[scenario];
+        const totalsRow = data.summaryCards[scenario];
+        if (tableBody) {
+            tableBody.innerHTML = Object.entries(rows)
+                .filter(([, cat]) => cat.values[0] > 0 || cat.values[1] > 0)
+                .map(([, cat]) => `
+                    <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                        <td class="px-4 py-2 text-gray-700">${cat.label}</td>
+                        ${cat.values.map(v => `<td class="px-4 py-2 text-right text-gray-700 tabular-nums">$${Math.round(v).toLocaleString()}</td>`).join('')}
+                    </tr>
+                `).join('');
+        }
+        if (tableFoot) {
+            tableFoot.innerHTML = `
+                <tr>
+                    <td class="px-4 py-2.5 font-semibold text-gray-900">Total Annual Cost</td>
+                    ${totalsRow.map(v => `<td class="px-4 py-2.5 text-right font-semibold text-gray-900 tabular-nums">$${Math.round(v).toLocaleString()}</td>`).join('')}
+                </tr>
+            `;
+        }
+
+        // Update stacked bar to this scenario
+        this.renderCostBreakdownChart(data, scenario);
+    }
+
+    renderCostRealityCharts(data) {
+        // Timeline chart — all three scenarios
+        const timelineCtx = document.getElementById('costTimelineChart');
+        if (!timelineCtx) return;
+
+        if (this._costTimelineChart) this._costTimelineChart.destroy();
+
+        this._costTimelineChart = new Chart(timelineCtx, {
+            type: 'line',
+            data: {
+                labels: data.timelineYears,
+                datasets: [
+                    {
+                        label: 'Own Home — Paid Off',
+                        data: data.timeline.homePaidOff,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16,185,129,0.08)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0.3,
+                    },
+                    {
+                        label: 'Own Home — Mortgage',
+                        data: data.timeline.homeMortgage,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.08)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0.3,
+                    },
+                    {
+                        label: 'Aged Care Facility',
+                        data: data.timeline.agedCare,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245,158,11,0.08)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0.3,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString()}`,
+                        },
+                    },
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Age', font: { size: 11 } } },
+                    y: {
+                        title: { display: true, text: 'Annual Cost ($)', font: { size: 11 } },
+                        ticks: { callback: v => `$${(v / 1000).toFixed(0)}k` },
+                    },
+                },
+            },
+        });
+    }
+
+    renderCostBreakdownChart(data, scenario) {
+        const ctx = document.getElementById('costBreakdownChart');
+        if (!ctx) return;
+
+        if (this._costBreakdownChart) this._costBreakdownChart.destroy();
+
+        const rows = data.stackedBar[scenario];
+        const labels = Object.values(rows).map(r => r.label);
+        const values = Object.values(rows).map(r => r.value);
+
+        const palette = [
+            '#10b981','#3b82f6','#f59e0b','#ef4444','#8b5cf6',
+            '#ec4899','#06b6d4','#84cc16','#f97316','#6366f1','#14b8a6',
+        ];
+
+        this._costBreakdownChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['At Retirement'],
+                datasets: labels.map((lbl, i) => ({
+                    label: lbl,
+                    data: [values[i]],
+                    backgroundColor: palette[i % palette.length],
+                    borderWidth: 0,
+                    borderRadius: i === labels.length - 1 ? { topLeft: 4, topRight: 4 } : 0,
+                })),
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 }, padding: 8 } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString()}`,
+                        },
+                    },
+                },
+                scales: {
+                    x: { stacked: true },
+                    y: {
+                        stacked: true,
+                        ticks: { callback: v => `$${(v / 1000).toFixed(0)}k` },
+                    },
+                },
+            },
+        });
+    }
+
+    updateRadDapDisplay(radAnalysis) {
+        const fmt = n => `$${Math.round(n).toLocaleString()}`;
+        const el = id => document.getElementById(id);
+        if (!radAnalysis) return;
+
+        if (el('radDapDay'))    el('radDapDay').textContent    = fmt(radAnalysis.dapPerDay);
+        if (el('radDapYear'))   el('radDapYear').textContent   = fmt(radAnalysis.dapPerYear);
+        if (el('radOppCost'))   el('radOppCost').textContent   = fmt(radAnalysis.opportunityCostPerYear);
+        if (el('radRecommendation')) {
+            el('radRecommendation').textContent = radAnalysis.preferRad ? 'Pay RAD' : 'Pay DAP';
+            el('radRecommendation').className = `text-base font-bold ${radAnalysis.preferRad ? 'text-emerald-700' : 'text-blue-700'}`;
+        }
+        if (el('radSaving')) {
+            el('radSaving').textContent = `Save ~${fmt(radAnalysis.saving5yr)} over 5 years`;
         }
     }
 
@@ -5307,7 +5776,7 @@ class RetirementCalculatorApp {
 
             // Render Monte Carlo charts
             const chartManager = await this.getChartManager();
-            chartManager.renderMonteCarloFanChart(inputs, results.paths);
+            chartManager.renderMonteCarloFanChart(inputs, results.paths, results.scenarios || null);
             chartManager.renderHistogram(results.outcomes);
 
             // Switch to the 'charts' tab
@@ -6172,6 +6641,8 @@ class RetirementCalculatorApp {
         this.instrumentClick('btnDynamicAllocation', 'Asset Allocation', this.runDynamicAllocationAnalysis);
         this.instrumentClick('btnStressTest', 'Run Stress Test', this.runStressTest);
         this.instrumentClick('btnRetirementSolver', 'When Can I Retire?', this.runRetirementSolver);
+        this.instrumentClick('btnCostReality', 'Cost Reality Check', () => { showTab('costReality', true); });
+        this.instrumentClick('btnRunCostReality', 'Run Cost Reality Analysis', this.runCostRealityAnalysis);
         this.instrumentClick('btnScenarioComparison', 'Compare Scenarios', this.initializeScenarioComparison);
         this.instrumentClick('btnResetDefaults', 'Reset to Defaults', this.resetToDefaults);
         this.instrumentClick('clearCacheBtn', 'Clear Cache', this.clearCache);
@@ -6345,6 +6816,15 @@ class RetirementCalculatorApp {
 
         // Tab management - make showTab globally available
         window.showTab = showTab;
+
+        // Cost Reality tab — expose scenario switcher and RAD slider updater globally
+        window.showCostScenario = (scenario) => this.showCostScenario(scenario);
+        window.updateRadDap = (radValue) => {
+            if (!this._costRealityData) return;
+            const analyzer = new RetirementCostAnalyzer(this.collectInputs());
+            const result = analyzer.radDapAnalysis(parseFloat(radValue) || 500000);
+            this.updateRadDapDisplay(result);
+        };
 
         // Property analysis chart toggle
         const hasInvestmentProperty = $('hasInvestmentProperty');

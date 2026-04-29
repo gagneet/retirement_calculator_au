@@ -2926,6 +2926,50 @@ export class OnboardingWizard {
             // Goals and lifestyle
             'asfaComfortable': this.data.goals.lifestyleGoals.incomeNeeded,
 
+            // Legacy/inheritance from onboarding
+            'legacyGoal': this.data.goals.legacyPlanning.leaveInheritance !== 'no'
+                ? (this.data.goals.legacyPlanning.inheritanceAmount || 0) : 0,
+
+            // Other debts from onboarding
+            'creditCardBalance': this.data.finances.debt.creditCards || 0,
+            'personalLoanBalance': this.data.finances.debt.personalLoans || 0,
+
+            // Health from onboarding
+            'healthCondition': this.data.household.health?.currentHealth || 'good',
+
+            // Travel & hobbies: convert qualitative onboarding values to dollar amounts
+            'annualTravelBudget': (() => {
+                const plans = this.data.goals.lifestyleGoals.travelPlans;
+                return plans === 'extensive' ? 20000 : plans === 'moderate' ? 8000 : plans === 'minimal' ? 2000 : 0;
+            })(),
+            'annualHobbyBudget': (() => {
+                const h = this.data.goals.lifestyleGoals.hobbies;
+                return h === 'active' ? 10000 : h === 'some' ? 4000 : h === 'minimal' ? 1000 : 0;
+            })(),
+
+            // Investment property loan rate from onboarding
+            'investmentPropertyRate': this.data.property.investmentProperty.hasInvestment
+                ? (this.data.property.investmentProperty.details.loanRate || 7.5) : '',
+
+            // Mortgage rate from onboarding
+            'mortgageRate': this.data.property.homeStatus === 'mortgage'
+                ? (this.data.property.homeDetails.loanRate || 6.5) : '',
+
+            // Managed funds + term deposits → add to starting savings
+            'currentSavings': (this.data.finances.emergencyFund || 0)
+                + (this.data.finances.otherInvestments?.managedFunds || 0)
+                + (this.data.finances.otherInvestments?.termDeposits || 0),
+
+            // Health expected care needs → aged care probability
+            'agedCareProbability': (() => {
+                const care = this.data.household.health?.expectedCareNeeds;
+                return care === 'significant' ? 65 : care === 'moderate' ? 45 : 22;
+            })(),
+
+            // Business and investment income from onboarding (if tracked)
+            'businessIncome': this.data.finances.income?.businessIncome || 0,
+            'investmentIncome': this.data.finances.income?.investmentIncome || 0,
+
             // Percentage fields - need special handling for display
             'initialInvestmentReturn': this.data.goals.expectedReturns?.initialReturn || 8, // Default 8%
             'superAnnualGrowth': this.data.goals.expectedReturns?.superGrowth || 7, // Default 7%
@@ -2942,7 +2986,9 @@ export class OnboardingWizard {
             'currentSavings', 'currentStocks', 'monthlyStockContribution',
             'homeValue', 'mortgageBalance', 'monthlyMortgagePayment',
             'investmentPropertyValue', 'investmentPropertyLoan',
-            'weeklyRentalIncome', 'annualPropertyExpenses', 'asfaComfortable'
+            'weeklyRentalIncome', 'annualPropertyExpenses', 'asfaComfortable',
+            'legacyGoal', 'creditCardBalance', 'personalLoanBalance',
+            'annualTravelBudget', 'annualHobbyBudget', 'businessIncome', 'investmentIncome'
         ]);
 
         // Percentage fields that need % symbol

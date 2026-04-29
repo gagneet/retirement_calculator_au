@@ -24,7 +24,15 @@ export class ActionGenerator {
      * @param {Object} outcomeResults - Results from OutcomeEngine
      */
     constructor(userInputs, outcomeResults) {
-        this.inputs = userInputs;
+        // Normalise field names — the main calculator uses yourSalary/yourCurrentAge;
+        // legacy action methods reference annualSalary/currentAge/ownsHome/hasPartner.
+        this.inputs = {
+            ...userInputs,
+            annualSalary: userInputs.annualSalary ?? userInputs.yourSalary ?? 0,
+            currentAge:   userInputs.currentAge   ?? userInputs.yourCurrentAge ?? 0,
+            ownsHome:     userInputs.ownsHome      ?? (userInputs.homeValue || 0) > 0,
+            hasPartner:   userInputs.hasPartner    ?? !(userInputs.isSingleCalculation ?? true),
+        };
         this.outcome = outcomeResults;
         this.actions = [];
     }
