@@ -3,70 +3,70 @@
     <!-- Home / Simple Calculator -->
     <url>
         <loc>https://retirement.gagneet.com/</loc>
-        <lastmod>2026-03-15</lastmod>
+        <lastmod>2026-04-28</lastmod>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
     </url>
     <!-- Advanced Calculator -->
     <url>
         <loc>https://retirement.gagneet.com/advanced.html</loc>
-        <lastmod>2026-03-15</lastmod>
+        <lastmod>2026-04-28</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.95</priority>
     </url>
     <!-- How to Use Guide -->
     <url>
         <loc>https://retirement.gagneet.com/how-to-use.html</loc>
-        <lastmod>2026-03-15</lastmod>
+        <lastmod>2026-04-28</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.9</priority>
     </url>
     <!-- Scenario Comparison Tool -->
     <url>
         <loc>https://retirement.gagneet.com/comparison.html</loc>
-        <lastmod>2026-03-15</lastmod>
+        <lastmod>2026-04-28</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <!-- Methodology Page -->
     <url>
         <loc>https://retirement.gagneet.com/methodology.html</loc>
-        <lastmod>2026-03-15</lastmod>
+        <lastmod>2026-04-28</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.7</priority>
     </url>
     <!-- Assumptions Page -->
     <url>
         <loc>https://retirement.gagneet.com/assumptions.html</loc>
-        <lastmod>2026-03-15</lastmod>
+        <lastmod>2026-04-28</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.7</priority>
     </url>
     <!-- Contact Page -->
     <url>
         <loc>https://retirement.gagneet.com/contact.html</loc>
-        <lastmod>2026-03-15</lastmod>
+        <lastmod>2026-04-28</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.6</priority>
     </url>
     <!-- Changelog Page -->
     <url>
         <loc>https://retirement.gagneet.com/changelog.html</loc>
-        <lastmod>2026-03-15</lastmod>
+        <lastmod>2026-04-28</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.5</priority>
     </url>
     <!-- Privacy Policy Page -->
     <url>
         <loc>https://retirement.gagneet.com/privacy.html</loc>
-        <lastmod>2026-03-15</lastmod>
+        <lastmod>2026-04-28</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
     <!-- Terms of Use Page -->
     <url>
         <loc>https://retirement.gagneet.com/terms.html</loc>
-        <lastmod>2026-03-15</lastmod>
+        <lastmod>2026-04-28</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
