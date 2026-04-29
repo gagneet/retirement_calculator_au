@@ -72,15 +72,23 @@ export const ENHANCED_CONFIG = {
     },
 
     // State/territory land tax rates for investment properties (2025-26)
-    // Source: NSW OSR, SRO Victoria, QRO, RevenueSA, State Revenue Office WA, SRO Tasmania
-    // Note: Primary residence is exempt from land tax in all states.
-    // Each bracket: min = threshold, flat = fixed charge above threshold, marginal = rate on excess
+    // Sources: NSW OSR, SRO Victoria (sro.vic.gov.au), QRO (qro.qld.gov.au),
+    //          RevenueSA, State Revenue Office WA, Revenue Tasmania (sro.tas.gov.au)
+    // IMPORTANT: Land tax is assessed on the SITE (unimproved land) value — NOT the
+    //            total property market value. Site value is typically 40–70% of market
+    //            value for metro houses. Use the site value from your council rates notice.
+    // Primary residence is exempt from land tax in all states.
+    // Bracket format: { min, flat, marginal } where flat is the fixed charge on amounts
+    // above 'min' and marginal is the rate on the excess above 'min'.
     LAND_TAX_RATES: {
+        // NSW 2025-26: General threshold $1,075,000; Premium rate threshold $6,571,000
+        // Source: NSW Revenue, nsw.gov.au/topics/land-tax
         NSW: [
             { min: 0,       flat: 0,     marginal: 0 },
             { min: 1075000, flat: 100,   marginal: 0.016 },
-            { min: 3376000, flat: 36900, marginal: 0.02 }
+            { min: 6571000, flat: 88036, marginal: 0.02 }
         ],
+        // VIC 2025-26: Source SRO Victoria sro.vic.gov.au/landtax
         VIC: [
             { min: 0,       flat: 0,     marginal: 0 },
             { min: 300000,  flat: 375,   marginal: 0.002 },
@@ -89,12 +97,15 @@ export const ENHANCED_CONFIG = {
             { min: 1800000, flat: 9775,  marginal: 0.013 },
             { min: 3000000, flat: 25375, marginal: 0.0255 }
         ],
+        // QLD 2025-26: Source QRO qro.qld.gov.au/land-tax
+        // $600K bracket base charge is $500 (not $0); flat pre-calculated at each threshold
         QLD: [
             { min: 0,       flat: 0,     marginal: 0 },
-            { min: 600000,  flat: 0,     marginal: 0.01 },
+            { min: 600000,  flat: 500,   marginal: 0.01 },
             { min: 1000000, flat: 4500,  marginal: 0.0165 },
             { min: 3000000, flat: 37500, marginal: 0.0275 }
         ],
+        // WA 2025-26: Source State Revenue Office WA sro.wa.gov.au/land-tax
         WA: [
             { min: 0,       flat: 0,     marginal: 0 },
             { min: 300000,  flat: 300,   marginal: 0.0015 },
@@ -102,18 +113,18 @@ export const ENHANCED_CONFIG = {
             { min: 1000000, flat: 4888,  marginal: 0.0113 },
             { min: 1800000, flat: 13928, marginal: 0.026 }
         ],
+        // SA 2025-26: Source RevenueSA revenuesa.sa.gov.au/land-tax
         SA: [
             { min: 0,       flat: 0,     marginal: 0 },
             { min: 534000,  flat: 0,     marginal: 0.005 },
             { min: 1067000, flat: 2665,  marginal: 0.0075 },
             { min: 1600000, flat: 6663,  marginal: 0.011 }
         ],
-        TAS: [
-            { min: 0,       flat: 0,     marginal: 0 },
-            { min: 25000,   flat: 50,    marginal: 0.0055 },
-            { min: 350000,  flat: 1838,  marginal: 0.0115 },
-            { min: 750000,  flat: 6438,  marginal: 0.015 }
-        ],
+        // TAS, ACT, NT: enter land tax manually
+        // TAS threshold and rates require annual verification via sro.tas.gov.au
+        // ACT uses a combined rates system (no standalone land tax)
+        // NT has no land tax
+        TAS: null,
         ACT: null,
         NT:  null
     },
@@ -1582,7 +1593,36 @@ export const ENHANCED_CONFIG = {
                 }
             }
         }
-    }
+    },
+
+    // ── Simulation engine caps & scenario deltas ─────────────────────────────
+    // Grouped here so they can be updated in one place without hunting for
+    // inline literals scattered across simulator.js.
+    SIMULATION: {
+        // Property growth caps used in calculatePropertyValue()
+        PROPERTY_GROWTH_MAX_RATE: 0.20,    // 20% annual cap — prevents runaway projections
+        PROPERTY_GROWTH_MAX_YEARS: 50,     // Cap projection horizon to 50 years
+
+        // Minimum annual return floor — prevents negative-infinity compounding
+        MIN_ANNUAL_RETURN: 0.01,
+
+        // Scenario mode return/inflation deltas for _getScenarioAdjustments()
+        SCENARIO_ADJUSTMENTS: {
+            optimistic:  { returnDelta:  0.01, inflationDelta: -0.005, volatilityMultiplier: 0.8 },
+            pessimistic: { returnDelta: -0.01, inflationDelta:  0.005, volatilityMultiplier: 1.3 },
+            crisis:      { returnDelta: -0.02, inflationDelta:  0.02,  volatilityMultiplier: 2.0 },
+        },
+
+        // Risk capacity income thresholds (used to score financial capacity 0–100)
+        RISK_CAPACITY_INCOME_BANDS: [
+            { threshold: 300000, points: 25 },
+            { threshold: 200000, points: 20 },
+            { threshold: 150000, points: 15 },
+            { threshold: 100000, points: 10 },
+            { threshold:  75000, points:  8 },
+            { threshold:  50000, points:  5 },
+        ],
+    },
 };
 
 export default ENHANCED_CONFIG;
