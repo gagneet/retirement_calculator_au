@@ -1688,7 +1688,9 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
         'pensionAssetThreshold', 'pensionAssetLimit', 'pensionIncomeThreshold',
         'smsfAdminCosts', 'landTax', 'familyTrustIncomeDistribution',
         'educationCostPerChild', 'concessionalCapUsed', 'spouseContribution',
-        'carerAnnualExpense'
+        'carerAnnualExpense', 'creditCardBalance', 'personalLoanBalance',
+        'carLoanBalance', 'hecsBalance', 'annualTravelBudget', 'annualHobbyBudget',
+        'legacyGoal', 'reducedIncomeSalary', 'partnerReducedIncomeSalary'
     ];
 
     const percentageFields = [
@@ -1699,7 +1701,8 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
         'dividendYield', 'frankingRate', 'returnVolatility',
         'shockProbability', 'shockMagnitude', 'australianEquityAllocation', 'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
         'vacancyRate', 'maintenanceInflation', 'trustTaxRate', 'beneficiaryAllocation',
-        'extremeInflationProbability', 'propertyCrashProbability'
+        'extremeInflationProbability', 'propertyCrashProbability',
+        'creditCardRate', 'personalLoanRate', 'carerReducedWorkPercent'
     ];
 
     // Format currency and percentage fields
@@ -1826,7 +1829,8 @@ export const populateFormFromData = (userData, version = '2.0') => {
         'dividendYield', 'frankingRate', 'returnVolatility',
         'shockProbability', 'shockMagnitude', 'australianEquityAllocation', 'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
         'carerReducedWorkPercent', 'vacancyRate', 'maintenanceInflation',
-        'trustTaxRate', 'beneficiaryAllocation', 'extremeInflationProbability', 'propertyCrashProbability'
+        'trustTaxRate', 'beneficiaryAllocation', 'extremeInflationProbability', 'propertyCrashProbability',
+        'creditCardRate', 'personalLoanRate'
     ];
 
     const dependentPercentageFields = [

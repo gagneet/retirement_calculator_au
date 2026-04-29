@@ -1206,7 +1206,7 @@ class RetirementCalculatorApp {
 
                 // Rough quantified estimates for each lever
                 const bal = result.accumulatedSuperBalance || 0;
-                const delay2YrsValue = Math.round(bal * 0.15 + salary * 0.115 * 2);
+                const delay2YrsValue = Math.round(bal * 0.15 + salary * superRate * 2);
                 const reduce5kValue = Math.round(5000 * Math.max(5, lifespan - (inputs.retirementAge || 65)));
                 const salarySacrificeAnnual = canSalarySacrifice ? Math.round(Math.min(remainingSalarySacrifice, salary * 0.1)) : 0;
 
@@ -1264,7 +1264,7 @@ class RetirementCalculatorApp {
                         <p class="text-xs text-red-500 mt-3">Run the Monte Carlo simulation for a probabilistic view. Adjust inputs and recalculate to see updated projections.</p>
                     </div>
                 `;
-                if (shortfallActionPanel) shortfallActionPanel.classList.add('hidden');
+                if (shortfallActionPanel) shortfallActionPanel.classList.remove('hidden');
             }
         }
 
@@ -1831,6 +1831,9 @@ class RetirementCalculatorApp {
                     </div>`;
         })() : '';
 
+        const pessimisticPct = sc?.pessimistic?.percentile ?? 10;
+        const pessimisticChance = `1-in-${Math.round(100 / (pessimisticPct || 10))} chance`;
+
         const scenarioCards = sc ? `
             <div class="mt-4">
                 <h4 class="font-semibold text-gray-800 mb-3">What Each Scenario Means in Plain English</h4>
@@ -1852,10 +1855,10 @@ class RetirementCalculatorApp {
                         <div class="flex-shrink-0 w-3 h-full min-h-[3rem] bg-orange-500 rounded"></div>
                         <div class="flex-1">
                             <div class="flex justify-between items-start">
-                                <strong class="text-orange-800">Pessimistic <span class="font-normal text-xs">(1-in-10 chance)</span></strong>
+                                <strong class="text-orange-800">Pessimistic <span class="font-normal text-xs">(${pessimisticChance})</span></strong>
                                 <span class="text-orange-700 font-semibold text-sm ml-2">${formatCurrency(sc.pessimistic?.outcome || 0)}</span>
                             </div>
-                            <p class="text-xs text-orange-700 mt-1">Similar to retiring just before a major event like the 2008 Global Financial Crisis. Markets underperform for several years, your portfolio shrinks before recovering. 1 in 10 people retiring today will experience something like this. It's uncomfortable but survivable with careful planning.</p>
+                            <p class="text-xs text-orange-700 mt-1">Similar to retiring just before a major event like the 2008 Global Financial Crisis. Markets underperform for several years, your portfolio shrinks before recovering. ${pessimisticChance} retirees will experience something like this. It's uncomfortable but survivable with careful planning.</p>
                         </div>
                     </div>
 
@@ -1898,8 +1901,8 @@ class RetirementCalculatorApp {
         // Depletion explanation — driven by apocalypse tier or median depletion
         const medianDepleted = (sc?.median?.outcome || results.median) <= 0;
         const hasApocalypse = sc?.apocalypse != null;
-        const worstDepleted = false;       // worstCase is now always positive
-        const pessimisticDepleted = false; // pessimistic is now always positive
+        const worstDepleted = sc?.worstCase?.outcome != null ? sc.worstCase.outcome <= 0 : false;
+        const pessimisticDepleted = sc?.pessimistic?.outcome != null ? sc.pessimistic.outcome <= 0 : false;
 
         const depletionSection = (hasApocalypse || medianDepleted) ?
             this.generateDepletionExplanation(results, inputs, { worstDepleted, pessimisticDepleted, medianDepleted }) : '';
@@ -7309,6 +7312,36 @@ class RetirementCalculatorApp {
             ],
             superStrategy: [
                 'concessionalCapUsed', 'spouseContribution', 'downsizeContribution'
+            ],
+            debts: [
+                'creditCardBalance', 'creditCardRate',
+                'personalLoanBalance', 'personalLoanRate',
+                'carLoanBalance', 'hecsBalance'
+            ],
+            lifestyle: [
+                'annualTravelBudget', 'annualHobbyBudget',
+                'legacyGoal', 'legacyGoalType'
+            ],
+            health: [
+                'hasPrivateHealthCover', 'ageFirstPrivateCover', 'healthCondition'
+            ],
+            residency: [
+                'ageCameToAustralia', 'ageStartedEarningAustralia',
+                'partnerAgeCameToAustralia', 'partnerAgeStartedEarningAustralia'
+            ],
+            reducedIncome: [
+                'enableReducedIncome', 'reducedIncomeAge', 'reducedIncomeSalary',
+                'partnerReducedIncomeAge', 'partnerReducedIncomeSalary'
+            ],
+            carer: [
+                'isCarerForParents', 'carerReducedWorkPercent', 'carerYearsExpected',
+                'agedParentsLocation', 'carerAnnualExpense'
+            ],
+            riskSubQuestions: [
+                'lossReaction', 'investmentExperience', 'marketUnderstanding', 'volatilityComfort'
+            ],
+            additionalIncome: [
+                'businessIncome', 'investmentIncome'
             ]
         };
     }
@@ -7392,7 +7425,8 @@ class RetirementCalculatorApp {
             'dividendYield', 'frankingRate', 'returnVolatility', 'shockProbability', 'shockMagnitude',
             'childrenUnder5Percent', 'childrenPrimaryPercent', 'teenagersPercent', 'adultDisabledPercent',
             'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent',
-            'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage'
+            'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
+            'creditCardRate', 'personalLoanRate', 'carerReducedWorkPercent'
         ];
 
         inputIds.forEach(inputId => {
@@ -7558,7 +7592,56 @@ class RetirementCalculatorApp {
             'universitySupport': false,
             'concessionalCapUsed': 0,
             'spouseContribution': 0,
-            'downsizeContribution': false
+            'downsizeContribution': false,
+
+            // Debts
+            'creditCardBalance': 0,
+            'creditCardRate': 0.20,
+            'personalLoanBalance': 0,
+            'personalLoanRate': 0.09,
+            'carLoanBalance': 0,
+            'hecsBalance': 0,
+
+            // Lifestyle
+            'annualTravelBudget': 0,
+            'annualHobbyBudget': 0,
+            'legacyGoal': 0,
+            'legacyGoalType': 'none',
+
+            // Health
+            'hasPrivateHealthCover': false,
+            'ageFirstPrivateCover': '',
+            'healthCondition': 'good',
+
+            // Residency
+            'ageCameToAustralia': 0,
+            'ageStartedEarningAustralia': 0,
+            'partnerAgeCameToAustralia': 0,
+            'partnerAgeStartedEarningAustralia': 0,
+
+            // Reduced income
+            'enableReducedIncome': false,
+            'reducedIncomeAge': 0,
+            'reducedIncomeSalary': 0,
+            'partnerReducedIncomeAge': 0,
+            'partnerReducedIncomeSalary': 0,
+
+            // Carer
+            'isCarerForParents': false,
+            'carerReducedWorkPercent': 0,
+            'carerYearsExpected': 0,
+            'agedParentsLocation': 'australia',
+            'carerAnnualExpense': 0,
+
+            // Risk sub-questions
+            'lossReaction': 'monitor',
+            'investmentExperience': '2',
+            'marketUnderstanding': 'moderate',
+            'volatilityComfort': '0.15',
+
+            // Additional income
+            'businessIncome': 0,
+            'investmentIncome': 0
         };
 
         return defaultMap[inputId];
