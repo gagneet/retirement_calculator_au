@@ -860,6 +860,376 @@
             font-family: var(--font-data);
             font-size: 0.9rem;
         }
+
+        /* ══════════════════════════════════════════════════════════════
+           DESIGN UPLIFT — refined fintech aesthetic
+           ══════════════════════════════════════════════════════════════ */
+
+        /* 1. INPUT BASE — crisp, tabular numerals, section-aware focus */
+        input[type="text"],
+        input[type="number"],
+        select {
+            font-family: var(--font-data);
+            font-size: 0.875rem;
+            color: var(--color-charcoal-900);
+            background: #FFFFFF;
+            border: 1.5px solid #D1D5DB;
+            border-radius: 6px;
+            padding: 0.4375rem 0.625rem;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #6B7280;
+            box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.12);
+        }
+        [data-theme="dark"] input[type="text"],
+        [data-theme="dark"] input[type="number"],
+        [data-theme="dark"] select {
+            background: #1F2937;
+            border-color: #374151;
+            color: #F9FAFB;
+        }
+
+        /* Section-specific focus rings */
+        .section-personal-risk input:focus,
+        .section-personal-risk select:focus {
+            border-color: #8B5CF6 !important;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15) !important;
+        }
+        .section-property input:focus,
+        .section-property select:focus {
+            border-color: #10B981 !important;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+        }
+        .section-economic input:focus,
+        .section-economic select:focus {
+            border-color: #F59E0B !important;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15) !important;
+        }
+        .section-pension input:focus,
+        .section-pension select:focus {
+            border-color: #2563EB !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+        }
+
+        /* 2. TYPOGRAPHY HIERARCHY */
+        .section-personal-risk > h2,
+        .section-property > h2,
+        .section-economic > h2,
+        .section-pension > h2 {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            letter-spacing: -0.01em;
+        }
+        .section-personal-risk h3,
+        .section-property h3,
+        .section-economic h3,
+        .section-pension h3 {
+            font-family: var(--font-ui);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        label.block,
+        .label-with-tooltip label {
+            font-family: var(--font-ui);
+            font-size: 0.8125rem;
+            line-height: 1.4;
+        }
+        p.mt-1.text-xs.text-gray-500,
+        .mt-1.text-xs.text-gray-500 {
+            font-family: var(--font-ui);
+            font-size: 0.6875rem;
+            color: #9CA3AF;
+            line-height: 1.5;
+        }
+
+        /* 3. PARTNER FIELDS — subtle paired subsection */
+        .partner-subsection {
+            background: linear-gradient(135deg, rgba(245,243,255,0.8) 0%, rgba(237,233,254,0.4) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.18);
+            border-left: 3px solid rgba(139, 92, 246, 0.45);
+            border-radius: 0.5rem;
+            padding: 0.75rem 0.75rem 0.625rem;
+            margin-top: 0.75rem;
+        }
+        .partner-subsection-label {
+            font-family: var(--font-ui);
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #7C3AED;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-bottom: 0.625rem;
+        }
+        .partner-subsection-label svg {
+            width: 12px;
+            height: 12px;
+            flex-shrink: 0;
+        }
+        .partner-subsection .space-y-4 > div + div {
+            margin-top: 0.625rem;
+        }
+
+        /* 4. RISK PROFILE BANNER — dark financial card */
+        #riskProfileBanner {
+            background: linear-gradient(135deg, var(--color-navy-950) 0%, #182F50 60%, #102040 100%);
+            border: 1px solid rgba(201, 162, 39, 0.2);
+            border-left: 4px solid var(--color-gold-500);
+            border-radius: 0.75rem;
+            padding: 1.125rem 1.5rem;
+            box-shadow: 0 4px 24px rgba(13, 20, 33, 0.22), inset 0 1px 0 rgba(255,255,255,0.04);
+            position: relative;
+            overflow: hidden;
+        }
+        #riskProfileBanner::after {
+            content: '';
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(201,162,39,0.07) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        #riskProfileBanner h3 {
+            font-family: var(--font-display);
+            color: var(--color-gold-500);
+            font-size: 0.9375rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+        #riskProfileBanner .font-medium {
+            font-family: var(--font-ui);
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.45);
+        }
+        #riskProfileBanner .text-xs {
+            font-family: var(--font-data);
+            font-size: 0.6875rem;
+            color: rgba(255,255,255,0.75);
+            margin-top: 0.3rem;
+        }
+        .risk-profile-indicator {
+            height: 5px !important;
+            background: rgba(255,255,255,0.08) !important;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        #riskCapacityBar {
+            background: linear-gradient(90deg, #3B82F6 0%, #93C5FD 100%) !important;
+            border-radius: 3px;
+            height: 100%;
+            transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #riskToleranceBar {
+            background: linear-gradient(90deg, #10B981 0%, #6EE7B7 100%) !important;
+            border-radius: 3px;
+            height: 100%;
+            transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;
+        }
+        #riskRequirementBar {
+            background: linear-gradient(90deg, #F59E0B 0%, #FCD34D 100%) !important;
+            border-radius: 3px;
+            height: 100%;
+            transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1) 0.2s;
+        }
+
+        /* 5. QUICK START BOX — navy/gold editorial treatment */
+        .quick-start-box {
+            background: linear-gradient(135deg, var(--color-navy-950) 0%, #1a2e4a 100%);
+            border: 1px solid rgba(201, 162, 39, 0.25);
+            border-left: 4px solid var(--color-gold-500);
+            border-radius: 0.625rem;
+            padding: 0.875rem 1.125rem;
+        }
+        .quick-start-box p {
+            color: rgba(255,255,255,0.82);
+            font-family: var(--font-ui);
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+        .quick-start-box strong { color: var(--color-gold-500); font-weight: 700; }
+        .quick-start-box a {
+            background: var(--color-gold-500) !important;
+            color: var(--color-navy-950) !important;
+            font-family: var(--font-ui);
+            font-weight: 700;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+        }
+        .quick-start-box a:hover { background: #D4AA30 !important; }
+
+        /* 6. ONBOARDING WELCOME BANNER */
+        #onboarding-buttons {
+            background: linear-gradient(135deg, var(--color-navy-950) 0%, #1a2f4a 100%);
+            border: 1px solid rgba(201, 162, 39, 0.22);
+            border-radius: 0.875rem;
+            padding: 2.5rem 2rem;
+        }
+        #onboarding-buttons h2 {
+            font-family: var(--font-display);
+            color: #FFFFFF;
+            font-size: 1.625rem;
+            letter-spacing: -0.01em;
+        }
+        #onboarding-buttons > div > p {
+            color: rgba(255,255,255,0.58);
+            font-family: var(--font-ui);
+        }
+        #new-user-btn {
+            background: var(--color-gold-500) !important;
+            color: var(--color-navy-950) !important;
+            font-family: var(--font-ui) !important;
+            font-weight: 700 !important;
+            border-radius: 0.625rem !important;
+            border: none !important;
+            transition: all 0.2s ease !important;
+        }
+        #new-user-btn:hover {
+            background: #D4AA30 !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 24px rgba(201, 162, 39, 0.35) !important;
+        }
+        #new-user-btn .text-2xl { filter: none; }
+        #returning-user-btn {
+            background: transparent !important;
+            color: rgba(255,255,255,0.88) !important;
+            border: 1.5px solid rgba(255,255,255,0.25) !important;
+            font-family: var(--font-ui) !important;
+            font-weight: 600 !important;
+            border-radius: 0.625rem !important;
+            transition: all 0.2s ease !important;
+        }
+        #returning-user-btn:hover {
+            background: rgba(255,255,255,0.07) !important;
+            border-color: rgba(255,255,255,0.45) !important;
+            transform: translateY(-2px) !important;
+        }
+
+        /* 7. ACTION BUTTONS SECTION */
+        #action-buttons-container > .bg-white {
+            background: linear-gradient(180deg, #FAFAFA 0%, #FFFFFF 100%);
+        }
+        #action-buttons-container h3.font-ui-clean,
+        #action-buttons-container h3 {
+            font-family: var(--font-display);
+            color: var(--color-navy-950);
+            font-size: 1.0625rem;
+        }
+        #btnCalculate {
+            background: linear-gradient(135deg, #4F46E5 0%, #3730A3 100%) !important;
+            box-shadow: 0 2px 10px rgba(79,70,229,0.32);
+            font-family: var(--font-ui);
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            transition: all 0.2s ease;
+        }
+        #btnCalculate:hover {
+            box-shadow: 0 4px 18px rgba(79,70,229,0.42) !important;
+            transform: translateY(-1px);
+        }
+        #btnMonteCarlo {
+            font-family: var(--font-ui);
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        #btnMonteCarlo:hover { transform: translateY(-1px); }
+        .btn-group-label { font-family: var(--font-ui); }
+
+        /* 8. MOBILE STICKY HEADER */
+        @media (max-width: 640px) {
+            .fwt-statement { padding: 0.25rem 0.5rem; }
+            .fwt-statement > p { font-size: 0.6rem; }
+        }
+        @media (max-width: 480px) {
+            .fwt-statement > p.flex-1 { display: none; }
+        }
+
+        /* 9. REQUIRED-LEGEND refinement */
+        .required-legend {
+            font-family: var(--font-ui);
+        }
+
+        /* 10. FIELD-REQUIRED left accent glow on hover */
+        .field-required:focus-within {
+            box-shadow: 0 2px 12px rgba(59, 130, 246, 0.12);
+        }
+
+        /* ── INPUT SYMBOL WRAPPERS ($ prefix / % suffix) ──────────────── */
+        .input-symbol-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+            margin-top: 0.25rem;
+        }
+        .input-symbol-wrap .sym {
+            position: absolute;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #6B7280;
+            pointer-events: none;
+            z-index: 2;
+            top: 50%;
+            transform: translateY(-50%);
+            user-select: none;
+            line-height: 1;
+        }
+        .input-symbol-wrap .sym-prefix { left: 0.6rem; }
+        .input-symbol-wrap .sym-suffix { right: 0.6rem; }
+        .input-symbol-wrap input {
+            flex: 1;
+            min-width: 0;
+            margin-top: 0 !important;
+        }
+        .input-symbol-wrap input.with-prefix { padding-left: 1.625rem; }
+        .input-symbol-wrap input.with-suffix { padding-right: 1.75rem; }
+        [data-theme="dark"] .input-symbol-wrap .sym { color: #9CA3AF; }
+
+        /* ── REQUIRED FIELD LEGEND ─────────────────────────────────────── */
+        .required-legend {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.75rem;
+            color: #6B7280;
+            margin-bottom: 0.75rem;
+            padding: 0.375rem 0.75rem;
+            background: #F9FAFB;
+            border-radius: 0.375rem;
+            border: 1px solid #E5E7EB;
+        }
+        .required-legend .legend-item { display: flex; align-items: center; gap: 0.25rem; }
+        .required-legend .legend-dot-required { width: 8px; height: 8px; background: #3B82F6; border-radius: 9999px; }
+        .required-legend .legend-dot-optional { width: 8px; height: 8px; background: #D1D5DB; border-radius: 9999px; }
+
+        /* ── ACTION BUTTON GROUPS ──────────────────────────────────────── */
+        .btn-group-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #9CA3AF;
+            margin-bottom: 0.375rem;
+        }
+        .btn-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .btn-group-separator {
+            width: 1px;
+            background: #E5E7EB;
+            align-self: stretch;
+            margin: 0 0.25rem;
+        }
     </style>
 </head>
 <body>
@@ -1051,16 +1421,16 @@
             costs, aged care, dynamic allocation, and investment property modeling</p>
 
         <!-- Quick Start Instructions -->
-        <div class="mt-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-lg">
-            <div class="flex items-start justify-between">
-                <p class="text-sm text-blue-800 flex-1">
+        <div class="quick-start-box mt-4">
+            <div class="flex items-start justify-between gap-4">
+                <p class="flex-1">
                     <strong>Quick Start:</strong> Fill in your personal details and finances in the left panels, then
-                    click "Calculate Enhanced Projection" to see your retirement forecast. Use "Run Enhanced Monte
-                    Carlo" for risk analysis.
+                    click "Calculate Enhanced Projection" to see your retirement forecast. Use "Run Monte Carlo Simulation"
+                    for probability-based risk analysis.
                 </p>
-                <a class="ml-4 inline-flex items-center px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
+                <a class="flex-shrink-0 inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-md hover:opacity-90 transition-opacity"
                    href="how-to-use.html">
-                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
                               stroke-width="2"></path>
                     </svg>
@@ -1159,59 +1529,87 @@
                 </div>
             </div>
 
-            <p class="text-gray-600 text-sm mb-4">Use these tools to run detailed retirement analysis based on your data in the calculator below:</p>
+            <p class="text-gray-600 text-sm mb-4">Use these tools to run detailed retirement analysis. <strong>Start with Calculate</strong>, then use the analysis tools below:</p>
 
-            <!-- Calculator Action Buttons — 12 items, exactly 2 rows of 6 at lg -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
-                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
-                        id="btnCalculate">
-                    Calculate Enhanced Projection
-                </button>
-                <button class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
-                        id="btnMonteCarlo">
-                    Run Enhanced Monte Carlo
-                </button>
-                <button class="px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors font-medium text-sm"
-                        id="btnScenarioMatrix"
-                        title="🔍 Compare Strategies: Analyze different retirement scenarios side-by-side (e.g., property vs shares, different retirement ages). Run basic calculation first, then use this tool to see how different decisions impact your retirement outcome.">
-                    Compare Strategies
-                </button>
-                <button class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium text-sm"
-                        id="btnStressTest">
-                    Run Stress Test Scenarios
-                </button>
-                <button class="px-4 py-2 border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium text-sm"
-                        id="btnRetirementSolver">
-                    When Can I Retire?
-                </button>
-                <button class="px-4 py-2 border border-teal-300 text-teal-700 rounded-lg hover:bg-teal-50 transition-colors font-medium text-sm"
-                        id="btnHealthcareAnalysis"
-                        title="🏥 Healthcare Costs: Project your healthcare and aged care expenses throughout retirement. This analysis considers healthcare inflation (6.5% vs general 2.9%), aged care probability, and creates Monte Carlo simulations of potential healthcare scenarios. Best used after basic calculations.">
-                    Healthcare Costs
-                </button>
-                <button class="px-4 py-2 border border-indigo-300 text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors font-medium text-sm"
-                        id="btnRiskProfiling">
-                    Risk Analysis
-                </button>
-                <button class="px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors font-medium text-sm"
-                        id="btnDynamicAllocation"
-                        title="⚖️ Asset Allocation: Get model-based investment allocation recommendations based on your age, risk profile, and financial goals. Uses glide path strategies (e.g., Rule of 110) and considers Australian market factors like franking credits. SEQUENCE: Run Risk Analysis first, then use this tool.">
-                    Asset Allocation
-                </button>
-                <button class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
-                        id="btnGenerateRecommendations">
-                    Generate AI Recommendations
-                </button>
-                <button class="px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors font-medium text-sm"
-                        id="btnScenarioComparison">
-                    Compare Scenarios
-                </button>
-                <button class="px-4 py-2 border border-amber-400 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors font-medium text-sm"
-                        id="btnCostReality"
-                        title="💰 Cost Reality Check: See exactly what everyday life will cost at retirement — inflation-adjusted, across three scenarios: home paid off, home with mortgage, and aged care facility. Includes RAD vs DAP comparison for aged care.">
-                    💰 Cost Reality Check
-                </button>
-                <button class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium text-sm"
+            <!-- Step 1: Primary Actions -->
+            <div class="mb-3">
+                <div class="btn-group-label">Step 1 — Run Core Calculations</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button class="px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-sm flex items-center justify-center gap-2"
+                            id="btnCalculate">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        Calculate Enhanced Projection
+                    </button>
+                    <button class="px-4 py-2.5 border-2 border-indigo-300 text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                            id="btnMonteCarlo">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+                        Run Monte Carlo Simulation
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Analysis Tools -->
+            <div class="mb-3">
+                <div class="btn-group-label">Step 2 — Analyse Your Situation</div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                    <button class="px-3 py-2 border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium text-sm"
+                            id="btnRetirementSolver"
+                            title="Finds the earliest retirement date given your current savings trajectory">
+                        When Can I Retire?
+                    </button>
+                    <button class="px-3 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium text-sm"
+                            id="btnStressTest"
+                            title="Tests your plan against market crashes, high inflation, and other adverse scenarios">
+                        Stress Test
+                    </button>
+                    <button class="px-3 py-2 border border-teal-300 text-teal-700 rounded-lg hover:bg-teal-50 transition-colors font-medium text-sm"
+                            id="btnHealthcareAnalysis"
+                            title="Projects healthcare and aged care costs through retirement using 6.5% healthcare inflation and aged care probability modelling">
+                        Healthcare Costs
+                    </button>
+                    <button class="px-3 py-2 border border-indigo-300 text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors font-medium text-sm"
+                            id="btnRiskProfiling"
+                            title="Three-dimensional risk assessment: capacity, tolerance, and requirement">
+                        Risk Analysis
+                    </button>
+                    <button class="px-3 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors font-medium text-sm"
+                            id="btnDynamicAllocation"
+                            title="Run Risk Analysis first — then get asset allocation recommendations using glide-path strategies (Rule of 110/120) and Australian franking credits">
+                        Asset Allocation
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Strategy & Scenarios -->
+            <div class="mb-3">
+                <div class="btn-group-label">Step 3 — Compare Strategies</div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button class="px-3 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors font-medium text-sm"
+                            id="btnScenarioMatrix"
+                            title="Side-by-side comparison of retirement strategies: property vs shares, different retirement ages, etc.">
+                        Compare Strategies
+                    </button>
+                    <button class="px-3 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors font-medium text-sm"
+                            id="btnScenarioComparison"
+                            title="Compare personalised retirement scenarios with your saved inputs">
+                        Scenario Comparison
+                    </button>
+                    <button class="px-3 py-2 border border-amber-400 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors font-medium text-sm"
+                            id="btnCostReality"
+                            title="See what everyday retirement life costs inflation-adjusted — home paid off vs mortgage vs aged care facility. Includes RAD vs DAP comparison.">
+                        Cost Reality Check
+                    </button>
+                    <button class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
+                            id="btnGenerateRecommendations"
+                            title="AI-powered personalised recommendations based on your financial profile">
+                        AI Recommendations
+                    </button>
+                </div>
+            </div>
+
+            <!-- Utility -->
+            <div class="flex justify-end">
+                <button class="px-3 py-1.5 border border-gray-300 text-gray-500 rounded-md hover:bg-gray-50 transition-colors text-xs font-medium"
                         id="btnResetDefaults">
                     Reset to Defaults
                 </button>
@@ -1267,6 +1665,13 @@
         <p class="text-sm text-gray-600 mt-2">Customize all parameters for detailed analysis</p>
     </div>
 
+    <!-- Required fields legend -->
+    <div class="required-legend mb-4">
+        <span class="legend-item"><span class="legend-dot-required"></span> Required field</span>
+        <span class="legend-item"><span class="legend-dot-optional"></span> Optional field</span>
+        <span class="ml-auto text-gray-400">Fields marked <span class="text-red-500 font-semibold">*</span> must be filled to run calculations</span>
+    </div>
+
     <!-- Advanced Calculator Form (hidden by default after onboarding) -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start" id="advancedCalculatorForm">
         <!-- Column 1: Personal & Risk Profile -->
@@ -1277,6 +1682,7 @@
             </h2>
 
             <div class="space-y-4">
+                <!-- YOUR details -->
                 <div class="field-required">
                     <div class="label-with-tooltip">
                         <label class="text-sm font-medium text-gray-700" for="yourCurrentAge">Your Current Age <span
@@ -1292,22 +1698,6 @@
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="yourCurrentAge" type="number"
                            min="18" max="90" value="49">
-                </div>
-                <div>
-                    <div class="label-with-tooltip">
-                        <label class="text-sm font-medium text-gray-700" for="partnerCurrentAge">Partner's Current
-                            Age</label>
-                        <div class="tooltip">
-                            <span aria-label="Partner age information" class="tooltip-icon">i</span>
-                            <span class="tooltiptext">
-                                <strong>Partner's Current Age</strong>
-                                Your partner's age affects age pension calculations as couple rates apply when both are eligible. Leave blank if single.
-                                <div class="tooltip-example">Example: Younger partner delays full age pension benefits</div>
-                            </span>
-                        </div>
-                    </div>
-                    <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerCurrentAge" type="number"
-                           min="18" max="90" value="42">
                 </div>
                 <div class="field-required">
                     <div class="label-with-tooltip">
@@ -1325,12 +1715,6 @@
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="retirementAge" type="number"
                            min="40" max="90" value="68">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700" for="partnerRetirementAge">Partner's
-                        Retirement Age</label>
-                    <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerRetirementAge" type="number"
-                           min="40" max="90" value="60">
-                </div>
                 <div class="field-required">
                     <div class="label-with-tooltip">
                         <label class="text-sm font-medium text-gray-700" for="yourLifespan">Your Expected Lifespan <span
@@ -1347,11 +1731,62 @@
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="yourLifespan" type="number"
                            min="60" max="120" value="85">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700" for="partnerLifespan">Partner's Expected
-                        Lifespan</label>
-                    <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerLifespan" type="number"
-                           min="60" max="120" value="85">
+
+                <!-- PARTNER details subsection -->
+                <div class="partner-subsection">
+                    <div class="partner-subsection-label">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        Partner Details <span style="font-weight:400;opacity:0.65">(leave blank if single)</span>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="label-with-tooltip">
+                                <label class="text-sm font-medium text-gray-700" for="partnerCurrentAge">Partner's Current Age</label>
+                                <div class="tooltip">
+                                    <span aria-label="Partner age information" class="tooltip-icon">i</span>
+                                    <span class="tooltiptext">
+                                        <strong>Partner's Current Age</strong>
+                                        Your partner's age affects age pension calculations as couple rates apply when both are eligible. Leave blank if single.
+                                        <div class="tooltip-example">Example: Younger partner delays full age pension benefits</div>
+                                    </span>
+                                </div>
+                            </div>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerCurrentAge" type="number"
+                                   min="18" max="90" value="42">
+                        </div>
+                        <div>
+                            <div class="label-with-tooltip">
+                                <label class="text-sm font-medium text-gray-700" for="partnerRetirementAge">Partner's Retirement Age</label>
+                                <div class="tooltip">
+                                    <span aria-label="Partner retirement age information" class="tooltip-icon">i</span>
+                                    <span class="tooltiptext">
+                                        <strong>Partner's Retirement Age</strong>
+                                        Age when your partner plans to stop working. Affects dual-income projections and couple age pension eligibility timing.
+                                        <div class="tooltip-example">Example: If partner retires at 60, income drops earlier but pension may not start until 67</div>
+                                    </span>
+                                </div>
+                            </div>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerRetirementAge" type="number"
+                                   min="40" max="90" value="60">
+                        </div>
+                        <div>
+                            <div class="label-with-tooltip">
+                                <label class="text-sm font-medium text-gray-700" for="partnerLifespan">Partner's Expected Lifespan</label>
+                                <div class="tooltip">
+                                    <span aria-label="Partner life expectancy" class="tooltip-icon">i</span>
+                                    <span class="tooltiptext">
+                                        <strong>Partner's Expected Lifespan</strong>
+                                        How long your partner is expected to live. Australian life expectancy: ~81 for men, ~85 for women. Planning beyond 90 ensures joint funds don't run out.
+                                        <div class="tooltip-example">Example: Plan to 90–95 for conservative paired projections</div>
+                                    </span>
+                                </div>
+                            </div>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerLifespan" type="number"
+                                   min="60" max="120" value="85">
+                        </div>
+                    </div>
                 </div>
                 <!-- Age Came to Australia - Item 7 -->
                 <div class="col-span-2 mt-2">
@@ -2053,8 +2488,7 @@
                 </div>
                 <div>
                     <div class="label-with-tooltip">
-                        <label class="text-sm font-medium text-gray-700" for="percentIncomeSaved">% of Post-Tax Income
-                            Saved</label>
+                        <label class="text-sm font-medium text-gray-700" for="percentIncomeSaved">Post-Tax Income Saved (%)</label>
                         <div class="tooltip">
                             <span aria-label="Savings rate information" class="tooltip-icon">i</span>
                             <span class="tooltiptext">
@@ -2464,14 +2898,14 @@
         <div class="lg:col-span-1 section-economic">
             <h2 class="text-xl font-semibold mb-4 border-b pb-2">
                 Economic & Asset Allocation
-                <span class="section-badge badge-enhanced">💡 Advanced</span>
+                <span class="section-badge badge-required">⭐ Core Fields</span>
             </h2>
 
             <div class="space-y-4">
-                <div>
+                <div class="field-required">
                     <div class="label-with-tooltip">
                         <label class="text-sm font-medium text-gray-700" for="inflation">Annual Inflation Rate
-                            (%)</label>
+                            (%) <span class="text-red-600">*</span></label>
                         <div class="tooltip">
                             <span aria-label="Inflation information" class="tooltip-icon">i</span>
                             <span class="tooltiptext">
@@ -2484,9 +2918,19 @@
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="inflation" step="0.01" type="text"
                            value="2.87">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700" for="investmentReturn">Initial Investment
-                        Return (%)</label>
+                <div class="field-required">
+                    <div class="label-with-tooltip">
+                        <label class="block text-sm font-medium text-gray-700" for="investmentReturn">Initial Investment
+                            Return (%) <span class="text-red-600">*</span></label>
+                        <div class="tooltip">
+                            <span aria-label="Investment return information" class="tooltip-icon">i</span>
+                            <span class="tooltiptext">
+                                <strong>Initial Investment Return (%)</strong>
+                                Expected annual return on your non-super investments. Australian balanced fund long-run median: ~7% p.a. (2000–2025). This is the starting rate that gradually declines as your portfolio becomes more conservative (see Return Decline Rate below).
+                                <div class="tooltip-example">Example: 7% return on $200k savings = $14k growth per year</div>
+                            </span>
+                        </div>
+                    </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="investmentReturn" type="text"
                            value="5.61" min="0" max="30" step="0.1">
                 </div>
@@ -2502,10 +2946,10 @@
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="savingsReturn" step="0.01" type="text"
                            value="1.40" min="0" max="30">
                 </div>
-                <div>
+                <div class="field-required">
                     <div class="label-with-tooltip">
                         <label class="block text-sm font-medium text-gray-700" for="superReturn">Super Annual Growth
-                            (%)</label>
+                            (%) <span class="text-red-600">*</span></label>
                         <div class="tooltip">
                             <span aria-label="Super return information" class="tooltip-icon">i</span>
                             <span class="tooltiptext">
@@ -2567,8 +3011,7 @@
                 <h3 class="text-lg font-medium text-gray-700 mb-3">Franking Credits</h3>
                 <div class="space-y-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700" for="australianEquityAllocation">Australian
-                            Equity % of Total Equities</label>
+                        <label class="block text-sm font-medium text-gray-700" for="australianEquityAllocation">Australian Equities (%) of Total</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="australianEquityAllocation" max="100" min="0" type="text"
                                value="40">
                     </div>
@@ -5157,6 +5600,46 @@
                 if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
             });
         }
+    });
+
+    // Auto-apply $ prefix and % suffix symbols to all labeled currency/rate inputs
+    document.addEventListener('DOMContentLoaded', function applyInputSymbols() {
+        document.querySelectorAll('label[for]').forEach(function(label) {
+            var text = label.textContent || '';
+            // Match ($) or ($/year) patterns for dollar fields
+            var hasDollar = /\(\$\)|\(\$\//.test(text);
+            // Match (%), (% p.a.), (%/yr), (%/) patterns for percentage fields
+            var hasPercent = /\(%\)|\(% p\.a\.\)|\(%\//.test(text);
+            if (!hasDollar && !hasPercent) return;
+
+            var inputId = label.getAttribute('for');
+            var input = document.getElementById(inputId);
+            if (!input || input.type === 'checkbox' || input.type === 'hidden' || input.tagName !== 'INPUT') return;
+            if (input.closest('.input-symbol-wrap')) return;
+
+            var wrap = document.createElement('div');
+            wrap.className = 'input-symbol-wrap';
+            input.parentNode.insertBefore(wrap, input);
+            wrap.appendChild(input);
+            if (input.classList.contains('mt-1')) input.classList.remove('mt-1');
+
+            if (hasDollar) {
+                var pfx = document.createElement('span');
+                pfx.className = 'sym sym-prefix';
+                pfx.textContent = '$';
+                pfx.setAttribute('aria-hidden', 'true');
+                wrap.insertBefore(pfx, input);
+                input.classList.add('with-prefix');
+            }
+            if (hasPercent) {
+                var sfx = document.createElement('span');
+                sfx.className = 'sym sym-suffix';
+                sfx.textContent = '%';
+                sfx.setAttribute('aria-hidden', 'true');
+                wrap.appendChild(sfx);
+                input.classList.add('with-suffix');
+            }
+        });
     });
 </script>
 
