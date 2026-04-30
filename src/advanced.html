@@ -1073,10 +1073,10 @@
 
         /* 6. ONBOARDING WELCOME BANNER */
         #onboarding-buttons {
-            background: linear-gradient(135deg, var(--color-navy-950) 0%, #1a2f4a 100%);
-            border: 1px solid rgba(201, 162, 39, 0.22);
-            border-radius: 0.875rem;
-            padding: 2.5rem 2rem;
+            background: linear-gradient(135deg, var(--color-navy-950) 0%, #1a2f4a 100%) !important;
+            border: 1px solid rgba(201, 162, 39, 0.22) !important;
+            border-radius: 0.875rem !important;
+            padding: 2.5rem 2rem !important;
         }
         #onboarding-buttons h2 {
             font-family: var(--font-display);
@@ -1085,7 +1085,7 @@
             letter-spacing: -0.01em;
         }
         #onboarding-buttons > div > p {
-            color: rgba(255,255,255,0.58);
+            color: rgba(255,255,255,0.65);
             font-family: var(--font-ui);
         }
         #new-user-btn {
@@ -1103,19 +1103,21 @@
             box-shadow: 0 8px 24px rgba(201, 162, 39, 0.35) !important;
         }
         #new-user-btn .text-2xl { filter: none; }
+        /* Returning User / Load Data button — solid color so it's always visible */
         #returning-user-btn {
-            background: transparent !important;
-            color: rgba(255,255,255,0.88) !important;
-            border: 1.5px solid rgba(255,255,255,0.25) !important;
+            background: #1E40AF !important;
+            color: #FFFFFF !important;
+            border: 1.5px solid #3B82F6 !important;
             font-family: var(--font-ui) !important;
             font-weight: 600 !important;
             border-radius: 0.625rem !important;
             transition: all 0.2s ease !important;
         }
         #returning-user-btn:hover {
-            background: rgba(255,255,255,0.07) !important;
-            border-color: rgba(255,255,255,0.45) !important;
+            background: #1D4ED8 !important;
+            border-color: #60A5FA !important;
             transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35) !important;
         }
 
         /* 7. ACTION BUTTONS SECTION */
