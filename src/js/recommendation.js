@@ -1275,9 +1275,10 @@ class RecommendationEngine {
      */
     _analyzeInvestmentStrategy(baselineResults) {
         const scenarios = [];
-        const currentEquities = this.baseInputs.allocEquities;
-        const currentBonds = this.baseInputs.allocBonds;
-        const currentCash = this.baseInputs.allocCash;
+        // baseInputs stores alloc as decimals (0–1); convert to % for threshold comparisons
+        const currentEquities = Math.round((this.baseInputs.allocEquities || 0) * 100);
+        const currentBonds = Math.round((this.baseInputs.allocBonds || 0) * 100);
+        const currentCash = Math.round((this.baseInputs.allocCash || 0) * 100);
         const age = this.baseInputs.yourCurrentAge;
         const yearsToRetirement = this.baseInputs.retirementAge - age;
 

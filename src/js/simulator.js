@@ -1729,6 +1729,12 @@ export class RetirementSimulator {
 
             // Create modified inputs for this scenario
             const scenarioInputs = { ...baseInputs, ...scenario.modifications };
+            // Normalize alloc values: form/recommendations use 0-100 scale, simulator expects 0-1
+            ['allocEquities', 'allocBonds', 'allocCash'].forEach(field => {
+                if (typeof scenarioInputs[field] === 'number' && scenarioInputs[field] > 1) {
+                    scenarioInputs[field] = scenarioInputs[field] / 100;
+                }
+            });
 
             // Extract stress scenario if present
             const stressScenario = scenarioInputs._stressScenario || null;
