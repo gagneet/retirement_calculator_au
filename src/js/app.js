@@ -4554,6 +4554,10 @@ class RetirementCalculatorApp {
             // Investment fields
             'australianEquityAllocation': 'australianEquityAllocation',
             'frankingRate': 'frankingRate',
+            'allocEquities': 'allocEquities',
+            'allocBonds': 'allocBonds',
+            'allocCash': 'allocCash',
+            'useGlidePath': 'useGlidePath',
 
             // Lean years fields
             'leanYearsStart': 'leanYearsStart',
