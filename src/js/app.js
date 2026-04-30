@@ -4424,12 +4424,16 @@ class RetirementCalculatorApp {
                 <div class="flex justify-between items-center">
                     ${this.getImpactDisplay(suggestion)}
 
+                    ${suggestion.isTryThisDisabled ? `
+                    <span class="text-xs px-3 py-1 bg-gray-100 text-gray-500 rounded italic">Review Only</span>
+                    ` : `
                     <button
                         class="text-xs px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
                         onclick="app.applySuggestion('${(suggestion.name || suggestion.title || 'Unknown').replace(/'/g, "\\'")}')"
                     >
                         Try This →
                     </button>
+                    `}
                 </div>
             </div>
         `).join('');

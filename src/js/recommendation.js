@@ -1472,6 +1472,7 @@ class RecommendationEngine {
             scenarios.push({
                 name: "Partner Dies at Age 70 (Pre-Retirement)",
                 description: `Plan for partner passing before retirement. Income drops ${incomeReduction.toFixed(0)}% but you inherit superannuation death benefits.`,
+                isTryThisDisabled: true,
                 modifications: {
                     partnerSalary: 0,
                     partnerCurrentSuper: 0,
@@ -1498,11 +1499,13 @@ class RecommendationEngine {
             scenarios.push({
                 name: "You Die at Age 70, Partner Survives",
                 description: `Partner continues alone with ${(100 - partnerIncomeReduction).toFixed(0)}% of household income plus death benefits.`,
+                isTryThisDisabled: true,
                 modifications: {
                     yourSalary: 0,
                     yourCurrentSuper: 0,
                     partnerCurrentSuper: partnerSurvivorSuper,
-                    yourLifespan: 70
+                    yourLifespan: 70,
+                    retirementAge: Math.min(retirementAge, 70)
                 },
                 feasibility: "Life Insurance Important",
                 factorsChanged: [
@@ -1523,12 +1526,12 @@ class RecommendationEngine {
             scenarios.push({
                 name: "Widowed at Age 60",
                 description: `Partner dies at 60, leaving you to navigate pre-retirement years alone with death benefits.`,
+                isTryThisDisabled: true,
                 modifications: {
                     partnerSalary: 0,
                     partnerCurrentSuper: 0,
                     yourCurrentSuper: earlyWidowSuper,
-                    partnerLifespan: 60,
-                    yourCurrentAge: 60 // Model from age 60 onwards
+                    partnerLifespan: 60
                 },
                 feasibility: "Requires Comprehensive Life Insurance",
                 factorsChanged: [
@@ -1547,6 +1550,7 @@ class RecommendationEngine {
             scenarios.push({
                 name: "Widowed at Age 80 (In Retirement)",
                 description: `Partner dies during retirement. Single person pension thresholds apply, but reduced living costs.`,
+                isTryThisDisabled: true,
                 modifications: {
                     partnerLifespan: 80
                 },
@@ -1585,6 +1589,7 @@ class RecommendationEngine {
                 scenarios.push({
                     name: "Increase TPD Coverage to 6x Annual Income",
                     category: "Insurance",
+                    isTryThisDisabled: true,
                     description: `Current TPD: $${currentTPD.toLocaleString()}, Recommended: $${recommendedTPD.toLocaleString()}. **Impact: CRITICAL** - Protect against permanent disability. **Risk: HIGH without cover** - Family financial devastation. **Timeline: Immediate (2025)**`,
                     modifications: {
                         yourTPDCover: recommendedTPD
@@ -1612,6 +1617,7 @@ class RecommendationEngine {
                 scenarios.push({
                     name: "Optimize Life Insurance Coverage",
                     category: "Insurance",
+                    isTryThisDisabled: true,
                     description: `Current Life: $${currentLife.toLocaleString()}, Recommended: $${recommendedLife.toLocaleString()}. **Impact: CRITICAL** - Protect family's financial future. **Risk: EXTREME without cover** - Family poverty upon death. **Timeline: Immediate (2025)**`,
                     modifications: {
                         yourLifeInsurance: recommendedLife
@@ -1632,6 +1638,7 @@ class RecommendationEngine {
                 scenarios.push({
                     name: "Add Comprehensive Income Protection",
                     category: "Insurance",
+                    isTryThisDisabled: true,
                     description: `Protect 75% of income ($${(recommendedIP/12).toLocaleString()}/month) if unable to work. **Impact: CRITICAL** - Maintain lifestyle during illness/injury. **Risk: HIGH without cover** - Cannot meet expenses. **Timeline: Immediate (2025)**`,
                     modifications: {
                         yourIncomeProtection: recommendedIP
@@ -1655,6 +1662,7 @@ class RecommendationEngine {
                 scenarios.push({
                     name: "Review Partner Life Insurance Coverage",
                     category: "Insurance",
+                    isTryThisDisabled: true,
                     description: `Partner life: $${partnerCurrentLife.toLocaleString()}, Recommended: $${partnerRecommendedLife.toLocaleString()}. **Impact: IMPORTANT** - Dual protection strategy essential. **Risk: MEDIUM** - Partial family protection gap. **Timeline: Within 3 months (2025)**`,
                     modifications: {
                         partnerLifeInsurance: partnerRecommendedLife
@@ -1672,6 +1680,7 @@ class RecommendationEngine {
             scenarios.push({
                 name: "Consider Trauma/Critical Illness Cover",
                 category: "Insurance",
+                isTryThisDisabled: true,
                 description: `Add $${recommendedTrauma.toLocaleString()} trauma cover for 38 critical conditions. **Impact: IMPORTANT** - Lump sum for treatment and recovery. **Risk: MEDIUM** - Medical debt and income loss. **Timeline: Annual review (2025)**`,
                 modifications: {
                     yourTraumaCover: recommendedTrauma
@@ -1689,6 +1698,7 @@ class RecommendationEngine {
             scenarios.push({
                 name: "Optimize Insurance Through Superannuation",
                 category: "Insurance",
+                isTryThisDisabled: true,
                 description: `Move $${superInsuranceOptimization.toLocaleString()} life cover inside super for tax benefits. **Impact: POSITIVE** - Reduce premiums by 25-35%. **Risk: LOW** - Structured within regulated super. **Timeline: Next renewal (2025-2026)**`,
                 modifications: {
                     yourLifeInsurance: currentLife - superInsuranceOptimization,
@@ -1936,6 +1946,7 @@ class RecommendationEngine {
             category,
             description: scenario.description || description,
             modifications: scenario.modifications,
+            isTryThisDisabled: scenario.isTryThisDisabled || false,
             impact,
             feasibility,
             factorsChanged,
