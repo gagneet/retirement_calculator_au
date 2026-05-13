@@ -195,4 +195,34 @@ describe('Advanced page structure (advanced.html)', () => {
     test('scrollToActionButtons function is defined', () => {
         expect(html).toContain('function scrollToActionButtons');
     });
+
+    test('salary tooltip example uses corrected take-home wording', () => {
+        expect(html).toContain('$100k salary = $12k super + about $78k take-home');
+    });
+
+    test('sell property timing field includes explanatory tooltip', () => {
+        const fieldStart = html.indexOf('for="sellPropertyYears"');
+        expect(fieldStart).toBeGreaterThan(-1);
+        const context = html.substring(Math.max(0, fieldStart - 350), fieldStart + 1200);
+        expect(context).toContain('Sell Property in (Years from now)');
+        expect(context).toContain('suggested sale timing');
+    });
+
+    test('aged care duration field includes tooltip and helper text', () => {
+        const fieldStart = html.indexOf('for="agedCareDuration"');
+        expect(fieldStart).toBeGreaterThan(-1);
+        const context = html.substring(Math.max(0, fieldStart - 350), fieldStart + 1300);
+        expect(context).toContain('Auto-calculated as your expected lifespan minus the aged care start age');
+        expect(context).toContain('id="agedCareDurationHint"');
+    });
+
+    test('desired retirement income default matches the current configured ASFA couple default', () => {
+        expect(html).toContain('id="asfaComfortable"');
+        expect(html).toContain('value="73031"');
+    });
+
+    test('annual aged care cost default matches the current configured default', () => {
+        expect(html).toContain('id="agedCareAnnualCost"');
+        expect(html).toContain('value="75000"');
+    });
 });

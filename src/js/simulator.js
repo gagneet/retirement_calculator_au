@@ -25,6 +25,8 @@ import {
     clamp
 } from './utils.js';
 
+const RUN_UNTIL_DEPLETION_AGE = 120;
+
 export class RetirementSimulator {
     constructor(config) {
         // Merge original config with enhanced financial config
@@ -44,6 +46,14 @@ export class RetirementSimulator {
             if (age >= band.minAge && age <= band.maxAge) return band.rate;
         }
         return 0.04; // fallback — should not be reached with a complete rate table
+    }
+
+    getEffectiveLifespan(lifespan) {
+        return lifespan > 0 ? lifespan : RUN_UNTIL_DEPLETION_AGE;
+    }
+
+    isOpenEndedLifespan(lifespan) {
+        return !(lifespan > 0);
     }
 
     // Enhanced Risk profiling calculations with dynamic factors
@@ -300,7 +310,10 @@ export class RetirementSimulator {
         });
 
         // Longevity risk
-        const lifeExpectancy = Math.max(inputs.yourLifespan, inputs.partnerLifespan);
+        const lifeExpectancy = Math.max(
+            this.getEffectiveLifespan(inputs.yourLifespan),
+            this.getEffectiveLifespan(inputs.partnerLifespan)
+        );
         if (lifeExpectancy > 90) {
             scenarios.push({
                 name: 'Longevity Risk',
@@ -530,12 +543,15 @@ export class RetirementSimulator {
             ? Math.max(1, (new Date().getFullYear() + saleYear) - inputs.investmentPropertyPurchaseYear)
             : Math.max(1, saleYear);
         const capitalGain = saleValue - propertyCostBase;
+        const effectiveCapitalGainsTaxRate = inputs.capitalGainsTaxRate > 1
+            ? inputs.capitalGainsTaxRate / 100
+            : inputs.capitalGainsTaxRate;
         const cgtPayable = calculateCGT(
             saleValue,
             propertyCostBase,
             true, // Assume Australian resident
             holdingPeriodYears,
-            inputs.capitalGainsTaxRate / 100
+            effectiveCapitalGainsTaxRate
         );
 
         const netProceeds = saleValue - remainingLoan - sellingCosts - cgtPayable;
@@ -745,13 +761,17 @@ export class RetirementSimulator {
             }
             : inputs;
 
-        const maxLifespan = Math.max(inputs.yourLifespan, inputs.partnerLifespan);
+        const effectiveYourLifespan = this.getEffectiveLifespan(inputs.yourLifespan);
+        const effectivePartnerLifespan = inputs.isSingleCalculation
+            ? 0
+            : this.getEffectiveLifespan(inputs.partnerLifespan);
+        const maxLifespan = Math.max(effectiveYourLifespan, effectivePartnerLifespan);
         const yearsToRetirement = Math.max(0, inputs.retirementAge - inputs.yourCurrentAge);
 
         // Calculate total simulation years based on the maximum lifespan from current age
         const maxYearsFromNow = Math.max(
-            inputs.yourLifespan - inputs.yourCurrentAge,
-            inputs.partnerLifespan - inputs.partnerCurrentAge
+            effectiveYourLifespan - inputs.yourCurrentAge,
+            effectivePartnerLifespan - inputs.partnerCurrentAge
         );
         const yearsInRetirement = Math.max(0, maxYearsFromNow - yearsToRetirement);
 
@@ -774,8 +794,8 @@ export class RetirementSimulator {
 
         // Pre-retirement simulation
         const simulationEndYear = inputs.isSingleCalculation ?
-            Math.max(yearsToRetirement, inputs.yourLifespan - inputs.yourCurrentAge) :
-            Math.max(yearsToRetirement, inputs.yourLifespan - inputs.yourCurrentAge, inputs.partnerLifespan - inputs.partnerCurrentAge);
+            Math.max(yearsToRetirement, effectiveYourLifespan - inputs.yourCurrentAge) :
+            Math.max(yearsToRetirement, effectiveYourLifespan - inputs.yourCurrentAge, effectivePartnerLifespan - inputs.partnerCurrentAge);
 
         for (let year = 1; year <= simulationEndYear; year++) {
             const yourCurrentAge = inputs.yourCurrentAge + year;
@@ -783,12 +803,12 @@ export class RetirementSimulator {
 
             // Stop simulation based on single vs couple status
             if (inputs.isSingleCalculation) {
-                if (yourCurrentAge > inputs.yourLifespan) {
+                if (yourCurrentAge > effectiveYourLifespan) {
                     break;
                 }
             } else {
                 // Stop simulation if both have passed away
-                if (yourCurrentAge > inputs.yourLifespan && partnerCurrentAge > inputs.partnerLifespan) {
+                if (yourCurrentAge > effectiveYourLifespan && partnerCurrentAge > effectivePartnerLifespan) {
                     break;
                 }
             }
@@ -875,8 +895,8 @@ export class RetirementSimulator {
             }
 
             // Add contributions
-            const yourYearsToWork = Math.min(inputs.retirementAge, inputs.yourLifespan) - inputs.yourCurrentAge;
-            const partnerYearsToWork = Math.min(inputs.partnerRetirementAge, inputs.partnerLifespan) - inputs.partnerCurrentAge;
+            const yourYearsToWork = Math.min(inputs.retirementAge, effectiveYourLifespan) - inputs.yourCurrentAge;
+            const partnerYearsToWork = Math.min(inputs.partnerRetirementAge, effectivePartnerLifespan) - inputs.partnerCurrentAge;
 
             // Year-specific tax rules:
             // • Tax brackets: 16% → 15% on $18,201–$45,000 from 1 July 2026 (FY 2026-27)
@@ -1120,20 +1140,20 @@ export class RetirementSimulator {
 
             // Check if simulation should end based on single vs couple status
             if (inputs.isSingleCalculation) {
-                if (yourCurrentAge > inputs.yourLifespan) {
+                if (yourCurrentAge > effectiveYourLifespan) {
                     break;
                 }
             } else {
                 // Check if both partners have passed away
-                if (yourCurrentAge > inputs.yourLifespan && partnerCurrentAge > inputs.partnerLifespan) {
+                if (yourCurrentAge > effectiveYourLifespan && partnerCurrentAge > effectivePartnerLifespan) {
                     break;
                 }
             }
 
             // Determine couple status: must not be single calculation AND both partners must be alive
             const isCouple = !inputs.isSingleCalculation &&
-                yourCurrentAge <= inputs.yourLifespan &&
-                partnerCurrentAge <= inputs.partnerLifespan;
+                yourCurrentAge <= effectiveYourLifespan &&
+                partnerCurrentAge <= effectivePartnerLifespan;
 
             // Dynamic allocation in retirement
             const allocation = inputs.useGlidePath ?
@@ -1170,11 +1190,11 @@ export class RetirementSimulator {
                 }
 
                 // Also check if person dies during aged care - don't charge beyond lifespan
-                if (yourCurrentAge >= inputs.yourLifespan) {
+                if (yourCurrentAge >= effectiveYourLifespan) {
                     annualCost = 0; // No cost if person has passed away
-                } else if (yourCurrentAge + 1 > inputs.yourLifespan) {
+                } else if (yourCurrentAge + 1 > effectiveYourLifespan) {
                     // Partial year if person dies during this year
-                    const partialYear = inputs.yourLifespan - yourCurrentAge;
+                    const partialYear = effectiveYourLifespan - yourCurrentAge;
                     annualCost = annualCost * partialYear;
                 }
 
@@ -1491,6 +1511,8 @@ export class RetirementSimulator {
                 age: yourCurrentAge,
                 partnerAge: partnerCurrentAge,
                 yourAge: yourCurrentAge,
+                yourAlive: yourCurrentAge <= effectiveYourLifespan,
+                partnerAlive: !inputs.isSingleCalculation && partnerCurrentAge <= effectivePartnerLifespan,
                 allocation: allocation,
                 startBalance,
                 returnRate: actualReturn * 100,
@@ -1521,6 +1543,8 @@ export class RetirementSimulator {
             }
         }
 
+        const depletionYear = yearlyData.find(year => year.depleted) || null;
+
         return {
             finalBalance: currentBalance,
             balances,
@@ -1537,7 +1561,15 @@ export class RetirementSimulator {
             propertyWasSold,
             accumulatedSuperBalance,
             accumulatedSavingsBalance,
-            accumulatedInvestmentPortfolio
+            accumulatedInvestmentPortfolio,
+            runUntilDepletionMode: this.isOpenEndedLifespan(inputs.yourLifespan) || (!inputs.isSingleCalculation && this.isOpenEndedLifespan(inputs.partnerLifespan)),
+            effectiveYourLifespan,
+            effectivePartnerLifespan,
+            depletionYear: depletionYear?.year || null,
+            depletionAge: depletionYear?.age || null,
+            depletionPartnerAge: depletionYear?.partnerAlive ? depletionYear.partnerAge : null,
+            depletionPensionIncome: depletionYear?.pensionIncome || 0,
+            depletionIsCouple: !!depletionYear?.partnerAlive
         };
     }
 
@@ -1638,7 +1670,7 @@ export class RetirementSimulator {
 
         // Set reasonable bounds
         const minSearchAge = minAge || Math.max(inputs.yourCurrentAge + 5, 55);
-        const maxSearchAge = maxAge || Math.min(inputs.yourLifespan - 10, 75);
+        const maxSearchAge = maxAge || Math.min(this.getEffectiveLifespan(inputs.yourLifespan) - 10, 75);
 
         let bestAge = null;
         let bestResult = null;
@@ -1705,7 +1737,7 @@ export class RetirementSimulator {
         const originalRetirementAge = inputs.retirementAge;
 
         const minSearchAge = minAge || Math.max(inputs.yourCurrentAge + 5, 55);
-        const maxSearchAge = maxAge || Math.min(inputs.yourLifespan - 10, 75);
+        const maxSearchAge = maxAge || Math.min(this.getEffectiveLifespan(inputs.yourLifespan) - 10, 75);
 
         let bestAge = null;
         let bestBalance = 0;

@@ -76,28 +76,38 @@ export class OutcomeEngine {
             throw new Error('Retirement age must be greater than current age');
         }
 
+        const inflationFactor = this.getInflationFactor(yearsToRetirement);
+
         // 1. Project superannuation at retirement (conservative)
-        const superAtRetirement = this.projectSuperannuation(yearsToRetirement);
+        const superAtRetirementNominal = this.projectSuperannuation(yearsToRetirement);
+        const superAtRetirementToday = superAtRetirementNominal / inflationFactor;
 
         // 2. Estimate Age Pension (simplified)
-        const agePension = this.estimateAgePension(superAtRetirement);
+        const agePensionNominal = this.estimateAgePension(superAtRetirementNominal);
+        const agePensionToday = agePensionNominal / inflationFactor;
 
         // 3. Calculate sustainable retirement income (4% rule)
-        const sustainableIncome = this.calculateSustainableIncome(
-            superAtRetirement,
-            agePension
+        const sustainableIncomeNominal = this.calculateSustainableIncome(
+            superAtRetirementNominal,
+            agePensionNominal
         );
+        const sustainableIncomeToday = sustainableIncomeNominal / inflationFactor;
 
         // 4. Determine target income (ASFA standard or user specified)
-        const targetIncome = this.determineTargetIncome();
+        const targetIncomeToday = this.determineTargetIncome();
+        const targetIncomeNominal = targetIncomeToday * inflationFactor;
 
         // 5. Calculate gap (shortfall) or surplus
-        const gap = targetIncome - sustainableIncome;
+        const gap = targetIncomeToday - sustainableIncomeToday;
         const hasGap = gap > 0;
         const hasSurplus = gap < 0;
 
         // 6. Project legacy at end of life
-        const legacy = this.projectLegacy(superAtRetirement, sustainableIncome, targetIncome);
+        const legacy = this.projectLegacy(
+            superAtRetirementNominal,
+            sustainableIncomeNominal,
+            targetIncomeNominal
+        );
 
         // 7. Calculate mortgage payoff status
         const mortgageStatus = this.calculateMortgageStatus(yearsToRetirement);
@@ -109,10 +119,19 @@ export class OutcomeEngine {
             yearsToRetirement,
 
             // Retirement income projection
-            superAtRetirement: Math.round(superAtRetirement),
-            agePension: Math.round(agePension),
-            sustainableIncome: Math.round(sustainableIncome),
-            targetIncome: Math.round(targetIncome),
+            superAtRetirement: Math.round(superAtRetirementToday),
+            superAtRetirementToday: Math.round(superAtRetirementToday),
+            superAtRetirementNominal: Math.round(superAtRetirementNominal),
+            agePension: Math.round(agePensionToday),
+            agePensionToday: Math.round(agePensionToday),
+            agePensionNominal: Math.round(agePensionNominal),
+            sustainableIncome: Math.round(sustainableIncomeToday),
+            sustainableIncomeToday: Math.round(sustainableIncomeToday),
+            sustainableIncomeNominal: Math.round(sustainableIncomeNominal),
+            targetIncome: Math.round(targetIncomeToday),
+            targetIncomeToday: Math.round(targetIncomeToday),
+            targetIncomeNominal: Math.round(targetIncomeNominal),
+            inflationFactor,
 
             // Gap analysis
             gap: Math.round(Math.abs(gap)),
@@ -137,6 +156,17 @@ export class OutcomeEngine {
         };
 
         return this.results;
+    }
+
+    /**
+     * Convert retirement-year dollars to today's dollars.
+     *
+     * @private
+     * @param {number} years - Years until retirement
+     * @returns {number} Inflation growth factor over the period
+     */
+    getInflationFactor(years) {
+        return Math.pow(1 + CONSERVATIVE_ASSUMPTIONS.GENERAL_INFLATION, years);
     }
 
     /**
@@ -450,10 +480,10 @@ export class OutcomeEngine {
         return {
             status: r.status,
             message: hasGap ?
-                `You'll be short $${Math.round(r.gap).toLocaleString()}/year ($${Math.round(r.gapPerWeek)}/week)` :
+                `You'll be short $${Math.round(r.gap).toLocaleString()}/year in today's dollars ($${Math.round(r.gapPerWeek)}/week)` :
                 hasSurplus ?
-                    `You're on track! Surplus of $${Math.round(r.gap).toLocaleString()}/year` :
-                    `You're on track! Projected income of $${Math.round(r.sustainableIncome).toLocaleString()}/year`,
+                    `You're on track! Surplus of $${Math.round(r.gap).toLocaleString()}/year in today's dollars` :
+                    `You're on track! Projected income of $${Math.round(r.sustainableIncome).toLocaleString()}/year in today's dollars`,
             yearsToRetirement: r.yearsToRetirement,
             projectedIncome: r.sustainableIncome,
             targetIncome: r.targetIncome,
@@ -480,14 +510,21 @@ export class OutcomeEngine {
                 yearsFromNow: r.yearsToRetirement,
                 lifestyleStandard: this.inputs.retirementStandard || 'comfortable',
                 targetIncome: r.targetIncome,
-                targetIncomeMonthly: Math.round(r.targetIncome / 12)
+                targetIncomeMonthly: Math.round(r.targetIncome / 12),
+                targetIncomeNominal: r.targetIncomeNominal,
+                targetIncomeNominalMonthly: Math.round(r.targetIncomeNominal / 12)
             },
             yourProjection: {
                 superAtRetirement: r.superAtRetirement,
+                superAtRetirementNominal: r.superAtRetirementNominal,
                 agePensionAnnual: r.agePension,
+                agePensionAnnualNominal: r.agePensionNominal,
                 agePensionMonthly: Math.round(r.agePension / 12),
+                agePensionMonthlyNominal: Math.round(r.agePensionNominal / 12),
                 totalAnnualIncome: r.sustainableIncome,
-                totalMonthlyIncome: Math.round(r.sustainableIncome / 12)
+                totalAnnualIncomeNominal: r.sustainableIncomeNominal,
+                totalMonthlyIncome: Math.round(r.sustainableIncome / 12),
+                totalMonthlyIncomeNominal: Math.round(r.sustainableIncomeNominal / 12)
             },
             theGap: {
                 hasGap: r.hasGap,

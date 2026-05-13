@@ -780,18 +780,18 @@
                             <span class="tooltiptext">
                             <strong>Your Expected Lifespan</strong>
                             How long you expect to live. Australian life expectancy is ~81 for men, ~85 for women. Planning to 90+ ensures your money doesn't run out.
-                            <div class="tooltip-example">Example: Plan to 95 for conservative estimates</div>
+                            <div class="tooltip-example">Example: Plan to 95 for conservative estimates, or enter 0 to model until money runs out</div>
                         </span>
                         </div>
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="yourLifespan" type="number"
-                           value="91">
+                           min="0" max="120" value="91">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="partnerLifespan">Partner's Expected
                         Lifespan</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerLifespan" type="number"
-                           value="93">
+                           min="0" max="120" value="93">
                 </div>
             </div>
 

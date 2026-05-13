@@ -1737,12 +1737,12 @@
                             <span class="tooltiptext">
                                 <strong>Your Expected Lifespan</strong>
                                 How long you expect to live. Australian life expectancy is ~81 for men, ~85 for women. Planning to 90+ ensures your money doesn't run out.
-                                <div class="tooltip-example">Example: Plan to 95 for conservative estimates</div>
+                                <div class="tooltip-example">Example: Plan to 95 for conservative estimates, or enter 0 to model until money runs out</div>
                             </span>
                         </div>
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="yourLifespan" type="number"
-                           min="60" max="120" value="85">
+                           min="0" max="120" value="85">
                 </div>
 
                 <!-- PARTNER details subsection -->
@@ -1792,12 +1792,12 @@
                                     <span class="tooltiptext">
                                         <strong>Partner's Expected Lifespan</strong>
                                         How long your partner is expected to live. Australian life expectancy: ~81 for men, ~85 for women. Planning beyond 90 ensures joint funds don't run out.
-                                        <div class="tooltip-example">Example: Plan to 90–95 for conservative paired projections</div>
+                                        <div class="tooltip-example">Example: Plan to 90–95 for conservative paired projections, or enter 0 to model until money runs out</div>
                                     </span>
                                 </div>
                             </div>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerLifespan" type="number"
-                                   min="60" max="120" value="85">
+                                   min="0" max="120" value="85">
                         </div>
                     </div>
                 </div>
@@ -2308,7 +2308,7 @@
                             <span class="tooltiptext">
                                 <strong>Your Annual Salary (pre-tax)</strong>
                                 Gross income before tax and super. Used for tax calculations, super guarantee contributions (12%), and retirement projections.
-                                <div class="tooltip-example">Example: $100k salary = $12k super + $76k take-home (approx)</div>
+                                <div class="tooltip-example">Example: $100k salary = $12k super + about $78k take-home after income tax and Medicare levy</div>
                             </span>
                         </div>
                     </div>
@@ -2316,8 +2316,18 @@
                            value="164000" min="0">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700" for="partnerSalary">Partner's Annual Salary
-                        (pre-tax) ($)</label>
+                    <div class="label-with-tooltip">
+                        <label class="block text-sm font-medium text-gray-700" for="partnerSalary">Partner's Annual Salary
+                            (pre-tax) ($)</label>
+                        <div class="tooltip">
+                            <span aria-label="Partner salary information" class="tooltip-icon">i</span>
+                            <span class="tooltiptext">
+                                <strong>Partner's Annual Salary (pre-tax)</strong>
+                                Used for partner super guarantee contributions, tax, and combined household retirement modelling. Leave as 0 if you are planning as a single.
+                                <div class="tooltip-example">Example: $80k partner salary = about $9.6k employer super at the 12% SG rate</div>
+                            </span>
+                        </div>
+                    </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerSalary" type="text"
                            value="124500" min="0">
                 </div>
@@ -2425,7 +2435,17 @@
                         <p class="mt-1 text-xs text-gray-500" id="partnerAdditionalSuperContributionHint">Partner's pre-tax salary sacrifice. Capped at remaining concessional room after employer SG.</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700" for="employerSuperContributionRate">Custom Employer Super Contribution Rate (%)</label>
+                        <div class="label-with-tooltip">
+                            <label class="block text-sm font-medium text-gray-700" for="employerSuperContributionRate">Custom Employer Super Contribution Rate (%)</label>
+                            <div class="tooltip">
+                                <span aria-label="Employer super contribution rate information" class="tooltip-icon">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Custom Employer Super Contribution Rate (%)</strong>
+                                    Override the default 12% Super Guarantee if your employer contributes more under an award, enterprise agreement, or contract. This rate is used when calculating the remaining concessional room for salary sacrifice.
+                                    <div class="tooltip-example">Example: 15% employer super on a $120k salary means about $18k is already going into super before any salary sacrifice</div>
+                                </span>
+                            </div>
+                        </div>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="employerSuperContributionRate" type="text"
                                value="0" min="0" max="25" placeholder="Leave at 0 to use SG schedule">
                         <p class="mt-1 text-xs text-gray-500">Optional override when your employer pays above the legislated Super Guarantee or uses a contracted rate.</p>
@@ -2734,11 +2754,21 @@
                                    value="1.81" min="0" max="30">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700" for="sellPropertyYears">Sell Property
-                                in (Years from now)</label>
+                            <div class="label-with-tooltip">
+                                <label class="block text-sm font-medium text-gray-700" for="sellPropertyYears">Sell Property
+                                    in (Years from now)</label>
+                                <div class="tooltip">
+                                    <span aria-label="Sell property timing information" class="tooltip-icon">i</span>
+                                    <span class="tooltiptext">
+                                        <strong>Sell Property in (Years from now)</strong>
+                                        Choose when the model should sell the investment property. Enter 0 to keep the property for now — the property analysis will then show which tested sale year produced the strongest projected financial outcome.
+                                        <div class="tooltip-example">Example: Enter 7 to sell when you are 7 years older, or 0 to compare a hold strategy against suggested sale timing</div>
+                                    </span>
+                                </div>
+                            </div>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="sellPropertyYears" type="text"
-                                   value="0" min="0" max="50" step="1">
-                            <p class="mt-1 text-xs text-gray-500">Enter 0 to never sell the property.</p>
+                                    value="0" min="0" max="50" step="1">
+                            <p class="mt-1 text-xs text-gray-500">Enter 0 to keep the property for now and see the best tested sale timing in the property analysis.</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="capitalGainsTaxRate">Capital
@@ -2989,14 +3019,34 @@
                            value="5.61" min="0" max="30">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700" for="returnDeclineRate">Return Decline Rate
-                        (% p.a.)</label>
+                    <div class="label-with-tooltip">
+                        <label class="block text-sm font-medium text-gray-700" for="returnDeclineRate">Return Decline Rate
+                            (% p.a.)</label>
+                        <div class="tooltip">
+                            <span aria-label="Return decline rate information" class="tooltip-icon">i</span>
+                            <span class="tooltiptext">
+                                <strong>Return Decline Rate (% p.a.)</strong>
+                                Lets long-run portfolio returns taper down over time as retirement approaches and asset allocation becomes more defensive. Use 0 if you want a flat return assumption throughout the projection.
+                                <div class="tooltip-example">Example: Starting at 6.0% with a 0.10% decline means the assumption becomes 5.9%, then 5.8%, and so on</div>
+                            </span>
+                        </div>
+                    </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="returnDeclineRate" step="0.01" type="text"
                            value="0.03">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700" for="savingsReturn">Savings Return
-                        (%)</label>
+                    <div class="label-with-tooltip">
+                        <label class="block text-sm font-medium text-gray-700" for="savingsReturn">Savings Return
+                            (%)</label>
+                        <div class="tooltip">
+                            <span aria-label="Savings return information" class="tooltip-icon">i</span>
+                            <span class="tooltiptext">
+                                <strong>Savings Return (%)</strong>
+                                Annual interest earned on cash, offset accounts, or term deposits. This is typically lower than growth investments but more stable.
+                                <div class="tooltip-example">Example: 1.4% on $100k cash savings adds about $1,400 over a year before tax</div>
+                            </span>
+                        </div>
+                    </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="savingsReturn" step="0.01" type="text"
                            value="1.40" min="0" max="30">
                 </div>
@@ -3144,13 +3194,33 @@
                         <p class="mt-1 text-xs text-gray-500">Without private hospital cover, high earners pay the Medicare Levy Surcharge (1%–1.5% of income above $93,000).</p>
                     </div>
                     <div id="lhcLoadingSection" class="hidden pl-6">
-                        <label class="block text-sm font-medium text-gray-700" for="ageFirstPrivateCover">Age you first held private hospital cover</label>
+                        <div class="label-with-tooltip">
+                            <label class="block text-sm font-medium text-gray-700" for="ageFirstPrivateCover">Age you first held private hospital cover</label>
+                            <div class="tooltip">
+                                <span aria-label="Private cover start age information" class="tooltip-icon">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Age you first held private hospital cover</strong>
+                                    Used to estimate any Lifetime Health Cover loading. If you first took out hospital cover after 1 July following your 31st birthday, premiums can increase by 2% for each delayed year.
+                                    <div class="tooltip-example">Example: First getting cover at 35 can add a 10% loading until you complete 10 continuous years of cover</div>
+                                </span>
+                            </div>
+                        </div>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="ageFirstPrivateCover" type="number" min="18" max="75" placeholder="e.g. 30">
                         <p class="mt-1 text-xs text-gray-500">If you first got hospital cover after age 30, the LHC loading adds 2% per delayed year to your premium. Cleared after 10 years continuous cover.</p>
                         <div class="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-800 hidden" id="lhcLoadingInfo"></div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700" for="healthCondition">Current Health Condition</label>
+                        <div class="label-with-tooltip">
+                            <label class="block text-sm font-medium text-gray-700" for="healthCondition">Current Health Condition</label>
+                            <div class="tooltip">
+                                <span aria-label="Health condition information" class="tooltip-icon">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Current Health Condition</strong>
+                                    Adjusts projected healthcare costs and aged care likelihood. It is a modelling input only and does not replace medical advice.
+                                    <div class="tooltip-example">Example: Choosing Fair or Poor increases healthcare cost growth and tends to bring forward aged care assumptions</div>
+                                </span>
+                            </div>
+                        </div>
                         <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="healthCondition">
                             <option value="excellent">Excellent — No ongoing conditions</option>
                             <option value="good" selected>Good — Minor manageable conditions</option>
@@ -3160,14 +3230,34 @@
                         <p class="mt-1 text-xs text-gray-500">Affects projected healthcare cost trajectory and aged care probability. Fair/Poor health increases costs and reduces aged care start age.</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700" for="currentHealthcareCosts">Current
-                            Annual Healthcare Costs ($)</label>
+                        <div class="label-with-tooltip">
+                            <label class="block text-sm font-medium text-gray-700" for="currentHealthcareCosts">Current
+                                Annual Healthcare Costs ($)</label>
+                            <div class="tooltip">
+                                <span aria-label="Current healthcare costs information" class="tooltip-icon">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Current Annual Healthcare Costs</strong>
+                                    Your out-of-pocket medical, dental, specialist, insurance excess, and pharmacy costs today. These costs are used as the base for future healthcare inflation.
+                                    <div class="tooltip-example">Example: GP gap fees, scripts, dental, and physio adding to $4k–$6k per year</div>
+                                </span>
+                            </div>
+                        </div>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="currentHealthcareCosts" type="text"
                                value="5200" min="0">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700" for="healthcareInflation">Healthcare
-                            Inflation Rate (%)</label>
+                        <div class="label-with-tooltip">
+                            <label class="block text-sm font-medium text-gray-700" for="healthcareInflation">Healthcare
+                                Inflation Rate (%)</label>
+                            <div class="tooltip">
+                                <span aria-label="Healthcare inflation information" class="tooltip-icon">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Healthcare Inflation Rate (%)</strong>
+                                    Medical costs often rise faster than general CPI. This setting controls how quickly your healthcare spending grows across the projection.
+                                    <div class="tooltip-example">Example: 4% healthcare inflation means a $5,000 annual medical budget becomes about $7,400 in 10 years</div>
+                                </span>
+                            </div>
+                        </div>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="healthcareInflation" step="0.1" type="text"
                                value="3.82" min="0" max="30">
                     </div>
@@ -3202,12 +3292,24 @@
                         </div>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="agedCareStartAge" type="text"
                                value="88" min="60" max="110" step="1">
+                        <p class="mt-1 text-xs text-gray-500" id="agedCareStartAgeHint">Leave this at 0 or blank to use the age your assets run out after a projection is calculated.</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700" for="agedCareDuration">Expected Duration
-                            (years)</label>
+                        <div class="label-with-tooltip">
+                            <label class="block text-sm font-medium text-gray-700" for="agedCareDuration">Expected Duration
+                                (years)</label>
+                            <div class="tooltip">
+                                <span aria-label="Aged care duration information" class="tooltip-icon">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Expected Duration (years)</strong>
+                                    Auto-calculated as your expected lifespan minus the aged care start age. You can override it if you want to model a shorter or longer care period.
+                                    <div class="tooltip-example">Example: Lifespan 95 and aged care start age 88 gives a 7-year duration</div>
+                                </span>
+                            </div>
+                        </div>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="agedCareDuration" step="0.5" type="text"
-                               value="3" min="0" max="20">
+                               value="" min="0" max="20">
+                        <p class="mt-1 text-xs text-gray-500" id="agedCareDurationHint">This auto-calculates once you enter a lifespan above your current age.</p>
                     </div>
                     <div>
                         <div class="label-with-tooltip">
@@ -3223,7 +3325,7 @@
                             </div>
                         </div>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="agedCareAnnualCost" type="text"
-                               value="76000" min="0">
+                               value="75000" min="0">
                     </div>
                 </div>
             </div>
@@ -3238,11 +3340,21 @@
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700" for="asfaComfortable">Desired Annual Income in Retirement
-                        (today's dollars)</label>
+                    <div class="label-with-tooltip">
+                        <label class="block text-sm font-medium text-gray-700" for="asfaComfortable">Desired Annual Income in Retirement
+                            (today's dollars)</label>
+                        <div class="tooltip">
+                            <span aria-label="Desired retirement income information" class="tooltip-icon">i</span>
+                            <span class="tooltiptext">
+                                <strong>Desired Annual Income in Retirement (today's dollars)</strong>
+                                Your target lifestyle spending in today's purchasing power. The calculator inflates this into future dollars automatically, so you should enter what would feel comfortable today.
+                                <div class="tooltip-example">Example: $73,031 today is roughly the ASFA March 2025 comfortable standard for a couple, while $51,814 suits a single retiree</div>
+                            </span>
+                        </div>
+                    </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="asfaComfortable" type="text"
-                           value="73875" min="0">
-                    <p class="mt-1 text-xs text-gray-500">Enter your target annual spending in <strong>today's dollars</strong> — the simulation automatically adjusts for inflation. ASFA Comfortable standard (Mar 2025): couples $73,875, singles $52,085.</p>
+                           value="73031" min="0">
+                    <p class="mt-1 text-xs text-gray-500">Enter your target annual spending in <strong>today's dollars</strong> — the simulation automatically adjusts for inflation. ASFA Comfortable standard (Mar 2025): couples $73,031, singles $51,814.</p>
                 </div>
 
                 <!-- Retirement Lifestyle Breakdown -->
@@ -3285,39 +3397,67 @@
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700" for="agePensionMax">Max Age Pension (Couple)
-                        p.a.</label>
-                    <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="agePensionMax" type="text"
-                           value="45037" min="0">
-                </div>
+                    <div>
+                        <div class="label-with-tooltip">
+                            <label class="block text-sm font-medium text-gray-700" for="agePensionMax">Max Age Pension p.a.</label>
+                            <div class="tooltip">
+                                <span aria-label="Maximum age pension information" class="tooltip-icon">i</span>
+                                <span class="tooltiptext">
+                                <strong>Max Age Pension p.a.</strong>
+                                Annual full-rate Age Pension used in the model. The calculator can default this to the current single or couple rate depending on your household setup, but you can override it if you want to test policy changes.
+                                <div class="tooltip-example">Example: A higher pension assumption improves the income backstop after private assets are depleted</div>
+                            </span>
+                        </div>
+                    </div>
+                        <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="agePensionMax" type="text"
+                               value="46202" min="0">
+                    </div>
                 <div>
                     <div class="label-with-tooltip">
-                        <label class="text-sm font-medium text-gray-700" for="pensionAssetThreshold">Pension Asset
-                            Threshold (Couple)</label>
+                            <label class="text-sm font-medium text-gray-700" for="pensionAssetThreshold">Pension Asset
+                                Threshold</label>
                         <div class="tooltip">
                             <span aria-label="Asset threshold information" class="tooltip-icon">i</span>
                             <span class="tooltiptext">
-                                <strong>Pension Asset Threshold (Couple)</strong>
-                                Asset value below which couples receive full age pension. Above this threshold, pension reduces by $3 per fortnight for every $1,000 in excess assets. Home is partially exempt.
+                                <strong>Pension Asset Threshold</strong>
+                                Asset value below which full Age Pension is payable. The calculator can default this for single/couple and homeowner/non-homeowner cases. Above this threshold, pension reduces by $3 per fortnight for every $1,000 in excess assets.
                                 <div class="tooltip-example">Example: $500k assets = reduced age pension of ~$43k/year</div>
                             </span>
                         </div>
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="pensionAssetThreshold" type="text"
-                           value="470000" min="0">
+                           value="481500" min="0">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700" for="pensionAssetLimit">Pension Asset Limit
-                        (Couple)</label>
+                    <div class="label-with-tooltip">
+                        <label class="block text-sm font-medium text-gray-700" for="pensionAssetLimit">Pension Asset Limit</label>
+                        <div class="tooltip">
+                            <span aria-label="Pension asset limit information" class="tooltip-icon">i</span>
+                            <span class="tooltiptext">
+                                <strong>Pension Asset Limit</strong>
+                                Approximate upper assets threshold where Age Pension cuts out completely. The calculator can default this for single/couple and homeowner/non-homeowner cases. Above this level the model assumes no Age Pension entitlement.
+                                <div class="tooltip-example">Example: Assets above the cutoff mean the Age Pension safety net does not start until assets fall back below the limit</div>
+                            </span>
+                        </div>
+                    </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="pensionAssetLimit" type="text"
-                           value="1031000" min="0">
+                           value="1074000" min="0">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700" for="pensionIncomeThreshold">Pension Income
-                        Threshold (p.f.)</label>
+                    <div class="label-with-tooltip">
+                        <label class="block text-sm font-medium text-gray-700" for="pensionIncomeThreshold">Pension Income
+                            Threshold (p.f.)</label>
+                        <div class="tooltip">
+                            <span aria-label="Pension income threshold information" class="tooltip-icon">i</span>
+                            <span class="tooltiptext">
+                                <strong>Pension Income Threshold (p.f.)</strong>
+                                Fortnightly income threshold before the income test starts reducing the Age Pension. The calculator can default this for single or couple settings and then uses it with deeming and other assessable income assumptions.
+                                <div class="tooltip-example">Example: Higher assessable income above the threshold gradually reduces the pension payable</div>
+                            </span>
+                        </div>
+                    </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="pensionIncomeThreshold" type="text"
-                           value="372" min="0">
+                           value="380" min="0">
                 </div>
             </div>
 
@@ -3325,7 +3465,17 @@
                 <h3 class="text-lg font-medium text-gray-700 mb-3">Simulation Controls</h3>
                 <div class="space-y-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700" for="numRuns">Monte Carlo Runs</label>
+                        <div class="label-with-tooltip">
+                            <label class="block text-sm font-medium text-gray-700" for="numRuns">Monte Carlo Runs</label>
+                            <div class="tooltip">
+                                <span aria-label="Monte Carlo runs information" class="tooltip-icon">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Monte Carlo Runs</strong>
+                                    Number of simulated market paths. More runs usually give a smoother probability estimate but take longer to calculate.
+                                    <div class="tooltip-example">Example: 5,000 runs is a practical balance; 10,000+ gives a more stable success-rate estimate</div>
+                                </span>
+                            </div>
+                        </div>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="numRuns" min="1000" step="1000" type="text"
                                value="5000" max="50000">
                     </div>
@@ -3387,7 +3537,17 @@
                             </div>
                             <p class="mt-1 text-xs text-gray-400">Sets return and inflation assumptions. Run the calculation to see updated projections.</p>
                         </div>
-                        <label class="block text-sm font-medium text-gray-700" for="scenarioMode">Scenario Mode</label>
+                        <div class="label-with-tooltip">
+                            <label class="block text-sm font-medium text-gray-700" for="scenarioMode">Scenario Mode</label>
+                            <div class="tooltip">
+                                <span aria-label="Scenario mode information" class="tooltip-icon">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Scenario Mode</strong>
+                                    Applies a preset lens to returns and inflation so you can compare base, optimistic, pessimistic, and crisis-style environments without changing every assumption manually.
+                                    <div class="tooltip-example">Example: Crisis mode layers in weaker returns and tougher inflation to test resilience</div>
+                                </span>
+                            </div>
+                        </div>
                         <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="scenarioMode">
                             <option value="baseline">Baseline (expected)</option>
                             <option value="optimistic">Optimistic (+1% returns, lower inflation)</option>
@@ -3542,6 +3702,7 @@
                                 <span id="outcome-lifestyle-type">Comfortable</span> lifestyle:
                                 <span class="goal-box-highlight" id="outcome-target-income">$73,000</span>/year
                             </div>
+                            <div class="text-xs text-gray-500 mt-1" id="outcome-target-income-note"></div>
                         </div>
                     </div>
 
@@ -3551,10 +3712,13 @@
                         <div class="projection-box-content">
                             <div>Superannuation at retirement: <span class="projection-highlight"
                                                                      id="outcome-super-balance">$380,000</span></div>
+                            <div class="text-xs text-gray-500 mb-1" id="outcome-super-balance-note"></div>
                             <div>Age Pension: <span class="projection-highlight" id="outcome-age-pension">$18,000</span>/year
                             </div>
+                            <div class="text-xs text-gray-500 mb-1" id="outcome-age-pension-note"></div>
                             <div>Your annual income: <span class="projection-highlight" id="outcome-annual-income">$33,200</span>/year
                             </div>
+                            <div class="text-xs text-gray-500" id="outcome-annual-income-note"></div>
                             <div class="mt-2 flex items-center gap-2">
                                 <span class="text-sm text-gray-600">Income replacement ratio:</span>
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold" id="outcome-income-replacement-badge" style="background:#e5e7eb;color:#374151;">—</span>

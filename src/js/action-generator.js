@@ -37,6 +37,11 @@ export class ActionGenerator {
         this.actions = [];
     }
 
+    toTodayDollars(futureValue) {
+        const factor = this.outcome.inflationFactor || 1;
+        return futureValue / factor;
+    }
+
     /**
      * Generate all applicable actions
      * Returns: Array of action objects, prioritized
@@ -110,7 +115,7 @@ export class ActionGenerator {
             1 + CONSERVATIVE_ASSUMPTIONS.SUPER_RETURN_BALANCED,
             yearsToGo / 2 // Average growth period
         );
-        const annualIncomeBoost = grown * 0.04;
+        const annualIncomeBoost = this.toTodayDollars(grown * 0.04);
 
         this.actions.push({
             id: 'SUPER_INCREASE',
@@ -268,7 +273,7 @@ export class ActionGenerator {
         const extraSuper = annualSuperContribution * cappedExtraYears *
             Math.pow(1 + CONSERVATIVE_ASSUMPTIONS.SUPER_RETURN_BALANCED, cappedExtraYears / 2);
 
-        const incomeBoost = extraSuper * 0.04;
+        const incomeBoost = this.toTodayDollars(extraSuper * 0.04);
 
         this.actions.push({
             id: 'DELAY_RETIREMENT',
@@ -337,7 +342,7 @@ export class ActionGenerator {
             partTimeYears / 2
         );
 
-        const incomeBoost = grown * 0.04;
+        const incomeBoost = this.toTodayDollars(grown * 0.04);
 
         const transitionStartAge = this.inputs.retirementAge - partTimeYears;
 
@@ -497,10 +502,10 @@ export class ActionGenerator {
         const toInvestments = netProceeds - toSuper;
 
         // Income boost from super (tax-free at 60+)
-        const superBoost = toSuper * 0.04;
+        const superBoost = this.toTodayDollars(toSuper * 0.04);
 
         // Income boost from investments (taxable, assume 30% tax)
-        const investmentBoost = toInvestments * 0.04 * 0.70;
+        const investmentBoost = this.toTodayDollars(toInvestments * 0.04 * 0.70);
 
         const totalBoost = superBoost + investmentBoost;
 
@@ -579,7 +584,7 @@ export class ActionGenerator {
             yearsToGo / 2
         );
 
-        const incomeBoost = grown * 0.04 * 0.70; // After tax
+        const incomeBoost = this.toTodayDollars(grown * 0.04 * 0.70); // After tax
 
         this.actions.push({
             id: 'EXTRA_SAVINGS',

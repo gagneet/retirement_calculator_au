@@ -25,6 +25,11 @@ export class ResilienceScenarioEngine {
         this.scenarios = [];
     }
 
+    toTodayDollars(futureValue) {
+        const factor = this.baseOutcome.inflationFactor || 1;
+        return futureValue / factor;
+    }
+
     /**
      * Run all resilience scenarios
      * @returns {Object} - All scenario results with rankings
@@ -85,7 +90,7 @@ export class ResilienceScenarioEngine {
 
         // Total impact on retirement
         const totalImpact = lostSuperContributions + superGrowthLost + emergencyFundShortfall;
-        const impactOnIncome = totalImpact * 0.04; // 4% drawdown
+        const impactOnIncome = this.toTodayDollars(totalImpact * 0.04); // 4% drawdown
         const newGap = this.baseOutcome.gap + impactOnIncome;
 
         // Calculate severity (0-10 scale)
@@ -210,7 +215,7 @@ export class ResilienceScenarioEngine {
         }
 
         // Calculate immediate impact
-        const futureSuperNoGrowth = this.baseOutcome.superAtRetirement / Math.pow(1 + CONSERVATIVE_ASSUMPTIONS.SUPER_RETURN_BALANCED, yearsToRetirement);
+        const futureSuperNoGrowth = this.baseOutcome.superAtRetirementNominal / Math.pow(1 + CONSERVATIVE_ASSUMPTIONS.SUPER_RETURN_BALANCED, yearsToRetirement);
         const crashImpact = futureSuperNoGrowth * crashSeverity;
 
         // Recovery calculation
@@ -222,7 +227,7 @@ export class ResilienceScenarioEngine {
         const netImpact = crashImpact - recoveredAmount;
         const netImpactAtRetirement = netImpact * Math.pow(1 + CONSERVATIVE_ASSUMPTIONS.SUPER_RETURN_BALANCED, Math.max(0, yearsToRetirement - 1));
 
-        const impactOnIncome = netImpactAtRetirement * 0.04;
+        const impactOnIncome = this.toTodayDollars(netImpactAtRetirement * 0.04);
         const newGap = this.baseOutcome.gap + impactOnIncome;
 
         // Severity (worse if close to retirement - sequence risk)
@@ -340,7 +345,7 @@ export class ResilienceScenarioEngine {
 
         // Total impact
         const totalImpact = immediateOutOfPocketCosts + ongoingCostsTotal + lostSuperContributions;
-        const impactOnIncome = (totalImpact / (95 - this.inputs.retirementAge)) * 0.04; // Spread over retirement
+        const impactOnIncome = this.toTodayDollars((totalImpact / (95 - this.inputs.retirementAge)) * 0.04); // Spread over retirement
         const newGap = this.baseOutcome.gap + impactOnIncome;
 
         const impactSeverity = Math.min(10, (totalImpact / (salary * 2)) * 10);
@@ -486,7 +491,7 @@ export class ResilienceScenarioEngine {
 
         // Impact on retirement
         const totalImpact = totalValueLoss + totalSellingCosts + cgtPayable + (lostRentalIncome * 0.30); // 30% weight on lost income
-        const impactOnIncome = (finalNetProceeds - equity) * 0.04; // Lost income vs keeping property
+        const impactOnIncome = this.toTodayDollars((finalNetProceeds - equity) * 0.04); // Lost income vs keeping property
         const newGap = this.baseOutcome.gap - impactOnIncome; // Negative = worse outcome
 
         const impactSeverity = Math.min(10, (Math.abs(totalImpact) / equity) * 5);
@@ -632,7 +637,7 @@ export class ResilienceScenarioEngine {
         const superGrowthLost = sacrificedSuperContributions * 0.30; // Approximate growth
 
         const totalImpact = totalExtraInterest + sacrificedSuperContributions + superGrowthLost;
-        const impactOnIncome = (sacrificedSuperContributions + superGrowthLost) * 0.04;
+        const impactOnIncome = this.toTodayDollars((sacrificedSuperContributions + superGrowthLost) * 0.04);
         const newGap = this.baseOutcome.gap + impactOnIncome;
 
         const impactSeverity = Math.min(10, (monthlyIncrease / (this.inputs.annualSalary / 12)) * 10);

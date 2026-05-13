@@ -173,6 +173,7 @@ class RetirementCalculatorApp {
         initializeCurrencyInputs(); // Initialize currency input formatting
         initializePercentageInputs(); // Initialize percentage input formatting
         initializeNumericInputs(); // Initialize numeric input formatting
+        this.setupProjectionDrivenFields();
         this.enhanceAdvancedCalculatorInputs(); // Add gaming-style enhancements to calculator inputs
 
         // Make utilities globally available for onboarding wizard
@@ -586,25 +587,13 @@ class RetirementCalculatorApp {
         // Get user age for partner calculations
         const userAge = safeGetValue('yourCurrentAge', config.personal.yourCurrentAge);
 
-        // Check if any partner fields have values (excluding age)
-        const partnerSalaryValue = $('partnerSalary') ? $('partnerSalary').value.trim() : '';
-        const partnerSuperValue = $('partnerCurrentSuper') ? $('partnerCurrentSuper').value.trim() : '';
-        const partnerRetirementValue = $('partnerRetirementAge') ? $('partnerRetirementAge').value.trim() : '';
-        const partnerLifespanValue = $('partnerLifespan') ? $('partnerLifespan').value.trim() : '';
-
-        const hasPartnerData = partnerSalaryValue !== '' || partnerSuperValue !== '' ||
-            partnerRetirementValue !== '' || partnerLifespanValue !== '';
-
         // Determine final partner age to use in calculations
         let finalPartnerAge = 0;
         if (!isPartnerAgeEmpty) {
             // Partner age is provided - use it
             finalPartnerAge = safeGetValue('partnerCurrentAge', 0);
-        } else if (hasPartnerData) {
-            // Partner age is blank but other partner data exists - use user age
-            finalPartnerAge = userAge;
         }
-        // If no partner age and no partner data, finalPartnerAge stays 0 (single calculation)
+        // If partner age is blank, keep this as a single-person calculation.
 
         const inputs = {
             // Personal details
@@ -982,7 +971,11 @@ class RetirementCalculatorApp {
         if (inputs.retirementAge > 100) {
             errors.push('Retirement age must be 100 or below.');
         }
-        if (inputs.yourLifespan < inputs.retirementAge) {
+        const hasOpenEndedLifespan = inputs.yourLifespan === 0;
+        if (!hasOpenEndedLifespan && inputs.yourLifespan <= inputs.yourCurrentAge) {
+            errors.push('Expected lifespan must be greater than your current age, unless you enter 0 to model until money runs out.');
+        }
+        if (!hasOpenEndedLifespan && inputs.yourLifespan < inputs.retirementAge) {
             errors.push('Expected lifespan must be greater than or equal to retirement age.');
         }
         if (!inputs.isSingleCalculation && inputs.partnerCurrentAge > 0) {
@@ -991,6 +984,13 @@ class RetirementCalculatorApp {
             }
             if ((inputs.partnerRetirementAge || 0) <= inputs.partnerCurrentAge) {
                 errors.push("Partner's retirement age must be greater than their current age.");
+            }
+            const hasOpenEndedPartnerLifespan = inputs.partnerLifespan === 0;
+            if (!hasOpenEndedPartnerLifespan && inputs.partnerLifespan <= inputs.partnerCurrentAge) {
+                errors.push("Partner's expected lifespan must be greater than their current age, unless you enter 0 to model until money runs out.");
+            }
+            if (!hasOpenEndedPartnerLifespan && (inputs.partnerLifespan || 0) < (inputs.partnerRetirementAge || 0)) {
+                errors.push("Partner's expected lifespan must be greater than or equal to their retirement age.");
             }
         }
 
@@ -1083,6 +1083,7 @@ class RetirementCalculatorApp {
             try {
                 result = this.simulator.simulateRetirement(inputs, false);
                 this.currentResults = result;
+                this.refreshAllDerivedDefaults({ depletionAge: result.depletionAge });
             } catch (simError) {
                 console.error('Simulation error:', simError);
                 throw new Error(`Core simulation failed. Please check your financial inputs. Details: ${simError.message}`);
@@ -1163,10 +1164,672 @@ class RetirementCalculatorApp {
         }
     }
 
+    getInflationFactor(years, inflationRate) {
+        return Math.pow(1 + (inflationRate || 0), Math.max(0, years || 0));
+    }
+
+    toTodayDollars(futureValue, inflationFactor) {
+        if (!inflationFactor) return futureValue;
+        return futureValue / inflationFactor;
+    }
+
+    resolveProjectionEndAge(inputs, result = null) {
+        if (result?.runUntilDepletionMode && result?.depletionAge) {
+            return result.depletionAge;
+        }
+
+        return result?.effectivePartnerLifespan ||
+            result?.effectiveYourLifespan ||
+            inputs.partnerLifespan ||
+            inputs.yourLifespan ||
+            90;
+    }
+
+    formatDepletionAgeLabel(result) {
+        if (!result?.depletionAge) return 'unknown age';
+        if (result.depletionPartnerAge != null) {
+            return `your age ${result.depletionAge} (partner age ${result.depletionPartnerAge})`;
+        }
+        return `age ${result.depletionAge}`;
+    }
+
+    formatDepletionPensionMessage(result) {
+        if (!result) return '';
+        if (result.depletionPensionIncome > 0) {
+            return `Projected ${result.depletionIsCouple ? 'combined' : ''}${result.depletionIsCouple ? ' ' : ''}Age Pension at that point: ${formatCurrency(result.depletionPensionIncome)}/year.`;
+        }
+        return 'No Age Pension is projected at that point under current assumptions.';
+    }
+
+    hasExplicitPlanningHorizon(inputs) {
+        return (inputs?.yourLifespan || 0) > (inputs?.yourCurrentAge || 0);
+    }
+
+    getShortfallHeadline(inputs, result) {
+        if (result?.runUntilDepletionMode || !this.hasExplicitPlanningHorizon(inputs)) {
+            return 'Open-Ended Projection Exhausts Assets';
+        }
+
+        return 'Retirement Shortfall Projected';
+    }
+
+    getShortfallSubheading(inputs, result, depletionAgeLabel) {
+        if (result?.runUntilDepletionMode || !this.hasExplicitPlanningHorizon(inputs)) {
+            return `With no fixed lifespan entered, the model keeps running until assets are depleted. Under current assumptions that happens around ${depletionAgeLabel}.`;
+        }
+
+        return `Modelled assets may be exhausted around ${depletionAgeLabel} under current assumptions`;
+    }
+
+    getConcessionalCap() {
+        return this.config?.CONCESSIONAL_CAP || ENHANCED_CONFIG.CONCESSIONAL_CAP || 30000;
+    }
+
+    getEffectiveEmployerSuperRate() {
+        const customRate = safeGetValue('employerSuperContributionRate', 0);
+        if (customRate > 0) {
+            return customRate / 100;
+        }
+
+        return ENHANCED_CONFIG.SUPER_GUARANTEE_RATE;
+    }
+
+    ensureFieldAutoIndicator(fieldId) {
+        const field = $(fieldId);
+        if (!field) return {};
+
+        const label = document.querySelector(`label[for="${fieldId}"]`);
+        let badge = document.querySelector(`[data-field-default-badge="${fieldId}"]`);
+        if (!badge && label) {
+            badge = document.createElement('span');
+            badge.dataset.fieldDefaultBadge = fieldId;
+            badge.hidden = true;
+            badge.style.cssText = 'display:none;margin-left:8px;padding:2px 8px;border-radius:9999px;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:600;vertical-align:middle;';
+            label.insertAdjacentElement('afterend', badge);
+        }
+
+        const wrapper = field.parentElement;
+        let hint = wrapper?.querySelector(`[data-field-default-hint="${fieldId}"]`);
+        if (!hint && wrapper) {
+            hint = document.createElement('p');
+            hint.dataset.fieldDefaultHint = fieldId;
+            hint.hidden = true;
+            hint.style.cssText = 'display:none;margin-top:4px;font-size:12px;color:#2563eb;';
+            wrapper.appendChild(hint);
+        }
+
+        return { field, badge, hint };
+    }
+
+    setFieldAutoIndicator(fieldId, { active, message = '', badgeText = 'Auto-filled' }) {
+        const { field, badge, hint } = this.ensureFieldAutoIndicator(fieldId);
+        if (!field) return;
+
+        if (!field.dataset.originalTitle) {
+            field.dataset.originalTitle = field.title || '';
+        }
+
+        if (active) {
+            if (badge) {
+                badge.textContent = badgeText;
+                badge.hidden = false;
+                badge.style.display = 'inline-flex';
+            }
+            if (hint) {
+                hint.textContent = message;
+                hint.hidden = false;
+                hint.style.display = 'block';
+            }
+            field.title = message;
+            return;
+        }
+
+        if (badge) {
+            badge.hidden = true;
+            badge.style.display = 'none';
+        }
+        if (hint) {
+            hint.hidden = true;
+            hint.style.display = 'none';
+            hint.textContent = '';
+        }
+        field.title = field.dataset.originalTitle || '';
+    }
+
+    registerAutoManagedField(fieldId, { zeroMeansBlank = false } = {}) {
+        const field = $(fieldId);
+        if (!field || field.dataset.autoManagedRegistered === 'true') return;
+
+        const handleInput = () => {
+            const numericValue = parseFormattedNumber(field.value);
+            const lastAutoValue = parseFormattedNumber(field.dataset.lastAutoValue || '');
+            const isBlank = field.value.trim() === '' || (zeroMeansBlank && numericValue === 0);
+
+            if (isBlank) {
+                field.dataset.userModified = 'false';
+                field.dataset.autoCalculated = 'false';
+                return;
+            }
+
+            if (numericValue !== lastAutoValue) {
+                field.dataset.userModified = 'true';
+                field.dataset.autoCalculated = 'false';
+                this.setFieldAutoIndicator(fieldId, { active: false });
+            }
+        };
+
+        field.addEventListener('input', handleInput);
+        field.addEventListener('change', handleInput);
+        field.dataset.autoManagedRegistered = 'true';
+    }
+
+    resetAutoManagedField(fieldId, value = '') {
+        const field = $(fieldId);
+        if (!field) return;
+
+        safeSetValue(fieldId, value);
+        field.dataset.autoCalculated = 'false';
+        field.dataset.userModified = 'false';
+        delete field.dataset.lastAutoValue;
+        this.setFieldAutoIndicator(fieldId, { active: false });
+    }
+
+    applyAutoManagedFieldValue(fieldId, autoValue, {
+        message,
+        badgeText = 'Auto-filled',
+        force = false,
+        zeroMeansBlank = false,
+        recognizedDefaults = []
+    } = {}) {
+        const field = $(fieldId);
+        if (!field) return false;
+
+        this.registerAutoManagedField(fieldId, { zeroMeansBlank });
+
+        const normalizedAutoValue = Number(autoValue);
+        const currentValue = parseFormattedNumber(field.value);
+        const lastAutoValue = parseFormattedNumber(field.dataset.lastAutoValue || '');
+        const isBlank = field.value.trim() === '' || (zeroMeansBlank && currentValue === 0);
+        const matchesRecognizedDefault = recognizedDefaults.some((value) => Math.abs(currentValue - Number(value)) < 0.01);
+        const matchesAutoValue = Math.abs(currentValue - normalizedAutoValue) < 0.01;
+        const shouldAutoApply = force ||
+            field.dataset.autoCalculated === 'true' ||
+            isBlank ||
+            matchesAutoValue ||
+            currentValue === lastAutoValue ||
+            (field.dataset.userModified !== 'true' && matchesRecognizedDefault);
+
+        if (shouldAutoApply) {
+            safeSetValue(fieldId, String(autoValue));
+            field.dataset.autoCalculated = 'true';
+            field.dataset.userModified = 'false';
+            field.dataset.lastAutoValue = String(autoValue);
+            this.setFieldAutoIndicator(fieldId, { active: true, message, badgeText });
+            return true;
+        }
+
+        this.setFieldAutoIndicator(fieldId, { active: false });
+        return false;
+    }
+
+    hasPartnerDataInForm() {
+        const partnerAgeField = $('partnerCurrentAge');
+        if (!partnerAgeField) return false;
+
+        const numericValue = parseFormattedNumber(partnerAgeField.value);
+        return partnerAgeField.value.trim() !== '' && numericValue > 0;
+    }
+
+    getAutoManagedAsfaDefaults() {
+        return [
+            ENHANCED_CONFIG.OVERSEAS_RETIREMENT.ASFA_SINGLE_ANNUAL,
+            ENHANCED_CONFIG.OVERSEAS_RETIREMENT.ASFA_COUPLE_ANNUAL
+        ];
+    }
+
+    getAutoManagedPensionDefaults() {
+        return [
+            ENHANCED_CONFIG.SINGLE_PENSION_MAX,
+            ENHANCED_CONFIG.COUPLE_PENSION_MAX,
+            ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD,
+            ENHANCED_CONFIG.SINGLE_ASSET_LIMIT,
+            ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER,
+            ENHANCED_CONFIG.SINGLE_ASSET_LIMIT_NON_HOMEOWNER,
+            ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD,
+            ENHANCED_CONFIG.COUPLE_ASSET_LIMIT,
+            ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER,
+            ENHANCED_CONFIG.COUPLE_ASSET_LIMIT_NON_HOMEOWNER,
+            ENHANCED_CONFIG.SINGLE_INCOME_THRESHOLD,
+            ENHANCED_CONFIG.COUPLE_INCOME_THRESHOLD
+        ];
+    }
+
+    refreshPartnerFieldDefaults({ force = false } = {}) {
+        const yourCurrentAge = safeGetValue('yourCurrentAge', this.config.DEFAULTS.personal.yourCurrentAge);
+        const retirementAge = safeGetValue('retirementAge', this.config.DEFAULTS.personal.retirementAge);
+        const yourLifespan = safeGetValue('yourLifespan', this.config.DEFAULTS.personal.yourLifespan);
+        const hasPartnerContext = this.hasPartnerDataInForm();
+
+        const partnerCurrentAgeField = $('partnerCurrentAge');
+        if (partnerCurrentAgeField) {
+            this.setFieldAutoIndicator('partnerCurrentAge', { active: false });
+        }
+
+        const partnerAge = safeGetValue('partnerCurrentAge', 0);
+        if (!partnerAge) {
+            if ($('partnerRetirementAge')?.dataset.autoCalculated === 'true') this.resetAutoManagedField('partnerRetirementAge', '');
+            if ($('partnerLifespan')?.dataset.autoCalculated === 'true') this.resetAutoManagedField('partnerLifespan', '');
+            return;
+        }
+
+        this.applyAutoManagedFieldValue('partnerRetirementAge', retirementAge, {
+            message: `Defaulted to match your retirement age (${retirementAge}). Update it if your partner plans to retire at a different age.`,
+            badgeText: 'Defaulted',
+            force,
+            zeroMeansBlank: true,
+            recognizedDefaults: [retirementAge]
+        });
+
+        this.applyAutoManagedFieldValue('partnerLifespan', yourLifespan, {
+            message: `Defaulted to match your lifespan assumption (${yourLifespan}) until you enter a different partner lifespan.`,
+            badgeText: 'Defaulted',
+            force,
+            zeroMeansBlank: true,
+            recognizedDefaults: [this.config.DEFAULTS.personal.partnerLifespan, yourLifespan]
+        });
+    }
+
+    refreshResidencyFieldDefaults({ force = false } = {}) {
+        const arrivalMappings = [
+            {
+                arrivalId: 'ageCameToAustralia',
+                earningId: 'ageStartedEarningAustralia',
+                label: 'your'
+            },
+            {
+                arrivalId: 'partnerAgeCameToAustralia',
+                earningId: 'partnerAgeStartedEarningAustralia',
+                label: "your partner's"
+            }
+        ];
+
+        arrivalMappings.forEach(({ arrivalId, earningId, label }) => {
+            const arrivalAge = safeGetValue(arrivalId, 0);
+            const earningField = $(earningId);
+            if (!earningField) return;
+
+            if (arrivalAge > 0) {
+                this.applyAutoManagedFieldValue(earningId, arrivalAge, {
+                    message: `Defaulted to ${label} arrival age (${arrivalAge}). Update it if work started later.`,
+                    badgeText: 'Defaulted',
+                    force,
+                    zeroMeansBlank: true,
+                    recognizedDefaults: [arrivalAge]
+                });
+            } else if (earningField.dataset.autoCalculated === 'true') {
+                this.resetAutoManagedField(earningId, '');
+            } else {
+                this.setFieldAutoIndicator(earningId, { active: false });
+            }
+        });
+    }
+
+    refreshRetirementIncomeDefault({ force = false } = {}) {
+        const isPartnered = this.hasPartnerDataInForm();
+        const asfaDefault = isPartnered
+            ? ENHANCED_CONFIG.OVERSEAS_RETIREMENT.ASFA_COUPLE_ANNUAL
+            : ENHANCED_CONFIG.OVERSEAS_RETIREMENT.ASFA_SINGLE_ANNUAL;
+        const householdLabel = isPartnered ? 'couple' : 'single';
+
+        this.applyAutoManagedFieldValue('asfaComfortable', asfaDefault, {
+            message: `Using the current ASFA comfortable annual standard for a ${householdLabel} household: ${formatCurrency(asfaDefault)} in today's dollars.`,
+            badgeText: 'Official default',
+            force,
+            recognizedDefaults: this.getAutoManagedAsfaDefaults()
+        });
+    }
+
+    refreshPensionFieldDefaults({ force = false } = {}) {
+        const isPartnered = this.hasPartnerDataInForm();
+        const homeowner = safeGetValue('homeValue', 0) > 0;
+        const householdLabel = `${isPartnered ? 'couple' : 'single'} ${homeowner ? 'homeowner' : 'non-homeowner'}`;
+
+        const defaultValues = {
+            agePensionMax: isPartnered ? ENHANCED_CONFIG.COUPLE_PENSION_MAX : ENHANCED_CONFIG.SINGLE_PENSION_MAX,
+            pensionAssetThreshold: isPartnered
+                ? (homeowner ? ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD : ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER)
+                : (homeowner ? ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD : ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER),
+            pensionAssetLimit: isPartnered
+                ? (homeowner ? ENHANCED_CONFIG.COUPLE_ASSET_LIMIT : ENHANCED_CONFIG.COUPLE_ASSET_LIMIT_NON_HOMEOWNER)
+                : (homeowner ? ENHANCED_CONFIG.SINGLE_ASSET_LIMIT : ENHANCED_CONFIG.SINGLE_ASSET_LIMIT_NON_HOMEOWNER),
+            pensionIncomeThreshold: isPartnered ? ENHANCED_CONFIG.COUPLE_INCOME_THRESHOLD : ENHANCED_CONFIG.SINGLE_INCOME_THRESHOLD
+        };
+
+        const fieldSuffix = {
+            agePensionMax: 'per year',
+            pensionAssetThreshold: 'asset threshold',
+            pensionAssetLimit: 'asset limit',
+            pensionIncomeThreshold: 'per fortnight'
+        };
+
+        Object.entries(defaultValues).forEach(([fieldId, value]) => {
+            this.applyAutoManagedFieldValue(fieldId, value, {
+                message: `Using the official ${householdLabel} Age Pension default for this field: ${formatCurrency(value).replace('.00', '')} ${fieldSuffix[fieldId]}.`,
+                badgeText: 'Official default',
+                force,
+                recognizedDefaults: this.getAutoManagedPensionDefaults()
+            });
+        });
+    }
+
+    refreshCapitalGainsTaxDefault({ force = false } = {}) {
+        const totalSalary = safeGetValue('yourSalary', 0) + safeGetValue('partnerSalary', 0);
+        let marginalRate = 0;
+
+        if (totalSalary > 190000) marginalRate = 45;
+        else if (totalSalary > 135000) marginalRate = 37;
+        else if (totalSalary > 45000) marginalRate = 30;
+        else if (totalSalary > 18200) marginalRate = 16;
+
+        const cgtRate = marginalRate * 0.5;
+        this.applyAutoManagedFieldValue('capitalGainsTaxRate', cgtRate, {
+            message: `Estimated from combined salary ${formatCurrency(totalSalary)} using a 50% CGT discount and a marginal rate of ${marginalRate}%. Override it if your expected sale-year tax rate differs.`,
+            badgeText: 'Estimated',
+            force,
+            recognizedDefaults: [0, 8, 15, 18.5, 22.5]
+        });
+    }
+
+    refreshAllDerivedDefaults({ force = false, depletionAge = null } = {}) {
+        this.refreshPartnerFieldDefaults({ force });
+        this.refreshResidencyFieldDefaults({ force });
+        this.refreshSuperStrategyGuidance(force);
+        this.refreshRetirementIncomeDefault({ force });
+        this.refreshPensionFieldDefaults({ force });
+        this.refreshCapitalGainsTaxDefault({ force });
+        this.syncAgedCareProjectionFields({ force, depletionAge });
+    }
+
+    refreshSuperStrategyGuidance(forceApply = false) {
+        const concessionalCap = this.getConcessionalCap();
+        const employerRate = this.getEffectiveEmployerSuperRate();
+        const div293Threshold = this.config?.DIVISION_293_THRESHOLD || ENHANCED_CONFIG.DIVISION_293_THRESHOLD || 250000;
+        const concessionalAlreadyUsed = parseFormattedNumber($('concessionalCapUsed')?.value || '0');
+        const fields = [
+            {
+                salaryId: 'yourSalary',
+                contributionId: 'yourAdditionalSuperContribution',
+                noteId: 'yourAdditionalSuperContributionHint',
+                emptyMessage: 'Enter your salary to calculate the remaining concessional contribution room available for salary sacrifice.'
+            },
+            {
+                salaryId: 'partnerSalary',
+                contributionId: 'partnerAdditionalSuperContribution',
+                noteId: 'partnerAdditionalSuperContributionHint',
+                emptyMessage: 'Enter your partner salary to calculate their remaining concessional contribution room.'
+            }
+        ];
+
+        fields.forEach(({ salaryId, contributionId, noteId, emptyMessage }) => {
+            const salary = safeGetValue(salaryId, 0);
+            const contributionInput = $(contributionId);
+            const note = $(noteId);
+
+            if (!contributionInput || !note) {
+                return;
+            }
+
+            if (salary <= 0) {
+                note.textContent = emptyMessage;
+                if (forceApply || contributionInput.dataset.autoCalculated === 'true' || contributionInput.value.trim() === '' || parseFormattedNumber(contributionInput.value) === 0) {
+                    safeSetValue(contributionId, '0');
+                    contributionInput.dataset.autoCalculated = 'true';
+                    contributionInput.dataset.userModified = 'false';
+                    contributionInput.dataset.lastAutoValue = '0';
+                }
+                this.setFieldAutoIndicator(contributionId, {
+                    active: true,
+                    message: emptyMessage,
+                    badgeText: 'Defaulted'
+                });
+                return;
+            }
+
+            const employerContribution = Math.round(salary * employerRate);
+            // remainingRoom accounts for prior concessional contributions already made this FY,
+            // matching the simulator's cap logic (simulator.js — line ~934).
+            const remainingRoom = Math.max(0, concessionalCap - employerContribution - concessionalAlreadyUsed);
+            const employerRateLabel = (employerRate * 100).toFixed(2).replace(/\.00$/, '');
+
+            const baseNote = `Based on salary ${formatCurrency(salary)} and employer super at ${employerRateLabel}%, around ${formatCurrency(employerContribution)} is already contributed, leaving about ${formatCurrency(remainingRoom)} of concessional room under the ${formatCurrency(concessionalCap)} cap.`;
+            note.textContent = baseNote;
+
+            const currentValue = parseFormattedNumber(contributionInput.value);
+            const shouldAutoApply = forceApply ||
+                contributionInput.dataset.autoCalculated === 'true' ||
+                contributionInput.value.trim() === '' ||
+                currentValue === 0;
+
+            if (shouldAutoApply) {
+                safeSetValue(contributionId, String(remainingRoom));
+                contributionInput.dataset.autoCalculated = 'true';
+                contributionInput.dataset.userModified = 'false';
+                contributionInput.dataset.lastAutoValue = String(remainingRoom);
+                this.setFieldAutoIndicator(contributionId, {
+                    active: true,
+                    message: baseNote,
+                    badgeText: 'Auto-filled'
+                });
+            } else {
+                this.setFieldAutoIndicator(contributionId, { active: false });
+            }
+
+            // Concessional cap & Division 293 awareness — mirrors simulator.js:932-948.
+            // Simulator caps sacrifice at remaining room and applies Div 293 to the
+            // excess of (taxableSalary + totalConcessional) over $250k, which after
+            // cancellation equals salary + employerSG.
+            const userEntered = parseFormattedNumber(contributionInput.value);
+            const effectiveSacrifice = Math.min(userEntered, remainingRoom);
+            const totalConcessional = employerContribution + effectiveSacrifice;
+            const messages = [baseNote];
+
+            if (userEntered > remainingRoom + 1) {
+                messages.push(`⚠ Your entry of ${formatCurrency(userEntered)} exceeds the remaining ${formatCurrency(remainingRoom)} of concessional room. The simulator will only sacrifice ${formatCurrency(effectiveSacrifice)}; any excess stays in your take-home pay (taxed at your marginal rate).`);
+            }
+
+            const div293Income = salary + employerContribution; // simplification of taxableSalary + totalConcessional
+            const div293Excess = Math.max(0, div293Income - div293Threshold);
+            if (div293Excess > 0) {
+                const taxedConcessional = Math.min(totalConcessional, div293Excess);
+                const div293Tax = Math.round(taxedConcessional * 0.15);
+                messages.push(`⚠ Division 293: your income plus concessional contributions (~${formatCurrency(div293Income)}) exceeds the ${formatCurrency(div293Threshold)} threshold by ${formatCurrency(div293Excess)}. An extra 15% tax (~${formatCurrency(div293Tax)}) applies to the excess concessional contributions — this is already modelled in the projection.`);
+            }
+
+            // sanitise interpolations: every value above came from formatCurrency() over
+            // a parsed number, so the only special character we might see is '$' / ','
+            // (HTML-safe). Building messages via innerHTML is intentional to allow the
+            // <span> styling block, and stays safe as long as the interpolated values
+            // remain currency-formatted numbers only.
+            if (messages.length > 1) {
+                note.innerHTML = messages.map((m, i) => i === 0
+                    ? m
+                    : `<span style="display:block;margin-top:4px;color:#b45309;font-weight:500;">${m}</span>`
+                ).join('');
+            }
+        });
+    }
+
+    syncAgedCareProjectionFields({ force = false, depletionAge = null } = {}) {
+        const lifespanInput = $('yourLifespan');
+        const currentAgeInput = $('yourCurrentAge');
+        const startAgeInput = $('agedCareStartAge');
+        const durationInput = $('agedCareDuration');
+        const startHint = $('agedCareStartAgeHint');
+        const durationHint = $('agedCareDurationHint');
+
+        if (!lifespanInput || !currentAgeInput || !startAgeInput || !durationInput) {
+            return;
+        }
+
+        const currentAge = safeGetValue('yourCurrentAge', 0);
+        const expectedLifespan = safeGetValue('yourLifespan', 0);
+        const hasExplicitLifespan = expectedLifespan > currentAge;
+
+        const rawStartAge = startAgeInput.value.trim();
+        let startAge = rawStartAge === '' ? 0 : parseFormattedNumber(rawStartAge);
+        const startAgeMissing = startAge === 0;
+        const canAutoFillStartAge = force || startAgeInput.dataset.autoCalculated === 'true' || startAgeMissing;
+
+        if (startAgeMissing && depletionAge != null && canAutoFillStartAge) {
+            safeSetValue('agedCareStartAge', String(depletionAge));
+            startAgeInput.dataset.autoCalculated = 'true';
+            startAgeInput.dataset.userModified = 'false';
+            startAgeInput.dataset.lastAutoValue = String(depletionAge);
+            startAge = depletionAge;
+        }
+
+        if (startHint) {
+            if (startAgeInput.value.trim() === '' || parseFormattedNumber(startAgeInput.value) === 0) {
+                startHint.textContent = 'Leave this at 0 or blank to use the age your assets run out after a projection is calculated.';
+            } else if (startAgeInput.dataset.autoCalculated === 'true' && depletionAge != null) {
+                startHint.textContent = `Auto-filled from the latest depletion age projection: age ${depletionAge}.`;
+            } else {
+                startHint.textContent = 'You can override this age if you want to model earlier or later aged care needs.';
+            }
+        }
+
+        const currentDurationValue = parseFormattedNumber(durationInput.value);
+        const shouldAutoFillDuration = force ||
+            durationInput.dataset.autoCalculated === 'true' ||
+            durationInput.value.trim() === '' ||
+            currentDurationValue === 0;
+
+        if (!hasExplicitLifespan) {
+            if (shouldAutoFillDuration) {
+                safeSetValue('agedCareDuration', '');
+                durationInput.dataset.autoCalculated = 'true';
+                durationInput.dataset.userModified = 'false';
+                delete durationInput.dataset.lastAutoValue;
+            }
+
+            if (durationHint) {
+                durationHint.textContent = 'This auto-calculates once you enter a lifespan above your current age.';
+            }
+            return;
+        }
+
+        if (!startAge || startAge <= 0) {
+            if (shouldAutoFillDuration) {
+                safeSetValue('agedCareDuration', '');
+                durationInput.dataset.autoCalculated = 'true';
+                durationInput.dataset.userModified = 'false';
+                delete durationInput.dataset.lastAutoValue;
+            }
+
+            if (durationHint) {
+                durationHint.textContent = 'Set an aged care start age, or leave it at 0 and calculate to use the depletion age once available.';
+            }
+            return;
+        }
+
+        const derivedDuration = Math.max(0, expectedLifespan - startAge);
+
+        if (shouldAutoFillDuration) {
+            safeSetValue('agedCareDuration', String(derivedDuration));
+            durationInput.dataset.autoCalculated = 'true';
+            durationInput.dataset.userModified = 'false';
+            durationInput.dataset.lastAutoValue = String(derivedDuration);
+        }
+
+        if (durationHint) {
+            durationHint.textContent = `Auto-calculated as expected lifespan ${expectedLifespan} minus aged care start age ${startAge}.`;
+        }
+    }
+
+    setupProjectionDrivenFields() {
+        const autofillDependencyFields = [
+            'yourSalary', 'partnerSalary', 'employerSuperContributionRate',
+            'yourCurrentAge', 'retirementAge', 'yourLifespan',
+            'partnerCurrentAge', 'partnerCurrentSuper', 'partnerRetirementAge', 'partnerLifespan',
+            'ageCameToAustralia', 'partnerAgeCameToAustralia', 'homeValue'
+        ];
+
+        autofillDependencyFields.forEach((fieldId) => {
+            const field = $(fieldId);
+            if (!field) return;
+            field.addEventListener('input', () => this.refreshAllDerivedDefaults());
+            field.addEventListener('blur', () => this.refreshAllDerivedDefaults());
+        });
+
+        [
+            ['yourAdditionalSuperContribution', false],
+            ['partnerAdditionalSuperContribution', false],
+            ['partnerCurrentAge', true],
+            ['partnerRetirementAge', true],
+            ['partnerLifespan', true],
+            ['ageStartedEarningAustralia', true],
+            ['partnerAgeStartedEarningAustralia', true],
+            ['asfaComfortable', false],
+            ['agePensionMax', false],
+            ['pensionAssetThreshold', false],
+            ['pensionAssetLimit', false],
+            ['pensionIncomeThreshold', false],
+            ['capitalGainsTaxRate', false]
+        ].forEach(([fieldId, zeroMeansBlank]) => this.registerAutoManagedField(fieldId, { zeroMeansBlank }));
+
+        ['yourLifespan', 'yourCurrentAge', 'agedCareStartAge'].forEach((fieldId) => {
+            const field = $(fieldId);
+            if (!field) return;
+            field.addEventListener('input', () => this.syncAgedCareProjectionFields());
+            field.addEventListener('blur', () => this.syncAgedCareProjectionFields());
+        });
+
+        const agedCareStartAge = $('agedCareStartAge');
+        if (agedCareStartAge) {
+            agedCareStartAge.addEventListener('input', () => {
+                const numericValue = parseFormattedNumber(agedCareStartAge.value);
+                const isBlank = agedCareStartAge.value.trim() === '' || numericValue === 0;
+                agedCareStartAge.dataset.userModified = isBlank ? 'false' : 'true';
+                agedCareStartAge.dataset.autoCalculated = 'false';
+            });
+        }
+
+        const agedCareDuration = $('agedCareDuration');
+        if (agedCareDuration) {
+            agedCareDuration.addEventListener('input', () => {
+                const numericValue = parseFormattedNumber(agedCareDuration.value);
+                const lastAutoValue = parseFormattedNumber(agedCareDuration.dataset.lastAutoValue || '');
+                const isBlank = agedCareDuration.value.trim() === '' || numericValue === 0;
+
+                if (isBlank) {
+                    agedCareDuration.dataset.userModified = 'false';
+                    agedCareDuration.dataset.autoCalculated = 'true';
+                    this.syncAgedCareProjectionFields();
+                    return;
+                }
+
+                if (numericValue !== lastAutoValue) {
+                    agedCareDuration.dataset.userModified = 'true';
+                    agedCareDuration.dataset.autoCalculated = 'false';
+                }
+            });
+        }
+
+        this.refreshAllDerivedDefaults();
+    }
+
+    formatFutureValueWithTodayNote(futureValue, inflationFactor) {
+        return `${formatCurrency(futureValue)} <span class="block text-xs font-normal text-gray-500 mt-1">≈ ${formatCurrency(this.toTodayDollars(futureValue, inflationFactor))} in today's dollars</span>`;
+    }
+
+    formatTodayValueWithFutureNote(todayValue, inflationFactor) {
+        return `${formatCurrency(todayValue)} <span class="block text-xs font-normal text-gray-500 mt-1">≈ ${formatCurrency(todayValue * inflationFactor)} at retirement after inflation</span>`;
+    }
+
     // Display enhanced summary results
     displaySummaryResults(result, inputs) {
         const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
-        const requiredAnnualIncomeInRetirement = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, yearsToRetirement);
+        const inflationFactor = this.getInflationFactor(yearsToRetirement, inputs.inflation);
 
         safeSetHTML('summaryResults', `
             <div class="p-3 bg-blue-50 rounded flex justify-between">
@@ -1175,43 +1838,44 @@ class RetirementCalculatorApp {
             </div>
             <div class="p-3 bg-blue-50 rounded flex justify-between">
                 <strong>Future Super:</strong>
-                <span class="font-semibold">${formatCurrency(result.accumulatedSuperBalance)} <a href="#" class="show-calc-link" data-calc-id="accumulatedSuperBalance">(show)</a></span>
+                <span class="font-semibold text-right">${this.formatFutureValueWithTodayNote(result.accumulatedSuperBalance, inflationFactor)} <a href="#" class="show-calc-link" data-calc-id="accumulatedSuperBalance">(show)</a></span>
             </div>
             <div class="p-3 bg-blue-50 rounded flex justify-between">
                 <strong>Future Savings:</strong>
-                <span class="font-semibold">${formatCurrency(result.accumulatedSavingsBalance)} <a href="#" class="show-calc-link" data-calc-id="accumulatedSavingsBalance">(show)</a></span>
+                <span class="font-semibold text-right">${this.formatFutureValueWithTodayNote(result.accumulatedSavingsBalance, inflationFactor)} <a href="#" class="show-calc-link" data-calc-id="accumulatedSavingsBalance">(show)</a></span>
             </div>
             <div class="p-3 bg-blue-50 rounded flex justify-between">
                 <strong>Future Investments:</strong>
-                <span class="font-semibold">${formatCurrency(result.accumulatedInvestmentPortfolio)} <a href="#" class="show-calc-link" data-calc-id="accumulatedInvestmentPortfolio">(show)</a></span>
+                <span class="font-semibold text-right">${this.formatFutureValueWithTodayNote(result.accumulatedInvestmentPortfolio, inflationFactor)} <a href="#" class="show-calc-link" data-calc-id="accumulatedInvestmentPortfolio">(show)</a></span>
             </div>
             <div class="p-3 bg-green-50 rounded flex justify-between">
                 <strong>Accessible Home Equity:</strong>
-                <span class="font-semibold">${formatCurrency(result.accessibleHomeEquity)} <a href="#" class="show-calc-link" data-calc-id="accessibleHomeEquity">(show)</a></span>
+                <span class="font-semibold text-right">${this.formatFutureValueWithTodayNote(result.accessibleHomeEquity, inflationFactor)} <a href="#" class="show-calc-link" data-calc-id="accessibleHomeEquity">(show)</a></span>
             </div>
             ${inputs.hasInvestmentProperty ? `
             <div class="p-3 bg-yellow-50 rounded flex justify-between">
                 <strong>Property Equity:</strong>
-                <span class="font-semibold">${formatCurrency(result.propertyEquity)} <a href="#" class="show-calc-link" data-calc-id="propertyEquity">(show)</a></span>
+                <span class="font-semibold text-right">${this.formatFutureValueWithTodayNote(result.propertyEquity, inflationFactor)} <a href="#" class="show-calc-link" data-calc-id="propertyEquity">(show)</a></span>
             </div>
             ` : ''}
             <div class="p-3 bg-green-50 rounded flex justify-between">
                 <strong>Total Assets at Retirement:</strong>
-                <span class="font-bold text-lg">${formatCurrency(result.totalFinancialAssets + result.accessibleHomeEquity)} <a href="#" class="show-calc-link" data-calc-id="totalAssets">(show)</a></span>
+                <span class="font-bold text-lg text-right">${this.formatFutureValueWithTodayNote(result.totalFinancialAssets + result.accessibleHomeEquity, inflationFactor)} <a href="#" class="show-calc-link" data-calc-id="totalAssets">(show)</a></span>
             </div>
             <div class="p-3 bg-red-50 rounded flex justify-between">
                 <strong>Income Needed (ASFA):</strong>
-                <span class="font-bold text-lg">${formatCurrency(requiredAnnualIncomeInRetirement)} <a href="#" class="show-calc-link" data-calc-id="incomeNeeded">(show)</a></span>
+                <span class="font-bold text-lg text-right">${this.formatTodayValueWithFutureNote(inputs.asfaComfortable, inflationFactor)} <a href="#" class="show-calc-link" data-calc-id="incomeNeeded">(show)</a></span>
             </div>
             <div class="p-3 bg-purple-50 rounded flex justify-between">
                 <strong>Expected Aged Care Costs:</strong>
-                <span class="font-semibold">${formatCurrency(result.agedCareCosts.expectedCost)} <a href="#" class="show-calc-link" data-calc-id="agedCareCosts">(show)</a></span>
+                <span class="font-semibold text-right">${this.formatFutureValueWithTodayNote(result.agedCareCosts.expectedCost, inflationFactor)} <a href="#" class="show-calc-link" data-calc-id="agedCareCosts">(show)</a></span>
             </div>
         `);
 
         // Final result
         const finalResultContainer = $('finalResult');
         const shortfallActionPanel = $('shortfall-action-panel');
+        const projectionEndAge = this.resolveProjectionEndAge(inputs, result);
         if (finalResultContainer) {
             if (result.finalBalance > 0) {
                 finalResultContainer.className = 'mt-4 p-4 rounded-lg bg-green-100 text-green-800 border border-green-300';
@@ -1220,13 +1884,13 @@ class RetirementCalculatorApp {
                         <span class="text-2xl">✅</span>
                         <div>
                             <div class="font-bold text-lg" style="font-family:var(--font-display,'Playfair Display',serif)">Retirement Goal Met</div>
-                            <div class="text-sm mt-0.5">Projected remaining assets at age ${inputs.partnerLifespan || inputs.yourLifespan || 90}: <strong style="font-family:var(--font-data,'JetBrains Mono',monospace)">${formatCurrency(result.finalBalance)}</strong></div>
+                            <div class="text-sm mt-0.5">Projected remaining assets at age ${projectionEndAge}: <strong style="font-family:var(--font-data,'JetBrains Mono',monospace)">${formatCurrency(result.finalBalance)}</strong></div>
                         </div>
                     </div>
                 `;
                 if (shortfallActionPanel) shortfallActionPanel.classList.add('hidden');
             } else {
-                const lifespan = inputs.partnerLifespan || inputs.yourLifespan || 90;
+                const lifespan = projectionEndAge;
                 const yearsToRet = (inputs.retirementAge || 65) - (inputs.yourCurrentAge || 50);
                 const salary = inputs.yourSalary || 0;
                 const superRate = inputs.superContributionRate || 0.115;
@@ -1234,24 +1898,29 @@ class RetirementCalculatorApp {
                 const currentConcessional = (salary * superRate) + addlSuper;
                 const remainingSalarySacrifice = Math.max(0, 30000 - currentConcessional);
                 const canSalarySacrifice = remainingSalarySacrifice > 1000 && salary > 0;
+                const depletionAgeLabel = this.formatDepletionAgeLabel(result);
+                const depletionPensionMessage = this.formatDepletionPensionMessage(result);
 
                 // Rough quantified estimates for each lever
                 const bal = result.accumulatedSuperBalance || 0;
                 const delay2YrsValue = Math.round(bal * 0.15 + salary * superRate * 2);
                 const reduce5kValue = Math.round(5000 * Math.max(5, lifespan - (inputs.retirementAge || 65)));
                 const salarySacrificeAnnual = canSalarySacrifice ? Math.round(Math.min(remainingSalarySacrifice, salary * 0.1)) : 0;
+                const shortfallHeadline = this.getShortfallHeadline(inputs, result);
+                const shortfallSubheading = this.getShortfallSubheading(inputs, result, depletionAgeLabel);
 
                 finalResultContainer.className = 'mt-4 rounded-lg overflow-hidden border border-red-300';
                 finalResultContainer.innerHTML = `
                     <div class="p-4 bg-red-600 text-white flex items-center gap-3">
                         <span class="text-2xl flex-shrink-0">⚠️</span>
                         <div>
-                            <div class="font-bold text-lg" style="font-family:var(--font-display,'Playfair Display',serif)">Retirement Shortfall Projected</div>
-                            <div class="text-red-100 text-sm mt-0.5">Modelled assets may be exhausted before age ${lifespan} under current assumptions</div>
+                            <div class="font-bold text-lg" style="font-family:var(--font-display,'Playfair Display',serif)">${shortfallHeadline}</div>
+                            <div class="text-red-100 text-sm mt-0.5">${shortfallSubheading}</div>
                         </div>
                     </div>
                     <div class="p-4 bg-red-50">
                         <p class="text-sm text-red-800 mb-4 leading-relaxed">Under current assumptions, your modelled portfolio may not sustain income to your planning horizon. The following illustrates how changes to key inputs could affect the outcome — these are educational projections, not predictions. Seek advice from a licensed financial adviser before making decisions.</p>
+                        <p class="text-sm text-red-800 mb-4 leading-relaxed"><strong>At depletion:</strong> ${depletionPensionMessage}</p>
                         <h5 class="text-xs font-semibold uppercase tracking-wider text-red-700 mb-3" style="font-family:var(--font-ui,'DM Sans',sans-serif)">Levers to explore:</h5>
                         <div class="space-y-2">
                             ${canSalarySacrifice ? `
@@ -1389,7 +2058,7 @@ class RetirementCalculatorApp {
                 projectionTable.innerHTML += `
                     <tr class="bg-red-100">
                         <td colspan="11" class="px-4 py-2 text-center font-bold text-red-800" style="font-family:var(--font-ui,'DM Sans',sans-serif)">
-                            ⚠️ Modelled assets depleted in ${data.year}
+                            ⚠️ Modelled assets depleted in ${data.year} at age ${data.age}${data.partnerAlive ? ` (partner age ${data.partnerAge})` : ''}${data.pensionIncome > 0 ? ` — projected ${data.partnerAlive ? 'combined ' : ''}Age Pension ${formatCurrency(data.pensionIncome)}/year` : ' — no Age Pension projected at that point'}
                         </td>
                     </tr>
                 `;
@@ -1399,8 +2068,8 @@ class RetirementCalculatorApp {
             // Format age display as "YourAge/PartnerAge" with '-' for deceased
             let ageDisplay = data.age;
             if (data.partnerAge !== undefined) {
-                const yourAgeStr = data.yourAge > inputs.yourLifespan ? '-' : data.yourAge;
-                const partnerAgeStr = data.partnerAge > inputs.partnerLifespan ? '-' : data.partnerAge;
+                const yourAgeStr = data.yourAlive === false ? '-' : data.yourAge;
+                const partnerAgeStr = data.partnerAlive === false ? '-' : data.partnerAge;
                 ageDisplay = `${yourAgeStr}/${partnerAgeStr}`;
             }
 
@@ -1699,6 +2368,12 @@ class RetirementCalculatorApp {
                         <div class="mt-1">Total return: ${formatPercent(keepVsSellAnalysis.keepTotalReturn)}</div>
                         <div>${inputs.sellPropertyYears === 0 ? 'Annual' : 'Total'} net income contribution: ${formatCurrency(keepVsSellAnalysis.keepNetIncome)}</div>
                     </div>
+                    ${inputs.sellPropertyYears === 0 && keepVsSellAnalysis.bestSaleOption ? `
+                    <div class="p-3 bg-amber-50 rounded border border-amber-200">
+                        <div class="font-medium text-amber-900">Best sale timing from tested scenarios:</div>
+                        <div class="mt-1 text-amber-800">Selling in ${keepVsSellAnalysis.bestSaleOption.year} years (around age ${keepVsSellAnalysis.bestSaleOption.sellAge}) produced the strongest projected outcome at the comparison horizon.</div>
+                        <div class="text-amber-700 mt-1">Projected sale proceeds: ${formatCurrency(keepVsSellAnalysis.bestSaleOption.netProceeds)} · projected value at horizon: ${formatCurrency(keepVsSellAnalysis.bestSaleOption.projectedWealthAtHorizon)}</div>
+                    </div>` : ''}
                     ${inputs.sellPropertyYears > 0 ? `
                     <div class="p-3 bg-white rounded">
                         <div class="font-medium">Sell in ${inputs.sellPropertyYears} years:</div>
@@ -4091,53 +4766,76 @@ class RetirementCalculatorApp {
     analyzeKeepVsSell(inputs) {
         if (!inputs.hasInvestmentProperty) return null;
 
-        // Comprehensive analysis using proper cash flow calculations
         const yearsToSell = inputs.sellPropertyYears;
         const currentValue = inputs.investmentPropertyValue;
-
-        // Use the simulator's proper property cash flow calculation
         const propertyCashFlow = this.simulator.calculatePropertyCashFlow(inputs, 0);
         const annualNetIncome = propertyCashFlow ? propertyCashFlow.netCashFlow : 0;
+        const explicitHorizon = this.hasExplicitPlanningHorizon(inputs)
+            ? Math.max(1, (inputs.yourLifespan || 0) - (inputs.yourCurrentAge || 0))
+            : 30;
+        const comparisonHorizon = Math.min(40, explicitHorizon);
 
-        // Handle keeping property indefinitely (sellPropertyYears = 0)
+        const evaluateSaleTiming = (saleYear) => {
+            const saleResult = this.simulator.calculatePropertySale(inputs, saleYear);
+            if (!saleResult) {
+                return null;
+            }
+
+            let netCashFlowBeforeSale = 0;
+            for (let year = 0; year < saleYear; year++) {
+                const yearlyCashFlow = this.simulator.calculatePropertyCashFlow(inputs, year);
+                netCashFlowBeforeSale += yearlyCashFlow?.netCashFlow || 0;
+            }
+
+            const yearsAfterSale = Math.max(0, comparisonHorizon - saleYear);
+            const reinvestedProceeds = saleResult.netProceeds * Math.pow(1 + (inputs.investmentReturn || 0), yearsAfterSale);
+
+            return {
+                year: saleYear,
+                sellAge: (inputs.yourCurrentAge || 0) + saleYear,
+                netProceeds: saleResult.netProceeds,
+                projectedWealthAtHorizon: reinvestedProceeds + netCashFlowBeforeSale
+            };
+        };
+
         if (yearsToSell === 0) {
-            // When keeping indefinitely, show annual income contribution and long-term growth
-            const longTermYears = 30; // Use 30 years for long-term projection
-            const futureValue = currentValue * Math.pow(1 + inputs.propertyGrowthRate / 100, longTermYears);
+            const longTermYears = comparisonHorizon;
+            const futureValue = this.simulator.calculatePropertyValue(currentValue, inputs.propertyGrowthRate, longTermYears);
             const totalNetIncome = annualNetIncome * longTermYears;
+            let bestSaleOption = null;
+
+            for (let saleYear = 1; saleYear <= comparisonHorizon; saleYear++) {
+                const candidate = evaluateSaleTiming(saleYear);
+                if (!candidate) {
+                    continue;
+                }
+
+                if (!bestSaleOption || candidate.projectedWealthAtHorizon > bestSaleOption.projectedWealthAtHorizon) {
+                    bestSaleOption = candidate;
+                }
+            }
 
             return {
                 keepTotalReturn: (totalNetIncome + (futureValue - currentValue)) / currentValue,
                 keepNetIncome: annualNetIncome, // Show annual contribution when keeping indefinitely
                 sellNetProceeds: 0, // Not selling
                 sellInvestmentReturn: 0,
+                bestSaleOption,
                 recommendation: annualNetIncome > 0 ?
                     'Keeping property - generating positive cash flow' :
                     'Property has negative cash flow - consider selling'
             };
         }
 
-        // Original logic for when selling in specific years
-        const futureValue = currentValue * Math.pow(1 + inputs.propertyGrowthRate / 100, yearsToSell);
-        const remainingLoan = this.simulator.calculatePropertyLoanBalance(
-            inputs.investmentPropertyLoan,
-            inputs.investmentPropertyRate,
-            yearsToSell
-        );
-
-        const sellingCosts = futureValue * ENHANCED_FINANCIAL_CONFIG.propertyInvestment.TRANSACTION_COSTS.SELLING_COSTS_PERCENT.value;
-        const capitalGain = futureValue - currentValue;
-        const cgtPayable = capitalGain * ENHANCED_FINANCIAL_CONFIG.australianSystem.CGT_DISCOUNT.value * (inputs.capitalGainsTaxRate / 100);
-        const sellNetProceeds = futureValue - remainingLoan - sellingCosts - cgtPayable;
-
+        const saleScenario = evaluateSaleTiming(yearsToSell);
         const keepNetIncome = annualNetIncome * yearsToSell;
 
         return {
-            keepTotalReturn: (keepNetIncome + (futureValue - currentValue)) / currentValue,
+            keepTotalReturn: saleScenario ? (keepNetIncome + saleScenario.netProceeds - currentValue) / currentValue : 0,
             keepNetIncome,
-            sellNetProceeds,
+            sellNetProceeds: saleScenario?.netProceeds || 0,
             sellInvestmentReturn: this.calculatePortfolioReturn(inputs, yearsToSell),
-            recommendation: sellNetProceeds > (keepNetIncome + currentValue) ?
+            recommendation: (saleScenario?.netProceeds || 0) > (keepNetIncome + currentValue) ?
                 'Consider selling - higher returns from portfolio investment' :
                 'Consider keeping - property provides better total return'
         };
@@ -6656,6 +7354,7 @@ class RetirementCalculatorApp {
                 initializeCurrencyInputs();
                 initializePercentageInputs();
                 initializeNumericInputs();
+                this.refreshAllDerivedDefaults({ force: false });
 
                 // Show enhanced summary for returning user
                 this.showReturningUserEnhancedSummary(importedData.userData, importedData.scenarioName);
@@ -6993,36 +7692,6 @@ class RetirementCalculatorApp {
             toggleSMSF();
         }
 
-        // Update CGT rate based on marginal tax rate
-        const updateCGTRate = () => {
-            const totalSalary = safeGetValue('yourSalary', 0) + safeGetValue('partnerSalary', 0);
-            let marginalRate = 0;
-
-            if (totalSalary > 190000) marginalRate = 45;
-            else if (totalSalary > 135000) marginalRate = 37;
-            else if (totalSalary > 45000) marginalRate = 30;
-            else if (totalSalary > 18200) marginalRate = 16;
-
-            const cgtRate = marginalRate * 0.5; // 50% discount
-            safeSetValue('capitalGainsTaxRate', cgtRate);
-        };
-
-        // Salary change listeners for CGT calculation
-        const yourSalary = $('yourSalary');
-        const partnerSalary = $('partnerSalary');
-        if (yourSalary) yourSalary.addEventListener('blur', updateCGTRate);
-        if (partnerSalary) partnerSalary.addEventListener('blur', updateCGTRate);
-
-        // Dynamic calculation for 'Expected Age Care Start Date'
-        const yourLifespan = $('yourLifespan');
-        if (yourLifespan) {
-            const updateAgedCareStart = () => {
-                const lifespan = safeGetValue('yourLifespan', 85);
-                safeSetValue('agedCareStartAge', lifespan + 3);
-            };
-            yourLifespan.addEventListener('input', updateAgedCareStart);
-            updateAgedCareStart(); // Initial calculation
-        }
     }
 
     enhanceAdvancedCalculatorInputs() {
@@ -7915,6 +8584,7 @@ class RetirementCalculatorApp {
         }
 
         // Trigger a calculation update
+        this.refreshAllDerivedDefaults({ force: true });
         this.calculateRetirement(false);
 
         showNotification('Form reset to default values', 'success');
@@ -8598,9 +9268,13 @@ class RetirementCalculatorApp {
         safeSetText('outcome-retirement-age', outcome.retirementAge);
         safeSetText('outcome-years-to-go', outcome.yearsToRetirement);
         safeSetText('outcome-target-income', formatCurrency(outcome.targetIncome));
-        safeSetText('outcome-super-balance', formatCurrency(outcome.superAtRetirement));
-        safeSetText('outcome-age-pension', formatCurrency(outcome.agePension));
-        safeSetText('outcome-annual-income', formatCurrency(outcome.sustainableIncome));
+        safeSetText('outcome-target-income-note', `At retirement after inflation: ${formatCurrency(outcome.targetIncomeNominal)}/year`);
+        safeSetText('outcome-super-balance', formatCurrency(outcome.superAtRetirementNominal));
+        safeSetText('outcome-super-balance-note', `In today's dollars: ${formatCurrency(outcome.superAtRetirement)}`);
+        safeSetText('outcome-age-pension', formatCurrency(outcome.agePensionNominal));
+        safeSetText('outcome-age-pension-note', `In today's dollars: ${formatCurrency(outcome.agePension)}/year`);
+        safeSetText('outcome-annual-income', formatCurrency(outcome.sustainableIncomeNominal));
+        safeSetText('outcome-annual-income-note', `In today's dollars: ${formatCurrency(outcome.sustainableIncome)}/year`);
 
         // Income replacement ratio badge
         const irBadge = document.getElementById('outcome-income-replacement-badge');
@@ -8677,21 +9351,17 @@ class RetirementCalculatorApp {
         const gapIndicator = $('outcome-gap-indicator');
         const gapAmount = $('outcome-gap-amount');
         const gapSubtitle = $('outcome-gap-subtitle');
-        const gapWeeklyEl = $('outcome-gap-weekly');
         if (gapIndicator && gapAmount) {
             if (outcome.status === 'SHORTFALL') {
                 gapIndicator.className = 'gap-indicator shortfall';
                 gapAmount.textContent = `${formatCurrency(Math.abs(outcome.gap))}/year`;
-                // Update the existing weekly span directly to avoid duplicate IDs
-                if (gapWeeklyEl) {
-                    gapWeeklyEl.textContent = formatCurrency(Math.abs(outcome.gapPerWeek));
-                } else if (gapSubtitle) {
-                    gapSubtitle.textContent = `${formatCurrency(Math.abs(outcome.gapPerWeek))}/week shortfall`;
+                if (gapSubtitle) {
+                    gapSubtitle.innerHTML = `<span id="outcome-gap-weekly">${formatCurrency(Math.abs(outcome.gapPerWeek))}</span>/week shortfall in today's dollars`;
                 }
             } else {
                 gapIndicator.className = 'gap-indicator surplus';
                 gapAmount.textContent = `${formatCurrency(Math.abs(outcome.gap))}/year surplus`;
-                if (gapSubtitle) gapSubtitle.textContent = 'You\'re on track for a comfortable retirement!';
+                if (gapSubtitle) gapSubtitle.textContent = 'You\'re on track in today\'s dollars.';
             }
         }
 
@@ -8722,17 +9392,23 @@ class RetirementCalculatorApp {
         if (!overviewEl) return;
 
         const sim = this.currentResults;
+        const inputs = this.collectInputs();
+        const yearsToRetirement = (inputs.retirementAge || outcome.retirementAge) - (inputs.yourCurrentAge || outcome.currentAge);
+        const inflationFactor = this.getInflationFactor(yearsToRetirement, inputs.inflation);
 
-        const totalAssets = sim
-            ? formatCurrency(sim.totalFinancialAssets + (sim.accessibleHomeEquity || 0))
-            : formatCurrency(outcome.superAtRetirement);
+        const totalAssetsNominal = sim
+            ? sim.totalFinancialAssets + (sim.accessibleHomeEquity || 0)
+            : outcome.superAtRetirementNominal;
+        const totalAssetsToday = sim
+            ? this.toTodayDollars(totalAssetsNominal, inflationFactor)
+            : outcome.superAtRetirement;
 
-        const projectedSuper = sim
-            ? formatCurrency(sim.accumulatedSuperBalance)
-            : formatCurrency(outcome.superAtRetirement);
-
-        const sustainableIncome = formatCurrency(outcome.sustainableIncome);
-        const targetIncome = formatCurrency(outcome.targetIncome);
+        const projectedSuperNominal = sim
+            ? sim.accumulatedSuperBalance
+            : outcome.superAtRetirementNominal;
+        const projectedSuperToday = sim
+            ? this.toTodayDollars(projectedSuperNominal, inflationFactor)
+            : outcome.superAtRetirement;
 
         const statusColor = outcome.status === 'SHORTFALL' ? '#ef4444' : '#22c55e';
         const statusIcon = outcome.status === 'SHORTFALL' ? '⚠️' : '✅';
@@ -8741,23 +9417,23 @@ class RetirementCalculatorApp {
         overviewEl.innerHTML = `
             <div class="outcome-overview-stat">
                 <div class="outcome-overview-label">Total Assets at Retirement</div>
-                <div class="outcome-overview-value">${totalAssets}</div>
-                <div class="outcome-overview-sublabel">${sim ? 'Full simulation' : 'Conservative estimate'}</div>
+                <div class="outcome-overview-value">${formatCurrency(totalAssetsNominal)}</div>
+                <div class="outcome-overview-sublabel">≈ ${formatCurrency(totalAssetsToday)} in today's dollars · ${sim ? 'Full simulation' : 'Conservative estimate'}</div>
             </div>
             <div class="outcome-overview-stat">
                 <div class="outcome-overview-label">Super at Retirement</div>
-                <div class="outcome-overview-value">${projectedSuper}</div>
-                <div class="outcome-overview-sublabel">${sim ? 'Projected (full model)' : 'Conservative estimate'}</div>
+                <div class="outcome-overview-value">${formatCurrency(projectedSuperNominal)}</div>
+                <div class="outcome-overview-sublabel">≈ ${formatCurrency(projectedSuperToday)} in today's dollars · ${sim ? 'Projected (full model)' : 'Conservative estimate'}</div>
             </div>
             <div class="outcome-overview-stat">
                 <div class="outcome-overview-label">Sustainable Annual Income</div>
-                <div class="outcome-overview-value">${sustainableIncome}</div>
-                <div class="outcome-overview-sublabel">4% drawdown + Age Pension</div>
+                <div class="outcome-overview-value">${formatCurrency(outcome.sustainableIncomeNominal)}</div>
+                <div class="outcome-overview-sublabel">≈ ${formatCurrency(outcome.sustainableIncome)} in today's dollars · 4% drawdown + Age Pension</div>
             </div>
             <div class="outcome-overview-stat">
                 <div class="outcome-overview-label">Target Income</div>
-                <div class="outcome-overview-value">${targetIncome}</div>
-                <div class="outcome-overview-sublabel">ASFA comfortable standard</div>
+                <div class="outcome-overview-value">${formatCurrency(outcome.targetIncome)}</div>
+                <div class="outcome-overview-sublabel">≈ ${formatCurrency(outcome.targetIncomeNominal)} at retirement after inflation · ASFA comfortable standard</div>
             </div>
             <div class="outcome-overview-stat">
                 <div class="outcome-overview-label">Status</div>
@@ -8903,9 +9579,9 @@ class RetirementCalculatorApp {
         const impactDiv = $('whatif-super-impact');
         if (impactDiv) {
             impactDiv.style.display = 'block';
-            safeSetText('whatif-super-impact-value', formatCurrency(result.extraSuper));
-            safeSetText('whatif-super-extra-income', formatCurrency(result.extraIncome));
-            safeSetText('whatif-super-new-gap', formatCurrency(result.newGap));
+            safeSetText('whatif-super-impact-value', `Adds ${formatCurrency(result.extraSuper)} to super by retirement (${formatCurrency(result.extraSuperToday)} in today's dollars)`);
+            safeSetText('whatif-super-extra-income', `${formatCurrency(result.extraIncome)}/year in today's dollars`);
+            safeSetText('whatif-super-new-gap', `${formatCurrency(result.newGap)}/year in today's dollars`);
         }
     }
 
@@ -8923,9 +9599,9 @@ class RetirementCalculatorApp {
         const impactDiv = $('whatif-mortgage-impact');
         if (impactDiv) {
             impactDiv.style.display = 'block';
-            safeSetText('whatif-mortgage-years-saved', result.yearsSaved);
+            safeSetText('whatif-mortgage-years-saved', `Paid off ${result.yearsEarlier} years early`);
             safeSetText('whatif-mortgage-interest-saved', formatCurrency(result.interestSaved));
-            safeSetText('whatif-mortgage-impact-gap', formatCurrency(result.impactOnGap));
+            safeSetText('whatif-mortgage-impact-gap', `${formatCurrency(result.impactOnGap)}/year in today's dollars`);
         }
     }
 
@@ -8943,9 +9619,9 @@ class RetirementCalculatorApp {
         const impactDiv = $('whatif-retirement-impact');
         if (impactDiv) {
             impactDiv.style.display = 'block';
-            safeSetText('whatif-retirement-extra-super', formatCurrency(result.extraSuper));
-            safeSetText('whatif-retirement-extra-income', formatCurrency(result.extraIncome));
-            safeSetText('whatif-retirement-new-gap', formatCurrency(result.newGap));
+            safeSetText('whatif-retirement-extra-super', `${formatCurrency(result.extraSuper)} (${formatCurrency(result.extraSuperToday)} in today's dollars)`);
+            safeSetText('whatif-retirement-extra-income', `${formatCurrency(result.extraIncome)}/year in today's dollars`);
+            safeSetText('whatif-retirement-new-gap', `${formatCurrency(result.newGap)}/year in today's dollars`);
         }
     }
 

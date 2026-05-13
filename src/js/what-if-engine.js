@@ -30,6 +30,11 @@ export class WhatIfEngine {
         this.scenarioCounter = 0;
     }
 
+    toTodayDollars(futureValue) {
+        const factor = this.baseOutcome.inflationFactor || 1;
+        return futureValue / factor;
+    }
+
     /**
      * Test: What if extra super contributions?
      * @param {number} monthlyExtra - Extra monthly super contribution
@@ -49,7 +54,7 @@ export class WhatIfEngine {
         const bufferedExtra = extraSuper * CONSERVATIVE_ASSUMPTIONS.RISK_BUFFERS.RETURN_BUFFER;
 
         // Extra income from 4% drawdown
-        const extraIncome = bufferedExtra * 0.04;
+        const extraIncome = this.toTodayDollars(bufferedExtra * 0.04);
 
         // Tax savings (salary sacrifice)
         const salary = this.baseInputs.annualSalary || 0;
@@ -63,6 +68,7 @@ export class WhatIfEngine {
             type: 'SUPER_CONTRIBUTION',
             monthlyExtra,
             extraSuper: Math.round(bufferedExtra),
+            extraSuperToday: Math.round(this.toTodayDollars(bufferedExtra)),
             extraIncome: Math.round(extraIncome),
             newGap: Math.round(newGap),
             gapReduction: Math.round(extraIncome),
@@ -117,7 +123,7 @@ export class WhatIfEngine {
         const paidOffByRetirement = yearsToPayoff <= yearsToRetirement;
 
         // Impact on gap (if paid off before retirement, mortgage payment freed up)
-        const impactOnGap = paidOffByRetirement ? (currentPayment * 12) : 0;
+        const impactOnGap = paidOffByRetirement ? this.toTodayDollars(currentPayment * 12) : 0;
         const newGap = Math.max(0, this.baseOutcome.gap - impactOnGap);
 
         return {
@@ -158,7 +164,7 @@ export class WhatIfEngine {
         // Apply conservative buffer
         const bufferedExtra = extraSuper * CONSERVATIVE_ASSUMPTIONS.RISK_BUFFERS.RETURN_BUFFER;
 
-        const extraIncome = bufferedExtra * 0.04;
+        const extraIncome = this.toTodayDollars(bufferedExtra * 0.04);
         const newGap = Math.max(0, this.baseOutcome.gap - extraIncome);
 
         return {
@@ -166,6 +172,7 @@ export class WhatIfEngine {
             extraYears,
             newRetirementAge,
             extraSuper: Math.round(bufferedExtra),
+            extraSuperToday: Math.round(this.toTodayDollars(bufferedExtra)),
             extraIncome: Math.round(extraIncome),
             newGap: Math.round(newGap),
             gapClosed: newGap === 0,
@@ -215,7 +222,7 @@ export class WhatIfEngine {
         const extraSavings = annualExtra * ((Math.pow(1 + rate, yearsToGo) - 1) / rate);
 
         // After-tax income (assume 30% tax on earnings)
-        const afterTaxIncome = extraSavings * 0.04 * 0.70;
+        const afterTaxIncome = this.toTodayDollars(extraSavings * 0.04 * 0.70);
 
         const newGap = Math.max(0, this.baseOutcome.gap - afterTaxIncome);
 
