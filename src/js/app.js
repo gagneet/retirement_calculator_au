@@ -823,7 +823,14 @@ class RetirementCalculatorApp {
 
             // Legacy / inheritance planning
             legacyGoal: parseFormattedNumber(getRawValue('legacyGoal', '0')),
-            legacyGoalType: safeGetSelectValue('legacyGoalType', 'none')
+            legacyGoalType: safeGetSelectValue('legacyGoalType', 'none'),
+
+            // Proposed Budget 2026-27 measures toggle
+            // Default FALSE — only apply current legislated law.
+            // When TRUE, models: 14% rate (FY2027-28), WATO $250, $1,000 instant
+            // deduction, CGT reform (inflation-indexed + 30% min).
+            // These measures are NOT yet passed by Parliament.
+            enableProposedBudget2026: safeGetChecked('enableProposedBudget2026', false)
         };
 
         if (inputs.useGlidePath) {

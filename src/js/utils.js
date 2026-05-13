@@ -497,45 +497,59 @@ export const calculateLITO = (income) => {
     return 0;
 };
 
+// ============================================================
+// PROPOSED BUDGET 2026-27 MEASURES — NOT YET LAW
+// ============================================================
+// The following functions implement measures announced in the
+// Australian Government Budget 2026-27 that have NOT yet been
+// passed by Parliament.  They are only applied when the user
+// explicitly enables the 'Include proposed Budget 2026-27 changes'
+// toggle (inputs.enableProposedBudget2026 === true).
+//
+// Source: budget.gov.au/content/02-cost-of-living.htm
+//         budget.gov.au/content/04-tax-reform.htm
+//
+// When each measure is legislated, remove the enableProposedBudget2026
+// guard from the relevant code path and update this comment.
+// ============================================================
+
 /**
- * Working Australians Tax Offset (WATO) — Budget 2026-27, permanent from FY 2027-28.
- * Source: budget.gov.au/content/02-cost-of-living.htm
+ * Working Australians Tax Offset (WATO) — Budget 2026-27 PROPOSED measure.
+ * ⚠️  NOT YET LAW — only applied when inputs.enableProposedBudget2026 is true.
  *
  * Confirmed from budget document:
- *  - Amount: $250 per year (permanent)
- *  - Applies to: all Australian workers (>13 million)
- *  - 97% receive the full $250; 3% receive less (implying a phase-out at high incomes)
- *  - Start: from the 2027–28 income year (FY ending 2028)
+ *  - Amount: $250 per year (permanent from FY 2027-28)
+ *  - 97% of workers receive the full $250; 3% receive less (phase-out exists)
  *
- * ASSUMPTION (unconfirmed): Phase-out threshold is set to $190,000 (the top-rate boundary)
- * as a conservative approximation since the budget document does not specify the exact
- * phase-out point.  Detailed legislation may reveal a higher or lower cutoff.
- *
- * Confidence: 9/10 on amount and start year; 6/10 on phase-out threshold.
+ * ASSUMPTION: Phase-out threshold conservatively set to $190,000 (top-rate
+ * boundary). The budget document does not specify the exact cutoff.
+ * Confidence: 9/10 on amount/start year; 6/10 on phase-out threshold.
  *
  * @param {number} income          – taxable income
- * @param {number} projectionYear  – FY ending year (e.g. 2028 for FY 2027-28)
- * @returns {number} WATO offset amount
+ * @param {number} projectionYear  – FY ending year (2028 = FY 2027-28)
+ * @param {boolean} enabled        – true only when user opts in to proposed measures
  */
-export const calculateWATO = (income, projectionYear) => {
+export const calculateWATO = (income, projectionYear, enabled = false) => {
+    if (!enabled) return 0;
     if (!projectionYear || projectionYear < 2028) return 0;
     if (income <= 0) return 0;
-    // Conservative phase-out: no WATO above the top marginal rate threshold.
-    // The actual phase-out point is unspecified in the Budget 2026-27 documents.
     if (income > 190000) return 0;
     return 250;
 };
 
 /**
- * Instant work-related expense deduction — Budget 2026-27, from FY 2026-27.
- * Workers reduce taxable income by up to $1,000 without receipts.
+ * Instant $1,000 work-related expense deduction — Budget 2026-27 PROPOSED measure.
+ * ⚠️  NOT YET LAW — only applied when inputs.enableProposedBudget2026 is true.
+ *
+ * Workers reduce taxable income by up to $1,000 without receipts, from FY 2026-27.
  * Source: budget.gov.au/content/02-cost-of-living.htm
  *
- * @param {number} grossIncome     – pre-deduction gross income
- * @param {number} projectionYear  – calendar year (FY ending); applies from 2027 onwards
- * @returns {number} deduction amount to subtract from taxable income
+ * @param {number}  grossIncome    – pre-deduction gross income
+ * @param {number}  projectionYear – FY ending year (2027 = FY 2026-27)
+ * @param {boolean} enabled        – true only when user opts in to proposed measures
  */
-export const calculateInstantDeduction = (grossIncome, projectionYear) => {
+export const calculateInstantDeduction = (grossIncome, projectionYear, enabled = false) => {
+    if (!enabled) return 0;
     if (!projectionYear || projectionYear < 2027) return 0;
     if (grossIncome <= 0) return 0;
     return Math.min(1000, grossIncome);
@@ -592,24 +606,38 @@ export const calculateMLS = (income, hasPrivateHealthCover) => {
 /**
  * Calculate post-tax take-home pay.
  *
- * Signature extended with optional `projectionYear` to apply Budget 2026-27 measures:
+ * Optionally applies proposed Budget 2026-27 measures when enabled:
  *  - $1,000 instant tax deduction (from FY 2026-27, projectionYear >= 2027)
- *  - Working Australians Tax Offset / WATO (from FY 2027-28, projectionYear >= 2028)
+ *  - WATO $250 offset (from FY 2027-28, projectionYear >= 2028)
+ *
+ * Neither measure is applied by default (enableProposedBudget = false) because
+ * both are proposed and not yet legislated.
  *
  * Third parameter hasPrivateHealthCover defaults to true so existing callers are unaffected.
- * Pass the user's actual value in the accumulation loop for correct MLS calculation.
+ *
+ * @param {number}  preTaxSalary
+ * @param {Array}   taxBrackets
+ * @param {boolean} hasPrivateHealthCover
+ * @param {number|null} projectionYear       – FY ending calendar year, null = no year-specific rules
+ * @param {boolean} enableProposedBudget     – true to apply proposed Budget 2026-27 measures
  */
-export const calculatePostTaxIncome = (preTaxSalary, taxBrackets, hasPrivateHealthCover = true, projectionYear = null) => {
-    // Apply $1,000 instant deduction (Budget 2026-27) to taxable income
-    const instantDeduction = calculateInstantDeduction(preTaxSalary, projectionYear);
+export const calculatePostTaxIncome = (
+    preTaxSalary,
+    taxBrackets,
+    hasPrivateHealthCover = true,
+    projectionYear = null,
+    enableProposedBudget = false
+) => {
+    // Proposed: $1,000 instant deduction — only when user opts in
+    const instantDeduction = calculateInstantDeduction(preTaxSalary, projectionYear, enableProposedBudget);
     const taxableIncome = Math.max(0, preTaxSalary - instantDeduction);
 
     const tax = calculateAustralianTax(taxableIncome, taxBrackets);
     const medicare = calculateMedicareLevy(taxableIncome);
     const mls = calculateMLS(taxableIncome, hasPrivateHealthCover);
 
-    // Apply WATO directly as an offset against tax (Budget 2026-27)
-    const wato = calculateWATO(taxableIncome, projectionYear);
+    // Proposed: WATO $250 offset — only when user opts in
+    const wato = calculateWATO(taxableIncome, projectionYear, enableProposedBudget);
     const netTax = Math.max(0, tax - wato);
 
     return preTaxSalary - netTax - medicare - mls;

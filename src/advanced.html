@@ -3569,11 +3569,35 @@
                                value="2" min="0" max="20" step="1">
                         <p class="mt-1 text-xs text-gray-500">Annual probability of an inflation spike year (&gt;8%) eroding purchasing power</p>
                     </div>
-                    <div>
+                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="propertyCrashProbability">Property Crash Probability (%/yr)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="propertyCrashProbability" type="text"
                                value="3" min="0" max="20" step="1">
                         <p class="mt-1 text-xs text-gray-500">Annual probability of a severe property value decline (&gt;15%)</p>
+                    </div>
+
+                    <!-- Proposed Budget 2026-27 Toggle -->
+                    <div class="mt-4 p-3 bg-amber-50 border border-amber-300 rounded-lg">
+                        <label class="flex items-start gap-2 cursor-pointer">
+                            <input type="checkbox" id="enableProposedBudget2026"
+                                   class="mt-0.5 rounded border-amber-400 text-amber-600 shadow-sm focus:ring-amber-500">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-semibold text-amber-900">Include proposed Budget 2026-27 changes</span>
+                                    <span class="text-xs bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded font-medium">Not yet law</span>
+                                </div>
+                                <p class="text-xs text-amber-800 mt-1 leading-relaxed">
+                                    When enabled, projects:
+                                    <strong>14% tax rate from FY 2027-28</strong> (currently 15%),
+                                    <strong>$250 WATO offset from FY 2027-28</strong>,
+                                    <strong>$1,000 instant work deduction from FY 2026-27</strong>, and
+                                    <strong>CGT reform from 1 July 2027</strong>
+                                    (inflation-indexed discount + 30% minimum).
+                                    These are Budget 2026-27 proposals that have not been passed by Parliament.
+                                    Unchecked = current legislated law only.
+                                </p>
+                            </div>
+                        </label>
                     </div>
                 </div>
             </div>

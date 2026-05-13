@@ -108,24 +108,39 @@ export const calcGrossTax = (taxableIncome, fyYear) => {
  * Total income tax + Medicare levy for a given taxable income.
  * fyYear defaults to current calendar year + 1 to approximate the current financial year.
  *
- * Budget 2026-27 measures applied automatically by fyYear:
- *  - $1,000 instant deduction reduces taxable income from FY 2026-27 (fyYear >= 2027)
- *  - WATO $250 offset applied from FY 2027-28 (fyYear >= 2028)
+ * Budget 2026-27 PROPOSED measures (NOT YET LAW) are only applied when
+ * `enableProposedBudget` is true — this mirrors the inputs.enableProposedBudget2026
+ * toggle in the main calculator.
+ *
+ * Legislated measures applied unconditionally:
+ *  - 15% rate from FY 2026-27 (via getBracketsForFY)
+ *
+ * Proposed measures (guarded by enableProposedBudget flag):
+ *  - $1,000 instant deduction from FY 2026-27 (fyYear >= 2027)
+ *  - WATO $250 offset from FY 2027-28 (fyYear >= 2028)
+ *  - 14% rate from FY 2027-28 (via getBracketsForFY)
+ *
+ * @param {number}  grossIncome
+ * @param {number}  [fyYear]             – FY ending calendar year
+ * @param {boolean} [enableProposedBudget=false] – set true to include Budget 2026-27 proposals
  */
-export const calcIncomeTax = (grossIncome, fyYear) => {
+export const calcIncomeTax = (grossIncome, fyYear, enableProposedBudget = false) => {
     if (!fyYear) fyYear = new Date().getFullYear() + 1;
     if (grossIncome <= 0) return 0;
 
-    // Instant $1,000 deduction (Budget 2026-27) — reduces taxable income
-    const instantDeduction = (fyYear >= INSTANT_DEDUCTION_START_FY && grossIncome > 0)
+    // Proposed: $1,000 instant deduction — only when opted in
+    const instantDeduction = (enableProposedBudget && fyYear >= INSTANT_DEDUCTION_START_FY)
         ? Math.min(INSTANT_DEDUCTION_AMOUNT, grossIncome) : 0;
     const taxableIncome = Math.max(0, grossIncome - instantDeduction);
 
-    const gross = calcGrossTax(taxableIncome, fyYear);
+    // getBracketsForFY returns 14% brackets only when enableProposedBudget is considered;
+    // without the flag, cap bracket selection at the 15% set (FY 2026-27, legislated).
+    const effectiveFyYear = enableProposedBudget ? fyYear : Math.min(fyYear, 2027);
+    const gross = calcGrossTax(taxableIncome, effectiveFyYear);
     const lito = calculateLITO(taxableIncome);
 
-    // WATO $250 offset (Budget 2026-27) — permanent from FY 2027-28
-    const wato = (fyYear >= WATO_START_FY && taxableIncome > 0 && taxableIncome <= 190000)
+    // Proposed: WATO $250 offset — only when opted in
+    const wato = (enableProposedBudget && fyYear >= WATO_START_FY && taxableIncome > 0 && taxableIncome <= 190000)
         ? WATO_AMOUNT : 0;
 
     const medicare = taxableIncome * MEDICARE_LEVY;
@@ -143,9 +158,12 @@ export const calcSuperTax = (salary, superContribRate, highIncome = false) => {
 
 /**
  * Net post-tax salary (take-home pay).
+ * @param {number}  grossSalary
+ * @param {number}  [fyYear]
+ * @param {boolean} [enableProposedBudget=false]
  */
-export const calcPostTaxSalary = (grossSalary, fyYear) => {
-    return Math.max(0, grossSalary - calcIncomeTax(grossSalary, fyYear));
+export const calcPostTaxSalary = (grossSalary, fyYear, enableProposedBudget = false) => {
+    return Math.max(0, grossSalary - calcIncomeTax(grossSalary, fyYear, enableProposedBudget));
 };
 
 export default {

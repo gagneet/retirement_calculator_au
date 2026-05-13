@@ -558,14 +558,19 @@ export class RetirementSimulator {
             ? inputs.capitalGainsTaxRate / 100
             : inputs.capitalGainsTaxRate;
 
-        let cgtPayable;
-        let cgtMethod = 'pre-2027-50pct-discount';
+        // CGT calculation — use current law (50% flat discount) by default.
+        // When user has enabled proposed Budget 2026-27 measures AND the sale is post-2027,
+        // switch to the inflation-indexed discount with 30% minimum (proposed, not yet law).
+        const proposedBudgetEnabled = !!inputs.enableProposedBudget2026;
 
-        if (saleCalendarYear > 2027 && (this.config.CGT_REFORM_START_YEAR || 2027)) {
-            // Budget 2026-27: CGT reform applies to gains after 1 July 2027.
-            // Derive the marginal rate by doubling the effective rate (reverse the 50% discount).
+        let cgtPayable;
+        let cgtMethod = 'current-law-50pct-discount';
+
+        if (proposedBudgetEnabled && saleCalendarYear > 2027) {
+            // PROPOSED: Budget 2026-27 CGT reform — only when user has opted in.
+            // Derives marginal rate from effectiveCGTRate (reverse the 50% discount).
             const marginalRate = Math.min(0.45, effectiveCGTRate * 2);
-            const isNewBuild = !!inputs.investmentPropertyIsNewBuild;
+            const isNewBuild = !!inputs.investmentPropertyIsNewBuild; // false if field absent
             const inflation = inputs.inflation || 0.026;
             const result = calculateCGTPost2027(
                 saleValue,
@@ -577,13 +582,13 @@ export class RetirementSimulator {
                 isNewBuild
             );
             cgtPayable = result.cgt;
-            cgtMethod = result.method;
+            cgtMethod = result.method + ' (proposed)';
         } else {
-            // Pre-reform: use effectiveCGTRate which already includes 50% discount
+            // Current law: effectiveCGTRate already incorporates the 50% discount
             cgtPayable = calculateCGT(
                 saleValue,
                 propertyCostBase,
-                true, // Assume Australian resident
+                true,
                 holdingPeriodYears,
                 effectiveCGTRate
             );
@@ -591,16 +596,14 @@ export class RetirementSimulator {
 
         const netProceeds = saleValue - remainingLoan - sellingCosts - cgtPayable;
 
-        // Budget 2026-27 note: Negative gearing on established housing purchased after
-        // Budget night (13 May 2026) will be restricted to offset only property income,
-        // not wages, from 1 July 2027. New builds are exempt.
-        // The cash-flow model cannot precisely quantify this tax benefit loss without
-        // knowing the investor's marginal rate and other income.  We flag the restriction
-        // for informational purposes only — the simulation's netCashFlow already reflects
-        // the actual rental income/expenses without applying any wage-offset tax benefit.
-        // NOTE: the restriction applies to pre-sale holding years, not to CGT on sale.
-        const negGearingRestrictionNote = purchaseCalendarYear >= 2026
-            ? 'Budget 2026-27: Negative gearing on this property may be restricted to offsetting property income only (not wages). New builds are exempt from this restriction.'
+        // Negative gearing restriction (proposed Budget 2026-27 — NOT YET LAW):
+        // Established housing purchased after Budget night (13 May 2026) will have losses
+        // restricted to offsetting property income only, not wages, from 1 July 2027.
+        // We cannot model this as a cash-flow benefit/loss without knowing the investor's
+        // marginal rate and total income.  Surface a disclosure note when the user opts in
+        // to proposed measures so they can account for it manually.
+        const negGearingRestrictionNote = (proposedBudgetEnabled && purchaseCalendarYear >= 2026)
+            ? 'Proposed Budget 2026-27: Negative gearing on this established property may be restricted from offsetting wage income from 1 July 2027. New builds remain fully deductible. This restriction is not yet law.'
             : null;
 
         return {
@@ -954,23 +957,31 @@ export class RetirementSimulator {
             const partnerYearsToWork = Math.min(inputs.partnerRetirementAge, effectivePartnerLifespan) - inputs.partnerCurrentAge;
 
             // Year-specific tax rules:
-            // • Tax brackets: 16% → 15% on $18,201–$45,000 from 1 July 2026 (FY 2026-27)
-            //                  15% → 14% on $18,201–$45,000 from 1 July 2027 (FY 2027-28) — Budget 2026-27
-            // • LISTO: threshold $37k/$500 → $45k/$810 from 1 July 2027 (FY 2027-28)
-            // • WATO $250 offset applies from FY 2027-28 (projectionYear >= 2028) — Budget 2026-27
-            // • Instant $1,000 deduction from FY 2026-27 (projectionYear >= 2027) — Budget 2026-27
-            // projectionYear maps simulation year to calendar year (e.g. year 1 in 2026 = calendar 2027)
+            // projectionYear maps simulation year to a calendar year for bracket selection.
             const projectionYear = new Date().getFullYear() + year;
+
+            // enableProposedBudget2026: user-controlled toggle (default false).
+            // When false, only legislated law is applied. When true, proposed Budget
+            // 2026-27 measures are also modelled (14% bracket, WATO, instant deduction,
+            // CGT reform). These measures are NOT yet passed by Parliament.
+            const proposedEnabled = !!inputs.enableProposedBudget2026;
+
+            // Tax brackets:
+            // • 15% rate from 1 July 2026 (FY 2026-27) — LEGISLATED (Stage 3 redesign)
+            // • 14% rate from 1 July 2027 (FY 2027-28) — PROPOSED Budget 2026-27 only
             let taxBrackets;
-            if (projectionYear >= 2028 && this.config.TAX_BRACKETS_2027_28) {
-                taxBrackets = this.config.TAX_BRACKETS_2027_28;   // 14% from 1 Jul 2027 (FY 2027-28)
+            if (proposedEnabled && projectionYear >= 2028 && this.config.TAX_BRACKETS_2027_28) {
+                taxBrackets = this.config.TAX_BRACKETS_2027_28;   // 14% — proposed only
             } else if (projectionYear >= 2027 && this.config.TAX_BRACKETS_2026_27) {
-                taxBrackets = this.config.TAX_BRACKETS_2026_27;   // 15% from 1 Jul 2026 (FY 2026-27)
+                taxBrackets = this.config.TAX_BRACKETS_2026_27;   // 15% — legislated
             } else {
-                taxBrackets = this.config.TAX_BRACKETS;            // 16% (current)
+                taxBrackets = this.config.TAX_BRACKETS;            // 16% — current FY
             }
-            const listoThreshold = projectionYear >= 2028 ? 45000 : 37000;
-            const listoMaxOffset = projectionYear >= 2028 ? 810 : 500;
+
+            // LISTO threshold change from FY 2027-28 ($37k→$45k) is tied to the same
+            // Budget 2026-27 package, so guard it behind the same flag.
+            const listoThreshold = (proposedEnabled && projectionYear >= 2028) ? 45000 : 37000;
+            const listoMaxOffset  = (proposedEnabled && projectionYear >= 2028) ? 810   : 500;
             const hasPrivateCover = inputs.hasPrivateHealthCover !== false;
             const div293Threshold = this.config.DIVISION_293_THRESHOLD || 250000;
 
@@ -997,8 +1008,8 @@ export class RetirementSimulator {
                     Math.max(0, 30000 - yourEmployerSG - concessionalAlreadyUsed)
                 );
                 const yourTaxableSalary = yourGrossSalary - yourSacrifice;
-                // Pass projectionYear so Budget 2026-27 WATO and instant deduction are applied.
-                yearlyPostTaxIncome += calculatePostTaxIncome(yourTaxableSalary, taxBrackets, hasPrivateCover, projectionYear);
+                // Pass proposedEnabled so WATO and instant deduction only apply when user opts in.
+                yearlyPostTaxIncome += calculatePostTaxIncome(yourTaxableSalary, taxBrackets, hasPrivateCover, projectionYear, proposedEnabled);
 
                 // Concessional contributions tax: 15% flat; LISTO offsets for low incomes
                 const yourTotalConcessional = yourEmployerSG + yourSacrifice;
@@ -1021,8 +1032,8 @@ export class RetirementSimulator {
                     Math.max(0, 30000 - partnerEmployerSG - concessionalAlreadyUsed)
                 );
                 const partnerTaxableSalary = partnerGrossSalary - partnerSacrifice;
-                // Pass projectionYear so Budget 2026-27 WATO and instant deduction are applied.
-                yearlyPostTaxIncome += calculatePostTaxIncome(partnerTaxableSalary, taxBrackets, hasPrivateCover, projectionYear);
+                // Pass proposedEnabled so WATO and instant deduction only apply when user opts in.
+                yearlyPostTaxIncome += calculatePostTaxIncome(partnerTaxableSalary, taxBrackets, hasPrivateCover, projectionYear, proposedEnabled);
 
                 const partnerTotalConcessional = partnerEmployerSG + partnerSacrifice;
                 const partnerLISTO = partnerTaxableSalary <= listoThreshold
