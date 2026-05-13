@@ -1,9 +1,14 @@
 /**
  * Tests for Australian tax calculation functions extracted from utils.js.
- * Uses 2024-25 Australian tax brackets as defined in config.js.
+ * Uses 2025-26 Australian tax brackets as defined in config.js.
+ *
+ * NOTE: This file tests INLINE reimplementations that match the FIXED versions of
+ * the functions in utils.js (post Bug 1 and Bug 5 fixes).  For exhaustive
+ * reference-data tests covering all 8 bugs and Budget 2026-27 measures, see
+ * tests/unit/calculation-audit.test.js.
  */
 
-// Australian 2024-25 tax brackets (mirrors config.js TAX_BRACKETS)
+// Australian 2025-26 tax brackets (mirrors config.js TAX_BRACKETS)
 const TAX_BRACKETS_2024_25 = [
     { min: 0, max: 18200, rate: 0 },
     { min: 18201, max: 45000, rate: 0.16 },
@@ -12,7 +17,8 @@ const TAX_BRACKETS_2024_25 = [
     { min: 190001, max: Infinity, rate: 0.45 },
 ];
 
-// Inline implementation matching utils.js calculateAustralianTax
+// Inline implementation matching the FIXED utils.js calculateAustralianTax
+// (Bug 1 fix: uses bracket.max - bracket.min + 1 for non-zero-min brackets)
 const calculateAustralianTax = (income, taxBrackets) => {
     let tax = 0;
     let remainingIncome = income;
@@ -20,10 +26,12 @@ const calculateAustralianTax = (income, taxBrackets) => {
     for (const bracket of taxBrackets) {
         if (remainingIncome <= 0) break;
 
-        const taxableInThisBracket = Math.min(
-            remainingIncome,
-            bracket.max - bracket.min
-        );
+        // Bug 1 fix: correct bracket width for non-contiguous ATO boundaries
+        const bracketWidth = bracket.min === 0
+            ? bracket.max
+            : bracket.max - bracket.min + 1;
+
+        const taxableInThisBracket = Math.min(remainingIncome, bracketWidth);
 
         if (taxableInThisBracket > 0) {
             tax += taxableInThisBracket * bracket.rate;
@@ -39,11 +47,22 @@ const calculatePostTaxIncome = (preTaxSalary, taxBrackets) => {
     return preTaxSalary - tax;
 };
 
-const calculateCGT = (salePrice, purchasePrice, isResident, holdingPeriod, marginalTaxRate) => {
+/**
+ * Bug 5 fix: calculateCGT now takes the EFFECTIVE CGT rate (which already
+ * incorporates the 50% CGT discount) and applies it directly to the full
+ * capital gain.  For short holds (<1 year) the effective rate is doubled back
+ * to the marginal rate since no discount applies.
+ *
+ * Parameter rename: marginalTaxRate → effectiveCGTRate to reflect this.
+ */
+const calculateCGT = (salePrice, purchasePrice, isResident, holdingPeriod, effectiveCGTRate) => {
     const gain = salePrice - purchasePrice;
     if (gain <= 0) return 0;
-    const discount = isResident && holdingPeriod >= 1 ? 0.5 : 1.0;
-    return gain * discount * marginalTaxRate;
+    const discountApplies = isResident && holdingPeriod >= 1;
+    // discountApplies = true  → use effectiveCGTRate directly (discount already baked in)
+    // discountApplies = false → double back to marginal rate (no discount for short hold)
+    const rateToUse = discountApplies ? effectiveCGTRate : effectiveCGTRate * 2;
+    return gain * rateToUse;
 };
 
 describe('calculateAustralianTax', () => {
@@ -127,33 +146,51 @@ describe('calculatePostTaxIncome', () => {
 });
 
 describe('calculateCGT', () => {
+    // effectiveCGTRate = marginal rate × 50% discount = the rate stored in capitalGainsTaxRate.
+    // The 50% discount is already baked into the rate; calculateCGT does NOT apply it again.
+
     test('no CGT when no gain (sale equals purchase)', () => {
-        expect(calculateCGT(500000, 500000, true, 2, 0.37)).toBe(0);
+        expect(calculateCGT(500000, 500000, true, 2, 0.185)).toBe(0);
     });
 
     test('no CGT when making a loss', () => {
-        expect(calculateCGT(400000, 500000, true, 2, 0.37)).toBe(0);
+        expect(calculateCGT(400000, 500000, true, 2, 0.185)).toBe(0);
     });
 
-    test('50% CGT discount applies for Australian residents with 1+ year holding', () => {
-        // Gain = 100000, 50% discount, 37% marginal rate
-        const cgt = calculateCGT(600000, 500000, true, 2, 0.37);
-        expect(cgt).toBeCloseTo(100000 * 0.5 * 0.37, 2);
+    test('long hold (≥1yr): CGT = gain × effectiveCGTRate (discount already in rate)', () => {
+        // Gain $100k, 37% marginal rate, 50% discount → effectiveCGTRate = 18.5%
+        // CGT = $100,000 × 18.5% = $18,500
+        const cgt = calculateCGT(600000, 500000, true, 2, 0.185);
+        expect(cgt).toBeCloseTo(18500, 2);
     });
 
-    test('no discount for residents holding less than 1 year', () => {
-        const cgt = calculateCGT(600000, 500000, true, 0.5, 0.37);
-        expect(cgt).toBeCloseTo(100000 * 1.0 * 0.37, 2);
+    test('long hold (≥1yr) at 45% marginal / 22.5% effective: CGT = $22,500 on $100k gain', () => {
+        const cgt = calculateCGT(600000, 500000, true, 5, 0.225);
+        expect(cgt).toBeCloseTo(22500, 2);
     });
 
-    test('no discount for non-residents regardless of holding period', () => {
-        const cgt = calculateCGT(600000, 500000, false, 5, 0.37);
-        expect(cgt).toBeCloseTo(100000 * 1.0 * 0.37, 2);
+    test('short hold (<1yr): effectiveCGTRate doubled back to marginal, no discount', () => {
+        // effectiveCGTRate = 22.5% (= 45% × 50%), doubled back → 45% marginal
+        // CGT = $100,000 × 45% = $45,000
+        const cgt = calculateCGT(600000, 500000, true, 0.5, 0.225);
+        expect(cgt).toBeCloseTo(45000, 2);
     });
 
-    test('CGT with discount is half the CGT without discount (same conditions)', () => {
-        const withDiscount = calculateCGT(600000, 500000, true, 2, 0.37);
-        const withoutDiscount = calculateCGT(600000, 500000, false, 2, 0.37);
+    test('non-resident: no discount regardless of holding — effectiveCGTRate doubled to marginal', () => {
+        // Non-residents never get the CGT discount; doubling 22.5% → 45% marginal
+        const cgt = calculateCGT(600000, 500000, false, 5, 0.225);
+        expect(cgt).toBeCloseTo(45000, 2);
+    });
+
+    test('short hold and non-resident produce the same CGT (both no-discount)', () => {
+        const shortHold   = calculateCGT(600000, 500000, true, 0.5, 0.225);
+        const nonResident = calculateCGT(600000, 500000, false, 5, 0.225);
+        expect(shortHold).toBeCloseTo(nonResident, 2);
+    });
+
+    test('long-hold CGT is half of short-hold CGT (one is discounted, one is not)', () => {
+        const withDiscount    = calculateCGT(600000, 500000, true, 2, 0.225);   // long hold
+        const withoutDiscount = calculateCGT(600000, 500000, true, 0.5, 0.225); // short hold
         expect(withDiscount).toBeCloseTo(withoutDiscount * 0.5, 2);
     });
 });

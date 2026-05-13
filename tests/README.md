@@ -10,6 +10,7 @@ tests/
 │   └── fileMock.js                        # Mock for CSS/LESS/SCSS imports
 ├── unit/
 │   ├── advanced-page-structure.test.js    # advanced.html UX fixes: action buttons, grid, dark mode, back links
+│   ├── calculation-audit.test.js          # ★ Calculation audit: 8 bug fixes + Budget 2026-27 measures
 │   ├── chart-safety.test.js               # Chart.js undefined safety checks
 │   ├── export-functions.test.js           # CSV, XLSX, PDF export functions
 │   ├── home-page-structure.test.js        # index.html action buttons & HTML structure
@@ -19,7 +20,7 @@ tests/
 │   ├── new-fields.test.js                 # New fields: AU residency, reduced income, carer impact (Items 7, 9, 10)
 │   ├── new-fields-2026.test.js            # 2026 schema: education costs, overseas income, etc.
 │   ├── sitemap-seo.test.js                # sitemap.xml completeness and HTTPS URL validation
-│   └── tax-calculations.test.js           # Australian tax bracket calculations
+│   └── tax-calculations.test.js           # Australian tax bracket calculations (updated for Bug 1 & 5 fixes)
 ├── integration/
 │   └── outcome-tab.test.js                # Fix 5: Outcome tab overview bar visibility
 └── README.md                              # This file
@@ -45,6 +46,37 @@ npx jest --testPathPattern=tests/ --watch
 
 ### Unit Tests
 
+**`calculation-audit.test.js`** — 110 tests (★ new)
+
+Comprehensive test suite that verifies the 8 calculation bug fixes and all Budget 2026-27
+proposed measures. Every assertion uses independently verified reference data:
+
+| Test group | Tests | Reference source |
+|---|---|---|
+| Bug 1: Tax bracket off-by-one | 5 | ATO bracket width arithmetic |
+| Bug 2: salaryGrowthRate double-divide | 5 | First-principles nominal salary compound growth |
+| Bug 3: leanYearsReduction double-divide | 5 | Percentage reduction arithmetic |
+| Bug 4: healthcareInflation double-divide | 5 | AIHW 3.82% median rate, compound growth |
+| Bug 5: CGT double-discount | 7 | ATO CGT with 50% discount, effective vs marginal rates |
+| Bug 6: returnDeclineRate double-divide | 5 | Annual return arithmetic |
+| Bug 7: Home grows at propertyGrowthRate | 6 | CoreLogic 5.8% median vs CPI 2.6% |
+| Bug 8: agedCareProbability double-divide | 4 | Probability × cost arithmetic |
+| ATO 2025-26 tax with LITO + Medicare | 9 | ATO Tax Withheld Calculator reference values |
+| FY 2026-27 15% bracket (legislated) | 5 | Budget 2024-25 Stage 3 redesign ($268/yr max saving) |
+| FY 2027-28 14% bracket (proposed) | 5 | Budget 2026-27 doc ($536 cumulative saving) |
+| Proposed WATO $250 offset | 6 | Budget 2026-27 (97% receive full $250) |
+| Proposed $1,000 instant deduction | 6 | Budget 2026-27 (reduces taxable income) |
+| Proposed CGT reform post-2027 | 7 | Budget 2026-27 (inflation-indexed + 30% min) |
+| Age Pension asset & income test | 13 | Services Australia Sept 2025 rates |
+| Deeming rates | 6 | Services Australia Sept 2025 (0.75%/2.75%) |
+| Toggle behaviour (proposed OFF by default) | 7 | Internal logic verification |
+
+**Key design principles:**
+- Tests are self-contained (inline implementations) — no imports from source that could
+  accidentally re-import a bug
+- All expected values are computed from first principles and independently verifiable
+- The toggle group confirms proposed measures are `$0 / no-op` when disabled
+
 **`chart-safety.test.js`**
 - Verifies `destroyChart` does not throw a ReferenceError when `Chart` global is undefined
 - Verifies chart destruction works correctly when Chart.js is loaded
@@ -59,11 +91,14 @@ npx jest --testPathPattern=tests/ --watch
 - Tests `DOMContentLoaded` handler collapses the form and shows "Show Advanced Calculator (Optional)" text
 - Tests `toggleAdvancedCalculator()`: first toggle expands with "Hide" text, second collapses with "Show" text, three toggles ends expanded
 
-**`tax-calculations.test.js`**
-- Tests Australian 2024-25 income tax bracket calculations
+**`tax-calculations.test.js`** (updated)
+- Tests Australian 2025-26 income tax bracket calculations using the **fixed** bracket-width
+  implementation (Bug 1 fix: `bracket.max - bracket.min + 1` for non-zero-min brackets)
 - Verifies tax-free threshold (under $18,200 = $0 tax)
 - Tests each tax bracket: 0%, 16%, 30%, 37%, 45%
-- Tests Capital Gains Tax with 50% discount for 12+ month holdings
+- Tests Capital Gains Tax using the **fixed** effective-rate semantics (Bug 5 fix):
+  `effectiveCGTRate` already includes the 50% discount; function does not apply it again.
+  Short holds (<1yr) double the rate back to marginal. Non-residents same as short hold.
 - Tests Age Pension asset test taper logic
 - Tests homeowner vs non-homeowner thresholds (+$242,000 supplement)
 
