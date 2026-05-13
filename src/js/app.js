@@ -6881,6 +6881,8 @@ class RetirementCalculatorApp {
         this.instrumentClick('btnRunCostReality', 'Run Cost Reality Analysis', this.runCostRealityAnalysis);
         this.instrumentClick('btnScenarioComparison', 'Compare Scenarios', this.initializeScenarioComparison);
         this.instrumentClick('btnResetDefaults', 'Reset to Defaults', this.resetToDefaults);
+        this.instrumentClick('btnClearAll', 'Clear All Fields', this.clearAllFields);
+        this.instrumentClick('btnFillDefaults', 'Fill Default Values', this.fillDefaultValues);
         this.instrumentClick('clearCacheBtn', 'Clear Cache', this.clearCache);
 
         // Scenario comparison controls
@@ -7527,6 +7529,115 @@ class RetirementCalculatorApp {
 
         // logger.info(`Loaded ${loadedCount} saved input values`);
         return loadedCount > 0;
+    }
+
+    clearAllFields() {
+        if (!window.confirm('Clear ALL form fields? Currency, percentage and select fields will be reset to empty/zero. You can then fill them in manually or use "Fill Default Values".')) {
+            return;
+        }
+
+        const inputIds = Object.values(this.getAllFormInputs()).flat();
+        inputIds.forEach(inputId => {
+            const element = $(inputId);
+            if (!element) return;
+
+            if (element.type === 'checkbox') {
+                element.checked = false;
+            } else if (element.type === 'radio') {
+                element.checked = false;
+            } else if (element.tagName === 'SELECT') {
+                if (element.options.length > 0) {
+                    element.selectedIndex = 0;
+                }
+            } else {
+                element.value = '';
+            }
+            delete element.dataset.autoCalculated;
+            delete element.dataset.userModified;
+            delete element.dataset.lastAutoValue;
+        });
+
+        localStorage.removeItem('retirement-calculator-inputs');
+
+        initializeCurrencyInputs();
+        initializePercentageInputs();
+        initializeNumericInputs();
+
+        const riskTolerance = $('riskTolerance');
+        if (riskTolerance) {
+            riskTolerance.value = riskTolerance.min || '1';
+            this.updateRiskToleranceDisplay(riskTolerance.value);
+        }
+
+        this.refreshAllDerivedDefaults({ force: false });
+
+        showNotification('All form fields cleared. Enter your values or click "Fill Default Values" to populate sensible defaults.', 'success');
+    }
+
+    fillDefaultValues() {
+        // Only fills fields that are empty/blank (or unchecked for checkboxes / default
+        // option for selects). Existing user-entered values are preserved — use
+        // "Reset to Defaults" if you want to overwrite everything.
+        const config = ENHANCED_CONFIG.DEFAULTS;
+        const inputIds = Object.values(this.getAllFormInputs()).flat();
+
+        const percentageFieldIds = [
+            'percentIncomeSaved', 'mortgageRate', 'investmentPropertyRate',
+            'propertyGrowthRate', 'capitalGainsTaxRate', 'healthcareInflation',
+            'agedCareProbability', 'inflation', 'investmentReturn',
+            'returnDeclineRate', 'savingsReturn', 'superReturn',
+            'salaryGrowthRate', 'leanYearsReduction', 'australianEquityAllocation',
+            'dividendYield', 'frankingRate', 'returnVolatility', 'shockProbability', 'shockMagnitude',
+            'childrenUnder5Percent', 'childrenPrimaryPercent', 'teenagersPercent', 'adultDisabledPercent',
+            'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent',
+            'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
+            'creditCardRate', 'personalLoanRate', 'carerReducedWorkPercent', 'carLoanRate',
+            'employerSuperContributionRate'
+        ];
+
+        let filledCount = 0;
+        inputIds.forEach(inputId => {
+            const element = $(inputId);
+            if (!element) return;
+
+            const defaultValue = this.getDefaultValue(inputId, config);
+            if (defaultValue == null || defaultValue === '') return;
+
+            if (element.type === 'checkbox') {
+                // Skip checkboxes — "empty" is ambiguous (false could be the user's choice).
+                return;
+            } else if (element.type === 'radio') {
+                if (element.value === defaultValue && !element.checked) {
+                    element.checked = true;
+                    filledCount++;
+                }
+            } else if (element.tagName === 'SELECT') {
+                if (element.value === '' || element.selectedIndex < 0) {
+                    element.value = defaultValue;
+                    filledCount++;
+                }
+            } else {
+                if (element.value.trim() === '') {
+                    element.value = percentageFieldIds.includes(inputId) && typeof defaultValue === 'number'
+                        ? (defaultValue * 100).toFixed(2)
+                        : defaultValue;
+                    filledCount++;
+                }
+            }
+        });
+
+        initializeCurrencyInputs();
+        initializePercentageInputs();
+        initializeNumericInputs();
+
+        this.refreshAllDerivedDefaults({ force: false });
+
+        showNotification(
+            filledCount > 0
+                ? `Filled ${filledCount} empty field${filledCount === 1 ? '' : 's'} with default values.`
+                : 'No empty fields found — all fields already have a value.',
+            filledCount > 0 ? 'success' : 'info'
+        );
     }
 
     resetToDefaults() {
