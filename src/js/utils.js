@@ -1952,9 +1952,13 @@ export const populateFormFromData = (userData, version = '2.0') => {
                             } else {
                                 element.value = value;
                             }
+                        } else if (key === 'investmentPropertyPurchaseYear') {
+                            // Treat null/0 as "not entered" so the placeholder shows
+                            // rather than a literal "0" — older files may store 0 for empty.
+                            element.value = (value == null || value === 0) ? '' : value;
                         } else {
                             // For numeric currency values, keep full precision — the input formatter applies 2dp
-                            element.value = value;
+                            element.value = value == null ? '' : value;
                         }
                     }
                     fieldsPopulated++;
