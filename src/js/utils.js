@@ -45,10 +45,12 @@ export const safeGetSelectValue = (id, defaultVal = '') => {
     return elem ? elem.value : defaultVal;
 };
 
-export const safeSetValue = (id, value) => {
+export function safeSetValue(id, value) {
     const elem = $(id);
-    if (elem) elem.value = value;
-};
+    if (!elem) return;
+
+    elem.value = formatValueForInputElement(elem, value);
+}
 
 export const safeSetText = (id, text) => {
     const elem = $(id);
@@ -107,6 +109,51 @@ export const formatCurrencyInput = (value) => {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
+};
+
+const formatPercentageInput = (value) => {
+    const numericValue = String(value).replace(/[^\d.-]/g, '');
+    const num = parseFloat(numericValue);
+
+    if (isNaN(num)) return '';
+
+    return `${num.toLocaleString('en-AU', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    })}%`;
+};
+
+const formatNumericInputValue = (value, useGrouping = true) => {
+    const numericValue = String(value).replace(/[^\d.-]/g, '');
+    const num = parseFloat(numericValue);
+
+    if (isNaN(num)) return '';
+
+    return num.toLocaleString('en-AU', {
+        maximumFractionDigits: 0,
+        useGrouping
+    });
+};
+
+const formatValueForInputElement = (element, value) => {
+    const rawValue = value == null ? '' : String(value);
+    if (rawValue.trim() === '') {
+        return '';
+    }
+
+    if (element.hasAttribute('data-currency-formatted')) {
+        return formatCurrencyInput(rawValue);
+    }
+
+    if (element.hasAttribute('data-percentage-formatted')) {
+        return formatPercentageInput(rawValue);
+    }
+
+    if (element.hasAttribute('data-numeric-formatted')) {
+        return formatNumericInputValue(rawValue, element.type !== 'number');
+    }
+
+    return rawValue;
 };
 
 export const addCurrencyFormatting = (inputElement) => {
@@ -226,11 +273,7 @@ export const addPercentageFormatting = (inputElement) => {
         if (inputElement.value && inputElement.value !== '') {
             const numericValue = parseFormattedNumber(inputElement.value);
             if (!isNaN(numericValue)) {
-                const formattedNumber = numericValue.toLocaleString('en-AU', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                });
-                inputElement.value = `${formattedNumber}%`;
+                inputElement.value = formatPercentageInput(numericValue);
             }
         }
         return;
@@ -246,12 +289,7 @@ export const addPercentageFormatting = (inputElement) => {
         if (originalValue.endsWith('%') && originalValue.includes(',')) return;
 
         if (originalValue !== '' && !isNaN(numericValue)) {
-            // Format with commas and 2 decimal places for percentages
-            const formattedNumber = numericValue.toLocaleString('en-AU', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-            });
-            inputElement.value = `${formattedNumber}%`;
+            inputElement.value = formatPercentageInput(numericValue);
         }
     };
 
@@ -302,10 +340,7 @@ export const addNumericFormatting = (inputElement) => {
         if (inputElement.value && inputElement.value !== '' && !inputElement.value.includes(',')) {
             const numericValue = parseFormattedNumber(inputElement.value);
             if (!isNaN(numericValue)) {
-                const formattedNumber = numericValue.toLocaleString('en-AU', {
-                    maximumFractionDigits: 0,
-                });
-                inputElement.value = formattedNumber;
+                inputElement.value = formatNumericInputValue(numericValue, inputElement.type !== 'number');
             }
         }
         return;
@@ -319,11 +354,7 @@ export const addNumericFormatting = (inputElement) => {
         const numericValue = parseFormattedNumber(originalValue);
 
         if (originalValue !== '' && !isNaN(numericValue) && !originalValue.includes(',')) {
-            // Format with commas and 0 decimal places
-            const formattedNumber = numericValue.toLocaleString('en-AU', {
-                maximumFractionDigits: 0,
-            });
-            inputElement.value = formattedNumber;
+            inputElement.value = formatNumericInputValue(numericValue, inputElement.type !== 'number');
         }
     };
 

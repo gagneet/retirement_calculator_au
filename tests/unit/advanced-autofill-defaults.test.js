@@ -1,5 +1,6 @@
 import RetirementCalculatorApp from '../../src/js/app.js';
 import { ENHANCED_CONFIG } from '../../src/js/config.js';
+import { initializeCurrencyInputs, initializePercentageInputs } from '../../src/js/utils.js';
 
 const buildField = (id, label, value = '') => `
     <div>
@@ -94,6 +95,39 @@ describe('advanced calculator derived defaults', () => {
         expect(document.getElementById('pensionAssetLimit').value).toBe('956500');
         expect(document.getElementById('pensionIncomeThreshold').value).toBe('218');
         expect(document.querySelector('[data-field-default-badge="asfaComfortable"]').textContent).toContain('Official default');
+    });
+
+    test('keeps symbols on auto-filled official defaults and estimated percentages', () => {
+        document.body.innerHTML = `
+            ${buildField('partnerCurrentAge', 'Partner Current Age', '')}
+            ${buildField('partnerSalary', 'Partner Salary', '0')}
+            ${buildField('partnerCurrentSuper', 'Partner Current Super', '')}
+            ${buildField('partnerRetirementAge', 'Partner Retirement Age', '')}
+            ${buildField('partnerLifespan', 'Partner Lifespan', '')}
+            ${buildField('homeValue', 'Home Value', '0')}
+            ${buildField('yourSalary', 'Your Salary', '100000')}
+            ${buildField('asfaComfortable', 'Desired Retirement Income', '73031')}
+            ${buildField('agePensionMax', 'Age Pension Max', '46202')}
+            ${buildField('pensionAssetThreshold', 'Pension Asset Threshold', '481500')}
+            ${buildField('pensionAssetLimit', 'Pension Asset Limit', '1074000')}
+            ${buildField('pensionIncomeThreshold', 'Pension Income Threshold', '380')}
+            ${buildField('capitalGainsTaxRate', 'Capital Gains Tax Rate', '0')}
+        `;
+
+        initializeCurrencyInputs();
+        initializePercentageInputs();
+
+        const app = createApp();
+        app.refreshRetirementIncomeDefault();
+        app.refreshPensionFieldDefaults();
+        app.refreshCapitalGainsTaxDefault();
+
+        expect(document.getElementById('asfaComfortable').value).toBe('$51,814.00');
+        expect(document.getElementById('agePensionMax').value).toBe('$30,646.00');
+        expect(document.getElementById('pensionAssetThreshold').value).toBe('$563,500.00');
+        expect(document.getElementById('pensionAssetLimit').value).toBe('$956,500.00');
+        expect(document.getElementById('pensionIncomeThreshold').value).toBe('$218.00');
+        expect(document.getElementById('capitalGainsTaxRate').value).toBe('15.00%');
     });
 
     test('keeps a manual CGT override after the field is edited by the user', () => {
