@@ -677,7 +677,14 @@ class RetirementCalculatorApp {
             investmentPropertyLoan: safeGetValue('investmentPropertyLoan', config.property.investmentPropertyLoan),
             investmentPropertyRate: safeGetValue('investmentPropertyRate', config.property.investmentPropertyRate) / 100,
             investmentPropertyPurchasePrice: safeGetValue('investmentPropertyPurchasePrice', 0),
-            investmentPropertyPurchaseYear: safeGetValue('investmentPropertyPurchaseYear', 0),
+            investmentPropertyPurchaseYear: (() => {
+                // Keep year as a non-zero number when entered, otherwise null so JSON
+                // round-trip doesn't put "0" into the placeholder-only year field.
+                const raw = getRawValue('investmentPropertyPurchaseYear', '');
+                if (raw === '') return null;
+                const parsed = parseInt(parseFormattedNumber(raw), 10);
+                return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+            })(),
             weeklyRentalIncome: safeGetValue('weeklyRentalIncome', config.property.weeklyRentalIncome),
             annualPropertyExpenses: safeGetValue('annualPropertyExpenses', config.property.annualPropertyExpenses),
             propertyGrowthRate: safeGetValue('propertyGrowthRate', config.property.propertyGrowthRate) / 100,
@@ -777,8 +784,8 @@ class RetirementCalculatorApp {
             vacancyRate: safeGetValue('vacancyRate', 4) / 100,
             maintenanceInflation: safeGetValue('maintenanceInflation', 3.5) / 100,
             landTax: parseFormattedNumber(getRawValue('landTax', '0')),
-            investmentPropertyLoanType: safeGetValue('investmentPropertyLoanType', 'pi'),
-            propertyState: safeGetValue('propertyState', ''),
+            investmentPropertyLoanType: safeGetSelectValue('investmentPropertyLoanType', 'pi'),
+            propertyState: safeGetSelectValue('propertyState', ''),
 
             // Trust improvements (PART 7)
             trustTaxRate: safeGetValue('trustTaxRate', 30) / 100,
@@ -7066,7 +7073,7 @@ class RetirementCalculatorApp {
 
         // Auto-calculate state land tax when state or property value changes
         const updateLandTax = () => {
-            const state = safeGetValue('propertyState', '');
+            const state = safeGetSelectValue('propertyState', '');
             const propValue = parseFormattedNumber(getRawValue('investmentPropertyValue', '0'));
             if (state && state !== 'ACT' && state !== '' && propValue > 0) {
                 const landTax = calculateStateLandTax(propValue, state, this.config);
