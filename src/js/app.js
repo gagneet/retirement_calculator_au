@@ -7962,19 +7962,24 @@ class RetirementCalculatorApp {
         const customAllocationSection = $('customAllocationSection');
 
         const toggleAllocationUI = () => {
-            if (useGlidePath.checked) {
-                glidePathRule.parentElement.classList.remove('hidden');
-                customAllocationSection.classList.add('hidden');
-            } else {
-                glidePathRule.parentElement.classList.add('hidden');
-                customAllocationSection.classList.remove('hidden');
+            const hasCustomAllocationSection = Boolean(customAllocationSection);
+
+            if (hasCustomAllocationSection) {
+                if (useGlidePath.checked) {
+                    glidePathRule.parentElement.classList.remove('hidden');
+                    customAllocationSection.classList.add('hidden');
+                } else {
+                    glidePathRule.parentElement.classList.add('hidden');
+                    customAllocationSection.classList.remove('hidden');
+                }
             }
             const inputs = this.collectInputs();
             this.updateRecommendedAllocation(inputs);
         };
 
-        if (useGlidePath && glidePathRule && customAllocationSection) {
+        if (useGlidePath && glidePathRule) {
             useGlidePath.addEventListener('change', toggleAllocationUI);
+            glidePathRule.addEventListener('change', toggleAllocationUI);
             // Initial UI state
             toggleAllocationUI();
         }
