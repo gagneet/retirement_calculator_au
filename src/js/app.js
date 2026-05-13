@@ -826,17 +826,28 @@ class RetirementCalculatorApp {
             legacyGoalType: safeGetSelectValue('legacyGoalType', 'none')
         };
 
-        // 4C: Validate asset allocation sums to 100%
-        const allocSum = (inputs.allocEquities + inputs.allocBonds + inputs.allocCash) * 100;
-        if (allocSum > 0 && Math.abs(allocSum - 100) > 1) {
-            showNotification(
-                `Asset allocation sums to ${allocSum.toFixed(1)}% (should be 100%). Normalising proportionally.`,
-                'warning'
+        if (inputs.useGlidePath) {
+            const currentAllocation = this.simulator.calculateDynamicAllocation(
+                inputs.yourCurrentAge,
+                inputs.glidePathRule
             );
-            const scale = 100 / allocSum;
-            inputs.allocEquities *= scale;
-            inputs.allocBonds    *= scale;
-            inputs.allocCash     *= scale;
+            inputs.allocEquities = (currentAllocation?.equity || 0) / 100;
+            inputs.allocBonds = (currentAllocation?.bonds || 0) / 100;
+            inputs.allocCash = (currentAllocation?.cash || 0) / 100;
+        } else {
+            // Keep custom allocations self-healing so slightly-off manual inputs
+            // still run instead of failing later in the simulation.
+            const allocSum = (inputs.allocEquities + inputs.allocBonds + inputs.allocCash) * 100;
+            if (allocSum > 0 && Math.abs(allocSum - 100) > 1) {
+                showNotification(
+                    `Asset allocation sums to ${allocSum.toFixed(1)}% (should be 100%). Normalising proportionally.`,
+                    'warning'
+                );
+                const scale = 100 / allocSum;
+                inputs.allocEquities *= scale;
+                inputs.allocBonds *= scale;
+                inputs.allocCash *= scale;
+            }
         }
 
         return inputs;
@@ -1038,10 +1049,12 @@ class RetirementCalculatorApp {
             }
         }
 
-        // Allocation must sum to ~100%
-        const allocSum = (inputs.allocEquities || 0) + (inputs.allocBonds || 0) + (inputs.allocCash || 0);
-        if (Math.abs(allocSum - 1) > 0.05) {
-            errors.push(`Asset allocation sums to ${Math.round(allocSum * 100)}% — must equal 100%.`);
+        // Allocation must sum to ~100% when custom weights are in use
+        if (!inputs.useGlidePath) {
+            const allocSum = (inputs.allocEquities || 0) + (inputs.allocBonds || 0) + (inputs.allocCash || 0);
+            if (Math.abs(allocSum - 1) > 0.05) {
+                errors.push(`Asset allocation sums to ${Math.round(allocSum * 100)}% — must equal 100%.`);
+            }
         }
 
         if (inputs.investmentPropertyPurchaseYear) {

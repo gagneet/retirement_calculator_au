@@ -1,4 +1,5 @@
 import RetirementCalculatorApp from '../../src/js/app.js';
+import { ENHANCED_CONFIG } from '../../src/js/config.js';
 
 describe('lifespan validation', () => {
     const buildInputs = (overrides = {}) => ({
@@ -63,6 +64,51 @@ describe('lifespan validation', () => {
 
         expect(errors).toContain("Partner's expected lifespan must be greater than their current age, unless you enter 0 to model until money runs out.");
     });
+
+    test('does not require custom allocation totals when dynamic allocation is enabled', () => {
+        const app = Object.create(RetirementCalculatorApp.prototype);
+        const errors = app.validateInputs(buildInputs({
+            useGlidePath: true,
+            allocEquities: 0,
+            allocBonds: 0,
+            allocCash: 0,
+        }));
+
+        expect(errors).not.toContain('Asset allocation sums to 0% — must equal 100%.');
+    });
+});
+
+describe('dynamic allocation collection', () => {
+    test('uses the current glide-path allocation when custom allocation fields are blank', () => {
+        document.body.innerHTML = `
+            <input id="yourCurrentAge" value="45">
+            <input id="useGlidePath" type="checkbox" checked>
+            <select id="glidePathRule">
+                <option value="110minus" selected>110 - Age</option>
+            </select>
+            <input id="allocEquities" value="">
+            <input id="allocBonds" value="">
+            <input id="allocCash" value="">
+        `;
+
+        const app = Object.create(RetirementCalculatorApp.prototype);
+        app.config = ENHANCED_CONFIG;
+        app.simulator = {
+            calculateDynamicAllocation: jest.fn(() => ({
+                equity: 65,
+                bonds: 25,
+                cash: 10,
+            })),
+        };
+
+        const inputs = app.collectInputs();
+
+        expect(app.simulator.calculateDynamicAllocation).toHaveBeenCalledWith(45, '110minus');
+        expect(inputs.allocEquities).toBeCloseTo(0.65);
+        expect(inputs.allocBonds).toBeCloseTo(0.25);
+        expect(inputs.allocCash).toBeCloseTo(0.10);
+    });
+
 });
 
 describe('auto calculation gating', () => {
