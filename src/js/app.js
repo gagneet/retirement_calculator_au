@@ -1240,22 +1240,25 @@ class RetirementCalculatorApp {
         if (!field) return {};
 
         const label = document.querySelector(`label[for="${fieldId}"]`);
+        const badgeAnchor = label?.closest('.label-with-tooltip') || label;
         let badge = document.querySelector(`[data-field-default-badge="${fieldId}"]`);
-        if (!badge && label) {
+        if (!badge && badgeAnchor) {
             badge = document.createElement('span');
+            badge.className = 'field-default-badge';
             badge.dataset.fieldDefaultBadge = fieldId;
             badge.hidden = true;
-            badge.style.cssText = 'display:none;margin-left:8px;padding:2px 8px;border-radius:9999px;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:600;vertical-align:middle;';
-            label.insertAdjacentElement('afterend', badge);
+            badge.style.display = 'none';
+            badgeAnchor.insertAdjacentElement('afterend', badge);
         }
 
         const wrapper = field.parentElement;
         let hint = wrapper?.querySelector(`[data-field-default-hint="${fieldId}"]`);
         if (!hint && wrapper) {
             hint = document.createElement('p');
+            hint.className = 'field-default-hint';
             hint.dataset.fieldDefaultHint = fieldId;
             hint.hidden = true;
-            hint.style.cssText = 'display:none;margin-top:4px;font-size:12px;color:#2563eb;';
+            hint.style.display = 'none';
             wrapper.appendChild(hint);
         }
 
@@ -1353,8 +1356,10 @@ class RetirementCalculatorApp {
         const isBlank = field.value.trim() === '' || (zeroMeansBlank && currentValue === 0);
         const matchesRecognizedDefault = recognizedDefaults.some((value) => Math.abs(currentValue - Number(value)) < 0.01);
         const matchesAutoValue = Math.abs(currentValue - normalizedAutoValue) < 0.01;
+        const fieldStillMatchesAutoValue = field.dataset.autoCalculated === 'true' &&
+            (isBlank || matchesAutoValue || currentValue === lastAutoValue);
         const shouldAutoApply = force ||
-            field.dataset.autoCalculated === 'true' ||
+            fieldStillMatchesAutoValue ||
             isBlank ||
             matchesAutoValue ||
             currentValue === lastAutoValue ||

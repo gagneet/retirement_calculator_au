@@ -54,6 +54,30 @@ describe('advanced calculator derived defaults', () => {
         expect(document.querySelector('[data-field-default-badge="partnerRetirementAge"]').textContent).toContain('Defaulted');
     });
 
+    test('lets a user override an auto-filled partner retirement age', () => {
+        document.body.innerHTML = `
+            ${buildField('yourCurrentAge', 'Your Current Age', '50')}
+            ${buildField('retirementAge', 'Your Retirement Age', '67')}
+            ${buildField('yourLifespan', 'Your Lifespan', '92')}
+            ${buildField('partnerCurrentAge', 'Partner Current Age', '48')}
+            ${buildField('partnerRetirementAge', 'Partner Retirement Age', '')}
+            ${buildField('partnerLifespan', 'Partner Lifespan', '')}
+        `;
+
+        const app = createApp();
+        app.setupProjectionDrivenFields();
+
+        const partnerRetirementAge = document.getElementById('partnerRetirementAge');
+        expect(partnerRetirementAge.value).toBe('67');
+
+        partnerRetirementAge.value = '68';
+        partnerRetirementAge.dispatchEvent(new Event('input', { bubbles: true }));
+        partnerRetirementAge.dispatchEvent(new Event('blur', { bubbles: true }));
+
+        expect(partnerRetirementAge.value).toBe('68');
+        expect(partnerRetirementAge.dataset.userModified).toBe('true');
+    });
+
     test('defaults Australian residency earning ages from the arrival ages', () => {
         document.body.innerHTML = `
             ${buildField('ageCameToAustralia', 'Your Arrival Age', '27')}
