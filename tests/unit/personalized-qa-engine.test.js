@@ -143,6 +143,55 @@ const createLongevitySimulator = () => ({
     }),
 });
 
+const createExpenseFloorSimulator = () => ({
+    calculatePropertyValue: jest.fn((value, growthRate, years) => value * Math.pow(1 + growthRate, years)),
+    calculatePropertyLoanBalance: jest.fn((principal, rate, years) => Math.max(0, principal * Math.pow(1 - rate / 2, years))),
+    simulateRetirement: jest.fn((inputs) => {
+        const sustained = inputs.useDetailedExpenseInputs === true &&
+            (inputs.currentMonthlyHousingCosts || 0) === 0 &&
+            (inputs.currentMonthlyLivingCosts || 0) === 0 &&
+            (inputs.asfaComfortable || 0) <= 50000;
+
+        return {
+            finalBalance: sustained ? 250000 : 0,
+            yearlyData: [
+                {
+                    age: 100,
+                    partnerAge: inputs.isSingleCalculation ? 0 : (inputs.partnerCurrentAge || 0) + (100 - inputs.yourCurrentAge),
+                    startBalance: sustained ? 350000 : 0,
+                    endBalance: sustained ? 250000 : 0,
+                    nonLiquidAssets: 0,
+                    propertyIncome: 0,
+                    pensionIncome: 0,
+                    depleted: !sustained,
+                },
+            ],
+            totalFinancialAssets: sustained ? 250000 : 0,
+        };
+    }),
+});
+
+const createAlwaysDepletedSimulator = () => ({
+    calculatePropertyValue: jest.fn((value, growthRate, years) => value),
+    calculatePropertyLoanBalance: jest.fn((principal) => principal),
+    simulateRetirement: jest.fn((inputs) => ({
+        finalBalance: 0,
+        yearlyData: [
+            {
+                age: 100,
+                partnerAge: inputs.isSingleCalculation ? 0 : (inputs.partnerCurrentAge || 0) + (100 - inputs.yourCurrentAge),
+                startBalance: 0,
+                endBalance: 0,
+                nonLiquidAssets: 0,
+                propertyIncome: 0,
+                pensionIncome: 0,
+                depleted: true,
+            },
+        ],
+        totalFinancialAssets: 0,
+    })),
+});
+
 const getLast = (items) => items[items.length - 1];
 
 describe('PersonalizedQuestionEngine', () => {
@@ -212,5 +261,38 @@ describe('PersonalizedQuestionEngine', () => {
 
         expect(answer.question).toContain('maximum withdrawal');
         expect(answer.bullets.join(' ')).toContain('run out around your age 104 (partner age 102)');
+    });
+
+    test('maximum withdrawal search ignores the simulator cash-flow floor', () => {
+        const engine = new PersonalizedQuestionEngine(createExpenseFloorSimulator(), {
+            calculateAgedCareProjections: jest.fn(() => ({
+                homeCare: { expectedCost: 85000 },
+                residentialCare: { expectedCost: 260000, estimatedRAD: 540000 },
+                probabilityOfNeed: 0.42,
+            })),
+        });
+
+        const answer = engine.answerMaximumWithdrawal(buildInputs({
+            useDetailedExpenseInputs: false,
+            currentMonthlyHousingCosts: 3200,
+            currentMonthlyLivingCosts: 4800,
+        }));
+
+        expect(answer.headline).toContain('$50,000.00');
+    });
+
+    test('maximum withdrawal answer uses a warning message instead of $0.00 output', () => {
+        const engine = new PersonalizedQuestionEngine(createAlwaysDepletedSimulator(), {
+            calculateAgedCareProjections: jest.fn(() => ({
+                homeCare: { expectedCost: 85000 },
+                residentialCare: { expectedCost: 260000, estimatedRAD: 540000 },
+                probabilityOfNeed: 0.42,
+            })),
+        });
+
+        const answer = engine.answerMaximumWithdrawal(buildInputs());
+
+        expect(answer.headline).toBe('No sustainable real withdrawal identified');
+        expect(answer.bullets.join(' ')).toContain('does not support a constant real withdrawal');
     });
 });

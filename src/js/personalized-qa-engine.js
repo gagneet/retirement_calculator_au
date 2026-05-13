@@ -65,8 +65,22 @@ export class PersonalizedQuestionEngine {
         return age100Inputs;
     }
 
+    buildWithdrawalSearchInputs(inputs) {
+        return {
+            ...this.buildAge100Inputs(inputs),
+            // The direct withdrawal question should search against the draw target
+            // itself rather than the simulator's separate cash-flow expense floor.
+            useDetailedExpenseInputs: true,
+            currentMonthlyHousingCosts: 0,
+            currentMonthlyLivingCosts: 0,
+            monthlyMortgagePayment: 0,
+            annualTravelBudget: 0,
+            annualHobbyBudget: 0,
+        };
+    }
+
     findMaxRealWithdrawal(inputs) {
-        const scenarioInputs = this.buildAge100Inputs(inputs);
+        const scenarioInputs = this.buildWithdrawalSearchInputs(inputs);
         let low = 0;
         let high = Math.max((inputs.asfaComfortable || 0) * 2, 40000);
 
@@ -136,6 +150,20 @@ export class PersonalizedQuestionEngine {
             : inputs.isSingleCalculation || inputs.partnerCurrentAge <= 0
                 ? `Even if you live beyond the lifespan age you entered, the model still has money left through age ${LONGEVITY_STRESS_AGE}.`
                 : `Even if either of you lives beyond the lifespan ages entered, the model still has money left through your age ${LONGEVITY_STRESS_AGE}.`;
+
+        if (maxWithdrawal <= 0) {
+            return {
+                id: 'max-withdrawal',
+                question: 'What will be the maximum withdrawal (after inflation) I can take each year until age 100?',
+                tone: 'warning',
+                headline: 'No sustainable real withdrawal identified',
+                bullets: [
+                    'Under your current settings, the plan does not support a constant real withdrawal through age 100.',
+                    'That usually means the current asset base and retirement horizon are too tight under the model, so lowering spending, retiring later, or adding capital would help first.',
+                    longevityBullet,
+                ],
+            };
+        }
 
         return {
             id: 'max-withdrawal',
