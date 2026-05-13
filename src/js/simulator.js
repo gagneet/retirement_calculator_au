@@ -338,7 +338,9 @@ export class RetirementSimulator {
 
     // Dynamic allocation calculations
     calculateDynamicAllocation(age, glidePathRule) {
-        const equityPercent = this.config.GLIDE_PATH_RULES[glidePathRule](age);
+        const glidePathRules = this.config.GLIDE_PATH_RULES || {};
+        const selectedRule = glidePathRules[glidePathRule] || glidePathRules['110minus'];
+        const equityPercent = selectedRule(age);
         const allocConfig = this.financialConfig.assetAllocation;
         return {
             equity: equityPercent,
