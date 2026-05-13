@@ -28,6 +28,7 @@ import { WhatIfEngine } from './what-if-engine.js';
 import { ResilienceScenarioEngine } from './resilience-scenarios.js';
 import { runFullSimulation } from './simulation_engine/index.js';
 import { RetirementCostAnalyzer } from './retirement-cost-analyzer.js';
+import PersonalizedQuestionEngine from './personalized-qa-engine.js';
 // js/app.js - Main Application Controller
 
 // Import new engines with error handling
@@ -7409,6 +7410,9 @@ class RetirementCalculatorApp {
             // Run the full simulation (baseline + MC + strategies + recommendations)
             const { baseline, monteCarlo, strategies, recommendations } =
                 await runFullSimulation(inputs, { numRuns: inputs.numRuns });
+            const detailedProjection = this.simulator.simulateRetirement(inputs, false);
+            const questionEngine = new PersonalizedQuestionEngine(this.simulator, this.healthcareModeling, this.config);
+            const questionAnswers = questionEngine.generateAnswers(inputs, detailedProjection);
 
             // ── Render results ────────────────────────────────────────────────
             if (resultsEl) resultsEl.classList.remove('hidden');
@@ -7503,6 +7507,8 @@ class RetirementCalculatorApp {
                 recList.innerHTML = `<p class="text-green-700 font-medium">🎉 Your retirement plan looks solid — no critical changes recommended at this stage.</p>`;
             }
 
+            this.displayLifeSimQuestionAnswers(questionAnswers);
+
             if (statusEl) statusEl.textContent = 'Simulation complete.';
             showNotification('Life simulation complete', 'success');
 
@@ -7589,6 +7595,27 @@ class RetirementCalculatorApp {
             // Chart rendering is non-critical; suppress errors
             console.warn('Life sim chart render failed:', e.message);
         }
+    }
+
+    displayLifeSimQuestionAnswers(questionAnswers = []) {
+        const container = $('simQuestionsList');
+        if (!container) return;
+
+        const toneClasses = {
+            positive: 'border-green-200 bg-green-50',
+            neutral: 'border-blue-200 bg-blue-50',
+            warning: 'border-amber-200 bg-amber-50',
+        };
+
+        container.innerHTML = questionAnswers.map(answer => `
+            <div class="rounded-xl border p-5 ${toneClasses[answer.tone] || toneClasses.neutral}">
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">${answer.question}</div>
+                <h4 class="mt-2 text-lg font-semibold text-gray-900">${answer.headline}</h4>
+                <ul class="mt-3 space-y-2 text-sm text-gray-700">
+                    ${answer.bullets.map(bullet => `<li class="flex items-start gap-2"><span class="mt-1 text-indigo-500">•</span><span>${bullet}</span></li>`).join('')}
+                </ul>
+            </div>
+        `).join('');
     }
 
     // UI update functions

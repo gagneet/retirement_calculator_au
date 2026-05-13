@@ -173,6 +173,11 @@ describe('Advanced page structure (advanced.html)', () => {
         expect(html).toContain('id="btnStressTest"');
     });
 
+    test('life simulator question answer container exists', () => {
+        expect(html).toContain('id="simQuestionsSection"');
+        expect(html).toContain('id="simQuestionsList"');
+    });
+
     // -------------------------------------------------------------------------
     // Tab structure
     // -------------------------------------------------------------------------

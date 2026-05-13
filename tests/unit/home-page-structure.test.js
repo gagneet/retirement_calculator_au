@@ -36,6 +36,11 @@ describe('Home page structure (index.html)', () => {
         expect(htmlContent).toContain('id="btnMonteCarlo"');
     });
 
+    test('life simulator question answer container exists', () => {
+        expect(htmlContent).toContain('id="simQuestionsSection"');
+        expect(htmlContent).toContain('id="simQuestionsList"');
+    });
+
     // -------------------------------------------------------------------------
     // Section sibling relationship checks
     // -------------------------------------------------------------------------
