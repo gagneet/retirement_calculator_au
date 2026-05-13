@@ -5,6 +5,7 @@ const debugLog = process.env.NODE_ENV !== 'production' ? console.log.bind(consol
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import { ENHANCED_CONFIG } from './config.js';
 import { EnhancedMonteCarloEngine } from './enhanced-monte-carlo.js';
+import { getSGRate } from './simulation_engine/super_engine.js';
 import {
     calculatePostTaxIncome,
     calculateAustralianTax,
@@ -15,6 +16,7 @@ import {
     calculateCGT,
     calculateAgePension,
     calculateAgePensionForCouple,
+    calculateDeemedIncome,
     randomNormal,
     median,
     regimeAwareReturn,
@@ -523,12 +525,16 @@ export class RetirementSimulator {
 
         const sellingCosts = saleValue * this.config.PROPERTY_COSTS.SELLING_COSTS_PERCENT;
 
-        const capitalGain = saleValue - inputs.investmentPropertyValue;
+        const propertyCostBase = inputs.investmentPropertyPurchasePrice || inputs.investmentPropertyValue;
+        const holdingPeriodYears = inputs.investmentPropertyPurchaseYear
+            ? Math.max(1, (new Date().getFullYear() + saleYear) - inputs.investmentPropertyPurchaseYear)
+            : Math.max(1, saleYear);
+        const capitalGain = saleValue - propertyCostBase;
         const cgtPayable = calculateCGT(
             saleValue,
-            inputs.investmentPropertyValue,
+            propertyCostBase,
             true, // Assume Australian resident
-            saleYear,
+            holdingPeriodYears,
             inputs.capitalGainsTaxRate / 100
         );
 
@@ -901,7 +907,8 @@ export class RetirementSimulator {
                 const yourGrossSalary = this.getSalaryForYear(inputs.yourSalary, year, inputs);
                 // Salary sacrifice: voluntary pre-tax super, capped so total concessional ≤ $30,000.
                 // Blocked entirely when TSB ≥ Transfer Balance Cap.
-                const yourEmployerSG = yourGrossSalary * inputs.superContributionRate;
+                const effectiveEmployerRate = inputs.employerSuperContributionRate ?? inputs.superContributionRate ?? getSGRate(projectionYear);
+                const yourEmployerSG = yourGrossSalary * effectiveEmployerRate;
                 const yourSacrifice = superIsCapped ? 0 : Math.min(
                     inputs.yourAdditionalSuperContribution || 0,
                     Math.max(0, 30000 - yourEmployerSG - concessionalAlreadyUsed)
@@ -923,7 +930,8 @@ export class RetirementSimulator {
             }
             if (year <= partnerYearsToWork) {
                 const partnerGrossSalary = this.getSalaryForYear(inputs.partnerSalary, year, inputs, true);
-                const partnerEmployerSG = partnerGrossSalary * inputs.superContributionRate;
+                const effectiveEmployerRate = inputs.employerSuperContributionRate ?? inputs.superContributionRate ?? getSGRate(projectionYear);
+                const partnerEmployerSG = partnerGrossSalary * effectiveEmployerRate;
                 const partnerSacrifice = superIsCapped ? 0 : Math.min(
                     inputs.partnerAdditionalSuperContribution || 0,
                     Math.max(0, 30000 - partnerEmployerSG - concessionalAlreadyUsed)
@@ -943,7 +951,13 @@ export class RetirementSimulator {
             }
 
             accumulatedSuperBalance += yearlySuperContribution;
-            accumulatedSavingsBalance += yearlyPostTaxIncome * inputs.percentIncomeSaved;
+            const annualDetailedExpenses = inputs.useDetailedExpenseInputs
+                ? (((inputs.currentMonthlyHousingCosts || 0) + (inputs.currentMonthlyLivingCosts || 0)) * 12) + (inputs.currentHealthcareCosts || 0)
+                : null;
+            const annualCashSavings = inputs.useDetailedExpenseInputs
+                ? Math.max(0, yearlyPostTaxIncome - annualDetailedExpenses)
+                : Math.max(0, yearlyPostTaxIncome * (inputs.percentIncomeSaved || 0));
+            accumulatedSavingsBalance += annualCashSavings;
 
             // High-interest debt drag: annual interest on credit card/personal loan/car loan
             // Model assumes debts are paid off within ~5 years (repayments reduce balance over time)
@@ -951,7 +965,7 @@ export class RetirementSimulator {
                 const debtYearFraction = Math.max(0, 1 - (year - 1) / 5); // Linear paydown over 5 years
                 const annualDebtInterest = (inputs.creditCardBalance || 0) * (inputs.creditCardRate || 0.2) * debtYearFraction
                     + (inputs.personalLoanBalance || 0) * (inputs.personalLoanRate || 0.09) * debtYearFraction
-                    + (inputs.carLoanBalance || 0) * 0.08 * debtYearFraction; // Car loan ~8% typical
+                    + (inputs.carLoanBalance || 0) * (inputs.carLoanRate || 0.08) * debtYearFraction;
                 accumulatedSavingsBalance = Math.max(0, accumulatedSavingsBalance - annualDebtInterest);
             }
 
@@ -962,7 +976,8 @@ export class RetirementSimulator {
                 // Apply a simplified 30% average tax rate on business/investment income
                 const afterTaxExtra = extraIncome * 0.70;
                 // Save a portion (same as percentIncomeSaved) and add the rest to savings
-                accumulatedSavingsBalance += afterTaxExtra * Math.max(0.5, inputs.percentIncomeSaved || 0.1);
+                const extraIncomeSavingsRate = inputs.useDetailedExpenseInputs ? 1.0 : Math.max(0.5, inputs.percentIncomeSaved || 0.1);
+                accumulatedSavingsBalance += afterTaxExtra * extraIncomeSavingsRate;
             }
 
             // Carer expense: direct annual financial support to aged parents/family (inflated)
@@ -1307,6 +1322,8 @@ export class RetirementSimulator {
             // Discretionary trust income taxed at individual marginal rate via trustTaxRate field;
             // unit trust distributions may carry a different rate. Default 0 = no pre-paid tax.
             const trustTaxRate = parseFloat(inputs.trustTaxRate || 0);
+            const financialAssetsForDeeming = Math.max(0, currentBalance + trustAttributedAssets);
+            const deemedIncome = calculateDeemedIncome(financialAssetsForDeeming, isCouple);
             const trustDistributionIncome = trustDistributionGross; // gross used for income test
             const trustDistributionNetIncome = trustDistributionGross * (1 - trustTaxRate);
             let pensionIncome = 0;
@@ -1319,16 +1336,20 @@ export class RetirementSimulator {
                 // Use enhanced couple pension calculation
                 const person1 = {
                     age: yourCurrentAge,
-                    super: i === 0 ? inputs.yourCurrentSuper : 0, // Super included in assessable assets
-                    investments: i === 0 ? (inputs.currentStocks || 0) : 0,
-                    salary: i === 0 ? (inputs.yourSalary || 0) : 0
+                    super: currentBalance / 2,
+                    investments: trustAttributedAssets / 2,
+                    salary: 0,
+                    otherIncome: propertyIncome + (deemedIncome / 2),
+                    financialAssets: financialAssetsForDeeming / 2
                 };
 
                 const person2 = {
                     age: partnerCurrentAge,
-                    super: i === 0 ? inputs.partnerCurrentSuper : 0,
-                    investments: 0,
-                    salary: i === 0 ? (inputs.partnerSalary || 0) : 0
+                    super: currentBalance / 2,
+                    investments: trustAttributedAssets / 2,
+                    salary: 0,
+                    otherIncome: deemedIncome / 2,
+                    financialAssets: financialAssetsForDeeming / 2
                 };
 
                 const homeowner = (inputs.homeValue || 0) > 0 && !inputs.planToDownsize;
@@ -1350,7 +1371,7 @@ export class RetirementSimulator {
                 const effectiveIncomeThreshold = (inputs.pensionIncomeThreshold > 0) ? inputs.pensionIncomeThreshold : this.config.SINGLE_INCOME_THRESHOLD;
                 pensionIncome = calculateAgePension(
                     assessableAssets,
-                    propertyIncome + trustDistributionIncome,
+                    propertyIncome + deemedIncome + trustDistributionIncome,
                     false,
                     effectivePensionMax,
                     effectiveAssetThreshold,
@@ -2251,6 +2272,14 @@ export class RetirementSimulator {
      * @returns {{ housingExpense: number, livingExpense: number, mortgagePayment: number }}
      */
     extractBaseExpensesFromCashFlow(inputs) {
+        if (inputs.useDetailedExpenseInputs) {
+            return {
+                housingExpense: inputs.currentMonthlyHousingCosts || 0,
+                livingExpense: inputs.currentMonthlyLivingCosts || 0,
+                mortgagePayment: inputs.monthlyMortgagePayment || 0
+            };
+        }
+
         const cashFlowAnalysis = this.calculateCashFlowAnalysis(inputs);
         const currentExpenses = cashFlowAnalysis.expenses || {};
 
@@ -2331,6 +2360,40 @@ export class RetirementSimulator {
      * @returns {Object} Detailed expense breakdown
      */
     calculateHouseholdExpenses(inputs, netIncome) {
+        if (inputs.useDetailedExpenseInputs) {
+            const housingCosts = inputs.currentMonthlyHousingCosts || 0;
+            const livingCosts = inputs.currentMonthlyLivingCosts || 0;
+            const dependentCosts = this.calculateEnhancedDependentCosts(inputs);
+            const familyExpenses = this.calculateFamilyExpenses(inputs.dependents || 0);
+            const totalMonthly = housingCosts + livingCosts + dependentCosts + familyExpenses;
+
+            return {
+                housing: {
+                    monthlyTotal: housingCosts,
+                    mortgagePayment: inputs.monthlyMortgagePayment || 0,
+                    housingStressRatio: housingCosts / Math.max(1, (netIncome / 12))
+                },
+                living: {
+                    monthlyTotal: livingCosts
+                },
+                dependents: {
+                    monthlyTotal: dependentCosts,
+                    breakdown: this.getDependentCostBreakdown(inputs)
+                },
+                familyExpenses: {
+                    monthlyTotal: familyExpenses
+                },
+                totalMonthly,
+                totalAnnual: totalMonthly * 12,
+                breakdown: {
+                    livingDescription: 'User-entered monthly living costs',
+                    housingDescription: 'User-entered monthly housing costs',
+                    childcareDescription: this.getChildcareDescription(inputs.dependents || 0),
+                    familyDescription: this.getFamilyExpenseDescription(inputs.dependents || 0)
+                }
+            };
+        }
+
         const dependents = inputs.dependents || 0;
         const homeValue = inputs.homeValue || 0;
 

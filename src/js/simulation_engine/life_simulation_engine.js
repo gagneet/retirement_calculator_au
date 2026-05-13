@@ -19,6 +19,8 @@ import { calcPensionForYear }                                                   
 import { applyMarketShock, applyPropertyShock, applyInflationShock, simulateAnnualReturn } from './shock_engine.js';
 import { buildLifeEvents, applyLifeEvents }                                      from './life_event_engine.js';
 import { SPENDING_STRATEGIES, calculateSpending }                                from './spending_engine.js';
+import { ENHANCED_CONFIG }                                                       from '../config.js';
+import { calculateDeemedIncome }                                                 from '../utils.js';
 
 // ── Default simulation parameters ────────────────────────────────────────────
 
@@ -79,6 +81,11 @@ const SIMULATION_DEFAULTS = {
  */
 export const runLifeSimulation = (userInputs) => {
     const inputs = { ...SIMULATION_DEFAULTS, ...userInputs };
+    if (userInputs.asfaComfortable == null) {
+        inputs.asfaComfortable = inputs.isCouple
+            ? ENHANCED_CONFIG.OVERSEAS_RETIREMENT.ASFA_COUPLE_ANNUAL
+            : ENHANCED_CONFIG.OVERSEAS_RETIREMENT.ASFA_SINGLE_ANNUAL;
+    }
 
     const {
         yourCurrentAge,
@@ -166,9 +173,7 @@ export const runLifeSimulation = (userInputs) => {
         state.partnerSalary = partnerSalary;
 
         // Investment income (pre-retirement: dividends)
-        const investIncome = age >= retirementAge
-            ? 0  // Super withdrawals replace investment income in retirement
-            : calcInvestmentIncome(investmentAssets, inputs);
+        const investIncome = calcInvestmentIncome(investmentAssets, inputs);
         state.investmentIncome = investIncome;
 
         // ── Property cash flow ────────────────────────────────────────────────
@@ -243,14 +248,28 @@ export const runLifeSimulation = (userInputs) => {
         // ── Super contributions ───────────────────────────────────────────────
         const superContrib = calcSuperContributions(salary, age, inputs, calendarYear);
         const superTax     = superContrib * 0.15;
+        const partnerSuperContrib = calcSuperContributions(
+            partnerSalary,
+            partnerAge || age,
+            { ...inputs, retirementAge: inputs.partnerRetirementAge || retirementAge },
+            calendarYear
+        );
+        const partnerSuperTax = partnerSuperContrib * 0.15;
         state.superContributions = superContrib;
+
+        // ── Pension ───────────────────────────────────────────────────────────
+        const assessableAssets = superBalance + partnerSuper + investmentAssets + propertyValue;
+        const deemedIncome = calculateDeemedIncome(superBalance + partnerSuper + investmentAssets, isCouple);
+        const assessableIncome = salary + partnerSalary + Math.max(0, rentalNetCashFlow) + deemedIncome;
+        const { annualPension } = calcPensionForYear(age, assessableAssets, assessableIncome, isCouple, homeowner);
+        state.pensionIncome = annualPension;
 
         // ── Super withdrawal (retirement) ─────────────────────────────────────
         let superWithdrawal = 0;
         if (age >= retirementAge) {
             const neededFromSuper = Math.max(0,
                 (state.livingExpenses + healthcareCosts + agedCare + eduCosts + incomeTax)
-                - (partnerSalary + Math.max(0, rentalNetCashFlow))
+                - (partnerSalary + Math.max(0, rentalNetCashFlow) + investIncome + annualPension)
             );
             superWithdrawal = calcSuperWithdrawal(
                 superBalance + partnerSuper,
@@ -260,12 +279,6 @@ export const runLifeSimulation = (userInputs) => {
             );
         }
         state.superWithdrawal = superWithdrawal;
-
-        // ── Pension ───────────────────────────────────────────────────────────
-        const assessableAssets = superBalance + partnerSuper + investmentAssets + propertyValue;
-        const assessableIncome = totalIncome + superWithdrawal;
-        const { annualPension } = calcPensionForYear(age, assessableAssets, assessableIncome, isCouple, homeowner);
-        state.pensionIncome = annualPension;
 
         // ── Recalculate mortgage ──────────────────────────────────────────────
         const monthlyMortgage = inputs.monthlyMortgagePayment || 0;
@@ -279,8 +292,8 @@ export const runLifeSimulation = (userInputs) => {
 
         // ── Update balances ───────────────────────────────────────────────────
         // Super growth
-        superBalance  = growSuperBalance(superBalance,  superContrib,   superTax,  inputs);
-        partnerSuper  = growSuperBalance(partnerSuper,  calcSuperContributions(partnerSalary, partnerAge || age, { ...inputs, retirementAge: inputs.partnerRetirementAge || retirementAge }, calendarYear), 0, inputs);
+        superBalance  = growSuperBalance(superBalance, superContrib, superTax, inputs);
+        partnerSuper  = growSuperBalance(partnerSuper, partnerSuperContrib, partnerSuperTax, inputs);
 
         // Deduct super withdrawal
         const totalSuperBalance = superBalance + partnerSuper;

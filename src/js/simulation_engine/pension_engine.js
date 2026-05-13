@@ -5,34 +5,36 @@
  * the life simulation year-by-year timeline.  Uses 2025 thresholds.
  */
 
-// Age Pension eligibility age
-export const PENSION_AGE = 67;
+import { ENHANCED_CONFIG } from '../config.js';
 
-// FY2025 Age Pension rates (annual)
+// Age Pension eligibility age
+export const PENSION_AGE = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.PENSION_AGE || 67;
+
+// Current Age Pension rates (annual)
 export const PENSION_RATES = {
-    singleMax: 29754,       // max single pension p.a. incl. supplements
-    coupleMax:  22476,      // max each member of a couple p.a.
+    singleMax: ENHANCED_CONFIG.SINGLE_PENSION_MAX,
+    coupleMax: ENHANCED_CONFIG.COUPLE_PENSION_MAX / 2,
 };
 
 // Asset thresholds (homeowner / non-homeowner)
 export const ASSET_THRESHOLDS = {
-    singleHomeowner:     314000,
-    singleNonHomeowner:  566000,
-    coupleHomeowner:     470000,
-    coupleNonHomeowner:  722000,
+    singleHomeowner: ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD,
+    singleNonHomeowner: ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER,
+    coupleHomeowner: ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD,
+    coupleNonHomeowner: ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER,
 };
 
 export const ASSET_LIMITS = {
-    singleHomeowner:     686250,
-    singleNonHomeowner:  938500,
-    coupleHomeowner:     1031000,
-    coupleNonHomeowner:  1283250,
+    singleHomeowner: ENHANCED_CONFIG.SINGLE_ASSET_LIMIT,
+    singleNonHomeowner: ENHANCED_CONFIG.SINGLE_ASSET_LIMIT_NON_HOMEOWNER,
+    coupleHomeowner: ENHANCED_CONFIG.COUPLE_ASSET_LIMIT,
+    coupleNonHomeowner: ENHANCED_CONFIG.COUPLE_ASSET_LIMIT_NON_HOMEOWNER,
 };
 
 // Fortnightly income thresholds
 export const INCOME_THRESHOLDS_FORTNIGHT = {
-    single: 212,
-    couple: 372,
+    single: ENHANCED_CONFIG.SINGLE_INCOME_THRESHOLD,
+    couple: ENHANCED_CONFIG.COUPLE_INCOME_THRESHOLD,
 };
 
 /**

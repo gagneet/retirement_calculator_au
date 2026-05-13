@@ -215,7 +215,7 @@ export const ENHANCED_CONFIG = {
 
     // Concessional and non-concessional contribution caps (ATO 2024-25 onwards)
     CONCESSIONAL_CAP: 30000,
-    NON_CONCESSIONAL_CAP: 110000,
+    NON_CONCESSIONAL_CAP: 120000,
     // NCC cap drops to $0 when total super balance (TSB) reaches this amount
     TSB_NCC_BLOCK_THRESHOLD: 2000000,
 

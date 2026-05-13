@@ -198,9 +198,10 @@ export const initializeCurrencyInputs = () => {
     const currencyFieldIds = [
         'yourSalary', 'partnerSalary', 'yourCurrentSuper', 'partnerCurrentSuper',
         'currentSavings', 'currentStocks', 'monthlyStockContribution',
+        'currentMonthlyHousingCosts', 'currentMonthlyLivingCosts',
         'homeValue', 'mortgageBalance', 'monthlyMortgagePayment',
         'investmentPropertyValue', 'investmentPropertyLoan',
-        'weeklyRentalIncome', 'annualPropertyExpenses',
+        'investmentPropertyPurchasePrice', 'weeklyRentalIncome', 'annualPropertyExpenses',
         'trustNetAssets', 'trustAnnualDistributions',
         'currentHealthcareCosts', 'agedCareAnnualCost',
         'asfaComfortable', 'agePensionMax', 'pensionAssetThreshold',
@@ -276,7 +277,8 @@ export const initializePercentageInputs = () => {
         'returnDeclineRate', 'savingsReturn', 'superReturn',
         'salaryGrowthRate', 'leanYearsReduction', 'australianEquityAllocation',
         'dividendYield', 'frankingRate', 'returnVolatility', 'shockProbability', 'shockMagnitude',
-        'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage'
+        'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
+        'carLoanRate', 'employerSuperContributionRate'
     ];
     // Note: dependent percentage fields (childrenUnder5Percent, childrenPrimaryPercent, etc.)
     // are type="number" inputs and must NOT use addPercentageFormatting — setting a value
@@ -697,6 +699,19 @@ export const calculateAgePension = (assets, income, isCouple, maxPension, assetT
     return Math.min(pensionFromAssets, pensionFromIncome);
 };
 
+export const calculateDeemedIncome = (financialAssets, isCouple = false) => {
+    const assets = Math.max(0, financialAssets || 0);
+    const threshold = isCouple
+        ? ENHANCED_CONFIG.DEMING_THRESHOLD_COUPLE
+        : ENHANCED_CONFIG.DEMING_THRESHOLD_SINGLE;
+
+    const lowerPortion = Math.min(assets, threshold);
+    const upperPortion = Math.max(0, assets - threshold);
+
+    return (lowerPortion * ENHANCED_CONFIG.DEMING_RATE_LOWER) +
+        (upperPortion * ENHANCED_CONFIG.DEMING_RATE_UPPER);
+};
+
 /**
  * Shared helper: Apply age pension asset and income means tests.
  * Returns the annual pension amount and the name of the limiting test.
@@ -771,9 +786,13 @@ export const calculateAgePensionForCouple = (person1, person2, homeowner, config
  */
 const calculateStandardCouplePension = (person1, person2, homeowner, config) => {
     // Combined income and assets
-    const combinedIncome = (person1.salary || 0) + (person2.salary || 0);
     const combinedAssets = (person1.super || 0) + (person2.super || 0) +
         (person1.investments || 0) + (person2.investments || 0);
+    const combinedFinancialAssets = (person1.financialAssets ?? ((person1.super || 0) + (person1.investments || 0))) +
+        (person2.financialAssets ?? ((person2.super || 0) + (person2.investments || 0)));
+    const combinedIncome = (person1.salary || 0) + (person2.salary || 0) +
+        (person1.otherIncome || 0) + (person2.otherIncome || 0) +
+        calculateDeemedIncome(combinedFinancialAssets, true);
 
     // Use current couple thresholds from config (Sept 2025 rates)
     const assetThreshold = homeowner
@@ -815,9 +834,13 @@ const calculateNonPensionerCouplePension = (person1, person2, homeowner, config)
     const nonEligible = person1.age >= PENSION_AGE ? person2 : person1;
 
     // CRITICAL: Combine income and assets from BOTH partners
-    const combinedIncome = (person1.salary || 0) + (person2.salary || 0);
     const combinedAssets = (person1.super || 0) + (person2.super || 0) +
         (person1.investments || 0) + (person2.investments || 0);
+    const combinedFinancialAssets = (person1.financialAssets ?? ((person1.super || 0) + (person1.investments || 0))) +
+        (person2.financialAssets ?? ((person2.super || 0) + (person2.investments || 0)));
+    const combinedIncome = (person1.salary || 0) + (person2.salary || 0) +
+        (person1.otherIncome || 0) + (person2.otherIncome || 0) +
+        calculateDeemedIncome(combinedFinancialAssets, true);
 
     // Apply COUPLE thresholds (not single) even though only one receives payment
     // Use current Sept 2025 rates from config
@@ -1680,9 +1703,10 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
 
     const currencyFields = [
         'yourSalary', 'partnerSalary', 'yourCurrentSuper', 'partnerCurrentSuper',
-        'currentSavings', 'currentStocks', 'monthlyStockContribution', 'homeValue',
+        'currentSavings', 'currentStocks', 'monthlyStockContribution', 'currentMonthlyHousingCosts',
+        'currentMonthlyLivingCosts', 'homeValue',
         'mortgageBalance', 'monthlyMortgagePayment', 'investmentPropertyValue',
-        'investmentPropertyLoan', 'weeklyRentalIncome', 'annualPropertyExpenses',
+        'investmentPropertyLoan', 'investmentPropertyPurchasePrice', 'weeklyRentalIncome', 'annualPropertyExpenses',
         'trustNetAssets', 'trustAnnualDistributions', 'currentHealthcareCosts',
         'agedCareAnnualCost', 'asfaComfortable', 'agePensionMax',
         'pensionAssetThreshold', 'pensionAssetLimit', 'pensionIncomeThreshold',
@@ -1702,7 +1726,8 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
         'shockProbability', 'shockMagnitude', 'australianEquityAllocation', 'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
         'vacancyRate', 'maintenanceInflation', 'trustTaxRate', 'beneficiaryAllocation',
         'extremeInflationProbability', 'propertyCrashProbability',
-        'creditCardRate', 'personalLoanRate', 'carerReducedWorkPercent'
+        'creditCardRate', 'personalLoanRate', 'carerReducedWorkPercent', 'carLoanRate',
+        'employerSuperContributionRate'
     ];
 
     // Format currency and percentage fields
@@ -1830,7 +1855,7 @@ export const populateFormFromData = (userData, version = '2.0') => {
         'shockProbability', 'shockMagnitude', 'australianEquityAllocation', 'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
         'carerReducedWorkPercent', 'vacancyRate', 'maintenanceInflation',
         'trustTaxRate', 'beneficiaryAllocation', 'extremeInflationProbability', 'propertyCrashProbability',
-        'creditCardRate', 'personalLoanRate'
+        'creditCardRate', 'personalLoanRate', 'carLoanRate', 'employerSuperContributionRate'
     ];
 
     const dependentPercentageFields = [
@@ -2447,6 +2472,7 @@ export default {
     calculatePropertyTotalReturn,
     calculateCGT,
     calculateAgePension,
+    calculateDeemedIncome,
     exportToCSV,
     exportToXLSX,
     exportToPDF,

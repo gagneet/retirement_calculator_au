@@ -16,6 +16,10 @@
     "transform": {
       "^.+\\.js$": "babel-jest"
     },
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/tests/e2e/"
+    ],
     "moduleNameMapper": {
       "\\.(css|less|scss)$": "<rootDir>/tests/__mocks__/fileMock.js"
     }

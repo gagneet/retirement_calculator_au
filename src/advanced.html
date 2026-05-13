@@ -2414,6 +2414,12 @@
                         <p class="mt-1 text-xs text-gray-500">Partner's pre-tax salary sacrifice. Capped at remaining concessional room after employer SG.</p>
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-gray-700" for="employerSuperContributionRate">Custom Employer Super Contribution Rate (%)</label>
+                        <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="employerSuperContributionRate" type="text"
+                               value="0" min="0" max="25" placeholder="Leave at 0 to use SG schedule">
+                        <p class="mt-1 text-xs text-gray-500">Optional override when your employer pays above the legislated Super Guarantee or uses a contracted rate.</p>
+                    </div>
+                    <div>
                         <label class="block text-sm font-medium text-gray-700" for="concessionalCapUsed">Concessional Contributions Used This Year ($)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="concessionalCapUsed" type="text"
                                value="0" min="0" max="30000">
@@ -2489,6 +2495,25 @@
                            value="900" min="0">
                 </div>
                 <div>
+                    <label class="flex items-center" for="useDetailedExpenseInputs">
+                        <input class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" id="useDetailedExpenseInputs" type="checkbox">
+                        <span class="ml-2 text-sm text-gray-700">Use explicit monthly expense inputs instead of savings rate</span>
+                    </label>
+                </div>
+                <div class="hidden space-y-3 rounded-lg border border-indigo-200 bg-indigo-50 p-3" id="detailedExpenseFields">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="currentMonthlyHousingCosts">Current Monthly Housing Costs ($)</label>
+                        <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="currentMonthlyHousingCosts" type="text"
+                               value="0" min="0" placeholder="Rent, mortgage, strata, council, rates">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="currentMonthlyLivingCosts">Current Monthly Living Costs ($)</label>
+                        <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="currentMonthlyLivingCosts" type="text"
+                               value="0" min="0" placeholder="Groceries, utilities, transport, insurance, leisure">
+                    </div>
+                    <p class="text-xs text-indigo-700">When enabled, the calculator derives annual savings from your income minus these entered expenses, instead of using the savings-rate shortcut.</p>
+                </div>
+                <div>
                     <div class="label-with-tooltip">
                         <label class="text-sm font-medium text-gray-700" for="percentIncomeSaved">Post-Tax Income Saved (%)</label>
                         <div class="tooltip">
@@ -2541,8 +2566,8 @@
                             <span aria-label="Home value information" class="tooltip-icon">i</span>
                             <span class="tooltiptext">
                                 <strong>Current Home Value</strong>
-                                Today's market value of your primary residence. Use recent sales of comparable properties or professional valuation. Home value affects age pension asset test but is partially exempt.
-                                <div class="tooltip-example">Example: $800k home may add ~$200k to age pension assets test</div>
+                                Today's market value of your primary residence. Use recent sales of comparable properties or professional valuation. For Centrelink, the principal home is generally exempt from the Age Pension assets test unless structured in a way that loses the exemption.
+                                <div class="tooltip-example">Example: a standard owner-occupied $800k home is usually fully exempt from the assets test</div>
                             </span>
                         </div>
                     </div>
@@ -2618,6 +2643,12 @@
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="carLoanBalance" type="text" value="0" min="0" placeholder="e.g. 20000">
                         </div>
                         <div>
+                            <label class="block text-sm font-medium text-gray-700" for="carLoanRate">Car Loan Rate (%)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="carLoanRate" type="text" value="8" min="0" max="30" placeholder="e.g. 8">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
                             <label class="block text-sm font-medium text-gray-700" for="hecsBalance">HECS/HELP Balance ($)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="hecsBalance" type="text" value="0" min="0" placeholder="e.g. 30000">
                         </div>
@@ -2648,6 +2679,16 @@
                                 Loan ($)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="investmentPropertyLoan" type="text"
                                    value="574000" min="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="investmentPropertyPurchasePrice">Original Purchase Price / Cost Base ($)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="investmentPropertyPurchasePrice" type="text"
+                                   value="0" min="0" placeholder="Used for CGT estimate">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="investmentPropertyPurchaseYear">Purchase Year</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="investmentPropertyPurchaseYear" type="text"
+                                   value="" min="1900" max="2100" placeholder="e.g. 2018">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="investmentPropertyRate">Loan
@@ -2934,7 +2975,7 @@
                         </div>
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="investmentReturn" type="text"
-                           value="5.61" min="0" max="30" step="0.1">
+                           value="5.61" min="0" max="30">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="returnDeclineRate">Return Decline Rate
@@ -2962,7 +3003,7 @@
                         </div>
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="superReturn" type="text"
-                           value="8.75" min="0" max="30" step="0.1">
+                           value="8.75" min="0" max="30">
                 </div>
             </div>
 
@@ -3049,7 +3090,7 @@
                         <label class="block text-sm font-medium text-gray-700" for="salaryGrowthRate">Annual Real Salary
                             Growth (%)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="salaryGrowthRate" type="text"
-                               value="1.5" min="0" max="20" step="0.1">
+                               value="1.5" min="0" max="20">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="leanYearsStart">Lean Years Start

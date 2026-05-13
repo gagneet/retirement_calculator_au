@@ -659,6 +659,9 @@ class RetirementCalculatorApp {
             currentSavings: safeGetValue('currentSavings', config.financial.currentSavings),
             currentStocks: safeGetValue('currentStocks', config.financial.currentStocks),
             monthlyStockContribution: safeGetValue('monthlyStockContribution', config.financial.monthlyStockContribution),
+            useDetailedExpenseInputs: safeGetChecked('useDetailedExpenseInputs', false),
+            currentMonthlyHousingCosts: safeGetValue('currentMonthlyHousingCosts', 0),
+            currentMonthlyLivingCosts: safeGetValue('currentMonthlyLivingCosts', 0),
             percentIncomeSaved: safeGetValue('percentIncomeSaved', config.financial.percentIncomeSaved) / 100,
 
             // Property details
@@ -673,6 +676,8 @@ class RetirementCalculatorApp {
             investmentPropertyValue: safeGetValue('investmentPropertyValue', config.property.investmentPropertyValue),
             investmentPropertyLoan: safeGetValue('investmentPropertyLoan', config.property.investmentPropertyLoan),
             investmentPropertyRate: safeGetValue('investmentPropertyRate', config.property.investmentPropertyRate) / 100,
+            investmentPropertyPurchasePrice: safeGetValue('investmentPropertyPurchasePrice', 0),
+            investmentPropertyPurchaseYear: safeGetValue('investmentPropertyPurchaseYear', 0),
             weeklyRentalIncome: safeGetValue('weeklyRentalIncome', config.property.weeklyRentalIncome),
             annualPropertyExpenses: safeGetValue('annualPropertyExpenses', config.property.annualPropertyExpenses),
             propertyGrowthRate: safeGetValue('propertyGrowthRate', config.property.propertyGrowthRate) / 100,
@@ -695,7 +700,14 @@ class RetirementCalculatorApp {
             returnDeclineRate: safeGetValue('returnDeclineRate', config.economic.returnDeclineRate) / 100,
             savingsReturn: safeGetValue('savingsReturn', config.economic.savingsReturn) / 100,
             superReturn: safeGetValue('superReturn', config.economic.superReturn) / 100,
-            superContributionRate: ENHANCED_CONFIG.SUPER_GUARANTEE_RATE,
+            employerSuperContributionRate: (() => {
+                const customRate = safeGetValue('employerSuperContributionRate', 0);
+                return customRate > 0 ? customRate / 100 : null;
+            })(),
+            superContributionRate: (() => {
+                const customRate = safeGetValue('employerSuperContributionRate', 0);
+                return customRate > 0 ? customRate / 100 : ENHANCED_CONFIG.SUPER_GUARANTEE_RATE;
+            })(),
             salaryGrowthRate: safeGetValue('salaryGrowthRate', config.economic.salaryGrowthRate) / 100,
             leanYearsStart: safeGetValue('leanYearsStart', config.economic.leanYearsStart),
             leanYearsReduction: safeGetValue('leanYearsReduction', config.economic.leanYearsReduction) / 100,
@@ -802,6 +814,7 @@ class RetirementCalculatorApp {
             personalLoanBalance: parseFormattedNumber(getRawValue('personalLoanBalance', '0')),
             personalLoanRate: safeGetValue('personalLoanRate', 9) / 100,
             carLoanBalance: parseFormattedNumber(getRawValue('carLoanBalance', '0')),
+            carLoanRate: safeGetValue('carLoanRate', 8) / 100,
             hecsBalance: parseFormattedNumber(getRawValue('hecsBalance', '0')),
 
             // Health condition (affects healthcare cost trajectory and aged care probability)
@@ -980,11 +993,14 @@ class RetirementCalculatorApp {
             ['yourCurrentSuper', 'Your current super balance'],
             ['currentSavings', 'Current savings'],
             ['currentStocks', 'Current investments'],
+            ['currentMonthlyHousingCosts', 'Current monthly housing costs'],
+            ['currentMonthlyLivingCosts', 'Current monthly living costs'],
             ['homeValue', 'Home value'],
             ['mortgageBalance', 'Mortgage balance'],
             ['monthlyMortgagePayment', 'Monthly mortgage payment'],
             ['investmentPropertyValue', 'Investment property value'],
             ['investmentPropertyLoan', 'Investment property loan'],
+            ['investmentPropertyPurchasePrice', 'Investment property purchase price'],
             ['weeklyRentalIncome', 'Weekly rental income'],
             ['annualPropertyExpenses', 'Annual property expenses'],
             ['asfaComfortable', 'Target retirement income (ASFA)'],
@@ -999,6 +1015,7 @@ class RetirementCalculatorApp {
         // Percentage fields — must be 0–100 when expressed as decimal (0–1)
         const percentFields = [
             ['superContributionRate', 'Super contribution rate', 0, 1],
+            ['employerSuperContributionRate', 'Employer super contribution rate', 0, 1],
             ['inflation', 'Inflation rate', 0, 0.3],
             ['investmentReturn', 'Investment return', -0.5, 0.5],
             ['percentIncomeSaved', 'Percentage of income saved', 0, 1],
@@ -6657,6 +6674,31 @@ class RetirementCalculatorApp {
             togglePropertySection(); // Initial state
         }
 
+        const useDetailedExpenseInputs = $('useDetailedExpenseInputs');
+        const detailedExpenseFields = $('detailedExpenseFields');
+        const percentIncomeSaved = $('percentIncomeSaved');
+        if (useDetailedExpenseInputs && detailedExpenseFields && percentIncomeSaved) {
+            const toggleDetailedExpenseMode = () => {
+                detailedExpenseFields.classList.toggle('hidden', !useDetailedExpenseInputs.checked);
+                percentIncomeSaved.disabled = useDetailedExpenseInputs.checked;
+                percentIncomeSaved.classList.toggle('opacity-60', useDetailedExpenseInputs.checked);
+            };
+            useDetailedExpenseInputs.addEventListener('change', toggleDetailedExpenseMode);
+            toggleDetailedExpenseMode();
+        }
+
+        const planToDownsize = $('planToDownsize');
+        const downsizeContribution = $('downsizeContribution');
+        if (planToDownsize && downsizeContribution) {
+            const toggleDownsizeContribution = () => {
+                const enabled = planToDownsize.value === 'true';
+                downsizeContribution.disabled = !enabled;
+                if (!enabled) downsizeContribution.checked = false;
+            };
+            planToDownsize.addEventListener('change', toggleDownsizeContribution);
+            toggleDownsizeContribution();
+        }
+
         // Toggle reduced income fields and sync Lean Years when enabled
         const syncLeanYearsFromReducedIncome = () => {
             const enabled = document.getElementById('enableReducedIncome')?.checked;
@@ -6756,18 +6798,22 @@ class RetirementCalculatorApp {
             { id: 'partnerCurrentSuper', type: 'currency', tooltip: 'Partner\'s superannuation balance' },
             { id: 'currentSavings', type: 'currency', tooltip: 'Current savings and cash' },
             { id: 'currentStocks', type: 'currency', tooltip: 'Current investment portfolio value' },
+            { id: 'currentMonthlyHousingCosts', type: 'currency', tooltip: 'Current monthly housing costs' },
+            { id: 'currentMonthlyLivingCosts', type: 'currency', tooltip: 'Current monthly living costs' },
 
             // Property inputs
             { id: 'homeValue', type: 'currency', tooltip: 'Current home market value' },
             { id: 'mortgageBalance', type: 'currency', tooltip: 'Outstanding mortgage balance' },
             { id: 'investmentPropertyValue', type: 'currency', tooltip: 'Investment property value' },
             { id: 'investmentPropertyLoan', type: 'currency', tooltip: 'Investment property loan balance' },
+            { id: 'investmentPropertyPurchasePrice', type: 'currency', tooltip: 'Original investment property cost base' },
 
             // Percentage inputs
             { id: 'superReturn', type: 'percentage', tooltip: 'Expected annual superannuation return' },
             { id: 'investmentReturn', type: 'percentage', tooltip: 'Expected investment return rate' },
             { id: 'inflationRate', type: 'percentage', tooltip: 'Expected annual inflation rate' },
             { id: 'salaryGrowthRate', type: 'percentage', tooltip: 'Expected salary growth rate' },
+            { id: 'employerSuperContributionRate', type: 'percentage', tooltip: 'Custom employer super contribution rate' },
         ];
 
         fieldsToEnhance.forEach(field => {
@@ -7319,12 +7365,14 @@ class RetirementCalculatorApp {
             ],
             finances: [
                 'yourSalary', 'partnerSalary', 'yourCurrentSuper', 'partnerCurrentSuper',
-                'currentSavings', 'currentStocks', 'monthlyStockContribution', 'percentIncomeSaved'
+                'currentSavings', 'currentStocks', 'monthlyStockContribution', 'useDetailedExpenseInputs',
+                'currentMonthlyHousingCosts', 'currentMonthlyLivingCosts', 'percentIncomeSaved'
             ],
             property: [
                 'homeValue', 'mortgageBalance', 'mortgageRate', 'monthlyMortgagePayment',
                 'planToDownsize', 'hasInvestmentProperty', 'investmentPropertyValue',
                 'investmentPropertyLoan', 'investmentPropertyRate', 'investmentPropertyLoanType',
+                'investmentPropertyPurchasePrice', 'investmentPropertyPurchaseYear',
                 'weeklyRentalIncome', 'annualPropertyExpenses', 'propertyGrowthRate', 'sellPropertyYears',
                 'capitalGainsTaxRate', 'vacancyRate', 'maintenanceInflation', 'landTax', 'propertyState'
             ],
@@ -7362,12 +7410,12 @@ class RetirementCalculatorApp {
                 'educationCostPerChild', 'privateSchool', 'universitySupport'
             ],
             superStrategy: [
-                'concessionalCapUsed', 'spouseContribution', 'downsizeContribution'
+                'concessionalCapUsed', 'spouseContribution', 'downsizeContribution', 'employerSuperContributionRate'
             ],
             debts: [
                 'creditCardBalance', 'creditCardRate',
                 'personalLoanBalance', 'personalLoanRate',
-                'carLoanBalance', 'hecsBalance'
+                'carLoanBalance', 'carLoanRate', 'hecsBalance'
             ],
             lifestyle: [
                 'annualTravelBudget', 'annualHobbyBudget',
@@ -7477,7 +7525,8 @@ class RetirementCalculatorApp {
             'childrenUnder5Percent', 'childrenPrimaryPercent', 'teenagersPercent', 'adultDisabledPercent',
             'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent',
             'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
-            'creditCardRate', 'personalLoanRate', 'carerReducedWorkPercent'
+            'creditCardRate', 'personalLoanRate', 'carerReducedWorkPercent', 'carLoanRate',
+            'employerSuperContributionRate'
         ];
 
         inputIds.forEach(inputId => {
@@ -7552,6 +7601,9 @@ class RetirementCalculatorApp {
             'currentSavings': config.financial.currentSavings,
             'currentStocks': config.financial.currentStocks,
             'monthlyStockContribution': config.financial.monthlyStockContribution,
+            'useDetailedExpenseInputs': false,
+            'currentMonthlyHousingCosts': 0,
+            'currentMonthlyLivingCosts': 0,
             'percentIncomeSaved': config.financial.percentIncomeSaved,
 
             // Property
@@ -7564,6 +7616,8 @@ class RetirementCalculatorApp {
             'investmentPropertyValue': config.property.investmentPropertyValue,
             'investmentPropertyLoan': config.property.investmentPropertyLoan,
             'investmentPropertyRate': config.property.investmentPropertyRate,
+            'investmentPropertyPurchasePrice': 0,
+            'investmentPropertyPurchaseYear': '',
             'weeklyRentalIncome': config.property.weeklyRentalIncome,
             'annualPropertyExpenses': config.property.annualPropertyExpenses,
             'propertyGrowthRate': config.property.propertyGrowthRate,
@@ -7644,6 +7698,7 @@ class RetirementCalculatorApp {
             'concessionalCapUsed': 0,
             'spouseContribution': 0,
             'downsizeContribution': false,
+            'employerSuperContributionRate': 0,
 
             // Debts
             'creditCardBalance': 0,
@@ -7651,6 +7706,7 @@ class RetirementCalculatorApp {
             'personalLoanBalance': 0,
             'personalLoanRate': 0.09,
             'carLoanBalance': 0,
+            'carLoanRate': 0.08,
             'hecsBalance': 0,
 
             // Lifestyle

@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Australian Retirement Calculator Audit Report</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121933;
+      --panel-2: #182248;
+      --text: #e8ecff;
+      --muted: #aeb8e8;
+      --line: #30406f;
+      --good: #2fbf71;
+      --warn: #ffb020;
+      --bad: #ff5d73;
+      --info: #53a8ff;
+      --critical: #ff5d73;
+      --high: #ff8a3d;
+      --medium: #ffd166;
+      --low: #5cc8ff;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --sans: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: linear-gradient(180deg, #09101f 0%, #0e1730 100%);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    a { color: #8ec5ff; }
+    .container { max-width: 1280px; margin: 0 auto; padding: 32px 24px 80px; }
+    .hero {
+      background: linear-gradient(135deg, rgba(83,168,255,0.16), rgba(255,93,115,0.14));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+    h1, h2, h3 { margin: 0 0 12px; line-height: 1.2; }
+    h1 { font-size: 34px; }
+    h2 { font-size: 24px; margin-top: 36px; }
+    h3 { font-size: 18px; margin-top: 18px; }
+    p, li { color: var(--muted); }
+    .lede { font-size: 17px; max-width: 980px; }
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card {
+      background: rgba(18, 25, 51, 0.88);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      overflow: hidden;
+    }
+    .metric {
+      font-size: 34px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .metric-label {
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .critical { background: rgba(255,93,115,0.18); color: #ffb8c2; }
+    .high { background: rgba(255,138,61,0.18); color: #ffd1b0; }
+    .medium { background: rgba(255,209,102,0.18); color: #ffe9a8; }
+    .good { background: rgba(47,191,113,0.18); color: #bdf2d0; }
+    .info { background: rgba(83,168,255,0.18); color: #c8e2ff; }
+    .kicker {
+      color: #b8d1ff;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .bar-group { display: grid; gap: 10px; }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 44px;
+      gap: 10px;
+      align-items: center;
+      font-size: 14px;
+    }
+    .bar-track {
+      height: 14px;
+      border-radius: 999px;
+      background: #0d1429;
+      border: 1px solid #243154;
+      overflow: hidden;
+    }
+    .bar-fill { height: 100%; }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+      background: rgba(18, 25, 51, 0.88);
+    }
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(48,64,111,0.8);
+      vertical-align: top;
+      text-align: left;
+      font-size: 14px;
+    }
+    th {
+      color: #dbe4ff;
+      background: rgba(24, 34, 72, 0.9);
+      position: sticky;
+      top: 0;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: rgba(255,255,255,0.06);
+      padding: 2px 6px;
+      border-radius: 6px;
+      color: #edf2ff;
+    }
+    .callout {
+      border-left: 4px solid var(--info);
+      background: rgba(83,168,255,0.08);
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin: 14px 0;
+    }
+    .danger-callout {
+      border-left: 4px solid var(--critical);
+      background: rgba(255,93,115,0.08);
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin: 14px 0;
+    }
+    .svg-box {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(18, 25, 51, 0.88);
+      padding: 12px;
+    }
+    .small { font-size: 13px; color: var(--muted); }
+    .section-list li { margin-bottom: 8px; }
+    .footer-note {
+      margin-top: 36px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    @media (max-width: 980px) {
+      .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+      .bar-row { grid-template-columns: 110px 1fr 38px; }
+      h1 { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <div class="kicker">Australian Retirement Calculator Audit</div>
+      <h1>Main calculator and Monte Carlo review</h1>
+      <p class="lede">
+        The calculator is strongest in <strong>Pipeline A</strong> for tax, contributions, and enhanced Monte Carlo,
+        but the overall advanced experience is weakened by <strong>three different calculation engines</strong> that
+        silently disagree with each other. The most serious errors are in the life-simulation pipeline, where Age Pension
+        and retirement cashflow are mis-modeled in ways that can materially overstate portfolio durability or understate
+        pension eligibility.
+      </p>
+      <div>
+        <span class="badge critical">5 critical issues</span>
+        <span class="badge high">7 high issues</span>
+        <span class="badge medium">7 medium issues</span>
+        <span class="badge info">3 calculation pipelines</span>
+      </div>
+    </section>
+
+    <section class="grid grid-4">
+      <div class="card">
+        <div class="metric">A</div>
+        <div class="metric-label">Main calculator pipeline</div>
+        <p><code>app.js → simulator.js</code>. Best implementation of tax, contribution caps, trust handling, and enhanced Monte Carlo.</p>
+      </div>
+      <div class="card">
+        <div class="metric">B</div>
+        <div class="metric-label">Life simulator pipeline</div>
+        <p><code>runFullSimulation()</code>. Separate pension, tax, and withdrawal logic. This is where the largest hallucinated outputs live.</p>
+      </div>
+      <div class="card">
+        <div class="metric">C</div>
+        <div class="metric-label">Advanced-design pipeline</div>
+        <p><code>advanced-design-engine.js</code>. Standalone sandbox with its own constants and simplified pension model.</p>
+      </div>
+      <div class="card">
+        <div class="metric">67</div>
+        <div class="metric-label">Policy anchor</div>
+        <p>Age Pension age is modeled, but means testing, deeming, residency, and drawdown rules are not applied consistently across all pipelines.</p>
+      </div>
+    </section>
+
+    <h2>1. What the advanced calculator is doing today</h2>
+    <div class="svg-box">
+      <svg viewBox="0 0 1180 380" width="100%" role="img" aria-label="Main advanced calculator architecture flow">
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L9,3 z" fill="#8ec5ff"></path>
+          </marker>
+        </defs>
+        <rect x="24" y="24" width="210" height="76" rx="14" fill="#182248" stroke="#4f6db5"/>
+        <text x="44" y="52" fill="#e8ecff" font-size="20" font-weight="700">advanced.html</text>
+        <text x="44" y="78" fill="#aeb8e8" font-size="14">Form inputs + tabs + actions</text>
+
+        <rect x="290" y="24" width="250" height="76" rx="14" fill="#182248" stroke="#4f6db5"/>
+        <text x="310" y="52" fill="#e8ecff" font-size="20" font-weight="700">app.js</text>
+        <text x="310" y="78" fill="#aeb8e8" font-size="14">collectInputs() + calculateRetirement()</text>
+
+        <line x1="234" y1="62" x2="290" y2="62" stroke="#8ec5ff" stroke-width="3" marker-end="url(#arrow)"/>
+
+        <rect x="70" y="156" width="280" height="92" rx="14" fill="#17332a" stroke="#2fbf71"/>
+        <text x="92" y="188" fill="#e8ecff" font-size="20" font-weight="700">Pipeline A — main projection</text>
+        <text x="92" y="214" fill="#aee1c2" font-size="14">simulator.js → deterministic projection</text>
+        <text x="92" y="234" fill="#aee1c2" font-size="14">runEnhancedMonteCarloSimulation()</text>
+
+        <rect x="450" y="156" width="280" height="92" rx="14" fill="#3a2715" stroke="#ffb020"/>
+        <text x="472" y="188" fill="#e8ecff" font-size="20" font-weight="700">Pipeline B — life simulation</text>
+        <text x="472" y="214" fill="#ffd9a0" font-size="14">runFullSimulation()</text>
+        <text x="472" y="234" fill="#ffd9a0" font-size="14">own pension_engine / tax_engine / MC</text>
+
+        <rect x="830" y="156" width="280" height="92" rx="14" fill="#381822" stroke="#ff5d73"/>
+        <text x="852" y="188" fill="#e8ecff" font-size="20" font-weight="700">Pipeline C — advanced design</text>
+        <text x="852" y="214" fill="#ffc0ca" font-size="14">advanced-design-engine.js</text>
+        <text x="852" y="234" fill="#ffc0ca" font-size="14">standalone assumptions and rules</text>
+
+        <line x1="420" y1="100" x2="210" y2="156" stroke="#8ec5ff" stroke-width="3" marker-end="url(#arrow)"/>
+        <line x1="420" y1="100" x2="590" y2="156" stroke="#8ec5ff" stroke-width="3" marker-end="url(#arrow)"/>
+        <line x1="420" y1="100" x2="970" y2="156" stroke="#8ec5ff" stroke-width="3" marker-end="url(#arrow)"/>
+
+        <rect x="180" y="286" width="820" height="56" rx="14" fill="#27182f" stroke="#9b6cff"/>
+        <text x="206" y="319" fill="#efe6ff" font-size="18" font-weight="700">User risk: same form, different rules, different answers, limited disclosure</text>
+      </svg>
+    </div>
+    <p class="small">
+      Main execution points: <code>src/js/app.js:578-832</code>, <code>src/js/app.js:1031-1133</code>,
+      <code>src/js/app.js:5829-5921</code>, <code>src/js/app.js:6437-6548</code>.
+    </p>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="kicker">Main advanced calculator workflow</div>
+        <ol class="section-list">
+          <li><strong>Read inputs:</strong> ages, salary, super, savings, property, trust, healthcare, pension overrides, simulation settings.</li>
+          <li><strong>Validate:</strong> ages, allocations, negative values, basic plausibility.</li>
+          <li><strong>Main projection:</strong> <code>simulator.simulateRetirement()</code> generates deterministic balances and cashflow.</li>
+          <li><strong>Main Monte Carlo:</strong> <code>runEnhancedMonteCarloSimulation()</code> applies regime-aware, year-by-year return paths.</li>
+          <li><strong>Life Simulation tab:</strong> <code>runFullSimulation()</code> uses a different engine with separate pension/tax logic.</li>
+          <li><strong>Render:</strong> summary tabs, charts, recommendations, export.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <div class="kicker">What is going well</div>
+        <ul class="section-list">
+          <li>Tax brackets, LITO, Medicare levy, MLS, and Division 293 are mostly well handled in the main pipeline.</li>
+          <li>Concessional caps, transfer balance cap gating, minimum drawdowns, trust attribution, and state land-tax tables are solid.</li>
+          <li>The enhanced Monte Carlo engine has the best technical design in the app: correlated asset shocks, regime shifts, and volatility clustering.</li>
+          <li>The advanced form already captures a wide range of materially useful fields.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>2. Where the calculator is producing hallucinated or synthetic outputs</h2>
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="kicker">Severity chart</div>
+        <div class="bar-group">
+          <div class="bar-row">
+            <div>Critical</div>
+            <div class="bar-track"><div class="bar-fill" style="width: 100%; background: var(--critical);"></div></div>
+            <div>5</div>
+          </div>
+          <div class="bar-row">
+            <div>High</div>
+            <div class="bar-track"><div class="bar-fill" style="width: 100%; background: var(--high);"></div></div>
+            <div>7</div>
+          </div>
+          <div class="bar-row">
+            <div>Medium</div>
+            <div class="bar-track"><div class="bar-fill" style="width: 100%; background: var(--medium);"></div></div>
+            <div>7</div>
+          </div>
+        </div>
+        <p class="small">Counts are from the code audit issue list, not generic quality commentary.</p>
+      </div>
+      <div class="card">
+        <div class="kicker">Pipeline confidence</div>
+        <div class="bar-group">
+          <div class="bar-row">
+            <div>Pipeline A</div>
+            <div class="bar-track"><div class="bar-fill" style="width: 72%; background: var(--good);"></div></div>
+            <div>7.2</div>
+          </div>
+          <div class="bar-row">
+            <div>Pipeline B</div>
+            <div class="bar-track"><div class="bar-fill" style="width: 34%; background: var(--warn);"></div></div>
+            <div>3.4</div>
+          </div>
+          <div class="bar-row">
+            <div>Pipeline C</div>
+            <div class="bar-track"><div class="bar-fill" style="width: 22%; background: var(--bad);"></div></div>
+            <div>2.2</div>
+          </div>
+        </div>
+        <p class="small">These are audit scores for reliability and legal-model alignment, not test coverage.</p>
+      </div>
+    </div>
+
+    <div class="danger-callout">
+      <strong>Highest-risk outcome distortion:</strong> Pipeline B adds actual super withdrawals into the Age Pension income test and
+      also fails to subtract pension before computing the super draw needed. That can both <strong>understate pension</strong> and
+      <strong>overstate available retirement cash</strong> in the same projection.
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Issue</th>
+            <th>Why it is hallucinated / detached from Australian rules</th>
+            <th>Likely effect</th>
+            <th>Code</th>
+            <th>Severity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Stale pension thresholds in Pipeline B</td>
+            <td><code>pension_engine.js</code> uses older pension, asset, and income thresholds than <code>config.js</code>.</td>
+            <td>Understates pension by hundreds to more than $1,000 per year.</td>
+            <td><code>src/js/simulation_engine/pension_engine.js:12-36</code><br><code>src/js/config.js:16-32</code></td>
+            <td><span class="badge critical">Critical</span></td>
+          </tr>
+          <tr>
+            <td>Super withdrawals treated as assessable income</td>
+            <td>Centrelink uses deeming for account-based pensions; actual withdrawals are not the income-test input for a taxed fund.</td>
+            <td>Can slash modeled Age Pension incorrectly.</td>
+            <td><code>src/js/simulation_engine/life_simulation_engine.js:265-267</code></td>
+            <td><span class="badge critical">Critical</span></td>
+          </tr>
+          <tr>
+            <td>Pension not deducted before super draw is computed</td>
+            <td>The model calculates the super withdrawal need before subtracting pension income, then adds pension later.</td>
+            <td>Artificially improves retirement cashflow and balance survival.</td>
+            <td><code>src/js/simulation_engine/life_simulation_engine.js:249-253, 299</code></td>
+            <td><span class="badge critical">Critical</span></td>
+          </tr>
+          <tr>
+            <td>Investment income set to zero in retirement</td>
+            <td>Retirees still receive dividends and interest from non-super assets.</td>
+            <td>Understates retirement income and distorts pension means testing.</td>
+            <td><code>src/js/simulation_engine/life_simulation_engine.js:169-171</code></td>
+            <td><span class="badge critical">Critical</span></td>
+          </tr>
+          <tr>
+            <td>Three pipelines with different rules</td>
+            <td>Same user inputs feed three inconsistent engines with separate assumptions and thresholds.</td>
+            <td>Users can see conflicting answers without knowing why.</td>
+            <td><code>app.js</code>, <code>simulator.js</code>, <code>simulation_engine/*</code>, <code>advanced-design-engine.js</code></td>
+            <td><span class="badge critical">Critical</span></td>
+          </tr>
+          <tr>
+            <td>No deeming in the life-sim pension income test</td>
+            <td>Deeming thresholds/rates exist in config but are not applied in Pipeline B.</td>
+            <td>Incorrect pension entitlement for users with financial assets.</td>
+            <td><code>src/js/config.js:11-14</code><br><code>src/js/simulation_engine/life_simulation_engine.js:265-267</code></td>
+            <td><span class="badge high">High</span></td>
+          </tr>
+          <tr>
+            <td>Partner super contributions taxed at 0%</td>
+            <td>Main person pays 15% contributions tax; partner path bypasses it.</td>
+            <td>Partner super is overstated over long horizons.</td>
+            <td><code>src/js/simulation_engine/life_simulation_engine.js:283</code></td>
+            <td><span class="badge high">High</span></td>
+          </tr>
+          <tr>
+            <td>No Division 293 in Pipeline B</td>
+            <td>High-income earners are not charged the extra 15% concessional contributions tax.</td>
+            <td>Overstates super accumulation for higher earners.</td>
+            <td><code>src/js/simulation_engine/life_simulation_engine.js:244-245</code></td>
+            <td><span class="badge high">High</span></td>
+          </tr>
+          <tr>
+            <td>SG hardcoded at 12%</td>
+            <td>Pipeline A ignores timing and employer-specific contribution rates.</td>
+            <td>Wrong accumulation for historical years and many public-sector cases.</td>
+            <td><code>src/js/app.js:698</code></td>
+            <td><span class="badge high">High</span></td>
+          </tr>
+          <tr>
+            <td>Concessional cap usage shared across both spouses</td>
+            <td>Each person has an independent concessional cap, but one input reduces both.</td>
+            <td>Understates one spouse's cap room.</td>
+            <td><code>src/js/simulator.js:898-929</code></td>
+            <td><span class="badge high">High</span></td>
+          </tr>
+          <tr>
+            <td>Monte Carlo in Pipeline B samples one return per run</td>
+            <td>A single perturbed return is reused for all years, so sequence risk is effectively removed.</td>
+            <td>Probability-of-success is not realistic.</td>
+            <td><code>src/js/simulation_engine/monte_carlo_engine.js:79-84</code></td>
+            <td><span class="badge medium">Medium</span></td>
+          </tr>
+          <tr>
+            <td>Pre-retirement expenses inferred as 55% of gross income</td>
+            <td>This is a broad heuristic, not a user-supplied household cashflow.</td>
+            <td>Biases savings rates and accumulation outcomes.</td>
+            <td><code>src/js/simulation_engine/life_simulation_engine.js:119-122</code></td>
+            <td><span class="badge medium">Medium</span></td>
+          </tr>
+          <tr>
+            <td>Property CGT uses current value as cost base in Pipeline A sale path</td>
+            <td>CGT needs purchase date and cost base, not just today's market value.</td>
+            <td>Can materially overstate or understate net sale proceeds.</td>
+            <td><code>src/js/simulator.js:526</code></td>
+            <td><span class="badge medium">Medium</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>3. Main advanced calculator overview: what is missing</h2>
+    <div class="grid grid-3">
+      <div class="card">
+        <div class="kicker">Super rules missing or incomplete</div>
+        <ul class="section-list">
+          <li>Preservation age should be derived from <strong>DOB</strong>, not assumed from current age.</li>
+          <li>Carry-forward concessional caps are not modeled.</li>
+          <li>Non-concessional bring-forward rules are not modeled properly.</li>
+          <li>Taxable vs tax-free super components are not tracked.</li>
+          <li>Pension-phase earnings tax treatment is not separated from accumulation-phase tax.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="kicker">Age Pension rules missing or incomplete</div>
+        <ul class="section-list">
+          <li>Deeming is not consistently used.</li>
+          <li>Work Bonus is not modeled.</li>
+          <li>12-month home-sale proceeds treatment for downsizing is not modeled.</li>
+          <li>Pension thresholds are treated as static instead of indexed over time.</li>
+          <li>Grandfathered deeming treatment for pre-2015 pensions is absent.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="kicker">Cashflow and risk gaps</div>
+        <ul class="section-list">
+          <li>No explicit actual household budget field in the main life-sim path.</li>
+          <li>No life-table or sex-based longevity model.</li>
+          <li>Aged care is simplified to a probability and annual cost, not means-tested pathways.</li>
+          <li>Property model lacks acquisition cost/date and more detailed tax offsets in every path.</li>
+          <li>Documentation pages drift from code and law.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Missing fields that would materially improve prediction quality</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Missing field</th>
+            <th>Why it matters</th>
+            <th>Recommended use</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Date of birth for each adult</td>
+            <td>Needed for preservation age, pension timing, and age-specific rules.</td>
+            <td>Replace age-only access assumptions with DOB-driven super access logic.</td>
+          </tr>
+          <tr>
+            <td>Actual monthly household expenses</td>
+            <td>Much more important than salary-proxy expense heuristics.</td>
+            <td>Use as the base for accumulation and retirement spending transitions.</td>
+          </tr>
+          <tr>
+            <td>Unused concessional cap history</td>
+            <td>Carry-forward caps can change contribution strategy materially.</td>
+            <td>Model up to 5 years of unused concessional caps where eligible.</td>
+          </tr>
+          <tr>
+            <td>Property purchase date and cost base</td>
+            <td>Essential for CGT and true after-tax sale proceeds.</td>
+            <td>Track acquisition cost, improvements, and purchase year.</td>
+          </tr>
+          <tr>
+            <td>Super taxable / tax-free component split</td>
+            <td>Affects death benefits and some withdrawal-tax edge cases.</td>
+            <td>Track component balances through time.</td>
+          </tr>
+          <tr>
+            <td>Deeming status / grandfathering flag</td>
+            <td>Important for some pension income-stream cases.</td>
+            <td>Apply grandfathered actual-income treatment where appropriate.</td>
+          </tr>
+          <tr>
+            <td>Work bonus bank / planned work in retirement</td>
+            <td>Changes pension outcomes for part-time working retirees.</td>
+            <td>Model fortnight work income and Work Bonus balance.</td>
+          </tr>
+          <tr>
+            <td>Sex / actuarial longevity preference</td>
+            <td>Longevity risk is not well handled by a single fixed lifespan input.</td>
+            <td>Offer fixed age, confidence age, or ABS life-table mode.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>4. Australian retirement rules that should anchor corrections</h2>
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="kicker">Rules already present and worth keeping</div>
+        <ul class="section-list">
+          <li>SG at 12% from 1 July 2025.</li>
+          <li>Concessional cap at $30,000.</li>
+          <li>Transfer balance cap logic in the main simulator.</li>
+          <li>Minimum pension drawdown schedule.</li>
+          <li>Medicare levy, MLS, LITO, Division 293 in the main path.</li>
+          <li>Trust attribution and homeowner vs non-homeowner asset thresholds.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="kicker">Rules that need stronger implementation</div>
+        <ul class="section-list">
+          <li>Age Pension deeming on financial assets.</li>
+          <li>Age Pension means testing should use the lower of income-test and assets-test outcomes consistently in all engines.</li>
+          <li>Super access should be preservation-age and condition-of-release aware.</li>
+          <li>Contribution-cap rules should be fully versioned and shared from one source.</li>
+          <li>Future pension thresholds should be indexed rather than frozen.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Known config drift:</strong> <code>src/js/config.js:216-224</code> still shows a non-concessional cap of
+      <strong>$110,000</strong>, while <code>src/js/contribution-calculator.js:10-17</code> uses
+      <strong>$120,000</strong>. That should be versioned in one place only.
+    </div>
+
+    <h2>5. Incremental workflow to make the calculator materially more accurate</h2>
+    <div class="svg-box">
+      <svg viewBox="0 0 1180 290" width="100%" role="img" aria-label="Recommended remediation workflow">
+        <defs>
+          <marker id="arrow2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L9,3 z" fill="#b8d1ff"></path>
+          </marker>
+        </defs>
+        <rect x="20" y="90" width="180" height="90" rx="16" fill="#381822" stroke="#ff5d73"/>
+        <text x="45" y="120" fill="#fff" font-size="18" font-weight="700">1. Fix critical cashflow</text>
+        <text x="45" y="145" fill="#ffd6dc" font-size="13">Pension / withdrawal /</text>
+        <text x="45" y="162" fill="#ffd6dc" font-size="13">investment-income bugs</text>
+
+        <rect x="240" y="90" width="180" height="90" rx="16" fill="#3a2715" stroke="#ffb020"/>
+        <text x="265" y="120" fill="#fff" font-size="18" font-weight="700">2. Unify policy data</text>
+        <text x="265" y="145" fill="#ffe0b2" font-size="13">One source for pension,</text>
+        <text x="265" y="162" fill="#ffe0b2" font-size="13">caps, tax, deeming</text>
+
+        <rect x="460" y="90" width="180" height="90" rx="16" fill="#17332a" stroke="#2fbf71"/>
+        <text x="485" y="120" fill="#fff" font-size="18" font-weight="700">3. Make A the core</text>
+        <text x="485" y="145" fill="#bfead0" font-size="13">Reuse Pipeline A rules</text>
+        <text x="485" y="162" fill="#bfead0" font-size="13">across all views</text>
+
+        <rect x="680" y="90" width="180" height="90" rx="16" fill="#182248" stroke="#53a8ff"/>
+        <text x="705" y="120" fill="#fff" font-size="18" font-weight="700">4. Add missing fields</text>
+        <text x="705" y="145" fill="#cde6ff" font-size="13">DOB, expenses, cost base,</text>
+        <text x="705" y="162" fill="#cde6ff" font-size="13">carry-forward caps</text>
+
+        <rect x="900" y="90" width="240" height="90" rx="16" fill="#27182f" stroke="#9b6cff"/>
+        <text x="925" y="120" fill="#fff" font-size="18" font-weight="700">5. Recalibrate outcomes</text>
+        <text x="925" y="145" fill="#eadbff" font-size="13">Cross-check against official</text>
+        <text x="925" y="162" fill="#eadbff" font-size="13">ATO / Services Australia examples</text>
+
+        <line x1="200" y1="135" x2="240" y2="135" stroke="#b8d1ff" stroke-width="4" marker-end="url(#arrow2)"/>
+        <line x1="420" y1="135" x2="460" y2="135" stroke="#b8d1ff" stroke-width="4" marker-end="url(#arrow2)"/>
+        <line x1="640" y1="135" x2="680" y2="135" stroke="#b8d1ff" stroke-width="4" marker-end="url(#arrow2)"/>
+        <line x1="860" y1="135" x2="900" y2="135" stroke="#b8d1ff" stroke-width="4" marker-end="url(#arrow2)"/>
+      </svg>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="kicker">Phase 1 — immediate fixes</div>
+        <ol class="section-list">
+          <li>Fix Pipeline B pension means testing: remove actual super withdrawals from assessable income; apply deeming instead.</li>
+          <li>Subtract pension before calculating super withdrawal need.</li>
+          <li>Restore retirement investment income on non-super assets.</li>
+          <li>Apply partner contributions tax and Division 293 consistently.</li>
+          <li>Update stale pension thresholds in <code>simulation_engine/pension_engine.js</code>.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <div class="kicker">Phase 2 — structural fixes</div>
+        <ol class="section-list">
+          <li>Create a single versioned policy layer for pension, tax, caps, deeming, and drawdowns.</li>
+          <li>Refactor Pipeline B and Pipeline C to consume the same policy/rules layer as Pipeline A.</li>
+          <li>Replace heuristic expense inference with explicit household budget inputs.</li>
+          <li>Align all Age Pension calculations on one means-test engine.</li>
+          <li>Disclose which engine each tab is using until unification is complete.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <div class="kicker">Phase 3 — prediction quality upgrades</div>
+        <ol class="section-list">
+          <li>Use year-by-year return sequences everywhere Monte Carlo is offered.</li>
+          <li>Add ABS life-table mode or confidence-age mode for longevity.</li>
+          <li>Add property cost-base inputs and tax-aware sale proceeds.</li>
+          <li>Model carry-forward concessional caps and NCC bring-forward rules.</li>
+          <li>Index pension settings over time rather than freezing them.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <div class="kicker">Phase 4 — validation workflow</div>
+        <ol class="section-list">
+          <li>Create golden test cases from official ATO and Services Australia examples.</li>
+          <li>Test single, couple, one-partner-eligible, homeowner, renter, downsizer, and trust scenarios.</li>
+          <li>Test high-income Division 293 and low-income LISTO/co-contribution cases.</li>
+          <li>Compare deterministic output vs Monte Carlo medians for consistency.</li>
+          <li>Refresh legal thresholds on a versioned release schedule.</li>
+        </ol>
+      </div>
+    </div>
+
+    <h2>6. Practical improvement plan for final retirement outcomes</h2>
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="kicker">What to keep</div>
+        <ul class="section-list">
+          <li>Main pipeline tax framework.</li>
+          <li>Enhanced Monte Carlo design in <code>enhanced-monte-carlo.js</code>.</li>
+          <li>Trust, property, franking, and contribution logic in the main simulator.</li>
+          <li>Broad advanced form coverage.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="kicker">What to retire or merge</div>
+        <ul class="section-list">
+          <li>Standalone pension thresholds in <code>simulation_engine/pension_engine.js</code>.</li>
+          <li>Standalone rule set in <code>advanced-design-engine.js</code>.</li>
+          <li>Any tab that silently uses a different pension or tax model than the main result.</li>
+          <li>Heuristic-only spending proxies where a real input can be collected.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>7. Supporting evidence and references</h2>
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="kicker">Code references</div>
+        <ul class="section-list">
+          <li><code>src/js/app.js:578-832</code> — advanced form input collection.</li>
+          <li><code>src/js/app.js:1031-1133</code> — main calculator execution.</li>
+          <li><code>src/js/app.js:5829-5921</code> — enhanced Monte Carlo entry point.</li>
+          <li><code>src/js/app.js:6437-6548</code> — life simulation tab entry point.</li>
+          <li><code>src/js/simulator.js:722-1524</code> — main deterministic projection engine.</li>
+          <li><code>src/js/enhanced-monte-carlo.js</code> — strongest stochastic engine in the repo.</li>
+          <li><code>src/js/simulation_engine/life_simulation_engine.js</code> — main source of critical calculation drift.</li>
+          <li><code>src/js/simulation_engine/pension_engine.js:12-36</code> — stale thresholds.</li>
+          <li><code>src/assumptions.html:67-118</code> — outdated published assumptions.</li>
+          <li><code>src/advanced.html:2543-2545</code> — tooltip incorrectly says PPOR is only partially exempt from the Age Pension assets test.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="kicker">Australian rules research sources</div>
+        <ul class="section-list">
+          <li><a href="https://www.servicesaustralia.gov.au/age-pension" target="_blank" rel="noopener">Services Australia — Age Pension</a></li>
+          <li><a href="https://www.servicesaustralia.gov.au/assets-test-for-age-pension?context=22526" target="_blank" rel="noopener">Services Australia — Assets test</a></li>
+          <li><a href="https://www.servicesaustralia.gov.au/income-test-for-age-pension?context=22526" target="_blank" rel="noopener">Services Australia — Income test</a></li>
+          <li><a href="https://www.servicesaustralia.gov.au/deeming?context=22526" target="_blank" rel="noopener">Services Australia — Deeming</a></li>
+          <li><a href="https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super" target="_blank" rel="noopener">ATO — Superannuation</a></li>
+          <li><a href="https://www.ato.gov.au/tax-rates-and-codes/tax-rates-australian-residents" target="_blank" rel="noopener">ATO — Resident tax rates</a></li>
+          <li><a href="https://moneysmart.gov.au/retirement-income/superannuation" target="_blank" rel="noopener">ASIC MoneySmart — Retirement and super</a></li>
+          <li><a href="https://www.superguide.com.au/in-retirement/current-age-pension-age" target="_blank" rel="noopener">SuperGuide — Current Age Pension age</a></li>
+          <li><a href="https://www.superguide.com.au/in-retirement/age-pension-asset-test-thresholds" target="_blank" rel="noopener">SuperGuide — Age Pension asset thresholds</a></li>
+          <li><a href="https://www.superguide.com.au/in-retirement/age-pension-income-test-thresholds" target="_blank" rel="noopener">SuperGuide — Age Pension income thresholds</a></li>
+          <li><a href="https://www.superguide.com.au/superannuation/preservation-age" target="_blank" rel="noopener">SuperGuide — Preservation age</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      This report is an engineering and policy-alignment audit, not personal financial advice. The strongest near-term fix is to
+      make <strong>one rules engine</strong> the source of truth for pension, tax, super, and Monte Carlo assumptions, then force
+      every advanced tab to consume it.
+    </div>
+  </div>
+</body>
+</html>

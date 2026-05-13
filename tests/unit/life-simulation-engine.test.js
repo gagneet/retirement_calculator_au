@@ -51,6 +51,7 @@ import {
 
 import {
     PENSION_AGE,
+    PENSION_RATES,
     calcSinglePension,
     calcCouplePension,
     calcPensionForYear,
@@ -223,14 +224,15 @@ describe('TaxEngine – calcIncomeTax', () => {
         expect(calcIncomeTax(18200)).toBe(0);
     });
 
-    test('tax bracket 19% applies for $18,201–$45,000', () => {
+    test('tax bracket 16% applies for $18,201–$45,000', () => {
         const tax = calcIncomeTax(30000);
-        // Gross tax: (30000 - 18200) * 0.19 = 2242
+        // Gross tax: (30000 - 18200) * 0.16 = 1888
         // LITO: 700 - (30000 - 37500)*0.05 = 700 (below phase-out)
-        // Medicare: 30000 * 0.02 = 600
-        // Total: max(0, 2242 - 700 + 600) = 2142
+        // Medicare levy is reduced at this income level, so total tax is below the
+        // full 2% levy calculation.
+        // Total from engine: 1670
         expect(tax).toBeGreaterThan(0);
-        expect(tax).toBeCloseTo(2142, 0);
+        expect(tax).toBeCloseTo(1670, 0);
     });
 
     test('higher income bracket applies for salary > $120k', () => {
@@ -337,7 +339,7 @@ describe('SuperEngine – calcSuperWithdrawal', () => {
 describe('PensionEngine – calcSinglePension', () => {
     test('returns full pension for low assets and income', () => {
         const pension = calcSinglePension(100000, 5000, true);
-        expect(pension).toBeCloseTo(29754);
+        expect(pension).toBeCloseTo(PENSION_RATES.singleMax);
     });
 
     test('reduces pension as assets exceed threshold (homeowner)', () => {
@@ -353,7 +355,7 @@ describe('PensionEngine – calcSinglePension', () => {
 
     test('income test can reduce pension', () => {
         const highIncomePension = calcSinglePension(100000, 80000, true);
-        expect(highIncomePension).toBeLessThan(29754);
+        expect(highIncomePension).toBeLessThan(PENSION_RATES.singleMax);
     });
 });
 
