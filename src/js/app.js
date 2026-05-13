@@ -1382,6 +1382,8 @@ class RetirementCalculatorApp {
 
         const retirementAge = inputs.retirementAge || 65;
 
+        this.updateCurrentRetirementIncomePanel(result, inputs);
+
         result.yearlyData.slice(0, 30).forEach(data => {
             if (data.depleted) {
                 projectionTable.innerHTML += `
@@ -1423,6 +1425,220 @@ class RetirementCalculatorApp {
                 </tr>
             `;
         });
+    }
+
+    // Populate the Moneysmart-style "Your current retirement income" headline
+    // panel above the year-by-year table.
+    updateCurrentRetirementIncomePanel(result, inputs) {
+        const amountEl = $('currentRetirementIncomeAmount');
+        if (!amountEl) return;
+
+        const retirementAge = inputs.retirementAge || 65;
+        const firstRetirementYear = (result.yearlyData || []).find(d => !d.depleted && (d.age >= retirementAge || d.yourAge >= retirementAge));
+        if (!firstRetirementYear) {
+            amountEl.textContent = '$0';
+            const note = $('currentRetirementIncomeNote');
+            if (note) note.textContent = 'Run a calculation to see your projected income at retirement.';
+            return;
+        }
+
+        const withdrawal = firstRetirementYear.withdrawal || 0;
+        const pension = firstRetirementYear.pensionIncome || 0;
+        const propertyIncome = firstRetirementYear.propertyIncome || 0;
+        const totalAnnual = withdrawal + pension + propertyIncome;
+
+        // yearlyData[*].year is an absolute calendar year (simulator.js:1510 sets it to
+        // `new Date().getFullYear() + retirementYear`). Convert to "years from now" for
+        // inflation discounting, otherwise we'd divide by (1+i)^2036 ≈ infinity.
+        const currentCalendarYear = new Date().getFullYear();
+        const yearsAhead = Math.max(0, (firstRetirementYear.year || currentCalendarYear) - currentCalendarYear);
+        const inflation = inputs.inflation || 0;
+        const discount = (value) =>
+            inflation > 0 && yearsAhead > 0
+                ? value / Math.pow(1 + inflation, yearsAhead)
+                : value;
+
+        const todayDollars = discount(totalAnnual);
+        amountEl.textContent = formatCurrency(Math.round(todayDollars));
+
+        const setText = (id, value) => {
+            const el = $(id);
+            if (el) el.textContent = formatCurrency(Math.round(discount(value)));
+        };
+        setText('retirementIncomeSuper', withdrawal);
+        setText('retirementIncomePension', pension);
+        setText('retirementIncomeProperty', propertyIncome);
+
+        const asfaTarget = inputs.asfaComfortable || 0;
+        const vsAsfaEl = $('retirementIncomeVsAsfa');
+        if (vsAsfaEl) {
+            if (asfaTarget > 0) {
+                const ratio = todayDollars / asfaTarget;
+                const pct = Math.round(ratio * 100);
+                const colour = ratio >= 1 ? '#047857' : ratio >= 0.85 ? '#b45309' : '#b91c1c';
+                vsAsfaEl.textContent = `${pct}% of ${formatCurrency(asfaTarget)}`;
+                vsAsfaEl.style.color = colour;
+            } else {
+                vsAsfaEl.textContent = '—';
+                vsAsfaEl.style.color = '';
+            }
+        }
+
+        const note = $('currentRetirementIncomeNote');
+        if (note) {
+            note.textContent = `Estimated annual income at retirement (age ${retirementAge}), in today's dollars after ${yearsAhead} year${yearsAhead === 1 ? '' : 's'} of inflation. Sources: super drawdown + age pension + property income.`;
+        }
+
+        this.renderRetirementIncomeCharts(result, inputs, retirementAge);
+    }
+
+    renderRetirementIncomeCharts(result, inputs, retirementAge) {
+        if (typeof Chart === 'undefined') return;
+
+        const yearly = (result.yearlyData || []).filter(d => !d.depleted && (d.age >= retirementAge || d.yourAge >= retirementAge));
+        if (yearly.length === 0) return;
+
+        const inflation = inputs.inflation || 0;
+        const currentCalendarYear = new Date().getFullYear();
+        // simulator stores data.year as an absolute calendar year — convert to "years from now"
+        // before discounting, otherwise the inflation factor blows up to infinity.
+        const toToday = (value, calendarYear) => {
+            const yearOffset = Math.max(0, (calendarYear || currentCalendarYear) - currentCalendarYear);
+            return inflation > 0 && yearOffset > 0
+                ? value / Math.pow(1 + inflation, yearOffset)
+                : value;
+        };
+
+        // Cap the timeline so the chart stays readable (Moneysmart shows ~30y window)
+        const slice = yearly.slice(0, 35);
+        const ageLabels = slice.map(d => d.yourAge ?? d.age);
+        const superSeries = slice.map(d => Math.round(toToday(d.withdrawal || 0, d.year)));
+        const pensionSeries = slice.map(d => Math.round(toToday(d.pensionIncome || 0, d.year)));
+        const propertySeries = slice.map(d => Math.round(toToday(d.propertyIncome || 0, d.year)));
+
+        const timelineCtx = document.getElementById('retirementIncomeTimelineChart');
+        if (timelineCtx) {
+            if (this._retirementIncomeTimelineChart) this._retirementIncomeTimelineChart.destroy();
+            this._retirementIncomeTimelineChart = new Chart(timelineCtx, {
+                type: 'line',
+                data: {
+                    labels: ageLabels,
+                    datasets: [
+                        {
+                            label: 'Super drawdown',
+                            data: superSeries,
+                            backgroundColor: 'rgba(79,70,229,0.55)',
+                            borderColor: '#4f46e5',
+                            borderWidth: 1,
+                            fill: true,
+                            tension: 0.25,
+                            pointRadius: 0,
+                        },
+                        {
+                            label: 'Age pension',
+                            data: pensionSeries,
+                            backgroundColor: 'rgba(16,185,129,0.55)',
+                            borderColor: '#10b981',
+                            borderWidth: 1,
+                            fill: true,
+                            tension: 0.25,
+                            pointRadius: 0,
+                        },
+                        {
+                            label: 'Property income',
+                            data: propertySeries,
+                            backgroundColor: 'rgba(245,158,11,0.55)',
+                            borderColor: '#f59e0b',
+                            borderWidth: 1,
+                            fill: true,
+                            tension: 0.25,
+                            pointRadius: 0,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`,
+                                footer: items => {
+                                    const total = items.reduce((sum, i) => sum + (i.parsed.y || 0), 0);
+                                    return `Total: ${formatCurrency(total)}`;
+                                },
+                            },
+                        },
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Age', font: { size: 11 } }, stacked: true },
+                        y: {
+                            title: { display: true, text: "Annual income (today's $)", font: { size: 11 } },
+                            stacked: true,
+                            ticks: { callback: v => `$${(v / 1000).toFixed(0)}k` },
+                        },
+                    },
+                },
+            });
+        }
+
+        // Charts created while the projection tab is hidden render at 0x0. Re-run
+        // .resize() whenever the tab becomes visible so the canvas picks up real
+        // dimensions. Hook is attached once and listens for clicks on the tab button.
+        if (!this._retirementIncomeChartsTabHookAttached) {
+            const tabBtn = document.querySelector('.tab-button[onclick="showTab(\'projection\')"]');
+            if (tabBtn) {
+                tabBtn.addEventListener('click', () => {
+                    requestAnimationFrame(() => {
+                        if (this._retirementIncomeTimelineChart) this._retirementIncomeTimelineChart.resize();
+                        if (this._retirementIncomeBreakdownChart) this._retirementIncomeBreakdownChart.resize();
+                    });
+                });
+                this._retirementIncomeChartsTabHookAttached = true;
+            }
+        }
+
+        // Doughnut: first-retirement-year mix (today's dollars)
+        const firstYear = slice[0];
+        const firstSuper = Math.round(toToday(firstYear.withdrawal || 0, firstYear.year));
+        const firstPension = Math.round(toToday(firstYear.pensionIncome || 0, firstYear.year));
+        const firstProperty = Math.round(toToday(firstYear.propertyIncome || 0, firstYear.year));
+
+        const doughnutCtx = document.getElementById('retirementIncomeBreakdownChart');
+        if (doughnutCtx) {
+            if (this._retirementIncomeBreakdownChart) this._retirementIncomeBreakdownChart.destroy();
+            this._retirementIncomeBreakdownChart = new Chart(doughnutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Super drawdown', 'Age pension', 'Property income'],
+                    datasets: [{
+                        data: [firstSuper, firstPension, firstProperty],
+                        backgroundColor: ['#4f46e5', '#10b981', '#f59e0b'],
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => {
+                                    const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                    const pct = total > 0 ? Math.round((ctx.parsed / total) * 100) : 0;
+                                    return ` ${ctx.label}: ${formatCurrency(ctx.parsed)} (${pct}%)`;
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        }
     }
 
     // Display property analysis
