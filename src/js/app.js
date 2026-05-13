@@ -1036,6 +1036,13 @@ class RetirementCalculatorApp {
             errors.push(`Asset allocation sums to ${Math.round(allocSum * 100)}% — must equal 100%.`);
         }
 
+        if (inputs.investmentPropertyPurchaseYear) {
+            const currentYear = new Date().getFullYear();
+            if (inputs.investmentPropertyPurchaseYear < 1900 || inputs.investmentPropertyPurchaseYear > currentYear + 1) {
+                errors.push(`Investment property purchase year must be between 1900 and ${currentYear + 1}.`);
+            }
+        }
+
         // Salary must be positive to run a meaningful calculation
         if ((inputs.yourSalary || 0) <= 0 && (inputs.yourCurrentSuper || 0) <= 0 && (inputs.currentSavings || 0) <= 0) {
             errors.push('Please enter at least a salary, super balance, or savings amount to calculate.');
@@ -4552,9 +4559,13 @@ class RetirementCalculatorApp {
             'currentSavings': 'currentSavings',
             'currentStocks': 'currentStocks',
             'monthlyStockContribution': 'monthlyStockContribution',
+            'useDetailedExpenseInputs': 'useDetailedExpenseInputs',
+            'currentMonthlyHousingCosts': 'currentMonthlyHousingCosts',
+            'currentMonthlyLivingCosts': 'currentMonthlyLivingCosts',
             'percentIncomeSaved': 'percentIncomeSaved',
             'salaryGrowthRate': 'salaryGrowthRate',
             'additionalSuperContributions': 'additionalSuperContributions',
+            'employerSuperContributionRate': 'employerSuperContributionRate',
 
             // Property fields
             'homeValue': 'homeValue',
@@ -4566,11 +4577,14 @@ class RetirementCalculatorApp {
             'investmentPropertyValue': 'investmentPropertyValue',
             'investmentPropertyLoan': 'investmentPropertyLoan',
             'investmentPropertyRate': 'investmentPropertyRate',
+            'investmentPropertyPurchasePrice': 'investmentPropertyPurchasePrice',
+            'investmentPropertyPurchaseYear': 'investmentPropertyPurchaseYear',
             'weeklyRentalIncome': 'weeklyRentalIncome',
             'annualPropertyExpenses': 'annualPropertyExpenses',
             'propertyGrowthRate': 'propertyGrowthRate',
             'sellPropertyYears': 'sellPropertyYears',
             'capitalGainsTaxRate': 'capitalGainsTaxRate',
+            'carLoanRate': 'carLoanRate',
 
             // Investment fields
             'australianEquityAllocation': 'australianEquityAllocation',
