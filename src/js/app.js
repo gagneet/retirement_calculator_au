@@ -828,7 +828,7 @@ class RetirementCalculatorApp {
 
         // 4C: Validate asset allocation sums to 100%
         const allocSum = (inputs.allocEquities + inputs.allocBonds + inputs.allocCash) * 100;
-        if (Math.abs(allocSum - 100) > 1) {
+        if (allocSum > 0 && Math.abs(allocSum - 100) > 1) {
             showNotification(
                 `Asset allocation sums to ${allocSum.toFixed(1)}% (should be 100%). Normalising proportionally.`,
                 'warning'
@@ -1163,6 +1163,16 @@ class RetirementCalculatorApp {
         } finally {
             this.isCalculating = false;
         }
+    }
+
+    attemptAutoCalculation() {
+        const inputs = this.collectInputs();
+        if (this.validateInputs(inputs).length > 0) {
+            return false;
+        }
+
+        this.calculateRetirement(false);
+        return true;
     }
 
     getInflationFactor(years, inflationRate) {
@@ -7986,7 +7996,7 @@ class RetirementCalculatorApp {
         if (hasInvestmentProperty) {
             hasInvestmentProperty.addEventListener('change', () => {
                 // Recalculate when property status changes (don't scroll for auto-updates)
-                setTimeout(() => this.calculateRetirement(false), 100);
+                setTimeout(() => this.attemptAutoCalculation(), 100);
             });
         }
 
@@ -8099,7 +8109,7 @@ class RetirementCalculatorApp {
                 const eventType = input.type === 'checkbox' ? 'change' : 'blur';
                 input.addEventListener(eventType, debounce(() => {
                     // Auto-calculations from input changes don't scroll
-                    this.calculateRetirement(false);
+                    this.attemptAutoCalculation();
                 }, 1000));
             }
         });

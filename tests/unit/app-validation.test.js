@@ -65,6 +65,18 @@ describe('lifespan validation', () => {
     });
 });
 
+describe('auto calculation gating', () => {
+    test('skips automatic recalculation when validation fails', () => {
+        const app = Object.create(RetirementCalculatorApp.prototype);
+        app.collectInputs = jest.fn(() => ({ yourCurrentAge: 45 }));
+        app.validateInputs = jest.fn(() => ['missing required inputs']);
+        app.calculateRetirement = jest.fn();
+
+        expect(app.attemptAutoCalculation()).toBe(false);
+        expect(app.calculateRetirement).not.toHaveBeenCalled();
+    });
+});
+
 describe('depletion summary rendering', () => {
     test('uses open-ended wording and shows depletion age when run-until-depletion mode is used', () => {
         document.body.innerHTML = `
