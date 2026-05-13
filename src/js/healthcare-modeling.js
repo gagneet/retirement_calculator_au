@@ -168,11 +168,12 @@ export class HealthcareModelingEngine {
     validateHealthcareInputs(inputs) {
         const errors = [];
         const warnings = [];
+        const hasOpenEndedLifespan = inputs.yourLifespan === 0;
 
         if (!inputs.yourCurrentAge || inputs.yourCurrentAge <= 0) {
             errors.push("Current age must be a positive number.");
         }
-        if (!inputs.yourLifespan || inputs.yourLifespan <= inputs.yourCurrentAge) {
+        if (!hasOpenEndedLifespan && (!inputs.yourLifespan || inputs.yourLifespan <= inputs.yourCurrentAge)) {
             errors.push("Expected lifespan must be greater than current age.");
         }
         if (inputs.agedCareStartAge < inputs.retirementAge) {
@@ -195,6 +196,45 @@ export class HealthcareModelingEngine {
             errors,
             warnings
         };
+    }
+
+    getProjectionEndAge(inputs) {
+        const primaryExplicitLifespan = inputs.yourLifespan > inputs.yourCurrentAge ? inputs.yourLifespan : 0;
+        const partnerCurrentAge = inputs.partnerCurrentAge || 0;
+        const partnerExplicitLifespan = inputs.partnerLifespan > partnerCurrentAge ? inputs.partnerLifespan : 0;
+        const agedCareEndAge = (inputs.agedCareStartAge || 0) + Math.max(inputs.agedCareDuration || 0, 3);
+        const retirementHorizon = Math.max(inputs.retirementAge || 0, inputs.yourCurrentAge || 0) + 20;
+        const openEndedHorizon = Math.max(inputs.yourCurrentAge || 0, partnerCurrentAge) + 25;
+
+        return Math.max(
+            primaryExplicitLifespan,
+            partnerExplicitLifespan,
+            agedCareEndAge,
+            retirementHorizon,
+            openEndedHorizon
+        );
+    }
+
+    getHealthcareInflationRate(baseRate, inputs) {
+        const inputRate = Number.isFinite(inputs.healthcareInflation) ? inputs.healthcareInflation : null;
+        if (inputRate === null) {
+            return baseRate;
+        }
+
+        const configuredBase = this.healthcareCosts.inflationRates.generalHealthcare;
+        return Math.max(0, baseRate + (inputRate - configuredBase));
+    }
+
+    getBaseOutOfPocketTotal(baseCosts) {
+        const componentTotal = [
+            baseCosts.gp,
+            baseCosts.specialist,
+            baseCosts.dental,
+            baseCosts.allied,
+            baseCosts.pharmaceuticals
+        ].reduce((sum, cost) => sum + cost, 0);
+
+        return baseCosts.annual || componentTotal;
     }
 
     // Calculate comprehensive healthcare cost projections for retirement
@@ -229,7 +269,7 @@ export class HealthcareModelingEngine {
         };
 
         const startAge = inputs.yourCurrentAge;
-        const endAge = Math.max(inputs.yourLifespan, inputs.partnerLifespan);
+        const endAge = this.getProjectionEndAge(inputs);
         const retirementAge = inputs.retirementAge;
 
         // Calculate yearly healthcare costs
@@ -267,7 +307,11 @@ export class HealthcareModelingEngine {
         }
 
         // Apply inflation from current year
-        const inflatedCosts = this.applyHealthcareInflation(baseCosts, yearsFromNow);
+        const inflatedCosts = this.applyHealthcareInflation(baseCosts, yearsFromNow, inputs);
+        const baselineOutOfPocket = this.getBaseOutOfPocketTotal(baseCosts);
+        const outOfPocketScale = baselineOutOfPocket > 0 && inputs.currentHealthcareCosts > 0
+            ? inputs.currentHealthcareCosts / baselineOutOfPocket
+            : 1;
 
         // Calculate private health insurance costs if applicable
         let insuranceCost = 0;
@@ -276,7 +320,11 @@ export class HealthcareModelingEngine {
             const coverType = inputs.isSingleCalculation ? 'single' : 'couple';
 
             insuranceCost = this.healthcareCosts.privateHealthInsurance[coverType][insuranceLevel];
-            insuranceCost = this.applyInflation(insuranceCost, this.healthcareCosts.inflationRates.privateInsurance, yearsFromNow);
+            insuranceCost = this.applyInflation(
+                insuranceCost,
+                this.getHealthcareInflationRate(this.healthcareCosts.inflationRates.privateInsurance, inputs),
+                yearsFromNow
+            );
         }
 
         // Health condition adjustments
@@ -285,19 +333,20 @@ export class HealthcareModelingEngine {
             conditionMultiplier = this.calculateConditionMultiplier(inputs.healthConditions, age);
         }
 
-        const totalOutOfPocket = Object.values(inflatedCosts).reduce((sum, cost) => sum + cost, 0) * conditionMultiplier;
+        const outOfPocketCosts = {
+            gp: inflatedCosts.gp * outOfPocketScale * conditionMultiplier,
+            specialist: inflatedCosts.specialist * outOfPocketScale * conditionMultiplier,
+            dental: inflatedCosts.dental * outOfPocketScale,
+            allied: inflatedCosts.allied * outOfPocketScale * conditionMultiplier,
+            pharmaceuticals: inflatedCosts.pharmaceuticals * outOfPocketScale * conditionMultiplier
+        };
+        const totalOutOfPocket = Object.values(outOfPocketCosts).reduce((sum, cost) => sum + cost, 0);
 
         return {
             age,
             year: 2024 + yearsFromNow,
             isRetired,
-            outOfPocketCosts: {
-                gp: inflatedCosts.gp * conditionMultiplier,
-                specialist: inflatedCosts.specialist * conditionMultiplier,
-                dental: inflatedCosts.dental,
-                allied: inflatedCosts.allied * conditionMultiplier,
-                pharmaceuticals: inflatedCosts.pharmaceuticals * conditionMultiplier
-            },
+            outOfPocketCosts,
             privateHealthInsurance: insuranceCost,
             totalCost: totalOutOfPocket + insuranceCost,
             inflationAdjustment: yearsFromNow
@@ -305,15 +354,34 @@ export class HealthcareModelingEngine {
     }
 
     // Apply healthcare-specific inflation rates
-    applyHealthcareInflation(baseCosts, years) {
+    applyHealthcareInflation(baseCosts, years, inputs) {
         const inflatedCosts = {};
 
-        inflatedCosts.annual = this.applyInflation(baseCosts.annual, this.healthcareCosts.inflationRates.generalHealthcare, years);
-        inflatedCosts.gp = this.applyInflation(baseCosts.gp, this.healthcareCosts.inflationRates.medicalServices, years);
-        inflatedCosts.specialist = this.applyInflation(baseCosts.specialist, this.healthcareCosts.inflationRates.medicalServices, years);
-        inflatedCosts.dental = this.applyInflation(baseCosts.dental, this.healthcareCosts.inflationRates.dental, years);
-        inflatedCosts.allied = this.applyInflation(baseCosts.allied, this.healthcareCosts.inflationRates.allied, years);
-        inflatedCosts.pharmaceuticals = this.applyInflation(baseCosts.pharmaceuticals, this.healthcareCosts.inflationRates.pharmaceuticals, years);
+        inflatedCosts.gp = this.applyInflation(
+            baseCosts.gp,
+            this.getHealthcareInflationRate(this.healthcareCosts.inflationRates.medicalServices, inputs),
+            years
+        );
+        inflatedCosts.specialist = this.applyInflation(
+            baseCosts.specialist,
+            this.getHealthcareInflationRate(this.healthcareCosts.inflationRates.medicalServices, inputs),
+            years
+        );
+        inflatedCosts.dental = this.applyInflation(
+            baseCosts.dental,
+            this.getHealthcareInflationRate(this.healthcareCosts.inflationRates.dental, inputs),
+            years
+        );
+        inflatedCosts.allied = this.applyInflation(
+            baseCosts.allied,
+            this.getHealthcareInflationRate(this.healthcareCosts.inflationRates.allied, inputs),
+            years
+        );
+        inflatedCosts.pharmaceuticals = this.applyInflation(
+            baseCosts.pharmaceuticals,
+            this.getHealthcareInflationRate(this.healthcareCosts.inflationRates.pharmaceuticals, inputs),
+            years
+        );
 
         return inflatedCosts;
     }
@@ -406,7 +474,11 @@ export class HealthcareModelingEngine {
             if (stage.age <= endAge) {
                 const yearsFromNow = stage.age - inputs.yourCurrentAge;
                 const levelCost = this.agedCareCosts.homeCare[`level${stage.level}`];
-                const inflatedCost = this.applyInflation(levelCost, this.healthcareCosts.inflationRates.agedCare, yearsFromNow);
+                const inflatedCost = this.applyInflation(
+                    levelCost,
+                    this.getHealthcareInflationRate(this.healthcareCosts.inflationRates.agedCare, inputs),
+                    yearsFromNow
+                );
                 totalCost += inflatedCost * stage.duration;
             }
         }
@@ -443,14 +515,18 @@ export class HealthcareModelingEngine {
         // Accommodation costs (RAD or DAP)
         const averageRAD = this.applyInflation(
             this.agedCareCosts.accommodation.averageRAD,
-            this.healthcareCosts.inflationRates.agedCare,
+            this.getHealthcareInflationRate(this.healthcareCosts.inflationRates.agedCare, inputs),
             yearsFromNow
         );
 
         // Daily care fees
         const dailyFees = this.agedCareCosts.residentialCare.basicDailyFee +
             (this.agedCareCosts.residentialCare.maximumMeansTestedFee * 0.5); // Assume 50% means tested fee
-        const inflatedDailyFees = this.applyInflation(dailyFees, this.healthcareCosts.inflationRates.agedCare, yearsFromNow);
+        const inflatedDailyFees = this.applyInflation(
+            dailyFees,
+            this.getHealthcareInflationRate(this.healthcareCosts.inflationRates.agedCare, inputs),
+            yearsFromNow
+        );
         const totalDailyFeeCost = inflatedDailyFees * 365 * averageDuration;
 
         const totalCost = averageRAD + totalDailyFeeCost;
@@ -493,6 +569,13 @@ export class HealthcareModelingEngine {
     // Interpolate probability for a given age
     interpolateProbability(probabilities, age) {
         const ages = Object.keys(probabilities).map(Number).sort((a, b) => a - b);
+
+        if (age <= ages[0]) {
+            return probabilities[ages[0]];
+        }
+        if (age >= ages[ages.length - 1]) {
+            return probabilities[ages[ages.length - 1]];
+        }
 
         // Find surrounding ages
         let lowerAge = ages[0];
@@ -652,12 +735,17 @@ export class HealthcareModelingEngine {
     // Generate healthcare cost summary for display
     generateHealthcareSummary(inputs) {
         const projections = this.calculateHealthcareCostProjection(inputs);
+        const agedCareProjections = projections.agedCareProjections || {
+            probabilityOfNeed: 0,
+            totalExpectedCost: 0
+        };
+        const projectionYears = Math.max(1, projections.yearlyProjections.length);
 
         return {
             totalLifetimeCost: projections.totalLifetimeCost,
-            averageAnnualCost: projections.totalLifetimeCost / Math.max(1, inputs.yourLifespan - inputs.yourCurrentAge),
-            agedCareProbability: projections.agedCareProjections.probabilityOfNeed,
-            agedCareExpectedCost: projections.agedCareProjections.totalExpectedCost,
+            averageAnnualCost: projections.totalLifetimeCost / projectionYears,
+            agedCareProbability: agedCareProjections.probabilityOfNeed,
+            agedCareExpectedCost: agedCareProjections.totalExpectedCost,
             majorRisks: projections.riskFactors.filter(r => r.severity === 'high'),
             topRecommendations: projections.recommendations.slice(0, 3),
             yearlyBreakdown: projections.yearlyProjections
@@ -667,22 +755,25 @@ export class HealthcareModelingEngine {
     // Monte Carlo simulation for healthcare costs
     simulateHealthcareCosts(inputs, iterations = 1000) {
         const outcomes = [];
+        const projection = this.calculateHealthcareCostProjection(inputs);
+        const agedCareProbability = projection.agedCareProjections?.probabilityOfNeed || 0;
+        const agedCareExpectedCost = projection.agedCareProjections?.totalExpectedCost || 0;
+        const agedCareConditionalCost = agedCareProbability > 0
+            ? agedCareExpectedCost / agedCareProbability
+            : 0;
 
         for (let i = 0; i < iterations; i++) {
             let totalCost = 0;
 
-            // Add random variation to base projections
-            const projection = this.calculateHealthcareCostProjection(inputs);
-
             // Apply random factors
             const costVariation = randomNormal(1.0, 0.2); // 20% standard deviation
-            const agedCareOccurs = Math.random() < projection.agedCareProjections.probabilityOfNeed;
+            const agedCareOccurs = agedCareProbability > 0 && Math.random() < agedCareProbability;
 
             totalCost = projection.totalLifetimeCost * costVariation;
 
             if (agedCareOccurs) {
                 const agedCareVariation = randomNormal(1.0, 0.3); // Higher variation for aged care
-                totalCost += projection.agedCareProjections.totalExpectedCost * agedCareVariation;
+                totalCost += agedCareConditionalCost * agedCareVariation;
             }
 
             outcomes.push(Math.max(0, totalCost));
