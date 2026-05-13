@@ -111,6 +111,16 @@ export const formatCurrencyInput = (value) => {
     });
 };
 
+const getEditableCurrencyValue = (value) => {
+    const numericValue = String(value).replace(/[^\d.-]/g, '');
+
+    if (numericValue === '') return '';
+
+    // Strip trailing zero decimals so users can keep typing whole-dollar amounts
+    // without the cursor being pushed ahead of inserted ".00" formatting.
+    return numericValue.replace(/\.0+$/, '');
+};
+
 const formatPercentageInput = (value) => {
     const numericValue = String(value).replace(/[^\d.-]/g, '');
     const num = parseFloat(numericValue);
@@ -174,64 +184,31 @@ export const addCurrencyFormatting = (inputElement) => {
     // Mark this element as formatted
     inputElement.setAttribute('data-currency-formatted', 'true');
 
-    let isFormatting = false;
-
     const formatInput = () => {
-        if (isFormatting) return;
-        isFormatting = true;
-
-        const cursorPosition = inputElement.selectionStart;
         const originalValue = inputElement.value;
         const numericValue = parseFormattedNumber(originalValue);
 
         if (originalValue !== '' && !isNaN(numericValue)) {
-            const formattedValue = formatCurrencyInput(numericValue);
-            inputElement.value = formattedValue;
-
-            // Restore cursor position accounting for added commas and $ symbol
-            const originalLength = originalValue.length;
-            const newLength = formattedValue.length;
-            const lengthDiff = newLength - originalLength;
-            // Ensure cursor doesn't go before the $ symbol
-            const newCursorPosition = Math.max(1, Math.min(cursorPosition + lengthDiff, newLength));
-
-            inputElement.setSelectionRange(newCursorPosition, newCursorPosition);
+            inputElement.value = formatCurrencyInput(numericValue);
         }
-
-        isFormatting = false;
     };
 
-    // Format on blur (when user leaves the field)
+    const prepareForEditing = () => {
+        if (!inputElement.value.startsWith('$')) {
+            return;
+        }
+
+        inputElement.value = getEditableCurrencyValue(inputElement.value);
+    };
+
+    inputElement.addEventListener('focus', prepareForEditing);
     inputElement.addEventListener('blur', formatInput);
-
-    // Prevent cursor from going before $ symbol
-    inputElement.addEventListener('keydown', (e) => {
-        const cursorPosition = inputElement.selectionStart;
-        if ((e.key === 'Backspace' || e.key === 'Delete' || e.key === 'ArrowLeft') && cursorPosition <= 1) {
-            if (inputElement.value.startsWith('$')) {
-                e.preventDefault();
-                inputElement.setSelectionRange(1, 1);
-            }
-        }
-    });
-
-    // Handle click events to prevent cursor from going before $
-    inputElement.addEventListener('click', () => {
-        if (inputElement.selectionStart === 0 && inputElement.value.startsWith('$')) {
-            inputElement.setSelectionRange(1, 1);
-        }
-    });
-
-    // Format on input but debounced to prevent cursor jumping
-    let formatTimer;
-    inputElement.addEventListener('input', () => {
-        clearTimeout(formatTimer);
-        formatTimer = setTimeout(formatInput, 500); // Delay formatting during typing
-    });
 
     // Format on paste
     inputElement.addEventListener('paste', () => {
-        setTimeout(formatInput, 10);
+        if (document.activeElement !== inputElement) {
+            setTimeout(formatInput, 10);
+        }
     });
 
     // Format existing value on initialization
