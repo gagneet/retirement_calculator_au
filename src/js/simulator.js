@@ -14,6 +14,7 @@ import {
     calculateLoanBalance,
     calculatePropertyCashFlow,
     calculateCGT,
+    calculateCGTPost2027,
     calculateAgePension,
     calculateAgePensionForCouple,
     calculateDeemedIncome,
@@ -406,17 +407,21 @@ export class RetirementSimulator {
     }
 
     // Healthcare cost projection
+    // FIX Bug 4: healthcareInflation is already a decimal (e.g. 0.0382 for 3.82%);
+    // removed the extra /100 that was making it 100× too small.
     projectHealthcareCosts(currentCosts, years, healthcareInflation) {
-        return currentCosts * Math.pow(1 + healthcareInflation / 100, years);
+        return currentCosts * Math.pow(1 + healthcareInflation, years);
     }
 
     // Aged care cost calculation
     calculateAgedCareCosts(inputs) {
         const annualCost = inputs.agedCareAnnualCost;
         const yearsToAgedCare = inputs.agedCareStartAge - inputs.yourCurrentAge;
-        const inflatedCost = annualCost * Math.pow(1 + inputs.healthcareInflation / 100, yearsToAgedCare);
+        // FIX Bug 4: healthcareInflation already decimal — no /100 needed.
+        const inflatedCost = annualCost * Math.pow(1 + inputs.healthcareInflation, yearsToAgedCare);
         const totalCost = inflatedCost * inputs.agedCareDuration;
-        const probability = inputs.agedCareProbability / 100;
+        // FIX Bug 8: agedCareProbability is already decimal (e.g. 0.22 = 22%); remove /100.
+        const probability = inputs.agedCareProbability;
 
         return {
             annualCost: inflatedCost,
@@ -541,22 +546,62 @@ export class RetirementSimulator {
         const sellingCosts = saleValue * this.config.PROPERTY_COSTS.SELLING_COSTS_PERCENT;
 
         const propertyCostBase = inputs.investmentPropertyPurchasePrice || inputs.investmentPropertyValue;
-        const holdingPeriodYears = inputs.investmentPropertyPurchaseYear
-            ? Math.max(1, (new Date().getFullYear() + saleYear) - inputs.investmentPropertyPurchaseYear)
-            : Math.max(1, saleYear);
+        const purchaseCalendarYear = inputs.investmentPropertyPurchaseYear
+            ? inputs.investmentPropertyPurchaseYear
+            : new Date().getFullYear();
+        const saleCalendarYear = new Date().getFullYear() + saleYear;
+        const holdingPeriodYears = Math.max(1, saleCalendarYear - purchaseCalendarYear);
         const capitalGain = saleValue - propertyCostBase;
-        const effectiveCapitalGainsTaxRate = inputs.capitalGainsTaxRate > 1
+
+        // effectiveCGTRate: capitalGainsTaxRate is stored as the EFFECTIVE rate (marginal × 50% discount)
+        const effectiveCGTRate = inputs.capitalGainsTaxRate > 1
             ? inputs.capitalGainsTaxRate / 100
             : inputs.capitalGainsTaxRate;
-        const cgtPayable = calculateCGT(
-            saleValue,
-            propertyCostBase,
-            true, // Assume Australian resident
-            holdingPeriodYears,
-            effectiveCapitalGainsTaxRate
-        );
+
+        let cgtPayable;
+        let cgtMethod = 'pre-2027-50pct-discount';
+
+        if (saleCalendarYear > 2027 && (this.config.CGT_REFORM_START_YEAR || 2027)) {
+            // Budget 2026-27: CGT reform applies to gains after 1 July 2027.
+            // Derive the marginal rate by doubling the effective rate (reverse the 50% discount).
+            const marginalRate = Math.min(0.45, effectiveCGTRate * 2);
+            const isNewBuild = !!inputs.investmentPropertyIsNewBuild;
+            const inflation = inputs.inflation || 0.026;
+            const result = calculateCGTPost2027(
+                saleValue,
+                propertyCostBase,
+                purchaseCalendarYear,
+                saleCalendarYear,
+                marginalRate,
+                inflation,
+                isNewBuild
+            );
+            cgtPayable = result.cgt;
+            cgtMethod = result.method;
+        } else {
+            // Pre-reform: use effectiveCGTRate which already includes 50% discount
+            cgtPayable = calculateCGT(
+                saleValue,
+                propertyCostBase,
+                true, // Assume Australian resident
+                holdingPeriodYears,
+                effectiveCGTRate
+            );
+        }
 
         const netProceeds = saleValue - remainingLoan - sellingCosts - cgtPayable;
+
+        // Budget 2026-27 note: Negative gearing on established housing purchased after
+        // Budget night (13 May 2026) will be restricted to offset only property income,
+        // not wages, from 1 July 2027. New builds are exempt.
+        // The cash-flow model cannot precisely quantify this tax benefit loss without
+        // knowing the investor's marginal rate and other income.  We flag the restriction
+        // for informational purposes only — the simulation's netCashFlow already reflects
+        // the actual rental income/expenses without applying any wage-offset tax benefit.
+        // NOTE: the restriction applies to pre-sale holding years, not to CGT on sale.
+        const negGearingRestrictionNote = purchaseCalendarYear >= 2026
+            ? 'Budget 2026-27: Negative gearing on this property may be restricted to offsetting property income only (not wages). New builds are exempt from this restriction.'
+            : null;
 
         return {
             saleValue,
@@ -564,6 +609,8 @@ export class RetirementSimulator {
             sellingCosts,
             capitalGain,
             cgtPayable,
+            cgtMethod,
+            negGearingRestrictionNote,
             netProceeds,
             totalReturn: (capitalGain + netProceeds) / inputs.investmentPropertyValue
         };
@@ -572,14 +619,18 @@ export class RetirementSimulator {
     // Salary progression with lean years
     getSalaryForYear(baseSalary, year, inputs, isPartner = false) {
         const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
-        const realGrowthRate = inputs.salaryGrowthRate / 100;
+        // FIX Bug 2: inputs.salaryGrowthRate is already a decimal (e.g. 0.015 = 1.5%).
+        // The previous code divided by 100 again, making growth 100× too small.
+        const realGrowthRate = inputs.salaryGrowthRate;
         const inflationRate = inputs.inflation;
 
         let salary = baseSalary * Math.pow(1 + realGrowthRate + inflationRate, year);
 
         const leanYearsStartYear = yearsToRetirement - inputs.leanYearsStart;
         if (year >= leanYearsStartYear) {
-            salary *= (1 - inputs.leanYearsReduction / 100);
+            // FIX Bug 3: inputs.leanYearsReduction is already a decimal (e.g. 0.38 = 38%).
+            // The previous code divided by 100 again, making the reduction only 0.38%.
+            salary *= (1 - inputs.leanYearsReduction);
         }
 
         // Apply reduced income scenario if enabled.
@@ -630,7 +681,9 @@ export class RetirementSimulator {
     // Enhanced portfolio return calculation with market regimes
     getReturnForYear(baseReturn, year, declineRate) {
         const minReturn = this.config.SIMULATION?.MIN_ANNUAL_RETURN ?? 0.01;
-        return Math.max(minReturn, baseReturn - (declineRate / 100) * year);
+        // FIX Bug 6: declineRate (inputs.returnDeclineRate) is already a decimal
+        // (e.g. 0.0003 for 0.03% annual decline). The previous /100 made it 100× too small.
+        return Math.max(minReturn, baseReturn - declineRate * year);
     }
 
     // Regime-aware market return calculation
@@ -902,12 +955,20 @@ export class RetirementSimulator {
 
             // Year-specific tax rules:
             // • Tax brackets: 16% → 15% on $18,201–$45,000 from 1 July 2026 (FY 2026-27)
+            //                  15% → 14% on $18,201–$45,000 from 1 July 2027 (FY 2027-28) — Budget 2026-27
             // • LISTO: threshold $37k/$500 → $45k/$810 from 1 July 2027 (FY 2027-28)
+            // • WATO $250 offset applies from FY 2027-28 (projectionYear >= 2028) — Budget 2026-27
+            // • Instant $1,000 deduction from FY 2026-27 (projectionYear >= 2027) — Budget 2026-27
             // projectionYear maps simulation year to calendar year (e.g. year 1 in 2026 = calendar 2027)
             const projectionYear = new Date().getFullYear() + year;
-            const taxBrackets = projectionYear >= 2027
-                ? this.config.TAX_BRACKETS_2026_27
-                : this.config.TAX_BRACKETS;
+            let taxBrackets;
+            if (projectionYear >= 2028 && this.config.TAX_BRACKETS_2027_28) {
+                taxBrackets = this.config.TAX_BRACKETS_2027_28;   // 14% from 1 Jul 2027 (FY 2027-28)
+            } else if (projectionYear >= 2027 && this.config.TAX_BRACKETS_2026_27) {
+                taxBrackets = this.config.TAX_BRACKETS_2026_27;   // 15% from 1 Jul 2026 (FY 2026-27)
+            } else {
+                taxBrackets = this.config.TAX_BRACKETS;            // 16% (current)
+            }
             const listoThreshold = projectionYear >= 2028 ? 45000 : 37000;
             const listoMaxOffset = projectionYear >= 2028 ? 810 : 500;
             const hasPrivateCover = inputs.hasPrivateHealthCover !== false;
@@ -936,7 +997,8 @@ export class RetirementSimulator {
                     Math.max(0, 30000 - yourEmployerSG - concessionalAlreadyUsed)
                 );
                 const yourTaxableSalary = yourGrossSalary - yourSacrifice;
-                yearlyPostTaxIncome += calculatePostTaxIncome(yourTaxableSalary, taxBrackets, hasPrivateCover);
+                // Pass projectionYear so Budget 2026-27 WATO and instant deduction are applied.
+                yearlyPostTaxIncome += calculatePostTaxIncome(yourTaxableSalary, taxBrackets, hasPrivateCover, projectionYear);
 
                 // Concessional contributions tax: 15% flat; LISTO offsets for low incomes
                 const yourTotalConcessional = yourEmployerSG + yourSacrifice;
@@ -959,7 +1021,8 @@ export class RetirementSimulator {
                     Math.max(0, 30000 - partnerEmployerSG - concessionalAlreadyUsed)
                 );
                 const partnerTaxableSalary = partnerGrossSalary - partnerSacrifice;
-                yearlyPostTaxIncome += calculatePostTaxIncome(partnerTaxableSalary, taxBrackets, hasPrivateCover);
+                // Pass projectionYear so Budget 2026-27 WATO and instant deduction are applied.
+                yearlyPostTaxIncome += calculatePostTaxIncome(partnerTaxableSalary, taxBrackets, hasPrivateCover, projectionYear);
 
                 const partnerTotalConcessional = partnerEmployerSG + partnerSacrifice;
                 const partnerLISTO = partnerTaxableSalary <= listoThreshold
@@ -1106,7 +1169,11 @@ export class RetirementSimulator {
         }
 
         // At retirement setup
-        const homeValueAtRetirement = inputs.homeValue * Math.pow(1 + inputs.inflation, yearsToRetirement);
+        // FIX Bug 7: Primary home should grow at propertyGrowthRate (e.g. 5.8% CoreLogic median),
+        // not at general CPI inflation (2.6%). Using inflation was understating home equity at
+        // retirement by ~$1.4 M on a $1 M home over 20 years.
+        const homeGrowthRate = inputs.propertyGrowthRate > 0 ? inputs.propertyGrowthRate : inputs.inflation;
+        const homeValueAtRetirement = inputs.homeValue * Math.pow(1 + homeGrowthRate, yearsToRetirement);
         const mortgageBalanceAtRetirement = Math.max(0,
             calculateLoanBalance(inputs.mortgageRate, yearsToRetirement, inputs.monthlyMortgagePayment, inputs.mortgageBalance)
         );
@@ -1180,7 +1247,8 @@ export class RetirementSimulator {
                 // Calculate years from current age to this aged care year
                 const yearsFromNow = yourCurrentAge - inputs.yourCurrentAge;
                 // Apply healthcare inflation from current year to this aged care year
-                let annualCost = inputs.agedCareAnnualCost * Math.pow(1 + inputs.healthcareInflation / 100, yearsFromNow);
+                // FIX Bug 4: healthcareInflation is already decimal — no /100 needed.
+                let annualCost = inputs.agedCareAnnualCost * Math.pow(1 + inputs.healthcareInflation, yearsFromNow);
 
                 // Handle partial years - if this is the last year of care and duration has a decimal
                 const yearsInCare = yourCurrentAge - inputs.agedCareStartAge;
@@ -1500,10 +1568,11 @@ export class RetirementSimulator {
             const liquidAssets = startBalance; // Beginning of year liquid assets
             const endLiquidAssets = currentBalance; // End of year liquid assets after transactions
 
-            // Update home equity with inflation growth over time
+            // Update home equity with property growth over time
+            // FIX Bug 7 (cont.): use propertyGrowthRate, not CPI inflation, for home equity growth.
             const yearsFromRetirement = i;
             const currentHomeEquity = inputs.planToDownsize ? 0 :
-                homeEquityAtRetirement * Math.pow(1 + inputs.inflation, yearsFromRetirement);
+                homeEquityAtRetirement * Math.pow(1 + homeGrowthRate, yearsFromRetirement);
 
             const nonLiquidAssets = currentHomeEquity + propertyEquity;
 

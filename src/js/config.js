@@ -32,6 +32,26 @@ export const ENHANCED_CONFIG = {
     HOME_EQUITY_ACCESS_RATE: 0.7,
     CGT_DISCOUNT: 0.5,
     FRANKING_CREDIT_RATE: 0.3,
+
+    // ===== BUDGET 2026-27 REFORM FLAGS =====
+    // Source: budget.gov.au/content/04-tax-reform.htm
+
+    // CGT Reform — gains accrued after 1 July 2027
+    // 50% flat discount replaced with inflation-indexed discount + 30% minimum tax.
+    // Pre-2027 gains retain the 50% discount.
+    CGT_REFORM_START_YEAR: 2027,       // calendar year from which new rules apply to new gains
+    CGT_POST_REFORM_MIN_RATE: 0.30,    // 30% minimum effective rate on gains after 1 Jul 2027
+    CGT_NEW_BUILDS_CHOICE: true,       // new builds may choose either method
+
+    // Negative gearing restriction — established housing purchased after 13 May 2026
+    // Losses can only offset residential property income (not wages/other income).
+    NEG_GEARING_RESTRICTION_DATE: '2026-05-13',  // Budget night; established purchases after this date
+    NEG_GEARING_GRANDFATHERED_YEAR: 2026,         // calendar year; properties held before this are exempt
+
+    // Discretionary trust minimum tax — from 1 July 2028
+    TRUST_MIN_TAX_RATE: 0.30,         // 30% minimum from FY 2028-29
+    TRUST_MIN_TAX_START_FY: 2029,     // FY ending year (FY 2028-29 = 2029)
+
     // Calendar constants used across financial calculations
     WEEKS_IN_YEAR: 52,
     FORTNIGHTS_IN_YEAR: 26,
@@ -201,7 +221,8 @@ export const ENHANCED_CONFIG = {
         { min: 190001, max: Infinity, rate: 0.45 }
     ],
 
-    // Australian tax brackets from 1 July 2026 (FY 2026-27 onwards) — 16% drops to 15%
+    // Australian tax brackets from 1 July 2026 (FY 2026-27) — 16% drops to 15%
+    // Source: Budget 2026-27 (budget.gov.au/content/02-cost-of-living.htm)
     TAX_BRACKETS_2026_27: [
         { min: 0, max: 18200, rate: 0 },
         { min: 18201, max: 45000, rate: 0.15 },
@@ -209,6 +230,28 @@ export const ENHANCED_CONFIG = {
         { min: 135001, max: 190000, rate: 0.37 },
         { min: 190001, max: Infinity, rate: 0.45 }
     ],
+
+    // Australian tax brackets from 1 July 2027 (FY 2027-28) — 15% further drops to 14%
+    // Source: Budget 2026-27 (budget.gov.au/content/02-cost-of-living.htm)
+    TAX_BRACKETS_2027_28: [
+        { min: 0, max: 18200, rate: 0 },
+        { min: 18201, max: 45000, rate: 0.14 },
+        { min: 45001, max: 135000, rate: 0.3 },
+        { min: 135001, max: 190000, rate: 0.37 },
+        { min: 190001, max: Infinity, rate: 0.45 }
+    ],
+
+    // Working Australians Tax Offset (WATO) — permanent from FY 2027-28
+    // Up to $250/year for all working Australians; 97% receive the full amount.
+    // Source: Budget 2026-27 (budget.gov.au/content/02-cost-of-living.htm)
+    WATO_AMOUNT: 250,
+    WATO_START_FY: 2028,   // FY ending year (FY 2027-28 = 2028)
+
+    // Instant work-related expense deduction — from FY 2026-27
+    // Workers deduct $1,000 from taxable income without receipts.
+    // Source: Budget 2026-27 (budget.gov.au/content/02-cost-of-living.htm)
+    INSTANT_DEDUCTION_AMOUNT: 1000,
+    INSTANT_DEDUCTION_START_FY: 2027,   // FY ending year (FY 2026-27 = 2027)
 
     // Division 293 threshold: extra 15% contributions tax when income + concessional > $250,000
     DIVISION_293_THRESHOLD: 250000,
@@ -421,52 +464,55 @@ export const ENHANCED_CONFIG = {
             currentSavings: 55000,
             currentStocks: 62000,
             monthlyStockContribution: 900,
-            percentIncomeSaved: 0.09  // 9% as decimal
+            percentIncomeSaved: 9   // 9% — app.js /100 → 0.09
         },
         property: {
             homeValue: 810000,
             mortgageBalance: 594000,
-            mortgageRate: 0.0537,  // 5.37% as decimal
+            // NOTE: these defaults must be in PERCENTAGE form (not decimal) because app.js
+            // collectInputs() divides all these fields by 100.  When a field is absent from
+            // index.html, safeGetValue falls back to this default and then the /100 runs.
+            mortgageRate: 5.37,           // 5.37% — safeGetValue reads this, app.js /100 → 0.0537
             monthlyMortgagePayment: 3584,
             planToDownsize: true,
             hasInvestmentProperty: false,
             investmentPropertyValue: 550000,
             investmentPropertyLoan: 574000,
-            investmentPropertyRate: 0.062,  // 6.2% as decimal
+            investmentPropertyRate: 6.2,  // 6.2% — safeGetValue reads this, app.js /100 → 0.062
             weeklyRentalIncome: 554,
             annualPropertyExpenses: 9675,
-            propertyGrowthRate: 0.058,  // Updated 2025-10-01: CoreLogic median 2000-2025 - 5.8% as decimal
+            propertyGrowthRate: 5.8,      // 5.8% CoreLogic median — /100 → 0.058
             sellPropertyYears: 15,
-            capitalGainsTaxRate: 0.225  // 22.5% as decimal
+            capitalGainsTaxRate: 22.5     // 22.5% effective rate (45% marginal × 50% discount) — /100 → 0.225
         },
         healthcare: {
             currentHealthcareCosts: 3500,
-            healthcareInflation: 0.0382, // Updated 2025-10-01: AIHW median 2000-2025 - 3.82% as decimal
+            healthcareInflation: 3.82,    // 3.82% AIHW median — safeGetValue reads this, app.js /100 → 0.0382
             hasPrivateHealth: "comprehensive",
             chronicConditions: "none",
-            agedCareProbability: 0.22, // Updated to 22% as decimal
+            agedCareProbability: 22,      // 22% — safeGetValue reads this, app.js /100 → 0.22
             agedCareStartAge: 85,
             agedCareDuration: 3,
             agedCareAnnualCost: 75000
         },
         economic: {
-            inflation: 0.026,   // Updated 2025-10-01: RBA/ABS median 2000-2025 (was 0.0287)
-            investmentReturn: 0.0561,  // 5.61% as decimal
-            returnDeclineRate: 0.0003, // 0.03% as decimal
-            savingsReturn: 0.0140,  // 1.40% as decimal
-            superReturn: 0.075,  // Updated 2025-10-01: APRA balanced fund median (was 0.0875)
-            salaryGrowthRate: 0.015,  // 1.5% as decimal
+            inflation: 2.6,             // 2.6% RBA/ABS median — /100 → 0.026
+            investmentReturn: 5.61,     // 5.61% — /100 → 0.0561
+            returnDeclineRate: 0.03,    // 0.03% p.a. decline — /100 → 0.0003
+            savingsReturn: 1.40,        // 1.40% — /100 → 0.0140
+            superReturn: 7.5,           // 7.5% APRA balanced fund median — /100 → 0.075
+            salaryGrowthRate: 1.5,      // 1.5% real growth — /100 → 0.015
             leanYearsStart: 5,
-            leanYearsReduction: 0.38 // 38% as decimal
+            leanYearsReduction: 38      // 38% salary reduction in lean years — /100 → 0.38
         },
         allocation: {
             useGlidePath: true,
             glidePathRule: "110minus",
             frankingCreditBenefit: 1.2,
             australianEquityAllocation: 40,
-            dividendYield: 0.045, // 4.5% as decimal
-            frankingRate: 0.75, // 75% as decimal
-            allocEquities: 60,
+            dividendYield: 4.5,         // 4.5% — /100 → 0.045
+            frankingRate: 75,           // 75% — /100 → 0.75
+            allocEquities: 60,          // already percentage form ✓
             allocBonds: 30,
             allocCash: 10
         },
@@ -489,10 +535,10 @@ export const ENHANCED_CONFIG = {
         },
         simulation: {
             numRuns: 5000,
-            returnVolatility: 0.12,  // 12% as decimal
+            returnVolatility: 12,   // 12% — app.js /100 → 0.12
             enableShocks: false,
-            shockProbability: 0.05,  // 5% as decimal
-            shockMagnitude: -0.25  // -25% as decimal
+            shockProbability: 5,    // 5% — app.js /100 → 0.05
+            shockMagnitude: -25     // -25% — app.js /100 → -0.25
         },
         pension: {
             asfaComfortable: 73031,      // Updated 2025-10-01: ASFA March 2025 (was 73875)

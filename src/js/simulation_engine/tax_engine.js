@@ -15,7 +15,7 @@ export const TAX_BRACKETS_2025_26 = [
     { min: 190001,  max: Infinity, rate: 0.45, base: 0 },
 ];
 
-// FY2026-27 onwards: 16% → 15% on $18,201–$45,000
+// FY2026-27: 16% → 15% on $18,201–$45,000 (Budget 2026-27 cost-of-living measure)
 export const TAX_BRACKETS_2026_27 = [
     { min: 0,       max: 18200,   rate: 0,     base: 0 },
     { min: 18201,   max: 45000,   rate: 0.15,  base: 0 },
@@ -24,8 +24,27 @@ export const TAX_BRACKETS_2026_27 = [
     { min: 190001,  max: Infinity, rate: 0.45, base: 0 },
 ];
 
+// FY2027-28 onwards: 15% → 14% on $18,201–$45,000 (Budget 2026-27 second round)
+// Source: budget.gov.au/content/02-cost-of-living.htm
+export const TAX_BRACKETS_2027_28 = [
+    { min: 0,       max: 18200,   rate: 0,     base: 0 },
+    { min: 18201,   max: 45000,   rate: 0.14,  base: 0 },
+    { min: 45001,   max: 135000,  rate: 0.30,  base: 0 },
+    { min: 135001,  max: 190000,  rate: 0.37,  base: 0 },
+    { min: 190001,  max: Infinity, rate: 0.45, base: 0 },
+];
+
 // Keep legacy name as alias so any external references don't break
 export const TAX_BRACKETS_2025 = TAX_BRACKETS_2025_26;
+
+// Working Australians Tax Offset (WATO) — Budget 2026-27, from FY 2027-28
+// Up to $250 for all working Australians.
+export const WATO_AMOUNT = 250;
+export const WATO_START_FY = 2028;   // FY ending year
+
+// Instant $1,000 work-related expense deduction — Budget 2026-27, from FY 2026-27
+export const INSTANT_DEDUCTION_AMOUNT = 1000;
+export const INSTANT_DEDUCTION_START_FY = 2027;   // FY ending year
 
 // Medicare levy rate (standard 2%)
 export const MEDICARE_LEVY = 0.02;
@@ -57,9 +76,13 @@ export const calculateLITO = (taxableIncome) => {
 /**
  * Select the correct tax brackets for a given financial year.
  * fyYear is the ending year of the FY (e.g. 2026 for FY2025-26, 2027 for FY2026-27).
+ * Budget 2026-27: 14% rate from FY 2027-28 (fyYear >= 2028).
  */
-const getBracketsForFY = (fyYear) =>
-    fyYear >= 2027 ? TAX_BRACKETS_2026_27 : TAX_BRACKETS_2025_26;
+const getBracketsForFY = (fyYear) => {
+    if (fyYear >= 2028) return TAX_BRACKETS_2027_28;   // 14% (FY 2027-28 +)
+    if (fyYear >= 2027) return TAX_BRACKETS_2026_27;   // 15% (FY 2026-27)
+    return TAX_BRACKETS_2025_26;                        // 16% (current)
+};
 
 /**
  * Calculate Australian income tax (excluding Medicare levy and LITO).
@@ -72,7 +95,9 @@ export const calcGrossTax = (taxableIncome, fyYear) => {
     let remaining = taxableIncome;
     for (const b of brackets) {
         if (remaining <= 0) break;
-        const inBracket = Math.min(remaining, b.max - b.min);
+        // Use +1 for non-zero-minimum brackets to match ATO boundary widths exactly.
+        const bracketWidth = b.min === 0 ? b.max : b.max - b.min + 1;
+        const inBracket = Math.min(remaining, bracketWidth);
         tax += inBracket * b.rate;
         remaining -= inBracket;
     }
@@ -82,14 +107,29 @@ export const calcGrossTax = (taxableIncome, fyYear) => {
 /**
  * Total income tax + Medicare levy for a given taxable income.
  * fyYear defaults to current calendar year + 1 to approximate the current financial year.
+ *
+ * Budget 2026-27 measures applied automatically by fyYear:
+ *  - $1,000 instant deduction reduces taxable income from FY 2026-27 (fyYear >= 2027)
+ *  - WATO $250 offset applied from FY 2027-28 (fyYear >= 2028)
  */
-export const calcIncomeTax = (taxableIncome, fyYear) => {
+export const calcIncomeTax = (grossIncome, fyYear) => {
     if (!fyYear) fyYear = new Date().getFullYear() + 1;
-    if (taxableIncome <= 0) return 0;
+    if (grossIncome <= 0) return 0;
+
+    // Instant $1,000 deduction (Budget 2026-27) — reduces taxable income
+    const instantDeduction = (fyYear >= INSTANT_DEDUCTION_START_FY && grossIncome > 0)
+        ? Math.min(INSTANT_DEDUCTION_AMOUNT, grossIncome) : 0;
+    const taxableIncome = Math.max(0, grossIncome - instantDeduction);
+
     const gross = calcGrossTax(taxableIncome, fyYear);
     const lito = calculateLITO(taxableIncome);
+
+    // WATO $250 offset (Budget 2026-27) — permanent from FY 2027-28
+    const wato = (fyYear >= WATO_START_FY && taxableIncome > 0 && taxableIncome <= 190000)
+        ? WATO_AMOUNT : 0;
+
     const medicare = taxableIncome * MEDICARE_LEVY;
-    return Math.max(0, gross - lito + medicare);
+    return Math.max(0, gross - lito - wato + medicare);
 };
 
 /**
@@ -108,4 +148,8 @@ export const calcPostTaxSalary = (grossSalary, fyYear) => {
     return Math.max(0, grossSalary - calcIncomeTax(grossSalary, fyYear));
 };
 
-export default { TAX_BRACKETS_2025_26, TAX_BRACKETS_2026_27, TAX_BRACKETS_2025, calcIncomeTax, calcGrossTax, calcLITO: calculateLITO, calcSuperTax, calcPostTaxSalary };
+export default {
+    TAX_BRACKETS_2025_26, TAX_BRACKETS_2026_27, TAX_BRACKETS_2027_28, TAX_BRACKETS_2025,
+    WATO_AMOUNT, WATO_START_FY, INSTANT_DEDUCTION_AMOUNT, INSTANT_DEDUCTION_START_FY,
+    calcIncomeTax, calcGrossTax, calcLITO: calculateLITO, calcSuperTax, calcPostTaxSalary
+};

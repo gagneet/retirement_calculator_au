@@ -497,6 +497,50 @@ export const calculateLITO = (income) => {
     return 0;
 };
 
+/**
+ * Working Australians Tax Offset (WATO) — Budget 2026-27, permanent from FY 2027-28.
+ * Source: budget.gov.au/content/02-cost-of-living.htm
+ *
+ * Confirmed from budget document:
+ *  - Amount: $250 per year (permanent)
+ *  - Applies to: all Australian workers (>13 million)
+ *  - 97% receive the full $250; 3% receive less (implying a phase-out at high incomes)
+ *  - Start: from the 2027–28 income year (FY ending 2028)
+ *
+ * ASSUMPTION (unconfirmed): Phase-out threshold is set to $190,000 (the top-rate boundary)
+ * as a conservative approximation since the budget document does not specify the exact
+ * phase-out point.  Detailed legislation may reveal a higher or lower cutoff.
+ *
+ * Confidence: 9/10 on amount and start year; 6/10 on phase-out threshold.
+ *
+ * @param {number} income          – taxable income
+ * @param {number} projectionYear  – FY ending year (e.g. 2028 for FY 2027-28)
+ * @returns {number} WATO offset amount
+ */
+export const calculateWATO = (income, projectionYear) => {
+    if (!projectionYear || projectionYear < 2028) return 0;
+    if (income <= 0) return 0;
+    // Conservative phase-out: no WATO above the top marginal rate threshold.
+    // The actual phase-out point is unspecified in the Budget 2026-27 documents.
+    if (income > 190000) return 0;
+    return 250;
+};
+
+/**
+ * Instant work-related expense deduction — Budget 2026-27, from FY 2026-27.
+ * Workers reduce taxable income by up to $1,000 without receipts.
+ * Source: budget.gov.au/content/02-cost-of-living.htm
+ *
+ * @param {number} grossIncome     – pre-deduction gross income
+ * @param {number} projectionYear  – calendar year (FY ending); applies from 2027 onwards
+ * @returns {number} deduction amount to subtract from taxable income
+ */
+export const calculateInstantDeduction = (grossIncome, projectionYear) => {
+    if (!projectionYear || projectionYear < 2027) return 0;
+    if (grossIncome <= 0) return 0;
+    return Math.min(1000, grossIncome);
+};
+
 export const calculateAustralianTax = (income, taxBrackets) => {
     let tax = 0;
     let remainingIncome = income;
@@ -504,10 +548,15 @@ export const calculateAustralianTax = (income, taxBrackets) => {
     for (const bracket of taxBrackets) {
         if (remainingIncome <= 0) break;
 
-        const taxableInThisBracket = Math.min(
-            remainingIncome,
-            bracket.max - bracket.min
-        );
+        // FIX Bug 1: ATO brackets have non-contiguous boundaries (e.g. 18200 / 18201).
+        // Using bracket.max - bracket.min produces a width of 26 799 for the $18 201–$45 000
+        // band instead of the correct 26 800, leaving $1 of income taxed in the wrong
+        // (higher) bracket.  Adding 1 to non-zero-minimum brackets makes the arithmetic exact.
+        const bracketWidth = bracket.min === 0
+            ? bracket.max                         // first bracket: 0–18200 = 18200 exactly
+            : bracket.max - bracket.min + 1;      // subsequent brackets: include both endpoints
+
+        const taxableInThisBracket = Math.min(remainingIncome, bracketWidth);
 
         if (taxableInThisBracket > 0) {
             tax += taxableInThisBracket * bracket.rate;
@@ -540,13 +589,30 @@ export const calculateMLS = (income, hasPrivateHealthCover) => {
     return income * 0.015;
 };
 
-// Third parameter hasPrivateHealthCover defaults to true so existing callers are unaffected.
-// Pass the user's actual value in the accumulation loop for correct MLS calculation.
-export const calculatePostTaxIncome = (preTaxSalary, taxBrackets, hasPrivateHealthCover = true) => {
-    const tax = calculateAustralianTax(preTaxSalary, taxBrackets);
-    const medicare = calculateMedicareLevy(preTaxSalary);
-    const mls = calculateMLS(preTaxSalary, hasPrivateHealthCover);
-    return preTaxSalary - tax - medicare - mls;
+/**
+ * Calculate post-tax take-home pay.
+ *
+ * Signature extended with optional `projectionYear` to apply Budget 2026-27 measures:
+ *  - $1,000 instant tax deduction (from FY 2026-27, projectionYear >= 2027)
+ *  - Working Australians Tax Offset / WATO (from FY 2027-28, projectionYear >= 2028)
+ *
+ * Third parameter hasPrivateHealthCover defaults to true so existing callers are unaffected.
+ * Pass the user's actual value in the accumulation loop for correct MLS calculation.
+ */
+export const calculatePostTaxIncome = (preTaxSalary, taxBrackets, hasPrivateHealthCover = true, projectionYear = null) => {
+    // Apply $1,000 instant deduction (Budget 2026-27) to taxable income
+    const instantDeduction = calculateInstantDeduction(preTaxSalary, projectionYear);
+    const taxableIncome = Math.max(0, preTaxSalary - instantDeduction);
+
+    const tax = calculateAustralianTax(taxableIncome, taxBrackets);
+    const medicare = calculateMedicareLevy(taxableIncome);
+    const mls = calculateMLS(taxableIncome, hasPrivateHealthCover);
+
+    // Apply WATO directly as an offset against tax (Budget 2026-27)
+    const wato = calculateWATO(taxableIncome, projectionYear);
+    const netTax = Math.max(0, tax - wato);
+
+    return preTaxSalary - netTax - medicare - mls;
 };
 
 // Investment property utilities
@@ -560,14 +626,126 @@ export const calculatePropertyTotalReturn = (currentValue, purchaseValue, rental
     return (capitalGrowth + totalRental) / purchaseValue;
 };
 
-export const calculateCGT = (salePrice, purchasePrice, isResident, holdingPeriod, marginalTaxRate) => {
+/**
+ * Calculate Capital Gains Tax on an asset disposal.
+ *
+ * FIX Bug 5: The `effectiveCGTRate` parameter is the EFFECTIVE rate — i.e. the marginal tax
+ * rate already discounted by 50 % (e.g. 22.5 % = 45 % marginal × 50 % CGT discount).
+ * app.js → refreshCapitalGainsTaxDefault() sets the field this way, and collectInputs()
+ * stores it as a decimal (0.225).  The old implementation applied the 50 % CGT discount
+ * a second time inside this function, halving the CGT liability.
+ *
+ * The function now applies the effective rate directly to the full capital gain.
+ * For pre-2027 assets, holdingPeriod >= 1 confirms eligibility for the discount (already
+ * baked into effectiveCGTRate).  For post-2027 gains the caller should pass the
+ * inflation-indexed effective rate computed by calculateCGTPost2027().
+ *
+ * @param {number} salePrice
+ * @param {number} purchasePrice
+ * @param {boolean} isResident        - Australian resident (must be true for CGT discount)
+ * @param {number}  holdingPeriod     - years held (must be >= 1 for discount to apply)
+ * @param {number}  effectiveCGTRate  - effective rate already incorporating any discount
+ */
+export const calculateCGT = (salePrice, purchasePrice, isResident, holdingPeriod, effectiveCGTRate) => {
     const capitalGain = salePrice - purchasePrice;
     if (capitalGain <= 0) return 0;
 
+    // If held < 1 year the 50 % discount doesn't apply; caller should pass the full
+    // marginal rate as effectiveCGTRate in that case.  For consistency we honour the
+    // holding-period gate here by doubling the rate back to full-marginal when < 1 yr.
     const discountApplies = isResident && holdingPeriod >= 1;
-    const taxableGain = discountApplies ? capitalGain * 0.5 : capitalGain;
+    const rateToUse = discountApplies ? effectiveCGTRate : effectiveCGTRate * 2;
 
-    return taxableGain * marginalTaxRate;
+    return capitalGain * rateToUse;
+};
+
+/**
+ * Calculate CGT under Budget 2026-27 rules for assets sold after 1 July 2027.
+ *
+ * Source: budget.gov.au/content/04-tax-reform.htm
+ *
+ * Rules (from the budget document):
+ *  - The flat 50 % discount is replaced by an inflation-indexed discount
+ *    (only the *real* gain above CPI is taxable).
+ *  - A minimum 30 % effective tax applies to the total nominal gain.
+ *  - Only gains *accrued after* 1 Jul 2027 use the new rules; gains accrued
+ *    before that date continue to use the 50 % flat discount.
+ *  - Investors in *new builds* may choose the 50 % discount or the new method.
+ *
+ * Implementation notes / known simplifications:
+ *  - Gains are split proportionally by time (pre-/post-2027 years) rather than
+ *    by actual market values at 30 Jun 2027 (which are unknowable at planning time).
+ *  - The "30 % minimum" is applied to the total nominal gain.  The budget document
+ *    is ambiguous on whether it's gross or real gain; applying to total gain is conservative.
+ *  - isNewBuild defaults to false.  If a UI field for this is added later it will be
+ *    passed through; currently no such field exists so new-build choice is not exercised.
+ *
+ * Confidence: 6/10 — direction and core logic are correct; proportional time-split and
+ * 30 % minimum interpretation are simplifications pending detailed regulations.
+ *
+ * @param {number}  salePrice       – gross sale price
+ * @param {number}  purchasePrice   – original cost base
+ * @param {number}  purchaseYear    – calendar year of purchase
+ * @param {number}  saleYear        – calendar year of sale
+ * @param {number}  marginalTaxRate – investor's marginal income tax rate (decimal, e.g. 0.45)
+ * @param {number}  annualInflation – average annual CPI rate (decimal, default 2.6 %)
+ * @param {boolean} isNewBuild      – whether the asset is a new build (choice of method)
+ * @returns {{ cgt: number, method: string }}
+ */
+export const calculateCGTPost2027 = (
+    salePrice, purchasePrice, purchaseYear, saleYear,
+    marginalTaxRate, annualInflation = 0.026, isNewBuild = false
+) => {
+    const REFORM_YEAR = 2027;
+    const MIN_EFFECTIVE_RATE = 0.30;  // minimum 30 % on total nominal gain
+    const totalGain = salePrice - purchasePrice;
+    if (totalGain <= 0) return { cgt: 0, method: 'no-gain' };
+
+    const holdingYears = Math.max(1, saleYear - purchaseYear);
+
+    // Helper: apply new rules to a portion of the gain over a given holding period
+    const calcPostReformCgt = (gain, costBase, years) => {
+        const indexedBase = costBase * Math.pow(1 + annualInflation, years);
+        const realGain = Math.max(0, gain + costBase - indexedBase);
+        const cgtInflation = realGain * marginalTaxRate;
+        const minCgt = gain * MIN_EFFECTIVE_RATE;
+        return Math.max(minCgt, cgtInflation);
+    };
+
+    if (purchaseYear >= REFORM_YEAR) {
+        // --- Fully post-reform: entire holding is after 1 Jul 2027 ---
+        const cgtNewRules = calcPostReformCgt(totalGain, purchasePrice, holdingYears);
+
+        // New builds: investor may choose whichever method gives lower tax
+        if (isNewBuild) {
+            const cgtOldMethod = (totalGain * 0.5) * marginalTaxRate;
+            const minCgt = totalGain * MIN_EFFECTIVE_RATE;
+            if (cgtOldMethod < cgtNewRules) {
+                return { cgt: Math.max(minCgt, cgtOldMethod), method: '50%-discount-chosen' };
+            }
+        }
+
+        return { cgt: cgtNewRules, method: 'inflation-indexed' };
+    }
+
+    // --- Mixed holding: purchased before 2027, sold after 2027 ---
+    // Split gain proportionally by time (pre-reform years / total years).
+    const preReformYears = Math.max(0, REFORM_YEAR - purchaseYear);
+    const postReformYears = Math.max(0, holdingYears - preReformYears);
+    const preReformFraction = preReformYears / holdingYears;
+    const postReformFraction = postReformYears / holdingYears;
+
+    const preReformGain = totalGain * preReformFraction;
+    const postReformGain = totalGain * postReformFraction;
+
+    // Pre-2027 portion: 50 % discount method
+    const cgtPreReform = (preReformGain * 0.5) * marginalTaxRate;
+
+    // Post-2027 portion: new rules (30 % minimum on that portion's gain)
+    const costBaseAtReform = purchasePrice * Math.pow(1 + annualInflation, preReformYears);
+    const cgtPostReform = calcPostReformCgt(postReformGain, costBaseAtReform, postReformYears);
+
+    return { cgt: cgtPreReform + cgtPostReform, method: 'split-pre-post-2027' };
 };
 
 // Trust calculation utilities
