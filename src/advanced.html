@@ -1610,9 +1610,20 @@
             </div>
 
             <!-- Utility -->
-            <div class="flex justify-end">
+            <div class="flex justify-end gap-2">
+                <button class="px-3 py-1.5 border border-red-300 text-red-700 rounded-md hover:bg-red-50 transition-colors text-xs font-medium"
+                        id="btnClearAll"
+                        title="Clear all input fields and start with an empty form">
+                    Clear All
+                </button>
+                <button class="px-3 py-1.5 border border-blue-300 text-blue-700 rounded-md hover:bg-blue-50 transition-colors text-xs font-medium"
+                        id="btnFillDefaults"
+                        title="Fill all fields with sensible Australian retirement planning defaults">
+                    Fill Default Values
+                </button>
                 <button class="px-3 py-1.5 border border-gray-300 text-gray-500 rounded-md hover:bg-gray-50 transition-colors text-xs font-medium"
-                        id="btnResetDefaults">
+                        id="btnResetDefaults"
+                        title="Reset the form to the application's built-in defaults and clear saved state">
                     Reset to Defaults
                 </button>
             </div>
