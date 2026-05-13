@@ -595,6 +595,34 @@ input:hover, select:hover, textarea:hover {
     transition: all 0.3s ease;
 }
 
+/* Super Strategy field layout — ensure the input always renders on its own
+ * full-width row below label + tooltip + auto-fill badge, even when the
+ * surrounding flex container tries to keep the long label on a single line.
+ * (.label-with-tooltip globally sets flex-wrap: nowrap and white-space: nowrap
+ * on the label, which can squeeze the input when an "Auto-filled" badge is
+ * appended next to a long label like "Your Annual Salary Sacrifice / Voluntary
+ * Super ($)".) */
+.super-strategy-field {
+    display: block;
+    width: 100%;
+}
+
+.super-strategy-field .label-with-tooltip {
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.super-strategy-field .label-with-tooltip label {
+    white-space: normal;
+}
+
+.super-strategy-input {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+}
+
 /* Enhancement highlights */
 .enhancement-highlight {
     border-left: 4px solid var(--success);
