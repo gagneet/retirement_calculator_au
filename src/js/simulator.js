@@ -1339,7 +1339,7 @@ export class RetirementSimulator {
                     super: currentBalance / 2,
                     investments: trustAttributedAssets / 2,
                     salary: 0,
-                    otherIncome: propertyIncome + (deemedIncome / 2),
+                    otherIncome: propertyIncome / 2,
                     financialAssets: financialAssetsForDeeming / 2
                 };
 
@@ -1348,7 +1348,7 @@ export class RetirementSimulator {
                     super: currentBalance / 2,
                     investments: trustAttributedAssets / 2,
                     salary: 0,
-                    otherIncome: deemedIncome / 2,
+                    otherIncome: propertyIncome / 2,
                     financialAssets: financialAssetsForDeeming / 2
                 };
 
