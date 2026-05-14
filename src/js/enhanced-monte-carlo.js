@@ -343,10 +343,20 @@ export class EnhancedMonteCarloEngine {
 
     // Generate complete scenario sequence for a simulation run
     generateScenarioSequence(inputs) {
-        const years = Math.max(
-            inputs.yourLifespan - inputs.yourCurrentAge,
-            inputs.partnerLifespan - inputs.partnerCurrentAge
-        );
+        // Resolve effective lifespans: 0 means open-ended, mapped to RUN_UNTIL_DEPLETION_AGE (120)
+        const RUN_UNTIL_DEPLETION_AGE = 120;
+        const effectiveYourLifespan = (inputs.yourLifespan > 0)
+            ? inputs.yourLifespan
+            : RUN_UNTIL_DEPLETION_AGE;
+        const effectivePartnerLifespan = (inputs.partnerCurrentAge > 0 && inputs.partnerLifespan > 0)
+            ? inputs.partnerLifespan
+            : (inputs.partnerCurrentAge > 0 ? RUN_UNTIL_DEPLETION_AGE : 0);
+
+        const yearsYou = effectiveYourLifespan - (inputs.yourCurrentAge || 49);
+        const yearsPartner = effectivePartnerLifespan > 0
+            ? effectivePartnerLifespan - (inputs.partnerCurrentAge || 0)
+            : 0;
+        const years = Math.max(yearsYou, yearsPartner, 1);
 
         const scenarioSequence = [];
 
@@ -384,7 +394,6 @@ export class EnhancedMonteCarloEngine {
             scenarioSequence.push(returns);
         }
 
-        console.log("Base returns for MC simulation:", scenarioSequence[0]);
         return scenarioSequence;
     }
 
