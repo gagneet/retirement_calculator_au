@@ -1555,11 +1555,16 @@ export class RetirementSimulator {
             const totalIncome = pensionIncome + propertyIncome + trustDistributionNetIncome;
             const netWithdrawalNeeded = Math.max(0, totalCostWithHealthcare - totalIncome);
 
-            // Enhanced return calculation with regime modeling
+            // Enhanced return calculation with regime modeling.
+            // In pension phase (account-based pension), the fund pays 0% tax on earnings so
+            // ALL franking credits are refunded in cash — override frankingCreditBenefit to 100.
+            // In accumulation the fund pays 15%, so a ~50% effective benefit is appropriate;
+            // the user's frankingCreditBenefit setting is used there instead.
+            const pensionPhaseInputs = { ...inputs, frankingCreditBenefit: 100 };
             const baseReturn = this.calculateEnhancedReturn(
                 allocation,
                 inputs.investmentReturn,
-                inputs
+                pensionPhaseInputs
             );
 
             let actualReturn = baseReturn;
