@@ -10222,7 +10222,6 @@ window.updatePaycheckCard = function updatePaycheckCard(outcome, sim) {
     const pct = (n) => total > 0 ? Math.round((n / total) * 100) + '%' : '0%';
 
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    const setHTML = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
 
     set('paycheck-total', fmtM(total));
     set('paycheck-period', `per month · at age ${outcome.retirementAge || '—'} (today's dollars)`);
