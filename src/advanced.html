@@ -1577,6 +1577,18 @@
                             </svg>
                             Save Data
                         </a>
+                        <div class="border-t border-gray-100"></div>
+                        <a class="flex items-center px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50"
+                           href="data/au-average-template.json"
+                           download="au-average-retirement-template.json"
+                           title="Download a starter template pre-filled with Australian national average values. Load it via 'Load Data' to begin.">
+                            <svg class="w-4 h-4 mr-3 text-emerald-500" fill="none" stroke="currentColor"
+                                 viewBox="0 0 24 24">
+                                <path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round"
+                                      stroke-width="2"></path>
+                            </svg>
+                            Download AU Average Template
+                        </a>
                     </div>
                 </div>
             </div>
@@ -1802,7 +1814,7 @@
             </div>
 
             <!-- Utility -->
-            <div class="flex justify-end gap-2">
+            <div class="flex justify-end gap-2 flex-wrap">
                 <button class="px-3 py-1.5 border border-red-300 text-red-700 rounded-md hover:bg-red-50 transition-colors text-xs font-medium"
                         id="btnClearAll"
                         title="Clear all input fields and start with an empty form">
@@ -1818,6 +1830,16 @@
                         title="Reset the form to the application's built-in defaults and clear saved state">
                     Reset to Defaults
                 </button>
+                <a href="data/au-average-template.json"
+                   download="au-average-retirement-template.json"
+                   class="px-3 py-1.5 border border-emerald-300 text-emerald-700 rounded-md hover:bg-emerald-50 transition-colors text-xs font-medium inline-flex items-center gap-1"
+                   title="Download a starter template pre-filled with Australian national average values (ABS, APRA, CoreLogic — May 2026). Load it via 'Load Data' to begin with typical values, then replace them with your own.">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    AU Average Template
+                </a>
             </div>
         </div>
 

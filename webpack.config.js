@@ -66,6 +66,8 @@ module.exports = {
                 // Advanced Design Calculator — standalone ES6 modules (no webpack bundling needed)
                 { from: 'src/js/advanced-design-engine.js', to: 'js/advanced-design-engine.js' },
                 { from: 'src/js/advanced-design-ui.js', to: 'js/advanced-design-ui.js' },
+                // Data templates — downloadable JSON files
+                { from: 'src/data', to: 'data' },
             ],
         }),
         new MiniCssExtractPlugin({
