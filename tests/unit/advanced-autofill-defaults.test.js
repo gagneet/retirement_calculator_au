@@ -95,6 +95,12 @@ describe('advanced calculator derived defaults', () => {
     });
 
     test('defaults retirement income and pension settings for a single non-homeowner profile', () => {
+        // Initial values use verified March 2026 couple homeowner defaults.
+        // refreshPensionFieldDefaults should recognise these as "recognized defaults"
+        // (they are in getAutoManagedPensionDefaults()) and update to single non-homeowner values.
+        // Verified values from servicesaustralia.gov.au:
+        //   Couple homeowner full: $481,500  cutoff: $1,085,000  income threshold: $380/fn
+        //   Single non-homeowner full: $579,500  cutoff: $980,000
         document.body.innerHTML = `
             ${buildField('partnerCurrentAge', 'Partner Current Age', '')}
             ${buildField('partnerSalary', 'Partner Salary', '')}
@@ -103,9 +109,9 @@ describe('advanced calculator derived defaults', () => {
             ${buildField('partnerLifespan', 'Partner Lifespan', '')}
             ${buildField('homeValue', 'Home Value', '0')}
             ${buildField('asfaComfortable', 'Desired Retirement Income', '73031')}
-            ${buildField('agePensionMax', 'Age Pension Max', '46202')}
+            ${buildField('agePensionMax', 'Age Pension Max', '47070')}
             ${buildField('pensionAssetThreshold', 'Pension Asset Threshold', '481500')}
-            ${buildField('pensionAssetLimit', 'Pension Asset Limit', '1074000')}
+            ${buildField('pensionAssetLimit', 'Pension Asset Limit', '1085000')}
             ${buildField('pensionIncomeThreshold', 'Pension Income Threshold', '380')}
         `;
 
@@ -113,15 +119,18 @@ describe('advanced calculator derived defaults', () => {
         app.refreshRetirementIncomeDefault();
         app.refreshPensionFieldDefaults();
 
+        // Expected: single non-homeowner March 2026 values (verified from Services Australia)
+        // SINGLE_PENSION_MAX=$31,223; SINGLE_ASSET_THRESHOLD_NH=$579,500; limit=$980,000; income=$218
         expect(document.getElementById('asfaComfortable').value).toBe('51814');
-        expect(document.getElementById('agePensionMax').value).toBe('30646');
-        expect(document.getElementById('pensionAssetThreshold').value).toBe('563500');
-        expect(document.getElementById('pensionAssetLimit').value).toBe('956500');
+        expect(document.getElementById('agePensionMax').value).toBe('31223');
+        expect(document.getElementById('pensionAssetThreshold').value).toBe('579500');
+        expect(document.getElementById('pensionAssetLimit').value).toBe('980000');
         expect(document.getElementById('pensionIncomeThreshold').value).toBe('218');
         expect(document.querySelector('[data-field-default-badge="asfaComfortable"]').textContent).toContain('Official default');
     });
 
     test('keeps symbols on auto-filled official defaults and estimated percentages', () => {
+        // Initial values use verified March 2026 couple homeowner defaults.
         document.body.innerHTML = `
             ${buildField('partnerCurrentAge', 'Partner Current Age', '')}
             ${buildField('partnerSalary', 'Partner Salary', '0')}
@@ -131,9 +140,9 @@ describe('advanced calculator derived defaults', () => {
             ${buildField('homeValue', 'Home Value', '0')}
             ${buildField('yourSalary', 'Your Salary', '100000')}
             ${buildField('asfaComfortable', 'Desired Retirement Income', '73031')}
-            ${buildField('agePensionMax', 'Age Pension Max', '46202')}
+            ${buildField('agePensionMax', 'Age Pension Max', '47070')}
             ${buildField('pensionAssetThreshold', 'Pension Asset Threshold', '481500')}
-            ${buildField('pensionAssetLimit', 'Pension Asset Limit', '1074000')}
+            ${buildField('pensionAssetLimit', 'Pension Asset Limit', '1085000')}
             ${buildField('pensionIncomeThreshold', 'Pension Income Threshold', '380')}
             ${buildField('capitalGainsTaxRate', 'Capital Gains Tax Rate', '0')}
         `;
@@ -146,10 +155,12 @@ describe('advanced calculator derived defaults', () => {
         app.refreshPensionFieldDefaults();
         app.refreshCapitalGainsTaxDefault();
 
+        // Values verified March 2026 from servicesaustralia.gov.au:
+        // Single non-homeowner: SINGLE_PENSION_MAX=$31,223; full=$579,500; cutoff=$980,000; income=$218
         expect(document.getElementById('asfaComfortable').value).toBe('$51,814.00');
-        expect(document.getElementById('agePensionMax').value).toBe('$30,646.00');
-        expect(document.getElementById('pensionAssetThreshold').value).toBe('$563,500.00');
-        expect(document.getElementById('pensionAssetLimit').value).toBe('$956,500.00');
+        expect(document.getElementById('agePensionMax').value).toBe('$31,223.00');
+        expect(document.getElementById('pensionAssetThreshold').value).toBe('$579,500.00');
+        expect(document.getElementById('pensionAssetLimit').value).toBe('$980,000.00');
         expect(document.getElementById('pensionIncomeThreshold').value).toBe('$218.00');
         expect(document.getElementById('capitalGainsTaxRate').value).toBe('15.00%');
     });

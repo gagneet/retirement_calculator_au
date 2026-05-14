@@ -1232,6 +1232,198 @@
             align-self: stretch;
             margin: 0 0.25rem;
         }
+
+        /* ── Today's Dollars / Nominal toggle ─────────────────────────── */
+        .display-mode-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: #F8FAFC;
+            border-bottom: 1px solid #E2E8F0;
+            font-size: 0.8rem;
+            color: #64748B;
+        }
+        .display-mode-bar label { font-weight: 500; }
+        .toggle-pill {
+            display: inline-flex;
+            background: #E2E8F0;
+            border-radius: 999px;
+            padding: 2px;
+        }
+        .toggle-pill button {
+            border: none; background: transparent; cursor: pointer;
+            padding: 3px 12px; border-radius: 999px; font-size: 0.75rem;
+            font-weight: 500; color: #64748B; transition: all 0.15s;
+        }
+        .toggle-pill button.active {
+            background: #1B4F72; color: #fff;
+        }
+        .display-mode-bar .policy-badge {
+            margin-left: auto;
+            font-size: 0.7rem;
+            color: #64748B;
+            display: flex; align-items: center; gap: 0.35rem;
+        }
+        .policy-badge .policy-date { color: #1B4F72; font-weight: 600; }
+
+        /* ── Retirement Paycheck Card ──────────────────────────────────── */
+        .paycheck-card {
+            background: linear-gradient(135deg, #102040 0%, #1B3A5C 100%);
+            color: #fff;
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.25rem;
+        }
+        .paycheck-card-header {
+            font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+            color: #94B4D4; font-weight: 600; margin-bottom: 0.75rem;
+        }
+        .paycheck-total {
+            font-size: 2rem; font-weight: 700; color: #C9A227;
+            line-height: 1.1;
+        }
+        .paycheck-period { font-size: 0.85rem; color: #94B4D4; margin-bottom: 1rem; }
+        .paycheck-breakdown {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;
+        }
+        @media (max-width: 600px) { .paycheck-breakdown { grid-template-columns: 1fr; } }
+        .paycheck-line {
+            background: rgba(255,255,255,0.07);
+            border-radius: 8px; padding: 0.6rem 0.75rem;
+        }
+        .paycheck-line-label { font-size: 0.68rem; color: #94B4D4; text-transform: uppercase; letter-spacing: 0.07em; }
+        .paycheck-line-amount { font-size: 1.1rem; font-weight: 700; color: #fff; }
+        .paycheck-line-sub { font-size: 0.7rem; color: #6B9AC4; margin-top: 2px; }
+        .paycheck-bar-wrap { margin-top: 1rem; }
+        .paycheck-bar-row {
+            display: flex; align-items: center; gap: 0.5rem;
+            font-size: 0.72rem; color: #94B4D4; margin-bottom: 4px;
+        }
+        .paycheck-bar-fill {
+            height: 6px; border-radius: 3px; transition: width 0.5s ease;
+        }
+        .paycheck-dollars-note {
+            margin-top: 0.6rem; font-size: 0.7rem; color: #6B9AC4; font-style: italic;
+        }
+
+        /* ── Confidence Gauge ─────────────────────────────────────────── */
+        .confidence-gauge-wrap {
+            text-align: center; padding: 0.5rem 0;
+        }
+        .confidence-gauge-wrap svg { overflow: visible; }
+        .gauge-value-text { font-size: 1.6rem; font-weight: 700; fill: #1B4F72; }
+        .gauge-label-text { font-size: 0.65rem; fill: #64748B; letter-spacing: 0.08em; text-transform: uppercase; }
+        .gauge-band-label { font-size: 0.6rem; fill: #94A3B8; }
+
+        /* ── Policy Assumptions Drawer ────────────────────────────────── */
+        .policy-drawer {
+            border: 1px solid #E2E8F0; border-radius: 10px; margin-top: 1rem; overflow: hidden;
+        }
+        .policy-drawer-trigger {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0.65rem 1rem; cursor: pointer;
+            background: #F8FAFC; border: none; width: 100%; text-align: left;
+            font-size: 0.8rem; font-weight: 600; color: #374151;
+            transition: background 0.15s;
+        }
+        .policy-drawer-trigger:hover { background: #EFF6FF; }
+        .policy-drawer-trigger .chevron {
+            transition: transform 0.2s; font-size: 0.75rem; color: #9CA3AF;
+        }
+        .policy-drawer-trigger[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+        .policy-drawer-body {
+            display: none; padding: 0.75rem 1rem;
+            background: #fff; border-top: 1px solid #E2E8F0;
+        }
+        .policy-drawer-body.open { display: block; }
+        .policy-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.35rem 0; border-bottom: 1px solid #F1F5F9; font-size: 0.78rem;
+        }
+        .policy-row:last-child { border-bottom: none; }
+        .policy-row-label { color: #64748B; }
+        .policy-row-value { font-weight: 600; color: #1B4F72; font-variant-numeric: tabular-nums; }
+        .policy-row-date { font-size: 0.7rem; color: #94A3B8; margin-left: 0.5rem; }
+        .policy-source-link { font-size: 0.7rem; color: #3B82F6; text-decoration: none; }
+        .policy-source-link:hover { text-decoration: underline; }
+
+        /* ── Funding Source Glide Chart ───────────────────────────────── */
+        .funding-glide-wrap {
+            margin-top: 1.25rem; padding: 1rem 1.25rem;
+            background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px;
+        }
+        .funding-glide-title {
+            font-size: 0.82rem; font-weight: 600; color: #374151; margin-bottom: 0.6rem;
+        }
+        .funding-glide-subtitle {
+            font-size: 0.72rem; color: #94A3B8; margin-bottom: 0.75rem;
+        }
+        .funding-glide-legend {
+            display: flex; gap: 1rem; flex-wrap: wrap;
+            font-size: 0.7rem; color: #64748B; margin-top: 0.5rem;
+        }
+        .funding-glide-legend span {
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .legend-dot {
+            width: 10px; height: 10px; border-radius: 2px; display: inline-block;
+        }
+
+        /* ── Overseas Scenario Tree ───────────────────────────────────── */
+        .overseas-scenario-tree {
+            display: grid;
+            /* 5 scenarios: 3 on first row, 2 on second. Falls back gracefully. */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+        @media (max-width: 800px) { .overseas-scenario-tree { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 640px) { .overseas-scenario-tree { grid-template-columns: 1fr; } }
+        .overseas-scenario-card {
+            border-radius: 10px; padding: 0.9rem; border: 1.5px solid #E2E8F0;
+            position: relative;
+        }
+        .overseas-scenario-card.best { border-color: #2D6A4F; background: #F0FDF4; }
+        .overseas-scenario-card.warning { border-color: #E07B39; background: #FFF7ED; }
+        .overseas-scenario-card.critical { border-color: #B5342A; background: #FEF2F2; }
+        .overseas-scenario-card.neutral { background: #F8FAFC; }
+        .overseas-scenario-label {
+            font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
+            font-weight: 700; margin-bottom: 0.4rem;
+        }
+        .overseas-scenario-pension {
+            font-size: 1.3rem; font-weight: 700; color: #1B4F72; margin-bottom: 0.25rem;
+        }
+        .overseas-scenario-delta {
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .overseas-scenario-delta.neg { color: #B5342A; }
+        .overseas-scenario-delta.pos { color: #2D6A4F; }
+        .overseas-scenario-warnings {
+            margin-top: 0.5rem; font-size: 0.7rem; color: #64748B;
+        }
+        .overseas-scenario-warnings li { margin-bottom: 2px; }
+        .overseas-disclaimer {
+            font-size: 0.7rem; color: #94A3B8; font-style: italic;
+            margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px solid #E2E8F0;
+        }
+
+        /* ── Why This Matters micro-copy ─────────────────────────────── */
+        .why-matters-trigger {
+            display: inline-flex; align-items: center; gap: 3px;
+            font-size: 0.68rem; color: #3B82F6; cursor: pointer;
+            background: none; border: none; padding: 0; margin-top: 3px;
+            text-decoration: underline dotted;
+        }
+        .why-matters-trigger:hover { color: #1D4ED8; }
+        .why-matters-body {
+            display: none; font-size: 0.72rem; color: #64748B;
+            background: #EFF6FF; border-left: 3px solid #93C5FD;
+            padding: 0.4rem 0.6rem; border-radius: 0 4px 4px 0;
+            margin-top: 4px; line-height: 1.4;
+        }
+        .why-matters-body.open { display: block; }
     </style>
 </head>
 <body>
@@ -1727,6 +1919,12 @@
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="retirementAge" type="number"
                            min="40" max="90" value="68">
+                    <button class="why-matters-trigger" onclick="toggleWhyMatters('wm-retirement-age')" type="button" aria-expanded="false" aria-controls="wm-retirement-age">
+                        ▸ Why this matters
+                    </button>
+                    <div class="why-matters-body" id="wm-retirement-age" role="region">
+                        Each extra year of work typically adds 3–4% to your projected retirement income: you earn and contribute for one more year, your super compounds for one more year, and you draw it down for one fewer year. A 1-year delay has a larger impact than almost any other single lever. Age Pension eligibility starts at 67 regardless of when you retire, so retiring before 67 requires a self-funded bridge period.
+                    </div>
                 </div>
                 <div class="field-required">
                     <div class="label-with-tooltip">
@@ -2390,6 +2588,12 @@
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="yourCurrentSuper" type="text"
                            value="300000" min="0">
+                    <button class="why-matters-trigger" onclick="toggleWhyMatters('wm-super-balance')" type="button" aria-expanded="false" aria-controls="wm-super-balance">
+                        ▸ Why this matters
+                    </button>
+                    <div class="why-matters-body" id="wm-super-balance" role="region">
+                        Your current super balance is the starting point for compound growth. At 7.5% p.a., $100k today becomes ~$200k in 10 years without any new contributions. Super is taxed at 15% in accumulation and is tax-free from age 60 in pension phase — the tax advantages make it your most efficient retirement vehicle. It also affects the Age Pension income test through deeming (1.25% on first $64,200, 3.25% above).
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="partnerCurrentSuper">Partner's Current
@@ -3410,8 +3614,14 @@
                         </div>
                     </div>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="agePensionMax" type="text"
-                               value="46202" min="0">
-                    </div>
+                               value="47070" min="0">
+                        <button class="why-matters-trigger" onclick="toggleWhyMatters('wm-pension-max')" type="button" aria-expanded="false" aria-controls="wm-pension-max">
+                            ▸ Why this matters
+                        </button>
+                        <div class="why-matters-body" id="wm-pension-max" role="region">
+                            The Age Pension is indexed every 20 March and 20 September. March 2026 rates: single $1,200.90/fn ($31,223/yr), couple combined $1,810.40/fn ($47,070/yr). These are the actual rates used in this calculator — auto-defaulted for your household type. Even a part-pension matters: $10k/year of Age Pension represents $250,000 in equivalent capital at 4% drawdown.
+                        </div>
+                     </div>
                 <div>
                     <div class="label-with-tooltip">
                             <label class="text-sm font-medium text-gray-700" for="pensionAssetThreshold">Pension Asset
@@ -3427,6 +3637,12 @@
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="pensionAssetThreshold" type="text"
                            value="481500" min="0">
+                    <button class="why-matters-trigger" onclick="toggleWhyMatters('wm-asset-threshold')" type="button" aria-expanded="false" aria-controls="wm-asset-threshold">
+                        ▸ Why this matters
+                    </button>
+                    <div class="why-matters-body" id="wm-asset-threshold" role="region">
+                        Above this threshold, the Age Pension reduces by $3 per fortnight ($78/year) for every $1,000 of excess assets. The threshold differs for homeowners vs non-homeowners by $258,000 (March 2026 verified). Your principal home is <strong>fully exempt</strong> from the assets test — it does not count at all. Only financial assets (super, shares, savings, managed funds) and investment properties are assessed.
+                    </div>
                 </div>
                 <div>
                     <div class="label-with-tooltip">
@@ -3686,6 +3902,27 @@
             <button class="tab-button" onclick="showTab('costReality')">💰 Cost Reality</button>
         </div>
 
+        <!-- Today's Dollars / Nominal display toggle + policy badge -->
+        <div class="display-mode-bar" id="display-mode-bar">
+            <label>Display:</label>
+            <div class="toggle-pill" role="group" aria-label="Display mode">
+                <button class="active" id="toggle-todays-dollars" onclick="setDisplayMode('real')" aria-pressed="true">
+                    Today's Dollars
+                </button>
+                <button id="toggle-nominal" onclick="setDisplayMode('nominal')" aria-pressed="false">
+                    Nominal (future $)
+                </button>
+            </div>
+            <div class="policy-badge" title="Age Pension rules used in calculations">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                    <path d="M12 8v4m0 4h.01" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Rules as at <span class="policy-date" id="display-policy-date">loading…</span>
+                <a href="/assumptions.html" target="_blank" rel="noopener" class="policy-source-link ml-1">(see assumptions)</a>
+            </div>
+        </div>
+
         <!-- Outcome View Tab (NEW - Simplified outcome-focused view) -->
         <div class="tab-content active p-6" id="outcome-tab">
 
@@ -3709,6 +3946,65 @@
                 </div>
 
             <div class="outcome-view-container" id="outcome-view-container">
+
+                <!-- ══ RETIREMENT PAYCHECK CARD ══════════════════════════════ -->
+                <!-- Shows retirement income as a structured "payslip" breakdown -->
+                <div class="paycheck-card" id="paycheck-card" style="display:none">
+                    <div class="paycheck-card-header">Your Monthly Retirement Paycheck — Today's Dollars</div>
+                    <div class="paycheck-total" id="paycheck-total">—</div>
+                    <div class="paycheck-period" id="paycheck-period">per month · at retirement</div>
+
+                    <div class="paycheck-breakdown">
+                        <div class="paycheck-line">
+                            <div class="paycheck-line-label">Super Drawdown</div>
+                            <div class="paycheck-line-amount" id="paycheck-super">—</div>
+                            <div class="paycheck-line-sub" id="paycheck-super-pct">— of income</div>
+                        </div>
+                        <div class="paycheck-line">
+                            <div class="paycheck-line-label">Age Pension</div>
+                            <div class="paycheck-line-amount" id="paycheck-pension">—</div>
+                            <div class="paycheck-line-sub" id="paycheck-pension-pct">— of income</div>
+                        </div>
+                        <div class="paycheck-line">
+                            <div class="paycheck-line-label">Other Sources</div>
+                            <div class="paycheck-line-amount" id="paycheck-other">—</div>
+                            <div class="paycheck-line-sub" id="paycheck-other-pct">— of income</div>
+                        </div>
+                    </div>
+
+                    <!-- Stacked proportion bar -->
+                    <div class="paycheck-bar-wrap" id="paycheck-bar-wrap">
+                        <div style="display:flex; height:8px; border-radius:4px; overflow:hidden; gap:2px">
+                            <div id="paycheck-bar-super" class="paycheck-bar-fill" style="background:#C9A227; width:60%"></div>
+                            <div id="paycheck-bar-pension" class="paycheck-bar-fill" style="background:#3B82F6; width:30%"></div>
+                            <div id="paycheck-bar-other" class="paycheck-bar-fill" style="background:#10B981; width:10%"></div>
+                        </div>
+                        <div style="display:flex; gap:1rem; margin-top:6px; font-size:0.7rem; color:#94B4D4">
+                            <span><span style="color:#C9A227">■</span> Super drawdown</span>
+                            <span><span style="color:#3B82F6">■</span> Age Pension</span>
+                            <span><span style="color:#10B981">■</span> Other</span>
+                        </div>
+                    </div>
+
+                    <div class="paycheck-dollars-note" id="paycheck-note">
+                        Amounts shown in today's dollars (adjusted for inflation). Age Pension subject to means testing.
+                    </div>
+                </div>
+
+                <!-- ══ FUNDING SOURCE GLIDE CHART ═════════════════════════════ -->
+                <!-- Shows the journey from self-funded → mixed → pension-heavy -->
+                <div class="funding-glide-wrap" id="funding-glide-wrap" style="display:none">
+                    <div class="funding-glide-title">Retirement Funding Stages</div>
+                    <div class="funding-glide-subtitle">
+                        How your income sources are projected to shift over retirement — from self-funded to government-supported.
+                    </div>
+                    <canvas id="fundingGlideChart" height="100"></canvas>
+                    <div class="funding-glide-legend">
+                        <span><span class="legend-dot" style="background:#C9A227"></span>Super drawdown</span>
+                        <span><span class="legend-dot" style="background:#3B82F6"></span>Age Pension</span>
+                        <span><span class="legend-dot" style="background:#10B981"></span>Other income</span>
+                    </div>
+                </div>
 
                 <!-- REALITY CHECK CARD -->
                 <div class="reality-check-card">
@@ -3765,6 +4061,61 @@
                             <!-- populated by JS -->
                         </div>
                         <p class="text-xs text-gray-400 mt-3">These illustrate the relative sensitivity of modelled outcomes to input changes — not predictions of future results.</p>
+                    </div>
+
+                    <!-- ══ POLICY ASSUMPTIONS DRAWER ═════════════════════ -->
+                    <div class="policy-drawer" id="policy-drawer">
+                        <button class="policy-drawer-trigger" id="policy-drawer-trigger"
+                                aria-expanded="false" aria-controls="policy-drawer-body"
+                                onclick="togglePolicyDrawer()">
+                            <span>
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:inline;margin-right:4px;vertical-align:-2px" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                Policy assumptions used in this calculation
+                            </span>
+                            <span class="chevron">▼</span>
+                        </button>
+                        <div class="policy-drawer-body" id="policy-drawer-body" role="region" aria-labelledby="policy-drawer-trigger">
+                            <div class="policy-row">
+                                <span class="policy-row-label">Effective date</span>
+                                <span class="policy-row-value" id="pd-effective-date">—</span>
+                            </div>
+                            <div class="policy-row">
+                                <span class="policy-row-label">Single pension max (annual)</span>
+                                <span class="policy-row-value" id="pd-single-max">—<span class="policy-row-date">(fn: —)</span></span>
+                            </div>
+                            <div class="policy-row">
+                                <span class="policy-row-label">Couple pension max (annual)</span>
+                                <span class="policy-row-value" id="pd-couple-max">—<span class="policy-row-date">(fn: —)</span></span>
+                            </div>
+                            <div class="policy-row">
+                                <span class="policy-row-label">Deeming rates</span>
+                                <span class="policy-row-value" id="pd-deeming">— / —</span>
+                            </div>
+                            <div class="policy-row">
+                                <span class="policy-row-label">Asset test — single homeowner (full / cutoff)</span>
+                                <span class="policy-row-value" id="pd-asset-single-ho">— / —</span>
+                            </div>
+                            <div class="policy-row">
+                                <span class="policy-row-label">Asset test — couple homeowner (full / cutoff)</span>
+                                <span class="policy-row-value" id="pd-asset-couple-ho">— / —</span>
+                            </div>
+                            <div class="policy-row">
+                                <span class="policy-row-label">Income tax brackets</span>
+                                <span class="policy-row-value" id="pd-tax-brackets">2025-26</span>
+                            </div>
+                            <div class="policy-row">
+                                <span class="policy-row-label">Next scheduled review</span>
+                                <span class="policy-row-value" id="pd-next-review">20 September 2026</span>
+                            </div>
+                            <div class="policy-row" style="border-bottom:none; padding-top:0.5rem">
+                                <span style="font-size:0.7rem; color:#94A3B8">
+                                    Source: <a href="https://www.servicesaustralia.gov.au/age-pension" target="_blank" rel="noopener" class="policy-source-link">Services Australia</a>
+                                    · <a href="/assumptions.html" class="policy-source-link">Full assumptions page</a>
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- GAP/SURPLUS INDICATOR -->
@@ -4325,8 +4676,22 @@
                         <div id="mc10th">-</div>
                     </div>
                     <div class="p-3 bg-yellow-50 rounded text-center">
-                        <div class="font-semibold">Confidence Score</div>
-                        <div id="mcConfidence">-</div>
+                        <div class="font-semibold mb-1">Confidence Score</div>
+                        <div class="confidence-gauge-wrap" id="confidence-gauge-wrap">
+                            <!-- SVG arc gauge — filled by JS via updateConfidenceGauge() -->
+                            <svg id="confidence-gauge-svg" width="90" height="52" viewBox="0 0 90 52" aria-hidden="true">
+                                <!-- Background arc -->
+                                <path d="M 8 46 A 37 37 0 0 1 82 46" fill="none" stroke="#E2E8F0" stroke-width="8" stroke-linecap="round"/>
+                                <!-- Filled arc — stroke-dasharray set by JS -->
+                                <path id="confidence-gauge-fill" d="M 8 46 A 37 37 0 0 1 82 46"
+                                      fill="none" stroke="#22C55E" stroke-width="8" stroke-linecap="round"
+                                      stroke-dasharray="0 116.2" style="transition: stroke-dasharray 0.6s ease, stroke 0.4s ease"/>
+                                <!-- Value text -->
+                                <text id="confidence-gauge-text" x="45" y="44" text-anchor="middle" class="gauge-value-text" font-size="16" font-weight="700" fill="#1B4F72">—</text>
+                            </svg>
+                            <!-- Hidden plain text for screen readers -->
+                            <div id="mcConfidence" class="sr-only">-</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4502,6 +4867,59 @@
                             </select>
                         </div>
 
+                        <!-- Move Type: critical for supplement rule timing -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="overseasMoveType">Type of Move</label>
+                            <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                    id="overseasMoveType">
+                                <option value="permanent">Permanent move (living overseas)</option>
+                                <option value="extended_temporary">Extended stay &gt;26 weeks (planning to return)</option>
+                                <option value="long_absence">Holiday / visit 6–26 weeks</option>
+                                <option value="short_absence">Short trip ≤6 weeks</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">
+                                <strong>Important:</strong> For a permanent move, Pension Supplement reductions apply
+                                from the <em>departure date</em> — not after 26 weeks.
+                            </p>
+                        </div>
+
+                        <!-- Agreement Country — affects 2-year waiting period on return -->
+                        <div>
+                            <label class="flex items-center gap-2" for="overseasAgreementCountry">
+                                <input class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" id="overseasAgreementCountry" type="checkbox">
+                                <span class="text-sm text-gray-700">Destination has Social Security Agreement with Australia</span>
+                            </label>
+                            <p class="mt-1 text-xs text-gray-500">
+                                Agreement countries (e.g. NZ, UK, USA, Germany, Japan) avoid the 2-year former resident waiting period.
+                                The country dropdown sets this automatically for known agreement countries.
+                            </p>
+                        </div>
+
+                        <!-- Tax Residency -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="overseasTaxResidency">Tax Residency Assumption</label>
+                            <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                    id="overseasTaxResidency">
+                                <option value="australian">Remain Australian tax resident</option>
+                                <option value="foreign">Become foreign tax resident</option>
+                                <option value="uncertain">Uncertain — seek advice</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Foreign residents lose the tax-free threshold (30% flat rate on Australian-sourced income). Seek specialist advice before departure.</p>
+                        </div>
+
+                        <!-- Health Cover -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700" for="overseasHealthCover">Overseas Health Cover Plan</label>
+                            <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                    id="overseasHealthCover">
+                                <option value="international_private">International private health insurance</option>
+                                <option value="local_public">Local public healthcare system</option>
+                                <option value="local_private">Local private insurance</option>
+                                <option value="none">No cover arranged yet</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Medicare does not cover overseas treatment. Pensioner Concession Card is cancelled after 6 weeks overseas.</p>
+                        </div>
+
                         <div>
                             <label class="flex items-center" for="maintainResidency">
                                 <input class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" id="maintainResidency"
@@ -4566,50 +4984,78 @@
                 </div>
             </div>
 
-            <!-- Overseas Scenarios Analysis -->
+            <!-- Overseas Scenarios Analysis — four-scenario mandatory comparison -->
+            <!-- Per deep_research.md: never show a single "better overseas" verdict -->
             <div class="bg-white p-6 rounded-lg border">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold">Overseas Retirement Scenarios</h3>
-                    <button class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
-                            id="generateOverseasScenarios">
-                        Generate Scenarios
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="text-lg font-semibold">Age Pension: Four-Scenario Comparison</h3>
+                    <button class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors text-sm"
+                            id="generateOverseasScenarios" onclick="generateOverseasScenariosTree()">
+                        Calculate Scenarios
                     </button>
                 </div>
+                <p class="text-xs text-gray-500 mb-4">
+                    The rules differ materially depending on your departure intent. All four cases are shown so you can assess each risk separately.
+                </p>
 
                 <div class="hidden text-center py-8" id="overseasScenariosLoading">
                     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                    <p class="mt-4 text-gray-600">Analyzing overseas retirement scenarios...</p>
+                    <p class="mt-4 text-gray-600">Calculating scenarios from policy engine…</p>
                 </div>
 
-                <div class="hidden" id="overseasScenariosResults">
-                    <!-- Scenarios will be populated here -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Scenario cards will be added dynamically -->
+                <!-- Four-scenario tree — populated by generateOverseasScenariosTree() in app.js -->
+                <div id="overseasScenariosResults" style="display:none">
+                    <div class="overseas-scenario-tree" id="overseas-scenario-tree">
+                        <!-- Cards injected by JS -->
                     </div>
+                    <div class="overseas-disclaimer" id="overseas-disclaimer"></div>
                 </div>
 
-                <div class="text-center py-12 text-gray-500" id="overseasScenariosPlaceholder">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M3 21v-4m0 0V5a2 2 0 012-2h6.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V17a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round"
-                              stroke-width="2"></path>
+                <!-- Placeholder -->
+                <div class="text-center py-8 text-gray-500" id="overseasScenariosPlaceholder">
+                    <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
                     </svg>
-                    <h3 class="mt-2 text-sm font-medium text-gray-900">No Scenarios Generated</h3>
-                    <p class="mt-1 text-sm text-gray-500">Click "Generate Scenarios" to analyze overseas retirement
-                        options</p>
+                    <p class="mt-3 text-sm font-medium text-gray-600">Select a country and click "Calculate Scenarios"</p>
+                    <p class="mt-1 text-xs text-gray-400">Results use the policy engine (March 2026 rates)</p>
+                </div>
+
+                <!-- Country-level detail (populated by generateOverseasScenarios) -->
+                <div class="hidden mt-4" id="overseasScenariosCountryDetail">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Country scenario cards added dynamically -->
+                    </div>
                 </div>
             </div>
 
-            <!-- Important Considerations -->
+            <!-- Important Considerations — correct homeowner/non-homeowner language -->
             <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <h4 class="font-semibold text-amber-900 mb-2">⚠️ Important Considerations</h4>
-                <div class="text-sm text-amber-800 space-y-1">
-                    <p>• <strong>Age Pension:</strong> Requires Australian residence history and may be reduced overseas
-                    </p>
-                    <p>• <strong>Tax Treaties:</strong> May provide relief from double taxation depending on destination
-                    </p>
-                    <p>• <strong>Healthcare:</strong> Medicare may not cover overseas treatment - consider insurance</p>
-                    <p>• <strong>Superannuation:</strong> Access rules remain the same regardless of residency</p>
-                    <p>• <strong>Professional Advice:</strong> Complex area requiring tax and legal expertise</p>
+                <h4 class="font-semibold text-amber-900 mb-2">⚠️ Key Overseas Retirement Rules (March 2026)</h4>
+                <div class="text-sm text-amber-800 space-y-2">
+                    <p>• <strong>Age Pension — 6-week rule:</strong> After 6 weeks continuously overseas, the Pension
+                       Supplement drops to the basic rate only and the Energy Supplement stops. The Pensioner Concession Card
+                       is cancelled. The base pension rate is <em>unchanged</em> at this point.</p>
+                    <p>• <strong>Age Pension — 26-week rule:</strong> After 26 weeks, an AWLR-proportional rate applies
+                       if your Australian Working Life Residence is below 35 years. If 35+ years, the full rate continues.</p>
+                    <p>• <strong>Permanent move:</strong> If moving to <em>live</em> overseas (not just visiting), the
+                       Pension Supplement top-up and Energy Supplement stop from your <em>departure date</em> — not after
+                       6 weeks. This is a critical distinction.</p>
+                     <p>• <strong>Principal home — asset test:</strong> Services Australia distinguishes
+                        <em>homeowner</em> and <em>non-homeowner</em> thresholds (March 2026 verified: homeowner full-pension
+                        limit $321,500 single / $481,500 couple; non-homeowner thresholds are $258,000 higher, giving
+                        $579,500 single / $739,500 couple). The principal home is fully exempt — it does not appear in the
+                        assets test at all. If you sell and rent, you become a non-homeowner and the higher thresholds apply
+                        (but sale proceeds are assessable for 24 months unless reinvested in a new home).</p>
+                    <p>• <strong>Return to Australia:</strong> If you leave again within 2 years of returning and
+                       starting Age Pension, payments may stop (exceptions: agreement countries, humanitarian visas).</p>
+                    <p>• <strong>Healthcare:</strong> Medicare does not cover overseas treatment. Private international
+                       health insurance is strongly recommended. Pensioner Concession Card expires after 6 weeks abroad.</p>
+                    <p>• <strong>Superannuation:</strong> Access rules (age 60+) apply regardless of residency.
+                       Some funds close accounts for permanent overseas residents — check with your fund.</p>
+                    <p>• <strong>Tax:</strong> Foreign residents lose the tax-free threshold and pay 30% on
+                       Australian-sourced income from the first dollar. Double Tax Agreements may reduce this for
+                       agreement countries. Always seek specialist advice.</p>
                 </div>
             </div>
 

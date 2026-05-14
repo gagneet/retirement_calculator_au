@@ -2,33 +2,61 @@
 // All Australian-specific constants, rules, and default values
 
 export const ENHANCED_CONFIG = {
-    version: '1.1.0',
-    lastUpdated: '2025-10-01',
+    version: '1.2.0',
+    lastUpdated: '2026-03-20',
 
-    // Core Australian system constants (Updated Sept 2025 - Services Australia)
+    // ===== POLICY ENGINE: Single source of truth for all legislative constants =====
+    // Each section carries effective-date metadata so result screens can display
+    // "Rules used as at [date]" and policy regression tests can detect stale values.
+
+    // Core Australian system constants
     SUPER_GUARANTEE_RATE: 0.12,
-    // Deeming thresholds (Sept 2025)
-    DEMING_THRESHOLD_SINGLE: 64200,      // Lower deeming rate threshold - singles
-    DEMING_THRESHOLD_COUPLE: 106200,     // Lower deeming rate threshold - couples
-    DEMING_RATE_LOWER: 0.0075,           // 0.75% on amounts below threshold
-    DEMING_RATE_UPPER: 0.0275,           // 2.75% on amounts above threshold
-    // Age Pension maximums (Sept 2025)
-    SINGLE_PENSION_MAX: 30646,           // $1,178.70/fortnight × 26 (updated from $28,000)
-    COUPLE_PENSION_MAX: 46202,           // $1,777.00/fortnight × 26
-    // Asset test thresholds - homeowners (Sept 2025)
-    SINGLE_ASSET_THRESHOLD: 321500,              // Full pension limit (homeowner)
-    SINGLE_ASSET_LIMIT: 714500,                  // Part pension cutoff (homeowner)
-    SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER: 563500, // Full pension limit (non-homeowner, +$242,000 supplement)
-    SINGLE_ASSET_LIMIT_NON_HOMEOWNER: 956500,     // Part pension cutoff (non-homeowner, +$242,000 supplement)
-    COUPLE_ASSET_THRESHOLD: 481500,              // Couple full pension limit (homeowner)
-    COUPLE_ASSET_LIMIT: 1074000,                 // Couple part pension cutoff (homeowner)
-    COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER: 723500, // Couple full pension limit (non-homeowner, +$242,000 supplement)
-    COUPLE_ASSET_LIMIT_NON_HOMEOWNER: 1316000,    // Couple part pension cutoff (non-homeowner, +$242,000 supplement)
-    // Non-homeowner supplement (the additional amount added to all thresholds, Sept 2025)
-    NON_HOMEOWNER_ASSET_SUPPLEMENT: 242000,
-    // Income test thresholds (Sept 2025)
-    SINGLE_INCOME_THRESHOLD: 218,        // Per fortnight (updated from $212)
-    COUPLE_INCOME_THRESHOLD: 380,        // Per fortnight combined
+
+    // ===== DEEMING RATES (March 2026) =====
+    // Source: Services Australia - servicesaustralia.gov.au/deeming
+    // Effective: 20 March 2026 (updated every 20 March and 20 September)
+    // Previous (Sept 2025): lower=0.75%, upper=2.75%
+    DEMING_THRESHOLD_SINGLE: 64200,      // Lower deeming rate threshold - singles (March 2026)
+    DEMING_THRESHOLD_COUPLE: 106200,     // Lower deeming rate threshold - couples (March 2026)
+    DEMING_RATE_LOWER: 0.0125,           // 1.25% on amounts below threshold (March 2026, was 0.75%)
+    DEMING_RATE_UPPER: 0.0325,           // 3.25% on amounts above threshold (March 2026, was 2.75%)
+
+    // ===== AGE PENSION MAXIMUMS (20 March 2026) =====
+    // Source: Services Australia servicesaustralia.gov.au/how-much-age-pension-you-can-get
+    // Verified: 14 May 2026 — page last updated 20 March 2026
+    // Single total/fn: $1,100.30 basic + $86.50 supplement + $14.10 energy = $1,200.90
+    // Couple combined/fn: $1,658.80 basic + $130.40 supplement + $21.20 energy = $1,810.40
+    SINGLE_PENSION_MAX: 31223,           // $1,200.90/fortnight × 26 = $31,223.40 (March 2026)
+    COUPLE_PENSION_MAX: 47070,           // $1,810.40/fortnight × 26 = $47,070.40 (March 2026)
+
+    // ===== ASSET TEST THRESHOLDS (20 March 2026) =====
+    // Source: Services Australia servicesaustralia.gov.au/assets-test-for-age-pension
+    // Verified: 14 May 2026 — page last updated 20 March 2026
+    // Full-pension limits (assets below this = full pension)
+    // Part-pension cut-offs (assets at/above this = $0 pension)
+    SINGLE_ASSET_THRESHOLD: 321500,              // Full pension limit, single homeowner (March 2026)
+    SINGLE_ASSET_LIMIT: 722000,                  // Part pension cutoff, single homeowner (March 2026)
+    SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER: 579500, // Full pension limit, single non-homeowner (March 2026)
+    SINGLE_ASSET_LIMIT_NON_HOMEOWNER: 980000,     // Part pension cutoff, single non-homeowner (March 2026)
+    COUPLE_ASSET_THRESHOLD: 481500,              // Full pension limit, couple homeowner (March 2026)
+    COUPLE_ASSET_LIMIT: 1085000,                 // Part pension cutoff, couple homeowner (March 2026)
+    COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER: 739500, // Full pension limit, couple non-homeowner (March 2026)
+    COUPLE_ASSET_LIMIT_NON_HOMEOWNER: 1343000,    // Part pension cutoff, couple non-homeowner (March 2026)
+    // Non-homeowner supplement = NH threshold minus HO threshold (258,000 for singles March 2026)
+    NON_HOMEOWNER_ASSET_SUPPLEMENT: 258000,
+
+    // ===== INCOME TEST THRESHOLDS (20 March 2026) =====
+    // Source: Services Australia servicesaustralia.gov.au/income-test-for-age-pension
+    // Verified: 14 May 2026 — page last updated 20 March 2026
+    // NOTE: Income thresholds are UNCHANGED from Sept 2025 — $218 single, $380 couple combined
+    SINGLE_INCOME_THRESHOLD: 218,        // Per fortnight — UNCHANGED from Sept 2025
+    COUPLE_INCOME_THRESHOLD: 380,        // Per fortnight combined — UNCHANGED from Sept 2025
+
+    // ===== POLICY METADATA (for "Rules used as at" display and regression tests) =====
+    POLICY_EFFECTIVE_DATE: '2026-03-20',
+    POLICY_NEXT_REVIEW_DATE: '2026-09-20',
+    POLICY_SOURCE: 'Services Australia',
+    POLICY_SOURCE_URL: 'https://www.servicesaustralia.gov.au/age-pension',
     HOME_EQUITY_ACCESS_RATE: 0.7,
     CGT_DISCOUNT: 0.5,
     FRANKING_CREDIT_RATE: 0.3,
@@ -59,11 +87,11 @@ export const ENHANCED_CONFIG = {
     AVERAGE_WEEKS_PER_MONTH: 52 / 12,    // ≈4.333 - used to convert weekly amounts to monthly
 
     sources: {
-        SUPER_GUARANTEE_RATE: { source: 'ATO', lastUpdated: '2025-10-01' },
-        DEMING_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2025-09-20', note: 'Updated to Sept 2025 rates' },
-        PENSION_MAXIMUMS: { source: 'Services Australia', lastUpdated: '2025-09-20', note: 'Sept 2025 indexation' },
-        ASSET_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2025-09-20', note: 'Sept 2025 indexation' },
-        INCOME_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2025-09-20', note: 'Sept 2025 indexation' },
+        SUPER_GUARANTEE_RATE: { source: 'ATO', lastUpdated: '2025-10-01', url: 'https://www.ato.gov.au/business/super-for-employers/paying-super-contributions/how-much-super-to-pay' },
+        DEMING_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2026-03-20', note: 'VERIFIED 14 May 2026: Thresholds unchanged at $64,200 (single) / $106,200 (couple). Rates increased to 1.25% / 3.25% from 20 March 2026. Source: servicesaustralia.gov.au/deeming?context=22526 and DVA updates.', url: 'https://www.servicesaustralia.gov.au/deeming?context=22526', previousValues: { lower: 0.0075, upper: 0.0275, asOf: '2025-09-20' }, verified: true },
+        PENSION_MAXIMUMS: { source: 'Services Australia', lastUpdated: '2026-03-20', note: 'Verified 14 May 2026: single $1,200.90/fn total, couple combined $1,810.40/fn total', url: 'https://www.servicesaustralia.gov.au/how-much-age-pension-you-can-get', previousValues: { single: 30646, couple: 46202, asOf: '2025-09-20' }, verified: true },
+        ASSET_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2026-03-20', note: 'Verified 14 May 2026 from assets-test-for-age-pension page. Full-pension limits unchanged from Sept 2025; cut-offs updated.', url: 'https://www.servicesaustralia.gov.au/assets-test-for-age-pension', verified: true },
+        INCOME_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2026-03-20', note: 'Verified 14 May 2026: income thresholds UNCHANGED from Sept 2025 ($218 single, $380 couple)', url: 'https://www.servicesaustralia.gov.au/income-test-for-age-pension', verified: true },
         HOME_EQUITY_ACCESS_RATE: { source: 'Services Australia', lastUpdated: '2025-10-01' },
         CGT_DISCOUNT: { source: 'ATO', lastUpdated: '2025-10-01' },
         FRANKING_CREDIT_RATE: { source: 'ATO', lastUpdated: '2025-10-01' },
@@ -156,25 +184,57 @@ export const ENHANCED_CONFIG = {
         DEFAULT_MONTHLY_LIVING_COST: 2500    // Food, transport, utilities estimate
     },
 
-    // ===== OVERSEAS RETIREMENT CONSTANTS (Sept 2025) =====
+    // ===== OVERSEAS RETIREMENT CONSTANTS (March 2026) =====
     // Sources: Services Australia, Department of Social Services, ATO
+    // Effective: 20 March 2026
     OVERSEAS_RETIREMENT: {
         // Age Pension portability rules
+        // Source: servicesaustralia.gov.au/travel-outside-australia-rules-for-age-pension
         PENSION_AGE: 67,                          // Current qualifying age for Age Pension
         AWLR_START_AGE: 16,                       // AWLR counted from age 16
         AWLR_END_AGE: 67,                         // AWLR counted to pension age (67 years)
         AWLR_TOTAL_YEARS: 51,                     // Total possible AWLR years (67 - 16)
         AWLR_REQUIRED_FOR_FULL: 35,               // Years of AWLR required for full portable pension
-        SHORT_ABSENCE_WEEKS: 6,                   // Full pension + supplements up to 6 weeks
-        PORTABILITY_THRESHOLD_WEEKS: 26,          // After 26 weeks, AWLR-proportional rate applies
 
-        // Pension supplement annual amounts lost when living overseas (Sept 2025 rates)
-        // Pension Supplement (basic rate retained but top-up lost) + Energy Supplement
-        // Single:        $78.40 + $14.10 = $92.50/fortnight × 26 = ~$2,405/year
-        // Couple (each): $59.10 + $10.60 = $69.70/fortnight per person × 26 = ~$1,812/year per person
-        // Note: PENSION_SUPPLEMENT_REDUCTION_COUPLE is the per-person reduction; applies once each
-        PENSION_SUPPLEMENT_REDUCTION_SINGLE: 2405,    // Annual reduction for a single person living overseas
-        PENSION_SUPPLEMENT_REDUCTION_COUPLE: 1812,    // Annual reduction per person for each member of a couple overseas
+        // ===== OVERSEAS ABSENCE RULE THRESHOLDS =====
+        // Source: Services Australia - portability rules (2026)
+        // Rule 1 (0 to 6 weeks): Full rate including Pension Supplement top-up and Energy Supplement
+        //                         Pensioner Concession Card still valid
+        // Rule 2 (>6 weeks, <=26 weeks): Pension Supplement drops to BASIC RATE only
+        //                                 Energy Supplement STOPS. PCC cancelled after 6 weeks.
+        //                                 Pension base rate continues unchanged.
+        // Rule 3 (>26 weeks, permanent move): AWLR proportional rate applies to base pension.
+        //                                      If moving to live overseas, supplement changes apply
+        //                                      FROM DEPARTURE DATE (not after 26 weeks).
+        // Rule 4 (return within 2 years):  2-year former resident waiting period applies
+        //                                  (exceptions: agreement countries, humanitarian visas)
+        SHORT_ABSENCE_WEEKS: 6,                   // Supplements retained for up to 6 weeks absence
+        PORTABILITY_THRESHOLD_WEEKS: 26,          // After 26 weeks, AWLR-proportional rate applies
+        RETURN_WAITING_PERIOD_YEARS: 2,           // Years waiting period if return after absence
+
+        // ===== SUPPLEMENT REDUCTIONS WHEN OVERSEAS =====
+        // Source: servicesaustralia.gov.au/how-much-pension-supplement-you-can-get
+        //         servicesaustralia.gov.au/pension-supplement-while-travelling-outside-australia
+        // Verified: 14 May 2026 — pension supplement page last updated 20 March 2026
+        //
+        // When overseas >6 weeks (or from departure if permanent move), the Pension Supplement
+        // reduces to the BASIC rate (NOT zero). Only the TOP-UP above basic rate is lost.
+        // The Energy Supplement also STOPS completely.
+        //
+        // March 2026 verified rates:
+        // Single:  Full supplement = $86.50/fn,  Basic = $30.10/fn, Energy = $14.10/fn
+        //          Lost per fortnight = ($86.50 - $30.10) + $14.10 = $70.50/fn
+        //          Annual reduction = $70.50 × 26 = $1,833/year
+        // Couple:  Full supplement each = $65.20/fn, Basic each = $24.80/fn, Energy each = $10.60/fn
+        //          Lost per person per fortnight = ($65.20 - $24.80) + $10.60 = $51.00/fn
+        //          Annual reduction per person = $51.00 × 26 = $1,326/year
+        //
+        // NOTE: PENSION_SUPPLEMENT_REDUCTION_COUPLE is the per-person amount.
+        //       In policy-engine.js, the couple total is multiplied by 2.
+        PENSION_SUPPLEMENT_BASIC_SINGLE: 30.10,        // $/fn retained overseas (single basic rate)
+        PENSION_SUPPLEMENT_BASIC_COUPLE: 24.80,        // $/fn retained overseas (couple each basic rate)
+        PENSION_SUPPLEMENT_REDUCTION_SINGLE: 1833,     // Annual reduction - single ($70.50/fn × 26)
+        PENSION_SUPPLEMENT_REDUCTION_COUPLE: 1326,     // Annual reduction per person - couple ($51.00/fn × 26)
 
         // ASFA comfortable retirement standard (2025, used for overseas cost comparisons)
         ASFA_SINGLE_ANNUAL: 51814,
@@ -541,11 +601,11 @@ export const ENHANCED_CONFIG = {
             shockMagnitude: -25     // -25% — app.js /100 → -0.25
         },
         pension: {
-            asfaComfortable: 73031,      // Updated 2025-10-01: ASFA March 2025 (was 73875)
-            agePensionMax: 46202,        // Updated 2025-10-01: Sept 2025 couple max (was 45037)
-            pensionAssetThreshold: 481500,  // Updated 2025-10-01: Couple homeowner Sept 2025 (was 470000)
-            pensionAssetLimit: 1074000,  // Updated 2025-10-01: Couple homeowner Sept 2025 (was 1031000)
-            pensionIncomeThreshold: 380  // Updated 2025-10-01: Couple Sept 2025 fortnightly (was 372)
+            asfaComfortable: 73031,      // Updated 2025-10-01: ASFA March 2025
+            agePensionMax: 47070,        // Updated 2026-03-20: March 2026 couple max ($1,810.40/fn × 26)
+            pensionAssetThreshold: 481500,  // Updated 2026-03-20: Couple homeowner March 2026 (verified)
+            pensionAssetLimit: 1085000,  // Updated 2026-03-20: Couple homeowner March 2026 (verified)
+            pensionIncomeThreshold: 380  // Updated 2026-03-20: Couple — UNCHANGED from Sept 2025 (verified)
         }
     },
 

@@ -369,10 +369,16 @@ describe('app.js: populateFormFromData is called with data.version', () => {
         expect(match.length).toBeGreaterThanOrEqual(1);
     });
 
-    test('both import paths pass data.version (direct reader + importUserData paths)', () => {
-        const matches = appJs.match(/populateFormFromData\(data\.userData,\s*data\.version\)/g);
-        expect(matches).not.toBeNull();
-        expect(matches.length).toBeGreaterThanOrEqual(2);
+    test('both import paths pass version (direct reader uses data.version; importUserData path uses importedData.version)', () => {
+        // Direct file reader path: populateFormFromData(data.userData, data.version)
+        const directReaderMatches = appJs.match(/populateFormFromData\(data\.userData,\s*data\.version\)/g);
+        expect(directReaderMatches).not.toBeNull();
+        expect(directReaderMatches.length).toBeGreaterThanOrEqual(1);
+
+        // importUserData path: populateFormFromData(importedData.userData, importedData.version)
+        const importUserDataMatches = appJs.match(/populateFormFromData\(importedData\.userData,\s*importedData\.version\)/g);
+        expect(importUserDataMatches).not.toBeNull();
+        expect(importUserDataMatches.length).toBeGreaterThanOrEqual(1);
     });
 
     test('no call to populateFormFromData omits the version argument', () => {
