@@ -56,15 +56,13 @@ export function getPolicyMetadata() {
  *   - listed shares and securities
  *   - some income streams
  *
- * Rates per deep_research.md (20 March 2026):
- *   Singles:  1.25% on first $64,200; 3.25% above
- *   Couples:  1.25% on first $106,200 combined; 3.25% above
+ * Verified 14 May 2026 via servicesaustralia.gov.au/deeming?context=22526 and DVA updates:
+ *   - Thresholds UNCHANGED at $64,200 (singles) / $106,200 (couples combined)
+ *   - Rates INCREASED from 20 March 2026 to 1.25% (lower) and 3.25% (upper)
+ *   - Previous rates (Sept 2025): 0.75% lower, 2.75% upper
  *
- * NOTE: Deeming RATES (1.25%/3.25%) are NOT independently verified from a live page —
- * the main deeming landing page (servicesaustralia.gov.au/deeming) is a navigation hub.
- * These rates are sourced from deep_research.md. Verify at the next indexation date.
- * Deeming THRESHOLDS ($64,200 / $106,200) are from the original Sept 2025 config and
- * have not been updated here — they may have changed at March 2026 indexation.
+ * Singles:  1.25% on first $64,200; 3.25% above — VERIFIED
+ * Couples:  1.25% on first $106,200 combined; 3.25% above — VERIFIED
  *
  * @param {number} financialAssets - Total assessable financial assets (AUD)
  * @param {boolean} isCouple - Whether to apply couple threshold
@@ -84,33 +82,34 @@ export function calculateDeemedIncome(financialAssets, isCouple = false) {
 }
 
 /**
- * Build a complete financial assets amount suitable for deeming.
+ * Build the total financial assets amount that is subject to deeming.
  *
- * Services Australia deems a broader set than just super + listed shares.
- * This helper ensures the overseas module and the main calculator use
- * the same asset scope — fixing the bug where overseas-retirement.js
- * only deemed investmentBalance.
+ * Services Australia deems a broader set than just super + listed shares,
+ * including savings accounts, term deposits, managed investments, listed
+ * shares and securities, and some income streams.
  *
- * @param {Object} finances - Financial data object
- * @param {string} [partnerKey] - Optional key prefix for partner assets
- * @returns {number} Total deem-able financial assets
+ * This helper fixes the prior overseas-retirement.js bug where only
+ * investmentBalance was used for deeming, understating deemed income.
+ *
+ * @param {Object} finances - Financial data object with the primary person's assets
+ * @param {Object|null} [partnerFinances] - Optional separate finances object for partner.
+ *   Pass null (default) for single-person calculations.
+ *   When provided, ALL partner financial asset fields are included — mirroring the
+ *   same set of fields as the primary person to avoid an incomplete deeming base.
+ * @returns {number} Total deem-able financial assets (AUD)
  */
-export function buildDeemedAssets(finances, partnerKey = null) {
-    const base = (finances.superBalance || 0) +
-        (finances.investmentBalance || 0) +
-        (finances.savingsBalance || 0) +
-        (finances.termDeposits || 0) +
-        (finances.managedFunds || 0) +
-        (finances.listedShares || 0) +
-        (finances.otherFinancialAssets || 0);
+export function buildDeemedAssets(finances, partnerFinances = null) {
+    const sumFinancialAssets = (f) => f
+        ? (f.superBalance || 0) +
+          (f.investmentBalance || 0) +
+          (f.savingsBalance || 0) +
+          (f.termDeposits || 0) +
+          (f.managedFunds || 0) +
+          (f.listedShares || 0) +
+          (f.otherFinancialAssets || 0)
+        : 0;
 
-    if (!partnerKey) return base;
-
-    const partner = (finances[`${partnerKey}SuperBalance`] || 0) +
-        (finances[`${partnerKey}InvestmentBalance`] || 0) +
-        (finances[`${partnerKey}SavingsBalance`] || 0);
-
-    return base + partner;
+    return sumFinancialAssets(finances) + sumFinancialAssets(partnerFinances);
 }
 
 // ============================================================
@@ -288,8 +287,8 @@ export const OverseasScenarioType = {
 export function calculatePortablePension({ basePension, awlrYears, isCouple, agreementCountry, scenarioType }) {
     const cfg = ENHANCED_CONFIG.OVERSEAS_RETIREMENT;
 
-    // AWLR proportion (capped at 1.0 once 35+ years)
-    const awlr = Math.min(awlrYears, cfg.AWLR_TOTAL_YEARS);
+    // AWLR proportion — clamp to [0, AWLR_TOTAL_YEARS] to guard against negative/invalid input
+    const awlr = Math.min(Math.max(0, awlrYears || 0), cfg.AWLR_TOTAL_YEARS);
     const proportionalRate = Math.min(awlr / cfg.AWLR_REQUIRED_FOR_FULL, 1.0);
     const hasFullPortability = awlr >= cfg.AWLR_REQUIRED_FOR_FULL;
 
@@ -413,16 +412,18 @@ export function calculatePortablePension({ basePension, awlrYears, isCouple, agr
 }
 
 /**
- * Generate all four overseas comparison scenarios for a given person.
+ * Generate all five overseas comparison scenarios for a given person.
  * The research mandates: never show a simple "better overseas" verdict
  * without presenting all scenarios and their risks.
  *
+ * Returns: stayInAustralia, shortAbsence, longAbsence, permanentMove, returnToAustralia
+ *
  * @param {Object} params
  * @param {number} params.basePension - Pension if staying in Australia (annual AUD)
- * @param {number} params.awlrYears - AWLR years
+ * @param {number} params.awlrYears - AWLR years (age 16 to pension age)
  * @param {boolean} params.isCouple
  * @param {boolean} params.agreementCountry
- * @returns {Object} All four scenarios plus comparison
+ * @returns {Object} All five scenarios plus summary
  */
 export function generateOverseasScenarioTree({ basePension, awlrYears, isCouple, agreementCountry }) {
     const scenarios = {

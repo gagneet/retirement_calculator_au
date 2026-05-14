@@ -79,13 +79,16 @@ describe('Policy freshness guard', () => {
 // ============================================================
 describe('Deeming rate regression', () => {
     /**
-     * Services Australia published these rates effective 20 March 2026:
-     * - 1.25% on amounts below the threshold
-     * - 3.25% on amounts above the threshold
-     *
-     * Previous rates (Sept 2025): 0.75% / 2.75%
-     * Rate changes are published at: servicesaustralia.gov.au/deeming
+     * VERIFIED 14 May 2026 via servicesaustralia.gov.au/deeming?context=22526 and DVA updates:
+     * - Thresholds UNCHANGED: $64,200 (singles) / $106,200 (couples combined)
+     * - Rates INCREASED from 20 March 2026: 1.25% lower / 3.25% upper
+     * - Previous rates (Sept 2025): 0.75% lower / 2.75% upper
      */
+
+    test('PINNED: deeming thresholds unchanged at verified March 2026 values', () => {
+        expect(C.DEMING_THRESHOLD_SINGLE).toBe(64200);
+        expect(C.DEMING_THRESHOLD_COUPLE).toBe(106200);
+    });
 
     test('lower deeming rate is 1.25% (March 2026)', () => {
         expect(C.DEMING_RATE_LOWER).toBe(0.0125);

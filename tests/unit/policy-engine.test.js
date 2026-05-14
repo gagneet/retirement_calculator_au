@@ -42,19 +42,20 @@ import { ENHANCED_CONFIG } from '../../src/js/config.js';
 const C = ENHANCED_CONFIG;
 const FORTNIGHTS = C.FORTNIGHTS_IN_YEAR;  // 26
 
-// March 2026 rates (from config.js)
-const SINGLE_MAX = C.SINGLE_PENSION_MAX;   // 31224
-const COUPLE_MAX = C.COUPLE_PENSION_MAX;   // 47070
-const SINGLE_ASSET_THR_HO = C.SINGLE_ASSET_THRESHOLD;            // 322000
-const SINGLE_ASSET_LIM_HO = C.SINGLE_ASSET_LIMIT;               // 716500
-const SINGLE_ASSET_THR_NH = C.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER; // 566000
-const SINGLE_ASSET_LIM_NH = C.SINGLE_ASSET_LIMIT_NON_HOMEOWNER;     // 960500
-const COUPLE_ASSET_THR_HO = C.COUPLE_ASSET_THRESHOLD;            // 483500
-const COUPLE_ASSET_LIM_HO = C.COUPLE_ASSET_LIMIT;               // 1078000
-const COUPLE_ASSET_THR_NH = C.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER; // 727500
-const COUPLE_ASSET_LIM_NH = C.COUPLE_ASSET_LIMIT_NON_HOMEOWNER;     // 1322000
-const SINGLE_INC_THR = C.SINGLE_INCOME_THRESHOLD;   // 220
-const COUPLE_INC_THR = C.COUPLE_INCOME_THRESHOLD;   // 384
+// March 2026 rates — derived from ENHANCED_CONFIG so comments track actual values
+// All values verified 14 May 2026 from live Services Australia pages
+const SINGLE_MAX = C.SINGLE_PENSION_MAX;   // 31223 ($1,200.90/fn × 26 = $31,223.40)
+const COUPLE_MAX = C.COUPLE_PENSION_MAX;   // 47070 ($1,810.40/fn × 26 = $47,070.40)
+const SINGLE_ASSET_THR_HO = C.SINGLE_ASSET_THRESHOLD;            // 321500 (homeowner, full pension limit)
+const SINGLE_ASSET_LIM_HO = C.SINGLE_ASSET_LIMIT;               // 722000 (homeowner, part pension cutoff)
+const SINGLE_ASSET_THR_NH = C.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER; // 579500 (non-homeowner, full pension limit)
+const SINGLE_ASSET_LIM_NH = C.SINGLE_ASSET_LIMIT_NON_HOMEOWNER;     // 980000 (non-homeowner, part pension cutoff)
+const COUPLE_ASSET_THR_HO = C.COUPLE_ASSET_THRESHOLD;            // 481500 (couple homeowner, full pension limit)
+const COUPLE_ASSET_LIM_HO = C.COUPLE_ASSET_LIMIT;               // 1085000 (couple homeowner, part pension cutoff)
+const COUPLE_ASSET_THR_NH = C.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER; // 739500 (couple non-homeowner, full)
+const COUPLE_ASSET_LIM_NH = C.COUPLE_ASSET_LIMIT_NON_HOMEOWNER;     // 1343000 (couple non-homeowner, cutoff)
+const SINGLE_INC_THR = C.SINGLE_INCOME_THRESHOLD;   // 218/fn (UNCHANGED from Sept 2025)
+const COUPLE_INC_THR = C.COUPLE_INCOME_THRESHOLD;   // 380/fn combined (UNCHANGED from Sept 2025)
 const DEEM_THR_S = C.DEMING_THRESHOLD_SINGLE;       // 64200
 const DEEM_THR_C = C.DEMING_THRESHOLD_COUPLE;       // 106200
 const DEEM_LOW = C.DEMING_RATE_LOWER;               // 0.0125
@@ -438,7 +439,7 @@ describe('calculateSinglePension', () => {
 
     // Edge case: large lump-sum expense scenario — reduced assets = higher pension
     test('SCENARIO: large lump-sum expense reduces assets → increases pension eligibility', () => {
-        const assetsBeforeLumpSum = 700000; // just below homeowner limit $716,500
+        const assetsBeforeLumpSum = 700000; // just below homeowner part-pension cutoff $722,000
         const assetsAfterLumpSum = 550000;  // after $150k expense
 
         const before = calculateSinglePension({
