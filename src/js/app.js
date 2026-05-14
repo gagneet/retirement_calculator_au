@@ -8647,10 +8647,130 @@ class RetirementCalculatorApp {
         return loadedCount > 0;
     }
 
+    clearAllResults() {
+        // ── Internal state ────────────────────────────────────────────────────
+        this.currentResults = null;
+        this.currentMonteCarloResults = null;
+        this.currentOutcome = null;
+        this.currentResilience = null;
+
+        // ── Helpers ───────────────────────────────────────────────────────────
+        // Elements that use the Tailwind `hidden` class to show/hide
+        const hideByClass = (id, clearHTML = false) => {
+            const el = $(id);
+            if (!el) return;
+            el.classList.add('hidden');
+            if (clearHTML) el.innerHTML = '';
+        };
+        // Elements that use inline style.display to show/hide
+        const hideByStyle = (id, clearHTML = false) => {
+            const el = $(id);
+            if (!el) return;
+            el.style.display = 'none';
+            if (clearHTML) el.innerHTML = '';
+        };
+
+        // ── Summary tab ───────────────────────────────────────────────────────
+        // summaryResults grid: just clear content, always visible container
+        safeSetHTML('summaryResults', '');
+        // finalResult banner: clear content only; preserve base layout classes
+        // (mt-4 rounded-lg overflow-hidden) so the DOM slot stays stable
+        const finalResult = $('finalResult');
+        if (finalResult) finalResult.innerHTML = '';
+        // shortfall-action-panel uses hidden class (confirmed in HTML)
+        hideByClass('shortfall-action-panel');
+        // enhanced-summary-container uses hidden class (confirmed in HTML)
+        hideByClass('enhanced-summary-container');
+        safeSetHTML('enhanced-summary-content', '');
+        safeSetHTML('enhancedRecommendationsList', '');
+
+        // ── Risk profile display (sidebar/header) ─────────────────────────────
+        safeSetText('riskCapacityText', 'Calculating...');
+        safeSetText('riskToleranceText', 'Set below');
+        safeSetText('riskRequirementText', 'Calculating...');
+        safeSetText('recommendedAllocation', 'Calculating...');
+
+        // ── Projection tab ────────────────────────────────────────────────────
+        const projectionTable = $('projectionTable');
+        if (projectionTable) projectionTable.innerHTML = '';
+        hideByClass('stressTestResults', true);
+
+        // ── Charts tab — Monte Carlo ──────────────────────────────────────────
+        // monteCarloResults uses hidden class (confirmed in HTML)
+        hideByClass('monteCarloResults');
+        hideByClass('monteCarloNarrative', true);
+        // enhancedMonteCarloResults is dynamically appended inside monteCarloResults;
+        // hiding the parent already hides it, but clear it directly if it exists
+        const enhancedMC = $('enhancedMonteCarloResults');
+        if (enhancedMC) enhancedMC.innerHTML = '';
+        // dynamicAllocationResults / healthcareAnalysisResults use hidden class (confirmed)
+        hideByClass('dynamicAllocationResults', true);
+        hideByClass('healthcareAnalysisResults', true);
+
+        // Reset Monte Carlo stat fields to their original placeholder '-'
+        ['mcRuns', 'mcSuccessRate', 'mcMedian', 'mc10th'].forEach(id => safeSetText(id, '-'));
+        // Confidence gauge: reset SVG arc and text to empty/zero
+        const gaugeFill = $('confidence-gauge-fill');
+        const gaugeText = $('confidence-gauge-text');
+        if (gaugeFill) gaugeFill.setAttribute('stroke-dasharray', '0 116.2');
+        if (gaugeText) gaugeText.textContent = '—';
+        safeSetText('mcConfidence', '-');
+
+        // ── Retirement solver ─────────────────────────────────────────────────
+        hideByClass('retirementSolverResults');
+
+        // ── Scenario / comparison tabs ────────────────────────────────────────
+        hideByClass('scenarioMatrixResults', true);
+        hideByClass('scenarioComparisonResults', true);
+
+        // ── Overseas scenarios (uses inline style.display, confirmed in HTML) ──
+        hideByStyle('overseasScenariosResults', true);
+
+        // ── Life simulation ───────────────────────────────────────────────────
+        hideByClass('lifeSimResults', true);
+
+        // ── Cost reality ──────────────────────────────────────────────────────
+        hideByClass('costRealityResults', true);
+
+        // ── Outcome / paycheck tab ────────────────────────────────────────────
+        // paycheck-card uses inline style.display (confirmed in HTML)
+        hideByStyle('paycheck-card');
+        // outcome-depletion-banner uses hidden class (confirmed in HTML)
+        hideByClass('outcome-depletion-banner');
+        // outcome-sensitivity-panel uses inline style.display (confirmed in HTML)
+        hideByStyle('outcome-sensitivity-panel');
+        // outcome-action-cards: always present, just clear dynamic content
+        safeSetHTML('outcome-action-cards', '');
+        // Clear outcome text fields that get populated each run
+        [
+            'outcome-super-balance', 'outcome-super-balance-note',
+            'outcome-age-pension',   'outcome-age-pension-note',
+            'outcome-annual-income', 'outcome-annual-income-note',
+            'outcome-target-income-note',
+        ].forEach(id => safeSetText(id, '—'));
+
+        // ── Risk / Property analysis tabs ─────────────────────────────────────
+        const riskAnalysisContent = $('riskAnalysisContent');
+        if (riskAnalysisContent) riskAnalysisContent.innerHTML = '';
+        const propertyAnalysis = $('propertyAnalysis');
+        if (propertyAnalysis) propertyAnalysis.innerHTML = '';
+
+        // ── Persona intelligence (dynamically created, may not exist yet) ─────
+        const personaContainer = $('personaIntelligenceResults');
+        if (personaContainer) personaContainer.innerHTML = '';
+
+        // ── What-if comparison ────────────────────────────────────────────────
+        // whatIfComparison uses hidden class (confirmed in HTML)
+        hideByClass('whatIfComparison');
+    }
+
     clearAllFields() {
-        if (!window.confirm('Clear ALL form fields? Currency, percentage and select fields will be reset to empty/zero. You can then fill them in manually or use "Fill Default Values".')) {
+        if (!window.confirm('Clear ALL form fields and results? This will reset all inputs and clear all calculated results.')) {
             return;
         }
+
+        // Clear all displayed results first
+        this.clearAllResults();
 
         const inputIds = Object.values(this.getAllFormInputs()).flat();
         inputIds.forEach(inputId => {
@@ -8687,7 +8807,7 @@ class RetirementCalculatorApp {
 
         this.refreshAllDerivedDefaults({ force: false });
 
-        showNotification('All form fields cleared. Enter your values or click "Fill Default Values" to populate sensible defaults.', 'success');
+        showNotification('All form fields and results cleared. Enter your values or click "Fill Default Values" to populate sensible defaults.', 'success');
     }
 
     fillDefaultValues() {
