@@ -929,8 +929,59 @@ export const getTrustRecommendations = (trustInputs, trustRules, pensionEligible
     return recommendations;
 };
 
+// ── Work Bonus constants (Services Australia 2026) ──────────────────────────
+// Age Pension recipients can earn up to $300/fortnight from employment
+// before it counts in the income test. An annual Work Bonus balance of up to
+// $11,800 accumulates to offset employment income in future fortnights.
+// Source: servicesaustralia.gov.au/work-bonus-for-age-pension
+const WORK_BONUS_FORTNIGHT = 300;          // $300/fn exempt per person
+const WORK_BONUS_ANNUAL = WORK_BONUS_FORTNIGHT * 26; // $7,800/yr per person
+const WORK_BONUS_MAX_BALANCE = 11800;      // maximum accumulated balance
+
+/**
+ * Apply the Work Bonus exemption to employment income for pension income-test purposes.
+ * @param {number} employmentIncome  – annual employment (not investment/pension) income
+ * @param {number} [bonusBalance=0] – accumulated Work Bonus balance (0 → $11,800)
+ * @param {boolean} [isCouple=false] – both members can each claim the bonus
+ * @returns {{ assessableEmploymentIncome: number, remainingBonus: number }}
+ */
+export const applyWorkBonus = (employmentIncome, bonusBalance = 0, isCouple = false) => {
+    const persons = isCouple ? 2 : 1;
+    // Total annual exemption = standard annual bonus + any accumulated balance
+    const annualExemption = Math.min(
+        employmentIncome,
+        WORK_BONUS_ANNUAL * persons + Math.min(bonusBalance, WORK_BONUS_MAX_BALANCE * persons)
+    );
+    const assessableEmploymentIncome = Math.max(0, employmentIncome - annualExemption);
+    // Remaining balance (unused annual bonus accumulates, capped per person)
+    const usedBonus = Math.max(0, annualExemption - WORK_BONUS_ANNUAL * persons);
+    const remainingBonus = Math.max(0, bonusBalance - usedBonus);
+    return { assessableEmploymentIncome, remainingBonus };
+};
+
 // Pension calculation utilities
-export const calculateAgePension = (assets, income, isCouple, maxPension, assetThreshold, assetLimit, incomeThreshold) => {
+/**
+ * Calculate annual Age Pension entitlement using the lower of assets test and income test.
+ *
+ * @param {number} assets              – total assessable assets
+ * @param {number} income              – total annual assessable income (deeming + rental + other)
+ * @param {boolean} isCouple
+ * @param {number} maxPension          – maximum annual pension amount
+ * @param {number} assetThreshold      – full pension asset threshold
+ * @param {number} assetLimit          – zero pension asset limit
+ * @param {number} incomeThreshold     – income threshold per fortnight (before reduction)
+ * @param {number} [employmentIncome=0] – employment income (gets Work Bonus exemption first)
+ * @param {number} [workBonusBalance=0] – accumulated Work Bonus balance
+ */
+export const calculateAgePension = (
+    assets, income, isCouple, maxPension,
+    assetThreshold, assetLimit, incomeThreshold,
+    employmentIncome = 0, workBonusBalance = 0
+) => {
+    // Apply Work Bonus to employment income before income test
+    const { assessableEmploymentIncome } = applyWorkBonus(employmentIncome, workBonusBalance, isCouple);
+    const assessableIncome = income + assessableEmploymentIncome;
+
     // Asset test
     let pensionFromAssets = 0;
     if (assets <= assetThreshold) {
@@ -941,9 +992,9 @@ export const calculateAgePension = (assets, income, isCouple, maxPension, assetT
         pensionFromAssets = Math.max(0, maxPension - reduction);
     }
 
-    // Income test
+    // Income test: 50 cents per dollar above the fortnightly threshold
     let pensionFromIncome = maxPension;
-    const fortnightlyIncome = income / 26;
+    const fortnightlyIncome = assessableIncome / 26;
     if (fortnightlyIncome > incomeThreshold) {
         const excessIncome = fortnightlyIncome - incomeThreshold;
         const reduction = excessIncome * 0.5 * 26; // 50 cents per dollar
@@ -2760,6 +2811,7 @@ export default {
     calculatePropertyCashFlow,
     calculatePropertyTotalReturn,
     calculateCGT,
+    applyWorkBonus,
     calculateAgePension,
     calculateDeemedIncome,
     exportToCSV,

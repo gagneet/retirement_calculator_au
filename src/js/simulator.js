@@ -943,9 +943,20 @@ export class RetirementSimulator {
             }
 
             // Apply returns
-            accumulatedSuperBalance *= (1 + inputs.superReturn);
+            const superEarningsThisYear = accumulatedSuperBalance * inputs.superReturn;
+            accumulatedSuperBalance += superEarningsThisYear;
             accumulatedSavingsBalance *= (1 + inputs.savingsReturn);
             accumulatedInvestmentPortfolio *= (1 + returnRate);
+
+            // Division 296 Tax — effective 1 July 2026 (already law).
+            // Additional 15% on super earnings proportional to balance above $3M.
+            const div296Threshold = this.config.DIVISION_296_THRESHOLD || 3000000;
+            const div296Year = new Date().getFullYear() + year;
+            if (div296Year >= 2027 && accumulatedSuperBalance > div296Threshold && superEarningsThisYear > 0) {
+                const excessProportion = (accumulatedSuperBalance - div296Threshold) / accumulatedSuperBalance;
+                const div296Tax = superEarningsThisYear * excessProportion * (this.config.DIVISION_296_RATE || 0.15);
+                accumulatedSuperBalance = Math.max(0, accumulatedSuperBalance - div296Tax);
+            }
 
             // Deduct SMSF admin costs from super balance
             if (inputs.hasSMSF && inputs.smsfAdminCosts > 0) {
@@ -1282,12 +1293,15 @@ export class RetirementSimulator {
                 agedCareCost = annualCost;
             }
 
-            // Property income (if still owned) and update property equity
+            // Property income (if still owned) and update property equity.
+            // Allow negative cash flow: negative gearing losses reduce assessable income
+            // in the Age Pension income test AND increase portfolio drawdown need — both
+            // are behaviourally correct. Do NOT clamp to zero.
             let propertyIncome = 0;
             if (inputs.hasInvestmentProperty && !propertyWasSold) {
                 const propertyCashFlow = this.calculatePropertyCashFlow(inputs, retirementYear);
                 if (propertyCashFlow) {
-                    propertyIncome = Math.max(0, propertyCashFlow.netCashFlow);
+                    propertyIncome = propertyCashFlow.netCashFlow; // may be negative (neg. gearing)
                 }
 
                 // Update property equity for current retirement year

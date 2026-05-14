@@ -58,7 +58,15 @@ export const LITO_SECOND_PHASE_RATE = 0.015;
 
 // Super contributions tax
 export const SUPER_TAX_RATE = 0.15;
-export const SUPER_HIGH_INCOME_RATE = 0.30; // Division 293
+export const SUPER_HIGH_INCOME_RATE = 0.30; // Division 293 effective rate (15% base + 15% surcharge)
+export const DIVISION_293_SURCHARGE = 0.15; // Additional 15% on CC above $250k threshold
+export const DIVISION_293_THRESHOLD = 250000;
+
+// Division 296 — effective 1 July 2026 (legislated 13 March 2026)
+// Additional 15% tax on super EARNINGS attributable to balances above $3M.
+// Applied proportionally: tax = 0.15 × earnings × max(0, TSB - $3M) / TSB
+export const DIVISION_296_THRESHOLD = 3000000;
+export const DIVISION_296_RATE = 0.15;
 
 /**
  * Calculate LITO for a given taxable income.
@@ -149,11 +157,43 @@ export const calcIncomeTax = (grossIncome, fyYear, enableProposedBudget = false)
 
 /**
  * Super contributions tax on concessional contributions.
+ *
+ * Division 293 applies an ADDITIONAL 15% surcharge only on the portion of
+ * concessional contributions (CC) where (income + CC) exceeds $250,000.
+ * It is NOT a flat 30% on all CC — only the crossing portion attracts the surcharge.
+ *
+ * @param {number} salary              – gross income (before CC)
+ * @param {number} concessionalContribs – total concessional contributions for the year
+ * @returns {number} total contributions tax (base 15% + Div 293 surcharge if applicable)
  */
-export const calcSuperTax = (salary, superContribRate, highIncome = false) => {
-    const contributions = salary * superContribRate;
-    const rate = highIncome ? SUPER_HIGH_INCOME_RATE : SUPER_TAX_RATE;
-    return contributions * rate;
+export const calcSuperTax = (salary, concessionalContribs) => {
+    const cc = Math.max(0, concessionalContribs);
+    // Base 15% tax on all concessional contributions
+    const baseTax = cc * SUPER_TAX_RATE;
+
+    // Division 293: additional 15% on the CC amount that sits above the $250k threshold
+    const totalIncome = salary + cc;
+    if (totalIncome > DIVISION_293_THRESHOLD) {
+        // Amount of CC that falls in the Division 293 zone
+        const ccInHighZone = Math.min(cc, totalIncome - DIVISION_293_THRESHOLD);
+        const div293 = Math.max(0, ccInHighZone) * DIVISION_293_SURCHARGE;
+        return baseTax + div293;
+    }
+    return baseTax;
+};
+
+/**
+ * Division 296 tax on super earnings for members with TSB > $3M.
+ * Effective 1 July 2026. Tax = 15% × earnings × (TSB − $3M) / TSB.
+ *
+ * @param {number} superBalance   – Total Super Balance at start of year
+ * @param {number} annualEarnings – Taxable earnings inside super for the year
+ * @returns {number} Division 296 tax payable (0 if TSB ≤ $3M)
+ */
+export const calcDivision296Tax = (superBalance, annualEarnings) => {
+    if (superBalance <= DIVISION_296_THRESHOLD || annualEarnings <= 0) return 0;
+    const excessProportion = (superBalance - DIVISION_296_THRESHOLD) / superBalance;
+    return annualEarnings * excessProportion * DIVISION_296_RATE;
 };
 
 /**
@@ -169,5 +209,8 @@ export const calcPostTaxSalary = (grossSalary, fyYear, enableProposedBudget = fa
 export default {
     TAX_BRACKETS_2025_26, TAX_BRACKETS_2026_27, TAX_BRACKETS_2027_28, TAX_BRACKETS_2025,
     WATO_AMOUNT, WATO_START_FY, INSTANT_DEDUCTION_AMOUNT, INSTANT_DEDUCTION_START_FY,
-    calcIncomeTax, calcGrossTax, calcLITO: calculateLITO, calcSuperTax, calcPostTaxSalary
+    DIVISION_293_THRESHOLD, DIVISION_293_SURCHARGE,
+    DIVISION_296_THRESHOLD, DIVISION_296_RATE,
+    calcIncomeTax, calcGrossTax, calcLITO: calculateLITO,
+    calcSuperTax, calcDivision296Tax, calcPostTaxSalary
 };
