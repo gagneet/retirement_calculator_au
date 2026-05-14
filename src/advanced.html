@@ -2701,6 +2701,40 @@
                                value="0" min="0" max="30000">
                         <p class="mt-1 text-xs text-gray-500" id="partnerAdditionalSuperContributionHint">Partner's pre-tax salary sacrifice. Capped at remaining concessional room after employer SG.</p>
                     </div>
+                    <!-- NCC / After-Tax Super Contributions -->
+                    <div class="super-strategy-field">
+                        <div class="label-with-tooltip">
+                            <label class="block text-sm font-medium text-gray-700" for="yourAnnualNCC">Your Annual After-Tax Super Contribution / NCC ($)</label>
+                            <div class="tooltip">
+                                <span aria-label="NCC information" class="tooltip-icon">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Non-Concessional Contributions (NCC)</strong>
+                                    After-tax money contributed to super. No contributions tax on the way in. Annual cap is $120,000 (2024-25) if your total super balance (TSB) is below $1.9M.<br><br>
+                                    <strong>3-year bring-forward rule:</strong> If your TSB is below $1.66M you can contribute up to $360,000 in a single year, using 3 years' worth of cap. TSB $1.66M–$1.78M allows $240k (2 years). TSB $1.78M–$1.9M allows $120k only. TSB ≥ $1.9M = $0 allowed.<br><br>
+                                    Enter your planned annual amount. If it exceeds $120k the simulator will apply the bring-forward rule and lock out NCC for the following 1-2 years.
+                                    <div class="tooltip-example">Example: Lump sum of $300k from an inheritance — enter $300,000 and the simulator brings forward 3 years' cap.</div>
+                                </span>
+                            </div>
+                        </div>
+                        <input class="super-strategy-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="yourAnnualNCC" type="text"
+                               value="0" min="0" placeholder="e.g. 30000">
+                        <p class="mt-1 text-xs text-gray-500">After-tax contributions. Capped at $120k/year; bring-forward allows up to $360k in a single year if TSB &lt; $1.66M.</p>
+                    </div>
+                    <div class="super-strategy-field">
+                        <div class="label-with-tooltip">
+                            <label class="block text-sm font-medium text-gray-700" for="partnerAnnualNCC">Partner Annual After-Tax Super Contribution / NCC ($)</label>
+                            <div class="tooltip">
+                                <span aria-label="Partner NCC information" class="tooltip-icon">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Partner's Non-Concessional Contributions</strong>
+                                    Same rules as above but based on the partner's individual total super balance. Each person's bring-forward entitlement is assessed separately.
+                                </span>
+                            </div>
+                        </div>
+                        <input class="super-strategy-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerAnnualNCC" type="text"
+                               value="0" min="0" placeholder="e.g. 30000">
+                        <p class="mt-1 text-xs text-gray-500">Partner's after-tax super contributions. Bring-forward assessed independently.</p>
+                    </div>
                     <div>
                         <div class="label-with-tooltip">
                             <label class="block text-sm font-medium text-gray-700" for="employerSuperContributionRate">Custom Employer Super Contribution Rate (%)</label>

@@ -935,7 +935,16 @@ export class RetirementSimulator {
 
             // Apply stress scenario if provided
             if (stressScenario && year <= stressScenario.duration) {
-                if (stressScenario.equityReturn) {
+                if (stressScenario.yearlyEquityReturns) {
+                    const idx = year - 1;
+                    const eqRet = stressScenario.yearlyEquityReturns[idx] ?? 0;
+                    const bdRet = stressScenario.yearlyBondReturns
+                        ? (stressScenario.yearlyBondReturns[idx] ?? 0.02)
+                        : 0.02;
+                    returnRate = (allocation.equity / 100) * eqRet +
+                        (allocation.bonds / 100) * bdRet +
+                        (allocation.cash / 100) * 0.01;
+                } else if (stressScenario.equityReturn) {
                     returnRate = (allocation.equity / 100) * stressScenario.equityReturn +
                         (allocation.bonds / 100) * (stressScenario.bondReturn || 0.02) +
                         (allocation.cash / 100) * 0.01;
@@ -1058,6 +1067,53 @@ export class RetirementSimulator {
             }
 
             accumulatedSuperBalance += yearlySuperContribution;
+
+            // NCC (Non-Concessional Contributions) — after-tax, no contributions tax on entry.
+            // Bring-forward rule: allows 3 years' cap in year 1 if TSB < $1.66M.
+            //   - year 1: apply NCC up to the bring-forward cap (or $120k if no bring-forward)
+            //   - years 2–3: $0 if bring-forward was triggered in year 1
+            //   - year 4+: back to standard $120k annual cap (or $0 if TSB ≥ $1.9M/TBC)
+            if (year <= yourYearsToWork || year <= partnerYearsToWork) {
+                const nccCap       = this.config.NON_CONCESSIONAL_CAP      || 120000;
+                const tbcBlock     = this.config.TSB_NCC_BLOCK_THRESHOLD    || 2000000;
+                const bf3Threshold = this.config.NCC_BRING_FORWARD_3YR_THRESHOLD || 1660000;
+                const bf2Threshold = this.config.NCC_BRING_FORWARD_2YR_THRESHOLD || 1780000;
+                const bf1Threshold = this.config.NCC_BRING_FORWARD_1YR_THRESHOLD || 1900000;
+                const bf3Cap       = this.config.NCC_BRING_FORWARD_3YR_CAP || 360000;
+                const bf2Cap       = this.config.NCC_BRING_FORWARD_2YR_CAP || 240000;
+
+                const yourNcc     = inputs.yourAnnualNCC     || 0;
+                const partnerNcc  = inputs.partnerAnnualNCC  || 0;
+                const totalNccRequested = yourNcc + partnerNcc;
+
+                if (totalNccRequested > 0 && accumulatedSuperBalance < tbcBlock) {
+                    let allowedNcc = nccCap * 2; // both people
+                    if (year === 1) {
+                        // Determine bring-forward eligibility based on starting TSB
+                        const startingTsb = inputs.yourCurrentSuper + inputs.partnerCurrentSuper;
+                        if (startingTsb < bf3Threshold) {
+                            allowedNcc = bf3Cap;                     // $360k per person not modelled separately — use joint
+                        } else if (startingTsb < bf2Threshold) {
+                            allowedNcc = bf2Cap;
+                        } else if (startingTsb < bf1Threshold) {
+                            allowedNcc = nccCap;
+                        } else {
+                            allowedNcc = 0; // TSB at/above TBC
+                        }
+                        // Track whether bring-forward was triggered
+                        this._nccBringForwardUsed = totalNccRequested > nccCap;
+                        this._nccBringForwardYears = this._nccBringForwardUsed
+                            ? (totalNccRequested > bf2Cap ? 3 : 2)
+                            : 1;
+                    } else if (this._nccBringForwardUsed && year <= this._nccBringForwardYears) {
+                        allowedNcc = 0; // Lock-out period after bring-forward
+                    } else {
+                        allowedNcc = nccCap; // Standard annual cap (single person; pair treated as 2×)
+                    }
+                    accumulatedSuperBalance += Math.min(totalNccRequested, allowedNcc);
+                }
+            }
+
             const annualDetailedExpenses = inputs.useDetailedExpenseInputs
                 ? (((inputs.currentMonthlyHousingCosts || 0) + (inputs.currentMonthlyLivingCosts || 0)) * 12) + (inputs.currentHealthcareCosts || 0)
                 : null;
@@ -1557,7 +1613,16 @@ export class RetirementSimulator {
 
             // Apply stress scenario if provided (for retirement phase)
             if (stressScenario && stressScenario.isRetirementTimed && i < stressScenario.duration) {
-                if (stressScenario.equityReturn !== undefined) {
+                if (stressScenario.yearlyEquityReturns) {
+                    // Multi-year sequence (e.g. GFC: two bad years then recovery)
+                    const eqRet  = stressScenario.yearlyEquityReturns[i] ?? 0;
+                    const bdRet  = stressScenario.yearlyBondReturns
+                        ? (stressScenario.yearlyBondReturns[i] ?? 0.02)
+                        : 0.02;
+                    actualReturn = (allocation.equity / 100) * eqRet +
+                        (allocation.bonds  / 100) * bdRet +
+                        (allocation.cash   / 100) * 0.01;
+                } else if (stressScenario.equityReturn !== undefined) {
                     actualReturn = (allocation.equity / 100) * stressScenario.equityReturn +
                         (allocation.bonds / 100) * (stressScenario.bondReturn || 0.02) +
                         (allocation.cash / 100) * 0.01;
@@ -2313,16 +2378,20 @@ export class RetirementSimulator {
                 modifications: {}
             },
             {
-                name: "Market Crash in First Retirement Year",
-                description: `Simulate a ${Math.abs((baseInputs.shockMagnitude || -0.4) * 100).toFixed(0)}% portfolio decline in your first year of retirement (using your shock settings)`,
+                // GFC (2007-09): ASX All Ordinaries fell ~54% peak-to-trough over 16 months.
+                // Modelled as two bad years at retirement: -35% equity in year 1, -25% in year 2,
+                // then a strong recovery (+30%) in year 3 — matching the actual sequence.
+                // Bonds also fell (correlation failure in 2008): -8% in year 1, -4% in year 2.
+                name: "GFC-Style Crash at Retirement (2-Year Sequence)",
+                description: "Simulate a GFC-like sequence: equities -35% then -25% over first 2 retirement years, bonds also decline (-8%/-4%), followed by a sharp recovery. Total drawdown ~54% — consistent with the 2007-09 Australian market experience.",
                 modifications: {
-                    // Use stress scenario instead of random shocks for guaranteed market crash
                     _stressScenario: {
-                        name: 'market_crash_first_year',
-                        equityReturn: baseInputs.shockMagnitude || -0.4, // User's shock magnitude or -40%
-                        bondReturn: (baseInputs.shockMagnitude || -0.4) * 0.25, // Bonds decline proportionally less
-                        duration: 1, // Only first year of retirement
-                        startYear: 'retirement' // Start at retirement
+                        name: 'gfc_sequence',
+                        // Multi-year sequence: [year1, year2, year3, ...remaining=baseline]
+                        yearlyEquityReturns: [-0.35, -0.25, 0.30],
+                        yearlyBondReturns:   [-0.08, -0.04, 0.12],
+                        duration: 3,
+                        startYear: 'retirement'
                     }
                 }
             },

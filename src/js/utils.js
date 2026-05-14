@@ -236,6 +236,7 @@ export const initializeCurrencyInputs = () => {
         'pensionAssetLimit', 'pensionIncomeThreshold',
         // Super strategies
         'yourAdditionalSuperContribution', 'partnerAdditionalSuperContribution',
+        'yourAnnualNCC', 'partnerAnnualNCC',
         'concessionalCapUsed', 'spouseContribution',
         // Income scenarios
         'reducedIncomeSalary', 'partnerReducedIncomeSalary',
@@ -2047,6 +2048,7 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
         'smsfAdminCosts', 'landTax', 'familyTrustIncomeDistribution',
         'educationCostPerChild', 'concessionalCapUsed', 'spouseContribution',
         'yourAdditionalSuperContribution', 'partnerAdditionalSuperContribution',
+        'yourAnnualNCC', 'partnerAnnualNCC',
         'carerAnnualExpense', 'creditCardBalance', 'personalLoanBalance',
         'carLoanBalance', 'hecsBalance', 'annualTravelBudget', 'annualHobbyBudget',
         'legacyGoal', 'reducedIncomeSalary', 'partnerReducedIncomeSalary',

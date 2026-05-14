@@ -337,6 +337,19 @@ export const ENHANCED_CONFIG = {
     // NCC cap drops to $0 when total super balance (TSB) reaches this amount
     TSB_NCC_BLOCK_THRESHOLD: 2000000,
 
+    // NCC bring-forward rule (ATO 2024-25, NCC cap = $120k):
+    //   TSB < $1.66M → 3-year bring-forward ($360k in year 1, $0 in years 2-3)
+    //   $1.66M ≤ TSB < $1.78M → 2-year bring-forward ($240k in year 1, $0 in year 2)
+    //   $1.78M ≤ TSB < $1.9M  → 1-year only ($120k, no bring-forward)
+    //   TSB ≥ $1.9M (TBC)     → nil NCC allowed
+    // Source: ato.gov.au/individuals-and-families/super-for-individuals-and-families/
+    //         super/growing-and-keeping-track-of-your-super/caps-on-super-contributions
+    NCC_BRING_FORWARD_3YR_THRESHOLD: 1660000,   // TSB < this → full 3-year bring-forward
+    NCC_BRING_FORWARD_2YR_THRESHOLD: 1780000,   // TSB < this → 2-year bring-forward
+    NCC_BRING_FORWARD_1YR_THRESHOLD: 1900000,   // TSB < this → 1-year cap ($120k)
+    NCC_BRING_FORWARD_3YR_CAP: 360000,          // 3 × $120k
+    NCC_BRING_FORWARD_2YR_CAP: 240000,          // 2 × $120k
+
     // Transfer Balance Cap: maximum that can move to tax-free pension phase
     TRANSFER_BALANCE_CAP: 2000000,       // FY 2025-26
     TRANSFER_BALANCE_CAP_FY2027: 2100000, // FY 2026-27 (indexed)
