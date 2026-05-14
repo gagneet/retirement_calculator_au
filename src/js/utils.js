@@ -220,16 +220,37 @@ export const addCurrencyFormatting = (inputElement) => {
 export const initializeCurrencyInputs = () => {
     // Currency input field IDs that should be formatted
     const currencyFieldIds = [
+        // Core personal finances
         'yourSalary', 'partnerSalary', 'yourCurrentSuper', 'partnerCurrentSuper',
         'currentSavings', 'currentStocks', 'monthlyStockContribution',
         'currentMonthlyHousingCosts', 'currentMonthlyLivingCosts',
+        // Property
         'homeValue', 'mortgageBalance', 'monthlyMortgagePayment',
         'investmentPropertyValue', 'investmentPropertyLoan',
         'investmentPropertyPurchasePrice', 'weeklyRentalIncome', 'annualPropertyExpenses',
+        // Trust
         'trustNetAssets', 'trustAnnualDistributions',
+        // Healthcare / pension system
         'currentHealthcareCosts', 'agedCareAnnualCost',
         'asfaComfortable', 'agePensionMax', 'pensionAssetThreshold',
-        'pensionAssetLimit', 'pensionIncomeThreshold'
+        'pensionAssetLimit', 'pensionIncomeThreshold',
+        // Super strategies
+        'yourAdditionalSuperContribution', 'partnerAdditionalSuperContribution',
+        'concessionalCapUsed', 'spouseContribution',
+        // Income scenarios
+        'reducedIncomeSalary', 'partnerReducedIncomeSalary',
+        // Additional income
+        'businessIncome', 'investmentIncome',
+        // Dependents / education
+        'educationCostPerChild', 'carerAnnualExpense',
+        // Debts
+        'creditCardBalance', 'personalLoanBalance', 'carLoanBalance', 'hecsBalance',
+        // Property stress-test
+        'landTax',
+        // SMSF
+        'smsfAdminCosts',
+        // Lifestyle goals
+        'annualTravelBudget', 'annualHobbyBudget', 'legacyGoal'
     ];
 
     currencyFieldIds.forEach(id => {
@@ -284,20 +305,39 @@ export const addPercentageFormatting = (inputElement) => {
 };
 
 export const initializePercentageInputs = () => {
-    // Percentage input field IDs that should be formatted
+    // Percentage input field IDs that should be formatted.
+    // Only type="text" inputs may be included here — type="number" inputs reject
+    // values like "7.50%" and silently clear the field.
     const percentageFieldIds = [
-        'percentIncomeSaved', 'mortgageRate', 'investmentPropertyRate',
-        'propertyGrowthRate', 'capitalGainsTaxRate', 'healthcareInflation',
-        'agedCareProbability', 'inflation', 'investmentReturn',
-        'returnDeclineRate', 'savingsReturn', 'superReturn',
-        'salaryGrowthRate', 'leanYearsReduction', 'australianEquityAllocation',
-        'dividendYield', 'frankingRate', 'returnVolatility', 'shockProbability', 'shockMagnitude',
-        'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
-        'carLoanRate', 'employerSuperContributionRate'
+        // Savings / income
+        'percentIncomeSaved',
+        // Property rates
+        'mortgageRate', 'investmentPropertyRate', 'propertyGrowthRate', 'capitalGainsTaxRate',
+        // Healthcare / aged care
+        'healthcareInflation', 'agedCareProbability',
+        // Economic assumptions
+        'inflation', 'investmentReturn', 'returnDeclineRate', 'savingsReturn', 'superReturn',
+        'salaryGrowthRate', 'leanYearsReduction',
+        // Allocation
+        'australianEquityAllocation', 'dividendYield', 'frankingRate',
+        'allocEquities', 'allocBonds', 'allocCash',
+        // Monte Carlo volatility
+        'returnVolatility', 'shockProbability', 'shockMagnitude',
+        // Trust
+        'trustAttributionPercentage',
+        // Debts (type="text" confirmed)
+        'creditCardRate', 'personalLoanRate', 'carLoanRate',
+        // Super
+        'employerSuperContributionRate',
+        // Property stress-test (type="text" confirmed)
+        'vacancyRate', 'maintenanceInflation',
+        // Scenario stress (type="text" confirmed)
+        'extremeInflationProbability', 'propertyCrashProbability'
+        // Excluded — type="number" inputs (browser rejects "70.00%" as value):
+        //   carerReducedWorkPercent, childrenUnder5Percent, childrenPrimaryPercent,
+        //   teenagersPercent, adultDisabledPercent, elderlyIndependentPercent,
+        //   elderlyHomeCarePercent, elderlyResidentialPercent, otherDependentsPercent
     ];
-    // Note: dependent percentage fields (childrenUnder5Percent, childrenPrimaryPercent, etc.)
-    // are type="number" inputs and must NOT use addPercentageFormatting — setting a value
-    // like "70.00%" on a number input causes the browser to reject it (value becomes "").
 
     percentageFieldIds.forEach(id => {
         const element = $(id);
@@ -1955,9 +1995,11 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
         'pensionAssetThreshold', 'pensionAssetLimit', 'pensionIncomeThreshold',
         'smsfAdminCosts', 'landTax', 'familyTrustIncomeDistribution',
         'educationCostPerChild', 'concessionalCapUsed', 'spouseContribution',
+        'yourAdditionalSuperContribution', 'partnerAdditionalSuperContribution',
         'carerAnnualExpense', 'creditCardBalance', 'personalLoanBalance',
         'carLoanBalance', 'hecsBalance', 'annualTravelBudget', 'annualHobbyBudget',
-        'legacyGoal', 'reducedIncomeSalary', 'partnerReducedIncomeSalary'
+        'legacyGoal', 'reducedIncomeSalary', 'partnerReducedIncomeSalary',
+        'businessIncome', 'investmentIncome'
     ];
 
     const percentageFields = [

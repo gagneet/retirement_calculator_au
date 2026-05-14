@@ -2749,10 +2749,15 @@ export class OnboardingWizard {
         const currentValue = parseFloat(input.value) || 0;
         input.setAttribute('data-raw-value', currentValue);
 
+        // Note: for percentage fields the primary formatting (2dp + "%" suffix) is
+        // already handled by addPercentageFormatting() in utils.js, which is called
+        // during initializePercentageInputs() — that listener runs first because it is
+        // registered earlier.  We deliberately do NOT reformat the percentage value here
+        // to avoid overwriting the correct "7.50%" display with a truncated "7.5" or
+        // losing the "%" suffix.  Currency fields use formatNumber() (commas, no "$")
+        // as a lightweight styling layer on top of the main "$"-prefixed formatting.
         if (formatType === 'currency' && currentValue > 0) {
             input.value = formatNumber(currentValue);
-        } else if (formatType === 'percentage' && currentValue > 0) {
-            input.value = currentValue.toFixed(1);
         }
 
         // Add formatting listeners
@@ -2763,10 +2768,13 @@ export class OnboardingWizard {
             if (!isNaN(numValue)) {
                 e.target.setAttribute('data-raw-value', numValue);
 
+                // Currency: apply comma-grouping display via formatNumber.
+                // Percentage: do NOT reformat here — addPercentageFormatting's blur
+                // listener (registered earlier) already produced the correct "N.NN%"
+                // string; overwriting it with toFixed(1) would truncate decimals and
+                // strip the "%" suffix.
                 if (formatType === 'currency') {
                     e.target.value = formatNumber(numValue);
-                } else if (formatType === 'percentage') {
-                    e.target.value = numValue.toFixed(1);
                 }
             }
         });
