@@ -18,12 +18,9 @@
 import { COUNTRY_PROFILES } from './country-profiles.js';
 import { ENHANCED_CONFIG } from './config.js';
 import {
-    calculateDeemedIncome,
     buildDeemedAssets,
     calculateSinglePension,
-    generateOverseasScenarioTree,
-    OverseasScenarioType,
-    POLICY
+    generateOverseasScenarioTree
 } from './policy-engine.js';
 
 export class OverseasRetirementAnalyzer {
