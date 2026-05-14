@@ -1,7 +1,12 @@
 /**
  * Overseas Retirement Analyzer
  * Analyzes Age Pension portability, tax implications, and financial viability
- * for retiring in popular overseas destinations
+ * for retiring in popular overseas destinations.
+ *
+ * IMPORTANT: All pension/deeming calculations delegate to policy-engine.js.
+ * There is NO local copy of pension rate logic in this file — that was the
+ * prior bug identified in the deep research audit (overseas module maintained
+ * its own divergent pension estimation instead of using the shared engine).
  *
  * Sources:
  * - Services Australia: servicesaustralia.gov.au
@@ -12,6 +17,14 @@
 
 import { COUNTRY_PROFILES } from './country-profiles.js';
 import { ENHANCED_CONFIG } from './config.js';
+import {
+    calculateDeemedIncome,
+    buildDeemedAssets,
+    calculateSinglePension,
+    generateOverseasScenarioTree,
+    OverseasScenarioType,
+    POLICY
+} from './policy-engine.js';
 
 export class OverseasRetirementAnalyzer {
     constructor(personalDetails, financialData) {
@@ -45,55 +58,65 @@ export class OverseasRetirementAnalyzer {
     }
 
     /**
-     * Calculate Age Pension portability for country
-     * Uses AWLR (Australian Working Life Residence) calculation
+     * Calculate Age Pension portability for a given country, across all scenarios.
+     *
+     * This method now delegates entirely to policy-engine.js so that overseas
+     * pension estimates always use the same rates and thresholds as the main
+     * calculator. The prior bug was that this class maintained its own divergent
+     * pension estimation using only investmentBalance for deeming, and only
+     * Sept 2025 rates hardcoded locally.
+     *
      * Source: Services Australia - servicesaustralia.gov.au/travel-outside-australia-rules-for-age-pension
      */
     calculatePensionPortability(country) {
         const age = this.person.age || 65;
         const retirementAge = this.person.retirementAge || age;
 
-        // Use ageCameToAustralia to calculate effective residency if provided
+        // Derive AWLR (Australian Working Life Residence, age 16 to pension age 67)
         const residencyYears = this.person.australianResidenceYears > 0
             ? this.person.australianResidenceYears
             : this.person.ageCameToAustralia > 0
                 ? Math.max(0, retirementAge - this.person.ageCameToAustralia)
-                : (age - 18);
-        const yearsInAustralia = residencyYears;
+                : (age - 16); // default: in Australia since age 16
 
-        // AWLR: Australian Working Life Residence (age 16 to pension age 67)
         const cfg = ENHANCED_CONFIG.OVERSEAS_RETIREMENT;
-        const AWLR = Math.min(yearsInAustralia, cfg.AWLR_TOTAL_YEARS);
-        const hasFullPortability = AWLR >= cfg.AWLR_REQUIRED_FOR_FULL;
-        const proportionalRate = Math.min(AWLR / cfg.AWLR_REQUIRED_FOR_FULL, 1.0);
+        const awlrYears = Math.min(Math.max(0, residencyYears), cfg.AWLR_TOTAL_YEARS);
+        const proportionalRate = Math.min(awlrYears / cfg.AWLR_REQUIRED_FOR_FULL, 1.0);
+        const hasFullPortability = awlrYears >= cfg.AWLR_REQUIRED_FOR_FULL;
+        const hasAgreement = !!country.socialSecurityAgreement;
 
-        const hasAgreement = country.socialSecurityAgreement;
+        // === BUG FIX: use shared policy engine for pension estimate ===
+        // Previously: only investmentBalance was used for deeming (too narrow).
+        // Now: buildDeemedAssets() includes super, investments, savings, managed funds etc.
+        // Previously: locally duplicated threshold/rate logic.
+        // Now: calculateSinglePension() uses canonical thresholds from config.
+        const currentPensionResult = this.estimateCurrentAgePension();
 
-        // Estimate current Age Pension using Sept 2025 thresholds from config
-        const currentPension = this.estimateCurrentAgePension();
+        // Generate the full four-scenario tree using the policy engine
+        const scenarioTree = generateOverseasScenarioTree({
+            basePension: currentPensionResult,
+            awlrYears,
+            isCouple: !!this.person.partnered,
+            agreementCountry: hasAgreement
+        });
 
-        // After 26 weeks overseas: apply AWLR proportion AND lose pension supplement top-up
-        // The basic pension supplement rate is retained but the top-up and Energy Supplement are lost
-        const overseasPension = currentPension * proportionalRate;
-        const supplementReduction = this.person.partnered
-            ? cfg.PENSION_SUPPLEMENT_REDUCTION_COUPLE
-            : cfg.PENSION_SUPPLEMENT_REDUCTION_SINGLE;
-        const finalOverseasPension = Math.max(0, overseasPension - supplementReduction);
-
-        // Weeks before portability rules kick in
         const portabilityKickIn = cfg.PORTABILITY_THRESHOLD_WEEKS;
 
+        // Backward-compatible result structure enhanced with scenario tree
         return {
-            AWLR,
-            AWLRPercentage: ((AWLR / cfg.AWLR_REQUIRED_FOR_FULL) * 100).toFixed(1),
+            AWLR: awlrYears,
+            AWLRPercentage: ((awlrYears / cfg.AWLR_REQUIRED_FOR_FULL) * 100).toFixed(1),
             fullPortability: hasFullPortability,
             hasAgreement,
             portabilityKickIn,
+            // The four mandatory overseas scenarios from the research
+            scenarioTree,
             rules: hasAgreement ? {
                 status: 'SOCIAL_SECURITY_AGREEMENT',
-                initialPeriod: `Full rate for first ${portabilityKickIn} weeks`,
+                initialPeriod: `Full rate for first ${cfg.SHORT_ABSENCE_WEEKS} weeks`,
+                afterSixWeeks: 'Pension Supplement top-up and Energy Supplement stop; Pensioner Concession Card cancelled',
                 afterSixMonths: hasFullPortability
-                    ? 'Continue full rate indefinitely (agreement country)'
+                    ? 'Continue full rate indefinitely (agreement country + 35+ years AWLR)'
                     : `Proportional rate: ${(proportionalRate * 100).toFixed(1)}% of eligible amount`,
                 advantages: [
                     'No 2-year former resident waiting period',
@@ -104,82 +127,73 @@ export class OverseasRetirementAnalyzer {
                 ]
             } : {
                 status: 'NO_AGREEMENT',
-                initialPeriod: `Full rate for first ${portabilityKickIn} weeks`,
+                initialPeriod: `Full rate for first ${cfg.SHORT_ABSENCE_WEEKS} weeks`,
+                afterSixWeeks: 'Pension Supplement top-up and Energy Supplement stop; Pensioner Concession Card cancelled',
                 afterSixMonths: hasFullPortability
                     ? 'Continue full rate (35+ years AWLR)'
-                    : `Reduced to ${(proportionalRate * 100).toFixed(1)}% (AWLR: ${AWLR} of ${cfg.AWLR_REQUIRED_FOR_FULL} years)`,
+                    : `Reduced to ${(proportionalRate * 100).toFixed(1)}% (AWLR: ${awlrYears} of ${cfg.AWLR_REQUIRED_FOR_FULL} years)`,
                 disadvantages: [
-                    '⚠️ 2-year former resident waiting period applies on return to Australia',
+                    `⚠️ ${cfg.RETURN_WAITING_PERIOD_YEARS}-year former resident waiting period applies on return to Australia`,
                     'Must be in Australia to initially apply for Age Pension',
-                    'Pension Supplement top-up and Energy Supplement stop after 26 weeks',
-                    'Pensioner Concession Card cancelled after 6 weeks overseas'
+                    'Pension Supplement top-up and Energy Supplement stop after 6 weeks overseas',
+                    'AWLR-proportional rate applies after 26 weeks overseas'
                 ]
             },
+            // Keep pensionCalculation for backward-compat with country comparison UI
             pensionCalculation: {
-                inAustralia: Math.round(currentPension),
-                overseas: Math.round(finalOverseasPension),
-                reduction: Math.round(currentPension - finalOverseasPension),
-                supplementLost: Math.round(supplementReduction),
-                reductionPercent: currentPension > 0
-                    ? (((currentPension - finalOverseasPension) / currentPension) * 100).toFixed(1)
-                    : '0'
+                inAustralia: Math.round(currentPensionResult),
+                overseas: Math.round(scenarioTree.permanentMove.annualPension),
+                reduction: Math.round(currentPensionResult - scenarioTree.permanentMove.annualPension),
+                supplementLost: Math.round(scenarioTree.permanentMove.supplementLost),
+                reductionPercent: currentPensionResult > 0
+                    ? (((currentPensionResult - scenarioTree.permanentMove.annualPension) / currentPensionResult) * 100).toFixed(1)
+                    : '0',
+                // New: scenario breakdown
+                afterSixWeeks: Math.round(scenarioTree.longAbsence.annualPension),
+                permanentMove: Math.round(scenarioTree.permanentMove.annualPension),
+                policyDate: ENHANCED_CONFIG.POLICY_EFFECTIVE_DATE
             }
         };
     }
 
     /**
-     * Estimate current Age Pension entitlement using Sept 2025 config rates.
-     * Uses both the asset test and income test; returns the lower result.
-     * Deeming rates applied per Services Australia (Sept 2025):
-     *   - 0.75% on the first $64,200 (single) / $106,200 (couple)
-     *   - 2.75% on amounts above the threshold
+     * Estimate current Age Pension entitlement using the shared policy engine.
+     *
+     * BUG FIX: Previously, this method only deemed `investmentBalance`. Services
+     * Australia applies deeming to a broader set of financial assets including super,
+     * savings accounts, term deposits, managed funds, and listed shares.
+     * This method now uses buildDeemedAssets() to capture all deem-able assets,
+     * and calculateSinglePension() from policy-engine.js for canonical rates.
+     *
+     * @returns {number} Annual pension estimate (AUD)
      */
     estimateCurrentAgePension() {
-        const totalAssets = (this.finances.superBalance || 0) +
-                           (this.finances.investmentBalance || 0);
-        const investmentBalance = this.finances.investmentBalance || 0;
         const homeowner = (this.finances.homeValue || 0) > 0;
-        const cfg = ENHANCED_CONFIG;
+        const isCouple = !!this.person.partnered;
 
-        // Use actual tiered deeming rates from config (Services Australia Sept 2025)
-        const deemingThreshold = this.person.partnered
-            ? cfg.DEMING_THRESHOLD_COUPLE
-            : cfg.DEMING_THRESHOLD_SINGLE;
-        const lowerDeemedIncome = Math.min(investmentBalance, deemingThreshold) * cfg.DEMING_RATE_LOWER;
-        const upperDeemedIncome = Math.max(0, investmentBalance - deemingThreshold) * cfg.DEMING_RATE_UPPER;
-        const annualDeemedIncome = lowerDeemedIncome + upperDeemedIncome;
+        // FIXED: include all financial assets in deeming scope (not just investmentBalance)
+        const totalFinancialAssets = buildDeemedAssets(this.finances);
 
-        // Use current Sept 2025 config thresholds
-        const assetThreshold = homeowner
-            ? (this.person.partnered ? cfg.COUPLE_ASSET_THRESHOLD : cfg.SINGLE_ASSET_THRESHOLD)
-            : (this.person.partnered ? cfg.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER : cfg.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER);
-        const assetLimit = homeowner
-            ? (this.person.partnered ? cfg.COUPLE_ASSET_LIMIT : cfg.SINGLE_ASSET_LIMIT)
-            : (this.person.partnered ? cfg.COUPLE_ASSET_LIMIT_NON_HOMEOWNER : cfg.SINGLE_ASSET_LIMIT_NON_HOMEOWNER);
-        const incomeThreshold = this.person.partnered ? cfg.COUPLE_INCOME_THRESHOLD : cfg.SINGLE_INCOME_THRESHOLD;
-        const maxRate = this.person.partnered ? cfg.COUPLE_PENSION_MAX : cfg.SINGLE_PENSION_MAX;
+        // FIXED: include all assessable assets (super + investments + savings, etc.)
+        const totalAssessableAssets = (this.finances.superBalance || 0) +
+            (this.finances.investmentBalance || 0) +
+            (this.finances.savingsBalance || 0) +
+            (this.finances.termDeposits || 0) +
+            (this.finances.managedFunds || 0) +
+            (this.finances.listedShares || 0) +
+            (this.finances.otherFinancialAssets || 0);
 
-        // Asset test: $3 per fortnight reduction for every $1,000 over threshold
-        let pensionFromAssets;
-        if (totalAssets <= assetThreshold) {
-            pensionFromAssets = maxRate;
-        } else if (totalAssets < assetLimit) {
-            const excessAssets = totalAssets - assetThreshold;
-            const reduction = (excessAssets / 1000) * 3 * cfg.FORTNIGHTS_IN_YEAR;
-            pensionFromAssets = Math.max(0, maxRate - reduction);
-        } else {
-            pensionFromAssets = 0;
-        }
+        const otherIncome = this.finances.otherIncome || 0;
 
-        // Income test: 50 cents per dollar over fortnightly threshold
-        const fortnightlyDeemedIncome = annualDeemedIncome / cfg.FORTNIGHTS_IN_YEAR;
-        let pensionFromIncome = maxRate;
-        if (fortnightlyDeemedIncome > incomeThreshold) {
-            const reduction = (fortnightlyDeemedIncome - incomeThreshold) * 0.5 * cfg.FORTNIGHTS_IN_YEAR;
-            pensionFromIncome = Math.max(0, maxRate - reduction);
-        }
+        const result = calculateSinglePension({
+            totalAssets: totalAssessableAssets,
+            financialAssets: totalFinancialAssets,
+            otherIncome,
+            isCouple,
+            homeowner
+        });
 
-        return Math.min(pensionFromAssets, pensionFromIncome);
+        return result.annualPension;
     }
 
     /**
