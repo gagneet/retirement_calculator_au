@@ -4641,6 +4641,9 @@
                 <!-- Risk analysis will be populated -->
             </div>
 
+            <!-- Stress Test Results (populated by runStressTest) -->
+            <div class="hidden mt-6" id="stressTestResults"></div>
+
             <!-- Back to Action Buttons -->
             <div class="mt-6 text-center">
                 <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
@@ -4717,6 +4720,12 @@
                     <canvas id="propertyChart"></canvas>
                 </div>
             </div>
+
+            <!-- Dynamic Asset Allocation Results (populated by runDynamicAllocationAnalysis) -->
+            <div class="hidden mt-6" id="dynamicAllocationResults"></div>
+
+            <!-- Healthcare Analysis Results (populated by runHealthcareAnalysis) -->
+            <div class="hidden mt-6" id="healthcareAnalysisResults"></div>
 
             <!-- Back to Action Buttons -->
             <div class="mt-6 text-center">
@@ -5123,6 +5132,9 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Strategy Matrix Results (populated by runScenarioComparison / Compare Strategies button) -->
+            <div class="hidden mt-6" id="scenarioMatrixResults"></div>
 
             <!-- Scenario Comparison Results -->
             <div class="hidden" id="scenarioComparisonResults">

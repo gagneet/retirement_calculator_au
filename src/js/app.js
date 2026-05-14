@@ -3237,20 +3237,11 @@ class RetirementCalculatorApp {
 
     // Display scenario matrix results
     displayScenarioMatrix(matrixResults) {
-        // Find or create scenario matrix container
-        let matrixContainer = $('scenarioMatrixResults');
+        // Use the dedicated container inside the scenarios tab
+        const matrixContainer = $('scenarioMatrixResults');
         if (!matrixContainer) {
-            // Create container if it doesn't exist
-            const resultsSection = $('results');
-            if (resultsSection) {
-                matrixContainer = document.createElement('div');
-                matrixContainer.id = 'scenarioMatrixResults';
-                matrixContainer.className = 'mt-6';
-                resultsSection.appendChild(matrixContainer);
-            } else {
-                console.error('Results section not found');
-                return;
-            }
+            console.error('Scenario matrix results container not found');
+            return;
         }
 
         // Generate and display matrix HTML
@@ -3493,8 +3484,8 @@ class RetirementCalculatorApp {
 
             updateProgress(100, "Healthcare analysis complete!");
 
-            // Switch to summary tab to show results and scroll to them
-            showTab('summary', true);
+            // Switch to charts tab to show healthcare results
+            showTab('charts', true);
             showNotification('Healthcare analysis complete!', 'success');
             setTimeout(() => updateProgress(0), 1000);
 
@@ -3879,7 +3870,8 @@ class RetirementCalculatorApp {
 
     // Display advanced risk profiling results
     displayAdvancedRiskProfile(riskProfile) {
-        const resultsContainer = $('results');
+        // Target the dedicated container inside the riskAnalysis tab
+        const resultsContainer = $('riskAnalysisContent');
         if (!resultsContainer) return;
 
         const riskContainer = document.createElement('div');
@@ -4036,11 +4028,12 @@ class RetirementCalculatorApp {
 
     // Display dynamic allocation strategy results
     displayDynamicAllocationStrategy(strategy) {
-        const resultsContainer = $('results');
-        if (!resultsContainer) return;
+        // Target the dedicated container inside the charts tab
+        let allocationContainer = $('dynamicAllocationResults');
+        if (!allocationContainer) return;
 
-        const allocationContainer = document.createElement('div');
-        allocationContainer.className = 'bg-white rounded-lg shadow-lg p-6 mt-6';
+        allocationContainer.classList.remove('hidden');
+        allocationContainer.className = 'mt-6 bg-white rounded-lg shadow-lg p-6';
         allocationContainer.id = 'dynamicAllocationResults';
 
         allocationContainer.innerHTML = `
@@ -4197,31 +4190,16 @@ class RetirementCalculatorApp {
             </div>
         `;
 
-        // Remove existing allocation results and add new ones
-        const existingAllocationResults = $('dynamicAllocationResults');
-        if (existingAllocationResults) {
-            existingAllocationResults.remove();
-        }
-
-        resultsContainer.appendChild(allocationContainer);
         allocationContainer.scrollIntoView({ behavior: 'smooth' });
     }
 
     // Display healthcare analysis results
     displayHealthcareAnalysis(healthcareResults) {
-        // Find or create healthcare results container
-        let healthcareContainer = $('healthcareAnalysisResults');
+        // Use the dedicated container inside the charts tab
+        const healthcareContainer = $('healthcareAnalysisResults');
         if (!healthcareContainer) {
-            const resultsSection = $('results');
-            if (resultsSection) {
-                healthcareContainer = document.createElement('div');
-                healthcareContainer.id = 'healthcareAnalysisResults';
-                healthcareContainer.className = 'mt-6';
-                resultsSection.appendChild(healthcareContainer);
-            } else {
-                console.error('Results section not found');
-                return;
-            }
+            console.error('Healthcare results container not found');
+            return;
         }
 
         const { projections, monteCarlo, summary } = healthcareResults;
