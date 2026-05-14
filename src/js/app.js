@@ -579,21 +579,21 @@ class RetirementCalculatorApp {
             // Enhanced dependent details
             dependentDetails: {
                 childrenUnder5: safeGetValue('childrenUnder5', 0),
-                childrenUnder5Percent: parseFormattedNumber(getRawValue('childrenUnder5Percent', '70')),
+                childrenUnder5Percent: parseFormattedNumber(getRawValue('childrenUnder5Percent', '100')),
                 childrenPrimary: safeGetValue('childrenPrimary', 0),
-                childrenPrimaryPercent: parseFormattedNumber(getRawValue('childrenPrimaryPercent', '70')),
+                childrenPrimaryPercent: parseFormattedNumber(getRawValue('childrenPrimaryPercent', '100')),
                 teenagers: safeGetValue('teenagers', 0),
-                teenagersPercent: parseFormattedNumber(getRawValue('teenagersPercent', '80')),
+                teenagersPercent: parseFormattedNumber(getRawValue('teenagersPercent', '100')),
                 adultDisabled: safeGetValue('adultDisabled', 0),
-                adultDisabledPercent: parseFormattedNumber(getRawValue('adultDisabledPercent', '20')),
+                adultDisabledPercent: parseFormattedNumber(getRawValue('adultDisabledPercent', '100')),
                 elderlyIndependent: safeGetValue('elderlyIndependent', 0),
-                elderlyIndependentPercent: parseFormattedNumber(getRawValue('elderlyIndependentPercent', '50')),
+                elderlyIndependentPercent: parseFormattedNumber(getRawValue('elderlyIndependentPercent', '100')),
                 elderlyHomeCare: safeGetValue('elderlyHomeCare', 0),
-                elderlyHomeCarePercent: parseFormattedNumber(getRawValue('elderlyHomeCarePercent', '30')),
+                elderlyHomeCarePercent: parseFormattedNumber(getRawValue('elderlyHomeCarePercent', '100')),
                 elderlyResidential: safeGetValue('elderlyResidential', 0),
-                elderlyResidentialPercent: parseFormattedNumber(getRawValue('elderlyResidentialPercent', '40')),
+                elderlyResidentialPercent: parseFormattedNumber(getRawValue('elderlyResidentialPercent', '100')),
                 otherDependents: safeGetValue('otherDependents', 0),
-                otherDependentsPercent: parseFormattedNumber(getRawValue('otherDependentsPercent', '60'))
+                otherDependentsPercent: parseFormattedNumber(getRawValue('otherDependentsPercent', '100'))
             },
 
             // Financial details
@@ -9117,7 +9117,25 @@ class RetirementCalculatorApp {
 
             // Additional income
             'businessIncome': 0,
-            'investmentIncome': 0
+            'investmentIncome': 0,
+
+            // Financial dependents — counts always default to 0, share % always 100
+            'childrenUnder5': 0,
+            'childrenUnder5Percent': 100,
+            'childrenPrimary': 0,
+            'childrenPrimaryPercent': 100,
+            'teenagers': 0,
+            'teenagersPercent': 100,
+            'adultDisabled': 0,
+            'adultDisabledPercent': 100,
+            'elderlyIndependent': 0,
+            'elderlyIndependentPercent': 100,
+            'elderlyHomeCare': 0,
+            'elderlyHomeCarePercent': 100,
+            'elderlyResidential': 0,
+            'elderlyResidentialPercent': 100,
+            'otherDependents': 0,
+            'otherDependentsPercent': 100
         };
 
         return defaultMap[inputId];
