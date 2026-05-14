@@ -10209,14 +10209,25 @@ window.updateConfidenceGauge = function updateConfidenceGauge(pct) {
  */
 window.updatePaycheckCard = function updatePaycheckCard(outcome, sim) {
     const card = document.getElementById('paycheck-card');
-    if (!card || !outcome) return;
+    if (!card) return;
 
-    const superIncome = outcome.superIncome || (outcome.sustainableIncome - (outcome.agePension || 0));
-    const pensionIncome = outcome.agePension || 0;
-    const otherIncome = outcome.propertyIncome || outcome.rentalIncome || 0;
+    // Hide and reset card if no outcome data — prevents stale values from prior calculation
+    if (!outcome) {
+        card.style.display = 'none';
+        return;
+    }
+
+    // Use ?? (nullish coalescing) so a valid 0 is not treated as "missing"
+    // superIncome = total sustainable income minus the Age Pension component
+    const superIncome = outcome.superIncome ?? Math.max(0, (outcome.sustainableIncome ?? 0) - (outcome.agePension ?? 0));
+    const pensionIncome = outcome.agePension ?? 0;
+    const otherIncome = outcome.propertyIncome ?? outcome.rentalIncome ?? 0;
     const total = Math.max(0, superIncome + pensionIncome + otherIncome);
 
-    if (total <= 0) return; // don't show empty card
+    if (total <= 0) {
+        card.style.display = 'none'; // hide + clear on zero/empty case
+        return;
+    }
 
     const fmtM = (n) => '$' + Math.round(Math.abs(n) / 12).toLocaleString('en-AU');
     const pct = (n) => total > 0 ? Math.round((n / total) * 100) + '%' : '0%';
@@ -10257,7 +10268,12 @@ window.updatePaycheckCard = function updatePaycheckCard(outcome, sim) {
 window.updateFundingGlideChart = function updateFundingGlideChart(yearlyData) {
     const wrap = document.getElementById('funding-glide-wrap');
     const canvas = document.getElementById('fundingGlideChart');
-    if (!wrap || !canvas || !yearlyData || yearlyData.length === 0) return;
+
+    // Guard: hide wrapper and return early when data or Chart.js is missing
+    if (!wrap || !canvas || !yearlyData || yearlyData.length === 0 || typeof Chart === 'undefined') {
+        if (wrap) wrap.style.display = 'none';
+        return;
+    }
 
     wrap.style.display = '';
 
@@ -10354,11 +10370,15 @@ window.generateOverseasScenariosTree = async function generateOverseasScenariosT
         const isCouple = !!(document.getElementById('partnerCurrentAge')?.value);
         const agreementCountry = document.getElementById('overseasAgreementCountry')?.checked || false;
 
+        // Read the move type input — used to visually highlight the selected scenario
+        const moveTypeEl = document.getElementById('overseasMoveType');
+        const selectedMoveType = moveTypeEl?.value || 'permanent'; // default to permanent if not set
+
         // Estimate base pension from main calculator result if available
         const appInstance = window._appInstance;
         let basePension = 0;
         if (appInstance && appInstance.lastOutcome) {
-            basePension = appInstance.lastOutcome.agePension || 0;
+            basePension = appInstance.lastOutcome.agePension ?? 0;
         }
         // Fallback: use config max if no calculation run yet
         if (!basePension) {
@@ -10367,7 +10387,17 @@ window.generateOverseasScenariosTree = async function generateOverseasScenariosT
 
         const tree = generateOverseasScenarioTree({ basePension, awlrYears, isCouple, agreementCountry });
 
-        // Build scenario cards
+        // Map moveType selector value to which scenario card to visually highlight
+        const moveTypeToKey = {
+            'permanent': 'permanentMove',
+            'extended_temporary': 'longAbsence',
+            'long_absence': 'longAbsence',
+            'short_absence': 'shortAbsence'
+        };
+        const highlightedKey = moveTypeToKey[selectedMoveType] || 'permanentMove';
+
+        // Build all five scenario cards — all five are always shown per research mandate:
+        // "never show a simple better/worse verdict without presenting all scenarios"
         const scenarios = [
             {
                 key: 'stayInAustralia',
@@ -10387,7 +10417,7 @@ window.generateOverseasScenariosTree = async function generateOverseasScenariosT
             },
             {
                 key: 'longAbsence',
-                label: `Visit/Stay >6–26 weeks`,
+                label: `Visit/Stay 6–26 weeks`,
                 emoji: '🗓️',
                 data: tree.longAbsence,
                 cssClass: tree.longAbsence.pensionReduced ? 'warning' : 'neutral',
@@ -10400,6 +10430,15 @@ window.generateOverseasScenariosTree = async function generateOverseasScenariosT
                 data: tree.permanentMove,
                 cssClass: 'critical',
                 warnings: tree.permanentMove.warnings || []
+            },
+            {
+                // 5th scenario: return-to-Australia — highlights the 2-year waiting period risk
+                key: 'returnToAustralia',
+                label: 'Return to Australia',
+                emoji: '↩️',
+                data: tree.returnToAustralia,
+                cssClass: agreementCountry ? 'neutral' : 'warning',
+                warnings: tree.returnToAustralia.warnings || []
             }
         ];
 
@@ -10410,9 +10449,12 @@ window.generateOverseasScenariosTree = async function generateOverseasScenariosT
             const deltaPct = basePension > 0 ? ((delta / basePension) * 100).toFixed(1) : '0';
             const deltaClass = delta < 0 ? 'neg' : 'pos';
             const deltaStr = delta === 0 ? 'No change' : `${delta < 0 ? '−' : '+'}${fmtAnn(Math.abs(delta))}/yr`;
+            // Highlight the scenario that matches the user's selected move type
+            const isSelected = s.key === highlightedKey;
+            const selectedBadge = isSelected ? `<span style="font-size:0.65rem;background:#1B4F72;color:#fff;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle">Your selection</span>` : '';
 
-            return `<div class="overseas-scenario-card ${s.cssClass}">
-                <div class="overseas-scenario-label">${s.emoji} ${s.label}</div>
+            return `<div class="overseas-scenario-card ${s.cssClass}" style="${isSelected ? 'outline:2px solid #1B4F72;outline-offset:1px;' : ''}">
+                <div class="overseas-scenario-label">${s.emoji} ${s.label}${selectedBadge}</div>
                 <div class="overseas-scenario-pension">${fmtAnn(s.data.annualPension)}<span style="font-size:0.75rem;font-weight:400;color:#64748B">/yr</span></div>
                 <div class="overseas-scenario-delta ${deltaClass}">${deltaStr}${delta !== 0 ? ` (${Math.abs(deltaPct)}%)` : ''}</div>
                 ${s.warnings.length > 0 ? `
@@ -10439,10 +10481,19 @@ window.generateOverseasScenariosTree = async function generateOverseasScenariosT
     }
 };
 
-// Initialise the policy date badge and drawer on page load
+// Initialise the policy date badge and drawer on page load.
+// Guard: only run if the app initialised successfully (window.appInitialized is set
+// by the main DOMContentLoaded handler in the HTML). This prevents running UI updates
+// into a broken state when the compatibility check fails early.
 document.addEventListener('DOMContentLoaded', () => {
-    window.populatePolicyDrawer();
-    window.setDisplayMode('real');
+    // Small defer so the main init handler runs first and sets appInitialized
+    setTimeout(() => {
+        // Only update UI if the element exists — safe to call even on pages without the results section
+        if (document.getElementById('display-policy-date') || document.getElementById('policy-drawer-body')) {
+            window.populatePolicyDrawer();
+        }
+        window.setDisplayMode('real');
+    }, 0);
 });
 
 export default RetirementCalculatorApp;
