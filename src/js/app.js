@@ -1262,7 +1262,9 @@ class RetirementCalculatorApp {
             if (badge) {
                 badge.textContent = badgeText;
                 badge.hidden = false;
-                badge.style.display = 'inline-flex';
+                // Use block display inside super-strategy fields so the badge occupies
+                // its own full-width row and the input renders below it, not beside it.
+                badge.style.display = badge.closest('.super-strategy-field') ? 'block' : 'inline-flex';
             }
             if (hint) {
                 hint.textContent = message;

@@ -623,6 +623,13 @@ input:hover, select:hover, textarea:hover {
     box-sizing: border-box;
 }
 
+/* Within super-strategy fields, the Auto-filled badge must sit on its own
+ * full-width row so the input renders below it (not beside it). */
+.super-strategy-field .field-default-badge {
+    display: block;
+    width: fit-content;
+}
+
 .field-default-badge {
     display: inline-flex;
     align-items: center;
