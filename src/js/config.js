@@ -197,21 +197,24 @@ export const ENHANCED_CONFIG = {
         AWLR_REQUIRED_FOR_FULL: 35,               // Years of AWLR required for full portable pension
 
         // ===== OVERSEAS ABSENCE RULE THRESHOLDS =====
-        // Source: Services Australia - portability rules (2026)
-        // Budget 2026-27 update (effective 20 Sep 2026): SHORT_ABSENCE_WEEKS raised from 6 → 12.
-        // Rule 1 (0 to 12 weeks from 20 Sep 2026; was 6 weeks): Full rate including Pension Supplement top-up and Energy Supplement
-        //                         Pensioner Concession Card still valid
-        // Rule 2 (>12 weeks, <=26 weeks): Pension Supplement drops to BASIC RATE only
-        //                                 Energy Supplement STOPS. PCC cancelled after 12 weeks.
+        // Source: Services Australia - portability rules (current law, verified 14 May 2026)
+        // Rule 1 (0 to 6 weeks): Full rate including Pension Supplement top-up and Energy Supplement.
+        //                         Pensioner Concession Card still valid.
+        // Rule 2 (>6 weeks, <=26 weeks): Pension Supplement drops to BASIC RATE only.
+        //                                 Energy Supplement STOPS. PCC cancelled after 6 weeks.
         //                                 Pension base rate continues unchanged.
         // Rule 3 (>26 weeks, permanent move): AWLR proportional rate applies to base pension.
         //                                      If moving to live overseas, supplement changes apply
         //                                      FROM DEPARTURE DATE (not after 26 weeks).
         // Rule 4 (return within 2 years):  2-year former resident waiting period applies
         //                                  (exceptions: agreement countries, humanitarian visas)
-        // Budget 2026-27: Extended from 6 → 12 weeks effective 20 September 2026.
-        // Source: budget.gov.au; servicesaustralia.gov.au (update pending)
-        SHORT_ABSENCE_WEEKS: 12,                  // Supplements retained for up to 12 weeks absence (from 20 Sep 2026)
+        //
+        // PROPOSED (Budget 2026-27 — NOT yet law): SHORT_ABSENCE_WEEKS raised to 12 from 20 Sep 2026.
+        // Modelled only when the "Proposed Budget 2026-27" toggle is enabled. Config below reflects
+        // CURRENT LAW (6 weeks). The overseas-retirement module applies the 12-week value when
+        // enableProposedBudget2026 is true.
+        SHORT_ABSENCE_WEEKS: 6,                   // Current law: full supplements for up to 6 weeks
+        SHORT_ABSENCE_WEEKS_PROPOSED: 12,         // Proposed Budget 2026-27: 12 weeks (NOT yet law)
         PORTABILITY_THRESHOLD_WEEKS: 26,          // After 26 weeks, AWLR-proportional rate applies
         RETURN_WAITING_PERIOD_YEARS: 2,           // Years waiting period if return after absence
 

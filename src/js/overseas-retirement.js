@@ -27,6 +27,8 @@ export class OverseasRetirementAnalyzer {
     constructor(personalDetails, financialData) {
         this.person = personalDetails;
         this.finances = financialData;
+        // Proposed Budget 2026-27 toggle: overseas supplement weeks 6→12 (not yet law).
+        this.useProposedBudget = !!(personalDetails.enableProposedBudget2026 || financialData.enableProposedBudget2026);
     }
 
     /**
@@ -98,6 +100,10 @@ export class OverseasRetirementAnalyzer {
         });
 
         const portabilityKickIn = cfg.PORTABILITY_THRESHOLD_WEEKS;
+        // Overseas supplement full-rate period: 6 weeks (current law) or 12 weeks (proposed, not yet law)
+        const supplementFullWeeks = this.useProposedBudget
+            ? (cfg.SHORT_ABSENCE_WEEKS_PROPOSED || 12)
+            : (cfg.SHORT_ABSENCE_WEEKS || 6);
 
         // Backward-compatible result structure enhanced with scenario tree
         return {
@@ -110,8 +116,8 @@ export class OverseasRetirementAnalyzer {
             scenarioTree,
             rules: hasAgreement ? {
                 status: 'SOCIAL_SECURITY_AGREEMENT',
-                initialPeriod: `Full rate for first ${cfg.SHORT_ABSENCE_WEEKS} weeks`,
-                afterSixWeeks: 'Pension Supplement top-up and Energy Supplement stop; Pensioner Concession Card cancelled',
+                initialPeriod: `Full rate for first ${supplementFullWeeks} weeks`,
+                afterSixWeeks: `Pension Supplement top-up and Energy Supplement stop after ${supplementFullWeeks} weeks; Pensioner Concession Card cancelled`,
                 afterSixMonths: hasFullPortability
                     ? 'Continue full rate indefinitely (agreement country + 35+ years AWLR)'
                     : `Proportional rate: ${(proportionalRate * 100).toFixed(1)}% of eligible amount`,
@@ -124,15 +130,17 @@ export class OverseasRetirementAnalyzer {
                 ]
             } : {
                 status: 'NO_AGREEMENT',
-                initialPeriod: `Full rate for first ${cfg.SHORT_ABSENCE_WEEKS} weeks`,
-                afterSixWeeks: 'Pension Supplement top-up and Energy Supplement stop; Pensioner Concession Card cancelled',
+                initialPeriod: `Full rate for first ${supplementFullWeeks} weeks`,
+                afterSixWeeks: `Pension Supplement top-up and Energy Supplement stop after ${supplementFullWeeks} weeks; Pensioner Concession Card cancelled`,
                 afterSixMonths: hasFullPortability
                     ? 'Continue full rate (35+ years AWLR)'
                     : `Reduced to ${(proportionalRate * 100).toFixed(1)}% (AWLR: ${awlrYears} of ${cfg.AWLR_REQUIRED_FOR_FULL} years)`,
                 disadvantages: [
                     `⚠️ ${cfg.RETURN_WAITING_PERIOD_YEARS}-year former resident waiting period applies on return to Australia`,
                     'Must be in Australia to initially apply for Age Pension',
-                    'Pension Supplement top-up and Energy Supplement stop after 12 weeks overseas (from 20 Sep 2026; was 6 weeks)',
+                    this.useProposedBudget
+                        ? 'Pension Supplement top-up and Energy Supplement stop after 12 weeks overseas (proposed Budget 2026-27, not yet law)'
+                        : 'Pension Supplement top-up and Energy Supplement stop after 6 weeks overseas',
                     'AWLR-proportional rate applies after 26 weeks overseas'
                 ]
             },
