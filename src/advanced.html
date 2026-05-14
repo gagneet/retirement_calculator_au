@@ -2667,10 +2667,23 @@
                         <p class="mt-1 text-xs text-gray-500">Non-concessional contribution to lower-earning spouse's fund. Eligible for up to $540 tax offset.</p>
                     </div>
                     <div>
-                        <label class="flex items-center" for="downsizeContribution">
-                            <input class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" id="downsizeContribution" type="checkbox">
-                            <span class="ml-2 text-sm text-gray-700">Plan to use Downsizer Contribution (up to $300,000 per person from home sale, age 55+)</span>
-                        </label>
+                        <div class="label-with-tooltip">
+                            <label class="flex items-center" for="downsizeContribution">
+                                <input class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" id="downsizeContribution" type="checkbox">
+                                <span class="ml-2 text-sm text-gray-700">Plan to use Downsizer Contribution (up to $300,000 per person from home sale, age 55+)</span>
+                            </label>
+                            <div class="tooltip">
+                                <span aria-label="Downsizer contribution information" class="tooltip-icon">i</span>
+                                <span class="tooltiptext">
+                                    <strong>Downsizer Contribution</strong>
+                                    Requires "Plan to Downsize?" to be set to <em>Yes – Downsize and access equity</em> in the Property section below. When you select that option this checkbox is automatically ticked — you can still uncheck it if you prefer not to use the scheme.
+                                    <div class="tooltip-example">Eligibility: age 55+, home owned 10+ years, up to $300,000 per person (or $600,000 per couple) contributed to super from the sale proceeds.</div>
+                                </span>
+                            </div>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500" id="downsizeContributionHint">
+                            Enabled only when "Plan to Downsize?" is set to <em>Yes</em> in the Property section below. Selecting "Yes" will automatically tick this box.
+                        </p>
                     </div>
                 </div>
                 <!-- FHSS Panel -->

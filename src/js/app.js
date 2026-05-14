@@ -7852,13 +7852,21 @@ class RetirementCalculatorApp {
         const planToDownsize = $('planToDownsize');
         const downsizeContribution = $('downsizeContribution');
         if (planToDownsize && downsizeContribution) {
-            const toggleDownsizeContribution = () => {
+            const toggleDownsizeContribution = (isUserChange = false) => {
                 const enabled = planToDownsize.value === 'true';
                 downsizeContribution.disabled = !enabled;
-                if (!enabled) downsizeContribution.checked = false;
+                if (enabled && isUserChange) {
+                    // Auto-check when the user actively selects "Yes – Downsize".
+                    // They can still uncheck it manually afterwards.
+                    downsizeContribution.checked = true;
+                }
+                if (!enabled) {
+                    downsizeContribution.checked = false;
+                }
             };
-            planToDownsize.addEventListener('change', toggleDownsizeContribution);
-            toggleDownsizeContribution();
+            planToDownsize.addEventListener('change', () => toggleDownsizeContribution(true));
+            // On page load: enable/disable without auto-checking (respect saved state).
+            toggleDownsizeContribution(false);
         }
 
         // Toggle reduced income fields and sync Lean Years when enabled
