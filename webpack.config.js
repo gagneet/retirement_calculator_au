@@ -126,5 +126,15 @@ module.exports = {
             filename: 'advanced-design.html',
             chunks: [], // Uses standalone ES6 modules via CopyPlugin
         }),
+        new HtmlWebpackPlugin({
+            template: './src/smsf-guide.html',
+            filename: 'smsf-guide.html',
+            chunks: [], // Static guide page — no JS bundle needed
+        }),
+        new HtmlWebpackPlugin({
+            template: './src/trust-company-structure.html',
+            filename: 'trust-company-structure.html',
+            chunks: [], // Static guide page — no JS bundle needed
+        }),
     ],
 };

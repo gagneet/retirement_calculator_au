@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMSFs and Retirement Planning | Australian Retirement Calculator</title>
+  <meta name="description" content="Plain-English guide to Self-Managed Super Funds (SMSFs), retirement planning, tax treatment, risks, setup steps, and calculator inputs for Australians.">
+  <style>
+:root {
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --ink: #132238;
+  --muted: #5c6b7a;
+  --line: #d9e2ec;
+  --brand: #1e4f86;
+  --brand-2: #0f766e;
+  --accent: #f59e0b;
+  --danger: #b42318;
+  --success: #067647;
+  --soft-blue: #eaf3ff;
+  --soft-green: #e9f8f4;
+  --soft-amber: #fff7e6;
+  --soft-red: #fff1f0;
+  --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  --radius: 22px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(30, 79, 134, 0.12), transparent 34rem),
+    radial-gradient(circle at bottom right, rgba(15, 118, 110, 0.12), transparent 34rem),
+    var(--bg);
+  color: var(--ink);
+  line-height: 1.65;
+}
+a { color: var(--brand); }
+.page-shell { max-width: 1180px; margin: 0 auto; padding: 32px 22px 64px; }
+.hero {
+  background: linear-gradient(135deg, #123b66 0%, #0f766e 100%);
+  color: white;
+  border-radius: 32px;
+  padding: 44px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.hero:after {
+  content: "";
+  position: absolute;
+  inset: auto -70px -100px auto;
+  width: 320px;
+  height: 320px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+}
+.eyebrow { text-transform: uppercase; letter-spacing: .12em; font-weight: 800; font-size: .78rem; opacity: .86; margin: 0 0 12px; }
+h1 { margin: 0; font-size: clamp(2.2rem, 5vw, 4rem); line-height: 1.05; letter-spacing: -0.045em; }
+.hero p { max-width: 850px; font-size: 1.15rem; opacity: .94; margin: 22px 0 0; }
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0 0;
+}
+.nav a {
+  color: white;
+  text-decoration: none;
+  border: 1px solid rgba(255,255,255,.35);
+  background: rgba(255,255,255,.12);
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: .92rem;
+}
+.notice {
+  margin: 22px 0;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--accent);
+  background: var(--soft-amber);
+  border-radius: 18px;
+}
+.grid { display: grid; gap: 18px; }
+.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+.card h2, .card h3, .card h4 { margin-top: 0; line-height: 1.2; letter-spacing: -0.025em; }
+.card h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); }
+.card h3 { font-size: 1.35rem; }
+.section { margin-top: 26px; }
+.badge-row { display: flex; flex-wrap: wrap; gap: 9px; margin: 16px 0 0; }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--soft-blue);
+  border: 1px solid #c7ddf8;
+  color: #16436f;
+  font-weight: 800;
+  font-size: .83rem;
+}
+.badge.green { background: var(--soft-green); border-color: #b8eadb; color: #075e52; }
+.badge.amber { background: var(--soft-amber); border-color: #f8dea0; color: #7a4b00; }
+.badge.red { background: var(--soft-red); border-color: #ffd0cc; color: #8f1d14; }
+.callout {
+  border-radius: 20px;
+  padding: 18px 20px;
+  background: var(--soft-blue);
+  border: 1px solid #c7ddf8;
+}
+.callout.green { background: var(--soft-green); border-color: #b8eadb; }
+.callout.red { background: var(--soft-red); border-color: #ffd0cc; }
+.callout.amber { background: var(--soft-amber); border-color: #f8dea0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 18px;
+  background: white;
+  font-size: .96rem;
+}
+th, td { text-align: left; padding: 14px 16px; vertical-align: top; border-bottom: 1px solid var(--line); }
+th { background: #eef4fb; color: #17395f; font-weight: 900; }
+tr:last-child td { border-bottom: none; }
+.checklist { padding-left: 1.15rem; }
+.checklist li { margin: 8px 0; }
+.timeline {
+  counter-reset: step;
+  display: grid;
+  gap: 12px;
+}
+.timeline-item {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.timeline-item:before {
+  counter-increment: step;
+  content: counter(step);
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: white;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+}
+.kpi {
+  border-radius: 20px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: #fbfdff;
+}
+.kpi strong { display: block; font-size: 1.5rem; line-height: 1.1; color: var(--brand); }
+.kpi span { color: var(--muted); font-size: .94rem; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 28px 0; }
+.small { font-size: .92rem; color: var(--muted); }
+.footer {
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.code-hint {
+  background: #0f172a;
+  color: #e5edf8;
+  border-radius: 18px;
+  padding: 18px;
+  overflow-x: auto;
+  font-size: .9rem;
+}
+@media (max-width: 860px) {
+  .hero { padding: 30px 22px; border-radius: 24px; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .page-shell { padding: 18px 14px 44px; }
+  th, td { display: block; width: 100%; }
+  th { display: none; }
+  td { border-bottom: none; padding: 10px 14px; }
+  tr { display: block; border-bottom: 1px solid var(--line); padding: 10px 0; }
+}
+</style>
+</head>
+<body>
+  <main class="page-shell">
+    <section class="hero">
+      <p class="eyebrow">Retirement planning education</p>
+      <h1>Self‑Managed Super Funds, explained simply</h1>
+      <p>
+        A Self‑Managed Super Fund, or SMSF, is a private super fund that you run yourself.
+        It can provide more control over investments, tax planning, retirement income and estate planning —
+        but it also brings legal duties, paperwork, audit obligations and real risk if misused.
+      </p>
+      <nav class="nav" aria-label="Page sections">
+        <a href="#plain-english">Plain English</a>
+        <a href="#when-useful">When useful</a>
+        <a href="#tax">Tax treatment</a>
+        <a href="#setup">Setup path</a>
+        <a href="#calculator">Calculator fields</a>
+        <a href="#risks">Risks</a>
+      </nav>
+    </section>
+
+    <div class="notice">
+      <strong>Important:</strong> This page is general education only. It is not personal financial, tax or legal advice.
+      SMSF rules change frequently and mistakes can be expensive. Users should speak with a licensed financial adviser,
+      registered tax agent, SMSF specialist and solicitor before acting.
+    </div>
+
+    <section id="plain-english" class="section grid grid-2">
+      <article class="card">
+        <h2>What is an SMSF?</h2>
+        <p>
+          Think of an SMSF as your own private superannuation fund. Instead of a large industry or retail fund
+          making most of the operational decisions, the SMSF trustees make the decisions. The money is still
+          superannuation money, so it must be used for retirement purposes and must follow super laws.
+        </p>
+        <p>
+          The fund usually has individual trustees or a company acting as trustee. Members are normally also
+          trustees, which means the people benefiting from the fund are also legally responsible for running it properly.
+        </p>
+        <div class="badge-row">
+          <span class="badge">Control</span>
+          <span class="badge green">Retirement focus</span>
+          <span class="badge amber">Compliance heavy</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Simple analogy</h2>
+        <p>
+          A normal super fund is like travelling on a large managed train. You choose a carriage or investment option,
+          but the route, compliance and administration are handled by the fund.
+        </p>
+        <p>
+          An SMSF is more like owning and driving the vehicle yourself. You can choose the route, passengers and stops,
+          but you are also responsible for the licence, maintenance, insurance, safety and paperwork.
+        </p>
+      </article>
+    </section>
+
+    <section class="section grid grid-3">
+      <div class="kpi"><strong>Best suited</strong><span>People who want control, understand investments, and will maintain records.</span></div>
+      <div class="kpi"><strong>Often considered</strong><span>When combined balances are large enough to justify admin, audit and advice costs.</span></div>
+      <div class="kpi"><strong>Not for</strong><span>Illegal early access, personal borrowing, short-term cashflow, or “set and forget” investors.</span></div>
+    </section>
+
+    <section id="when-useful" class="section card">
+      <h2>How an SMSF may help retirement planning</h2>
+      <div class="grid grid-2">
+        <div>
+          <h3>1. More investment control</h3>
+          <p>
+            SMSFs can allow direct control over listed shares, ETFs, term deposits, managed funds and some property strategies.
+            This can suit users who want a deliberate retirement portfolio rather than a broad default option.
+          </p>
+        </div>
+        <div>
+          <h3>2. Family retirement planning</h3>
+          <p>
+            A couple can often run one SMSF together, aligning investment strategy, estate planning, pension payments and tax settings.
+            It may also help when one spouse retires earlier than the other.
+          </p>
+        </div>
+        <div>
+          <h3>3. Business real property</h3>
+          <p>
+            Some business owners use an SMSF to own commercial premises that are leased to their business at market rent.
+            This must be carefully structured, documented and kept at arm’s length.
+          </p>
+        </div>
+        <div>
+          <h3>4. Estate planning clarity</h3>
+          <p>
+            Binding death benefit nominations, reversionary pensions and corporate trustee structures can help make retirement assets
+            easier to administer after death, but legal drafting is critical.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tax" class="section card">
+      <h2>Tax treatment in plain language</h2>
+      <p>
+        SMSFs do not create a magic tax-free zone. They are concessionally taxed because they are superannuation funds,
+        but the concessions come with preservation rules and strict compliance.
+      </p>
+      <table>
+        <thead>
+          <tr><th>Area</th><th>Plain-English explanation</th><th>Calculator implication</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Concessional contributions</td>
+            <td>Before-tax contributions, including employer super and salary sacrifice, are generally taxed in the fund at a concessional rate. Higher-income earners may face extra Division 293 tax.</td>
+            <td>Capture employer SG, salary sacrifice, personal deductible contributions, income level and unused concessional cap availability.</td>
+          </tr>
+          <tr>
+            <td>Investment earnings</td>
+            <td>In accumulation phase, SMSF investment income is generally taxed concessionally compared with high marginal personal rates.</td>
+            <td>Separate accumulation and retirement-phase balances; do not apply one flat tax assumption to the whole fund.</td>
+          </tr>
+          <tr>
+            <td>Capital gains</td>
+            <td>Super funds can receive a discount on eligible gains after assets are held for more than 12 months, reducing the effective super CGT rate.</td>
+            <td>Model asset turnover, holding periods and realised gains separately from ordinary income.</td>
+          </tr>
+          <tr>
+            <td>Retirement phase</td>
+            <td>Income supporting a retirement-phase pension can be tax-exempt inside the fund, subject to transfer balance cap rules.</td>
+            <td>Add a transfer balance cap check, pension commencement age, and minimum pension drawdown rules.</td>
+          </tr>
+          <tr>
+            <td>Death benefits</td>
+            <td>Tax outcomes can depend on whether benefits go to a tax dependant, spouse, adult child or estate.</td>
+            <td>Add estate-planning warnings and beneficiary type fields for legacy modelling.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="setup" class="section grid grid-2">
+      <article class="card">
+        <h2>When might it be worth considering?</h2>
+        <p>
+          There is no universal minimum balance. A practical threshold depends on fees, complexity, advice needs and how much control
+          the user genuinely needs. As a user-experience rule, the calculator should avoid saying “you should set up an SMSF.”
+          Instead it should show a suitability range:
+        </p>
+        <ul class="checklist">
+          <li><strong>Low suitability:</strong> small balances, no investment interest, need early access, or unwillingness to keep records.</li>
+          <li><strong>Possible suitability:</strong> larger household super balance, clear investment strategy, business property need, or estate planning complexity.</li>
+          <li><strong>Professional review required:</strong> property borrowing, related-party transactions, overseas residency, blended families or high balances.</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2>Basic setup path</h2>
+        <div class="timeline">
+          <div class="timeline-item"><div><strong>Get advice first.</strong><br><span class="small">Confirm suitability, costs, investment strategy, estate plan and tax effects.</span></div></div>
+          <div class="timeline-item"><div><strong>Choose trustee structure.</strong><br><span class="small">Individual trustees may be cheaper; a corporate trustee is often cleaner for administration and succession.</span></div></div>
+          <div class="timeline-item"><div><strong>Create trust deed and register.</strong><br><span class="small">Set up the fund, trustee, ABN/TFN, bank account and electronic service address.</span></div></div>
+          <div class="timeline-item"><div><strong>Rollover super carefully.</strong><br><span class="small">Never rollover until setup is legitimate and the investment strategy is ready.</span></div></div>
+          <div class="timeline-item"><div><strong>Run annual compliance.</strong><br><span class="small">Keep records, value assets, prepare accounts, obtain independent audit and lodge annual return.</span></div></div>
+        </div>
+      </article>
+    </section>
+
+    <section id="calculator" class="section card">
+      <h2>Recommended SMSF fields for the Advanced Calculator</h2>
+      <p>
+        Add an optional SMSF module as an expandable section. The goal is not to recommend an SMSF; it is to help users compare
+        “industry/retail super” versus “SMSF-style control” with transparent costs and risks.
+      </p>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Why it matters</th><th>Suggested input type</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>SMSF toggle</td><td>Switches from generic super assumptions to SMSF-specific costs, trustee obligations and asset allocation.</td><td>Yes / No / Compare both</td></tr>
+          <tr><td>Trustee type</td><td>Corporate trustee may cost more upfront but can simplify succession and member changes.</td><td>Individual / Corporate</td></tr>
+          <tr><td>Number of members</td><td>Costs and strategy can be shared across members; pensions may start at different ages.</td><td>1–6</td></tr>
+          <tr><td>Annual admin, audit and advice cost</td><td>SMSF costs can materially reduce smaller balances.</td><td>Dollar amount with default range</td></tr>
+          <tr><td>Investment mix</td><td>SMSFs often hold more concentrated assets; model concentration and liquidity risk.</td><td>Cash, shares, ETFs, property, alternatives</td></tr>
+          <tr><td>Property / LRBA flag</td><td>Borrowing inside super is complex and increases concentration risk.</td><td>None / Business real property / Residential / LRBA</td></tr>
+          <tr><td>Business real property lease</td><td>Related-party rent must be commercial and paid on time.</td><td>Market rent, vacancy, tenant business risk</td></tr>
+          <tr><td>Estate plan settings</td><td>Death benefit nominations and reversionary pensions affect who receives retirement wealth.</td><td>Spouse / adult children / estate / trust</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section grid grid-2">
+      <article class="card callout green">
+        <h2>Good use cases</h2>
+        <ul class="checklist">
+          <li>High-control investors who understand diversification and record-keeping.</li>
+          <li>Couples with a clear joint retirement plan and enough balance to absorb fixed costs.</li>
+          <li>Business owners considering commercial property held inside super.</li>
+          <li>Retirees needing careful pension, estate and tax coordination.</li>
+        </ul>
+      </article>
+
+      <article id="risks" class="card callout red">
+        <h2>Warning signs</h2>
+        <ul class="checklist">
+          <li>The user wants early access to super before legally allowed.</li>
+          <li>The plan relies on borrowing heavily or putting most super into one property.</li>
+          <li>The user does not want bookkeeping, audit, minutes, valuations or compliance work.</li>
+          <li>The adviser or promoter benefits from the rollover or property sale.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="section card">
+      <h2>How to show this in the UI</h2>
+      <div class="grid grid-3">
+        <div class="callout"><strong>Suitability meter</strong><br>Show “low / possible / needs advice” rather than “recommended”.</div>
+        <div class="callout"><strong>Cost drag chart</strong><br>Compare projected balance with and without SMSF admin, audit and advice costs.</div>
+        <div class="callout"><strong>Risk cards</strong><br>Highlight concentration, liquidity, compliance, related-party and fraud risks.</div>
+      </div>
+      <pre class="code-hint"><code>// Suggested route
+/smsf.html
+
+// Suggested nav label
+SMSF Guide
+
+// Suggested calculator state
+smsf: {
+  enabled: false,
+  trusteeType: "corporate",
+  annualAdminCost: 3500,
+  memberCount: 2,
+  propertyExposurePct: 0,
+  relatedPartyLease: false,
+  compareWithIndustryFund: true
+}</code></pre>
+    </section>
+
+    <section class="section card">
+      <h2>Sources and further reading</h2>
+      <p class="small">
+        ATO SMSF guidance, ASIC/Moneysmart SMSF education, Services Australia retirement rules, Reuters/ASIC coverage of SMSF advice risk,
+        and Australian budget reporting current to May 2026. Users should verify current caps, rates and law status before acting.
+      </p>
+      <ul class="small">
+        <li>ATO — Self-managed super funds and SMSF annual return/audit obligations</li>
+        <li>Moneysmart — Self-managed super funds, risks and costs</li>
+        <li>ASIC — SMSF advice and consumer protection warnings</li>
+        <li>Services Australia — Age Pension and overseas portability rules</li>
+      </ul>
+    </section>
+
+    <footer class="footer">
+      Prepared for retirement.gagneet.com. Last content review: 14 May 2026. General information only.
+    </footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trusts, Companies and Retirement Planning | Australian Retirement Calculator</title>
+  <meta name="description" content="Plain-English guide to family trusts, companies, ABNs, ACNs, bucket companies, retirement planning, asset protection and tax cautions in Australia.">
+  <style>
+:root {
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --ink: #132238;
+  --muted: #5c6b7a;
+  --line: #d9e2ec;
+  --brand: #1e4f86;
+  --brand-2: #0f766e;
+  --accent: #f59e0b;
+  --danger: #b42318;
+  --success: #067647;
+  --soft-blue: #eaf3ff;
+  --soft-green: #e9f8f4;
+  --soft-amber: #fff7e6;
+  --soft-red: #fff1f0;
+  --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  --radius: 22px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(30, 79, 134, 0.12), transparent 34rem),
+    radial-gradient(circle at bottom right, rgba(15, 118, 110, 0.12), transparent 34rem),
+    var(--bg);
+  color: var(--ink);
+  line-height: 1.65;
+}
+a { color: var(--brand); }
+.page-shell { max-width: 1180px; margin: 0 auto; padding: 32px 22px 64px; }
+.hero {
+  background: linear-gradient(135deg, #123b66 0%, #0f766e 100%);
+  color: white;
+  border-radius: 32px;
+  padding: 44px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.hero:after {
+  content: "";
+  position: absolute;
+  inset: auto -70px -100px auto;
+  width: 320px;
+  height: 320px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+}
+.eyebrow { text-transform: uppercase; letter-spacing: .12em; font-weight: 800; font-size: .78rem; opacity: .86; margin: 0 0 12px; }
+h1 { margin: 0; font-size: clamp(2.2rem, 5vw, 4rem); line-height: 1.05; letter-spacing: -0.045em; }
+.hero p { max-width: 850px; font-size: 1.15rem; opacity: .94; margin: 22px 0 0; }
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0 0;
+}
+.nav a {
+  color: white;
+  text-decoration: none;
+  border: 1px solid rgba(255,255,255,.35);
+  background: rgba(255,255,255,.12);
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: .92rem;
+}
+.notice {
+  margin: 22px 0;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--accent);
+  background: var(--soft-amber);
+  border-radius: 18px;
+}
+.grid { display: grid; gap: 18px; }
+.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+.card h2, .card h3, .card h4 { margin-top: 0; line-height: 1.2; letter-spacing: -0.025em; }
+.card h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); }
+.card h3 { font-size: 1.35rem; }
+.section { margin-top: 26px; }
+.badge-row { display: flex; flex-wrap: wrap; gap: 9px; margin: 16px 0 0; }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--soft-blue);
+  border: 1px solid #c7ddf8;
+  color: #16436f;
+  font-weight: 800;
+  font-size: .83rem;
+}
+.badge.green { background: var(--soft-green); border-color: #b8eadb; color: #075e52; }
+.badge.amber { background: var(--soft-amber); border-color: #f8dea0; color: #7a4b00; }
+.badge.red { background: var(--soft-red); border-color: #ffd0cc; color: #8f1d14; }
+.callout {
+  border-radius: 20px;
+  padding: 18px 20px;
+  background: var(--soft-blue);
+  border: 1px solid #c7ddf8;
+}
+.callout.green { background: var(--soft-green); border-color: #b8eadb; }
+.callout.red { background: var(--soft-red); border-color: #ffd0cc; }
+.callout.amber { background: var(--soft-amber); border-color: #f8dea0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 18px;
+  background: white;
+  font-size: .96rem;
+}
+th, td { text-align: left; padding: 14px 16px; vertical-align: top; border-bottom: 1px solid var(--line); }
+th { background: #eef4fb; color: #17395f; font-weight: 900; }
+tr:last-child td { border-bottom: none; }
+.checklist { padding-left: 1.15rem; }
+.checklist li { margin: 8px 0; }
+.timeline {
+  counter-reset: step;
+  display: grid;
+  gap: 12px;
+}
+.timeline-item {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.timeline-item:before {
+  counter-increment: step;
+  content: counter(step);
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: white;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+}
+.kpi {
+  border-radius: 20px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: #fbfdff;
+}
+.kpi strong { display: block; font-size: 1.5rem; line-height: 1.1; color: var(--brand); }
+.kpi span { color: var(--muted); font-size: .94rem; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 28px 0; }
+.small { font-size: .92rem; color: var(--muted); }
+.footer {
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.code-hint {
+  background: #0f172a;
+  color: #e5edf8;
+  border-radius: 18px;
+  padding: 18px;
+  overflow-x: auto;
+  font-size: .9rem;
+}
+@media (max-width: 860px) {
+  .hero { padding: 30px 22px; border-radius: 24px; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .page-shell { padding: 18px 14px 44px; }
+  th, td { display: block; width: 100%; }
+  th { display: none; }
+  td { border-bottom: none; padding: 10px 14px; }
+  tr { display: block; border-bottom: 1px solid var(--line); padding: 10px 0; }
+}
+</style>
+</head>
+<body>
+  <main class="page-shell">
+    <section class="hero">
+      <p class="eyebrow">Retirement planning education</p>
+      <h1>Trusts, companies and retirement planning</h1>
+      <p>
+        Trusts and companies can help families organise business income, investments, asset protection and estate planning.
+        They can also make tax, Age Pension and succession planning far more complex. This page explains the basics in simple language.
+      </p>
+      <nav class="nav" aria-label="Page sections">
+        <a href="#basics">Basics</a>
+        <a href="#structures">Structures</a>
+        <a href="#tax">Tax and incentives</a>
+        <a href="#retirement">Retirement use</a>
+        <a href="#setup">Setup steps</a>
+        <a href="#calculator">Calculator fields</a>
+      </nav>
+    </section>
+
+    <div class="notice">
+      <strong>Important:</strong> This page is general education only. It is not tax, legal or financial advice.
+      Trusts, companies, SMSFs and family wealth structures should be set up only after professional advice because
+      mistakes can trigger tax, stamp duty, Division 7A, asset protection, family law and estate-planning problems.
+    </div>
+
+    <section id="basics" class="section grid grid-2">
+      <article class="card">
+        <h2>What is a trust?</h2>
+        <p>
+          A trust is a relationship where one party, the trustee, holds and manages assets for beneficiaries.
+          In a family trust, the trustee may choose which eligible beneficiaries receive income or capital, based on the trust deed.
+        </p>
+        <p>
+          The trust is often used to hold investments, run a family business, protect assets from some business risks,
+          and pass wealth across generations. The trust deed is the rulebook.
+        </p>
+        <div class="badge-row">
+          <span class="badge">Asset holding</span>
+          <span class="badge green">Succession planning</span>
+          <span class="badge amber">Complex tax</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>What is a company?</h2>
+        <p>
+          A company is a separate legal entity registered with ASIC. It has an ACN and may also have an ABN.
+          It can run a business, employ people, own assets and pay company tax on profits.
+        </p>
+        <p>
+          A company can also act as trustee of a trust or SMSF. This is called a corporate trustee and is often used
+          for cleaner administration and succession.
+        </p>
+      </article>
+    </section>
+
+    <section id="structures" class="section card">
+      <h2>Common structures in plain English</h2>
+      <table>
+        <thead>
+          <tr><th>Structure</th><th>What it does</th><th>Where it may help</th><th>Watch-outs</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sole trader with ABN</td>
+            <td>A person runs a business in their own name.</td>
+            <td>Simple consulting, side income, very early-stage activity.</td>
+            <td>Little separation between personal and business risk; income taxed personally.</td>
+          </tr>
+          <tr>
+            <td>Company with ACN/ABN</td>
+            <td>A company runs the business and pays company tax on retained profits.</td>
+            <td>Operating business, limited liability, staff, contracts, retained working capital.</td>
+            <td>Money taken out must be salary, dividends, loan repayment or properly documented; Division 7A can apply.</td>
+          </tr>
+          <tr>
+            <td>Family / discretionary trust</td>
+            <td>Trustee distributes income among eligible beneficiaries under the trust deed.</td>
+            <td>Family investment portfolio, family business, succession and asset protection planning.</td>
+            <td>Proposed 2026 budget changes may reduce income-splitting benefits from 1 July 2028; trust losses generally stay trapped.</td>
+          </tr>
+          <tr>
+            <td>Trust with corporate trustee</td>
+            <td>A company acts as trustee rather than individuals.</td>
+            <td>Cleaner control, succession, asset-title administration and liability separation.</td>
+            <td>Extra ASIC fees, company records and director duties.</td>
+          </tr>
+          <tr>
+            <td>Bucket company / corporate beneficiary</td>
+            <td>A company receives trust distributions and pays company tax, often retaining cash.</td>
+            <td>Business reinvestment, smoothing cashflow, retaining profits at company tax rate.</td>
+            <td>Division 7A, unpaid present entitlement rules, franking and proposed budget changes must be modelled carefully.</td>
+          </tr>
+          <tr>
+            <td>SMSF</td>
+            <td>A private super fund that invests for members’ retirement.</td>
+            <td>Long-term retirement assets, pension planning, business real property in limited cases.</td>
+            <td>Cannot be used for personal spending before release conditions; strict super laws apply.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="tax" class="section card">
+      <h2>Tax savings and incentives — what is real and what is misunderstood</h2>
+      <p>
+        The goal should be lawful tax efficiency, not artificial tax avoidance. In retirement planning, the main value of structures
+        is often control, risk separation, investment discipline and succession — with tax as one part of the design.
+      </p>
+
+      <div class="grid grid-2">
+        <div class="callout green">
+          <h3>Company structure</h3>
+          <p>
+            A base-rate company may pay a lower company tax rate on retained active business profits than an individual on a high marginal rate.
+            This can help a business reinvest profits, buy equipment, employ staff or build working capital.
+          </p>
+          <p>
+            But when money is paid to shareholders as dividends, franking credits and personal tax rates must be considered.
+            A company is usually a tax-deferral and reinvestment tool, not a way to permanently avoid tax.
+          </p>
+        </div>
+
+        <div class="callout amber">
+          <h3>ABN versus ACN</h3>
+          <p>
+            An ABN identifies an enterprise for tax and business dealings. An ACN identifies a registered company.
+            A sole trader can have an ABN but no ACN. A company has an ACN and usually also an ABN.
+          </p>
+          <p>
+            Your calculator should not treat “has ABN” as the same thing as “has company structure.”
+          </p>
+        </div>
+
+        <div class="callout">
+          <h3>Trust distributions</h3>
+          <p>
+            A discretionary trust can distribute income to beneficiaries according to the deed and tax rules.
+            This may help align taxable income with family circumstances, but the rules are complex and changing.
+          </p>
+        </div>
+
+        <div class="callout red">
+          <h3>Proposed May 2026 changes</h3>
+          <p>
+            Budget reporting indicates proposed changes to CGT, negative gearing and discretionary trust taxation from 2027–2028.
+            These should be modelled as scenario toggles labelled “proposed / subject to legislation,” not as settled permanent law until enacted.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="retirement" class="section card">
+      <h2>How trusts and companies may help build a comfortable retirement</h2>
+      <div class="grid grid-2">
+        <div>
+          <h3>1. Business-to-retirement bridge</h3>
+          <p>
+            A company or trust can help a person build business value before retirement. The retirement plan should model salary,
+            dividends, retained earnings, business sale value and whether proceeds are contributed to super or retained outside super.
+          </p>
+        </div>
+        <div>
+          <h3>2. Asset protection and risk separation</h3>
+          <p>
+            A family may keep long-term investment assets away from the operating business. This can reduce some business-creditor risk,
+            although it is not bulletproof and can be affected by personal guarantees, insolvency law and family law.
+          </p>
+        </div>
+        <div>
+          <h3>3. Estate and legacy planning</h3>
+          <p>
+            Trusts can help hold assets for children, grandchildren or vulnerable beneficiaries. For retirement calculators,
+            this matters because a user may want a “legacy target” rather than spending all capital.
+          </p>
+        </div>
+        <div>
+          <h3>4. Coordinating with super and SMSF</h3>
+          <p>
+            A person may have super, SMSF assets, trust assets and company assets at the same time. The calculator should model each
+            bucket separately because tax, liquidity, access rules and Age Pension treatment differ.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section grid grid-3">
+      <div class="kpi"><strong>Super/SMSF</strong><span>Retirement-purpose money with contribution caps, preservation rules and concessional tax.</span></div>
+      <div class="kpi"><strong>Trust</strong><span>Family/investment structure with trustee control, distributions and succession uses.</span></div>
+      <div class="kpi"><strong>Company</strong><span>Business entity for operations, retained profits, limited liability and dividends.</span></div>
+    </section>
+
+    <section id="setup" class="section grid grid-2">
+      <article class="card">
+        <h2>Practical setup path</h2>
+        <div class="timeline">
+          <div class="timeline-item"><div><strong>Define the purpose.</strong><br><span class="small">Business operation, asset holding, estate planning, investment portfolio, SMSF trustee or legacy planning.</span></div></div>
+          <div class="timeline-item"><div><strong>Get legal and tax advice.</strong><br><span class="small">Choose structure before assets are moved. Fixing the wrong structure later can be expensive.</span></div></div>
+          <div class="timeline-item"><div><strong>Draft documents.</strong><br><span class="small">Trust deed, company constitution, shareholder rules, appointor rules and succession controls.</span></div></div>
+          <div class="timeline-item"><div><strong>Register identifiers.</strong><br><span class="small">ABN, TFN, GST if needed, PAYG if employing, ASIC company registration if applicable.</span></div></div>
+          <div class="timeline-item"><div><strong>Operate properly.</strong><br><span class="small">Separate bank accounts, minutes, distributions, tax returns, loan agreements and investment records.</span></div></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>When to consider it</h2>
+        <ul class="checklist">
+          <li><strong>Early business stage:</strong> ABN may be enough for testing, but liability and tax should be reviewed.</li>
+          <li><strong>Growing business:</strong> company or trust may become useful when contracts, staff, risk or retained profits increase.</li>
+          <li><strong>Asset-building stage:</strong> trust may help separate family investments from operating risks.</li>
+          <li><strong>Pre-retirement stage:</strong> review sale proceeds, CGT concessions, super contribution caps, pension access and estate plan.</li>
+          <li><strong>Legacy stage:</strong> trust/testamentary trust planning may help with children, grandchildren or vulnerable beneficiaries.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section id="calculator" class="section card">
+      <h2>Recommended calculator fields for trusts and companies</h2>
+      <p>
+        Add this as an Advanced Calculator section called “Business, Trusts & Legacy Structures.”
+        Keep it hidden from the Simple Calculator unless the user answers “I own a business or family trust.”
+      </p>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Purpose</th><th>Output impact</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Structure type</td><td>Distinguish sole trader, company, trust, trust with corporate trustee, SMSF and hybrids.</td><td>Controls tax, access and risk assumptions.</td></tr>
+          <tr><td>ABN / ACN presence</td><td>Prevents confusing business registration with company registration.</td><td>Improves user education and data accuracy.</td></tr>
+          <tr><td>Business profit before owner salary</td><td>Models real household cashflow versus retained business profit.</td><td>Better retirement savings and tax projection.</td></tr>
+          <tr><td>Owner salary / dividends / distributions</td><td>Shows how money actually reaches the household.</td><td>Personal tax, super contributions and spending capacity.</td></tr>
+          <tr><td>Retained earnings</td><td>Companies may keep profit for future reinvestment.</td><td>Models business value and eventual extraction tax.</td></tr>
+          <tr><td>Trust assets and liabilities</td><td>Trust assets may support retirement but may not be personally accessible on demand.</td><td>Age Pension, estate and legacy modelling.</td></tr>
+          <tr><td>Bucket company toggle</td><td>Captures corporate beneficiary use and possible tax deferral.</td><td>Requires Division 7A and proposed reform warnings.</td></tr>
+          <tr><td>Expected business sale age/value</td><td>Many business owners fund retirement from a future sale.</td><td>Adds sale proceeds, CGT and contribution scenarios.</td></tr>
+          <tr><td>Legacy target</td><td>Captures money intended for children, grandchildren or a family trust.</td><td>Subtracts capital from spendable retirement pool.</td></tr>
+          <tr><td>Professional advice obtained</td><td>Flags whether user is modelling a real structure or exploring education only.</td><td>Displays risk warnings and avoids overconfident outputs.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section card">
+      <h2>UX pattern for the Advanced Calculator</h2>
+      <div class="grid grid-3">
+        <div class="callout"><strong>Structure map</strong><br>Visual cards showing Person → Company → Trust → SMSF → Beneficiaries.</div>
+        <div class="callout"><strong>Money-flow view</strong><br>Salary, dividends, trust distributions, super contributions and retained profits.</div>
+        <div class="callout"><strong>Law-status toggle</strong><br>Current law, proposed May 2026 budget changes, and custom adviser assumptions.</div>
+      </div>
+      <pre class="code-hint"><code>// Suggested route
+/trusts-and-company-structures.html
+
+// Suggested calculator state
+structures: {
+  hasBusiness: false,
+  structureType: "none",
+  hasAbn: false,
+  hasAcn: false,
+  companyTaxRateMode: "base-rate-entity",
+  trustType: "none",
+  corporateTrustee: false,
+  bucketCompany: false,
+  annualBusinessProfit: 0,
+  retainedEarnings: 0,
+  expectedSaleAge: null,
+  expectedSaleValueToday: 0,
+  legacyTargetToday: 0,
+  applyProposed2026TaxChanges: false
+}</code></pre>
+    </section>
+
+    <section class="section grid grid-2">
+      <article class="card callout green">
+        <h2>Good use cases</h2>
+        <ul class="checklist">
+          <li>Business owners building retained value before retirement.</li>
+          <li>Families wanting a deliberate inheritance or legacy plan.</li>
+          <li>Investment assets that need governance across generations.</li>
+          <li>Commercial assets separated from day-to-day operating risk.</li>
+        </ul>
+      </article>
+
+      <article class="card callout red">
+        <h2>Danger signs</h2>
+        <ul class="checklist">
+          <li>The structure exists only to avoid tax with no commercial or family purpose.</li>
+          <li>Personal spending is mixed with company or trust money.</li>
+          <li>Loans to shareholders or associates are not documented properly.</li>
+          <li>The plan assumes proposed budget changes are final law without checking enactment.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="section card">
+      <h2>Sources and further reading</h2>
+      <p class="small">
+        ATO company tax and trust guidance, ASIC/Moneysmart education, Services Australia Age Pension rules,
+        Reuters and major Australian budget reporting current to May 2026. Users should verify current law before acting.
+      </p>
+      <ul class="small">
+        <li>ATO — Company tax rates, trusts, Division 7A, GST/PAYG registrations and business structures</li>
+        <li>ASIC — Company registration, directors’ duties and financial advice warnings</li>
+        <li>Moneysmart — Retirement planning, superannuation and investing education</li>
+        <li>Services Australia — Age Pension assets/income test and portability rules</li>
+      </ul>
+    </section>
+
+    <footer class="footer">
+      Prepared for retirement.gagneet.com. Last content review: 14 May 2026. General information only.
+    </footer>
+  </main>
+</body>
+</html>
