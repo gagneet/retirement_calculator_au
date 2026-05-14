@@ -830,16 +830,16 @@
                 <div class="space-y-4">
                     <div>
                         <div class="label-with-tooltip">
-                            <label class="text-sm font-medium text-gray-700" for="yourSalary">Your Annual Salary
-                                (pre-tax) ($)</label>
-                            <div class="tooltip">
-                                <span aria-label="Salary information" class="tooltip-icon">i</span>
-                                <span class="tooltiptext">
-                            <strong>Your Annual Salary (pre-tax)</strong>
-                            Gross income before tax and super. Used for tax calculations, super guarantee contributions (12%), and retirement projections.
-                            <div class="tooltip-example">Example: $100k salary = $12k super + $76k take-home (approx)</div>
-                        </span>
-                            </div>
+                             <label class="text-sm font-medium text-gray-700" for="yourSalary">Your Annual Base Salary
+                                 (excl. super) ($)</label>
+                             <div class="tooltip">
+                                 <span aria-label="Salary information" class="tooltip-icon">i</span>
+                                 <span class="tooltiptext">
+                             <strong>Your Annual Base Salary (excluding super)</strong>
+                             Enter your gross base salary before tax. Employer super (12% SG) is calculated on top of this and added to your super fund separately — do not include it here.
+                             <div class="tooltip-example">Example: $100k base salary → employer adds $12k super on top → ~$77k take-home after income tax &amp; Medicare levy. If your package is "$112k including super", enter $100k.</div>
+                         </span>
+                             </div>
                         </div>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="yourSalary" type="text"
                                value="164000">

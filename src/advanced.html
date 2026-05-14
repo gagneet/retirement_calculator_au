@@ -2499,32 +2499,32 @@
             <div class="space-y-4">
                 <div class="field-required">
                     <div class="label-with-tooltip">
-                        <label class="text-sm font-medium text-gray-700" for="yourSalary">Your Annual Salary (pre-tax)
-                            ($) <span class="text-red-600">*</span></label>
-                        <div class="tooltip">
-                            <span aria-label="Salary information" class="tooltip-icon">i</span>
-                            <span class="tooltiptext">
-                                <strong>Your Annual Salary (pre-tax)</strong>
-                                Gross income before tax and super. Used for tax calculations, super guarantee contributions (12%), and retirement projections.
-                                <div class="tooltip-example">Example: $100k salary = $12k super + about $78k take-home after income tax and Medicare levy</div>
-                            </span>
-                        </div>
+                         <label class="text-sm font-medium text-gray-700" for="yourSalary">Your Annual Base Salary (excl. super)
+                             ($) <span class="text-red-600">*</span></label>
+                         <div class="tooltip">
+                             <span aria-label="Salary information" class="tooltip-icon">i</span>
+                             <span class="tooltiptext">
+                                 <strong>Your Annual Base Salary (excluding super)</strong>
+                                 Enter your gross base salary before tax. Employer super (12% SG) is calculated on top of this and added to your super fund separately — do not include it here.
+                                 <div class="tooltip-example">Example: $100k base salary → employer adds $12k super on top → ~$77k take-home after income tax &amp; Medicare levy. If your package is "$112k including super", enter $100k.</div>
+                             </span>
+                         </div>
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="yourSalary" type="text"
                            value="164000" min="0">
                 </div>
                 <div>
                     <div class="label-with-tooltip">
-                        <label class="block text-sm font-medium text-gray-700" for="partnerSalary">Partner's Annual Salary
-                            (pre-tax) ($)</label>
-                        <div class="tooltip">
-                            <span aria-label="Partner salary information" class="tooltip-icon">i</span>
-                            <span class="tooltiptext">
-                                <strong>Partner's Annual Salary (pre-tax)</strong>
-                                Used for partner super guarantee contributions, tax, and combined household retirement modelling. Leave as 0 if you are planning as a single.
-                                <div class="tooltip-example">Example: $80k partner salary = about $9.6k employer super at the 12% SG rate</div>
-                            </span>
-                        </div>
+                         <label class="block text-sm font-medium text-gray-700" for="partnerSalary">Partner's Annual Base Salary
+                             (excl. super) ($)</label>
+                         <div class="tooltip">
+                             <span aria-label="Partner salary information" class="tooltip-icon">i</span>
+                             <span class="tooltiptext">
+                                 <strong>Partner's Annual Base Salary (excluding super)</strong>
+                                 Enter your partner's gross base salary before tax. Employer super (12% SG) is calculated on top and added to their fund separately — do not include it here. Leave as 0 if planning as a single.
+                                 <div class="tooltip-example">Example: $80k base salary → employer adds $9,600 super on top. If the package is "$89.6k including super", enter $80k.</div>
+                             </span>
+                         </div>
                     </div>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerSalary" type="text"
                            value="124500" min="0">

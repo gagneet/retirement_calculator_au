@@ -830,26 +830,26 @@ export class OnboardingWizard {
                         <h3 class="text-lg font-semibold text-gray-800">Income</h3>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">💼 Your Annual Salary</label>
-                            ${this.createEnhancedInput('finances-salary', finances.income.salary, 'currency', {
+                             <label class="block text-sm font-medium text-gray-700 mb-2">💼 Your Annual Base Salary (excl. super)</label>
+                             ${this.createEnhancedInput('finances-salary', finances.income.salary, 'currency', {
             min: 0,
-            tooltip: 'Your gross annual salary before tax',
+            tooltip: 'Your gross base salary before tax, excluding super. Employer super (12% SG) is calculated on top — do not include it here. If your package is "$112k including super", enter $100k.',
             placeholder: '75,000',
             gamingLevel: 2
         })}
-                            <p class="text-xs text-gray-500 mt-1">💡 Used to calculate superannuation contributions automatically</p>
+                             <p class="text-xs text-gray-500 mt-1">💡 Base salary only — employer super (12% SG) is added on top automatically</p>
                         </div>
 
                         ${household.maritalStatus !== 'single' ? `
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">👫 Partner's Annual Salary</label>
-                            ${this.createEnhancedInput('finances-partner-salary', finances.income.partnerSalary || 0, 'currency', {
+                             <label class="block text-sm font-medium text-gray-700 mb-2">👫 Partner's Annual Base Salary (excl. super)</label>
+                             ${this.createEnhancedInput('finances-partner-salary', finances.income.partnerSalary || 0, 'currency', {
             min: 0,
-            tooltip: 'Partner\'s gross annual salary before tax',
+            tooltip: 'Partner\'s gross base salary before tax, excluding super. Employer super (12% SG) is calculated on top — do not include it here.',
             placeholder: '65,000',
             gamingLevel: 2
         })}
-                            <p class="text-xs text-gray-500 mt-1">💡 Partner's gross annual salary before tax</p>
+                             <p class="text-xs text-gray-500 mt-1">💡 Base salary only — employer super (12% SG) is added on top automatically</p>
                         </div>
                         ` : ''}
 
