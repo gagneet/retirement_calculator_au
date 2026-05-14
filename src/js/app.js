@@ -5283,11 +5283,14 @@ class RetirementCalculatorApp {
         // Insurance suggestions
         this.populateSuggestionCategory('insuranceSuggestions', categories.insurance, 'insurance');
 
-        // Show the what-if comparison section if we have suggestions
-        const totalSuggestions = Object.values(categories).reduce((sum, cat) => sum + cat.length, 0);
-        if (totalSuggestions > 0) {
-            const whatIfDiv = $('whatIfComparison');
-            if (whatIfDiv) whatIfDiv.classList.remove('hidden');
+        // Ensure the what-if comparison section stays hidden until a "Try This" button
+        // is clicked — it will be populated and revealed by populateWhatIfComparison().
+        const whatIfDiv = $('whatIfComparison');
+        if (whatIfDiv) {
+            whatIfDiv.classList.add('hidden');
+            // Reset its heading to the default
+            const heading = whatIfDiv.querySelector('h3');
+            if (heading) heading.textContent = '📊 What-If Scenario Comparison';
         }
     }
 
@@ -5355,47 +5358,250 @@ class RetirementCalculatorApp {
         `).join('');
     }
 
-    // Apply a suggestion to the form inputs
-    applySuggestion(suggestionName) {
+    // Apply a suggestion — run a What-If comparison and populate the comparison section,
+    // then apply the modifications to the form so the user can see exactly what changed.
+    async applySuggestion(suggestionName) {
         if (!this.lastGeneratedSuggestions) {
             showNotification('Please generate suggestions first', 'error');
             return;
         }
 
-        // Find the suggestion by name
+        // Find the suggestion by name or title
         const suggestion = this.lastGeneratedSuggestions.find(s =>
             (s.name || s.title || '') === suggestionName
         );
 
-        if (!suggestion || !suggestion.modifications) {
-            showNotification(`This "${suggestionName}" is for informational purposes. The functionality to automatically apply this change is currently under development.`, 'info');
+        if (!suggestion) {
+            showNotification(`Could not find suggestion: "${suggestionName}"`, 'warning');
+            return;
+        }
+
+        // If no modifications, show what data is available as an informational comparison
+        if (!suggestion.modifications) {
+            // Still show What-If panel if we have pre-computed successRate/medianBalance data
+            if (suggestion.successRate !== undefined || suggestion.medianBalance !== undefined) {
+                this.populateWhatIfComparison(suggestion, suggestionName);
+                showNotification(`"${suggestionName}" is an informational scenario. Impact shown in the What-If Scenario Comparison below.`, 'info');
+            } else {
+                showNotification(`"${suggestionName}" is for informational purposes — no specific field changes are modelled for this scenario.`, 'info');
+            }
             return;
         }
 
         try {
-            // Apply modifications to form inputs
+            // ── Step 1: capture baseline results ──────────────────────────────
+            const baseline = this.currentResults;
+            const baselineInputs = this.collectInputs();
+
+            // ── Step 2: build modified inputs object without touching the form yet ──
+            // collectInputs() keys map 1-to-1 with suggestion.modifications keys
+            // (e.g. planToDownsize, sellPropertyYears, retirementAge …).
+            const modifiedInputs = { ...baselineInputs };
+            Object.entries(suggestion.modifications).forEach(([key, value]) => {
+                if (key in modifiedInputs) {
+                    modifiedInputs[key] = value;
+                }
+            });
+
+            // ── Step 3: deterministic simulation on modified inputs (always needed
+            //    for finalBalance / depletionAge which the recommendation engine
+            //    does not pre-compute) ────────────────────────────────────────────
+            updateProgress(20, 'Running What-If analysis...');
+            let suggestedResult = null;
+            try {
+                suggestedResult = this.simulator.simulateRetirement(modifiedInputs, false);
+            } catch (simErr) {
+                console.warn('What-If simulation failed:', simErr);
+            }
+
+            // ── Step 4: Monte Carlo only when the recommendation engine has not
+            //    already provided successRate + medianBalance ────────────────────
+            let suggestedMC = null;
+            const hasPrecomputedRates = suggestion.successRate != null && suggestion.medianBalance != null;
+            if (!hasPrecomputedRates) {
+                try {
+                    updateProgress(50, 'Running Monte Carlo comparison...');
+                    suggestedMC = await this.simulator.runMonteCarloSimulation(modifiedInputs, 500);
+                } catch (mcErr) {
+                    console.warn('What-If MC failed:', mcErr);
+                }
+            }
+
+            updateProgress(80, 'Building comparison...');
+
+            // ── Step 5: populate the What-If Scenario Comparison section ──────
+            const enrichedSuggestion = {
+                ...suggestion,
+                successRate: suggestion.successRate ?? suggestedMC?.successRate,
+                medianBalance: suggestion.medianBalance ?? suggestedMC?.median,
+                finalBalance: suggestedResult?.finalBalance,
+                depletionAge: suggestedResult?.depletionAge,
+            };
+            this.populateWhatIfComparison(enrichedSuggestion, suggestionName, baseline, baselineInputs);
+
+            updateProgress(100, 'What-If analysis complete!');
+            setTimeout(() => updateProgress(0), 1000);
+
+            // ── Step 6: apply modifications to the form ───────────────────────
             const applied = this.applyModificationsToForm(suggestion.modifications);
 
             if (applied > 0) {
-                showNotification(`Applied suggestion: "${suggestionName}". Modified ${applied} field(s). Running calculation...`, 'success');
-
-                // Show which tab has the suggestion tab and scroll to it if needed
                 this.highlightModifiedFields(suggestion.modifications);
-
-                // Automatically trigger recalculation
-                setTimeout(() => {
-                    this.calculateRetirement(true);
-                    showNotification(`Calculation complete! View results in the "📊 Results" tab.`, 'info');
-                }, 1000); // Small delay to let user see the field changes
-
-                // Show undo button
                 this.showUndoButton();
+                showNotification(`"${suggestionName}": What-If comparison ready below. ${applied} field(s) updated in the calculator.`, 'success');
             } else {
-                showNotification(`No applicable modifications found for: "${suggestionName}"`, 'warning');
+                showNotification(`"${suggestionName}": What-If comparison ready. No calculator fields were changed for this scenario.`, 'info');
             }
+
+            // Scroll to the comparison section
+            const whatIfDiv = $('whatIfComparison');
+            if (whatIfDiv) {
+                whatIfDiv.classList.remove('hidden');
+                setTimeout(() => whatIfDiv.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+            }
+
         } catch (error) {
-            console.error('Error applying suggestion:', error);
-            showNotification(`Error applying suggestion: ${error.message}`, 'error');
+            console.error('Error in applySuggestion:', error);
+            showNotification(`Error running What-If analysis: ${error.message}`, 'error');
+            updateProgress(0);
+        }
+    }
+
+    // Populate the What-If Scenario Comparison panel with before/after metrics
+    populateWhatIfComparison(suggestion, suggestionName, baseline, baselineInputs) {
+        const whatIfDiv = $('whatIfComparison');
+        if (!whatIfDiv) return;
+
+        whatIfDiv.classList.remove('hidden');
+
+        const currentDiv = $('currentPlanMetrics');
+        const suggestedDiv = $('suggestedPlanMetrics');
+        const improvementDiv = $('improvementMetrics');
+
+        // Gather baseline numbers — prefer live currentResults, fall back to suggestion diffs
+        const baseFinalBalance = baseline?.finalBalance ?? 0;
+        const baseDepletionAge = baseline?.depletionAge ?? null;
+        const baseMC = this.currentMonteCarloResults || null;
+        const baseSuccessRate = baseMC?.successRate ?? null;
+        const baseMedianBalance = baseMC?.median ?? baseline?.totalFinancialAssets ?? null;
+
+        // Suggested numbers
+        const sugSuccessRate = suggestion.successRate ?? null;
+        const sugMedianBalance = suggestion.medianBalance ?? suggestion.finalBalance ?? null;
+        const sugDepletionAge = suggestion.depletionAge ?? null;
+
+        // Helper to format a nullable number
+        const fmtRate = v => (v !== null && v !== undefined) ? `${(v * 100).toFixed(1)}%` : '—';
+        const fmtCurr = v => (v !== null && v !== undefined) ? formatCurrency(v) : '—';
+        const fmtAge = v => (v !== null && v !== undefined) ? `Age ${v}` : 'Not depleted';
+        const fmtDiff = (a, b, isCurr = false) => {
+            if (a === null || a === undefined || b === null || b === undefined) return '';
+            const diff = a - b;
+            const pos = diff >= 0;
+            const sign = pos ? '+' : '';
+            const val = isCurr ? `${sign}${formatCurrency(Math.abs(diff))}${pos ? '' : ' less'}` : `${sign}${(diff * 100).toFixed(1)}pp`;
+            return `<span class="text-xs font-medium ${pos ? 'text-green-600' : 'text-red-500'}">${val}</span>`;
+        };
+
+        // Compute overall improvement indicator
+        const successImprove = (sugSuccessRate !== null && baseSuccessRate !== null) ? sugSuccessRate - baseSuccessRate : null;
+        const balanceImprove = (sugMedianBalance !== null && baseMedianBalance !== null) ? sugMedianBalance - baseMedianBalance : null;
+        const overallPositive = (successImprove ?? 0) >= 0 && (balanceImprove ?? 0) >= 0;
+        const overallNeutral = successImprove === null && balanceImprove === null;
+
+        if (currentDiv) {
+            currentDiv.innerHTML = `
+                <div class="space-y-3 text-sm">
+                    ${baseSuccessRate !== null ? `
+                    <div class="p-3 bg-blue-50 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">Success Rate</div>
+                        <div class="text-xl font-bold text-blue-700">${fmtRate(baseSuccessRate)}</div>
+                    </div>` : ''}
+                    ${baseMedianBalance !== null ? `
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">Median Portfolio Balance</div>
+                        <div class="text-lg font-bold text-gray-800">${fmtCurr(baseMedianBalance)}</div>
+                    </div>` : ''}
+                    ${baseFinalBalance ? `
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">Projected Final Balance</div>
+                        <div class="text-lg font-bold text-gray-700">${fmtCurr(baseFinalBalance)}</div>
+                    </div>` : ''}
+                    ${baseDepletionAge !== null ? `
+                    <div class="p-3 bg-red-50 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">Fund Depletion</div>
+                        <div class="text-base font-bold text-red-700">${fmtAge(baseDepletionAge)}</div>
+                    </div>` : ''}
+                </div>`;
+        }
+
+        if (suggestedDiv) {
+            suggestedDiv.innerHTML = `
+                <div class="space-y-3 text-sm">
+                    <div class="mb-2">
+                        <span class="text-xs font-semibold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700">${suggestionName}</span>
+                    </div>
+                    ${sugSuccessRate !== null ? `
+                    <div class="p-3 bg-blue-50 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">Success Rate</div>
+                        <div class="text-xl font-bold text-indigo-700">${fmtRate(sugSuccessRate)}</div>
+                        ${fmtDiff(sugSuccessRate, baseSuccessRate)}
+                    </div>` : ''}
+                    ${sugMedianBalance !== null ? `
+                    <div class="p-3 bg-indigo-50 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">Median Portfolio Balance</div>
+                        <div class="text-lg font-bold text-indigo-800">${fmtCurr(sugMedianBalance)}</div>
+                        ${fmtDiff(sugMedianBalance, baseMedianBalance, true)}
+                    </div>` : ''}
+                    ${suggestion.finalBalance ? `
+                    <div class="p-3 bg-indigo-50 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">Projected Final Balance</div>
+                        <div class="text-lg font-bold text-indigo-700">${fmtCurr(suggestion.finalBalance)}</div>
+                    </div>` : ''}
+                    ${sugDepletionAge !== null ? `
+                    <div class="p-3 bg-orange-50 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">Fund Depletion</div>
+                        <div class="text-base font-bold text-orange-700">${fmtAge(sugDepletionAge)}</div>
+                    </div>` : (suggestion.depletionAge === null && suggestion.finalBalance > 0) ? `
+                    <div class="p-3 bg-green-50 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">Fund Depletion</div>
+                        <div class="text-base font-bold text-green-700">Not depleted</div>
+                    </div>` : ''}
+                </div>`;
+        }
+
+        if (improvementDiv) {
+            const keyChanges = suggestion.factorsChanged || [];
+            improvementDiv.innerHTML = `
+                <div class="space-y-3 text-sm">
+                    <div class="p-3 rounded-lg ${overallNeutral ? 'bg-gray-50' : overallPositive ? 'bg-green-50' : 'bg-yellow-50'}">
+                        <div class="text-base font-bold ${overallNeutral ? 'text-gray-700' : overallPositive ? 'text-green-700' : 'text-yellow-700'} mb-1">
+                            ${overallNeutral ? '📊 Informational' : overallPositive ? '✅ Improvement' : '⚠️ Trade-off'}
+                        </div>
+                        ${successImprove !== null ? `
+                        <div class="text-xs text-gray-600">Success rate: <strong class="${successImprove >= 0 ? 'text-green-700' : 'text-red-600'}">${successImprove >= 0 ? '+' : ''}${(successImprove * 100).toFixed(1)} pp</strong></div>
+                        ` : ''}
+                        ${balanceImprove !== null ? `
+                        <div class="text-xs text-gray-600">Median balance: <strong class="${balanceImprove >= 0 ? 'text-green-700' : 'text-red-600'}">${balanceImprove >= 0 ? '+' : ''}${formatCurrency(balanceImprove)}</strong></div>
+                        ` : ''}
+                    </div>
+                    ${keyChanges.length > 0 ? `
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="text-xs font-semibold text-gray-600 mb-2">Key Changes</div>
+                        <ul class="space-y-1">
+                            ${keyChanges.slice(0, 4).map(c => `<li class="text-xs text-gray-700">• ${c}</li>`).join('')}
+                        </ul>
+                    </div>` : ''}
+                    ${suggestion.feasibility ? `
+                    <div class="text-xs text-gray-500 italic">${suggestion.feasibility}</div>
+                    ` : ''}
+                </div>`;
+        }
+
+        // Update the What-If section heading to show which suggestion is active
+        const heading = $('whatIfComparisonHeading') || whatIfDiv.querySelector('h3');
+        if (heading) {
+            heading.textContent = `📊 What-If Scenario Comparison — ${suggestionName}`;
         }
     }
 
