@@ -3791,6 +3791,9 @@ class RetirementCalculatorApp {
             }
             const riskProfile = this.riskProfiling.generateRiskProfileSummary(inputs, monteCarloResults);
 
+            // Persist for export
+            this.currentRiskProfile = riskProfile;
+
             updateProgress(80, "Generating risk recommendations...");
             await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -3846,6 +3849,9 @@ class RetirementCalculatorApp {
                 return;
             }
             const allocationStrategy = this.dynamicAllocation.generateAllocationSummary(inputs, riskProfile);
+
+            // Persist for export
+            this.currentAllocationStrategy = allocationStrategy;
 
             updateProgress(80, "Creating rebalancing plan...");
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -6070,6 +6076,9 @@ class RetirementCalculatorApp {
             // Display scenarios (includes portfolio runway table)
             this.displayOverseasScenarios(scenarios, chartData, simResults);
 
+            // Persist for export
+            this.currentOverseasData = { scenarios, chartData, config: overseasConfig };
+
             // Render overview charts in the chart section (lazy-load chart manager)
             const chartManager = await this.getChartManager();
             if (chartManager) {
@@ -7074,6 +7083,9 @@ class RetirementCalculatorApp {
                 });
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
+
+            // Persist for export
+            this.currentStressTestResults = results;
 
             // Display stress test results
             this.displayStressTestResults(results);

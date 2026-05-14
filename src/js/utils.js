@@ -1504,7 +1504,32 @@ export const exportToXLSX = (inputs, results, chartManager, app = null) => {
                 propertyChartData.datasets[1] ? propertyChartData.datasets[1].data[i] : 0
             ]);
         });
+        chartData.push([]);
     }
+
+    const scenarioChartData = chartManager.getChartData('scenarioComparisonChart');
+    if (scenarioChartData && scenarioChartData.labels) {
+        chartData.push(['Scenario Comparison (scenarioComparisonChart)']);
+        const headers = ['Scenario', ...scenarioChartData.datasets.map(d => d.label || 'Value')];
+        chartData.push(headers);
+        scenarioChartData.labels.forEach((label, i) => {
+            chartData.push([label, ...scenarioChartData.datasets.map(d => d.data[i])]);
+        });
+        chartData.push([]);
+    }
+
+    // Overseas charts data (if available)
+    ['overseasCostChart', 'overseasPensionChart', 'overseasRadarChart'].forEach(chartId => {
+        const cd = chartManager.getChartData(chartId);
+        if (cd && cd.labels) {
+            chartData.push([`Overseas Chart: ${chartId}`]);
+            chartData.push(['Label', ...cd.datasets.map(d => d.label || 'Value')]);
+            cd.labels.forEach((label, i) => {
+                chartData.push([label, ...cd.datasets.map(d => d.data[i])]);
+            });
+            chartData.push([]);
+        }
+    });
 
     const ws_charts = XLSX.utils.aoa_to_sheet(chartData);
     XLSX.utils.book_append_sheet(wb, ws_charts, 'Charts Data');
@@ -1573,9 +1598,14 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
     tocItems.push(['', 'Optimization Strategies', '']);
     if (enhancedAnalysis.aiRecommendations?.length > 0) tocItems.push(['', 'AI-Generated Recommendations (Enhanced)', '']);
     if (enhancedAnalysis.scenarioComparisons?.length > 0) tocItems.push(['', 'Scenario Comparisons', '']);
-    if (enhancedAnalysis.suggestions?.length > 0) tocItems.push(['', 'Personalized Suggestions', '']);
+    if (enhancedAnalysis.suggestions?.length > 0) tocItems.push(['', 'Personalized Suggestions & Try-It Analysis', '']);
     if (enhancedAnalysis.scenarioMatrix) tocItems.push(['', 'Scenario Comparison Matrix', '']);
     if (enhancedAnalysis.personaRecommendations) tocItems.push(['', 'AI Persona-Based Recommendations', '']);
+    if (enhancedAnalysis.healthcareAnalysis) tocItems.push(['', 'Healthcare Cost Analysis', '']);
+    if (enhancedAnalysis.stressTestResults?.length > 0) tocItems.push(['', 'Stress Test Results', '']);
+    if (enhancedAnalysis.riskProfile) tocItems.push(['', 'Advanced Risk Profile', '']);
+    if (enhancedAnalysis.allocationStrategy) tocItems.push(['', 'Dynamic Asset Allocation Strategy', '']);
+    if (enhancedAnalysis.overseasData) tocItems.push(['', 'Overseas Retirement Scenarios', '']);
     tocItems.push(['', 'Visual Analysis (Charts)', '']);
     tocItems.push(['', 'Detailed Financial Projections', '']);
 
@@ -1789,24 +1819,23 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
         }
     };
 
-    // Add available charts
-    addChartToPDF('fanChart', 'Portfolio Balance Projection (Fan Chart)');
+    // Add available charts — fanChart doubles as the Monte Carlo fan chart
+    // (renderMonteCarloFanChart overwrites the same canvas; mcFanChart does not exist)
+    addChartToPDF('fanChart', monteCarloResults ? 'Portfolio Balance Projection — Monte Carlo Fan Chart' : 'Portfolio Balance Projection');
     addChartToPDF('histChart', 'Final Balance Distribution (Histogram)');
-
-    // The code references inputs.useGlidePath but this property is not visible in the summary data structure.
-    // Verify that this property exists in the 'inputs' object or handle the case where it might be undefined.
-    // If inputs.useGlidePath is undefined or null, this will safely default to false. This ensures the chart is only added if useGlidePath is truthy.
-    if (inputs.useGlidePath ?? false) {
-        addChartToPDF('allocationChart', 'Asset Allocation Over Time');
-    }
+    addChartToPDF('allocationChart', 'Asset Allocation Over Time');
     if (inputs.hasInvestmentProperty) {
         addChartToPDF('propertyChart', 'Property vs. Portfolio Comparison');
     }
-
-    // Add Monte Carlo fan chart if available
-    if (monteCarloResults) {
-        addChartToPDF('mcFanChart', 'Monte Carlo Projection Paths');
-    }
+    // Scenario comparison chart (if scenario comparison was run)
+    addChartToPDF('scenarioComparisonChart', 'Scenario Comparison');
+    // Overseas charts (if overseas analysis was run)
+    addChartToPDF('overseasCostChart', 'Overseas Retirement — Cost of Living Comparison');
+    addChartToPDF('overseasPensionChart', 'Overseas Retirement — Pension Portability');
+    addChartToPDF('overseasRadarChart', 'Overseas Retirement — Country Suitability Radar');
+    // Outcome tab charts
+    addChartToPDF('retirementIncomeTimelineChart', 'Retirement Income Timeline');
+    addChartToPDF('retirementIncomeBreakdownChart', 'Retirement Income Breakdown');
 
     // --- Detailed Projections ---
     doc.addPage();
@@ -2729,7 +2758,13 @@ function extractAnalysisData(inputs, results, app) {
         scenarioMatrix: null,
         personaRecommendations: null,
         actionPlan: null,
-        outcomeActions: null
+        outcomeActions: null,
+        // New sections
+        healthcareAnalysis: null,
+        stressTestResults: null,
+        riskProfile: null,
+        allocationStrategy: null,
+        overseasData: null,
     };
 
     try {
@@ -2792,6 +2827,31 @@ function extractAnalysisData(inputs, results, app) {
         // Outcome tab action items
         if (app?.currentOutcomeActions?.length > 0) {
             analysis.outcomeActions = app.currentOutcomeActions;
+        }
+
+        // Healthcare cost analysis (if run)
+        if (app?.currentHealthcareAnalysis) {
+            analysis.healthcareAnalysis = app.currentHealthcareAnalysis;
+        }
+
+        // Stress test results (if run)
+        if (app?.currentStressTestResults?.length > 0) {
+            analysis.stressTestResults = app.currentStressTestResults;
+        }
+
+        // Advanced risk profile (if run)
+        if (app?.currentRiskProfile) {
+            analysis.riskProfile = app.currentRiskProfile;
+        }
+
+        // Dynamic asset allocation strategy (if run)
+        if (app?.currentAllocationStrategy) {
+            analysis.allocationStrategy = app.currentAllocationStrategy;
+        }
+
+        // Overseas retirement scenarios (if run)
+        if (app?.currentOverseasData) {
+            analysis.overseasData = app.currentOverseasData;
         }
 
     } catch (error) {
@@ -3485,6 +3545,255 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
             styles: { fontSize: 8, cellPadding: 3 },
             columnStyles: { 0: { cellWidth: 55 }, 1: { cellWidth: 80 }, 2: { cellWidth: 25 }, 3: { cellWidth: 15 } }
         });
+        yPos = doc.lastAutoTable.finalY + 12;
+    }
+
+    // ── Healthcare Cost Analysis ────────────────────────────────────────────
+    if (analysis.healthcareAnalysis) {
+        doc.addPage();
+        yPos = 20;
+
+        doc.setFontSize(18);
+        doc.setTextColor(22, 163, 74);   // green-600
+        doc.text("Healthcare Cost Analysis", 14, yPos);
+        yPos += 6;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 9;
+
+        const hc = analysis.healthcareAnalysis;
+        const hcSummary = hc.summary || {};
+        const hcMC = hc.monteCarlo || {};
+
+        const hcBody = [
+            ['Lifetime Healthcare Costs', hcSummary.totalLifetimeCost != null ? formatCurrency(hcSummary.totalLifetimeCost) : 'N/A'],
+            ['Average Annual Cost in Retirement', hcSummary.averageAnnualCost != null ? formatCurrency(hcSummary.averageAnnualCost) : 'N/A'],
+            ['Aged Care Probability', hcSummary.agedCareProbability != null ? `${(hcSummary.agedCareProbability * 100).toFixed(0)}%` : 'N/A'],
+            ['Expected Aged Care Cost (if needed)', hcSummary.agedCareExpectedCost != null ? formatCurrency(hcSummary.agedCareExpectedCost) : 'N/A'],
+            ['10th Percentile (Low-Cost Scenario)', hcMC.percentile10 != null ? formatCurrency(hcMC.percentile10) : 'N/A'],
+            ['Median (50th Percentile)', hcMC.median != null ? formatCurrency(hcMC.median) : 'N/A'],
+            ['90th Percentile (High-Cost Scenario)', hcMC.percentile90 != null ? formatCurrency(hcMC.percentile90) : 'N/A'],
+        ];
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Healthcare Metric', 'Value']],
+            body: hcBody,
+            theme: 'striped',
+            headStyles: { fillColor: [22, 163, 74] },
+            styles: { fontSize: 9 }
+        });
+        yPos = doc.lastAutoTable.finalY + 10;
+
+        if (hcSummary.topRecommendations && hcSummary.topRecommendations.length > 0) {
+            doc.autoTable({
+                startY: yPos,
+                head: [['Healthcare Planning Recommendation', 'Estimated Saving']],
+                body: hcSummary.topRecommendations.slice(0, 5).map(r => [
+                    r.title || r.description || '',
+                    r.estimatedSaving > 0 ? formatCurrency(r.estimatedSaving) : '—'
+                ]),
+                theme: 'grid',
+                headStyles: { fillColor: [22, 163, 74] },
+                styles: { fontSize: 8 }
+            });
+            yPos = doc.lastAutoTable.finalY + 10;
+        }
+    }
+
+    // ── Stress Test Results ─────────────────────────────────────────────────
+    if (analysis.stressTestResults && analysis.stressTestResults.length > 0) {
+        if (yPos > 200) { doc.addPage(); yPos = 20; }
+
+        doc.setFontSize(16);
+        doc.setTextColor(239, 68, 68);   // red-500
+        doc.text("Stress Test Results", 14, yPos);
+        yPos += 5;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 7;
+
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        doc.text("Each scenario models a severe market or economic shock applied to your retirement plan.", 14, yPos);
+        yPos += 8;
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Stress Scenario', 'Final Balance', 'Outcome']],
+            body: analysis.stressTestResults.map(r => [
+                r.scenario || 'Scenario',
+                formatCurrency(r.finalBalance || 0),
+                r.success ? 'Portfolio Survives' : 'Portfolio Depleted'
+            ]),
+            theme: 'striped',
+            headStyles: { fillColor: [239, 68, 68] },
+            styles: { fontSize: 9 },
+            columnStyles: {
+                2: { fontStyle: 'bold' }
+            },
+            didParseCell: (data) => {
+                if (data.column.index === 2 && data.row.index >= 0 && data.section === 'body') {
+                    const isSuccess = data.cell.text[0] === 'Portfolio Survives';
+                    data.cell.styles.textColor = isSuccess ? [5, 150, 105] : [220, 38, 38];
+                }
+            }
+        });
+        yPos = doc.lastAutoTable.finalY + 12;
+    }
+
+    // ── Advanced Risk Profile ───────────────────────────────────────────────
+    if (analysis.riskProfile) {
+        if (yPos > 180) { doc.addPage(); yPos = 20; }
+
+        doc.setFontSize(16);
+        doc.setTextColor(124, 58, 237);  // violet-600
+        doc.text("Advanced Risk Profile", 14, yPos);
+        yPos += 5;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 7;
+
+        const rp = analysis.riskProfile;
+        const rpBody = [
+            ['Overall Risk Profile', rp.overallRiskProfile || 'N/A'],
+            ['Risk Capacity Score', rp.riskCapacity != null ? `${rp.riskCapacity}/100` : 'N/A'],
+            ['Risk Tolerance Score', rp.riskTolerance != null ? `${rp.riskTolerance}/100` : 'N/A'],
+            ['Risk Requirement Score', rp.riskRequirement != null ? `${rp.riskRequirement}/100` : 'N/A'],
+            ['Confidence', rp.confidence != null ? `${rp.confidence}%` : 'N/A'],
+        ];
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Risk Dimension', 'Assessment']],
+            body: rpBody,
+            theme: 'striped',
+            headStyles: { fillColor: [124, 58, 237] },
+            styles: { fontSize: 9 }
+        });
+        yPos = doc.lastAutoTable.finalY + 8;
+
+        if (rp.recommendations && rp.recommendations.length > 0) {
+            doc.autoTable({
+                startY: yPos,
+                head: [['Risk-Based Recommendation', 'Priority']],
+                body: rp.recommendations.slice(0, 8).map(r => [
+                    typeof r === 'string' ? r : (r.recommendation || r.action || r.title || ''),
+                    r.priority || 'Review'
+                ]),
+                theme: 'grid',
+                headStyles: { fillColor: [124, 58, 237] },
+                styles: { fontSize: 8 }
+            });
+            yPos = doc.lastAutoTable.finalY + 12;
+        }
+    }
+
+    // ── Dynamic Asset Allocation Strategy ──────────────────────────────────
+    if (analysis.allocationStrategy) {
+        if (yPos > 180) { doc.addPage(); yPos = 20; }
+
+        doc.setFontSize(16);
+        doc.setTextColor(37, 99, 235);   // blue-600
+        doc.text("Dynamic Asset Allocation Strategy", 14, yPos);
+        yPos += 5;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 7;
+
+        const as = analysis.allocationStrategy;
+        const alloc = as.currentAllocation || {};
+        const strat = as.strategy || {};
+
+        const allocBody = [
+            ['Strategy Name', strat.name ? strat.name.replace(/_/g, ' ') : 'N/A'],
+            ['Strategy Description', strat.description || 'N/A'],
+            ['Confidence', as.confidence != null ? `${as.confidence}%` : 'N/A'],
+            ['Recommended Equity (Growth Assets)', alloc.equity != null ? `${alloc.equity}%` : 'N/A'],
+            ['Recommended Bonds (Defensive Assets)', alloc.bonds != null ? `${alloc.bonds}%` : 'N/A'],
+            ['Recommended Cash', alloc.cash != null ? `${alloc.cash}%` : 'N/A'],
+        ];
+
+        doc.autoTable({
+            startY: yPos,
+            head: [['Allocation Metric', 'Value']],
+            body: allocBody,
+            theme: 'striped',
+            headStyles: { fillColor: [37, 99, 235] },
+            styles: { fontSize: 9 }
+        });
+        yPos = doc.lastAutoTable.finalY + 8;
+
+        if (as.rationale) {
+            const rationaleLines = doc.splitTextToSize(`Rationale: ${as.rationale}`, 175);
+            doc.setFontSize(9);
+            doc.setTextColor(80);
+            doc.text(rationaleLines, 14, yPos);
+            yPos += rationaleLines.length * 5 + 10;
+        }
+    }
+
+    // ── Overseas Retirement Scenarios ───────────────────────────────────────
+    if (analysis.overseasData) {
+        doc.addPage();
+        yPos = 20;
+
+        doc.setFontSize(18);
+        doc.setTextColor(8, 145, 178);   // cyan-600
+        doc.text("Overseas Retirement Scenarios", 14, yPos);
+        yPos += 6;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 9;
+
+        const overseas = analysis.overseasData;
+        const scenarios = overseas.scenarios || [];
+        const config = overseas.config || {};
+
+        if (config.destinationCountry || config.currency) {
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            const configText = [
+                config.destinationCountry ? `Destination: ${config.destinationCountry}` : null,
+                config.currency ? `Currency: ${config.currency}` : null,
+                config.monthlyBudget ? `Monthly Budget: ${config.currency || '$'}${config.monthlyBudget?.toLocaleString()}` : null,
+            ].filter(Boolean).join('   |   ');
+            doc.text(configText, 14, yPos);
+            yPos += 10;
+        }
+
+        if (scenarios.length > 0) {
+            const overseasBody = scenarios.slice(0, 12).map(s => [
+                s.country || s.name || 'Country',
+                s.monthlyBudget != null ? formatCurrency(s.monthlyBudget) : 'N/A',
+                s.annualCost != null ? formatCurrency(s.annualCost) : 'N/A',
+                s.yearsOfFunding != null ? `${s.yearsOfFunding} yrs` : 'N/A',
+                s.costVsAustralia != null ? `${s.costVsAustralia > 0 ? '+' : ''}${s.costVsAustralia}%` : 'N/A',
+                s.suitabilityScore != null ? `${s.suitabilityScore}/100` : 'N/A',
+            ]);
+
+            doc.autoTable({
+                startY: yPos,
+                head: [['Country / Scenario', 'Monthly Budget', 'Annual Cost', 'Years Funded', 'vs. Australia', 'Suitability']],
+                body: overseasBody,
+                theme: 'striped',
+                headStyles: { fillColor: [8, 145, 178] },
+                styles: { fontSize: 8, cellPadding: 2 },
+                columnStyles: {
+                    0: { cellWidth: 40 },
+                    1: { cellWidth: 28 },
+                    2: { cellWidth: 28 },
+                    3: { cellWidth: 22 },
+                    4: { cellWidth: 22 },
+                    5: { cellWidth: 22 },
+                }
+            });
+            yPos = doc.lastAutoTable.finalY + 10;
+        } else {
+            doc.setFontSize(9);
+            doc.setTextColor(150);
+            doc.text('No overseas scenario data available for detailed breakdown.', 14, yPos);
+        }
     }
 }
 
@@ -3742,5 +4051,160 @@ function addEnhancedAnalysisToXLSX(wb, analysis) {
 
         const ws_outcome = XLSX.utils.aoa_to_sheet(outcomeData);
         XLSX.utils.book_append_sheet(wb, ws_outcome, 'Outcome Actions');
+    }
+
+    // Healthcare Analysis Sheet
+    if (analysis.healthcareAnalysis) {
+        const hc = analysis.healthcareAnalysis;
+        const hcSummary = hc.summary || {};
+        const hcMC = hc.monteCarlo || {};
+        const hcProj = hc.projections || {};
+        const agedCare = hcProj.agedCareProjections || {};
+
+        const hcData = [
+            ['Healthcare Cost Analysis', '', ''],
+            ['Metric', 'Value', 'Notes'],
+            ['Lifetime Healthcare Costs', hcSummary.totalLifetimeCost ?? '', 'Total projected cost over retirement'],
+            ['Average Annual Cost', hcSummary.averageAnnualCost ?? '', 'Per year in retirement'],
+            ['Aged Care Probability', hcSummary.agedCareProbability != null ? `${(hcSummary.agedCareProbability * 100).toFixed(0)}%` : '', 'Likelihood of needing care'],
+            ['Expected Aged Care Cost', hcSummary.agedCareExpectedCost ?? '', 'If care is needed'],
+            ['', '', ''],
+            ['Monte Carlo Analysis (Healthcare)', '', ''],
+            ['10th Percentile', hcMC.percentile10 ?? '', 'Low-cost scenario'],
+            ['Median (50th Percentile)', hcMC.median ?? '', 'Most likely outcome'],
+            ['90th Percentile', hcMC.percentile90 ?? '', 'High-cost scenario'],
+            ['95th Percentile', hcMC.percentile95 ?? '', 'Worst-case scenario'],
+        ];
+
+        if (agedCare.homeCare) {
+            hcData.push(
+                ['', '', ''],
+                ['Aged Care Breakdown', '', ''],
+                ['Home Care — Probability', agedCare.homeCare.probability != null ? `${(agedCare.homeCare.probability * 100).toFixed(0)}%` : '', ''],
+                ['Home Care — Expected Cost', agedCare.homeCare.expectedCost ?? '', ''],
+                ['Home Care — Average Duration', agedCare.homeCare.averageDuration != null ? `${agedCare.homeCare.averageDuration} years` : '', ''],
+            );
+        }
+        if (agedCare.residentialCare) {
+            hcData.push(
+                ['Residential Care — Probability', agedCare.residentialCare.probability != null ? `${(agedCare.residentialCare.probability * 100).toFixed(0)}%` : '', ''],
+                ['Residential Care — Expected Cost', agedCare.residentialCare.expectedCost ?? '', ''],
+                ['Residential Care — Estimated RAD', agedCare.residentialCare.estimatedRAD ?? '', 'Refundable Accommodation Deposit'],
+            );
+        }
+
+        if (hcSummary.topRecommendations?.length > 0) {
+            hcData.push(['', '', ''], ['Healthcare Planning Recommendations', '', ''], ['Recommendation', 'Estimated Saving', '']);
+            hcSummary.topRecommendations.slice(0, 5).forEach(r => {
+                hcData.push([r.title || r.description || '', r.estimatedSaving > 0 ? r.estimatedSaving : 0, '']);
+            });
+        }
+
+        const ws_hc = XLSX.utils.aoa_to_sheet(hcData);
+        XLSX.utils.book_append_sheet(wb, ws_hc, 'Healthcare Analysis');
+    }
+
+    // Stress Test Sheet
+    if (analysis.stressTestResults && analysis.stressTestResults.length > 0) {
+        const stressData = [
+            ['Stress Test Results', '', ''],
+            ['Scenario', 'Final Balance ($)', 'Outcome'],
+            ...analysis.stressTestResults.map(r => [
+                r.scenario || 'Scenario',
+                r.finalBalance || 0,
+                r.success ? 'Portfolio Survives' : 'Portfolio Depleted'
+            ]),
+            ['', '', ''],
+            ['Note', 'Each scenario applies a severe shock to test portfolio resilience.', '']
+        ];
+
+        const ws_stress = XLSX.utils.aoa_to_sheet(stressData);
+        XLSX.utils.book_append_sheet(wb, ws_stress, 'Stress Test');
+    }
+
+    // Advanced Risk Profile Sheet
+    if (analysis.riskProfile) {
+        const rp = analysis.riskProfile;
+        const rpData = [
+            ['Advanced Risk Profile', '', ''],
+            ['Dimension', 'Score / Value', 'Interpretation'],
+            ['Overall Risk Profile', rp.overallRiskProfile || '', ''],
+            ['Risk Capacity', rp.riskCapacity != null ? rp.riskCapacity : '', 'Ability to absorb financial losses'],
+            ['Risk Tolerance', rp.riskTolerance != null ? rp.riskTolerance : '', 'Willingness to accept volatility'],
+            ['Risk Requirement', rp.riskRequirement != null ? rp.riskRequirement : '', 'Return needed to meet goals'],
+            ['Confidence', rp.confidence != null ? `${rp.confidence}%` : '', 'Model confidence in assessment'],
+        ];
+
+        if (rp.recommendations?.length > 0) {
+            rpData.push(['', '', ''], ['Risk-Based Recommendations', '', ''], ['Recommendation', 'Priority', '']);
+            rp.recommendations.slice(0, 10).forEach(r => {
+                rpData.push([
+                    typeof r === 'string' ? r : (r.recommendation || r.action || r.title || ''),
+                    r.priority || 'Review',
+                    ''
+                ]);
+            });
+        }
+
+        const ws_rp = XLSX.utils.aoa_to_sheet(rpData);
+        XLSX.utils.book_append_sheet(wb, ws_rp, 'Risk Profile');
+    }
+
+    // Dynamic Allocation Sheet
+    if (analysis.allocationStrategy) {
+        const as = analysis.allocationStrategy;
+        const alloc = as.currentAllocation || {};
+        const strat = as.strategy || {};
+
+        const allocData = [
+            ['Dynamic Asset Allocation Strategy', '', ''],
+            ['Metric', 'Value', 'Notes'],
+            ['Strategy', strat.name ? strat.name.replace(/_/g, ' ') : '', ''],
+            ['Description', strat.description || '', ''],
+            ['Confidence', as.confidence != null ? `${as.confidence}%` : '', ''],
+            ['', '', ''],
+            ['Recommended Current Allocation', '', ''],
+            ['Equity (Growth Assets)', alloc.equity != null ? `${alloc.equity}%` : '', 'Shares, REITs, growth assets'],
+            ['Bonds (Defensive Assets)', alloc.bonds != null ? `${alloc.bonds}%` : '', 'Fixed income, government bonds'],
+            ['Cash', alloc.cash != null ? `${alloc.cash}%` : '', 'Cash, term deposits'],
+            ['', '', ''],
+            ['Rationale', as.rationale || '', ''],
+        ];
+
+        if (as.glidePathProjections?.length > 0) {
+            allocData.push(['', '', ''], ['Allocation Glide Path', '', ''], ['Age', 'Equity %', 'Bonds %']);
+            as.glidePathProjections.slice(0, 20).forEach(p => {
+                allocData.push([p.age ?? '', p.equity != null ? `${p.equity}%` : '', p.bonds != null ? `${p.bonds}%` : '']);
+            });
+        }
+
+        const ws_alloc = XLSX.utils.aoa_to_sheet(allocData);
+        XLSX.utils.book_append_sheet(wb, ws_alloc, 'Asset Allocation');
+    }
+
+    // Overseas Retirement Sheet
+    if (analysis.overseasData) {
+        const overseas = analysis.overseasData;
+        const scenarios = overseas.scenarios || [];
+        const config = overseas.config || {};
+
+        const overseasData = [
+            ['Overseas Retirement Scenarios', '', '', '', '', ''],
+            config.destinationCountry ? ['Destination Country', config.destinationCountry, '', '', '', ''] : null,
+            config.currency ? ['Currency', config.currency, '', '', '', ''] : null,
+            ['', '', '', '', '', ''],
+            ['Country / Scenario', 'Monthly Budget', 'Annual Cost', 'Years Funded', 'vs. Australia (%)', 'Suitability Score'],
+            ...scenarios.slice(0, 20).map(s => [
+                s.country || s.name || '',
+                s.monthlyBudget ?? '',
+                s.annualCost ?? '',
+                s.yearsOfFunding ?? '',
+                s.costVsAustralia != null ? `${s.costVsAustralia > 0 ? '+' : ''}${s.costVsAustralia}%` : '',
+                s.suitabilityScore != null ? s.suitabilityScore : '',
+            ])
+        ].filter(Boolean);
+
+        const ws_overseas = XLSX.utils.aoa_to_sheet(overseasData);
+        XLSX.utils.book_append_sheet(wb, ws_overseas, 'Overseas Scenarios');
     }
 }
