@@ -3615,14 +3615,15 @@ class RetirementCalculatorApp {
                 ].filter(Boolean).join('<span class="text-gray-300">|</span>');
             }
 
-            // Render charts (both)
-            this.renderCostRealityCharts(data);
-
-            // Show results
+            // Show results first so the canvas elements are visible (Chart.js
+            // needs a visible, non-zero-dimension canvas to initialise correctly).
             if (resultsEl) resultsEl.classList.remove('hidden');
 
-            // Activate first scenario tab
+            // Activate first scenario tab (populates summary cards and table)
             this.showCostScenario('homePaidOff', data);
+
+            // Render charts after the container is visible
+            this.renderCostRealityCharts(data);
 
             // Seed RAD/DAP with analyzer default
             this.updateRadDapDisplay(data.radAnalysis);
@@ -7690,11 +7691,21 @@ class RetirementCalculatorApp {
             const { baseline, monteCarlo, strategies, recommendations } =
                 await runFullSimulation(inputs, { numRuns: inputs.numRuns });
             const detailedProjection = this.simulator.simulateRetirement(inputs, false);
-            const questionEngine = new PersonalizedQuestionEngine(this.simulator, this.healthcareModeling, this.config);
-            const questionAnswers = questionEngine.generateAnswers(inputs, detailedProjection);
 
             // ── Render results ────────────────────────────────────────────────
+            // Show the results container before any secondary work so the UI is
+            // always visible even if the personalised Q&A engine throws later.
             if (resultsEl) resultsEl.classList.remove('hidden');
+
+            // Run the personalised Q&A engine in a guarded block so that any
+            // error inside it cannot prevent the main results from rendering.
+            let questionAnswers = [];
+            try {
+                const questionEngine = new PersonalizedQuestionEngine(this.simulator, this.healthcareModeling, this.config);
+                questionAnswers = questionEngine.generateAnswers(inputs, detailedProjection);
+            } catch (qaErr) {
+                console.warn('Life sim Q&A engine error (non-fatal):', qaErr);
+            }
 
             // Detect open-ended lifespan mode
             const simIsOpenEnded = !(inputs.yourLifespan > 0);
