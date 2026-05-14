@@ -6889,17 +6889,24 @@ class RetirementCalculatorApp {
         const stressTestResults = $('stressTestResults');
         if (!stressTestResults) return;
 
-        stressTestResults.innerHTML = results.map(result => `
-            <div class="p-3 rounded ${result.success ? 'bg-green-50' : 'bg-red-50'}">
-                <div class="font-medium">${result.scenario}</div>
-                <div class="text-sm mt-1">
-                    Final Balance: ${formatCurrency(result.finalBalance)}
-                    <span class="ml-2 ${result.success ? 'text-green-600' : 'text-red-600'}">
-                        ${result.success ? '✓ Survives' : '✗ Depleted'}
-                    </span>
-                </div>
+        stressTestResults.classList.remove('hidden');
+        stressTestResults.innerHTML = `
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">⚡ Stress Test Results</h3>
+            <div class="space-y-2">
+                ${results.map(result => `
+                    <div class="p-3 rounded ${result.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}">
+                        <div class="font-medium ${result.success ? 'text-green-800' : 'text-red-800'}">${result.scenario}</div>
+                        <div class="text-sm mt-1 text-gray-700">
+                            Final Balance: <strong>${formatCurrency(result.finalBalance)}</strong>
+                            <span class="ml-2 font-medium ${result.success ? 'text-green-600' : 'text-red-600'}">
+                                ${result.success ? '✓ Portfolio survives' : '✗ Portfolio depleted'}
+                            </span>
+                        </div>
+                    </div>
+                `).join('')}
             </div>
-        `).join('');
+        `;
+        stressTestResults.scrollIntoView({ behavior: 'smooth' });
     }
 
     // Retirement age solver
