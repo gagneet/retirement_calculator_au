@@ -307,6 +307,31 @@ describe('Overseas retirement rules regression', () => {
         expect(OVS.PENSION_SUPPLEMENT_REDUCTION_COUPLE).toBeGreaterThan(0);
     });
 
+    /**
+     * PINNED — Verified 14 May 2026 from:
+     *   servicesaustralia.gov.au/how-much-pension-supplement-you-can-get (rates updated 20 March 2026)
+     *   servicesaustralia.gov.au/pension-supplement-while-travelling-outside-australia
+     *
+     * When overseas >6 weeks, supplement drops to BASIC rate (NOT zero).
+     * Only the top-up above basic is lost, plus the Energy Supplement stops entirely.
+     *
+     * Single:  ($86.50 full - $30.10 basic) + $14.10 energy = $70.50/fn × 26 = $1,833/yr
+     * Couple:  ($65.20 full - $24.80 basic) + $10.60 energy = $51.00/fn × 26 = $1,326/yr each
+     */
+    test('PINNED: supplement reductions match verified March 2026 values', () => {
+        // Annual reduction single: $70.50/fn × 26 = $1,833
+        expect(OVS.PENSION_SUPPLEMENT_REDUCTION_SINGLE).toBe(1833);
+        // Annual reduction per person couple: $51.00/fn × 26 = $1,326
+        expect(OVS.PENSION_SUPPLEMENT_REDUCTION_COUPLE).toBe(1326);
+    });
+
+    test('PINNED: basic supplement rates retained overseas match verified March 2026 values', () => {
+        // Single basic: $30.10/fn (retained when overseas)
+        expect(OVS.PENSION_SUPPLEMENT_BASIC_SINGLE).toBe(30.10);
+        // Couple basic: $24.80/fn per person (retained when overseas)
+        expect(OVS.PENSION_SUPPLEMENT_BASIC_COUPLE).toBe(24.80);
+    });
+
     test('agreement countries list contains expected countries', () => {
         // These countries have had agreements for many years and should remain
         const expectedCountries = ['usa', 'ireland', 'germany', 'new-zealand', 'italy'];

@@ -59,9 +59,12 @@ export function getPolicyMetadata() {
  * Rates per deep_research.md (20 March 2026):
  *   Singles:  1.25% on first $64,200; 3.25% above
  *   Couples:  1.25% on first $106,200 combined; 3.25% above
- * NOTE: Deeming rates not independently verified from the live Services Australia page
- * (the deeming landing page is a navigation hub). Verify via:
- * servicesaustralia.gov.au/deeming > Age Pension > "What rates we use"
+ *
+ * NOTE: Deeming RATES (1.25%/3.25%) are NOT independently verified from a live page —
+ * the main deeming landing page (servicesaustralia.gov.au/deeming) is a navigation hub.
+ * These rates are sourced from deep_research.md. Verify at the next indexation date.
+ * Deeming THRESHOLDS ($64,200 / $106,200) are from the original Sept 2025 config and
+ * have not been updated here — they may have changed at March 2026 indexation.
  *
  * @param {number} financialAssets - Total assessable financial assets (AUD)
  * @param {boolean} isCouple - Whether to apply couple threshold

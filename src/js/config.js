@@ -212,14 +212,29 @@ export const ENHANCED_CONFIG = {
         PORTABILITY_THRESHOLD_WEEKS: 26,          // After 26 weeks, AWLR-proportional rate applies
         RETURN_WAITING_PERIOD_YEARS: 2,           // Years waiting period if return after absence
 
-        // ===== SUPPLEMENT REDUCTIONS BY SCENARIO =====
-        // When supplements stop (after 6 weeks OR from departure if permanent move):
-        // Single: Pension Supplement top-up ($78.40/fn) + Energy Supplement ($14.10/fn) lost
-        //         = $92.50/fortnight × 26 = ~$2,405/year
-        // Couple: $69.70/fn per person × 26 = ~$1,812/year per person
-        // March 2026 estimated rates (proportionally indexed from Sept 2025)
-        PENSION_SUPPLEMENT_REDUCTION_SINGLE: 2405,    // Annual supplement reduction - single (March 2026)
-        PENSION_SUPPLEMENT_REDUCTION_COUPLE: 1812,    // Annual supplement reduction per person - couple (March 2026)
+        // ===== SUPPLEMENT REDUCTIONS WHEN OVERSEAS =====
+        // Source: servicesaustralia.gov.au/how-much-pension-supplement-you-can-get
+        //         servicesaustralia.gov.au/pension-supplement-while-travelling-outside-australia
+        // Verified: 14 May 2026 — pension supplement page last updated 20 March 2026
+        //
+        // When overseas >6 weeks (or from departure if permanent move), the Pension Supplement
+        // reduces to the BASIC rate (NOT zero). Only the TOP-UP above basic rate is lost.
+        // The Energy Supplement also STOPS completely.
+        //
+        // March 2026 verified rates:
+        // Single:  Full supplement = $86.50/fn,  Basic = $30.10/fn, Energy = $14.10/fn
+        //          Lost per fortnight = ($86.50 - $30.10) + $14.10 = $70.50/fn
+        //          Annual reduction = $70.50 × 26 = $1,833/year
+        // Couple:  Full supplement each = $65.20/fn, Basic each = $24.80/fn, Energy each = $10.60/fn
+        //          Lost per person per fortnight = ($65.20 - $24.80) + $10.60 = $51.00/fn
+        //          Annual reduction per person = $51.00 × 26 = $1,326/year
+        //
+        // NOTE: PENSION_SUPPLEMENT_REDUCTION_COUPLE is the per-person amount.
+        //       In policy-engine.js, the couple total is multiplied by 2.
+        PENSION_SUPPLEMENT_BASIC_SINGLE: 30.10,        // $/fn retained overseas (single basic rate)
+        PENSION_SUPPLEMENT_BASIC_COUPLE: 24.80,        // $/fn retained overseas (couple each basic rate)
+        PENSION_SUPPLEMENT_REDUCTION_SINGLE: 1833,     // Annual reduction - single ($70.50/fn × 26)
+        PENSION_SUPPLEMENT_REDUCTION_COUPLE: 1326,     // Annual reduction per person - couple ($51.00/fn × 26)
 
         // ASFA comfortable retirement standard (2025, used for overseas cost comparisons)
         ASFA_SINGLE_ANNUAL: 51814,
