@@ -8987,18 +8987,21 @@ class RetirementCalculatorApp {
         const config = ENHANCED_CONFIG.DEFAULTS;
         const inputIds = Object.values(this.getAllFormInputs()).flat();
 
+        // Must match populateFormFromData()'s percentageFields list in utils.js so that
+        // Load, Fill Defaults, and Reset all treat the same fields as percentages.
         const percentageFieldIds = [
             'percentIncomeSaved', 'mortgageRate', 'investmentPropertyRate',
             'propertyGrowthRate', 'capitalGainsTaxRate', 'healthcareInflation',
-            'agedCareProbability', 'inflation', 'investmentReturn',
-            'returnDeclineRate', 'savingsReturn', 'superReturn',
-            'salaryGrowthRate', 'leanYearsReduction', 'australianEquityAllocation',
+            'agedCareProbability', 'inflation', 'investmentReturn', 'returnDeclineRate',
+            'savingsReturn', 'superReturn', 'salaryGrowthRate', 'leanYearsReduction',
             'dividendYield', 'frankingRate', 'returnVolatility', 'shockProbability', 'shockMagnitude',
+            'australianEquityAllocation', 'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
+            'carerReducedWorkPercent', 'vacancyRate', 'maintenanceInflation',
+            'trustTaxRate', 'beneficiaryAllocation', 'extremeInflationProbability', 'propertyCrashProbability',
+            'creditCardRate', 'personalLoanRate', 'carLoanRate', 'employerSuperContributionRate',
+            // dependent detail percentages — skipped by getDefaultValue() returning null, but listed for completeness
             'childrenUnder5Percent', 'childrenPrimaryPercent', 'teenagersPercent', 'adultDisabledPercent',
-            'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent',
-            'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
-            'creditCardRate', 'personalLoanRate', 'carerReducedWorkPercent', 'carLoanRate',
-            'employerSuperContributionRate'
+            'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent'
         ];
 
         let filledCount = 0;
@@ -9024,9 +9027,11 @@ class RetirementCalculatorApp {
                 }
             } else {
                 if (element.value.trim() === '') {
-                    element.value = percentageFieldIds.includes(inputId) && typeof defaultValue === 'number'
-                        ? (defaultValue * 100).toFixed(2)
-                        : defaultValue;
+                    // DEFAULTS already store percentage values as whole numbers (e.g. 6.05 for
+                    // 6.05%) — collectInputs() divides by 100 when reading them back. No
+                    // multiplication is needed here; just set the value as-is so the field shows
+                    // the correct human-readable percentage.
+                    element.value = defaultValue;
                     filledCount++;
                 }
             }
@@ -9053,18 +9058,21 @@ class RetirementCalculatorApp {
         const config = ENHANCED_CONFIG.DEFAULTS;
         const inputIds = Object.values(this.getAllFormInputs()).flat();
 
+        // Must match populateFormFromData()'s percentageFields list in utils.js so that
+        // Load, Fill Defaults, and Reset all treat the same fields as percentages.
         const percentageFieldIds = [
             'percentIncomeSaved', 'mortgageRate', 'investmentPropertyRate',
             'propertyGrowthRate', 'capitalGainsTaxRate', 'healthcareInflation',
-            'agedCareProbability', 'inflation', 'investmentReturn',
-            'returnDeclineRate', 'savingsReturn', 'superReturn',
-            'salaryGrowthRate', 'leanYearsReduction', 'australianEquityAllocation',
+            'agedCareProbability', 'inflation', 'investmentReturn', 'returnDeclineRate',
+            'savingsReturn', 'superReturn', 'salaryGrowthRate', 'leanYearsReduction',
             'dividendYield', 'frankingRate', 'returnVolatility', 'shockProbability', 'shockMagnitude',
+            'australianEquityAllocation', 'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
+            'carerReducedWorkPercent', 'vacancyRate', 'maintenanceInflation',
+            'trustTaxRate', 'beneficiaryAllocation', 'extremeInflationProbability', 'propertyCrashProbability',
+            'creditCardRate', 'personalLoanRate', 'carLoanRate', 'employerSuperContributionRate',
+            // dependent detail percentages — skipped by getDefaultValue() returning null, but listed for completeness
             'childrenUnder5Percent', 'childrenPrimaryPercent', 'teenagersPercent', 'adultDisabledPercent',
-            'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent',
-            'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
-            'creditCardRate', 'personalLoanRate', 'carerReducedWorkPercent', 'carLoanRate',
-            'employerSuperContributionRate'
+            'elderlyIndependentPercent', 'elderlyHomeCarePercent', 'elderlyResidentialPercent', 'otherDependentsPercent'
         ];
 
         inputIds.forEach(inputId => {
@@ -9080,9 +9088,10 @@ class RetirementCalculatorApp {
                         element.checked = true;
                     }
                 } else {
-                    // Handle percentage fields correctly for display
+                    // DEFAULTS store percentage values as whole numbers (e.g. 6.05 for 6.05%),
+                    // so no * 100 conversion is needed — set the value as-is.
                     if (percentageFieldIds.includes(inputId) && typeof defaultValue === 'number') {
-                        element.value = (defaultValue * 100).toFixed(2);
+                        element.value = defaultValue;
                     } else {
                         element.value = defaultValue || '';
                     }
@@ -9239,13 +9248,13 @@ class RetirementCalculatorApp {
             'downsizeContribution': false,
             'employerSuperContributionRate': 0,
 
-            // Debts
+            // Debts — rates stored as whole percentages (collectInputs divides by 100)
             'creditCardBalance': 0,
-            'creditCardRate': 0.20,
+            'creditCardRate': 20,
             'personalLoanBalance': 0,
-            'personalLoanRate': 0.09,
+            'personalLoanRate': 9,
             'carLoanBalance': 0,
-            'carLoanRate': 0.08,
+            'carLoanRate': 8,
             'hecsBalance': 0,
 
             // Lifestyle
