@@ -198,17 +198,20 @@ export const ENHANCED_CONFIG = {
 
         // ===== OVERSEAS ABSENCE RULE THRESHOLDS =====
         // Source: Services Australia - portability rules (2026)
-        // Rule 1 (0 to 6 weeks): Full rate including Pension Supplement top-up and Energy Supplement
+        // Budget 2026-27 update (effective 20 Sep 2026): SHORT_ABSENCE_WEEKS raised from 6 → 12.
+        // Rule 1 (0 to 12 weeks from 20 Sep 2026; was 6 weeks): Full rate including Pension Supplement top-up and Energy Supplement
         //                         Pensioner Concession Card still valid
-        // Rule 2 (>6 weeks, <=26 weeks): Pension Supplement drops to BASIC RATE only
-        //                                 Energy Supplement STOPS. PCC cancelled after 6 weeks.
+        // Rule 2 (>12 weeks, <=26 weeks): Pension Supplement drops to BASIC RATE only
+        //                                 Energy Supplement STOPS. PCC cancelled after 12 weeks.
         //                                 Pension base rate continues unchanged.
         // Rule 3 (>26 weeks, permanent move): AWLR proportional rate applies to base pension.
         //                                      If moving to live overseas, supplement changes apply
         //                                      FROM DEPARTURE DATE (not after 26 weeks).
         // Rule 4 (return within 2 years):  2-year former resident waiting period applies
         //                                  (exceptions: agreement countries, humanitarian visas)
-        SHORT_ABSENCE_WEEKS: 6,                   // Supplements retained for up to 6 weeks absence
+        // Budget 2026-27: Extended from 6 → 12 weeks effective 20 September 2026.
+        // Source: budget.gov.au; servicesaustralia.gov.au (update pending)
+        SHORT_ABSENCE_WEEKS: 12,                  // Supplements retained for up to 12 weeks absence (from 20 Sep 2026)
         PORTABILITY_THRESHOLD_WEEKS: 26,          // After 26 weeks, AWLR-proportional rate applies
         RETURN_WAITING_PERIOD_YEARS: 2,           // Years waiting period if return after absence
 
@@ -236,9 +239,11 @@ export const ENHANCED_CONFIG = {
         PENSION_SUPPLEMENT_REDUCTION_SINGLE: 1833,     // Annual reduction - single ($70.50/fn × 26)
         PENSION_SUPPLEMENT_REDUCTION_COUPLE: 1326,     // Annual reduction per person - couple ($51.00/fn × 26)
 
-        // ASFA comfortable retirement standard (2025, used for overseas cost comparisons)
-        ASFA_SINGLE_ANNUAL: 51814,
-        ASFA_COUPLE_ANNUAL: 73031,
+        // ASFA comfortable retirement standard (December 2025 quarter — most recent)
+        // Source: superannuation.asn.au/wp-content/uploads/2026/02/260223-ASFA-Retirement_Standard-Summary.pdf
+        // Updated: May 2026
+        ASFA_SINGLE_ANNUAL: 52085,
+        ASFA_COUPLE_ANNUAL: 73337,
 
         // Countries with Australian Social Security Agreements (as of 2025)
         // Source: Department of Social Services - dss.gov.au/international-social-security-agreements
@@ -315,6 +320,13 @@ export const ENHANCED_CONFIG = {
 
     // Division 293 threshold: extra 15% contributions tax when income + concessional > $250,000
     DIVISION_293_THRESHOLD: 250000,
+
+    // Division 296 Tax — effective 1 July 2026 (already law, legislated 13 March 2026)
+    // Additional 15% tax on superannuation EARNINGS attributable to balances above $3 million.
+    // Applied as: tax = 0.15 × earnings × (TSB - $3M) / TSB (proportional method).
+    // Source: ATO; australiansuper.com/changes-to-superannuation; heffron.com.au/division-296
+    DIVISION_296_THRESHOLD: 3000000,
+    DIVISION_296_RATE: 0.15,
 
     // Concessional and non-concessional contribution caps (ATO 2024-25 onwards)
     CONCESSIONAL_CAP: 30000,
@@ -659,7 +671,7 @@ export const ENHANCED_CONFIG = {
             shockMagnitude: -25     // -25% → /100 → -0.25
         },
         pension: {
-            asfaComfortable: 73031,         // Updated 2025-10-01: ASFA March 2025
+            asfaComfortable: 73337,         // Updated May 2026: ASFA December 2025 quarter ($73,337 couple comfortable)
             agePensionMax: 47070,           // Updated 2026-03-20: March 2026 couple max ($1,810.40/fn × 26)
             pensionAssetThreshold: 481500,  // Updated 2026-03-20: Couple homeowner March 2026 (verified)
             pensionAssetLimit: 1085000,     // Updated 2026-03-20: Couple homeowner March 2026 (verified)

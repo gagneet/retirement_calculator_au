@@ -132,7 +132,7 @@ export class OverseasRetirementAnalyzer {
                 disadvantages: [
                     `⚠️ ${cfg.RETURN_WAITING_PERIOD_YEARS}-year former resident waiting period applies on return to Australia`,
                     'Must be in Australia to initially apply for Age Pension',
-                    'Pension Supplement top-up and Energy Supplement stop after 6 weeks overseas',
+                    'Pension Supplement top-up and Energy Supplement stop after 12 weeks overseas (from 20 Sep 2026; was 6 weeks)',
                     'AWLR-proportional rate applies after 26 weeks overseas'
                 ]
             },

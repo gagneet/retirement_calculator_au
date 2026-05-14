@@ -8,13 +8,14 @@ export class TaxOptimizer {
         this.config = config;
         this.currentYear = new Date().getFullYear();
 
-        // Australian tax constants (2024-25)
+        // Australian tax constants — use indexed config values where available
         this.CONCESSIONAL_CAP = 30000;
         this.NON_CONCESSIONAL_CAP = 120000;
         this.NON_CONCESSIONAL_CAP_3YEAR = 360000;
         this.DIVISION_293_THRESHOLD = 250000;
         this.TOTAL_SUPER_BALANCE_THRESHOLD = 500000; // For carry-forward
-        this.TRANSFER_BALANCE_CAP = 1900000; // 2024-25
+        // Transfer Balance Cap: $2.0M (FY2025-26); $2.1M from 1 Jul 2026 (FY2026-27)
+        this.TRANSFER_BALANCE_CAP = (config && config.TRANSFER_BALANCE_CAP_FY2027) || 2100000;
         this.DOWNSIZER_CONTRIBUTION = 300000;
         this.DOWNSIZER_MIN_AGE = 55;
         this.SUPER_TAX_RATE = 0.15;

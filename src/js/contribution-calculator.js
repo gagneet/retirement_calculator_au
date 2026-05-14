@@ -7,13 +7,14 @@ export class ContributionCalculator {
     constructor(config) {
         this.config = config;
 
-        // 2024-25 contribution caps
+        // Contribution caps — current FY2025-26 values; TBC indexed to $2.1M from 1 Jul 2026
         this.CONCESSIONAL_CAP = 30000;
         this.NON_CONCESSIONAL_CAP = 120000;
         this.NON_CONCESSIONAL_CAP_3YEAR = 360000;
         this.DIVISION_293_THRESHOLD = 250000;
         this.TOTAL_SUPER_BALANCE_THRESHOLD = 500000;
-        this.TRANSFER_BALANCE_CAP = 1900000;
+        // Transfer Balance Cap indexed: $2.0M (FY2025-26) → $2.1M (FY2026-27, from 1 Jul 2026)
+        this.TRANSFER_BALANCE_CAP = (config && config.TRANSFER_BALANCE_CAP_FY2027) || 2100000;
         this.SPOUSE_CONTRIBUTION_INCOME_LIMIT = 40000;
         this.SPOUSE_CONTRIBUTION_MAX_OFFSET = 540;
         this.GOVERNMENT_COCONTRIBUTION_INCOME_THRESHOLD = 42016;
