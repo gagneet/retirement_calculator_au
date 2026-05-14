@@ -292,8 +292,8 @@ class RetirementCalculatorApp {
                 initializeNumericInputs();
 
                 debugLog('🌟 About to show enhanced summary...');
-                // Show enhanced summary
-                this.showReturningUserEnhancedSummary(data.userData, data.scenarioName);
+                // Show enhanced summary (fallback name if scenarioName not present in file)
+                this.showReturningUserEnhancedSummary(data.userData, data.scenarioName || 'Imported Data');
 
                 debugLog('🔘 Showing action buttons...');
                 // Show action buttons for advanced analysis
@@ -479,54 +479,9 @@ class RetirementCalculatorApp {
         }
     }
 
-    // Duplicate methods removed - both showReturningUserEnhancedSummary and calculateReturningUserProjections already defined above
-    async handleReturningUserFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) {
-            return; // User cancelled the file picker
-        }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = JSON.parse(e.target.result);
-                if (!data.userData || !data.version) {
-                    showNotification('Invalid retirement calculator data file format.', 'error');
-                    return;
-                }
-
-                // Populate form with imported data
-                populateFormFromData(data.userData, data.version);
-
-                // Trigger currency and percentage input formatting
-                initializeCurrencyInputs();
-                initializePercentageInputs();
-                initializeNumericInputs();
-
-                // Show enhanced summary
-                this.showReturningUserEnhancedSummary(data.userData, data.scenarioName || 'Imported Data');
-
-                // Show action buttons for advanced analysis
-                const actionButtonsContainer = $('action-buttons-container');
-                if (actionButtonsContainer) {
-                    actionButtonsContainer.classList.remove('hidden');
-                }
-
-                showNotification('Successfully imported your retirement data!', 'success');
-                debugLog('✅ Successfully imported returning user data');
-
-            } catch (error) {
-                console.error('❌ Error parsing imported file:', error);
-                showNotification('Error reading the selected file. Please ensure it\'s a valid retirement calculator data file.', 'error');
-            }
-        };
-
-        reader.onerror = () => {
-            showNotification('Error reading the selected file. Please try again.', 'error');
-        };
-
-        reader.readAsText(file);
-    }
+    // NOTE: handleReturningUserFileSelect is defined above (line ~263).
+    // The duplicate definition that previously existed here has been removed
+    // to fix the method shadowing bug (later definition silently overrode earlier one).
 
     showOnboardingCompletedState() {
         const onboardingButtons = document.getElementById('onboarding-buttons');
@@ -6847,6 +6802,10 @@ class RetirementCalculatorApp {
                 safeSetText('mcMedian', formatCurrency(results.median));
                 safeSetText('mc10th', formatCurrency(results.percentile10));
                 safeSetText('mcConfidence', `${(results.successRate * 100).toFixed(0)}%`);
+                // Update SVG confidence gauge
+                if (typeof window.updateConfidenceGauge === 'function') {
+                    window.updateConfidenceGauge(results.successRate * 100);
+                }
 
                 // Display enhanced Monte Carlo metrics if available
                 if (results.regimeAnalysis) {
@@ -9318,6 +9277,10 @@ class RetirementCalculatorApp {
             const resilience = this.resilienceEngine.runAllScenarios();
             this.currentResilience = resilience;
 
+            // Store last outcome for use by overseas scenarios panel
+            this.lastOutcome = outcome;
+            window._appInstance = this; // expose for overseas scenario tree access
+
             // Display outcome results
             this.displayOutcomeResults(outcome, actions, resilience);
 
@@ -9447,6 +9410,61 @@ class RetirementCalculatorApp {
         const outcomeContainer = $('outcome-view-container');
         if (outcomeContainer) {
             outcomeContainer.classList.add('active');
+        }
+
+        // ── Retirement Paycheck Card ─────────────────────────────────────
+        if (typeof window.updatePaycheckCard === 'function') {
+            window.updatePaycheckCard(outcome, this.currentResults);
+        }
+
+        // ── Funding Source Glide Chart ───────────────────────────────────
+        // Build yearly funding source data from simulator results if available
+        if (typeof window.updateFundingGlideChart === 'function') {
+            const sim = this.currentResults;
+            if (sim && sim.yearByYear && Array.isArray(sim.yearByYear)) {
+                const inputs = this.collectInputs();
+                const retirementAge = inputs.retirementAge || outcome.retirementAge || 67;
+                const lifespan = inputs.yourLifespan || outcome.lifespan || 85;
+                const inflation = inputs.inflation || 0.026;
+                const yearlyGlide = [];
+
+                sim.yearByYear.forEach((yr, idx) => {
+                    const age = (inputs.yourCurrentAge || 50) + idx;
+                    if (age < retirementAge || age > lifespan) return;
+                    const yearsFromRetire = age - retirementAge;
+                    // Deflate to today's dollars
+                    const inflFactor = Math.pow(1 + inflation, (retirementAge - (inputs.yourCurrentAge || 50)) + yearsFromRetire);
+                    const deflate = (n) => (n || 0) / inflFactor;
+
+                    yearlyGlide.push({
+                        age,
+                        superIncome: deflate(yr.superDrawdown || yr.superIncome || 0),
+                        pensionIncome: deflate(yr.agePension || yr.pensionIncome || 0),
+                        otherIncome: deflate(yr.propertyIncome || yr.rentalIncome || yr.otherIncome || 0)
+                    });
+                });
+
+                if (yearlyGlide.length > 0) {
+                    window.updateFundingGlideChart(yearlyGlide);
+                }
+            } else {
+                // Fallback: build simplified 3-point glide from outcome data
+                const retAge = outcome.retirementAge || 67;
+                const lifeAge = outcome.lifespan || 85;
+                const midAge = Math.round((retAge + lifeAge) / 2);
+                const simplePension = outcome.agePension || 0;
+                const simpleSuper = Math.max(0, (outcome.sustainableIncome || 0) - simplePension);
+                window.updateFundingGlideChart([
+                    { age: retAge, superIncome: simpleSuper, pensionIncome: 0, otherIncome: 0 },
+                    { age: midAge, superIncome: simpleSuper * 0.7, pensionIncome: simplePension, otherIncome: 0 },
+                    { age: lifeAge, superIncome: simpleSuper * 0.3, pensionIncome: simplePension, otherIncome: 0 }
+                ]);
+            }
+        }
+
+        // ── Policy Assumptions Drawer ────────────────────────────────────
+        if (typeof window.populatePolicyDrawer === 'function') {
+            window.populatePolicyDrawer();
         }
     }
 
@@ -10053,5 +10071,379 @@ function fallbackMode() {
             window.location.href = externalFallback;
         });
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// UX ENHANCEMENTS — deep_research.md implementation
+// ══════════════════════════════════════════════════════════════════════
+
+/**
+ * Today's Dollars / Nominal display toggle.
+ * Switches a data attribute on the results container so CSS and JS can
+ * conditionally show/hide real vs nominal values.
+ */
+window._displayMode = 'real'; // default: today's dollars
+
+window.setDisplayMode = function setDisplayMode(mode) {
+    window._displayMode = mode;
+    const resultsEl = document.querySelector('.mt-8.bg-white.rounded-lg.shadow-md');
+    if (resultsEl) resultsEl.setAttribute('data-display-mode', mode);
+
+    const btnReal = document.getElementById('toggle-todays-dollars');
+    const btnNom = document.getElementById('toggle-nominal');
+    if (btnReal) {
+        btnReal.classList.toggle('active', mode === 'real');
+        btnReal.setAttribute('aria-pressed', mode === 'real');
+    }
+    if (btnNom) {
+        btnNom.classList.toggle('active', mode === 'nominal');
+        btnNom.setAttribute('aria-pressed', mode === 'nominal');
+    }
+};
+
+/**
+ * Toggle the Policy Assumptions Drawer.
+ */
+window.togglePolicyDrawer = function togglePolicyDrawer() {
+    const trigger = document.getElementById('policy-drawer-trigger');
+    const body = document.getElementById('policy-drawer-body');
+    if (!trigger || !body) return;
+    const isOpen = trigger.getAttribute('aria-expanded') === 'true';
+    trigger.setAttribute('aria-expanded', !isOpen);
+    body.classList.toggle('open', !isOpen);
+};
+
+/**
+ * Toggle "Why this matters" micro-copy panels.
+ * @param {string} id — the id of the .why-matters-body element
+ */
+window.toggleWhyMatters = function toggleWhyMatters(id) {
+    const body = document.getElementById(id);
+    if (!body) return;
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    // Update trigger aria state
+    const trigger = body.previousElementSibling;
+    if (trigger && trigger.classList.contains('why-matters-trigger')) {
+        trigger.setAttribute('aria-expanded', !isOpen);
+        trigger.textContent = (isOpen ? '▸' : '▾') + ' Why this matters';
+    }
+};
+
+/**
+ * Populate the Policy Assumptions Drawer and the policy date badge
+ * with values from ENHANCED_CONFIG.
+ * Called once after app initialisation and after any calculation.
+ */
+window.populatePolicyDrawer = function populatePolicyDrawer() {
+    try {
+        // Lazy import to avoid circular deps
+        import('./config.js').then(({ ENHANCED_CONFIG: C }) => {
+            const fmt = (n) => n ? '$' + Math.round(n).toLocaleString('en-AU') : '—';
+            const fmtPct = (r) => r ? (r * 100).toFixed(2) + '%' : '—';
+
+            const dateEl = document.getElementById('display-policy-date');
+            if (dateEl) dateEl.textContent = C.POLICY_EFFECTIVE_DATE || '—';
+
+            const set = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = val;
+            };
+
+            set('pd-effective-date', C.POLICY_EFFECTIVE_DATE || '—');
+            set('pd-single-max',
+                `${fmt(C.SINGLE_PENSION_MAX)}/yr <span class="policy-row-date">(${fmt(C.SINGLE_PENSION_MAX / 26)}/fn)</span>`);
+            set('pd-couple-max',
+                `${fmt(C.COUPLE_PENSION_MAX)}/yr <span class="policy-row-date">(${fmt(C.COUPLE_PENSION_MAX / 26)}/fn combined)</span>`);
+            set('pd-deeming',
+                `${fmtPct(C.DEMING_RATE_LOWER)} below $${(C.DEMING_THRESHOLD_SINGLE / 1000).toFixed(0)}k (single) · ${fmtPct(C.DEMING_RATE_UPPER)} above`);
+            set('pd-asset-single-ho',
+                `${fmt(C.SINGLE_ASSET_THRESHOLD)} / ${fmt(C.SINGLE_ASSET_LIMIT)}`);
+            set('pd-asset-couple-ho',
+                `${fmt(C.COUPLE_ASSET_THRESHOLD)} / ${fmt(C.COUPLE_ASSET_LIMIT)}`);
+            set('pd-next-review', C.POLICY_NEXT_REVIEW_DATE || '—');
+
+            // Tax brackets in use
+            const now = new Date();
+            const fy = now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear();
+            const bracketLabel = fy >= 2028 ? '2027-28 (14% lowest bracket)' :
+                                 fy >= 2027 ? '2026-27 (15% lowest bracket)' :
+                                              '2025-26 (16% lowest bracket)';
+            set('pd-tax-brackets', bracketLabel);
+        }).catch(() => {});
+    } catch (e) {
+        debugLog('populatePolicyDrawer error:', e);
+    }
+};
+
+/**
+ * Update the SVG confidence gauge in the Charts tab.
+ * Arc path total length ≈ 116.2px (half-circle, r=37).
+ * @param {number} pct — 0 to 100
+ */
+window.updateConfidenceGauge = function updateConfidenceGauge(pct) {
+    const fill = document.getElementById('confidence-gauge-fill');
+    const text = document.getElementById('confidence-gauge-text');
+    const mcConfidence = document.getElementById('mcConfidence');
+    if (!fill || !text) return;
+
+    const ARC_LENGTH = 116.2;
+    const clamped = Math.max(0, Math.min(100, pct));
+    const filled = (clamped / 100) * ARC_LENGTH;
+
+    fill.setAttribute('stroke-dasharray', `${filled.toFixed(1)} ${(ARC_LENGTH - filled).toFixed(1)}`);
+
+    // Colour: green ≥80, amber 60-79, red <60
+    const colour = clamped >= 80 ? '#22C55E' : clamped >= 60 ? '#F59E0B' : '#EF4444';
+    fill.setAttribute('stroke', colour);
+
+    text.textContent = `${Math.round(clamped)}%`;
+
+    // Update screen-reader element
+    if (mcConfidence) mcConfidence.textContent = `${Math.round(clamped)}%`;
+};
+
+/**
+ * Populate the Retirement Paycheck Card (today's dollars).
+ * @param {Object} outcome — from OutcomeEngine
+ * @param {Object} [sim] — from simulator (optional)
+ */
+window.updatePaycheckCard = function updatePaycheckCard(outcome, sim) {
+    const card = document.getElementById('paycheck-card');
+    if (!card || !outcome) return;
+
+    const superIncome = outcome.superIncome || (outcome.sustainableIncome - (outcome.agePension || 0));
+    const pensionIncome = outcome.agePension || 0;
+    const otherIncome = outcome.propertyIncome || outcome.rentalIncome || 0;
+    const total = Math.max(0, superIncome + pensionIncome + otherIncome);
+
+    if (total <= 0) return; // don't show empty card
+
+    const fmtM = (n) => '$' + Math.round(Math.abs(n) / 12).toLocaleString('en-AU');
+    const pct = (n) => total > 0 ? Math.round((n / total) * 100) + '%' : '0%';
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const setHTML = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
+
+    set('paycheck-total', fmtM(total));
+    set('paycheck-period', `per month · at age ${outcome.retirementAge || '—'} (today's dollars)`);
+    set('paycheck-super', fmtM(superIncome));
+    set('paycheck-super-pct', pct(superIncome) + ' of income');
+    set('paycheck-pension', fmtM(pensionIncome));
+    set('paycheck-pension-pct', pct(pensionIncome) + ' of income');
+    set('paycheck-other', fmtM(otherIncome));
+    set('paycheck-other-pct', pct(otherIncome) + ' of income');
+
+    // Proportion bar widths
+    const superBar = document.getElementById('paycheck-bar-super');
+    const penBar = document.getElementById('paycheck-bar-pension');
+    const otherBar = document.getElementById('paycheck-bar-other');
+    if (superBar) superBar.style.width = pct(superIncome);
+    if (penBar) penBar.style.width = pct(pensionIncome);
+    if (otherBar) otherBar.style.width = pct(otherIncome);
+
+    const modeNote = window._displayMode === 'nominal'
+        ? 'Amounts shown in nominal (future) dollars — actual purchasing power will differ.'
+        : 'Amounts shown in today\'s dollars (adjusted for inflation). Age Pension subject to means testing.';
+    set('paycheck-note', modeNote);
+
+    card.style.display = '';
+};
+
+/**
+ * Draw the Funding Source Glide Chart (stacked area/bar by age).
+ * Shows the shift from self-funded → mixed → pension-heavy.
+ * Requires a year-by-year projection array from the simulator.
+ * @param {Array} yearlyData — [{age, superIncome, pensionIncome, otherIncome}]
+ */
+window.updateFundingGlideChart = function updateFundingGlideChart(yearlyData) {
+    const wrap = document.getElementById('funding-glide-wrap');
+    const canvas = document.getElementById('fundingGlideChart');
+    if (!wrap || !canvas || !yearlyData || yearlyData.length === 0) return;
+
+    wrap.style.display = '';
+
+    // Destroy previous instance if exists
+    if (window._fundingGlideChartInstance) {
+        try { window._fundingGlideChartInstance.destroy(); } catch (e) {}
+        window._fundingGlideChartInstance = null;
+    }
+
+    const labels = yearlyData.map(d => `Age ${d.age}`);
+    const superData = yearlyData.map(d => Math.max(0, d.superIncome || 0));
+    const pensionData = yearlyData.map(d => Math.max(0, d.pensionIncome || 0));
+    const otherData = yearlyData.map(d => Math.max(0, d.otherIncome || 0));
+
+    if (typeof Chart === 'undefined') return;
+
+    window._fundingGlideChartInstance = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Super Drawdown',
+                    data: superData,
+                    backgroundColor: '#C9A227',
+                    stack: 'income'
+                },
+                {
+                    label: 'Age Pension',
+                    data: pensionData,
+                    backgroundColor: '#3B82F6',
+                    stack: 'income'
+                },
+                {
+                    label: 'Other Income',
+                    data: otherData,
+                    backgroundColor: '#10B981',
+                    stack: 'income'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.dataset.label}: $${Math.round(ctx.raw).toLocaleString('en-AU')}/yr`
+                    }
+                }
+            },
+            scales: {
+                x: { stacked: true, ticks: { font: { size: 10 }, maxRotation: 45 } },
+                y: {
+                    stacked: true,
+                    ticks: {
+                        callback: v => '$' + (v / 1000).toFixed(0) + 'k',
+                        font: { size: 10 }
+                    }
+                }
+            }
+        }
+    });
+};
+
+/**
+ * Generate the four-scenario overseas comparison panel.
+ * Uses policy-engine.js generateOverseasScenarioTree().
+ * Called from the "Calculate Scenarios" button in the Overseas tab.
+ */
+window.generateOverseasScenariosTree = async function generateOverseasScenariosTree() {
+    const loadingEl = document.getElementById('overseasScenariosLoading');
+    const resultsEl = document.getElementById('overseasScenariosResults');
+    const placeholderEl = document.getElementById('overseasScenariosPlaceholder');
+    const treeEl = document.getElementById('overseas-scenario-tree');
+    const disclaimerEl = document.getElementById('overseas-disclaimer');
+
+    if (!treeEl) return;
+
+    if (loadingEl) loadingEl.classList.remove('hidden');
+    if (placeholderEl) placeholderEl.style.display = 'none';
+    if (resultsEl) resultsEl.style.display = 'none';
+
+    try {
+        const { generateOverseasScenarioTree } = await import('./policy-engine.js');
+        const { ENHANCED_CONFIG } = await import('./config.js');
+
+        // Get inputs from the overseas tab
+        const awlrEl = document.getElementById('australianResidenceYears');
+        const awlrYears = awlrEl && awlrEl.value
+            ? parseInt(awlrEl.value, 10)
+            : Math.min(51, Math.max(0, (parseInt(document.getElementById('yourCurrentAge')?.value || '50', 10) - 16)));
+
+        const isCouple = !!(document.getElementById('partnerCurrentAge')?.value);
+        const agreementCountry = document.getElementById('overseasAgreementCountry')?.checked || false;
+
+        // Estimate base pension from main calculator result if available
+        const appInstance = window._appInstance;
+        let basePension = 0;
+        if (appInstance && appInstance.lastOutcome) {
+            basePension = appInstance.lastOutcome.agePension || 0;
+        }
+        // Fallback: use config max if no calculation run yet
+        if (!basePension) {
+            basePension = isCouple ? ENHANCED_CONFIG.COUPLE_PENSION_MAX : ENHANCED_CONFIG.SINGLE_PENSION_MAX;
+        }
+
+        const tree = generateOverseasScenarioTree({ basePension, awlrYears, isCouple, agreementCountry });
+
+        // Build scenario cards
+        const scenarios = [
+            {
+                key: 'stayInAustralia',
+                label: 'Stay in Australia',
+                emoji: '🇦🇺',
+                data: tree.stayInAustralia,
+                cssClass: 'best',
+                warnings: []
+            },
+            {
+                key: 'shortAbsence',
+                label: `Short Trip ≤${ENHANCED_CONFIG.OVERSEAS_RETIREMENT.SHORT_ABSENCE_WEEKS} weeks`,
+                emoji: '✈️',
+                data: tree.shortAbsence,
+                cssClass: 'neutral',
+                warnings: tree.shortAbsence.warnings || []
+            },
+            {
+                key: 'longAbsence',
+                label: `Visit/Stay >6–26 weeks`,
+                emoji: '🗓️',
+                data: tree.longAbsence,
+                cssClass: tree.longAbsence.pensionReduced ? 'warning' : 'neutral',
+                warnings: tree.longAbsence.warnings || []
+            },
+            {
+                key: 'permanentMove',
+                label: 'Permanent Move',
+                emoji: '🏠',
+                data: tree.permanentMove,
+                cssClass: 'critical',
+                warnings: tree.permanentMove.warnings || []
+            }
+        ];
+
+        const fmtAnn = (n) => '$' + Math.round(n).toLocaleString('en-AU');
+
+        treeEl.innerHTML = scenarios.map(s => {
+            const delta = s.data.annualPension - basePension;
+            const deltaPct = basePension > 0 ? ((delta / basePension) * 100).toFixed(1) : '0';
+            const deltaClass = delta < 0 ? 'neg' : 'pos';
+            const deltaStr = delta === 0 ? 'No change' : `${delta < 0 ? '−' : '+'}${fmtAnn(Math.abs(delta))}/yr`;
+
+            return `<div class="overseas-scenario-card ${s.cssClass}">
+                <div class="overseas-scenario-label">${s.emoji} ${s.label}</div>
+                <div class="overseas-scenario-pension">${fmtAnn(s.data.annualPension)}<span style="font-size:0.75rem;font-weight:400;color:#64748B">/yr</span></div>
+                <div class="overseas-scenario-delta ${deltaClass}">${deltaStr}${delta !== 0 ? ` (${Math.abs(deltaPct)}%)` : ''}</div>
+                ${s.warnings.length > 0 ? `
+                    <ul class="overseas-scenario-warnings">
+                        ${s.warnings.slice(0, 3).map(w => `<li>• ${w}</li>`).join('')}
+                    </ul>` : ''}
+            </div>`;
+        }).join('');
+
+        if (disclaimerEl) {
+            disclaimerEl.textContent = tree.summary.disclaimer;
+        }
+
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (resultsEl) resultsEl.style.display = '';
+
+    } catch (err) {
+        console.error('generateOverseasScenariosTree error:', err);
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (placeholderEl) {
+            placeholderEl.style.display = '';
+            placeholderEl.innerHTML = '<p class="text-sm text-red-500 mt-4">Error generating scenarios. Please run the main calculation first.</p>';
+        }
+    }
+};
+
+// Initialise the policy date badge and drawer on page load
+document.addEventListener('DOMContentLoaded', () => {
+    window.populatePolicyDrawer();
+    window.setDisplayMode('real');
+});
 
 export default RetirementCalculatorApp;
