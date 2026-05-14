@@ -508,72 +508,126 @@ export const ENHANCED_CONFIG = {
 
     // Default values for new users - consolidated from app.js
     DEFAULTS: {
+        // ── Sources (all figures current to May 2026) ─────────────────────────
+        // Salary       : ABS Employee Earnings Aug 2025 — median full-time $1,741/wk
+        // Super        : APRA Quarterly Super Stats Dec 2025 — avg balance by age
+        // Home value   : CoreLogic National Home Value Index Apr 2026 (~$770k median)
+        // Mortgage rate: RBA Lenders' Interest Rates — avg variable OO Apr 2026 ~6.05%
+        // Property rent: CoreLogic national gross yield ~3.7%; typical 3-bed ~$540/wk
+        // Inflation    : RBA target midpoint / ABS CPI Mar 2026 = 2.4%; use 2.5%
+        // Super return : APRA MySuper balanced 10-yr net median ≈ 8.5%; blended 8.0%
+        // Savings rate : RBA high-interest savings accounts Apr 2026 ≈ 4.5%
+        // Salary growth: ABS WPI Mar 2026 = 3.4%; real ≈ 1.5% after inflation
+        // Healthcare   : AIHW 2023–24 out-of-pocket $1,300 + PHI premiums $2,300 = $3,600
+        // HC inflation : AIHW / ABS healthcare CPI long-run ≈ 5.5% pa
+        // Aged care    : AIHW 65% lifetime chance; median entry 83; 3.5yr avg duration
+        // Property gr  : CoreLogic 10-yr capital city average ≈ 5.5% pa
+        // Retirement   : ABS Retirement & Retirement Intentions 2022–23 — avg age 64.3
+        // Lifespan     : ABS Life Tables 2021–23 — M 81.2, F 85.3; planning at 87/90
         personal: {
-            yourCurrentAge: 49,
-            partnerCurrentAge: 47,
-            retirementAge: 72,
-            partnerRetirementAge: 62,
-            yourLifespan: 85,
-            partnerLifespan: 85
+            yourCurrentAge: 45,           // Mid-career planning age (ABS SIH peak wealth accumulation)
+            partnerCurrentAge: 43,        // Typically ~2 years younger
+            retirementAge: 65,            // ABS average actual retirement age 64.3 → round to 65
+            partnerRetirementAge: 63,
+            yourLifespan: 87,             // ABS Life Tables 2021-23: male 81.2 + longevity buffer
+            partnerLifespan: 90           // ABS Life Tables 2021-23: female 85.3 + longevity buffer
         },
         financial: {
-            yourSalary: 214000,
-            partnerSalary: 34500,
-            yourCurrentSuper: 312000,
-            partnerCurrentSuper: 150000,
-            currentSavings: 55000,
-            currentStocks: 62000,
-            monthlyStockContribution: 900,
-            percentIncomeSaved: 9   // 9% — app.js /100 → 0.09
+            // ABS Employee Earnings Aug 2025: median full-time persons $1,741/wk → $90,532/yr
+            yourSalary: 90500,
+            // Partner at 75th percentile part-time equivalent: ~$750/wk → ~$39,000/yr
+            partnerSalary: 39000,
+            // APRA Dec 2025 — avg super balance age 45-49 persons: ~$150k; age 40-44: ~$95k
+            yourCurrentSuper: 150000,
+            partnerCurrentSuper: 85000,
+            // ABS SIH 2019-20 (latest available) — median household liquid savings ~$25k
+            currentSavings: 25000,
+            // ASX/Russell Investments 2025 — avg direct share holding among investors ~$20k
+            currentStocks: 20000,
+            // Typical monthly ETF/managed fund drip-feed for median earner
+            monthlyStockContribution: 300,
+            // ABS household savings rate FY2025 ≈ 3.9%; rounding to 4% for conservative planning
+            percentIncomeSaved: 4   // 4% — app.js /100 → 0.04
         },
         property: {
-            homeValue: 810000,
-            mortgageBalance: 594000,
+            // CoreLogic National Home Value Index Apr 2026 — national median ~$770k
+            homeValue: 770000,
+            // Typical LVR 65% at mid-point of ownership after ~10 years: $770k × 65% ≈ $500k
+            mortgageBalance: 500000,
             // NOTE: these defaults must be in PERCENTAGE form (not decimal) because app.js
             // collectInputs() divides all these fields by 100.  When a field is absent from
             // index.html, safeGetValue falls back to this default and then the /100 runs.
-            mortgageRate: 5.37,           // 5.37% — safeGetValue reads this, app.js /100 → 0.0537
-            monthlyMortgagePayment: 3584,
-            planToDownsize: true,
+            // RBA Lenders' Interest Rates Apr 2026 — avg variable OO rate ~6.05%
+            mortgageRate: 6.05,           // 6.05% → /100 → 0.0605
+            // P&I repayments on $500k at 6.05% over 20 remaining years ≈ $3,590/month
+            monthlyMortgagePayment: 3590,
+            planToDownsize: false,
             hasInvestmentProperty: false,
-            investmentPropertyValue: 550000,
-            investmentPropertyLoan: 574000,
-            investmentPropertyRate: 6.2,  // 6.2% — safeGetValue reads this, app.js /100 → 0.062
-            weeklyRentalIncome: 554,
-            annualPropertyExpenses: 9675,
-            propertyGrowthRate: 5.8,      // 5.8% CoreLogic median — /100 → 0.058
+            // CoreLogic median investment property value (capital cities) ~$720k
+            investmentPropertyValue: 720000,
+            // Typical 80% LVR investor loan
+            investmentPropertyLoan: 576000,
+            // RBA investor variable rate Apr 2026 ~6.35%
+            investmentPropertyRate: 6.35, // 6.35% → /100 → 0.0635
+            // CoreLogic gross rental yield 3.7% on $720k / 52 = ~$512/wk; round to $520
+            weeklyRentalIncome: 520,
+            // Typical landlord running costs: rates, insurance, PM fees, maintenance ~$9,500/yr
+            annualPropertyExpenses: 9500,
+            // CoreLogic 10-yr capital city annualised growth ≈ 5.5%
+            propertyGrowthRate: 5.5,      // 5.5% → /100 → 0.055
             sellPropertyYears: 15,
-            capitalGainsTaxRate: 22.5     // 22.5% effective rate (45% marginal × 50% discount) — /100 → 0.225
+            // CGT: top marginal 45% × 50% discount = 22.5% effective for high earners
+            capitalGainsTaxRate: 22.5     // 22.5% → /100 → 0.225
         },
         healthcare: {
-            currentHealthcareCosts: 3500,
-            healthcareInflation: 3.82,    // 3.82% AIHW median — safeGetValue reads this, app.js /100 → 0.0382
+            // AIHW 2023-24: avg out-of-pocket $1,300 + PHI single hospital+extras ~$2,300 = $3,600
+            currentHealthcareCosts: 3600,
+            // AIHW / ABS Healthcare CPI long-run average ≈ 5.5% pa
+            healthcareInflation: 5.5,     // 5.5% → /100 → 0.055
             hasPrivateHealth: "comprehensive",
             chronicConditions: "none",
-            agedCareProbability: 22,      // 22% — safeGetValue reads this, app.js /100 → 0.22
-            agedCareStartAge: 85,
-            agedCareDuration: 3,
-            agedCareAnnualCost: 75000
+            // AIHW 2023 — lifetime probability of entering residential aged care: 65%
+            agedCareProbability: 65,      // 65% → /100 → 0.65
+            // AIHW 2023 — median age at entry to residential aged care: 82.8; round to 83
+            agedCareStartAge: 83,
+            // AIHW 2023 — average length of stay in residential aged care: 3.5 years
+            agedCareDuration: 4,
+            // Aged Care Quality and Safety Commission 2024-25 — avg annual cost ~$75k-$80k
+            agedCareAnnualCost: 78000
         },
         economic: {
-            inflation: 2.6,             // 2.6% RBA/ABS median — /100 → 0.026
-            investmentReturn: 5.61,     // 5.61% — /100 → 0.0561
-            returnDeclineRate: 0.03,    // 0.03% p.a. decline — /100 → 0.0003
-            savingsReturn: 1.40,        // 1.40% — /100 → 0.0140
-            superReturn: 7.5,           // 7.5% APRA balanced fund median — /100 → 0.075
-            salaryGrowthRate: 1.5,      // 1.5% real growth — /100 → 0.015
+            // RBA target band 2–3%; ABS CPI Mar 2026 = 2.4%; use midpoint 2.5%
+            inflation: 2.5,             // 2.5% → /100 → 0.025
+            // APRA MySuper balanced product 10-yr net return median ≈ 8.5%;
+            // blended portfolio (60/30/10) at 7.5% after fees is a realistic planning rate
+            investmentReturn: 7.5,      // 7.5% → /100 → 0.075
+            // Conservative 0.2% pa real return decline as portfolio de-risks with age
+            returnDeclineRate: 0.2,     // 0.2% → /100 → 0.002
+            // RBA HISA average Apr 2026 ≈ 4.5%
+            savingsReturn: 4.5,         // 4.5% → /100 → 0.045
+            // APRA MySuper balanced 10-yr net ≈ 8.5%; use 8.0% as conservative planning rate
+            superReturn: 8.0,           // 8.0% → /100 → 0.080
+            // ABS WPI Mar 2026 = 3.4% nominal; real growth after 2.5% inflation ≈ 0.9%;
+            // use 1.5% as a slightly optimistic real salary growth assumption
+            salaryGrowthRate: 1.5,      // 1.5% → /100 → 0.015
             leanYearsStart: 5,
-            leanYearsReduction: 38      // 38% salary reduction in lean years — /100 → 0.38
+            // Typical "semi-retirement" income step-down of ~20% in lean years
+            leanYearsReduction: 20      // 20% → /100 → 0.20
         },
         allocation: {
+            // Age 45 — Rule of 110 minus age = 65% equities; balanced with bonds/cash
             useGlidePath: true,
             glidePathRule: "110minus",
             frankingCreditBenefit: 1.2,
+            // ASX 2025 investor study — avg AU equity share of portfolio ~40%
             australianEquityAllocation: 40,
-            dividendYield: 4.5,         // 4.5% — /100 → 0.045
-            frankingRate: 75,           // 75% — /100 → 0.75
-            allocEquities: 60,          // already percentage form ✓
-            allocBonds: 30,
+            // ASX 200 historical gross dividend yield ≈ 4.2%; use 4.0%
+            dividendYield: 4.0,         // 4.0% → /100 → 0.040
+            // Average franking credit rate on ASX 200 dividends ≈ 75%
+            frankingRate: 75,           // 75% → /100 → 0.75
+            // 110 minus 45 = 65% equities; balanced starter allocation
+            allocEquities: 65,
+            allocBonds: 25,
             allocCash: 10
         },
         trust: {
@@ -588,24 +642,28 @@ export const ENHANCED_CONFIG = {
             stocksInTrust: false
         },
         risk: {
+            // Moderate risk tolerance for a typical 45-year-old couple (score 1-10)
             riskTolerance: 6,
+            // ABS Household Expenditure Survey — most households have 1-3 months' buffer
             hasEmergencyFund: "partial",
+            // Most households carry some debt (mortgage; minimal other debt assumed)
             hasDebt: "minimal",
-            dependents: 0
+            dependents: 1             // ABS 2021 Census — avg household size 2.5; 1 dependent typical
         },
         simulation: {
             numRuns: 5000,
-            returnVolatility: 12,   // 12% — app.js /100 → 0.12
+            // Historical ASX equity volatility ~15%; blended portfolio ~12%
+            returnVolatility: 12,   // 12% → /100 → 0.12
             enableShocks: false,
-            shockProbability: 5,    // 5% — app.js /100 → 0.05
-            shockMagnitude: -25     // -25% — app.js /100 → -0.25
+            shockProbability: 5,    // 5% → /100 → 0.05
+            shockMagnitude: -25     // -25% → /100 → -0.25
         },
         pension: {
-            asfaComfortable: 73031,      // Updated 2025-10-01: ASFA March 2025
-            agePensionMax: 47070,        // Updated 2026-03-20: March 2026 couple max ($1,810.40/fn × 26)
+            asfaComfortable: 73031,         // Updated 2025-10-01: ASFA March 2025
+            agePensionMax: 47070,           // Updated 2026-03-20: March 2026 couple max ($1,810.40/fn × 26)
             pensionAssetThreshold: 481500,  // Updated 2026-03-20: Couple homeowner March 2026 (verified)
-            pensionAssetLimit: 1085000,  // Updated 2026-03-20: Couple homeowner March 2026 (verified)
-            pensionIncomeThreshold: 380  // Updated 2026-03-20: Couple — UNCHANGED from Sept 2025 (verified)
+            pensionAssetLimit: 1085000,     // Updated 2026-03-20: Couple homeowner March 2026 (verified)
+            pensionIncomeThreshold: 380     // Updated 2026-03-20: Couple — UNCHANGED from Sept 2025 (verified)
         }
     },
 
