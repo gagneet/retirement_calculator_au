@@ -1164,11 +1164,15 @@ class RetirementCalculatorApp {
             return result.depletionAge;
         }
 
-        return result?.effectivePartnerLifespan ||
-            result?.effectiveYourLifespan ||
-            inputs.partnerLifespan ||
-            inputs.yourLifespan ||
-            90;
+        // Prioritise main user's lifespan; fall back to partner's, then defaults.
+        // Effective lifespans are 120 for open-ended (0) inputs — use the raw input
+        // when it is meaningful (> current age), otherwise use effectiveYourLifespan.
+        const yourRaw = inputs.yourLifespan > 0 ? inputs.yourLifespan : null;
+        return yourRaw
+            || result?.effectiveYourLifespan
+            || (inputs.partnerLifespan > 0 ? inputs.partnerLifespan : null)
+            || result?.effectivePartnerLifespan
+            || 90;
     }
 
     formatDepletionAgeLabel(result) {
@@ -2726,6 +2730,29 @@ class RetirementCalculatorApp {
         const sc = results.scenarios;
         const retirementYears = (inputs.yourLifespan || 90) - (inputs.retirementAge || 67);
 
+        // Detect open-ended projection mode (lifespan set to 0 = "run until depletion")
+        const isOpenEnded = !(inputs.yourLifespan > 0);
+        const isPartnerOpenEnded = inputs.partnerCurrentAge > 0 && !(inputs.partnerLifespan > 0);
+        const eitherOpenEnded = isOpenEnded || isPartnerOpenEnded;
+
+        // For open-ended projections, compute median/p10 depletion ages from paths
+        const retirementAge = inputs.retirementAge || 67;
+        let medianDepletionAge = null;
+        let p10DepletionAge = null;
+        if (eitherOpenEnded && results.paths && results.paths.length > 0) {
+            const depletionAges = results.paths
+                .map(path => {
+                    const idx = path.findIndex(b => b <= 0);
+                    return idx === -1 ? null : retirementAge + idx;
+                })
+                .filter(a => a !== null)
+                .sort((a, b) => a - b);
+            if (depletionAges.length > 0) {
+                medianDepletionAge = depletionAges[Math.floor(depletionAges.length / 2)];
+                p10DepletionAge   = depletionAges[Math.floor(depletionAges.length * 0.10)];
+            }
+        }
+
         // Apocalypse card — shown only when some scenarios deplete all funds
         const apocalypseCard = sc?.apocalypse ? (() => {
             const ap = sc.apocalypse;
@@ -2733,6 +2760,28 @@ class RetirementCalculatorApp {
             const count = ap.depletedCount;
             const severity = pct >= 50 ? 'critical' : pct >= 20 ? 'high' : 'moderate';
             const bgClass = severity === 'critical' ? 'bg-black' : 'bg-gray-900';
+
+            // For open-ended projections: reframe as "depletion age" rather than % failure
+            if (eitherOpenEnded) {
+                const depletionNote = medianDepletionAge
+                    ? `In these ${count.toLocaleString()} simulations, money runs out at a median age of <strong class="text-red-300">${medianDepletionAge}</strong> (earliest 10% of depletions occur by age ${p10DepletionAge ?? '—'}).`
+                    : `In ${pct}% of simulations, funds are exhausted before age 120.`;
+                const actionNote = pct >= 30
+                    ? 'Consider setting a specific planning age, increasing contributions, or reviewing your spending target.'
+                    : 'This is expected for an open-ended projection — the portfolio is being stress-tested to its natural limit.';
+                return `
+                    <div class="flex gap-3 p-3 ${bgClass} border border-red-900 rounded-lg">
+                        <div class="flex-shrink-0 w-3 h-full min-h-[3rem] bg-red-900 rounded"></div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <strong class="text-red-400">⏱ Open-Ended Depletion Risk <span class="font-normal text-xs text-red-500">(no target age set)</span></strong>
+                                <span class="text-red-400 font-semibold text-sm ml-2">${pct}% of scenarios — ${count.toLocaleString()} runs</span>
+                            </div>
+                            <p class="text-xs text-red-300 mt-1">${depletionNote} ${actionNote}</p>
+                        </div>
+                    </div>`;
+            }
+
             return `
                     <div class="flex gap-3 p-3 ${bgClass} border border-red-900 rounded-lg">
                         <div class="flex-shrink-0 w-3 h-full min-h-[3rem] bg-red-900 rounded"></div>
@@ -2822,8 +2871,36 @@ class RetirementCalculatorApp {
         const depletionSection = (hasApocalypse || medianDepleted) ?
             this.generateDepletionExplanation(results, inputs, { worstDepleted, pessimisticDepleted, medianDepleted }) : '';
 
+        // Open-ended projection banner — shown when lifespan is 0 (no target age set)
+        const openEndedBanner = eitherOpenEnded ? `
+            <div class="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-lg text-sm text-amber-800">
+                <strong>⚠️ Open-Ended Projection</strong> — ${isOpenEnded && isPartnerOpenEnded
+                    ? 'Neither you nor your partner has a target lifespan set.'
+                    : isOpenEnded
+                    ? 'Your lifespan is set to open-ended (no target age).'
+                    : "Your partner's lifespan is set to open-ended."
+                }
+                The simulation runs until funds are exhausted (up to age 120), which naturally produces high depletion rates — this is by design, not a sign your plan is failing.
+                ${medianDepletionAge
+                    ? `<strong>In the median scenario, money lasts until age ${medianDepletionAge}.</strong>`
+                    : ''
+                }
+                To see a conventional success-rate percentage, enter a specific target age in the lifespan field.
+            </div>` : '';
+
+        // Adjust success rate label for open-ended projections
+        const successRateLabel = eitherOpenEnded
+            ? `Runs lasting past retirement: ${successRate.toFixed(1)}%`
+            : `Success Rate: ${successRate.toFixed(1)}%`;
+        const successRateExplainer = eitherOpenEnded
+            ? (medianDepletionAge
+                ? `${successRate.toFixed(0)}% of simulations had a positive balance at retirement age. In the median scenario, funds last until age <strong>${medianDepletionAge}</strong>. High depletion rates are normal for an open-ended (unlimited age) projection.`
+                : `${successRate.toFixed(0)}% of simulations had a positive balance at retirement age. High depletion rates are expected when no target lifespan is set — the simulation runs to age 120.`)
+            : this.getSuccessRateExplanation(successRate);
+
         return `
             <div class="space-y-4 mb-6">
+                ${openEndedBanner}
                 <div class="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-4 border border-indigo-200">
                     <h3 class="text-lg font-semibold mb-3 text-indigo-800">What Is This Simulation Telling You?</h3>
                     <p class="text-sm text-gray-700 leading-relaxed">
@@ -2831,8 +2908,8 @@ class RetirementCalculatorApp {
                     </p>
                     <div class="grid md:grid-cols-2 gap-4 mt-4">
                         <div class="bg-white rounded p-3 border">
-                            <strong class="text-blue-600 text-sm">Success Rate: ${successRate.toFixed(1)}%</strong>
-                            <p class="mt-1 text-xs text-gray-600">${this.getSuccessRateExplanation(successRate)}</p>
+                            <strong class="text-blue-600 text-sm">${successRateLabel}</strong>
+                            <p class="mt-1 text-xs text-gray-600">${successRateExplainer}</p>
                         </div>
                         <div class="bg-white rounded p-3 border">
                             <strong class="text-green-600 text-sm">Most Likely Balance: ${formatCurrency(results.median)}</strong>
@@ -2866,8 +2943,11 @@ class RetirementCalculatorApp {
     // Explains why portfolios deplete and what users can do about it
     generateDepletionExplanation(results, inputs, { worstDepleted, pessimisticDepleted, medianDepleted }) {
         const retirementAge = inputs.retirementAge || 67;
-        const lifespan = inputs.yourLifespan || 90;
+        const isOpenEnded = !(inputs.yourLifespan > 0);
+        const lifespan = isOpenEnded ? 120 : (inputs.yourLifespan || 90);
         const retirementYears = lifespan - retirementAge;
+        // For open-ended projections, depletion is expected — don't treat it as critical
+        if (isOpenEnded && !medianDepleted) return ''; // only show if median also depletes
         const salary = inputs.yourSalary || 0;
         const superRate = inputs.superContributionRate || 0.115;
         const additionalSuper = inputs.yourAdditionalSuperContribution || 0;
@@ -2906,7 +2986,7 @@ class RetirementCalculatorApp {
                 <div class="text-sm text-${severityColour}-900 mb-3">
                     <strong>Depletion Risk: ${severityLabel}</strong>
                     ${medianDepleted ? '<p class="mt-1">More than half of simulated scenarios deplete your portfolio before end of life. This is a serious signal that requires action.</p>' : ''}
-                    ${!medianDepleted && pessimisticDepleted ? '<p class="mt-1">In bad-but-realistic scenarios (bottom 10%), your portfolio runs out before age ' + lifespan + '.</p>' : ''}
+                    ${!medianDepleted && pessimisticDepleted ? `<p class="mt-1">In bad-but-realistic scenarios (bottom 10%), your portfolio runs out before ${isOpenEnded ? 'funds are exhausted (open-ended projection)' : 'age ' + lifespan}.</p>` : ''}
                     ${!pessimisticDepleted && worstDepleted ? '<p class="mt-1">Only the most extreme scenarios (bottom 1%) deplete your portfolio. Your plan is generally solid.</p>' : ''}
                 </div>
 
@@ -2915,7 +2995,7 @@ class RetirementCalculatorApp {
                     <ul class="text-xs text-gray-700 space-y-1 list-disc ml-4">
                         <li><strong>Sequence-of-returns risk:</strong> If markets crash in the first few years of retirement, you're forced to sell assets cheap to fund living costs. Even if markets recover later, the damage is done — you've sold more units than planned.</li>
                         <li><strong>Withdrawal rate too high:</strong> Drawing more than roughly 4% of your portfolio per year is historically risky over 25+ year retirements. Higher spending leaves less capital to compound.</li>
-                        <li><strong>Longevity:</strong> You're modelling to age ${lifespan} — that's ${retirementYears} years of retirement, which is a long time for investments to potentially disappoint.</li>
+                        <li><strong>Longevity:</strong> ${isOpenEnded ? 'The simulation runs until funds deplete (up to age 120) — this extended horizon naturally produces higher depletion rates than a fixed planning age.' : `You're modelling to age ${lifespan} — that's ${retirementYears} years of retirement, which is a long time for investments to potentially disappoint.`}</li>
                         <li><strong>Healthcare and aged care costs:</strong> These costs inflate faster than general inflation (6–7% vs 2–3%) and can represent $75,000–$200,000+ over later retirement years.</li>
                         <li><strong>Inflation erosion:</strong> Even 3% annual inflation halves your purchasing power over 24 years. If your investments don't keep pace, you need to draw more each year.</li>
                     </ul>
@@ -7616,6 +7696,22 @@ class RetirementCalculatorApp {
             // ── Render results ────────────────────────────────────────────────
             if (resultsEl) resultsEl.classList.remove('hidden');
 
+            // Detect open-ended lifespan mode
+            const simIsOpenEnded = !(inputs.yourLifespan > 0);
+            const simPartnerOpenEnded = (inputs.partnerCurrentAge > 0) && !(inputs.partnerLifespan > 0);
+            const simEitherOpenEnded = simIsOpenEnded || simPartnerOpenEnded;
+
+            // Compute median depletion age for open-ended display
+            let simMedianDepletionAge = null;
+            if (simEitherOpenEnded && monteCarlo.paths && monteCarlo.paths.length > 0) {
+                const retirAge = inputs.retirementAge || 67;
+                const depAges = monteCarlo.paths
+                    .map(path => { const idx = path.findIndex(b => b <= 0); return idx === -1 ? null : retirAge + idx; })
+                    .filter(a => a !== null)
+                    .sort((a, b) => a - b);
+                if (depAges.length > 0) simMedianDepletionAge = depAges[Math.floor(depAges.length / 2)];
+            }
+
             // Success banner
             const successRate     = recommendations.successProbability;
             const successBanner   = $('simSuccessBanner');
@@ -7623,17 +7719,26 @@ class RetirementCalculatorApp {
             const successLabelEl  = $('simSuccessLabel');
             const successDetailEl = $('simSuccessDetail');
             if (successBanner) {
-                const colour = successRate >= 85 ? 'bg-green-100 text-green-800'
-                             : successRate >= 70 ? 'bg-blue-100 text-blue-800'
-                             : successRate >= 50 ? 'bg-yellow-100 text-yellow-800'
-                             :                    'bg-red-100 text-red-800';
+                const colour = simEitherOpenEnded
+                    ? 'bg-amber-50 text-amber-900 border border-amber-200'
+                    : (successRate >= 85 ? 'bg-green-100 text-green-800'
+                     : successRate >= 70 ? 'bg-blue-100 text-blue-800'
+                     : successRate >= 50 ? 'bg-yellow-100 text-yellow-800'
+                     :                    'bg-red-100 text-red-800');
                 successBanner.className = `mb-6 p-5 rounded-xl text-center ${colour}`;
             }
-            if (successRateEl)   successRateEl.textContent   = `${successRate}%`;
-            if (successLabelEl)  successLabelEl.textContent  = 'Retirement Success Probability';
-            if (successDetailEl) successDetailEl.textContent =
-                `Based on ${monteCarlo.runs.toLocaleString()} Monte Carlo simulations — ` +
-                `outcome: ${recommendations.outcome}`;
+            if (successRateEl) successRateEl.textContent = simEitherOpenEnded && simMedianDepletionAge
+                ? `Age ${simMedianDepletionAge}`
+                : `${successRate}%`;
+            if (successLabelEl) successLabelEl.textContent = simEitherOpenEnded
+                ? 'Median Age Funds Last (Open-Ended)'
+                : 'Retirement Success Probability';
+            if (successDetailEl) successDetailEl.textContent = simEitherOpenEnded
+                ? `Open-ended projection (no target lifespan set) — simulated to age 120. ` +
+                  (simMedianDepletionAge
+                      ? `In the median scenario, money lasts until age ${simMedianDepletionAge}.`
+                      : `Based on ${monteCarlo.runs.toLocaleString()} Monte Carlo simulations.`)
+                : `Based on ${monteCarlo.runs.toLocaleString()} Monte Carlo simulations — outcome: ${recommendations.outcome}`;
 
             // Key metrics
             const fmt = (v) => v != null && !isNaN(v)
@@ -7643,11 +7748,57 @@ class RetirementCalculatorApp {
             const simRuinAge          = $('simRuinAge');
             const simLifestyleCut     = $('simLifestyleCut');
             if (simRetirementWealth) simRetirementWealth.textContent = fmt(baseline.retirementWealth);
-            if (simFinalNetWorth)    simFinalNetWorth.textContent    = fmt(monteCarlo.medianFinalNetWorth);
-            if (simRuinAge)          simRuinAge.textContent          =
-                monteCarlo.worstCaseRuinAge ? `Age ${monteCarlo.worstCaseRuinAge}` : 'None';
+            if (simFinalNetWorth)    simFinalNetWorth.textContent    = simEitherOpenEnded
+                ? (simMedianDepletionAge ? `Depletes ~Age ${simMedianDepletionAge}` : fmt(monteCarlo.medianFinalNetWorth))
+                : fmt(monteCarlo.medianFinalNetWorth);
+            // Update the card label for open-ended mode
+            const simFinalNetWorthLabel = simFinalNetWorth?.previousElementSibling;
+            if (simFinalNetWorthLabel && simEitherOpenEnded) {
+                simFinalNetWorthLabel.textContent = 'Median Depletion Age';
+            } else if (simFinalNetWorthLabel) {
+                simFinalNetWorthLabel.textContent = 'Median Final Net Worth';
+            }
+            if (simRuinAge) {
+                if (simEitherOpenEnded) {
+                    // For open-ended: show the earliest depletion (p10) age
+                    const retirAgeSim = inputs.retirementAge || 67;
+                    const allDepAges = (monteCarlo.paths || [])
+                        .map(path => { const idx = path.findIndex(b => b <= 0); return idx === -1 ? null : retirAgeSim + idx; })
+                        .filter(a => a !== null).sort((a, b) => a - b);
+                    const p10DepAge = allDepAges.length > 0 ? allDepAges[Math.floor(allDepAges.length * 0.1)] : null;
+                    simRuinAge.textContent = p10DepAge ? `Age ${p10DepAge}` : 'No depletion';
+                    const simRuinAgeLabel = simRuinAge.previousElementSibling;
+                    if (simRuinAgeLabel) simRuinAgeLabel.textContent = 'Earliest 10% Depletion Age';
+                } else {
+                    simRuinAge.textContent = monteCarlo.worstCaseRuinAge ? `Age ${monteCarlo.worstCaseRuinAge}` : 'None';
+                }
+            }
             if (simLifestyleCut)     simLifestyleCut.textContent     =
                 `${Math.round(monteCarlo.lifestyleCutProbability)}%`;
+
+            // Open-ended notice banner (injected into results if lifespan = 0)
+            const openEndedNoticeId = 'simOpenEndedNotice';
+            let existingNotice = $(openEndedNoticeId);
+            if (!existingNotice && simEitherOpenEnded && resultsEl) {
+                const notice = document.createElement('div');
+                notice.id = openEndedNoticeId;
+                notice.className = 'mb-4 p-3 bg-amber-50 border border-amber-300 rounded-lg text-sm text-amber-800';
+                notice.innerHTML = `<strong>⚠️ Open-Ended Projection Mode</strong> — ` +
+                    (simIsOpenEnded && simPartnerOpenEnded
+                        ? 'Neither you nor your partner has a target lifespan set.'
+                        : simIsOpenEnded
+                        ? 'Your lifespan is set to 0 (open-ended, no target age).'
+                        : "Your partner's lifespan is set to 0 (open-ended).") +
+                    ` The simulation runs until funds are fully exhausted (up to age 120). ` +
+                    (simMedianDepletionAge
+                        ? `In the median scenario, money lasts until <strong>age ${simMedianDepletionAge}</strong>. `
+                        : '') +
+                    `High depletion rates are expected and normal for this mode. ` +
+                    `To see a conventional success-rate percentage, enter a specific target age.`;
+                resultsEl.insertBefore(notice, resultsEl.firstChild);
+            } else if (existingNotice && !simEitherOpenEnded) {
+                existingNotice.remove();
+            }
 
             // Percentile table (advanced.html only)
             const percTable = $('simPercentilesTable');
