@@ -2745,20 +2745,19 @@ export class OnboardingWizard {
         input.maxLength = 14;
         input.setAttribute('data-format-type', formatType);
 
-        // Format current value
-        const currentValue = parseFloat(input.value) || 0;
+        // Format current value.
+        // IMPORTANT: by the time this runs, addCurrencyFormatting / addPercentageFormatting
+        // have already been registered (initializeCurrencyInputs / initializePercentageInputs
+        // are called before enhanceAdvancedCalculatorInputs in initializeApp).
+        // Those listeners already produce the correct display format ("$164,000.00" and
+        // "8.75%").  We must NOT reformat here — doing so would strip the "$" prefix
+        // (formatNumber produces "164,000") or truncate decimals (toFixed(1) → "8.8").
+        //
+        // For data-raw-value we need the bare number. parseFloat("$164,000.00") = NaN,
+        // so strip formatting first before storing.
+        const strippedValue = String(input.value).replace(/[^\d.-]/g, '');
+        const currentValue = parseFloat(strippedValue) || 0;
         input.setAttribute('data-raw-value', currentValue);
-
-        // Note: for percentage fields the primary formatting (2dp + "%" suffix) is
-        // already handled by addPercentageFormatting() in utils.js, which is called
-        // during initializePercentageInputs() — that listener runs first because it is
-        // registered earlier.  We deliberately do NOT reformat the percentage value here
-        // to avoid overwriting the correct "7.50%" display with a truncated "7.5" or
-        // losing the "%" suffix.  Currency fields use formatNumber() (commas, no "$")
-        // as a lightweight styling layer on top of the main "$"-prefixed formatting.
-        if (formatType === 'currency' && currentValue > 0) {
-            input.value = formatNumber(currentValue);
-        }
 
         // Add formatting listeners
         input.addEventListener('blur', (e) => {
@@ -2766,16 +2765,11 @@ export class OnboardingWizard {
             const numValue = parseFloat(value);
 
             if (!isNaN(numValue)) {
+                // Only update data-raw-value here. The actual display formatting is
+                // handled by addCurrencyFormatting / addPercentageFormatting blur
+                // listeners (registered earlier) which produce the correct "$N.NN" /
+                // "N.NN%" strings.  If we reformat here we overwrite their output.
                 e.target.setAttribute('data-raw-value', numValue);
-
-                // Currency: apply comma-grouping display via formatNumber.
-                // Percentage: do NOT reformat here — addPercentageFormatting's blur
-                // listener (registered earlier) already produced the correct "N.NN%"
-                // string; overwriting it with toFixed(1) would truncate decimals and
-                // strip the "%" suffix.
-                if (formatType === 'currency') {
-                    e.target.value = formatNumber(numValue);
-                }
             }
         });
 
