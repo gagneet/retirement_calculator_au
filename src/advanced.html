@@ -1372,9 +1372,13 @@
 
         /* ── Overseas Scenario Tree ───────────────────────────────────── */
         .overseas-scenario-tree {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;
+            display: grid;
+            /* 5 scenarios: 3 on first row, 2 on second. Falls back gracefully. */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
             margin-top: 1rem;
         }
+        @media (max-width: 800px) { .overseas-scenario-tree { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 640px) { .overseas-scenario-tree { grid-template-columns: 1fr; } }
         .overseas-scenario-card {
             border-radius: 10px; padding: 0.9rem; border: 1.5px solid #E2E8F0;
@@ -3615,7 +3619,7 @@
                             ▸ Why this matters
                         </button>
                         <div class="why-matters-body" id="wm-pension-max" role="region">
-                            The Age Pension is indexed every 20 March and 20 September. March 2026 rates: single $1,200.90/fn ($31,224/yr), couple combined $1,810.40/fn ($47,070/yr). These are the actual rates used in this calculator — auto-defaulted for your household type. Even a part-pension matters: $10k/year of Age Pension represents $250,000 in equivalent capital at 4% drawdown.
+                            The Age Pension is indexed every 20 March and 20 September. March 2026 rates: single $1,200.90/fn ($31,223/yr), couple combined $1,810.40/fn ($47,070/yr). These are the actual rates used in this calculator — auto-defaulted for your household type. Even a part-pension matters: $10k/year of Age Pension represents $250,000 in equivalent capital at 4% drawdown.
                         </div>
                      </div>
                 <div>
