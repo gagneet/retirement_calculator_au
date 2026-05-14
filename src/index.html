@@ -407,6 +407,46 @@
             margin-top: 1rem;
         }
 
+        /* Collapsible section toggle button — replaces <h2> at runtime */
+        .section-toggle-btn {
+            width: 100%;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.5rem;
+            background: none;
+            border: none;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0 0 0.5rem 0;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            text-align: left;
+            font-size: 1.1rem;
+            font-weight: 600;
+            line-height: 1.4;
+            color: inherit;
+            font-family: inherit;
+        }
+        .section-toggle-btn:hover { opacity: 0.8; }
+        .section-toggle-btn:focus-visible {
+            outline: 2px solid currentColor;
+            outline-offset: 3px;
+            border-radius: 3px;
+        }
+        .section-personal-risk .section-toggle-btn { color: #6D28D9; }
+        .section-property    .section-toggle-btn { color: #047857; }
+        .section-economic    .section-toggle-btn { color: #D97706; }
+        .section-pension     .section-toggle-btn { color: #1D4ED8; }
+
+        /* Chevron rotates when section is collapsed */
+        .section-chevron { flex-shrink: 0; margin-top: 0.2rem; transition: transform 0.25s ease; }
+        .section-collapsed .section-chevron { transform: rotate(-90deg); }
+
+        /* Smooth collapse via CSS grid-template-rows trick */
+        .section-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.25s ease; }
+        .section-body-inner { overflow: hidden; min-height: 0; }
+        .section-collapsed .section-body { grid-template-rows: 0fr; }
+
         /* Section Header Badges */
         .section-badge {
             display: inline-block;
@@ -1824,5 +1864,77 @@
             window.location.href = 'advanced.html?onboarding=true';
         });
     </script>
+
+<script>
+/* Collapsible input sections — initialised after page load */
+(function initCollapsibleSections() {
+    var STORAGE_KEY = 'retirement_section_state_v1';
+    var sectionClasses = [
+        'section-personal-risk',
+        'section-property',
+        'section-economic',
+        'section-pension'
+    ];
+
+    var savedState = {};
+    try { savedState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) {}
+
+    sectionClasses.forEach(function (cls) {
+        var section = document.querySelector('.' + cls);
+        if (!section) return;
+
+        var h2 = section.querySelector(':scope > h2');
+        if (!h2) return;
+
+        var bodyId = 'secbody-' + cls;
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'section-toggle-btn';
+        btn.setAttribute('aria-controls', bodyId);
+
+        var titleSpan = document.createElement('span');
+        titleSpan.innerHTML = h2.innerHTML;
+        btn.appendChild(titleSpan);
+
+        btn.insertAdjacentHTML('beforeend',
+            '<svg class="section-chevron" width="18" height="18" fill="none" stroke="currentColor" ' +
+            'viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" ' +
+            'stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>'
+        );
+
+        h2.parentNode.replaceChild(btn, h2);
+
+        var bodyInner = document.createElement('div');
+        bodyInner.className = 'section-body-inner';
+        var next = btn.nextSibling;
+        while (next) {
+            var toMove = next;
+            next = next.nextSibling;
+            bodyInner.appendChild(toMove);
+        }
+
+        var body = document.createElement('div');
+        body.className = 'section-body';
+        body.id = bodyId;
+        body.appendChild(bodyInner);
+        btn.parentNode.insertBefore(body, btn.nextSibling);
+
+        if (savedState[cls] === 'collapsed') {
+            section.classList.add('section-collapsed');
+            btn.setAttribute('aria-expanded', 'false');
+        } else {
+            btn.setAttribute('aria-expanded', 'true');
+        }
+
+        btn.addEventListener('click', function () {
+            var nowCollapsed = section.classList.toggle('section-collapsed');
+            btn.setAttribute('aria-expanded', nowCollapsed ? 'false' : 'true');
+            savedState[cls] = nowCollapsed ? 'collapsed' : 'expanded';
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(savedState)); } catch (e) {}
+        });
+    });
+})();
+</script>
 </body>
 </html>
