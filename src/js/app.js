@@ -6297,7 +6297,16 @@ class RetirementCalculatorApp {
                 if (residenceYearsRaw === '') return null;
                 const parsed = parseInt(residenceYearsRaw, 10);
                 return isNaN(parsed) ? null : parsed;
-            })()
+            })(),
+            // FX / currency
+            spendingCurrency: safeGetSelectValue('overseasSpendingCurrency', 'AUD'),
+            audFxChangePerYear: safeGetValue('overseasAudFxChange', -1) / 100,
+            // Local housing
+            housingType: safeGetSelectValue('overseasHousingType', 'rent'),
+            annualRentAUD: safeGetValue('overseasAnnualRent', 18000),
+            // Return-to-Australia fallback
+            fallbackAge: parseInt(safeGetValue('overseasFallbackAge', 0)) || 0,
+            fallbackTrigger: safeGetSelectValue('overseasFallbackTrigger', 'none')
         };
     }
 
@@ -6493,9 +6502,12 @@ class RetirementCalculatorApp {
         const personalDetails = {
             age: baseInputs.yourCurrentAge,
             retirementAge: baseInputs.retirementAge,
+            departureAge: config.departureAge || baseInputs.retirementAge,
             australianResidenceYears,
+            australianWorkingLifeYears: australianResidenceYears,
             ageCameToAustralia: baseInputs.ageCameToAustralia || 0,
-            partnered: (baseInputs.partnerCurrentAge || 0) > 0
+            partnered: (baseInputs.partnerCurrentAge || 0) > 0,
+            enableProposedBudget2026: baseInputs.enableProposedBudget2026 || false
         };
         const financialData = {
             superBalance: (baseInputs.yourCurrentSuper || 0) + (baseInputs.partnerCurrentSuper || 0),
@@ -11012,6 +11024,46 @@ window.generateOverseasScenariosTree = async function generateOverseasScenariosT
 
         if (loadingEl) loadingEl.classList.add('hidden');
         if (resultsEl) resultsEl.style.display = '';
+
+        // ── Fallback scenario panel ─────────────────────────────────────────
+        const fallbackPanel   = document.getElementById('overseasFallbackPanel');
+        const fallbackContent = document.getElementById('overseasFallbackContent');
+        const fallbackAge     = parseInt(document.getElementById('overseasFallbackAge')?.value || '0') || 0;
+        const fallbackTrigger = document.getElementById('overseasFallbackTrigger')?.value || 'none';
+        const countryCode     = document.getElementById('overseasCountry')?.value || '';
+
+        if (fallbackPanel && fallbackContent && fallbackAge > 0 && countryCode) {
+            const { OverseasRetirementAnalyzer } = await import('./overseas-retirement.js');
+            const departureAge = parseInt(document.getElementById('overseasAge')?.value || '65') || 65;
+            const personalDetails = {
+                partnered:               isCouple,
+                retirementAge:           departureAge,
+                departureAge:            departureAge,
+                australianWorkingLifeYears: awlrYears,
+                enableProposedBudget2026: false
+            };
+            const analyzer = new OverseasRetirementAnalyzer(personalDetails, { totalAssets: 0 });
+            const fb = analyzer.generateFallbackScenario(countryCode, fallbackAge, fallbackTrigger, agreementCountry);
+            if (fb) {
+                fallbackContent.innerHTML = `
+                    <div class="grid md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <p class="text-gray-600">Return trigger: <strong>${fb.triggerLabel}</strong></p>
+                            <p class="text-gray-600 mt-1">Years overseas: <strong>${fb.yearsOverseas} yrs</strong> (age ${departureAge}–${fb.fallbackAge})</p>
+                            <p class="text-gray-600 mt-1">Pension waiting period: <strong>${fb.waitingPeriod === 0 ? 'None (agreement country)' : fb.waitingPeriod + ' year(s)'}</strong></p>
+                            ${fb.estimatedLostPension > 0 ? `<p class="text-red-700 font-medium mt-1">Estimated pension foregone during wait: <strong>$${fb.estimatedLostPension.toLocaleString('en-AU')}</strong></p>` : ''}
+                        </div>
+                        <ul class="space-y-1 text-gray-700">
+                            ${fb.notes.map(n => `<li>${n}</li>`).join('')}
+                        </ul>
+                    </div>`;
+                fallbackPanel.classList.remove('hidden');
+            } else {
+                fallbackPanel.classList.add('hidden');
+            }
+        } else if (fallbackPanel) {
+            fallbackPanel.classList.add('hidden');
+        }
 
     } catch (err) {
         console.error('generateOverseasScenariosTree error:', err);

@@ -242,7 +242,7 @@ export class OverseasRetirementAnalyzer {
     /**
      * Compare cost of living against ASFA comfortable retirement standard
      */
-    compareCostOfLiving(country) {
+    compareCostOfLiving(country, fxOptions = {}) {
         // ASFA comfortable standard (2025) from config
         const cfgOverseas = ENHANCED_CONFIG.OVERSEAS_RETIREMENT;
         const australiaCost = this.person.partnered
@@ -250,13 +250,107 @@ export class OverseasRetirementAnalyzer {
             : cfgOverseas.ASFA_SINGLE_ANNUAL;
         const countryCost = australiaCost * country.costOfLiving.index;
 
+        // FX drift: apply cumulative AUD depreciation over projection years
+        // audFxChangePerYear < 0 means AUD weakens → locally-denominated costs rise in AUD terms
+        const { audFxChangePerYear = 0, projectionYears = 20, housingType = 'rent', annualRentAUD = 0 } = fxOptions;
+        const fxMultiplier = Math.pow(1 - audFxChangePerYear, projectionYears); // after N years
+        const fxAdjustedCost = Math.round(countryCost * fxMultiplier);
+
+        // Housing cost override: if renting, substitute explicit rent figure for embedded housing cost
+        const housingCostFraction = country.costOfLiving.breakdown?.housing ?? 0.30;
+        const baseHousingCost = Math.round(countryCost * housingCostFraction);
+        let effectiveHousingCost = baseHousingCost;
+        if (housingType === 'rent' && annualRentAUD > 0) {
+            effectiveHousingCost = annualRentAUD;
+        } else if (housingType === 'own' || housingType === 'family') {
+            effectiveHousingCost = 0; // no rent; maintenance/rates ignored for simplicity
+        }
+        const housingAdjustedCost = Math.round(countryCost - baseHousingCost + effectiveHousingCost);
+
         return {
             australiaAnnual: australiaCost,
             countryAnnual: Math.round(countryCost),
             savings: Math.round(australiaCost - countryCost),
             savingsPercent: ((1 - country.costOfLiving.index) * 100).toFixed(1),
+            // FX-adjusted (after projectionYears of AUD drift)
+            fxAdjustedAnnual: fxAdjustedCost,
+            fxAdjustedSavings: Math.round(australiaCost - fxAdjustedCost),
+            audFxChangePerYear,
+            projectionYears,
+            // Housing-adjusted
+            housingType,
+            effectiveHousingCost,
+            housingAdjustedAnnual: housingAdjustedCost,
             breakdown: country.costOfLiving.breakdown,
             note: country.costOfLiving.note
+        };
+    }
+
+    /**
+     * Generate a return-to-Australia fallback scenario.
+     * Returns a plain object describing what happens if the person returns at fallbackAge.
+     */
+    generateFallbackScenario(countryCode, fallbackAge, fallbackTrigger, agreementCountry = false) {
+        const country = COUNTRY_PROFILES[countryCode];
+        const departureAge = this.person.departureAge || this.person.retirementAge || 67;
+
+        if (!fallbackAge || fallbackAge <= 0 || fallbackAge <= departureAge) {
+            return null;
+        }
+
+        const yearsOverseas = fallbackAge - departureAge;
+
+        // 2-year waiting period on return (waived for agreement countries)
+        const waitingPeriod = agreementCountry ? 0 : 2;
+
+        // AWLR: years of Australian Working Life Residence
+        const awlrYears = this.person.australianWorkingLifeYears || 35;
+        const awlrQualified = awlrYears >= 35; // full rate after return
+
+        // Pension suspended during 2-yr wait for non-agreement countries
+        const pensionLostDuringWait = !agreementCountry && waitingPeriod > 0;
+        const annualPensionFromConfig = this.person.partnered
+            ? ENHANCED_CONFIG.COUPLE_PENSION_MAX
+            : ENHANCED_CONFIG.SINGLE_PENSION_MAX;
+
+        const estimatedLostPension = pensionLostDuringWait
+            ? Math.round(annualPensionFromConfig * waitingPeriod)
+            : 0;
+
+        const triggerLabels = {
+            health:        'Health / aged care needs',
+            financial:     'Financial difficulty',
+            social:        'Social / family reasons',
+            partner_death: 'After partner death',
+            elective:      'Elective lifestyle choice',
+            none:          'Not specified'
+        };
+
+        return {
+            fallbackAge,
+            yearsOverseas,
+            fallbackTrigger,
+            triggerLabel:        triggerLabels[fallbackTrigger] || triggerLabels.none,
+            agreementCountry,
+            waitingPeriod,
+            pensionLostDuringWait,
+            estimatedLostPension,
+            awlrYears,
+            awlrQualified,
+            countryName:         country ? country.name : countryCode,
+            pensionReinstated:   true, // always reinstated after wait, subject to assets/income test
+            notes: [
+                pensionLostDuringWait
+                    ? `⚠️ Pension payments suspend for up to ${waitingPeriod} year(s) after return (former resident rule). Estimated cost: $${estimatedLostPension.toLocaleString('en-AU')}.`
+                    : '✅ Agreement country — no additional waiting period on return.',
+                awlrQualified
+                    ? `✅ With ${awlrYears} years AWLR (≥35), full Age Pension reinstated immediately after wait.`
+                    : `⚠️ With ${awlrYears} years AWLR (<35), pension reinstated at a proportional rate (${awlrYears}/35 of maximum).`,
+                fallbackTrigger === 'health'
+                    ? '🏥 Returning for health/aged care: Medicare reinstates immediately on return. Aged care assessment (ACAT) required.'
+                    : '',
+                `📅 ${yearsOverseas} years overseas (age ${departureAge}–${fallbackAge}).`
+            ].filter(Boolean)
         };
     }
 
