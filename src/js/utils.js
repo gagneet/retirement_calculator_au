@@ -348,6 +348,35 @@ export const initializePercentageInputs = () => {
     });
 };
 
+const LEGACY_WHOLE_PERCENT_VERSIONS = new Set(['0.9.0', '1.0', '1.0.0', '2.0']);
+
+export const storesPercentagesAsDecimals = (version = '2.0') => {
+    return !LEGACY_WHOLE_PERCENT_VERSIONS.has(String(version || '2.0'));
+};
+
+export const normalizePercentageDisplayValue = (value) => {
+    if (value == null || value === '') return value;
+
+    const numericValue = typeof value === 'number' ? value : parseFormattedNumber(String(value));
+    if (isNaN(numericValue)) return value;
+
+    let normalizedValue = numericValue;
+
+    // Current exports/imports store percentages as decimals (0.09 for 9%), while the form
+    // displays human-readable percentages. Convert decimals back for display.
+    if (Math.abs(normalizedValue) > 0 && Math.abs(normalizedValue) <= 1) {
+        normalizedValue *= 100;
+    }
+
+    // Older bugs persisted already-multiplied values such as 900 for 9%. Pull those back
+    // into the expected display range so a stale local-storage snapshot does not break load.
+    while (Math.abs(normalizedValue) > 100) {
+        normalizedValue /= 100;
+    }
+
+    return parseFloat(normalizedValue.toFixed(10));
+};
+
 // Add live formatting for numeric inputs (no decimals)
 export const addNumericFormatting = (inputElement) => {
     if (!inputElement) return;
@@ -2283,10 +2312,9 @@ export const populateFormFromData = (userData, version = '2.0') => {
                         if (percentageFields.includes(key) && typeof value === 'number') {
                             // Versions 3.0+ store percentages as decimals (e.g., 0.09 for 9%)
                             // Versions 1.0/2.0 stored as whole numbers (e.g., 9 for 9%)
-                            const storedAsDecimal = version === '3.0' || version === '4.0';
+                            const storedAsDecimal = storesPercentagesAsDecimals(version);
                             if (storedAsDecimal) {
-                                // Use toPrecision-safe multiplication to avoid floating-point artifacts
-                                element.value = parseFloat((value * 100).toFixed(10)).toFixed(2);
+                                element.value = normalizePercentageDisplayValue(value).toFixed(2);
                             } else {
                                 element.value = value;
                             }

@@ -65,7 +65,7 @@ const DEPENDENT_NUMBER_TYPE_FIELDS = [
  */
 const simulateImportConversion = (fieldName, storedDecimalValue) => {
     const version = '4.0';
-    const storedAsDecimal = version === '3.0' || version === '4.0';
+    const storedAsDecimal = !['0.9.0', '1.0', '1.0.0', '2.0'].includes(version);
     if (POPULATE_PERCENTAGE_FIELDS.includes(fieldName) && typeof storedDecimalValue === 'number' && storedAsDecimal) {
         return parseFloat((storedDecimalValue * 100).toFixed(2));
     }
@@ -155,12 +155,23 @@ describe('JSON import: percentage field conversion (populateFormFromData)', () =
 
     test('v1.0 file: vacancyRate is NOT multiplied (stored as plain percent)', () => {
         const version = '1.0';
-        const storedAsDecimal = version === '3.0' || version === '4.0';
+        const storedAsDecimal = !['0.9.0', '1.0', '1.0.0', '2.0'].includes(version);
         const value = 4; // stored as 4 (plain percent) in older format
         const result = POPULATE_PERCENTAGE_FIELDS.includes('vacancyRate') && storedAsDecimal
             ? parseFloat((value * 100).toFixed(2))
             : value;
         expect(result).toBe(4); // unchanged
+    });
+
+    test('current schema import: percentIncomeSaved 0.14 converts to 14.00 on 2026.1 import', () => {
+        const version = '2026.1';
+        const storedAsDecimal = !['0.9.0', '1.0', '1.0.0', '2.0'].includes(version);
+        const value = 0.14;
+        const result = POPULATE_PERCENTAGE_FIELDS.includes('percentIncomeSaved') && storedAsDecimal
+            ? parseFloat((value * 100).toFixed(2))
+            : value;
+
+        expect(result).toBe(14);
     });
 });
 

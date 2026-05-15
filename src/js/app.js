@@ -81,7 +81,8 @@ import {
     initializeCurrencyInputs,
     initializePercentageInputs,
     initializeNumericInputs,
-    calculateStateLandTax
+    calculateStateLandTax,
+    normalizePercentageDisplayValue
 } from './utils.js';
 
 /**
@@ -103,6 +104,18 @@ const OVERSEAS_COUNTRY_PROFILE_KEY_MAP = {
     'vietnam': 'VIETNAM',
     'usa': 'USA'
 };
+
+const PERCENTAGE_STORAGE_FIELD_IDS = new Set([
+    'percentIncomeSaved', 'mortgageRate', 'investmentPropertyRate',
+    'propertyGrowthRate', 'capitalGainsTaxRate', 'healthcareInflation',
+    'agedCareProbability', 'inflation', 'investmentReturn', 'returnDeclineRate',
+    'savingsReturn', 'superReturn', 'salaryGrowthRate', 'leanYearsReduction',
+    'dividendYield', 'frankingRate', 'returnVolatility', 'shockProbability', 'shockMagnitude',
+    'australianEquityAllocation', 'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
+    'carerReducedWorkPercent', 'vacancyRate', 'maintenanceInflation',
+    'trustTaxRate', 'beneficiaryAllocation', 'extremeInflationProbability', 'propertyCrashProbability',
+    'creditCardRate', 'personalLoanRate', 'carLoanRate', 'employerSuperContributionRate'
+]);
 
 class RetirementCalculatorApp {
     constructor() {
@@ -8845,7 +8858,9 @@ class RetirementCalculatorApp {
                         element.checked = true;
                     }
                 } else {
-                    element.value = value;
+                    element.value = PERCENTAGE_STORAGE_FIELD_IDS.has(inputId)
+                        ? normalizePercentageDisplayValue(value)
+                        : value;
                 }
                 loadedCount++;
             }

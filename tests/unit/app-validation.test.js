@@ -187,6 +187,28 @@ describe('auto calculation gating', () => {
     });
 });
 
+describe('saved input loading', () => {
+    test('normalizes stale multiplied percentage values from localStorage', () => {
+        document.body.innerHTML = '<input id="percentIncomeSaved" value=""><input id="yourSalary" value="">';
+
+        const app = Object.create(RetirementCalculatorApp.prototype);
+        app.getAllFormInputs = jest.fn(() => ({
+            financial: ['percentIncomeSaved', 'yourSalary']
+        }));
+
+        window.localStorage.setItem('retirement-calculator-inputs', JSON.stringify({
+            percentIncomeSaved: '900',
+            yourSalary: '100000'
+        }));
+
+        const loaded = app.loadSavedInputs();
+
+        expect(loaded).toBe(true);
+        expect(document.getElementById('percentIncomeSaved').value).toBe('9');
+        expect(document.getElementById('yourSalary').value).toBe('100000');
+    });
+});
+
 describe('depletion summary rendering', () => {
     test('uses open-ended wording and shows depletion age when run-until-depletion mode is used', () => {
         document.body.innerHTML = `
