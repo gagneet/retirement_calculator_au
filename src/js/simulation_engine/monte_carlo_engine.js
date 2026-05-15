@@ -91,21 +91,35 @@ export const runMonteCarlo = async (userInputs, progressCallback = null) => {
     // Normalise numRuns: honour user value, clamp to safe range.
     const numRuns = Math.max(100, Math.min(20000, Math.round(Number(inputs.numRuns) || 1000)));
 
-    // Delegate to the canonical Pipeline A engine.
+    // Delegate to the canonical Pipeline A enhanced engine.
+    // PR review fix #3247147313: use runEnhancedMonteCarloSimulation (regime-aware,
+    // correlation-modelled) to match the main calculator tab's "Run Monte Carlo" path,
+    // which calls runEnhancedMonteCarloSimulation via app.js.
+    // runMonteCarloSimulation is the simpler fallback; both produce per-year stochastic
+    // returns but the enhanced version adds regime switching and asset correlations.
     const simulator = new RetirementSimulator(ENHANCED_CONFIG);
-    const raw = await simulator.runMonteCarloSimulation(inputs, numRuns, progressCallback);
+    const raw = await simulator.runEnhancedMonteCarloSimulation(inputs, numRuns, progressCallback);
 
     // ── Map Pipeline A schema → Pipeline B schema (backwards compatible) ─────
 
     // Pipeline A outcomes is already sorted ascending.
     const sorted = raw.outcomes || [];
 
-    // retirementWealth: use the median outcome (Pipeline A medianOutcome).
     const medianFinalNetWorth = raw.median ?? sortedMedian(sorted);
 
-    // For Pipeline B callers that expect the retirement-phase wealth, approximate
-    // from the sorted outcomes' 50th percentile (same value).
-    const medianRetirementWealth = medianFinalNetWorth;
+    // PR review fix #3247147569: medianRetirementWealth must be wealth AT retirement age,
+    // not end-of-life wealth.  Running a deterministic baseline projection gives us assets
+    // at retirement (totalFinancialAssets at the projection year matching retirementAge).
+    // Fallback: if the deterministic projection fails, use the p50 end-of-life outcome.
+    let medianRetirementWealth = medianFinalNetWorth;
+    try {
+        const deterministicResult = simulator.simulateRetirement(inputs, false);
+        if (deterministicResult && typeof deterministicResult.totalFinancialAssets === 'number') {
+            medianRetirementWealth = deterministicResult.totalFinancialAssets;
+        }
+    } catch (_) {
+        // fallback already set above
+    }
 
     // successRate (0–1) → probabilityOfSuccess (0–100)
     const probabilityOfSuccess = (raw.successRate ?? 0) * 100;

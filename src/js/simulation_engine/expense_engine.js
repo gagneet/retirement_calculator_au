@@ -141,11 +141,16 @@ export const getAgedCareCost = (age, inputs) => {
     const inflatedCost = agedCareAnnualCost * Math.pow(1 + inflation, yearsFromRetirement);
 
     if (useStochasticReturns) {
-        // Stochastic: at the first year of aged care, sample whether it occurs.
-        // We use a module-level flag to avoid re-sampling each year.
-        if (age === agedCareStartAge) {
-            // Sample once; store on inputs to share with subsequent years.
-            // (inputs is a mutable object passed by reference in each run)
+        // Stochastic: sample once per simulation run whether aged care occurs.
+        // Store the result on the inputs object (passed by reference) so subsequent
+        // years in the same run reuse the same outcome.
+        //
+        // PR review fix #3247147516: the original code only sampled when
+        // age === agedCareStartAge. If a simulation starts after that age (e.g.
+        // yourCurrentAge = 86 with agedCareStartAge = 83) the flag is never set,
+        // returning 0 for every remaining care year.  Sample whenever the flag
+        // is absent and the current age is anywhere inside the care window.
+        if (inputs._agedCareOccurs === undefined) {
             inputs._agedCareOccurs = Math.random() < probability;
         }
         return (inputs._agedCareOccurs === true) ? inflatedCost : 0;

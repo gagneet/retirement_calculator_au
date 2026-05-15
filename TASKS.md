@@ -1,18 +1,26 @@
 # TASKS.md — Retirement Calculator: Remaining Work
 
-Generated: 2026-05-15  
+Updated: 2026-05-15 (post PR #81 review fixes)  
 Test status: **671 tests passing, 0 failures** across 28 suites.  
 Build status: **Clean** (webpack, 2 pre-existing size warnings only).
 
 ---
 
-## Context
+## ✅ Priority 1 — COMPLETED (PR #81 + review fixes)
 
-The recent bug-fix pass (enhancements.md Phase 1 & 2) corrected calculation errors in the life simulation Pipeline B (`simulation_engine/`). The underlying problem stated in enhancements.md remains partially open: **three independent calculation pipelines exist and they disagree with each other**. The tasks below are grouped by priority and describe precisely what must be done to converge on a single, auditable output.
+All P1 tasks have been implemented. See the summary at the bottom of this document.
 
 ---
 
-## Priority 1 — Data correctness: outputs that are currently wrong
+## Context
+
+The recent bug-fix pass (enhancements.md Phase 1 & 2) corrected calculation errors in the life simulation Pipeline B (`simulation_engine/`). PR #81 implemented all five Priority 1 tasks, converging the three pipelines onto shared calculation logic. The tasks below (P2–P4) remain as follow-on work.
+
+---
+
+## ~~Priority 1 — Data correctness: outputs that are currently wrong~~
+
+> **All Priority 1 tasks are complete.** The headings below are preserved for history; see the "Completed" section at the bottom.
 
 ### TASK-001: Unify the Age Pension engine
 
@@ -358,10 +366,9 @@ Each test asserts `expect(result.finalBalance).toBeCloseTo(expectedValue, -3)` (
 
 ---
 
-## What has already been fixed
+## ✅ Completed work (PR #81 + review fixes)
 
-The following items from enhancements.md Phase 1 are complete and tested:
-
+### Phase 1 bug fixes (enhancements.md)
 - ✅ `hasDebt` string truthiness bug (`utils.js`)
 - ✅ Monte Carlo per-year return sampling (`monte_carlo_engine.js`)
 - ✅ Partner super contributions taxed at 15% + Division 293 (`life_simulation_engine.js`)
@@ -373,3 +380,25 @@ The following items from enhancements.md Phase 1 are complete and tested:
 - ✅ Investment income double-count in retirement removed
 - ✅ Unused imports cleaned up
 - ✅ Scenario 3 decimal arithmetic corrected (`recommendation.js`)
+
+### Priority 1 tasks (PR #81, TASK-001 through TASK-005)
+- ✅ **TASK-001** Age Pension engine unified — `pension_engine.js` uses shared `applyMeansTest()` with Work Bonus, correct one-partner-eligible half-payment, and `config.js` thresholds
+- ✅ **TASK-002** Super contributions tax unified — `simulator.js` Pipeline A calls `calcSuperTax()` from `tax_engine.js` (same as Pipeline B)
+- ✅ **TASK-003** Monte Carlo unified — `monte_carlo_engine.js` delegates to `RetirementSimulator.runEnhancedMonteCarloSimulation()` (same engine as main calculator)
+- ✅ **TASK-004** Investment income double-count removed — `investIncome` excluded from `taxableIncome` and `annualCashFlow` (total-return model)
+- ✅ **TASK-005** `advanced-design-engine.js` fixed — self-contained (no external imports), March 2026 policy constants inlined, proper two-test means test with deeming
+
+### PR review fixes (comment thread #4296929299)
+- ✅ `advanced-design-engine.js` made self-contained again (no broken imports in standalone page)
+- ✅ `pension_engine.js` one-partner-eligible case pays half the couple pension
+- ✅ `pension_engine.js` Work Bonus applied to employment income before income test
+- ✅ `expense_engine.js` `_agedCareOccurs` initialised when simulation starts mid-care-window
+- ✅ `financial_state.js` `investmentIncome` excluded from `annualCashFlow` in `recalculate()`
+- ✅ `life_simulation_engine.js` `partnerAge` passed to `calcPensionForYear`
+- ✅ `life_simulation_engine.js` stale comment updated to match total-return model
+- ✅ `tax-optimizer.js` explicit zero `australianEquityAllocation` no longer replaced with 0.40
+- ✅ `monte_carlo_engine.js` now uses `runEnhancedMonteCarloSimulation` (matches main calculator)
+- ✅ `monte_carlo_engine.js` `medianRetirementWealth` computed from deterministic retirement snapshot
+- ✅ Test name corrected: primary earner does NOT attract Division 293 (income below threshold)
+- ✅ Clamp unit test extracted as pure arithmetic (no 20k-run slow test)
+- ✅ TASKS.md P1 tasks marked complete

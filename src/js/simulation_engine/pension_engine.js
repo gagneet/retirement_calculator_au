@@ -2,24 +2,18 @@
  * pension_engine.js – Australian Age Pension Eligibility and Income
  *
  * TASK-001 (enhancements.md): Unify Age Pension engine.
- *
- * Previous problem: this file reimplemented means-test arithmetic independently
- * from utils.js:calculateAgePension().  If config.js thresholds were updated,
- * only one copy got the new values.  The two copies used slightly different
- * formulas (utils.js applies the Work Bonus; this file did not).
- *
- * Fix: the public API (calcSinglePension, calcCouplePension, calcPensionForYear)
- * is preserved for backwards compatibility with all existing callers and tests,
- * but the arithmetic now delegates to calculateDeemedIncome() and the shared
- * applyAgePensionMeansTest logic via utils.js helpers rather than re-implementing
- * it here.
+ * PR review fixes applied:
+ *   #3247147250/#3247147483: One-partner-eligible case pays half the couple
+ *     combined pension (only one person receives the payment).
+ *   #3247147483: Work Bonus applied to employment income before the income
+ *     test, matching utils.js:calculateAgePension() behaviour.
  *
  * All threshold values are sourced from ENHANCED_CONFIG (config.js) which is the
  * single source of truth for Australian pension policy constants.
  */
 
-import { ENHANCED_CONFIG }         from '../config.js';
-import { calculateDeemedIncome }   from '../utils.js';
+import { ENHANCED_CONFIG }       from '../config.js';
+import { applyWorkBonus }        from '../utils.js';
 
 // ── Policy constants sourced from the single source of truth ─────────────────
 
@@ -58,17 +52,16 @@ export const INCOME_THRESHOLDS_FORTNIGHT = {
 
 /**
  * Apply asset test and income test; return the lower (more restrictive) result.
- * This is the same formula used in utils.js:applyAgePensionMeansTest.
  *
  * Asset test : $3/fn reduction per $1,000 over threshold ($78/yr per $1,000)
  * Income test: 50c/$ reduction on annual income above fortnightly threshold × 26
  *
- * @param {number} totalAssets     – total assessable assets ($)
- * @param {number} annualIncome    – total assessable income ($ p.a., after deeming)
- * @param {number} maxPension      – maximum annual pension ($)
- * @param {number} assetThreshold  – full-pension asset limit ($)
- * @param {number} assetLimit      – nil-pension asset cut-off ($)
- * @param {number} fnThreshold     – fortnightly income free area ($)
+ * @param {number} totalAssets    – total assessable assets ($)
+ * @param {number} annualIncome   – total assessable income p.a. ($ — after deeming + Work Bonus)
+ * @param {number} maxPension     – maximum annual pension ($)
+ * @param {number} assetThreshold – full-pension asset limit ($)
+ * @param {number} assetLimit     – nil-pension asset cut-off ($)
+ * @param {number} fnThreshold    – fortnightly income free area ($)
  * @returns {number} annual pension amount
  */
 const applyMeansTest = (totalAssets, annualIncome, maxPension, assetThreshold, assetLimit, fnThreshold) => {
@@ -78,16 +71,13 @@ const applyMeansTest = (totalAssets, annualIncome, maxPension, assetThreshold, a
         fromAssets = maxPension;
     } else if (totalAssets < assetLimit) {
         const excess = totalAssets - assetThreshold;
-        // $3 per fortnight per $1,000 excess × 26 fortnights = $78 per $1,000 p.a.
         fromAssets = Math.max(0, maxPension - (excess / 1000) * 3 * 26);
     }
-    // fromAssets stays 0 when totalAssets >= assetLimit (above cut-off)
 
-    // Income test — use annual income converted to fortnightly
+    // Income test — fortnightly income above the free area reduces pension 50c/$
     let fromIncome = maxPension;
     const fnIncome = annualIncome / 26;
     if (fnIncome > fnThreshold) {
-        // 50c per dollar above the free area, annualised
         fromIncome = Math.max(0, maxPension - (fnIncome - fnThreshold) * 0.5 * 26);
     }
 
@@ -100,16 +90,24 @@ const applyMeansTest = (totalAssets, annualIncome, maxPension, assetThreshold, a
  * Calculate annual Age Pension for a single person.
  *
  * The income argument should be assessable income AFTER deeming has been
- * applied to financial assets.  For the life simulation engine this means
- * the caller should pass:
- *   assessableIncome = salary + rentalNetCashFlow + calculateDeemedIncome(financialAssets, false)
+ * applied to financial assets but BEFORE Work Bonus is applied to employment
+ * income.  Employment income is passed separately so the Work Bonus exemption
+ * can be applied inside this function (matching utils.js:calculateAgePension).
  *
- * @param {number}  totalAssets   – assessable assets ($)
- * @param {number}  annualIncome  – assessable income p.a. ($ — already deemed)
- * @param {boolean} homeowner     – true if primary residence is owned
+ * @param {number}  totalAssets         – assessable assets ($)
+ * @param {number}  nonEmploymentIncome – rental + deemedIncome + other ($ — already deemed)
+ * @param {boolean} homeowner           – true if primary residence is owned
+ * @param {number}  [employmentIncome=0] – salary/wages (Work Bonus applied internally)
+ * @param {number}  [workBonusBalance=0] – accumulated Work Bonus balance ($0–$11,800)
  * @returns {number} annual pension ($)
  */
-export const calcSinglePension = (totalAssets, annualIncome, homeowner = true) => {
+export const calcSinglePension = (
+    totalAssets,
+    nonEmploymentIncome,
+    homeowner       = true,
+    employmentIncome  = 0,
+    workBonusBalance  = 0,
+) => {
     const assetThreshold = homeowner
         ? ASSET_THRESHOLDS.singleHomeowner
         : ASSET_THRESHOLDS.singleNonHomeowner;
@@ -117,9 +115,13 @@ export const calcSinglePension = (totalAssets, annualIncome, homeowner = true) =
         ? ASSET_LIMITS.singleHomeowner
         : ASSET_LIMITS.singleNonHomeowner;
 
+    // Apply Work Bonus: reduces assessable employment income for income-test purposes
+    const { assessableEmploymentIncome } = applyWorkBonus(employmentIncome, workBonusBalance, false);
+    const totalAssessableIncome = nonEmploymentIncome + assessableEmploymentIncome;
+
     return applyMeansTest(
         totalAssets,
-        annualIncome,
+        totalAssessableIncome,
         PENSION_RATES.singleMax,
         assetThreshold,
         assetLimit,
@@ -130,14 +132,21 @@ export const calcSinglePension = (totalAssets, annualIncome, homeowner = true) =
 /**
  * Calculate annual Age Pension for a couple (combined payment).
  *
- * @param {number}  totalAssets   – combined assessable assets ($)
- * @param {number}  annualIncome  – combined assessable income p.a. ($ — already deemed)
+ * @param {number}  totalAssets         – combined assessable assets ($)
+ * @param {number}  nonEmploymentIncome – combined deemed + rental + other ($ p.a.)
  * @param {boolean} homeowner
+ * @param {number}  [employmentIncome=0]  – combined salary/wages of both partners
+ * @param {number}  [workBonusBalance=0]  – combined accumulated Work Bonus balance
  * @returns {number} combined annual pension ($)
  */
-export const calcCouplePension = (totalAssets, annualIncome, homeowner = true) => {
-    // Couple maximum = coupleMax per-person × 2 members
-    const maxPension    = PENSION_RATES.coupleMax * 2;
+export const calcCouplePension = (
+    totalAssets,
+    nonEmploymentIncome,
+    homeowner        = true,
+    employmentIncome   = 0,
+    workBonusBalance   = 0,
+) => {
+    const maxPension = PENSION_RATES.coupleMax * 2;
     const assetThreshold = homeowner
         ? ASSET_THRESHOLDS.coupleHomeowner
         : ASSET_THRESHOLDS.coupleNonHomeowner;
@@ -145,9 +154,13 @@ export const calcCouplePension = (totalAssets, annualIncome, homeowner = true) =
         ? ASSET_LIMITS.coupleHomeowner
         : ASSET_LIMITS.coupleNonHomeowner;
 
+    // Apply Work Bonus on combined employment income (isCouple=true doubles annual exemption)
+    const { assessableEmploymentIncome } = applyWorkBonus(employmentIncome, workBonusBalance, true);
+    const totalAssessableIncome = nonEmploymentIncome + assessableEmploymentIncome;
+
     return applyMeansTest(
         totalAssets,
-        annualIncome,
+        totalAssessableIncome,
         maxPension,
         assetThreshold,
         assetLimit,
@@ -158,43 +171,59 @@ export const calcCouplePension = (totalAssets, annualIncome, homeowner = true) =
 /**
  * Determine pension eligibility and annual amount for one simulation year.
  *
- * Called by life_simulation_engine.js each year.  The engine pre-computes
- * assessableIncome using calculateDeemedIncome() from utils.js; this function
- * does NOT add deeming internally to avoid double-counting.
+ * Called by life_simulation_engine.js each year.  The caller pre-computes:
+ *   deemedIncome = calculateDeemedIncome(financialAssets, isCouple)
+ * and passes employment income separately so the Work Bonus can be applied here.
  *
- * Couple case: when isCouple=true AND both partners are at pension age, use the
- * couple means-test thresholds (higher asset limit, lower taper rate per dollar).
- * When one partner is below pension age the combined couple test still applies for
- * the eligible partner — this matches Services Australia policy.
+ * Couple eligibility rules (Services Australia):
+ *  - Both partners ≥ 67: use full couple thresholds; return combined amount.
+ *  - Primary ≥ 67, partner < 67: combined couple means test applies, but only
+ *    ONE person receives the payment → return half the combined couple result.
+ *  - Primary < 67, partner ≥ 67: primary is the non-eligible partner case.
+ *    We return zero because the primary person (age param) is below pension age.
+ *    The partner's pension will be calculated when the partner is tracked as primary.
+ *  - Neither ≥ 67: not eligible.
  *
- * @param {number}  age          – primary person's current age
- * @param {number}  totalAssets  – total assessable assets ($)
- * @param {number}  annualIncome – total assessable income p.a. ($ — already deemed)
+ * @param {number}  age                – primary person's current age
+ * @param {number}  totalAssets        – total assessable assets ($)
+ * @param {number}  nonEmploymentIncome – rental + deemed income (no employment, no salary)
  * @param {boolean} isCouple
  * @param {boolean} homeowner
- * @param {number}  [partnerAge] – partner's current age (0 if no partner)
+ * @param {number}  [partnerAge=0]     – partner's current age (0 if no partner)
+ * @param {number}  [employmentIncome=0] – combined employment income ($)
+ * @param {number}  [workBonusBalance=0] – accumulated Work Bonus balance
  * @returns {{ eligible: boolean, annualPension: number }}
  */
 export const calcPensionForYear = (
     age,
     totalAssets,
-    annualIncome,
-    isCouple     = false,
-    homeowner    = true,
-    partnerAge   = 0,
+    nonEmploymentIncome,
+    isCouple         = false,
+    homeowner        = true,
+    partnerAge       = 0,
+    employmentIncome   = 0,
+    workBonusBalance   = 0,
 ) => {
-    // Primary person must be at pension age
+    // Primary person must be at pension age to be the recipient
     if (age < PENSION_AGE) {
         return { eligible: false, annualPension: 0 };
     }
 
     let annualPension;
-    if (isCouple) {
-        // Use couple thresholds regardless of partner's age (Services Australia policy:
-        // combined couple test applies even when one partner is under pension age).
-        annualPension = calcCouplePension(totalAssets, annualIncome, homeowner);
+    if (!isCouple) {
+        // Single — straightforward
+        annualPension = calcSinglePension(totalAssets, nonEmploymentIncome, homeowner, employmentIncome, workBonusBalance);
+    } else if (partnerAge >= PENSION_AGE || partnerAge === 0) {
+        // Both partners at pension age (or no partner age provided — assume both eligible):
+        // combined couple means test, return full combined amount.
+        annualPension = calcCouplePension(totalAssets, nonEmploymentIncome, homeowner, employmentIncome, workBonusBalance);
     } else {
-        annualPension = calcSinglePension(totalAssets, annualIncome, homeowner);
+        // PR review fix #3247147250: One-partner-eligible case.
+        // Primary is eligible but partner is under pension age.
+        // Services Australia: combined couple means test applies (uses couple thresholds),
+        // but only the eligible partner receives a payment → halve the combined result.
+        const combinedPension = calcCouplePension(totalAssets, nonEmploymentIncome, homeowner, employmentIncome, workBonusBalance);
+        annualPension = combinedPension / 2;
     }
 
     return { eligible: true, annualPension };

@@ -60,6 +60,16 @@ export class FinancialState {
 
     /**
      * Compute net worth and cash flow from current state fields.
+     *
+     * PR review fix #3247147593: investmentIncome is stored on this object for
+     * display/reporting purposes only.  The life simulation uses a total-return
+     * model where dividends are treated as reinvested inside growInvestmentAssets()
+     * rather than as separate cash inflows.  Including investmentIncome in the
+     * annualCashFlow calculation would double-count dividends (taxed as income AND
+     * kept in the portfolio via total return).  It is therefore excluded here.
+     *
+     * rentalIncome, trustDistributions, pensionIncome, and superWithdrawal ARE
+     * genuine cash inflows external to the total-return model.
      */
     recalculate() {
         const totalAssets = this.superBalance + this.partnerSuperBalance
@@ -67,9 +77,10 @@ export class FinancialState {
         const totalLiabilities = this.mortgageBalance + this.investmentPropertyLoan;
         this.netWorth = totalAssets - totalLiabilities;
 
+        // investmentIncome excluded — total-return model, not a separate cash inflow.
         const totalIncome = this.salary + this.partnerSalary
             + this.rentalIncome + this.trustDistributions
-            + this.pensionIncome + this.investmentIncome
+            + this.pensionIncome
             + this.superWithdrawal;
         const totalExpenses = this.livingExpenses + this.mortgagePayment
             + this.healthcareCosts + this.agedCareCosts

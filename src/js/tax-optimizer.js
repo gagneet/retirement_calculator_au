@@ -85,10 +85,14 @@ export class TaxOptimizer {
             homeValue: inputs.homeValue || 0,
             mortgage: inputs.mortgageBalance || 0,
             // BUG FIX 1H: australianEquityAllocation is already a decimal from collectInputs().
-            // Dividing by 100 again produced a value 100× too small.  Normalise defensively.
-            australianEquities: (inputs.australianEquityAllocation > 1
-                ? inputs.australianEquityAllocation / 100
-                : inputs.australianEquityAllocation) || 0.40
+            // Normalise defensively: values > 1 are percentages (e.g. 40 → 0.40).
+            // PR review fix #3247147408: use null-check instead of || so that an explicit
+            // 0 (no Australian equity exposure) is honoured rather than replaced with 0.40.
+            australianEquities: (() => {
+                const raw = inputs.australianEquityAllocation;
+                if (raw == null || !isFinite(Number(raw))) return 0.40;
+                return Number(raw) > 1 ? Number(raw) / 100 : Number(raw);
+            })()
         };
     }
 

@@ -292,29 +292,44 @@ export const runLifeSimulation = (userInputs) => {
 
         // ── Pension ───────────────────────────────────────────────────────────
         const assessableAssets = superBalance + partnerSuper + investmentAssets + propertyValue;
-        // Use deemed income (deeming rates on financial assets) rather than actual
-        // super withdrawals — this matches the Services Australia income test.
+
+        // Deeming is applied to financial assets (super + investments) for the income test.
         const deemedIncome = calculateDeemedIncome(superBalance + partnerSuper + investmentAssets, isCouple);
-        // Employment / business income is assessable; deemed income covers financial assets.
-        const assessableIncome = salary + partnerSalary + Math.max(0, rentalNetCashFlow) + deemedIncome;
-        const { annualPension } = calcPensionForYear(age, assessableAssets, assessableIncome, isCouple, homeowner);
+
+        // PR review fix #3247147627: pass partnerAge so pension_engine can correctly
+        // apply the one-partner-eligible case (pays half the couple combined pension).
+        // Employment income is passed separately so the Work Bonus exemption ($7,800/yr
+        // per eligible person) is applied inside calcPensionForYear before the income test.
+        // Rental income is non-employment assessable income (not Work-Bonus-eligible).
+        const combinedEmploymentIncome = salary + partnerSalary;
+        const nonEmploymentIncome      = Math.max(0, rentalNetCashFlow) + deemedIncome;
+
+        const { annualPension } = calcPensionForYear(
+            age,
+            assessableAssets,
+            nonEmploymentIncome,
+            isCouple,
+            homeowner,
+            partnerAge,             // PR fix #3247147627: previously missing
+            combinedEmploymentIncome,
+        );
         state.pensionIncome = annualPension;
 
-        // ── Note on investment income in retirement (BUG FIX 1E — audit-corrected) ────────
-        // investIncome (dividends/distributions) is already included in totalIncome above,
-        // so it IS taxed in retirement — that is the correct treatment.
+        // ── Note on investment income (TASK-004 / PR review fix #3247147438) ───────────────
+        // growInvestmentAssets() uses investmentReturn as a TOTAL return (capital gains +
+        // dividends reinvested).  investIncome from calcInvestmentIncome() is the dividend-only
+        // component of the same return stream.
         //
-        // However, growInvestmentAssets() uses investmentReturn as a TOTAL return assumption
-        // (capital gains + dividends reinvested).  If we also credit investIncome as a cash
-        // flow that reduces the super withdrawal need, we double-count: the dividend income
-        // shrinks the super withdrawal (portfolio stays larger) AND the same dollars grow the
-        // portfolio again through the total-return multiplier.
+        // investIncome is intentionally NOT included in taxableIncome (see Tax section above)
+        // and NOT used to reduce the super withdrawal need.  Both would double-count dividends:
+        //  • including in taxableIncome → tax on income already embedded in total return
+        //  • crediting as cash → portfolio stays larger AND grows via total return again
         //
-        // Correct model: use total return in growInvestmentAssets (dividends reinvested);
-        // investIncome appears in taxableIncome for tax purposes only; it does NOT separately
-        // reduce the super withdrawal requirement — the portfolio growth already captures it.
-        // Pension income IS deducted (fix 1D) because it is a genuine external cash inflow
-        // that the simulator does not model via portfolio return.
+        // investIncome is stored on state.investmentIncome for display only.
+        // FinancialState.recalculate() also excludes it from annualCashFlow for the same reason.
+        //
+        // Pension income IS deducted from the super withdrawal need because it is a genuine
+        // external cash payment not captured by the portfolio total-return model.
 
         // ── Super withdrawal (retirement) ─────────────────────────────────────
         // BUG FIX 1D: Subtract pension BEFORE computing super withdrawal need.
