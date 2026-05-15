@@ -18,6 +18,7 @@ import {
   formatPercent,
   importUserData,
   showNotification,
+  calculateStateLandTax,
 } from './utils.js';
 
 const simulator = new RetirementSimulator(ENHANCED_CONFIG);
@@ -89,7 +90,10 @@ function clamp(value, min, max) {
 
 function pct(value, fallbackPercent = 0) {
   const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return fallbackPercent / 100;
+  if (!Number.isFinite(numeric)) {
+    return fallbackPercent > 0 && fallbackPercent <= 1 ? fallbackPercent : fallbackPercent / 100;
+  }
+  if (numeric > 0 && numeric <= 1) return numeric;
   return numeric / 100;
 }
 
@@ -108,6 +112,12 @@ function deriveAgedCareDuration(inp) {
   return yearsRemaining > 0
     ? Math.max(1, Math.min(DEFAULTS.healthcare.agedCareDuration, Math.round(yearsRemaining)))
     : DEFAULTS.healthcare.agedCareDuration;
+}
+
+function deriveLandTax(inp) {
+  if (!inp.investmentProperty) return 0;
+  if (inp.landTax > 0) return inp.landTax;
+  return calculateStateLandTax(inp.ipValue, inp.ipState, ENHANCED_CONFIG);
 }
 
 function getHouseholdPensionDefaults(household = 'couple') {
@@ -157,7 +167,7 @@ function buildEngineInputs(inp) {
   const desiredIncome = inp.desiredIncome || DEFAULTS.pension.asfaComfortable;
   const employerContributionRate = pct(inp.employerRate || DEFAULTS.economic.employerSuperContributionRate || 12, 12);
   const mortgageRate = pct(inp.mortgageRate || DEFAULTS.property.mortgageRate, DEFAULTS.property.mortgageRate);
-  const investmentPropertyRate = pct(DEFAULTS.property.investmentPropertyRate, DEFAULTS.property.investmentPropertyRate);
+  const investmentPropertyRate = pct(inp.ipRate || DEFAULTS.property.investmentPropertyRate, DEFAULTS.property.investmentPropertyRate);
   const pensionAssetThreshold = inp.pensionAssetThreshold || (
     isCouple ? ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD : ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD
   );
@@ -231,7 +241,7 @@ function buildEngineInputs(inp) {
     annualPropertyExpenses: inp.ipAnnualExpenses,
     propertyGrowthRate: pct(inp.ipGrowthRate || DEFAULTS.property.propertyGrowthRate, DEFAULTS.property.propertyGrowthRate),
     propertyState: inp.ipState || '',
-    landTax: 0,
+    landTax: deriveLandTax(inp),
     sellPropertyYears: DEFAULTS.property.sellPropertyYears,
     capitalGainsTaxRate: pct(DEFAULTS.property.capitalGainsTaxRate, DEFAULTS.property.capitalGainsTaxRate),
 
@@ -305,16 +315,16 @@ function buildEngineInputs(inp) {
     partnerAgeStartedEarningAustralia: isCouple ? inp.partnerAgeStartedEarningAU : 0,
 
     enableReducedIncome: inp.reducedIncomeEnabled,
-    reducedIncomeAge: 0,
-    reducedIncomeSalary: 0,
-    partnerReducedIncomeAge: 0,
-    partnerReducedIncomeSalary: 0,
+    reducedIncomeAge: inp.reducedIncomeEnabled ? inp.reducedIncomeAge : 0,
+    reducedIncomeSalary: inp.reducedIncomeEnabled ? inp.reducedIncomeSalary : 0,
+    partnerReducedIncomeAge: isCouple && inp.reducedIncomeEnabled ? inp.partnerReducedIncomeAge : 0,
+    partnerReducedIncomeSalary: isCouple && inp.reducedIncomeEnabled ? inp.partnerReducedIncomeSalary : 0,
 
     businessIncome: inp.businessIncome,
     investmentIncome: inp.investmentIncomeOutsideSuper,
     isCarerForParents: inp.isCarer,
-    carerReducedWorkPercent: 0,
-    carerYearsExpected: 0,
+    carerReducedWorkPercent: inp.isCarer ? pct(inp.carerReducedWorkPercent) : 0,
+    carerYearsExpected: inp.isCarer ? inp.carerYearsExpected : 0,
     carerAnnualExpense: inp.annualParentSupport,
     privateSchool: inp.privateSchool,
     universitySupport: inp.uniSupport,
@@ -333,6 +343,14 @@ function buildEngineInputs(inp) {
     legacyGoal: 0,
     legacyGoalType: 'none',
     enableProposedBudget2026: inp.budget2627,
+
+    creditCardBalance: inp.ccBalance,
+    creditCardRate: pct(inp.ccRate || 20, 20),
+    personalLoanBalance: inp.personalLoan,
+    personalLoanRate: pct(inp.personalLoanRate || 9, 9),
+    carLoanBalance: inp.carLoan,
+    carLoanRate: pct(inp.carLoanRate || 8, 8),
+    hecsBalance: inp.hecsBalance,
   };
 }
 
@@ -601,6 +619,10 @@ function readInputs() {
     useDownsizer: chk('useDownsizer'),
     useFHSS: chk('useFHSS'),
     reducedIncomeEnabled: chk('reducedIncomeEnabled'),
+    reducedIncomeAge: num('reducedIncomeAge'),
+    reducedIncomeSalary: num('reducedIncomeSalary'),
+    partnerReducedIncomeAge: num('partnerReducedIncomeAge'),
+    partnerReducedIncomeSalary: num('partnerReducedIncomeSalary'),
     businessIncome: num('businessIncome'),
     investmentIncomeOutsideSuper: num('investmentIncomeOutsideSuper'),
 
@@ -611,6 +633,8 @@ function readInputs() {
     uniSupport: chk('uniSupport'),
     isCarer: chk('isCarer'),
     annualParentSupport: num('annualParentSupport'),
+    carerReducedWorkPercent: num('carerReducedWorkPercent'),
+    carerYearsExpected: num('carerYearsExpected'),
 
     // Property & debt
     homeValue: num('homeValue'),
@@ -620,13 +644,17 @@ function readInputs() {
     ccBalance: num('ccBalance'),
     ccRate: num('ccRate'),
     personalLoan: num('personalLoan'),
+    personalLoanRate: num('personalLoanRate', 9),
     carLoan: num('carLoan'),
+    carLoanRate: num('carLoanRate', 8),
     hecsBalance: num('hecsBalance'),
     investmentProperty: chk('investmentProperty'),
     ipValue: num('ipValue'),
     ipLoan: num('ipLoan'),
+    ipRate: num('ipRate', DEFAULTS.property.investmentPropertyRate),
     ipWeeklyRent: num('ipWeeklyRent'),
     ipAnnualExpenses: num('ipAnnualExpenses'),
+    landTax: num('landTax'),
     ipGrowthRate: num('ipGrowthRate'),
     ipState: val('ipState'),
 
@@ -803,7 +831,7 @@ function deriveAllocationStrategy(riskProfile) {
 function buildStressScenarioResults(baseState) {
   const baseBalance = getFinalBalanceValue(baseState.simulation, baseState.adaptedResult);
 
-  return (ENHANCED_CONFIG.STRESS_SCENARIOS || []).slice(0, 3).map((scenario) => {
+  return (ENHANCED_CONFIG.STRESS_SCENARIOS || []).map((scenario) => {
     const stressedInputs = buildStressedInputs(baseState.engineInputs, scenario);
     const stressedResult = simulator.runStressTest(stressedInputs, scenario);
     const finalBalance = stressedResult.finalBalance ?? stressedResult.totalFinancialAssets ?? 0;
@@ -909,6 +937,10 @@ function normalizeImportedUserData(userData = {}) {
     spouseContribution: userData.spouseContribution ?? base.spouseContribution,
     useDownsizer: Boolean(userData.downsizeContribution ?? base.useDownsizer),
     reducedIncomeEnabled: Boolean(userData.enableReducedIncome ?? base.reducedIncomeEnabled),
+    reducedIncomeAge: userData.reducedIncomeAge ?? base.reducedIncomeAge,
+    reducedIncomeSalary: userData.reducedIncomeSalary ?? base.reducedIncomeSalary,
+    partnerReducedIncomeAge: userData.partnerReducedIncomeAge ?? base.partnerReducedIncomeAge,
+    partnerReducedIncomeSalary: userData.partnerReducedIncomeSalary ?? base.partnerReducedIncomeSalary,
     businessIncome: userData.businessIncome ?? base.businessIncome,
     investmentIncomeOutsideSuper: userData.investmentIncome ?? base.investmentIncomeOutsideSuper,
     dependents: userData.dependents ?? base.dependents,
@@ -917,15 +949,26 @@ function normalizeImportedUserData(userData = {}) {
     uniSupport: Boolean(userData.universitySupport ?? base.uniSupport),
     isCarer: Boolean(userData.isCarerForParents ?? base.isCarer),
     annualParentSupport: userData.carerAnnualExpense ?? base.annualParentSupport,
+    carerReducedWorkPercent: userData.carerReducedWorkPercent !== undefined ? toDisplayPercent(userData.carerReducedWorkPercent) : base.carerReducedWorkPercent,
+    carerYearsExpected: userData.carerYearsExpected ?? base.carerYearsExpected,
     homeValue: userData.homeValue ?? base.homeValue,
     mortgage: userData.mortgageBalance ?? base.mortgage,
     mortgageRate: userData.mortgageRate !== undefined ? toDisplayPercent(userData.mortgageRate) : base.mortgageRate,
     downsizePlan: userData.planToDownsize === undefined ? base.downsizePlan : (userData.planToDownsize ? 'yes' : 'no'),
+    ccBalance: userData.creditCardBalance ?? base.ccBalance,
+    ccRate: userData.creditCardRate !== undefined ? toDisplayPercent(userData.creditCardRate) : base.ccRate,
+    personalLoan: userData.personalLoanBalance ?? base.personalLoan,
+    personalLoanRate: userData.personalLoanRate !== undefined ? toDisplayPercent(userData.personalLoanRate) : base.personalLoanRate,
+    carLoan: userData.carLoanBalance ?? base.carLoan,
+    carLoanRate: userData.carLoanRate !== undefined ? toDisplayPercent(userData.carLoanRate) : base.carLoanRate,
+    hecsBalance: userData.hecsBalance ?? base.hecsBalance,
     investmentProperty: Boolean(userData.hasInvestmentProperty ?? base.investmentProperty),
     ipValue: userData.investmentPropertyValue ?? base.ipValue,
     ipLoan: userData.investmentPropertyLoan ?? base.ipLoan,
+    ipRate: userData.investmentPropertyRate !== undefined ? toDisplayPercent(userData.investmentPropertyRate) : base.ipRate,
     ipWeeklyRent: userData.weeklyRentalIncome ?? base.ipWeeklyRent,
     ipAnnualExpenses: userData.annualPropertyExpenses ?? base.ipAnnualExpenses,
+    landTax: userData.landTax ?? base.landTax,
     ipGrowthRate: userData.propertyGrowthRate !== undefined ? toDisplayPercent(userData.propertyGrowthRate) : base.ipGrowthRate,
     ipState: userData.propertyState ?? base.ipState,
     hasSmsf: Boolean(userData.hasSMSF ?? base.hasSmsf),

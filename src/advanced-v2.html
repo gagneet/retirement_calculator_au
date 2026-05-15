@@ -383,13 +383,29 @@
             </div>
 
             <div class="subhead">Reduced income scenario</div>
-            <div class="fields">
+            <div class="fields three">
               <div class="field">
                 <label class="toggle">
                   <input id="reducedIncomeEnabled" type="checkbox" />
                   <span class="track"></span>
                   <span class="label">Model an income drop at a certain age</span>
                 </label>
+              </div>
+              <div class="field">
+                <label class="field-label" for="reducedIncomeAge"><span>Your reduced-income age</span><span class="hint">years</span></label>
+                <div class="field-input"><input id="reducedIncomeAge" type="number" value="0" /><span class="suffix">yrs</span></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="reducedIncomeSalary"><span>Your reduced salary</span><span class="hint">$/year</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="reducedIncomeSalary" type="number" value="0" /><span class="suffix">/yr</span></div>
+              </div>
+              <div class="field" data-household="couple">
+                <label class="field-label" for="partnerReducedIncomeAge"><span>Partner reduced-income age</span><span class="hint">years</span></label>
+                <div class="field-input"><input id="partnerReducedIncomeAge" type="number" value="0" /><span class="suffix">yrs</span></div>
+              </div>
+              <div class="field" data-household="couple">
+                <label class="field-label" for="partnerReducedIncomeSalary"><span>Partner reduced salary</span><span class="hint">$/year</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="partnerReducedIncomeSalary" type="number" value="0" /><span class="suffix">/yr</span></div>
               </div>
             </div>
 
@@ -437,8 +453,16 @@
           </div>
 
           <div class="subhead">Family carer</div>
-          <div class="fields">
+          <div class="fields three">
             <label class="toggle"><input id="isCarer" type="checkbox" /><span class="track"></span><span class="label">I am a carer for aged parents / family</span></label>
+            <div class="field">
+              <label class="field-label" for="carerReducedWorkPercent"><span>Work reduction</span><span class="hint">%</span></label>
+              <div class="field-input"><input id="carerReducedWorkPercent" type="number" step="1" value="0" /><span class="suffix">%</span></div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="carerYearsExpected"><span>Expected carer years</span></label>
+              <div class="field-input"><input id="carerYearsExpected" type="number" value="0" /><span class="suffix">yrs</span></div>
+            </div>
           </div>
         </div>
       </section>
@@ -483,7 +507,9 @@
               <div class="field"><label class="field-label" for="ccBalance"><span>Credit card balance</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ccBalance" type="number" value="0" /></div></div>
               <div class="field"><label class="field-label" for="ccRate"><span>CC rate</span><span class="hint">%</span></label><div class="field-input"><input id="ccRate" type="number" step="0.1" value="19.99" /><span class="suffix">%</span></div></div>
               <div class="field"><label class="field-label" for="personalLoan"><span>Personal loan</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="personalLoan" type="number" value="0" /></div></div>
+              <div class="field"><label class="field-label" for="personalLoanRate"><span>Personal loan rate</span><span class="hint">%</span></label><div class="field-input"><input id="personalLoanRate" type="number" step="0.1" value="9" /><span class="suffix">%</span></div></div>
               <div class="field"><label class="field-label" for="carLoan"><span>Car loan</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="carLoan" type="number" value="0" /></div></div>
+              <div class="field"><label class="field-label" for="carLoanRate"><span>Car loan rate</span><span class="hint">%</span></label><div class="field-input"><input id="carLoanRate" type="number" step="0.1" value="8" /><span class="suffix">%</span></div></div>
               <div class="field"><label class="field-label" for="hecsBalance"><span>HECS / HELP balance</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="hecsBalance" type="number" value="0" /></div></div>
             </div>
 
@@ -495,8 +521,10 @@
               <div class="fields three">
                 <div class="field"><label class="field-label" for="ipValue"><span>Current value</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ipValue" type="number" value="0" /></div></div>
                 <div class="field"><label class="field-label" for="ipLoan"><span>Outstanding loan</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ipLoan" type="number" value="0" /></div></div>
+                <div class="field"><label class="field-label" for="ipRate"><span>Loan rate</span><span class="hint">%</span></label><div class="field-input"><input id="ipRate" type="number" step="0.05" value="6.35" /><span class="suffix">%</span></div></div>
                 <div class="field"><label class="field-label" for="ipWeeklyRent"><span>Weekly rent</span><span class="hint">$/wk</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ipWeeklyRent" type="number" value="0" /><span class="suffix">/wk</span></div></div>
                 <div class="field"><label class="field-label" for="ipAnnualExpenses"><span>Annual expenses</span><span class="hint">$/yr</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ipAnnualExpenses" type="number" value="0" /></div></div>
+                <div class="field"><label class="field-label" for="landTax"><span>Annual land tax</span><span class="hint">$/yr</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="landTax" type="number" value="0" /></div><div class="field-help">Auto-filled for states with configured brackets; override if your assessment differs.</div></div>
                 <div class="field"><label class="field-label" for="ipGrowthRate"><span>Annual growth</span><span class="hint">%</span></label><div class="field-input"><input id="ipGrowthRate" type="number" step="0.1" value="4.0" /><span class="suffix">%</span></div></div>
                 <div class="field"><label class="field-label" for="ipState"><span>State</span></label><div class="field-input"><select id="ipState"><option value="">— select for land tax —</option><option value="NSW">NSW</option><option value="VIC">VIC</option><option value="QLD">QLD</option><option value="WA">WA</option><option value="SA">SA</option><option value="TAS">TAS</option><option value="ACT">ACT</option><option value="NT">NT</option></select></div></div>
               </div>

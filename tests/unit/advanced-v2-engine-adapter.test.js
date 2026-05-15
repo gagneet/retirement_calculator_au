@@ -47,6 +47,10 @@ const buildRedesignInputs = (overrides = {}) => ({
     useDownsizer: false,
     useFHSS: false,
     reducedIncomeEnabled: false,
+    reducedIncomeAge: 0,
+    reducedIncomeSalary: 0,
+    partnerReducedIncomeAge: 0,
+    partnerReducedIncomeSalary: 0,
     businessIncome: 0,
     investmentIncomeOutsideSuper: 0,
     dependents: 0,
@@ -55,6 +59,8 @@ const buildRedesignInputs = (overrides = {}) => ({
     uniSupport: false,
     isCarer: false,
     annualParentSupport: 0,
+    carerReducedWorkPercent: 0,
+    carerYearsExpected: 0,
     homeValue: 850000,
     mortgage: 200000,
     mortgageRate: 6,
@@ -62,13 +68,17 @@ const buildRedesignInputs = (overrides = {}) => ({
     ccBalance: 0,
     ccRate: 19.99,
     personalLoan: 0,
+    personalLoanRate: 9,
     carLoan: 0,
+    carLoanRate: 8,
     hecsBalance: 0,
     investmentProperty: false,
     ipValue: 0,
     ipLoan: 0,
+    ipRate: 6.35,
     ipWeeklyRent: 0,
     ipAnnualExpenses: 0,
+    landTax: 0,
     ipGrowthRate: 4,
     ipState: '',
     hasSmsf: false,
@@ -133,6 +143,84 @@ describe('advanced-v2 engine adapter', () => {
         expect(engineInputs.pensionAssetThreshold).toBe(481500);
         expect(engineInputs.pensionAssetLimit).toBe(1085000);
         expect(engineInputs.useLongevityDistribution).toBe(false);
+    });
+
+    test('accepts canonical ratio percentages without dividing them again', () => {
+        const engineInputs = buildEngineInputs(buildRedesignInputs({
+            inflation: 0.026,
+            invReturn: 0.065,
+            superGrowth: 0.075,
+            employerRate: 0.12,
+            mortgageRate: 0.06,
+            ipRate: 0.0635,
+        }));
+
+        expect(engineInputs.inflation).toBeCloseTo(0.026);
+        expect(engineInputs.investmentReturn).toBeCloseTo(0.065);
+        expect(engineInputs.superReturn).toBeCloseTo(0.075);
+        expect(engineInputs.employerSuperContributionRate).toBeCloseTo(0.12);
+        expect(engineInputs.mortgageRate).toBeCloseTo(0.06);
+        expect(engineInputs.investmentPropertyRate).toBeCloseTo(0.0635);
+    });
+
+    test('maps debt, investment property, reduced income and carer fields into simulator inputs', () => {
+        const engineInputs = buildEngineInputs(buildRedesignInputs({
+            household: 'couple',
+            partnerAge: 43,
+            partnerSalary: 80000,
+            partnerSuperBal: 150000,
+            ccBalance: 4500,
+            ccRate: 21.5,
+            personalLoan: 12000,
+            personalLoanRate: 10.2,
+            carLoan: 18000,
+            carLoanRate: 7.5,
+            hecsBalance: 25000,
+            investmentProperty: true,
+            ipValue: 900000,
+            ipLoan: 520000,
+            ipRate: 6.45,
+            ipWeeklyRent: 650,
+            ipAnnualExpenses: 11000,
+            landTax: 2400,
+            reducedIncomeEnabled: true,
+            reducedIncomeAge: 58,
+            reducedIncomeSalary: 90000,
+            partnerReducedIncomeAge: 60,
+            partnerReducedIncomeSalary: 65000,
+            isCarer: true,
+            carerReducedWorkPercent: 20,
+            carerYearsExpected: 5,
+            annualParentSupport: 8000,
+        }));
+
+        expect(engineInputs.creditCardBalance).toBe(4500);
+        expect(engineInputs.creditCardRate).toBeCloseTo(0.215);
+        expect(engineInputs.personalLoanBalance).toBe(12000);
+        expect(engineInputs.personalLoanRate).toBeCloseTo(0.102);
+        expect(engineInputs.carLoanBalance).toBe(18000);
+        expect(engineInputs.carLoanRate).toBeCloseTo(0.075);
+        expect(engineInputs.hecsBalance).toBe(25000);
+        expect(engineInputs.investmentPropertyRate).toBeCloseTo(0.0645);
+        expect(engineInputs.landTax).toBe(2400);
+        expect(engineInputs.reducedIncomeAge).toBe(58);
+        expect(engineInputs.reducedIncomeSalary).toBe(90000);
+        expect(engineInputs.partnerReducedIncomeAge).toBe(60);
+        expect(engineInputs.partnerReducedIncomeSalary).toBe(65000);
+        expect(engineInputs.carerReducedWorkPercent).toBeCloseTo(0.2);
+        expect(engineInputs.carerYearsExpected).toBe(5);
+        expect(engineInputs.carerAnnualExpense).toBe(8000);
+    });
+
+    test('calculates configured state land tax when no manual land tax is entered', () => {
+        const engineInputs = buildEngineInputs(buildRedesignInputs({
+            investmentProperty: true,
+            ipValue: 900000,
+            ipState: 'VIC',
+            landTax: 0,
+        }));
+
+        expect(engineInputs.landTax).toBeGreaterThan(0);
     });
 
     test('uses current config defaults for household pension means tests', () => {
