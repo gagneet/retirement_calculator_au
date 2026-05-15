@@ -3726,7 +3726,7 @@ class RetirementCalculatorApp {
             errEl.className = 'mb-4 p-4 bg-red-50 border border-red-300 rounded-lg text-sm text-red-800';
             errEl.innerHTML = `<strong>Cost Reality Analysis Error</strong>: ${msg}`
                 + (detail ? `<pre class="mt-2 text-xs text-red-700 whitespace-pre-wrap">${detail}</pre>` : '');
-            errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (errEl.isConnected) errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         };
 
         const clearCostError = () => {
@@ -7866,7 +7866,7 @@ class RetirementCalculatorApp {
             errEl.className = 'mb-4 p-4 bg-red-50 border border-red-300 rounded-lg text-sm text-red-800';
             errEl.innerHTML = `<strong>Simulation Error</strong>: ${msg}`
                 + (detail ? `<pre class="mt-2 text-xs text-red-700 whitespace-pre-wrap">${detail}</pre>` : '');
-            errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (errEl.isConnected) errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         };
 
         const clearSimError = () => {
