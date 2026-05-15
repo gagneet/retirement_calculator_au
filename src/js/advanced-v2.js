@@ -8,9 +8,21 @@ import '../css/styles.css';
 import '../css/redesign.css';
 import ENHANCED_CONFIG from './config.js';
 import RetirementSimulator from './simulator.js';
+import RecommendationEngine from './recommendation.js';
+import OverseasRetirementAnalyzer from './overseas-retirement.js';
+import { RiskProfilingEngine } from './risk-profiling-engine.js';
+import { buildStressedInputs } from './policy/stress-helpers.js';
+import {
+  exportToPDF,
+  formatCurrency,
+  formatPercent,
+  importUserData,
+  showNotification,
+} from './utils.js';
 
 const simulator = new RetirementSimulator(ENHANCED_CONFIG);
 const { DEFAULTS } = ENHANCED_CONFIG;
+const riskProfiler = new RiskProfilingEngine(ENHANCED_CONFIG);
 
 const EXPERIENCE_MAP = {
   none: 0,
@@ -44,6 +56,31 @@ const PENSION_MEANS_TEST_DEFAULTS = {
     cutoff: ENHANCED_CONFIG.COUPLE_ASSET_LIMIT,
   },
 };
+
+const COUNTRY_CODE_MAP = {
+  portugal: 'PORTUGAL',
+  nz: 'NEW_ZEALAND',
+  thailand: 'THAILAND',
+  vietnam: 'VIETNAM',
+  malaysia: 'MALAYSIA',
+};
+
+const APP_STATE = {
+  input: null,
+  engineInputs: null,
+  simulation: null,
+  adaptedResult: null,
+  monteCarloResults: null,
+  retirementAgeResult: null,
+  stressTestResults: [],
+  recommendations: [],
+  riskProfile: null,
+  allocationStrategy: null,
+  overseasAnalysis: null,
+  overseasExportData: null,
+  chartManager: { charts: {} },
+};
+let initialFormState = null;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -597,8 +634,8 @@ function readInputs() {
     agePensionAge: num('agePensionAge', 67),
     pensionAnnualSingle: num('pensionAnnualSingle', 31223),
     pensionAnnualCouple: num('pensionAnnualCouple', 47070),
-    pensionAssetThreshold: num('pensionAssetThreshold', 481500),
-    pensionAssetCutoff: num('pensionAssetCutoff', 1074000),
+    pensionAssetThreshold: num('pensionAssetThreshold', getHouseholdPensionDefaults(household).threshold),
+    pensionAssetCutoff: num('pensionAssetCutoff', getHouseholdPensionDefaults(household).cutoff),
 
     // Simulation
     mcRuns: num('mcRuns', 500),
@@ -621,6 +658,764 @@ function runEngine(inp) {
   const simulation = simulator.simulateRetirement(engineInputs, false);
 
   return adaptEngineOutput(inp, engineInputs, simulation);
+}
+
+function computeBaseState(inp = readInputs()) {
+  const engineInputs = buildEngineInputs(inp);
+  const simulation = simulator.simulateRetirement(engineInputs, false);
+  const adaptedResult = adaptEngineOutput(inp, engineInputs, simulation);
+
+  return { input: inp, engineInputs, simulation, adaptedResult };
+}
+
+function syncAppState(baseState = computeBaseState()) {
+  APP_STATE.input = baseState.input;
+  APP_STATE.engineInputs = baseState.engineInputs;
+  APP_STATE.simulation = baseState.simulation;
+  APP_STATE.adaptedResult = baseState.adaptedResult;
+  return baseState;
+}
+
+function resetDerivedAnalysis() {
+  APP_STATE.monteCarloResults = null;
+  APP_STATE.retirementAgeResult = null;
+  APP_STATE.stressTestResults = [];
+  APP_STATE.recommendations = [];
+  APP_STATE.riskProfile = null;
+  APP_STATE.allocationStrategy = null;
+  APP_STATE.overseasAnalysis = null;
+  APP_STATE.overseasExportData = null;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function setPanelHtml(tabName, html) {
+  const panel = document.querySelector(`[data-tab-panel="${tabName}"]`);
+  if (panel) panel.innerHTML = html;
+}
+
+function openTab(tabName) {
+  const button = document.querySelector(`.analysis-tabs button[data-tab="${tabName}"]`);
+  if (button) button.click();
+}
+
+function getFinalBalanceValue(result = APP_STATE.simulation, adaptedResult = APP_STATE.adaptedResult) {
+  const lastYear = adaptedResult?.years?.[adaptedResult.years.length - 1];
+  return result?.finalBalance ?? result?.totalFinancialAssets ?? lastYear?.totalAssets ?? 0;
+}
+
+function buildExportResults() {
+  const simulation = APP_STATE.simulation;
+  const adaptedResult = APP_STATE.adaptedResult;
+  const yearlyData = simulation?.yearlyData || adaptedResult?.years?.map((year) => ({
+    age: year.age,
+    endBalance: year.totalAssets,
+    withdrawal: year.withdraw,
+    pensionIncome: year.pension,
+  })) || [];
+
+  return {
+    ...(simulation || {}),
+    yearlyData,
+    monteCarloResults: APP_STATE.monteCarloResults,
+    totalFinancialAssets: simulation?.totalFinancialAssets ?? getFinalBalanceValue(simulation, adaptedResult),
+    accessibleHomeEquity: simulation?.accessibleHomeEquity ?? 0,
+    finalBalance: getFinalBalanceValue(simulation, adaptedResult),
+  };
+}
+
+function buildExportAppBridge() {
+  return {
+    currentMonteCarloResults: APP_STATE.monteCarloResults,
+    currentRecommendations: APP_STATE.recommendations,
+    currentComprehensiveRecommendations: APP_STATE.recommendations,
+    currentStressTestResults: APP_STATE.stressTestResults,
+    currentRiskProfile: APP_STATE.riskProfile,
+    currentAllocationStrategy: APP_STATE.allocationStrategy,
+    currentOverseasData: APP_STATE.overseasExportData,
+  };
+}
+
+function normaliseRiskProfile(summary) {
+  if (!summary) return null;
+
+  return {
+    overallRiskProfile: summary.overallRiskProfile,
+    riskCapacity: summary.dimensions?.capacity?.score ?? null,
+    riskTolerance: summary.dimensions?.tolerance?.score ?? null,
+    riskRequirement: summary.dimensions?.requirement?.score ?? null,
+    confidence: summary.confidenceLevel ?? null,
+    recommendations: summary.topRecommendations || [],
+    optimalAllocation: summary.optimalAllocation || null,
+    misalignment: summary.misalignment || null,
+    raw: summary,
+  };
+}
+
+function deriveAllocationStrategy(riskProfile) {
+  const allocation = riskProfile?.optimalAllocation;
+  if (!allocation) return null;
+
+  return {
+    confidence: riskProfile.confidence,
+    currentAllocation: {
+      equity: allocation.growth ?? allocation.equity ?? null,
+      bonds: allocation.defensive ?? allocation.bonds ?? null,
+      cash: allocation.cash ?? null,
+    },
+    strategy: {
+      name: riskProfile.overallRiskProfile || 'Balanced',
+      description: riskProfile.misalignment?.message || 'Allocation aligned to your current risk profile.',
+    },
+    rationale: riskProfile.misalignment?.recommendation || null,
+  };
+}
+
+function buildStressScenarioResults(baseState) {
+  const baseBalance = getFinalBalanceValue(baseState.simulation, baseState.adaptedResult);
+
+  return (ENHANCED_CONFIG.STRESS_SCENARIOS || []).slice(0, 3).map((scenario) => {
+    const stressedInputs = buildStressedInputs(baseState.engineInputs, scenario);
+    const stressedResult = simulator.runStressTest(stressedInputs, scenario);
+    const finalBalance = stressedResult.finalBalance ?? stressedResult.totalFinancialAssets ?? 0;
+
+    return {
+      scenario: scenario.name,
+      description: scenario.description,
+      finalBalance,
+      deltaBalance: finalBalance - baseBalance,
+      success: finalBalance > 0,
+    };
+  });
+}
+
+function mapDestinationCode(destination) {
+  return COUNTRY_CODE_MAP[destination] || null;
+}
+
+function toDisplayPercent(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  return numeric > 1 ? numeric : numeric * 100;
+}
+
+function mapCanonicalEmergencyFund(value) {
+  if (value === 'full') return '6plus';
+  if (value === 'partial') return '3_6';
+  return 'none';
+}
+
+function mapCanonicalDebt(value) {
+  if (value === 'significant') return 'over_50k';
+  if (value === 'moderate') return '10_50k';
+  return 'none';
+}
+
+function isRedesignUserData(userData = {}) {
+  return 'retireAge' in userData
+    || 'superBal' in userData
+    || 'downsizePlan' in userData
+    || 'household' in userData;
+}
+
+function getBaselineImportState() {
+  return { ...(initialFormState || readInputs()) };
+}
+
+function normalizeImportedUserData(userData = {}) {
+  const base = getBaselineImportState();
+
+  if (isRedesignUserData(userData)) {
+    return {
+      ...base,
+      ...userData,
+      household: userData.household || base.household,
+      downsizePlan: userData.downsizePlan || base.downsizePlan,
+    };
+  }
+
+  const importedHasPartner = userData.hasPartner
+    || userData.isCouple
+    || Number(userData.partnerCurrentAge) > 0
+    || Number(userData.partnerSalary) > 0
+    || Number(userData.partnerCurrentSuper) > 0;
+
+  const annualPensionField = importedHasPartner ? 'pensionAnnualCouple' : 'pensionAnnualSingle';
+
+  return {
+    ...base,
+    household: importedHasPartner ? 'couple' : 'single',
+    age: userData.yourCurrentAge ?? base.age,
+    retireAge: userData.retirementAge ?? base.retireAge,
+    lifespan: userData.yourLifespan ?? userData.lifeExpectancy ?? base.lifespan,
+    gender: userData.yourGender ?? base.gender,
+    ageCameToAU: userData.ageCameToAustralia ?? base.ageCameToAU,
+    ageStartedEarningAU: userData.ageStartedEarningAustralia ?? base.ageStartedEarningAU,
+    partnerAge: userData.partnerCurrentAge ?? base.partnerAge,
+    partnerRetireAge: userData.partnerRetirementAge ?? base.partnerRetireAge,
+    partnerLifespan: userData.partnerLifespan ?? base.partnerLifespan,
+    partnerGender: userData.partnerGender ?? base.partnerGender,
+    partnerAgeCameToAU: userData.partnerAgeCameToAustralia ?? base.partnerAgeCameToAU,
+    partnerAgeStartedEarningAU: userData.partnerAgeStartedEarningAustralia ?? base.partnerAgeStartedEarningAU,
+    riskTolerance: userData.riskTolerance ?? base.riskTolerance,
+    riskReactionDrop: userData.lossReaction ?? base.riskReactionDrop,
+    investmentExperience: Object.entries(EXPERIENCE_MAP).find(([, value]) => value === userData.investmentExperience)?.[0] || base.investmentExperience,
+    marketKnowledge: userData.marketUnderstanding ?? base.marketKnowledge,
+    volatilityComfort: userData.volatilityComfort !== undefined ? toDisplayPercent(userData.volatilityComfort) : base.volatilityComfort,
+    emergencyFund: mapCanonicalEmergencyFund(userData.hasEmergencyFund),
+    highInterestDebt: mapCanonicalDebt(userData.hasDebt),
+    salary: userData.yourSalary ?? userData.annualSalary ?? base.salary,
+    partnerSalary: userData.partnerSalary ?? userData.partnerAnnualSalary ?? base.partnerSalary,
+    superBal: userData.yourCurrentSuper ?? userData.superBalance ?? base.superBal,
+    partnerSuperBal: userData.partnerCurrentSuper ?? userData.partnerSuperBalance ?? base.partnerSuperBal,
+    cash: userData.currentSavings ?? userData.savings ?? base.cash,
+    stocks: userData.currentStocks ?? userData.investments ?? base.stocks,
+    monthlyStockContrib: userData.monthlyStockContribution ?? base.monthlyStockContrib,
+    salarySacrifice: userData.yourAdditionalSuperContribution ?? base.salarySacrifice,
+    partnerSalarySacrifice: userData.partnerAdditionalSuperContribution ?? base.partnerSalarySacrifice,
+    employerRate: userData.employerSuperContributionRate !== undefined ? toDisplayPercent(userData.employerSuperContributionRate) : base.employerRate,
+    ncc: userData.yourAnnualNCC ?? base.ncc,
+    partnerNCC: userData.partnerAnnualNCC ?? base.partnerNCC,
+    concessionalUsedThisYear: userData.concessionalCapUsed ?? base.concessionalUsedThisYear,
+    spouseContribution: userData.spouseContribution ?? base.spouseContribution,
+    useDownsizer: Boolean(userData.downsizeContribution ?? base.useDownsizer),
+    reducedIncomeEnabled: Boolean(userData.enableReducedIncome ?? base.reducedIncomeEnabled),
+    businessIncome: userData.businessIncome ?? base.businessIncome,
+    investmentIncomeOutsideSuper: userData.investmentIncome ?? base.investmentIncomeOutsideSuper,
+    dependents: userData.dependents ?? base.dependents,
+    educationCostPerChild: userData.educationCostPerChild ?? base.educationCostPerChild,
+    privateSchool: Boolean(userData.privateSchool ?? base.privateSchool),
+    uniSupport: Boolean(userData.universitySupport ?? base.uniSupport),
+    isCarer: Boolean(userData.isCarerForParents ?? base.isCarer),
+    annualParentSupport: userData.carerAnnualExpense ?? base.annualParentSupport,
+    homeValue: userData.homeValue ?? base.homeValue,
+    mortgage: userData.mortgageBalance ?? base.mortgage,
+    mortgageRate: userData.mortgageRate !== undefined ? toDisplayPercent(userData.mortgageRate) : base.mortgageRate,
+    downsizePlan: userData.planToDownsize === undefined ? base.downsizePlan : (userData.planToDownsize ? 'yes' : 'no'),
+    investmentProperty: Boolean(userData.hasInvestmentProperty ?? base.investmentProperty),
+    ipValue: userData.investmentPropertyValue ?? base.ipValue,
+    ipLoan: userData.investmentPropertyLoan ?? base.ipLoan,
+    ipWeeklyRent: userData.weeklyRentalIncome ?? base.ipWeeklyRent,
+    ipAnnualExpenses: userData.annualPropertyExpenses ?? base.ipAnnualExpenses,
+    ipGrowthRate: userData.propertyGrowthRate !== undefined ? toDisplayPercent(userData.propertyGrowthRate) : base.ipGrowthRate,
+    ipState: userData.propertyState ?? base.ipState,
+    hasSmsf: Boolean(userData.hasSMSF ?? base.hasSmsf),
+    hasTrust: Boolean(userData.hasTrustAssets ?? base.hasTrust),
+    desiredIncome: userData.targetRetirementIncome ?? userData.asfaComfortable ?? base.desiredIncome,
+    hasPrivateHospital: Boolean(userData.hasPrivateHealthCover ?? base.hasPrivateHospital),
+    healthCondition: userData.healthCondition ?? base.healthCondition,
+    healthcareCost: userData.currentHealthcareCosts ?? base.healthcareCost,
+    ageFirstHadCover: userData.ageFirstPrivateCover ?? base.ageFirstHadCover,
+    agedCareProbability: userData.agedCareProbability !== undefined ? toDisplayPercent(userData.agedCareProbability) : base.agedCareProbability,
+    agedCareStartAge: userData.agedCareStartAge ?? base.agedCareStartAge,
+    agedCareAnnualCost: userData.agedCareAnnualCost ?? base.agedCareAnnualCost,
+    inflation: userData.inflation !== undefined ? toDisplayPercent(userData.inflation) : base.inflation,
+    invReturn: userData.investmentReturn !== undefined ? toDisplayPercent(userData.investmentReturn) : base.invReturn,
+    superGrowth: userData.superReturn !== undefined ? toDisplayPercent(userData.superReturn) : base.superGrowth,
+    savingsReturn: userData.savingsReturn !== undefined ? toDisplayPercent(userData.savingsReturn) : base.savingsReturn,
+    agePensionAge: userData.agePensionAge ?? base.agePensionAge,
+    [annualPensionField]: userData.agePensionMax ?? base[annualPensionField],
+    pensionAssetThreshold: userData.pensionAssetThreshold ?? base.pensionAssetThreshold,
+    pensionAssetCutoff: userData.pensionAssetLimit ?? base.pensionAssetCutoff,
+    mcRuns: userData.numRuns ?? base.mcRuns,
+    returnVolatility: userData.returnVolatility !== undefined ? toDisplayPercent(userData.returnVolatility) : base.returnVolatility,
+    scenarioMode: userData.scenarioMode ?? base.scenarioMode,
+    enableShocks: Boolean(userData.enableShocks ?? base.enableShocks),
+    sampleLifespan: Boolean(userData.useLongevityDistribution ?? base.sampleLifespan),
+    budget2627: Boolean(userData.enableProposedBudget2026 ?? base.budget2627),
+  };
+}
+
+function exportRedesignUserData(inputs, scenarioName = 'Advanced Calculator v2') {
+  const exportData = {
+    version: '4.0',
+    exportDate: new Date().toISOString(),
+    scenarioName,
+    userData: inputs,
+    metadata: {
+      calculatorVersion: '2026.1',
+      description: 'Australian Retirement Calculator - Advanced v2 input data',
+      fields: Object.keys(inputs).length,
+      page: 'advanced-v2',
+      note: 'This file contains Advanced v2 input data for the redesigned calculator.',
+    },
+  };
+
+  const timestamp = new Date().toISOString().slice(0, 16).replace(/[:.]/g, '-');
+  const filename = `retirement-inputs-advanced-v2-${timestamp}.json`;
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+
+  showNotification('Your retirement data has been exported successfully!', 'success');
+  return filename;
+}
+
+function buildOverseasAnalyzer(baseState) {
+  return new OverseasRetirementAnalyzer(
+    {
+      age: baseState.input.age,
+      retirementAge: baseState.input.retireAge,
+      partnered: baseState.engineInputs?.isCouple,
+      ageCameToAustralia: baseState.input.ageCameToAU,
+      australianResidenceYears: baseState.input.ageCameToAU > 0
+        ? Math.max(0, baseState.input.retireAge - baseState.input.ageCameToAU)
+        : Math.max(0, baseState.input.retireAge - 16),
+      enableProposedBudget2026: baseState.input.budget2627,
+    },
+    {
+      superBalance: baseState.input.superBal + (baseState.engineInputs?.isCouple ? baseState.input.partnerSuperBal : 0),
+      investmentBalance: baseState.input.stocks,
+      savingsBalance: baseState.input.cash,
+      annualIncomeNeed: baseState.input.desiredIncome,
+      enableProposedBudget2026: baseState.input.budget2627,
+    }
+  );
+}
+
+function buildOverseasExportData(analysis, annualBudget) {
+  if (!analysis) return null;
+
+  const annualCost = annualBudget > 0 ? annualBudget : (analysis.costOfLiving?.countryAnnual ?? 0);
+  const monthlyBudget = Math.round(annualCost / 12);
+  const australiaAnnual = analysis.costOfLiving?.australiaAnnual || 0;
+  const costVsAustralia = australiaAnnual > 0
+    ? Math.round(((annualCost - australiaAnnual) / australiaAnnual) * 100)
+    : 0;
+  const availableAnnualIncome = (APP_STATE.adaptedResult?.monthlyPaycheck || 0) * 12;
+
+  return {
+    config: {
+      destinationCountry: analysis.country,
+      currency: 'AUD',
+      monthlyBudget,
+    },
+    scenarios: [
+      {
+        country: analysis.country,
+        monthlyBudget,
+        annualCost,
+        yearsOfFunding: annualCost > 0 ? Math.max(0, Math.round(getFinalBalanceValue() / annualCost)) : null,
+        costVsAustralia,
+        suitabilityScore: analysis.riskAssessment?.overall === 'LOW' ? 80 : analysis.riskAssessment?.overall === 'MEDIUM' ? 65 : 50,
+        availableAnnualIncome,
+      },
+    ],
+  };
+}
+
+function renderSummaryPanel() {
+  const state = APP_STATE;
+  const summaryItems = [
+    {
+      label: 'Monthly retirement income',
+      value: fmt$(state.adaptedResult?.monthlyPaycheck || 0),
+      detail: 'Based on your current live inputs',
+    },
+    {
+      label: 'Projected runway',
+      value: `Age ${state.adaptedResult?.lastsUntil || '—'}`,
+      detail: state.adaptedResult?.lastsUntil >= state.input?.lifespan ? 'Covers planned lifespan' : 'Needs more margin',
+    },
+    {
+      label: 'Super at retirement',
+      value: fmt$(state.adaptedResult?.superAtRetire || 0, { compact: true }),
+      detail: 'Inflation-adjusted',
+    },
+    {
+      label: 'Income gap',
+      value: state.adaptedResult?.gapMonthly > 0 ? fmt$(state.adaptedResult.gapMonthly) : 'On track',
+      detail: 'Gap versus your annual target income',
+    },
+  ];
+
+  const monteCarloBlock = state.monteCarloResults
+    ? `
+      <div class="summary-chart">
+        <h5>Monte Carlo snapshot</h5>
+        <div class="desc">Probabilistic view using your selected run count.</div>
+        <div class="metrics">
+          <div class="metric"><div class="k">Success rate</div><div class="v">${formatPercent(state.monteCarloResults.successRate || 0, 1)}</div></div>
+          <div class="metric"><div class="k">Median balance</div><div class="v">${fmt$(state.monteCarloResults.median || 0, { compact: true })}</div></div>
+          <div class="metric"><div class="k">10th percentile</div><div class="v">${fmt$(state.monteCarloResults.percentile10 || 0, { compact: true })}</div></div>
+          <div class="metric"><div class="k">90th percentile</div><div class="v">${fmt$(state.monteCarloResults.percentile90 || 0, { compact: true })}</div></div>
+        </div>
+      </div>`
+    : `
+      <div class="summary-chart">
+        <h5>Full analysis</h5>
+        <div class="desc">Run the full simulation to bring Monte Carlo, risk, and recommendations into this view.</div>
+        <div class="metric">
+          <div class="k">Current live confidence</div>
+          <div class="v">${Math.round((state.adaptedResult?.confidence || 0) * 100)}%</div>
+        </div>
+      </div>`;
+
+  const recommendationLead = state.recommendations?.[0]
+    ? `<div class="summary-chart">
+        <h5>Top recommendation</h5>
+        <div class="desc">${escapeHtml(state.recommendations[0].category || 'Strategy')}</div>
+        <p style="margin:0 0 8px;font-weight:600">${escapeHtml(state.recommendations[0].title || 'Recommendation')}</p>
+        <p style="margin:0;color:var(--ink-3)">${escapeHtml(state.recommendations[0].description || '')}</p>
+      </div>`
+    : '';
+
+  setPanelHtml('summary', `
+    <div class="summary-grid">
+      <div class="summary-chart">
+        <h5>Plan summary</h5>
+        <div class="desc">Live deterministic projection from the shared retirement simulator.</div>
+        <div class="metrics">
+          ${summaryItems.map((item) => `
+            <div class="metric">
+              <div class="k">${escapeHtml(item.label)}</div>
+              <div class="v">${item.value}</div>
+              <div class="sub">${escapeHtml(item.detail)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ${monteCarloBlock}
+    </div>
+    ${recommendationLead}
+  `);
+}
+
+function renderWhatIfPanel() {
+  const state = APP_STATE;
+  const earliest = state.retirementAgeResult;
+  const stressLead = state.stressTestResults?.[0];
+  const overseas = state.overseasAnalysis;
+  const overseasBudget = state.overseasExportData?.scenarios?.[0]?.annualCost;
+
+  setPanelHtml('whatif', `
+    <div class="whatif-grid">
+      <div class="whatif-card">
+        <h5>When can I retire?</h5>
+        <div class="desc">Earliest age that reaches a 70% Monte Carlo success rate.</div>
+        ${earliest?.success ? `
+          <div class="whatif-impact">
+            <span class="pill good"><b>Age ${earliest.earliestRetirementAge}</b></span>
+            <span class="pill"><b>${formatPercent(earliest.successRate || 0, 1)}</b> success</span>
+            <span class="pill"><b>${earliest.yearsToWork}</b> more years</span>
+          </div>
+          <p style="margin:10px 0 0;color:var(--ink-3)">Median balance at that age: ${escapeHtml(formatCurrency(earliest.medianBalance || 0))}</p>
+        ` : `
+          <p style="margin:0;color:var(--ink-3)">${escapeHtml(earliest?.message || 'Use the "When can I retire?" tool to solve for an earlier viable retirement age.')}</p>
+        `}
+      </div>
+      <div class="whatif-card">
+        <h5>Stress test</h5>
+        <div class="desc">Snapshot of prebuilt stress scenarios from the existing simulator.</div>
+        ${stressLead ? `
+          <div class="whatif-impact">
+            <span class="pill"><b>${escapeHtml(stressLead.scenario)}</b></span>
+            <span class="pill ${stressLead.deltaBalance >= 0 ? 'good' : ''}"><b>${stressLead.deltaBalance >= 0 ? '+' : ''}${escapeHtml(formatCurrency(stressLead.deltaBalance || 0))}</b></span>
+          </div>
+          <p style="margin:10px 0 0;color:var(--ink-3)">Final balance under this scenario: ${escapeHtml(formatCurrency(stressLead.finalBalance || 0))}</p>
+        ` : `
+          <p style="margin:0;color:var(--ink-3)">Use the Stress test tool to compare your base plan against market shocks.</p>
+        `}
+      </div>
+      <div class="whatif-card">
+        <h5>Monte Carlo band</h5>
+        <div class="desc">Probabilistic range around your plan outcome.</div>
+        ${state.monteCarloResults ? `
+          <div class="whatif-impact">
+            <span class="pill"><b>${formatPercent(state.monteCarloResults.successRate || 0, 1)}</b> success</span>
+            <span class="pill"><b>${escapeHtml(formatCurrency(state.monteCarloResults.percentile10 || 0))}</b> downside</span>
+          </div>
+          <p style="margin:10px 0 0;color:var(--ink-3)">90th percentile outcome: ${escapeHtml(formatCurrency(state.monteCarloResults.percentile90 || 0))}</p>
+        ` : `
+          <p style="margin:0;color:var(--ink-3)">Run Monte Carlo to see best/base/worst-case ranges.</p>
+        `}
+      </div>
+      <div class="whatif-card">
+        <h5>Overseas plan</h5>
+        <div class="desc">Destination-specific pension portability and cost view.</div>
+        ${overseas ? `
+          <div class="whatif-impact">
+            <span class="pill"><b>${escapeHtml(overseas.country)}</b></span>
+            <span class="pill"><b>${escapeHtml(overseas.agePensionPortability?.rules?.status || 'General portability')}</b></span>
+          </div>
+          <p style="margin:10px 0 0;color:var(--ink-3)">Annual overseas budget used: ${escapeHtml(formatCurrency(overseasBudget || 0))}</p>
+        ` : `
+          <p style="margin:0;color:var(--ink-3)">Enable an overseas destination and run the Overseas plan tool.</p>
+        `}
+      </div>
+    </div>
+  `);
+}
+
+function renderRiskPanel() {
+  const risk = APP_STATE.riskProfile;
+  const stressRows = APP_STATE.stressTestResults || [];
+
+  if (!risk) {
+    setPanelHtml('risk', '<p style="color:var(--ink-3)">Run Monte Carlo or the full simulation to generate your risk capacity, tolerance, requirement, and stress results.</p>');
+    return;
+  }
+
+  setPanelHtml('risk', `
+    <div class="summary-grid">
+      <div class="summary-chart">
+        <h5>Risk profile</h5>
+        <div class="desc">${escapeHtml(risk.overallRiskProfile || 'Balanced profile')}</div>
+        <div class="metrics">
+          <div class="metric"><div class="k">Capacity</div><div class="v">${risk.riskCapacity ?? '—'}<span class="sub">/100</span></div></div>
+          <div class="metric"><div class="k">Tolerance</div><div class="v">${risk.riskTolerance ?? '—'}<span class="sub">/100</span></div></div>
+          <div class="metric"><div class="k">Requirement</div><div class="v">${risk.riskRequirement ?? '—'}<span class="sub">/100</span></div></div>
+          <div class="metric"><div class="k">Confidence</div><div class="v">${risk.confidence ?? '—'}<span class="sub">%</span></div></div>
+        </div>
+        ${risk.misalignment?.message ? `<p style="margin:12px 0 0;color:var(--ink-3)">${escapeHtml(risk.misalignment.message)}</p>` : ''}
+      </div>
+      <div class="summary-chart">
+        <h5>Stress scenarios</h5>
+        <div class="desc">Deterministic shock outcomes using the configured Australian stress cases.</div>
+        ${stressRows.length ? `
+          <div style="display:grid;gap:10px">
+            ${stressRows.map((row) => `
+              <div style="padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--surface)">
+                <div style="display:flex;justify-content:space-between;gap:12px;font-weight:600">
+                  <span>${escapeHtml(row.scenario)}</span>
+                  <span style="color:${row.deltaBalance >= 0 ? 'var(--accent)' : 'var(--rose)'}">${row.deltaBalance >= 0 ? '+' : ''}${escapeHtml(formatCurrency(row.deltaBalance || 0))}</span>
+                </div>
+                <div style="margin-top:4px;color:var(--ink-3)">Final balance: ${escapeHtml(formatCurrency(row.finalBalance || 0))}</div>
+              </div>
+            `).join('')}
+          </div>
+        ` : '<p style="margin:0;color:var(--ink-3)">No stress tests have been run yet.</p>'}
+      </div>
+    </div>
+    ${risk.recommendations?.length ? `
+      <div class="summary-chart" style="margin-top:16px">
+        <h5>Risk-led actions</h5>
+        <div class="desc">Top recommendations from the existing risk profiling engine.</div>
+        <div style="display:grid;gap:10px">
+          ${risk.recommendations.map((item) => `
+            <div style="padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--surface)">
+              ${escapeHtml(typeof item === 'string' ? item : (item.recommendation || item.title || item.action || 'Review your allocation settings'))}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+  `);
+}
+
+function renderAiPanel() {
+  const recommendations = APP_STATE.recommendations || [];
+
+  if (!recommendations.length) {
+    setPanelHtml('ai', '<p style="color:var(--ink-3)">Run AI suggestions or the full simulation to generate prioritised recommendations from the existing recommendation engine.</p>');
+    return;
+  }
+
+  setPanelHtml('ai', `
+    <div style="display:grid;gap:12px">
+      ${recommendations.slice(0, 6).map((rec) => `
+        <div style="padding:16px;border:1px solid var(--border);border-radius:18px;background:var(--surface)">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+            <div>
+              <div style="font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.04em">${escapeHtml(rec.category || 'General')}</div>
+              <div style="font-weight:700;margin-top:3px">${escapeHtml(rec.title || 'Recommendation')}</div>
+            </div>
+            <span class="chip">${escapeHtml(rec.impact || 'neutral')}</span>
+          </div>
+          <p style="margin:10px 0 0;color:var(--ink-2)">${escapeHtml(rec.description || '')}</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+            <span class="chip">Success delta ${rec.successRateDiff != null ? formatPercent(rec.successRateDiff, 1) : 'n/a'}</span>
+            <span class="chip">Balance delta ${escapeHtml(formatCurrency(rec.medianBalanceDiff || 0))}</span>
+            <span class="chip">${escapeHtml(rec.feasibility || 'Standard strategy')}</span>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `);
+}
+
+function renderAnalysisPanels() {
+  renderSummaryPanel();
+  renderWhatIfPanel();
+  renderRiskPanel();
+  renderAiPanel();
+}
+
+async function runMonteCarloAnalysis() {
+  const baseState = syncAppState();
+  APP_STATE.monteCarloResults = await simulator.runMonteCarloSimulation(
+    baseState.engineInputs,
+    baseState.input.mcRuns || 500,
+    null
+  );
+  APP_STATE.riskProfile = normaliseRiskProfile(
+    riskProfiler.generateRiskProfileSummary(baseState.engineInputs, APP_STATE.monteCarloResults)
+  );
+  APP_STATE.allocationStrategy = deriveAllocationStrategy(APP_STATE.riskProfile);
+  renderAnalysisPanels();
+  return APP_STATE.monteCarloResults;
+}
+
+async function runRetirementAgeAnalysis() {
+  const baseState = syncAppState();
+  APP_STATE.retirementAgeResult = await simulator.solveRetirementAge(baseState.engineInputs, 0.7);
+  renderAnalysisPanels();
+  return APP_STATE.retirementAgeResult;
+}
+
+function runStressAnalysis() {
+  const baseState = syncAppState();
+  APP_STATE.stressTestResults = buildStressScenarioResults(baseState);
+  renderAnalysisPanels();
+  return APP_STATE.stressTestResults;
+}
+
+async function runRecommendationAnalysis() {
+  const baseState = syncAppState();
+  const engine = new RecommendationEngine(simulator, baseState.engineInputs, ENHANCED_CONFIG);
+  APP_STATE.recommendations = await engine.generateRecommendations();
+  renderAnalysisPanels();
+  return APP_STATE.recommendations;
+}
+
+function runOverseasAnalysis() {
+  const baseState = syncAppState();
+  const countryCode = mapDestinationCode(baseState.input.destination);
+  if (!countryCode) {
+    throw new Error('Choose a supported destination in the Overseas section first.');
+  }
+
+  const analyzer = buildOverseasAnalyzer(baseState);
+  APP_STATE.overseasAnalysis = analyzer.analyzeCountry(countryCode);
+  APP_STATE.overseasExportData = buildOverseasExportData(
+    APP_STATE.overseasAnalysis,
+    baseState.input.annualLivingCostOverseas
+  );
+  renderAnalysisPanels();
+  return APP_STATE.overseasAnalysis;
+}
+
+async function runFullAnalysis() {
+  await runMonteCarloAnalysis();
+  await runRecommendationAnalysis();
+  runStressAnalysis();
+  if (APP_STATE.input?.goingOverseas && APP_STATE.input?.destination) {
+    runOverseasAnalysis();
+  }
+  await runRetirementAgeAnalysis();
+  renderAnalysisPanels();
+}
+
+function setSegmentedValue(bind, value) {
+  const wrapper = document.querySelector(`[data-bind="${bind}"]`);
+  if (!wrapper) return;
+  wrapper.dataset.value = String(value);
+  wrapper.querySelectorAll('button').forEach((button) => {
+    button.classList.toggle('on', button.dataset.value === String(value));
+  });
+}
+
+function setInputValue(id, value, options = {}) {
+  const element = document.getElementById(id);
+  if (!element || value == null) return;
+
+  if (options.checkbox) {
+    element.checked = Boolean(value);
+  } else {
+    element.value = value;
+  }
+}
+
+function applyImportedUserData(userData) {
+  const normalized = normalizeImportedUserData(userData);
+  setSegmentedValue('household', normalized.household || 'single');
+  setSegmentedValue('downsizePlan', normalized.downsizePlan || 'no');
+
+  Object.entries(normalized).forEach(([key, value]) => {
+    if (key === 'household' || key === 'downsizePlan') return;
+    const element = document.getElementById(key);
+    if (!element || value == null) return;
+    if (element.type === 'checkbox') {
+      element.checked = Boolean(value);
+    } else {
+      element.value = value;
+    }
+  });
+
+  if (normalized.pensionAssetThreshold !== undefined || normalized.pensionAssetCutoff !== undefined) {
+    ['pensionAssetThreshold', 'pensionAssetCutoff'].forEach((id) => {
+      const field = document.getElementById(id);
+      if (field) field.dataset.autoDefault = 'false';
+    });
+  }
+
+  applyHouseholdVisibility();
+  ['investmentProperty', 'goingOverseas'].forEach((id) => {
+    const checkbox = document.getElementById(id);
+    if (checkbox) checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  recalc();
+}
+
+async function handleLoadData() {
+  const imported = await importUserData();
+  if (!imported) return;
+  applyImportedUserData(imported.userData || {});
+  showNotification(`Loaded ${imported.scenarioName || 'saved retirement data'}.`, 'success');
+}
+
+function handleSaveData() {
+  exportRedesignUserData(readInputs(), 'Advanced Calculator v2');
+}
+
+function handlePdfExport() {
+  syncAppState();
+  exportToPDF(
+    APP_STATE.engineInputs,
+    buildExportResults(),
+    APP_STATE.chartManager,
+    buildExportAppBridge()
+  );
+}
+
+async function runAction(button, handler, {
+  successMessage,
+  targetTab,
+  runningLabel,
+} = {}) {
+  const originalLabel = button?.dataset?.originalLabel || button?.innerHTML || '';
+  if (button) {
+    button.dataset.originalLabel = originalLabel;
+    button.disabled = true;
+    button.innerHTML = runningLabel || 'Running…';
+  }
+
+  try {
+    const result = await handler();
+    if (targetTab) openTab(targetTab);
+    if (successMessage) showNotification(successMessage, 'success');
+    return result;
+  } catch (error) {
+    console.error('advanced-v2 action failed', error);
+    showNotification(error.message || 'This action could not be completed.', 'error');
+    return null;
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = originalLabel;
+    }
+  }
 }
 
 // ============================================================
@@ -798,9 +1593,10 @@ function recalc() {
   clearTimeout(debounce);
   debounce = setTimeout(() => {
     try {
-      const inp = readInputs();
-      const result = runEngine(inp);
-      paint(result, inp);
+      resetDerivedAnalysis();
+      const baseState = syncAppState();
+      paint(baseState.adaptedResult, baseState.input);
+      renderAnalysisPanels();
     } catch (e) {
       console.error('recalc failed', e);
     }
@@ -848,24 +1644,47 @@ function initTopbar() {
   const calc = document.getElementById('btn-calc-full');
   const calcBar = document.getElementById('btn-calculate');
   [calc, calcBar].forEach((b) => b && b.addEventListener('click', () => {
-    // Hook your full Monte Carlo run here
-    b.disabled = true;
-    b.textContent = 'Running…';
-    setTimeout(() => {
-      recalc();
-      b.disabled = false;
-      b.textContent = b === calc ? '↻ Run full simulation' : '↻ Run simulation';
-    }, 800);
+    runAction(b, runFullAnalysis, {
+      successMessage: 'Full simulation completed.',
+      targetTab: 'summary',
+      runningLabel: 'Running…',
+    });
   }));
 
-  // Save / Load buttons — wire to existing handlers if present
   const load = document.getElementById('btn-load');
   const save = document.getElementById('btn-save');
-  if (load && typeof window.loadDataFile === 'function') load.addEventListener('click', window.loadDataFile);
-  if (save && typeof window.saveDataFile === 'function') save.addEventListener('click', window.saveDataFile);
+  if (load) load.addEventListener('click', () => runAction(load, handleLoadData, { runningLabel: 'Loading…' }));
+  if (save) save.addEventListener('click', handleSaveData);
+
+  const tools = [
+    ['tool-mc', runMonteCarloAnalysis, 'Monte Carlo analysis updated.', 'risk', 'Running…'],
+    ['tool-when', runRetirementAgeAnalysis, 'Retirement-age solver updated.', 'whatif', 'Solving…'],
+    ['tool-stress', runStressAnalysis, 'Stress scenarios updated.', 'risk', 'Testing…'],
+    ['tool-ai', runRecommendationAnalysis, 'AI recommendations updated.', 'ai', 'Thinking…'],
+    ['tool-overseas', runOverseasAnalysis, 'Overseas analysis updated.', 'whatif', 'Analysing…'],
+    ['tool-pdf', handlePdfExport, null, null, 'Exporting…'],
+  ];
+
+  tools.forEach(([id, handler, successMessage, targetTab, runningLabel]) => {
+    const button = document.getElementById(id);
+    if (!button) return;
+    button.addEventListener('click', () => {
+      runAction(button, handler, { successMessage, targetTab, runningLabel });
+    });
+  });
 }
 
-export { buildEngineInputs, adaptEngineOutput, getHouseholdPensionDefaults, runEngine, syncPensionMeansTestFields };
+export {
+  adaptEngineOutput,
+  applyImportedUserData,
+  buildEngineInputs,
+  getHouseholdPensionDefaults,
+  mapDestinationCode,
+  normalizeImportedUserData,
+  normaliseRiskProfile,
+  runEngine,
+  syncPensionMeansTestFields,
+};
 
 // ============================================================
 // BOOT
@@ -887,5 +1706,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   applyHouseholdVisibility();
   applyAdvancedVisibility();
+  initialFormState = readInputs();
   recalc();
 });

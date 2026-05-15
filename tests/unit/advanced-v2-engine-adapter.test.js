@@ -1,6 +1,9 @@
 import {
     buildEngineInputs,
     getHouseholdPensionDefaults,
+    mapDestinationCode,
+    normalizeImportedUserData,
+    normaliseRiskProfile,
     runEngine,
     syncPensionMeansTestFields,
 } from '../../src/js/advanced-v2.js';
@@ -174,5 +177,104 @@ describe('advanced-v2 engine adapter', () => {
         expect(result.years[0].age).toBe(45);
         expect(result.years.some((year) => year.retired)).toBe(true);
         expect(result.breakdown.super + result.breakdown.pension + result.breakdown.other).toBeGreaterThan(0);
+    });
+
+    test('maps redesign overseas destinations to analyzer country codes', () => {
+        expect(mapDestinationCode('portugal')).toBe('PORTUGAL');
+        expect(mapDestinationCode('nz')).toBe('NEW_ZEALAND');
+        expect(mapDestinationCode('')).toBeNull();
+    });
+
+    test('normalises risk profile summary for export and rendering', () => {
+        const profile = normaliseRiskProfile({
+            overallRiskProfile: 'Balanced',
+            confidenceLevel: 82,
+            misalignment: { message: 'Well aligned' },
+            optimalAllocation: { growth: 65, defensive: 25, cash: 10 },
+            topRecommendations: ['Keep contributions steady'],
+            dimensions: {
+                capacity: { score: 78 },
+                tolerance: { score: 64 },
+                requirement: { score: 58 },
+            },
+        });
+
+        expect(profile).toEqual({
+            overallRiskProfile: 'Balanced',
+            riskCapacity: 78,
+            riskTolerance: 64,
+            riskRequirement: 58,
+            confidence: 82,
+            recommendations: ['Keep contributions steady'],
+            optimalAllocation: { growth: 65, defensive: 25, cash: 10 },
+            misalignment: { message: 'Well aligned' },
+            raw: expect.any(Object),
+        });
+    });
+
+    test('normalizes canonical imported data into redesign fields', () => {
+        const normalized = normalizeImportedUserData({
+            yourCurrentAge: 50,
+            retirementAge: 66,
+            yourSalary: 140000,
+            currentSavings: 75000,
+            currentStocks: 30000,
+            employerSuperContributionRate: 0.12,
+            inflation: 0.027,
+            investmentReturn: 0.068,
+            hasPartner: true,
+            partnerCurrentAge: 48,
+            partnerSalary: 90000,
+            partnerCurrentSuper: 180000,
+            hasEmergencyFund: 'full',
+            hasDebt: 'significant',
+            planToDownsize: true,
+            hasInvestmentProperty: true,
+            healthCondition: 'fair',
+            enableProposedBudget2026: true,
+        });
+
+        expect(normalized).toMatchObject({
+            household: 'couple',
+            age: 50,
+            retireAge: 66,
+            salary: 140000,
+            cash: 75000,
+            stocks: 30000,
+            employerRate: 12,
+            inflation: 2.7,
+            partnerAge: 48,
+            partnerSalary: 90000,
+            partnerSuperBal: 180000,
+            emergencyFund: '6plus',
+            highInterestDebt: 'over_50k',
+            downsizePlan: 'yes',
+            investmentProperty: true,
+            healthCondition: 'fair',
+            budget2627: true,
+        });
+        expect(normalized.invReturn).toBeCloseTo(6.8);
+    });
+
+    test('preserves redesign-native overseas fields when importing redesign data', () => {
+        const normalized = normalizeImportedUserData({
+            household: 'single',
+            age: 47,
+            retireAge: 63,
+            goingOverseas: true,
+            destination: 'portugal',
+            ageMovingOverseas: 67,
+            annualLivingCostOverseas: 52000,
+        });
+
+        expect(normalized).toMatchObject({
+            household: 'single',
+            age: 47,
+            retireAge: 63,
+            goingOverseas: true,
+            destination: 'portugal',
+            ageMovingOverseas: 67,
+            annualLivingCostOverseas: 52000,
+        });
     });
 });
