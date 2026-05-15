@@ -3,18 +3,26 @@
  *
  * Unit tests for the P2–P4 implementation tasks:
  *
- *  TASK-006 — Stress test scenario deltas
- *  TASK-007 — Recommendation impact cap
- *  TASK-008 — PDF export simulation count
+ *  TASK-006 — Stress test scenario deltas (tests buildStressedInputs directly)
+ *  TASK-007 — Recommendation impact cap (tests capRecommendationDelta directly)
+ *  TASK-008 — PDF export simulation count (tests resolveSimCount directly)
  *  TASK-010 — normalise-inputs.js canonical module
  *  TASK-011 — validate-inputs.js canonical module
  *  TASK-014 — Division 296 tax in Pipeline B (life_simulation_engine.js)
+ *
+ * PR review fixes applied (comment #3247765311, #3247765322, #3247765338):
+ *  - TASK-006: import and test real buildStressedInputs() from stress-helpers.js
+ *  - TASK-007: import and test real capRecommendationDelta() from recommendation.js
+ *  - TASK-008: import and test real resolveSimCount() from utils.js
  */
 
 // ── Imports ───────────────────────────────────────────────────────────────────
 
 import { normaliseInputs, normaliseRate } from '../../src/js/policy/normalise-inputs.js';
 import { validateInputs }                from '../../src/js/policy/validate-inputs.js';
+import { buildStressedInputs }           from '../../src/js/policy/stress-helpers.js';
+import { capRecommendationDelta }        from '../../src/js/recommendation.js';
+import { resolveSimCount }               from '../../src/js/utils.js';
 import { calcDivision296Tax }            from '../../src/js/simulation_engine/tax_engine.js';
 import { runLifeSimulation }             from '../../src/js/simulation_engine/life_simulation_engine.js';
 
@@ -107,11 +115,11 @@ describe('TASK-010 — normaliseInputs()', () => {
         expect(out._normalisedAt).toBeGreaterThan(0);
     });
 
-    test('missing rate fields are filled from DEFAULTS', () => {
+    test('missing rate fields are filled from DEFAULTS (not 0)', () => {
         const out = normaliseInputs({});
-        // inflation should default to something sensible (> 0)
+        // inflation should default to something sensible (> 0 and < 10%)
         expect(out.inflation).toBeGreaterThan(0);
-        expect(out.inflation).toBeLessThan(0.10); // sanity
+        expect(out.inflation).toBeLessThan(0.10);
     });
 
     test('explicit zero allocation is honoured (not replaced with default)', () => {
@@ -129,6 +137,29 @@ describe('TASK-010 — normaliseInputs()', () => {
     test('agedCareProbability 0.22 passes through unchanged (already decimal)', () => {
         const out = normaliseInputs({ agedCareProbability: 0.22 });
         expect(out.agedCareProbability).toBeCloseTo(0.22, 4);
+    });
+
+    test('creditCardRate 0.2395 passes through unchanged (always decimal)', () => {
+        // PR review fix #3247765204: creditCardRate is stored as decimal in JSON
+        const out = normaliseInputs({ creditCardRate: 0.2395 });
+        expect(out.creditCardRate).toBeCloseTo(0.2395, 4);
+    });
+
+    test('globalRiskFactor 0 passes through as 0 (0–1 multiplier, not percentage)', () => {
+        // PR review fix #3247765226: globalRiskFactor is a 0–1 multiplier
+        const out = normaliseInputs({ globalRiskFactor: 0 });
+        expect(out.globalRiskFactor).toBe(0);
+        const out1 = normaliseInputs({ globalRiskFactor: 0.5 });
+        expect(out1.globalRiskFactor).toBe(0.5);
+    });
+
+    test('all RATE_FIELDS that have DEFAULTS get non-zero defaults when absent', () => {
+        const out = normaliseInputs({});
+        // Spot-check a selection of rate fields that had missing defaults previously
+        expect(out.vacancyRate).toBeGreaterThan(0);          // 4% default
+        expect(out.shockProbability).toBeGreaterThan(0);     // 5% default
+        expect(out.leanYearsReduction).toBeGreaterThan(0);   // 20% default
+        expect(out.agedCareProbability).toBeGreaterThan(0);  // 65% default
     });
 });
 
@@ -160,7 +191,6 @@ describe('TASK-011 — validateInputs() — age ordering', () => {
 
     test('lifespan <= retirementAge is an error', () => {
         const { errors } = validateInputs({ ...baseValid, yourLifespan: 64 });
-        // Error message says "Planning horizon" (capital P)
         expect(errors.some(e => e.toLowerCase().includes('planning horizon'))).toBe(true);
     });
 
@@ -169,7 +199,6 @@ describe('TASK-011 — validateInputs() — age ordering', () => {
             ...baseValid,
             partnerCurrentAge: 43, partnerRetirementAge: 42, partnerLifespan: 90
         });
-        // Error message says "Partner's retirement age" (capital P)
         expect(errors.some(e => e.toLowerCase().includes("partner's retirement age"))).toBe(true);
     });
 });
@@ -225,6 +254,32 @@ describe('TASK-011 — validateInputs() — allocation sum', () => {
     });
 });
 
+describe('TASK-011 — validateInputs() — NCC cap (PR review fix #3247765254)', () => {
+    const baseValid = {
+        yourCurrentAge: 45, retirementAge: 65, yourLifespan: 90,
+        inflation: 0.025, investmentReturn: 0.075, superReturn: 0.08,
+        salaryGrowthRate: 0.015, healthcareInflation: 0.055,
+        returnVolatility: 0.12, shockMagnitude: -0.25, shockProbability: 0.05,
+        agedCareProbability: 0.65,
+        allocEquities: 0.65, allocBonds: 0.25, allocCash: 0.10,
+    };
+
+    test('NCC above $120k cap triggers a warning', () => {
+        const { warnings } = validateInputs({ ...baseValid, yourAnnualNCC: 150000, yourCurrentSuper: 100000 });
+        expect(warnings.some(w => w.toLowerCase().includes('non-concessional'))).toBe(true);
+    });
+
+    test('NCC with TSB >= $2M triggers an ineligibility warning', () => {
+        const { warnings } = validateInputs({ ...baseValid, yourAnnualNCC: 10000, yourCurrentSuper: 2_000_001 });
+        expect(warnings.some(w => w.includes('2,000,000') || w.includes('not eligible'))).toBe(true);
+    });
+
+    test('NCC of 0 with any TSB generates no NCC warning', () => {
+        const { warnings } = validateInputs({ ...baseValid, yourAnnualNCC: 0, yourCurrentSuper: 3_000_000 });
+        expect(warnings.filter(w => w.toLowerCase().includes('non-concessional'))).toHaveLength(0);
+    });
+});
+
 describe('TASK-011 — validateInputs() — warnings', () => {
     const baseValid = {
         yourCurrentAge: 45, retirementAge: 65, yourLifespan: 90,
@@ -265,10 +320,19 @@ describe('TASK-011 — validateInputs() — warnings', () => {
         expect(warnings.some(w => w.includes('negative equity'))).toBe(true);
     });
 
-    test('valid inputs produce no warnings on core checks', () => {
-        const { warnings } = validateInputs(baseValid);
-        // May have some (e.g. retirement age < 67 warning) but no false positives on correct data
-        expect(Array.isArray(warnings)).toBe(true);
+    test('numRuns outside range generates a warning (not a hard error)', () => {
+        // PR review fix #3247765283: message no longer promises automatic clamping
+        const { valid, warnings } = validateInputs({ ...baseValid, numRuns: 50000 });
+        expect(valid).toBe(true); // not an error
+        expect(warnings.some(w => w.includes('numRuns'))).toBe(true);
+        // Should NOT say "will be clamped" (only "may be adjusted")
+        const numRunsWarning = warnings.find(w => w.includes('numRuns')) || '';
+        expect(numRunsWarning).not.toMatch(/will be clamped/i);
+    });
+
+    test('valid inputs produce no errors', () => {
+        const { errors } = validateInputs(baseValid);
+        expect(errors).toHaveLength(0);
     });
 });
 
@@ -296,21 +360,18 @@ describe('TASK-014 — calcDivision296Tax() from tax_engine.js', () => {
     });
 
     test('proportional to excess above $3M threshold', () => {
-        const tax3_5M = calcDivision296Tax(3_500_000, 100_000); // 1/7 above threshold
-        const tax4M   = calcDivision296Tax(4_000_000, 100_000); // 1/4 above threshold
+        const tax3_5M = calcDivision296Tax(3_500_000, 100_000);
+        const tax4M   = calcDivision296Tax(4_000_000, 100_000);
         expect(tax4M).toBeGreaterThan(tax3_5M);
     });
 });
 
 describe('TASK-014 — Division 296 applied in life_simulation_engine.js', () => {
-    // Run two simulations: one with TSB starting above $3M, one below.
-    // The above-$3M case should accumulate less super by the end (Div 296 deducted).
-
     const baseInputs = {
         yourCurrentAge:   60,
         retirementAge:    67,
-        yourLifespan:     75,  // short for speed
-        yourSalary:       0,   // retired
+        yourLifespan:     75,
+        yourSalary:       0,
         yourCurrentSuper: 0,
         partnerCurrentAge: 0,
         isCouple:         false,
@@ -326,145 +387,144 @@ describe('TASK-014 — Division 296 applied in life_simulation_engine.js', () =>
         useStochasticReturns: false,
     };
 
-    test('super balance >$3M: Division 296 reduces net super compared to <$3M (same return rate)', () => {
-        // Large super balance — Div 296 should fire from calendar year 2026
-        const largeSuper = { ...baseInputs, yourCurrentSuper: 4_000_000, yourSalary: 0 };
-        const smallSuper = { ...baseInputs, yourCurrentSuper: 1_000_000, yourSalary: 0 };
+    test('super balance >$3M: Division 296 reduces effective return vs <$3M', () => {
+        const largeSuper = { ...baseInputs, yourCurrentSuper: 4_000_000 };
+        const smallSuper = { ...baseInputs, yourCurrentSuper: 1_000_000 };
 
         const largeResult = runLifeSimulation(largeSuper);
         const smallResult = runLifeSimulation(smallSuper);
 
-        // Effective return rate after Div 296 for large super should be lower.
-        // Large started at 4× the small balance, so at any year the ratio should be
-        // less than 4 (Div 296 erodes the large balance proportionally more).
         const largeAtEnd = largeResult.timeline[largeResult.timeline.length - 1]?.superBalance ?? 0;
         const smallAtEnd = smallResult.timeline[smallResult.timeline.length - 1]?.superBalance ?? 0;
 
+        // Large started at 4× small; with Div 296 applied, the ratio should be < 4
         if (smallAtEnd > 0) {
-            // Div 296 reduces the ratio: large/small should be < 4.0 (the starting ratio)
             expect(largeAtEnd / smallAtEnd).toBeLessThan(4.0);
         }
-    });
-
-    test('super balance below $3M: no Division 296 tax applied', () => {
-        const result = runLifeSimulation({ ...baseInputs, yourCurrentSuper: 1_000_000, yourSalary: 0 });
-        // All timeline entries should be valid numbers
-        result.timeline.forEach(snap => {
-            expect(Number.isFinite(snap.superBalance)).toBe(true);
-            expect(snap.superBalance).toBeGreaterThanOrEqual(0);
-        });
     });
 
     test('simulation runs without error for large super balance', () => {
         expect(() => runLifeSimulation({ ...baseInputs, yourCurrentSuper: 5_000_000 })).not.toThrow();
     });
+
+    test('all timeline entries have finite superBalance >= 0', () => {
+        const result = runLifeSimulation({ ...baseInputs, yourCurrentSuper: 1_000_000 });
+        result.timeline.forEach(snap => {
+            expect(Number.isFinite(snap.superBalance)).toBe(true);
+            expect(snap.superBalance).toBeGreaterThanOrEqual(0);
+        });
+    });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TASK-006 — Stress test delta computation (unit-level)
+// TASK-006 — Stress test delta computation
+// Tests the REAL buildStressedInputs() from stress-helpers.js
+// (PR review fix #3247765311)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('TASK-006 — Stress test result delta structure', () => {
-    // These tests verify the data structure produced by the stress test run,
-    // not the UI rendering (which requires a DOM).
-
-    test('stress result object includes deltaBalance field', () => {
-        // Simulate what runStressTest() produces after the fix
-        const baseBalance  = 500_000;
-        const stressBalance = 350_000;
-        const result = {
-            scenario: 'GFC Test',
-            finalBalance: stressBalance,
-            baseBalance,
-            deltaBalance: stressBalance - baseBalance,
-            success: stressBalance > 0,
-        };
-        expect(result.deltaBalance).toBe(-150_000);
-        expect(result.deltaBalance).toBeLessThan(0); // stressed < base
-    });
-
-    test('delta is negative when stress scenario worsens outcome', () => {
-        const base   = 800_000;
-        const stress = 450_000;
-        expect(stress - base).toBeLessThan(0);
-    });
-
-    test('delta is zero when stress scenario has no effect', () => {
-        expect(700_000 - 700_000).toBe(0);
-    });
-
-    test('healthcare crisis scenario: stressed inputs have multiplied healthcare costs', () => {
-        // Verify buildStressedInputs logic (inline test — same logic as the function)
+describe('TASK-006 — buildStressedInputs() from stress-helpers.js', () => {
+    test('healthcare crisis multiplier correctly inflates currentHealthcareCosts', () => {
+        const base = { currentHealthcareCosts: 5000, healthcareInflation: 0.055 };
         const scenario = { healthcareCostMultiplier: 2.5 };
-        const baseInputs = { currentHealthcareCosts: 5000, healthcareInflation: 0.055 };
+        const stressed = buildStressedInputs(base, scenario);
+        expect(stressed.currentHealthcareCosts).toBe(12_500); // 5000 × 2.5
+    });
 
-        const stressedInputs = { ...baseInputs };
-        if (scenario.healthcareCostMultiplier) {
-            stressedInputs.currentHealthcareCosts =
-                (baseInputs.currentHealthcareCosts || 0) * scenario.healthcareCostMultiplier;
-        }
+    test('healthcare inflation is also elevated (capped at 20%)', () => {
+        const base = { currentHealthcareCosts: 5000, healthcareInflation: 0.055 };
+        const scenario = { healthcareCostMultiplier: 2.5 };
+        const stressed = buildStressedInputs(base, scenario);
+        expect(stressed.healthcareInflation).toBeGreaterThan(base.healthcareInflation);
+        expect(stressed.healthcareInflation).toBeLessThanOrEqual(0.20);
+    });
 
-        expect(stressedInputs.currentHealthcareCosts).toBe(12_500); // 5000 × 2.5
+    test('explicit healthcareInflation of 0 is preserved (not replaced by ?? 0.055)', () => {
+        // PR review fix #3247765111: use ?? not || so 0 is not treated as falsy
+        const base = { currentHealthcareCosts: 5000, healthcareInflation: 0 };
+        const scenario = { healthcareCostMultiplier: 2.0 };
+        const stressed = buildStressedInputs(base, scenario);
+        // 0 * 1.5 = 0, capped at 20%: result should be 0
+        expect(stressed.healthcareInflation).toBe(0);
+    });
+
+    test('scenario without healthcareCostMultiplier leaves inputs unchanged', () => {
+        const base = { currentHealthcareCosts: 5000, healthcareInflation: 0.055 };
+        const scenario = {}; // e.g. GFC scenario has equityReturn but no multiplier
+        const stressed = buildStressedInputs(base, scenario);
+        expect(stressed.currentHealthcareCosts).toBe(5000);
+        expect(stressed.healthcareInflation).toBe(0.055);
+    });
+
+    test('buildStressedInputs does not mutate baseInputs', () => {
+        const base = { currentHealthcareCosts: 5000, healthcareInflation: 0.055 };
+        const scenario = { healthcareCostMultiplier: 3.0 };
+        buildStressedInputs(base, scenario);
+        expect(base.currentHealthcareCosts).toBe(5000); // unchanged
+    });
+
+    test('deltaBalance is negative when stress worsens outcome (structural check)', () => {
+        // Verify the delta structure expected from runStressTest()
+        const baseBalance  = 800_000;
+        const stressBalance = 350_000;
+        const delta = stressBalance - baseBalance;
+        expect(delta).toBeLessThan(0);
+    });
+
+    test('probability ?? null preserves 0 as a valid probability', () => {
+        // PR review fix #3247765148: || null coerces 0 to null; ?? null does not
+        const scenario0   = { probability: 0 };
+        const scenarioNull = { probability: null };
+        expect(scenario0.probability ?? null).toBe(0);        // preserved
+        expect(scenarioNull.probability ?? null).toBeNull();  // null → null
     });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TASK-007 — Recommendation impact cap
+// Tests the REAL capRecommendationDelta() from recommendation.js
+// (PR review fix #3247765322)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('TASK-007 — Recommendation impact cap', () => {
-    // Test the cap logic directly without running a full recommendation engine
-
-    const capDelta = (rawDelta, baseMedian) => {
-        const maxDelta = Math.min(Math.abs(baseMedian) * 2, 5_000_000);
-        return Math.max(-maxDelta, Math.min(maxDelta, rawDelta));
-    };
-
+describe('TASK-007 — capRecommendationDelta() from recommendation.js', () => {
     test('absurd positive delta is capped at 200% of base', () => {
         const base = 1_000_000;
-        const absurd = 50_000_000_000; // 50 billion
-        expect(capDelta(absurd, base)).toBe(2_000_000); // 200% of 1M
+        expect(capRecommendationDelta(50_000_000_000, base)).toBe(2_000_000);
     });
 
     test('absurd negative delta is capped at -200% of base', () => {
         const base = 1_000_000;
-        const absurd = -50_000_000_000;
-        expect(capDelta(absurd, base)).toBe(-2_000_000);
+        expect(capRecommendationDelta(-50_000_000_000, base)).toBe(-2_000_000);
     });
 
-    test('absolute cap of ±$5M applies even when 200% of base is larger', () => {
-        const base = 10_000_000; // $10M base
-        const absurd = 50_000_000_000;
-        expect(capDelta(absurd, base)).toBe(5_000_000); // capped at $5M
+    test('absolute $5M cap when 200% of base > $5M', () => {
+        const base = 10_000_000; // 200% = $20M > $5M absolute cap
+        expect(capRecommendationDelta(50_000_000_000, base)).toBe(5_000_000);
     });
 
     test('reasonable delta passes through uncapped', () => {
-        const base = 1_000_000;
-        const reasonable = 50_000;
-        expect(capDelta(reasonable, base)).toBe(50_000);
+        expect(capRecommendationDelta(50_000, 1_000_000)).toBe(50_000);
     });
 
-    test('negative reasonable delta passes through uncapped', () => {
-        const base = 1_000_000;
-        expect(capDelta(-30_000, base)).toBe(-30_000);
+    test('reasonable negative delta passes through uncapped', () => {
+        expect(capRecommendationDelta(-30_000, 1_000_000)).toBe(-30_000);
+    });
+
+    test('zero base median uses absolute $5M cap (PR review fix #3247765172)', () => {
+        // When base is 0 (depleted portfolio), 200% of 0 = 0 which clamps everything.
+        // The fix: use $5M absolute cap when base is 0.
+        expect(capRecommendationDelta(1_000_000, 0)).toBe(1_000_000);   // passes through
+        expect(capRecommendationDelta(6_000_000, 0)).toBe(5_000_000);   // capped at $5M
+        expect(capRecommendationDelta(-6_000_000, 0)).toBe(-5_000_000); // capped at -$5M
     });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TASK-008 — PDF simulation count
+// Tests the REAL resolveSimCount() from utils.js
+// (PR review fix #3247765338)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('TASK-008 — PDF simulation count resolution', () => {
-    // Test the resolution logic that was moved inline in the PDF export
-    // (we test the priority order: runs → numRuns → inputs.numRuns → 1000)
-
-    const resolveSimCount = (mcResults, inputs = {}) => {
-        return mcResults.runs
-            ?? mcResults.numRuns
-            ?? inputs.numRuns
-            ?? 1000;
-    };
-
+describe('TASK-008 — resolveSimCount() from utils.js', () => {
     test('uses runs from monteCarloResults when present', () => {
         expect(resolveSimCount({ runs: 5000 })).toBe(5000);
     });
@@ -477,20 +537,18 @@ describe('TASK-008 — PDF simulation count resolution', () => {
         expect(resolveSimCount({}, { numRuns: 16000 })).toBe(16000);
     });
 
-    test('ultimate fallback is 1000, never a hardcoded string', () => {
+    test('ultimate fallback is 1000 (a number, never a hardcoded string)', () => {
         const count = resolveSimCount({}, {});
         expect(typeof count).toBe('number');
         expect(count).toBe(1000);
     });
 
-    test('displays correctly with toLocaleString (no hardcoded "1,000" string)', () => {
+    test('result formats correctly with toLocaleString', () => {
         const count = resolveSimCount({ runs: 16000 });
         expect(Number(count).toLocaleString('en-AU')).toBe('16,000');
     });
 
-    test('template JSON numRuns 16000 is correctly resolved', () => {
-        const templateInputs = { numRuns: 16000 };
-        const mcResults = { runs: 16000 };
-        expect(resolveSimCount(mcResults, templateInputs)).toBe(16000);
+    test('template user numRuns 16000 is correctly resolved from inputs', () => {
+        expect(resolveSimCount({}, { numRuns: 16000 })).toBe(16000);
     });
 });

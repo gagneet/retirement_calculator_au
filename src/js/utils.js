@@ -75,6 +75,21 @@ export const hasHighInterestDebt = (inputs = {}) => {
     return flag !== 'none' && flag !== 'false' && flag !== '0' && flag !== '';
 };
 
+/**
+ * Resolve the Monte Carlo simulation run count for display in exports.
+ *
+ * Priority: monteCarloResults.runs → monteCarloResults.numRuns → inputs.numRuns → 1000.
+ *
+ * Exported so tests can assert against this function directly rather than
+ * reimplementing the priority logic (PR review comment #3247765338).
+ *
+ * @param {Object} mcResults – Monte Carlo result object
+ * @param {Object} inputs    – user inputs (may contain numRuns)
+ * @returns {number}         – run count as a number (never a string)
+ */
+export const resolveSimCount = (mcResults = {}, inputs = {}) =>
+    mcResults.runs ?? mcResults.numRuns ?? inputs.numRuns ?? 1000;
+
 // Normalise a value that could be stored as either a decimal ratio (0–1) or
 // a percentage (1–100) into a decimal.  All internal calculations use decimals;
 // only the display layer should call displayPercent().
@@ -1812,12 +1827,9 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
 
         doc.setFontSize(10);
         doc.setTextColor(0);
-        // TASK-008: Use actual run count from result object; fall back to inputs.numRuns;
-        // never show a hardcoded string.
-        const simCount = monteCarloResults.runs
-            ?? monteCarloResults.numRuns
-            ?? inputs.numRuns
-            ?? 1000;
+        // TASK-008: Use actual run count via the exported resolveSimCount() helper.
+        // PR review fix #3247765338: previously an inline reimplementation.
+        const simCount = resolveSimCount(monteCarloResults, inputs);
         doc.text(`Based on ${Number(simCount).toLocaleString('en-AU')} simulations accounting for market volatility`, 14, yPos);
         yPos += 10;
 

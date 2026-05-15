@@ -27,6 +27,7 @@ import { ActionGenerator } from './action-generator.js';
 import { WhatIfEngine } from './what-if-engine.js';
 import { ResilienceScenarioEngine } from './resilience-scenarios.js';
 import { runFullSimulation } from './simulation_engine/index.js';
+import { buildStressedInputs } from './policy/stress-helpers.js';
 import { RetirementCostAnalyzer } from './retirement-cost-analyzer.js';
 import PersonalizedQuestionEngine from './personalized-qa-engine.js';
 // js/app.js - Main Application Controller
@@ -7352,7 +7353,8 @@ class RetirementCalculatorApp {
                     baseBalance,
                     deltaBalance:     stressBalance - baseBalance,  // negative = worse than base
                     success:          stressBalance > 0,
-                    probability:      scenario.probability || null,
+                    // Use ?? not || so an explicit 0 probability is preserved
+                    probability:      scenario.probability ?? null,
                 });
 
                 await new Promise(resolve => setTimeout(resolve, 50));
@@ -10716,31 +10718,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ── TASK-006: Stress test input builder ─────────────────────────────────────
-// Apply scenario-level input modifications before running the stressed simulation.
-// The simulator handles year-by-year return overrides via the scenario object;
-// this function handles any field-level overrides that must be applied to the
-// inputs object before the simulation starts (e.g. healthcareCostMultiplier).
-function buildStressedInputs(baseInputs, scenario) {
-    const stressed = { ...baseInputs };
-
-    // Healthcare cost multiplier (e.g. 2.5× for Healthcare Crisis scenario)
-    if (scenario.healthcareCostMultiplier) {
-        stressed.currentHealthcareCosts =
-            (baseInputs.currentHealthcareCosts || 0) * scenario.healthcareCostMultiplier;
-        // Also inflate the healthcare inflation rate to sustain the elevated cost
-        stressed.healthcareInflation = Math.min(
-            0.20,
-            (baseInputs.healthcareInflation || 0.055) * 1.5
-        );
-    }
-
-    // Other field-level overrides can be added here as new scenarios are defined.
-    // Year-by-year return overrides (equityReturn, bondReturn etc.) are handled
-    // inside simulateRetirement() via the stressScenario param — not here.
-
-    return stressed;
-}
+// buildStressedInputs is imported from ./policy/stress-helpers.js
 
 // Browser compatibility check
 function checkBrowserCompatibility() {

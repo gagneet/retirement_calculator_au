@@ -3,6 +3,29 @@
 import { formatCurrency, formatPercent, updateProgress } from './utils.js';
 import RetirementSimulator from './simulator.js';
 
+/**
+ * Cap a raw recommendation balance delta to a plausible display range.
+ *
+ * Exported so tests can assert against the real implementation rather than
+ * duplicating the logic (PR review comment #3247765322).
+ *
+ * Rules (in priority order):
+ *  1. When base median is > 0: cap at ±min(200% of base, $5M).
+ *  2. When base median is 0 (depleted portfolio): use ±$5M absolute only,
+ *     because 200% of 0 would clamp every delta to 0.
+ *
+ * @param {number} rawDelta    – simulation-computed balance difference
+ * @param {number} baseMedian  – median final balance of the base plan
+ * @returns {number} capped delta
+ */
+export const capRecommendationDelta = (rawDelta, baseMedian) => {
+    const absBase  = Math.abs(baseMedian ?? 0);
+    const maxDelta = absBase > 0
+        ? Math.min(absBase * 2, 5_000_000)
+        : 5_000_000;
+    return Math.max(-maxDelta, Math.min(maxDelta, rawDelta));
+};
+
 class RecommendationEngine {
     constructor(simulator, inputs, config) {
         if (!simulator || !inputs || !config) {
@@ -1927,13 +1950,8 @@ class RecommendationEngine {
         const successDiff = scenario.successRate - baseResult.successRate;
         const rawBalanceDiff = scenario.medianBalance - baseResult.medianBalance;
 
-        // TASK-007: Cap the displayed balance delta to a plausible range.
-        // Shortcut formulas inside scenario descriptions can produce billions-of-dollars
-        // figures; the simulation delta should be reasonable relative to the base plan.
-        // Cap at ±200% of the base median balance (or ±$5M absolute).
-        const baseMedian    = Math.abs(baseResult.medianBalance || 0) || 1;
-        const maxDelta      = Math.min(baseMedian * 2, 5_000_000);
-        const balanceDiff   = Math.max(-maxDelta, Math.min(maxDelta, rawBalanceDiff));
+        // TASK-007: Cap the displayed balance delta via the exported capRecommendationDelta helper.
+        const balanceDiff = capRecommendationDelta(rawBalanceDiff, baseResult.medianBalance);
 
         // Ignore scenarios that don't make a meaningful difference
         if (Math.abs(successDiff) < 0.01 && Math.abs(balanceDiff) < 10000) {
