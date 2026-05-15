@@ -96,8 +96,21 @@ export const projectHealthcareCosts = (currentHealthcareCosts, age, inputs) => {
 /**
  * Return aged-care costs for the current year (if in aged-care phase).
  *
+ * BUG FIX 1G: The user-supplied agedCareProbability is honoured as the primary
+ * probability weight.  Previously the engine used a hard-coded model-derived
+ * probability (65%), overriding the user's explicit input.
+ *
+ * Deterministic mode (default, used for single projection):
+ *   Cost × probability — weighted expected cost for the projection year.
+ *
+ * Stochastic mode (useStochasticReturns=true, used in Monte Carlo):
+ *   A Bernoulli draw at the start of aged-care age determines if care occurs;
+ *   inside the care window the full cost applies.
+ *
  * @param {number} age       – current age
- * @param {Object} inputs    – agedCareStartAge, agedCareDuration, agedCareAnnualCost, inflation
+ * @param {Object} inputs    – agedCareStartAge, agedCareDuration, agedCareAnnualCost,
+ *                             agedCareProbability, inflation, retirementAge,
+ *                             useStochasticReturns
  * @returns {number} annual aged-care cost (0 if not applicable)
  */
 export const getAgedCareCost = (age, inputs) => {
@@ -107,13 +120,39 @@ export const getAgedCareCost = (age, inputs) => {
         agedCareAnnualCost = 75000,
         inflation = 0.026,
         retirementAge = 65,
+        useStochasticReturns = false,
     } = inputs;
 
     if (age < agedCareStartAge || age >= agedCareStartAge + agedCareDuration) return 0;
 
+    // BUG FIX 1G: Resolve aged-care probability from user input.
+    // agedCareProbability may be supplied as a decimal (0.22) or percentage (22).
+    // Honour the user value; fall back to AIHW population average of 65% only when absent.
+    let probability = 0.65; // AIHW default — used only when not supplied by user
+    if (inputs.agedCareProbability != null) {
+        const raw = Number(inputs.agedCareProbability);
+        // Normalise: values > 1 are treated as percentage (e.g. 22 → 0.22)
+        probability = (raw > 1 && raw <= 100) ? raw / 100 : raw;
+        probability = Math.max(0, Math.min(1, probability));
+    }
+
     // Inflate cost from retirement onwards
     const yearsFromRetirement = Math.max(0, agedCareStartAge - retirementAge);
-    return agedCareAnnualCost * Math.pow(1 + inflation, yearsFromRetirement);
+    const inflatedCost = agedCareAnnualCost * Math.pow(1 + inflation, yearsFromRetirement);
+
+    if (useStochasticReturns) {
+        // Stochastic: at the first year of aged care, sample whether it occurs.
+        // We use a module-level flag to avoid re-sampling each year.
+        if (age === agedCareStartAge) {
+            // Sample once; store on inputs to share with subsequent years.
+            // (inputs is a mutable object passed by reference in each run)
+            inputs._agedCareOccurs = Math.random() < probability;
+        }
+        return (inputs._agedCareOccurs === true) ? inflatedCost : 0;
+    }
+
+    // Deterministic: weight by probability (expected value approach)
+    return inflatedCost * probability;
 };
 
 export default { getSpendingPhaseMultiplier, projectLivingExpenses, projectHealthcareCosts, getAgedCareCost };

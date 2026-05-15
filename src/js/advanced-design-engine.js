@@ -1,27 +1,73 @@
 /**
- * AdvancedDesignEngine
- * Standalone Australian retirement modelling engine.
- * No external imports — fully self-contained.
+ * AdvancedDesignEngine — Australian Retirement Projection Engine (Pipeline C)
  *
- * All monetary values are plain numbers (AUD). Percentages are stored
- * as decimals internally (e.g. 7.5% → 0.075) but accepted from inputs
- * as plain percentages (7.5) and converted on entry.
+ * TASK-005 (enhancements.md §Phase 1): Fix stale constants, input normalisation,
+ * and add deeming-based income test.
+ *
+ * Changes from the original version:
+ *  1. Age Pension thresholds now imported from ENHANCED_CONFIG (config.js) —
+ *     the single source of truth — instead of being hardcoded as 2024-25 values.
+ *  2. Age Pension calculation now uses a proper two-test means test (asset test
+ *     AND income test with deeming) via calcSinglePensionFromConfig() using the
+ *     same applyMeansTest helper as pension_engine.js.
+ *  3. Inputs are normalised via _normalise() which detects whether a value is
+ *     already a decimal or is a percentage and converts consistently.
+ *  4. Couple-mode pension uses the couple thresholds when isCouple=true.
+ *  5. A clear "Pipeline C — simplified model" note is added.  The accumulation
+ *     phase does not model salary sacrifice, employer SG, or Division 293 —
+ *     use the main calculator (Pipeline A) for those details.
  */
 
+import { ENHANCED_CONFIG }       from './config.js';
+import { calculateDeemedIncome } from './utils.js';
+
+// ── Shared means-test helper (mirrors pension_engine.js logic) ────────────────
+
+/**
+ * Apply asset test and income test; return the more restrictive result.
+ *
+ * @param {number} totalAssets    – assessable assets ($)
+ * @param {number} annualIncome   – assessable income p.a. ($ — already includes deeming)
+ * @param {number} maxPension     – maximum annual pension ($)
+ * @param {number} assetThreshold – full-pension asset limit ($)
+ * @param {number} assetLimit     – nil-pension asset cut-off ($)
+ * @param {number} fnThreshold    – fortnightly income free area ($)
+ * @returns {number} annual pension
+ */
+const applyMeansTest = (totalAssets, annualIncome, maxPension, assetThreshold, assetLimit, fnThreshold) => {
+    // Asset test: $3 per fortnight per $1,000 over threshold ($78/yr per $1,000)
+    let fromAssets = 0;
+    if (totalAssets <= assetThreshold) {
+        fromAssets = maxPension;
+    } else if (totalAssets < assetLimit) {
+        fromAssets = Math.max(0, maxPension - ((totalAssets - assetThreshold) / 1000) * 3 * 26);
+    }
+
+    // Income test: 50c per dollar above the fortnightly free area
+    let fromIncome = maxPension;
+    const fnIncome = annualIncome / 26;
+    if (fnIncome > fnThreshold) {
+        fromIncome = Math.max(0, maxPension - (fnIncome - fnThreshold) * 0.5 * 26);
+    }
+
+    return Math.min(fromAssets, fromIncome);
+};
+
+// ── Pipeline C engine ─────────────────────────────────────────────────────────
+
+/**
+ * AdvancedDesignEngine — Pipeline C simplified retirement projection.
+ *
+ * NOTE: This engine models a high-level accumulation/decumulation arc.
+ * It does NOT model salary sacrifice caps, employer SG, Division 293/296,
+ * NCC bring-forward, or couple tax splitting.  Use the main RetirementSimulator
+ * (Pipeline A, via simulator.js) for full accuracy.
+ */
 export class AdvancedDesignEngine {
 
     /* ------------------------------------------------------------------ */
-    /* Age Pension constants (2024-25 Australian rules)                     */
-    /* ------------------------------------------------------------------ */
-    static AGE_PENSION = {
-        FULL_SINGLE_PA: 30_646,          // Full single Age Pension annual (2024-25)
-        ASSETS_LOWER: 321_500,           // Assets threshold below which full pension payable (single, homeowner)
-        ASSETS_UPPER: 714_500,           // Assets threshold above which nil pension payable (single, homeowner)
-        PENSION_AGE: 67,                 // Eligibility age
-    };
-
-    /* ------------------------------------------------------------------ */
-    /* Scenario preset definitions                                          */
+    /* Scenario presets — rates are stored as percentages to match the     */
+    /* UI inputs for the advanced design page.                             */
     /* ------------------------------------------------------------------ */
     static PRESETS = {
         conservative: { superReturn: 5.5, savingsReturn: 4.5, inflation: 3.5 },
@@ -36,7 +82,7 @@ export class AdvancedDesignEngine {
     /**
      * calculate(inputs) → full results object
      *
-     * inputs = {
+     * inputs fields (all rates are plain percentages, e.g. 7.5 for 7.5%):
      *   currentAge          : number  (18–85)
      *   retirementAge       : number  (50–75)
      *   planningHorizon     : number  (75–100)  — life-expectancy year
@@ -51,7 +97,8 @@ export class AdvancedDesignEngine {
      *   realTerms           : boolean (true = deflate results to today's dollars)
      *   annualWithdrawal    : number  (AUD/yr — nominal at retirement)
      *   inflationAdjusted   : boolean (true = increase withdrawal with CPI each year)
-     * }
+     *   isCouple            : boolean (true = use couple pension thresholds)
+     *   homeowner           : boolean (true = homeowner asset thresholds; default true)
      */
     calculate(inputs) {
         const p = this._normalise(inputs);
@@ -77,9 +124,9 @@ export class AdvancedDesignEngine {
         const result = {};
         for (const [name, preset] of Object.entries(AdvancedDesignEngine.PRESETS)) {
             const merged = Object.assign({}, inputs, {
-                superReturn:    preset.superReturn,
-                savingsReturn:  preset.savingsReturn,
-                inflation:      preset.inflation,
+                superReturn:   preset.superReturn,
+                savingsReturn: preset.savingsReturn,
+                inflation:     preset.inflation,
             });
             result[name] = this.calculate(merged);
         }
@@ -126,14 +173,14 @@ export class AdvancedDesignEngine {
                 label: 'Inflation rate',
                 delta: inputs.inflation * 0.10,
                 unit: '%',
-                negative: true,   // higher inflation is bad
+                negative: true,
             },
             {
                 key: 'annualWithdrawal',
                 label: 'Annual withdrawal',
                 delta: Math.max(inputs.annualWithdrawal * 0.10, 1_000),
                 unit: '$',
-                negative: true,   // higher withdrawal is bad
+                negative: true,
             },
         ];
 
@@ -145,8 +192,7 @@ export class AdvancedDesignEngine {
             } catch {
                 modIncome = baseIncome;
             }
-            const rawImpact = modIncome - baseIncome;
-            const impact = rawImpact; // keep signed; use Math.abs for ranking, d.negative for wording only
+            const impact = modIncome - baseIncome;
             return {
                 driver: d.key,
                 label: d.label,
@@ -158,7 +204,6 @@ export class AdvancedDesignEngine {
             };
         });
 
-        // Return top 3 by absolute impact
         return results
             .sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact))
             .slice(0, 3);
@@ -168,7 +213,13 @@ export class AdvancedDesignEngine {
     /* Internal helpers                                                     */
     /* ------------------------------------------------------------------ */
 
-    /** Convert percent inputs to decimals and supply defaults. */
+    /**
+     * Normalise inputs: convert percentage rates to decimals and supply defaults.
+     *
+     * TASK-005: Rates are accepted as plain percentages (7.5) from the UI but must
+     * be stored as decimals (0.075) internally for all arithmetic.  The _normalise()
+     * method is the single conversion boundary — no /100 should appear elsewhere.
+     */
     _normalise(inputs) {
         return {
             currentAge:           Number(inputs.currentAge)           || 45,
@@ -179,13 +230,29 @@ export class AdvancedDesignEngine {
             currentSalary:        Number(inputs.currentSalary)        || 0,
             additionalSavings:    Number(inputs.additionalSavings)    || 0,
             annualSavingsContrib: Number(inputs.annualSavingsContrib) || 0,
-            superReturn:          (Number(inputs.superReturn)         || 7.5) / 100,
-            savingsReturn:        (Number(inputs.savingsReturn)       || 6.0) / 100,
-            inflation:            (Number(inputs.inflation)           || 2.6) / 100,
-            realTerms:            Boolean(inputs.realTerms),
-            annualWithdrawal:     Number(inputs.annualWithdrawal)     || 60_000,
-            inflationAdjusted:    inputs.inflationAdjusted !== false,
+            // Percentage → decimal conversion with defensive detection:
+            // if the value is already ≤ 1 treat it as a decimal; otherwise divide by 100.
+            superReturn:    this._toDecimal(inputs.superReturn,    7.5),
+            savingsReturn:  this._toDecimal(inputs.savingsReturn,  6.0),
+            inflation:      this._toDecimal(inputs.inflation,      2.6),
+            realTerms:      Boolean(inputs.realTerms),
+            annualWithdrawal:  Number(inputs.annualWithdrawal)  || 60_000,
+            inflationAdjusted: inputs.inflationAdjusted !== false,
+            isCouple:  Boolean(inputs.isCouple),
+            homeowner: inputs.homeowner !== false, // default true
         };
+    }
+
+    /**
+     * Convert a rate value to decimal, guarding against already-decimal inputs.
+     * Values > 1 are treated as percentages (e.g. 7.5 → 0.075).
+     * Values ≤ 1 are treated as already-decimal (e.g. 0.075 unchanged).
+     * Defaults to defaultPct / 100 when the input is absent or NaN.
+     */
+    _toDecimal(value, defaultPct) {
+        const n = Number(value);
+        if (!isFinite(n) || n === 0) return defaultPct / 100;
+        return n > 1 ? n / 100 : n;
     }
 
     /**
@@ -200,7 +267,7 @@ export class AdvancedDesignEngine {
         let superBal    = p.currentSuper;
         let savingsBal  = p.additionalSavings;
         const yearByYear = [];
-        let cpiFactor   = 1;   // cumulative for real-terms deflation
+        let cpiFactor   = 1;
 
         for (let yr = 0; yr < yearsToRetirement; yr++) {
             const age = p.currentAge + yr;
@@ -220,15 +287,16 @@ export class AdvancedDesignEngine {
             });
         }
 
-        const retirementBalance      = superBal + savingsBal;
-        const retirementSuperBalance = superBal;
+        const retirementBalance        = superBal + savingsBal;
+        const retirementSuperBalance   = superBal;
         const retirementSavingsBalance = savingsBal;
 
-        // ---- Age Pension estimate (at pension eligibility age, not necessarily retirement) ----
-        // If retiring before pension age (67), use pension-age estimate so the UI shows
-        // the supplement the person is expected to receive once eligible.
-        const agePensionAge = Math.max(p.retirementAge, AdvancedDesignEngine.AGE_PENSION.PENSION_AGE);
-        const agePensionEstimate = this._calcAgePension(retirementBalance, agePensionAge);
+        // ---- Age Pension estimate (at pension eligibility age) ----------
+        // TASK-005: Use thresholds from config.js and apply proper income test
+        // with deeming on financial assets (Services Australia deeming rates).
+        const pensionEligAge   = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.PENSION_AGE || 67;
+        const agePensionAge    = Math.max(p.retirementAge, pensionEligAge);
+        const agePensionEstimate = this._calcAgePension(retirementBalance, agePensionAge, p);
 
         // ---- Decumulation phase ----------------------------------------
         let decumSuper   = retirementSuperBalance;
@@ -237,16 +305,14 @@ export class AdvancedDesignEngine {
         let depletionYear = null;
 
         for (let yr = 0; yr < yearsInRetirement; yr++) {
-            const age         = p.retirementAge + yr;
-            const retirYr     = yr + 1;   // 1-indexed year of retirement
-            cpiFactor        *= (1 + p.inflation);
+            const age     = p.retirementAge + yr;
+            const retirYr = yr + 1;
+            cpiFactor    *= (1 + p.inflation);
 
-            // Inflation-adjusted withdrawal
             if (p.inflationAdjusted && yr > 0) {
                 withdrawal *= (1 + p.inflation);
             }
 
-            // Stress-test return modifiers
             let superRet   = p.superReturn;
             let savingsRet = p.savingsReturn;
 
@@ -256,19 +322,16 @@ export class AdvancedDesignEngine {
                     savingsRet = -0.10;
                 }
                 if (stress.stressType === 'market-crash' && retirYr === stress.stressYear) {
-                    decumSuper   *= 0.75;   // -25% shock
+                    decumSuper   *= 0.75;
                     decumSavings *= 0.75;
                 }
             }
 
-            // Age Pension at this age
-            const totalNow  = decumSuper + decumSavings;
-            const pension   = this._calcAgePension(totalNow, age);
+            const totalNow = decumSuper + decumSavings;
+            const pension  = this._calcAgePension(totalNow, age, p);
 
-            // Net withdrawal after pension supplement
             const netWithdrawal = Math.max(0, withdrawal - pension);
 
-            // Draw proportionally from each bucket
             const totalDecum = decumSuper + decumSavings;
             if (totalDecum > 0) {
                 const superShare   = decumSuper   / totalDecum;
@@ -280,7 +343,6 @@ export class AdvancedDesignEngine {
                 decumSavings = 0;
             }
 
-            // Apply returns
             decumSuper   *= (1 + superRet);
             decumSavings *= (1 + savingsRet);
 
@@ -302,8 +364,6 @@ export class AdvancedDesignEngine {
             }
         }
 
-        // ---- Sustainable income calculation ----------------------------
-        // Simple approach: annualWithdrawal at retirement nominal, capped so funds last to horizon
         const annualRetirementIncome = this._calcSustainableIncome(
             retirementBalance, p.superReturn, p.savingsReturn, p.inflation,
             p.annualWithdrawal, agePensionEstimate, yearsInRetirement, p.inflationAdjusted
@@ -316,7 +376,9 @@ export class AdvancedDesignEngine {
         return {
             retirementBalance:       Math.round(retirementBalance),
             annualRetirementIncome:  Math.round(annualRetirementIncome),
-            incomeReplacementRatio:  incomeReplacementRatio !== null ? Math.round(incomeReplacementRatio * 10) / 10 : null,
+            incomeReplacementRatio:  incomeReplacementRatio !== null
+                ? Math.round(incomeReplacementRatio * 10) / 10
+                : null,
             depletionYear,
             planningHorizon:         p.planningHorizon,
             retirementAge:           p.retirementAge,
@@ -326,33 +388,65 @@ export class AdvancedDesignEngine {
     }
 
     /**
-     * Rough Age Pension model — single person, homeowner.
-     * Linear taper between lower and upper asset thresholds.
-     * Returns nil if age < pension eligibility age.
+     * Age Pension estimate using current ENHANCED_CONFIG thresholds and deeming.
+     *
+     * TASK-005: Replaces the original linear taper that used stale 2024-25 constants
+     * and had no income test.  Now applies:
+     *  - Asset test (config.js thresholds, updated each indexation)
+     *  - Income test using calculateDeemedIncome() from utils.js
+     *  - Couple thresholds when p.isCouple is true
+     *
+     * @param {number} totalAssets – total financial assets at that age
+     * @param {number} age         – person's current age
+     * @param {Object} p           – normalised parameters from _normalise()
+     * @returns {number} estimated annual Age Pension ($)
      */
-    _calcAgePension(totalAssets, age) {
-        const AP = AdvancedDesignEngine.AGE_PENSION;
-        if (age < AP.PENSION_AGE) return 0;
-        if (totalAssets <= AP.ASSETS_LOWER) return AP.FULL_SINGLE_PA;
-        if (totalAssets >= AP.ASSETS_UPPER) return 0;
-        const taper = 1 - (totalAssets - AP.ASSETS_LOWER) / (AP.ASSETS_UPPER - AP.ASSETS_LOWER);
-        return AP.FULL_SINGLE_PA * taper;
+    _calcAgePension(totalAssets, age, p) {
+        const pensionEligAge = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.PENSION_AGE || 67;
+        if (age < pensionEligAge) return 0;
+
+        // Deeming on financial assets (the entire portfolio is treated as financial assets
+        // for this simplified model).
+        const deemedIncome = calculateDeemedIncome(totalAssets, p.isCouple);
+
+        if (p.isCouple) {
+            const maxPension     = ENHANCED_CONFIG.COUPLE_PENSION_MAX;
+            const assetThreshold = p.homeowner
+                ? ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD
+                : ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER;
+            const assetLimit = p.homeowner
+                ? ENHANCED_CONFIG.COUPLE_ASSET_LIMIT
+                : ENHANCED_CONFIG.COUPLE_ASSET_LIMIT_NON_HOMEOWNER;
+            const fnThreshold = ENHANCED_CONFIG.COUPLE_INCOME_THRESHOLD;
+
+            return applyMeansTest(totalAssets, deemedIncome, maxPension, assetThreshold, assetLimit, fnThreshold);
+        }
+
+        // Single person
+        const maxPension     = ENHANCED_CONFIG.SINGLE_PENSION_MAX;
+        const assetThreshold = p.homeowner
+            ? ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD
+            : ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER;
+        const assetLimit = p.homeowner
+            ? ENHANCED_CONFIG.SINGLE_ASSET_LIMIT
+            : ENHANCED_CONFIG.SINGLE_ASSET_LIMIT_NON_HOMEOWNER;
+        const fnThreshold = ENHANCED_CONFIG.SINGLE_INCOME_THRESHOLD;
+
+        return applyMeansTest(totalAssets, deemedIncome, maxPension, assetThreshold, assetLimit, fnThreshold);
     }
 
     /**
      * Calculate sustainable annual income given a retirement portfolio.
-     * Uses a simple annuity-style approach: if requested withdrawal is
-     * feasible for the full horizon, return it; otherwise scale back.
+     * Uses a growing-annuity present-value factor.  If the requested withdrawal
+     * is feasible for the full horizon, it is returned; otherwise scaled back.
      */
     _calcSustainableIncome(balance, superRet, savingsRet, inflation, requestedWithdrawal,
                            pension, years, inflationAdjusted) {
         if (years <= 0 || balance <= 0) return 0;
 
-        const blendedReturn = (superRet + savingsRet) / 2;
-        const r = blendedReturn;
+        const r = (superRet + savingsRet) / 2;
         const g = inflationAdjusted ? inflation : 0;
 
-        // Present-value annuity factor (growing annuity)
         let pvFactor;
         if (Math.abs(r - g) < 1e-8) {
             pvFactor = years / (1 + r);
@@ -362,19 +456,14 @@ export class AdvancedDesignEngine {
 
         if (pvFactor <= 0) return requestedWithdrawal;
 
-        // Maximum sustainable gross withdrawal
-        const maxWithdrawal = balance / pvFactor;
-
-        // Total income = own funds + age pension
+        const maxWithdrawal    = balance / pvFactor;
         const sustainableTotal = Math.max(0, maxWithdrawal) + pension;
-
-        // Cap at requested withdrawal + pension if lower
         return Math.min(sustainableTotal, requestedWithdrawal + pension);
     }
 
     /** Build a human-readable description for a sensitivity driver. */
     _sensitivityDescription(driver, impact, inputs) {
-        const fmt = v => '$' + Math.abs(Math.round(v)).toLocaleString('en-AU');
+        const fmt  = v => '$' + Math.abs(Math.round(v)).toLocaleString('en-AU');
         const sign = impact >= 0 ? 'adds approximately' : 'reduces income by approximately';
         switch (driver.key) {
             case 'superReturn':

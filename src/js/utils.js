@@ -62,6 +62,29 @@ export const safeSetHTML = (id, html) => {
     if (elem) elem.innerHTML = html;
 };
 
+// ─── Debt helper ─────────────────────────────────────────────────────────────
+// Bug fix: hasDebt is a string ("none" / "minimal" / "moderate" / "high"), not a boolean.
+// "none" is truthy in JS, so `if (inputs.hasDebt)` always fires — causing false debt flags.
+// This function checks actual numeric balances and the string value to give a correct answer.
+export const hasHighInterestDebt = (inputs = {}) => {
+    const creditCard  = Number(inputs.creditCardBalance  || 0);
+    const personalLoan = Number(inputs.personalLoanBalance || 0);
+    const carLoan     = Number(inputs.carLoanBalance     || 0);
+    if (creditCard > 0 || personalLoan > 0 || carLoan > 0) return true;
+    const flag = (inputs.hasDebt || '').toString().toLowerCase();
+    return flag !== 'none' && flag !== 'false' && flag !== '0' && flag !== '';
+};
+
+// Normalise a value that could be stored as either a decimal ratio (0–1) or
+// a percentage (1–100) into a decimal.  All internal calculations use decimals;
+// only the display layer should call displayPercent().
+export const normaliseRatio = (value) => {
+    const n = Number(value);
+    if (!isFinite(n)) return 0;
+    if (n > 1 && n <= 100) return n / 100;
+    return n;
+};
+
 // Formatting utilities
 export const formatCurrency = (num) => {
     if (typeof num !== 'number' || isNaN(num)) return '$0.00';
@@ -1532,7 +1555,7 @@ export const exportToXLSX = (inputs, results, chartManager, app = null) => {
     summaryData.push(
         ['--- RISK ANALYSIS ---', '---', '---'],
         ['Risk', 'Emergency Fund Available', inputs.hasEmergencyFund ? 'Yes' : 'No'],
-        ['Risk', 'High-Interest Debt', inputs.hasDebt ? 'Yes - Higher Risk' : 'No'],
+        ['Risk', 'High-Interest Debt', hasHighInterestDebt(inputs) ? 'Yes - Higher Risk' : 'No'],
         ['Risk', 'Financial Dependents', inputs.dependents || 0],
         ['Risk', 'Property Concentration', inputs.hasInvestmentProperty ? 'High - Significant Property Exposure' : 'Low - Diversified Portfolio'],
         ['Risk', 'Sequence of Returns Risk', results.finalBalance > 0 ? 'Moderate' : 'High - Early losses could deplete portfolio']
@@ -1857,7 +1880,7 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
     const riskBody = [
         ['Risk Tolerance (1-10)', inputs.riskTolerance || 'Not specified'],
         ['Emergency Fund Available', inputs.hasEmergencyFund ? 'Yes' : 'No'],
-        ['High-Interest Debt', inputs.hasDebt ? 'Yes - Higher risk' : 'No'],
+        ['High-Interest Debt', hasHighInterestDebt(inputs) ? 'Yes - Higher risk' : 'No'],
         ['Financial Dependents', inputs.dependents || 0],
         ['Property Concentration Risk', inputs.hasInvestmentProperty ? 'High - Significant property exposure' : 'Low - Diversified portfolio'],
         ['Sequence of Returns Risk', results.finalBalance > 0 ? 'Moderate' : 'High - Early losses could deplete portfolio']
@@ -3031,7 +3054,7 @@ function getRiskAnalysisData(inputs, results) {
     return {
         riskTolerance: inputs.riskTolerance || 5,
         emergencyFund: inputs.hasEmergencyFund,
-        highInterestDebt: inputs.hasDebt,
+        highInterestDebt: hasHighInterestDebt(inputs),
         dependents: inputs.dependents || 0,
         propertyConcentration: inputs.hasInvestmentProperty,
         sequenceRisk: results.finalBalance <= 0 ? 'High' : 'Moderate'

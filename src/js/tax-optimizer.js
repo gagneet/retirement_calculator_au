@@ -84,7 +84,11 @@ export class TaxOptimizer {
             } : null,
             homeValue: inputs.homeValue || 0,
             mortgage: inputs.mortgageBalance || 0,
-            australianEquities: inputs.australianEquityAllocation / 100 || 0.40
+            // BUG FIX 1H: australianEquityAllocation is already a decimal from collectInputs().
+            // Dividing by 100 again produced a value 100× too small.  Normalise defensively.
+            australianEquities: (inputs.australianEquityAllocation > 1
+                ? inputs.australianEquityAllocation / 100
+                : inputs.australianEquityAllocation) || 0.40
         };
     }
 
