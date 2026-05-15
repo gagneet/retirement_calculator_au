@@ -984,7 +984,7 @@ function buildOverseasAnalyzer(baseState) {
   );
 }
 
-function buildOverseasExportData(analysis, annualBudget) {
+function buildOverseasExportData(analysis, annualBudget, finalBalance) {
   if (!analysis) return null;
 
   const annualCost = annualBudget > 0 ? annualBudget : (analysis.costOfLiving?.countryAnnual ?? 0);
@@ -1006,7 +1006,7 @@ function buildOverseasExportData(analysis, annualBudget) {
         country: analysis.country,
         monthlyBudget,
         annualCost,
-        yearsOfFunding: annualCost > 0 ? Math.max(0, Math.round(getFinalBalanceValue() / annualCost)) : null,
+        yearsOfFunding: annualCost > 0 ? Math.max(0, Math.round(finalBalance / annualCost)) : null,
         costVsAustralia,
         suitabilityScore: analysis.riskAssessment?.overall === 'LOW' ? 80 : analysis.riskAssessment?.overall === 'MEDIUM' ? 65 : 50,
         availableAnnualIncome,
@@ -1300,7 +1300,8 @@ function runOverseasAnalysis() {
   APP_STATE.overseasAnalysis = analyzer.analyzeCountry(countryCode);
   APP_STATE.overseasExportData = buildOverseasExportData(
     APP_STATE.overseasAnalysis,
-    baseState.input.annualLivingCostOverseas
+    baseState.input.annualLivingCostOverseas,
+    getFinalBalanceValue(baseState.simulation, baseState.adaptedResult)
   );
   renderAnalysisPanels();
   return APP_STATE.overseasAnalysis;
