@@ -1815,10 +1815,15 @@ export class RetirementSimulator {
 
             // Enhanced return calculation with regime modeling.
             // In pension phase (account-based pension), the fund pays 0% tax on earnings so
-            // ALL franking credits are refunded in cash — override frankingCreditBenefit to 100.
-            // In accumulation the fund pays 15%, so a ~50% effective benefit is appropriate;
-            // the user's frankingCreditBenefit setting is used there instead.
-            const pensionPhaseInputs = { ...inputs, frankingCreditBenefit: 100 };
+            // ALL franking credits are refunded in cash in pension phase.
+            // The formula is: frankingCredits × (FCB / FRANKING_CREDIT_ADJUSTMENT).
+            // Setting FCB = FRANKING_CREDIT_ADJUSTMENT gives a multiplier of 1.0 (full refund).
+            // Do NOT use 100 here — that would produce a 83.33× multiplier and massively
+            // inflate returns (~21% extra per year), causing an astronomical final balance.
+            const pensionPhaseInputs = {
+                ...inputs,
+                frankingCreditBenefit: this.financialConfig.australianSystem.FRANKING_CREDIT_ADJUSTMENT.value,
+            };
             const baseReturn = this.calculateEnhancedReturn(
                 allocation,
                 inputs.investmentReturn,
