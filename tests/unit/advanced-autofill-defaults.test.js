@@ -119,9 +119,10 @@ describe('advanced calculator derived defaults', () => {
         app.refreshRetirementIncomeDefault();
         app.refreshPensionFieldDefaults();
 
-        // Expected: single non-homeowner March 2026 values (verified from Services Australia)
+        // Expected: single non-homeowner defaults using the verified March 2026 pension rules
+        // and the Dec 2025 ASFA comfortable standard for singles.
         // SINGLE_PENSION_MAX=$31,223; SINGLE_ASSET_THRESHOLD_NH=$579,500; limit=$980,000; income=$218
-        expect(document.getElementById('asfaComfortable').value).toBe('51814');
+        expect(document.getElementById('asfaComfortable').value).toBe('52085');
         expect(document.getElementById('agePensionMax').value).toBe('31223');
         expect(document.getElementById('pensionAssetThreshold').value).toBe('579500');
         expect(document.getElementById('pensionAssetLimit').value).toBe('980000');
@@ -155,9 +156,9 @@ describe('advanced calculator derived defaults', () => {
         app.refreshPensionFieldDefaults();
         app.refreshCapitalGainsTaxDefault();
 
-        // Values verified March 2026 from servicesaustralia.gov.au:
-        // Single non-homeowner: SINGLE_PENSION_MAX=$31,223; full=$579,500; cutoff=$980,000; income=$218
-        expect(document.getElementById('asfaComfortable').value).toBe('$51,814.00');
+        // Values verified March 2026 from Services Australia for Age Pension defaults,
+        // plus the Dec 2025 ASFA comfortable standard for a single household.
+        expect(document.getElementById('asfaComfortable').value).toBe('$52,085.00');
         expect(document.getElementById('agePensionMax').value).toBe('$31,223.00');
         expect(document.getElementById('pensionAssetThreshold').value).toBe('$579,500.00');
         expect(document.getElementById('pensionAssetLimit').value).toBe('$980,000.00');

@@ -265,13 +265,17 @@ describe('TaxEngine – calculateLITO', () => {
 
 describe('TaxEngine – calcSuperTax', () => {
     test('15% contributions tax on standard salary', () => {
-        const tax = calcSuperTax(100000, 0.115);
-        expect(tax).toBeCloseTo(100000 * 0.115 * 0.15);
+        const concessionalContribs = 100000 * 0.115;
+        const tax = calcSuperTax(100000, concessionalContribs);
+        expect(tax).toBeCloseTo(concessionalContribs * 0.15);
     });
 
-    test('30% Division 293 tax for high-income earners', () => {
-        const tax = calcSuperTax(300000, 0.115, true);
-        expect(tax).toBeCloseTo(300000 * 0.115 * 0.30);
+    test('Division 293 surcharge applies only to concessional amounts above the threshold', () => {
+        const concessionalContribs = 300000 * 0.115;
+        const tax = calcSuperTax(300000, concessionalContribs);
+        const surchargeableAmount = Math.min(concessionalContribs, (300000 + concessionalContribs) - 250000);
+        const expectedTax = (concessionalContribs * 0.15) + (surchargeableAmount * 0.15);
+        expect(tax).toBeCloseTo(expectedTax);
     });
 });
 

@@ -202,7 +202,7 @@ describe('Advanced page structure (advanced.html)', () => {
     });
 
     test('salary tooltip example uses corrected take-home wording', () => {
-        expect(html).toContain('$100k salary = $12k super + about $78k take-home');
+        expect(html).toContain('Example: $100k base salary → employer adds $12k super on top → ~$77k take-home after income tax &amp; Medicare levy.');
     });
 
     test('sell property timing field includes explanatory tooltip', () => {
