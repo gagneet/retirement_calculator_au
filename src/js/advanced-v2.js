@@ -34,6 +34,17 @@ const DEBT_MAP = {
   over_50k: 'significant',
 };
 
+const PENSION_MEANS_TEST_DEFAULTS = {
+  single: {
+    threshold: ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD,
+    cutoff: ENHANCED_CONFIG.SINGLE_ASSET_LIMIT,
+  },
+  couple: {
+    threshold: ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD,
+    cutoff: ENHANCED_CONFIG.COUPLE_ASSET_LIMIT,
+  },
+};
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -59,6 +70,44 @@ function deriveAgedCareDuration(inp) {
   return yearsRemaining > 0
     ? Math.max(1, Math.min(DEFAULTS.healthcare.agedCareDuration, Math.round(yearsRemaining)))
     : DEFAULTS.healthcare.agedCareDuration;
+}
+
+function getHouseholdPensionDefaults(household = 'couple') {
+  return PENSION_MEANS_TEST_DEFAULTS[household] || PENSION_MEANS_TEST_DEFAULTS.couple;
+}
+
+function syncPensionMeansTestFields(force = false) {
+  const thresholdInput = document.getElementById('pensionAssetThreshold');
+  const cutoffInput = document.getElementById('pensionAssetCutoff');
+  if (!thresholdInput || !cutoffInput) return;
+
+  const householdSeg = document.querySelector('[data-bind="household"]');
+  const household = householdSeg?.dataset?.value || 'couple';
+  const defaults = getHouseholdPensionDefaults(household);
+
+  if (force || thresholdInput.dataset.autoDefault !== 'false') {
+    thresholdInput.value = String(defaults.threshold);
+    thresholdInput.dataset.autoDefault = 'true';
+  }
+
+  if (force || cutoffInput.dataset.autoDefault !== 'false') {
+    cutoffInput.value = String(defaults.cutoff);
+    cutoffInput.dataset.autoDefault = 'true';
+  }
+}
+
+function initPensionFieldDefaults() {
+  ['pensionAssetThreshold', 'pensionAssetCutoff'].forEach((id) => {
+    const field = document.getElementById(id);
+    if (!field) return;
+
+    field.dataset.autoDefault = 'true';
+    field.addEventListener('input', () => {
+      field.dataset.autoDefault = 'false';
+    });
+  });
+
+  syncPensionMeansTestFields(true);
 }
 
 function buildEngineInputs(inp) {
@@ -364,7 +413,10 @@ function initSegmented() {
           }
         }
         // Special: household toggle controls partner-field visibility
-        if (bindKey === 'household') applyHouseholdVisibility();
+        if (bindKey === 'household') {
+          applyHouseholdVisibility();
+          syncPensionMeansTestFields();
+        }
         recalc();
       });
     });
@@ -813,7 +865,7 @@ function initTopbar() {
   if (save && typeof window.saveDataFile === 'function') save.addEventListener('click', window.saveDataFile);
 }
 
-export { buildEngineInputs, adaptEngineOutput, runEngine };
+export { buildEngineInputs, adaptEngineOutput, getHouseholdPensionDefaults, runEngine, syncPensionMeansTestFields };
 
 // ============================================================
 // BOOT
@@ -823,6 +875,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initSegmented();
   initTabs();
   initTopbar();
+  initPensionFieldDefaults();
   bindConditional('investmentProperty', 'data-ip');
   bindConditional('goingOverseas', 'data-overseas');
 

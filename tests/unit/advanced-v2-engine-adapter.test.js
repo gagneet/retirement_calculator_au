@@ -1,4 +1,9 @@
-import { buildEngineInputs, runEngine } from '../../src/js/advanced-v2.js';
+import {
+    buildEngineInputs,
+    getHouseholdPensionDefaults,
+    runEngine,
+    syncPensionMeansTestFields,
+} from '../../src/js/advanced-v2.js';
 
 const buildRedesignInputs = (overrides = {}) => ({
     household: 'single',
@@ -95,6 +100,10 @@ const buildRedesignInputs = (overrides = {}) => ({
 });
 
 describe('advanced-v2 engine adapter', () => {
+    beforeEach(() => {
+        document.body.innerHTML = '';
+    });
+
     test('maps redesigned fields onto simulator inputs with correct units', () => {
         const engineInputs = buildEngineInputs(buildRedesignInputs({
             household: 'couple',
@@ -120,6 +129,37 @@ describe('advanced-v2 engine adapter', () => {
         expect(engineInputs.pensionAssetThreshold).toBe(481500);
         expect(engineInputs.pensionAssetLimit).toBe(1085000);
         expect(engineInputs.useLongevityDistribution).toBe(false);
+    });
+
+    test('uses current config defaults for household pension means tests', () => {
+        expect(getHouseholdPensionDefaults('single')).toEqual({
+            threshold: 321500,
+            cutoff: 722000,
+        });
+        expect(getHouseholdPensionDefaults('couple')).toEqual({
+            threshold: 481500,
+            cutoff: 1085000,
+        });
+    });
+
+    test('syncs pension asset fields when the household changes unless manually overridden', () => {
+        document.body.innerHTML = `
+            <div class="segmented" data-bind="household" data-value="single"></div>
+            <input id="pensionAssetThreshold" value="481500" />
+            <input id="pensionAssetCutoff" value="1085000" />
+        `;
+
+        syncPensionMeansTestFields(true);
+        expect(document.getElementById('pensionAssetThreshold').value).toBe('321500');
+        expect(document.getElementById('pensionAssetCutoff').value).toBe('722000');
+
+        document.querySelector('[data-bind="household"]').dataset.value = 'couple';
+        document.getElementById('pensionAssetThreshold').dataset.autoDefault = 'false';
+        document.getElementById('pensionAssetThreshold').value = '400000';
+
+        syncPensionMeansTestFields();
+        expect(document.getElementById('pensionAssetThreshold').value).toBe('400000');
+        expect(document.getElementById('pensionAssetCutoff').value).toBe('1085000');
     });
 
     test('returns a real-engine result shaped for the redesigned UI', () => {
