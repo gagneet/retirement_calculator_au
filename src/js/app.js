@@ -778,6 +778,31 @@ class RetirementCalculatorApp {
             // Partnership status for calculations
             isSingleCalculation: finalPartnerAge === 0,
 
+            // Derived partnership flag used by simulation engines (life_simulation_engine, pension_engine)
+            isCouple: finalPartnerAge > 0,
+
+            // Homeowner flag used by pension asset test (owns a home = exempt from assets test)
+            homeowner: safeGetValue('homeValue', 0) > 0,
+
+            // Life expectancy alias used by RetirementCostAnalyzer and some sub-engines
+            // (collectInputs returns yourLifespan; this alias keeps all engines in sync)
+            lifeExpectancy: safeGetValue('yourLifespan', 90),
+
+            // Mortgage term remaining — computed from balance and monthly payment if no explicit field.
+            // Used by RetirementCostAnalyzer to calculate annual mortgage repayment.
+            mortgageTermLeft: (() => {
+                const bal = safeGetValue('mortgageBalance', 0);
+                const monthly = safeGetValue('monthlyMortgagePayment', 0);
+                const rate = safeGetValue('mortgageRate', 0) / 100;
+                if (bal <= 0 || monthly <= 0) return 0;
+                // Reverse-solve term from amortisation formula: n = -ln(1 - rP/M) / ln(1+r)
+                const r = rate / 12;
+                if (r === 0) return Math.ceil(bal / monthly / 12);
+                const n = -Math.log(1 - r * bal / monthly) / Math.log(1 + r);
+                if (!isFinite(n) || n <= 0) return 25; // safe fallback
+                return Math.min(Math.ceil(n / 12), 30); // cap at 30 years
+            })(),
+
             // Other debts (affect net worth and cash flow)
             creditCardBalance: parseFormattedNumber(getRawValue('creditCardBalance', '0')),
             creditCardRate: safeGetValue('creditCardRate', 20) / 100,
@@ -3680,11 +3705,36 @@ class RetirementCalculatorApp {
 
     // ── Retirement Cost Reality Analysis ──────────────────────────────────────
     async runCostRealityAnalysis() {
-        if (this.isCalculating) return;
+        if (this.isCalculating) {
+            showNotification('Another calculation is in progress. Please wait.', 'warning');
+            return;
+        }
         this.isCalculating = true;
 
         const statusEl = document.getElementById('costRealityStatus');
         const resultsEl = document.getElementById('costRealityResults');
+
+        // Helper to show/clear an inline error banner within the Cost Reality tab
+        const showCostError = (msg, detail = '') => {
+            let errEl = document.getElementById('costRealityErrorBanner');
+            if (!errEl) {
+                errEl = document.createElement('div');
+                errEl.id = 'costRealityErrorBanner';
+                const anchor = resultsEl || statusEl;
+                if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(errEl, anchor);
+            }
+            errEl.className = 'mb-4 p-4 bg-red-50 border border-red-300 rounded-lg text-sm text-red-800';
+            errEl.innerHTML = `<strong>Cost Reality Analysis Error</strong>: ${msg}`
+                + (detail ? `<pre class="mt-2 text-xs text-red-700 whitespace-pre-wrap">${detail}</pre>` : '');
+            errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        };
+
+        const clearCostError = () => {
+            const errEl = document.getElementById('costRealityErrorBanner');
+            if (errEl) errEl.remove();
+        };
+
+        clearCostError();
         if (statusEl) statusEl.classList.remove('hidden');
         if (resultsEl) resultsEl.classList.add('hidden');
 
@@ -3733,7 +3783,10 @@ class RetirementCalculatorApp {
 
         } catch (err) {
             console.error('Cost Reality error:', err);
-            showNotification('Failed to run Cost Reality analysis. Please check your inputs.', 'error');
+            const msg = err.message || String(err);
+            const stack = err.stack ? err.stack.split('\n').slice(0, 5).join('\n') : '';
+            showCostError(msg, stack);
+            showNotification('Cost Reality analysis error: ' + msg, 'error');
         } finally {
             this.isCalculating = false;
             if (statusEl) statusEl.classList.add('hidden');
@@ -7797,6 +7850,31 @@ class RetirementCalculatorApp {
 
         if (!btnRun) return;
 
+        // Helper to show/clear an inline error banner within the tab
+        const showSimError = (msg, detail = '') => {
+            let errEl = $('simErrorBanner');
+            if (!errEl) {
+                errEl = document.createElement('div');
+                errEl.id = 'simErrorBanner';
+                // Insert before the results div (or at start of tab if results not present)
+                const parent = resultsEl ? resultsEl.parentNode : btnRun.closest('.tab-content');
+                if (parent) {
+                    const anchor = resultsEl || btnRun.closest('.mb-6');
+                    parent.insertBefore(errEl, anchor);
+                }
+            }
+            errEl.className = 'mb-4 p-4 bg-red-50 border border-red-300 rounded-lg text-sm text-red-800';
+            errEl.innerHTML = `<strong>Simulation Error</strong>: ${msg}`
+                + (detail ? `<pre class="mt-2 text-xs text-red-700 whitespace-pre-wrap">${detail}</pre>` : '');
+            errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        };
+
+        const clearSimError = () => {
+            const errEl = $('simErrorBanner');
+            if (errEl) errEl.remove();
+        };
+
+        clearSimError();
         btnRun.disabled = true;
         if (statusEl) statusEl.textContent = 'Running simulation…';
 
@@ -7997,8 +8075,11 @@ class RetirementCalculatorApp {
 
         } catch (err) {
             console.error('Life simulation error:', err);
-            showNotification('Life simulation error: ' + err.message, 'error');
-            if (statusEl) statusEl.textContent = 'Error — please check inputs.';
+            const msg = err.message || String(err);
+            const stack = err.stack ? err.stack.split('\n').slice(0, 5).join('\n') : '';
+            showSimError(msg, stack);
+            showNotification('Life simulation error: ' + msg, 'error');
+            if (statusEl) statusEl.textContent = 'Error — see details below.';
         } finally {
             btnRun.disabled = false;
         }

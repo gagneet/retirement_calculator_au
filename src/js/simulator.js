@@ -600,11 +600,15 @@ export class RetirementSimulator {
 
     // Detailed franking credit calculation with proper dividend modeling
     calculateFrankingCredits(allocation, inputs) {
-        const australianEquityAllocation = (allocation.equity / 100) * (inputs.australianEquityAllocation / 100);
+        // allocation.equity is in percentage units (e.g. 71 for 71%).
+        // inputs.australianEquityAllocation is already a decimal fraction from collectInputs() (e.g. 0.40).
+        // inputs.dividendYield and inputs.frankingRate are already decimal fractions (e.g. 0.04, 0.75).
+        // Do NOT divide by 100 again — collectInputs() already normalises all three.
+        const australianEquityAllocation = (allocation.equity / 100) * inputs.australianEquityAllocation;
 
-        // Use user-provided dividend yield and franking rate
-        const dividendYield = inputs.dividendYield / 100; // Convert percentage to decimal
-        const frankingRate = inputs.frankingRate / 100;   // Convert percentage to decimal
+        // Use user-provided dividend yield and franking rate (already decimals)
+        const dividendYield = inputs.dividendYield;
+        const frankingRate = inputs.frankingRate;
         const corporateTaxRate = this.financialConfig.australianSystem.CORPORATE_TAX_RATE.value;
 
         // Calculate gross dividend income from Australian equities
@@ -1636,6 +1640,10 @@ export class RetirementSimulator {
                     cash: inputs.allocCash * 100
                 };
 
+            // Track allocation through retirement so the "Asset Allocation Over Time" chart
+            // covers the full simulation horizon, not just the pre-retirement phase.
+            allocationHistory.push(allocation);
+
             // Enhanced healthcare costs
             const healthcareCost = this.projectHealthcareCosts(
                 inputs.currentHealthcareCosts,
@@ -1675,6 +1683,7 @@ export class RetirementSimulator {
                     retirementYear
                 );
                 propertyEquity = currentValue - remainingLoan;
+
             }
 
             const spendingPlan = this.buildRetirementSpendingPlan({

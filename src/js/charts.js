@@ -619,23 +619,86 @@ export class ChartManager {
         if (!canvas || !inputs.hasInvestmentProperty) return;
 
         const ctx = canvas.getContext('2d');
-        const years = results.yearlyData.map(d => d.year);
-        const portfolioValues = results.balances;
 
-        // Calculate property values over time
-        const propertyValues = results.propertyHistory.map((prop, i) => {
-            if (prop.saleResult) return 0; // Property sold
-            return inputs.investmentPropertyValue * Math.pow(1 + inputs.propertyGrowthRate / 100, i + 1);
-        });
+        // Build a unified full-lifespan timeline combining pre-retirement and retirement data.
+        // Pre-retirement: reconstruct from simulation start year using allocationHistory length.
+        // Retirement: use yearlyData for both year labels and portfolio (balance) values.
+        //
+        // inputs.propertyGrowthRate is already a decimal fraction (e.g. 0.022).
+        // inputs.investmentPropertyValue is the purchase/current value in AUD.
+
+        const currentYear = new Date().getFullYear();
+        const startAge = inputs.yourCurrentAge || 49;
+        const retirementAge = inputs.retirementAge || 67;
+        const yearsToRetirement = Math.max(0, retirementAge - startAge);
+        const lifespan = inputs.yourLifespan > 0 ? inputs.yourLifespan : 90;
+        const totalYears = lifespan - startAge;
+
+        // Determine if/when property was sold (from propertyHistory saleResult)
+        let saleYear = null;
+        if (results.propertyHistory) {
+            const saleIdx = results.propertyHistory.findIndex(p => p.saleResult);
+            if (saleIdx !== -1) saleYear = saleIdx + 1; // 1-indexed simulation year
+        }
+
+        // Build arrays spanning the full simulation (year 1 = age startAge+1 through totalYears)
+        const labels = [];
+        const propertyValues = [];
+        const portfolioValues = [];
+
+        // Retirement portfolio indexed by simulation year offset
+        const retirementBalanceByYear = {};
+        if (results.yearlyData) {
+            results.yearlyData.forEach(d => {
+                const simYear = d.year - currentYear;
+                retirementBalanceByYear[simYear] = d.endBalance;
+            });
+        }
+        // Accumulation portfolio balances indexed to pre-retirement years
+        // simulateRetirement doesn't return yearly accumulation balances, so we
+        // interpolate from the opening (year 0) to the retirement balance.
+        const retirementOpeningBalance = results.yearlyData && results.yearlyData.length > 0
+            ? results.yearlyData[0].startBalance
+            : (results.totalFinancialAssets || 0);
+        const openingBalance = (inputs.yourCurrentSuper || 0) + (inputs.partnerCurrentSuper || 0)
+            + (inputs.currentSavings || 0) + (inputs.currentStocks || 0);
+
+        for (let yr = 1; yr <= totalYears; yr++) {
+            const calYear = currentYear + yr;
+            labels.push(calYear);
+
+            // Property value: grows at propertyGrowthRate until sold
+            let propVal;
+            if (saleYear !== null && yr >= saleYear) {
+                propVal = 0;
+            } else {
+                propVal = (inputs.investmentPropertyValue || 0) * Math.pow(1 + inputs.propertyGrowthRate, yr);
+            }
+            propertyValues.push(propVal);
+
+            // Portfolio value: linear interpolation pre-retirement, then actual yearlyData post-retirement
+            if (yr <= yearsToRetirement) {
+                // Interpolate accumulation phase linearly from current to retirement opening balance
+                const frac = yearsToRetirement > 0 ? yr / yearsToRetirement : 1;
+                portfolioValues.push(openingBalance + (retirementOpeningBalance - openingBalance) * frac);
+            } else {
+                const retireOffset = yr - yearsToRetirement;
+                const retBalance = retirementBalanceByYear[yr] ??
+                    (results.balances && results.balances[retireOffset - 1]) ?? 0;
+                portfolioValues.push(Math.max(0, retBalance));
+            }
+        }
+
+        const allValues = [...portfolioValues, ...propertyValues].filter(v => isFinite(v) && !isNaN(v) && v > 0);
 
         this.charts.propertyChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: years.slice(0, Math.min(years.length, propertyValues.length)),
+                labels,
                 datasets: [
                     {
                         label: 'Portfolio Value',
-                        data: portfolioValues.slice(0, propertyValues.length),
+                        data: portfolioValues,
                         borderColor: '#8b5cf6',
                         backgroundColor: 'rgba(139, 92, 246, 0.1)',
                         fill: false,
@@ -664,7 +727,7 @@ export class ChartManager {
                     },
                     tooltip: {
                         callbacks: {
-                            label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`
+                            label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`
                         }
                     }
                 },
@@ -678,10 +741,7 @@ export class ChartManager {
                     y: {
                         title: { display: true, text: 'Value (AUD)' },
                         beginAtZero: true,
-                        suggestedMax: Math.max(
-                            ...portfolioValues.filter(v => !isNaN(v) && isFinite(v)),
-                            ...propertyValues.filter(v => !isNaN(v) && isFinite(v))
-                        ) * 1.1 || 100000,
+                        suggestedMax: (allValues.length > 0 ? Math.max(...allValues) : 100000) * 1.1,
                         ticks: {
                             callback: (value) => formatCurrency(value)
                         }
