@@ -5,6 +5,7 @@ import {
     normalizeImportedUserData,
     normaliseRiskProfile,
     runEngine,
+    setSectionOpenState,
     syncPensionMeansTestFields,
 } from '../../src/js/advanced-v2.js';
 
@@ -276,5 +277,30 @@ describe('advanced-v2 engine adapter', () => {
             ageMovingOverseas: 67,
             annualLivingCostOverseas: 52000,
         });
+    });
+
+    test('updates accordion aria and hidden state when sections open and close', () => {
+        document.body.innerHTML = `
+            <section class="section open" data-section="personal">
+                <button class="section-head" type="button"></button>
+                <div class="section-body"></div>
+            </section>
+        `;
+
+        const section = document.querySelector('.section');
+        const head = document.querySelector('.section-head');
+        const body = document.querySelector('.section-body');
+
+        setSectionOpenState(section, false);
+        expect(section.classList.contains('open')).toBe(false);
+        expect(head.getAttribute('aria-expanded')).toBe('false');
+        expect(body.hidden).toBe(true);
+        expect(body.getAttribute('aria-hidden')).toBe('true');
+
+        setSectionOpenState(section, true);
+        expect(section.classList.contains('open')).toBe(true);
+        expect(head.getAttribute('aria-expanded')).toBe('true');
+        expect(body.hidden).toBe(false);
+        expect(body.getAttribute('aria-hidden')).toBe('false');
     });
 });

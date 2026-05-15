@@ -359,6 +359,7 @@ button { cursor: pointer; }
   padding: 4px var(--pad-x) var(--pad-x);
   border-top: 1px solid var(--border);
 }
+.section:not(.open) .section-body { display: none; }
 
 /* Field grid */
 .fields {

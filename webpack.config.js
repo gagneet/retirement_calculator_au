@@ -143,6 +143,13 @@ module.exports = {
             template: './src/advanced-v2.html',
             filename: 'advanced-v2.html',
             chunks: ['advancedV2'],
+            minify: {
+                collapseWhitespace: true,
+                removeComments: true,
+                removeRedundantAttributes: true,
+                useShortDoctype: true,
+                caseSensitive: true,
+            },
         }),
     ],
 };
