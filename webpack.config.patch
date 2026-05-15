@@ -1,0 +1,30 @@
+--- webpack.config.js  (original)
++++ webpack.config.js  (patched)
+@@ -8,9 +8,10 @@ const CopyPlugin = require('copy-webpack-plugin');
+ module.exports = {
+     mode: 'production',
+     entry: {
+         main: './src/js/app.js',
+         comparison: './src/js/comparison.js',
++        advancedV2: './src/js/advanced-v2.js',
+     },
+     output: {
+         filename: '[name].[contenthash].js',
+         chunkFilename: '[name].[contenthash].js',
+         path: path.resolve(__dirname, 'dist'),
+         clean: true,
+     },
+@@ -120,5 +121,11 @@ module.exports = {
+         new HtmlWebpackPlugin({
+             template: './src/trust-company-structure.html',
+             filename: 'trust-company-structure.html',
+             chunks: [],
+         }),
++        // ── New redesigned advanced page (parallel to advanced.html) ──
++        new HtmlWebpackPlugin({
++            template: './src/advanced-v2.html',
++            filename: 'advanced-v2.html',
++            chunks: ['advancedV2'],
++        }),
+     ],
+ };

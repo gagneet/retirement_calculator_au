@@ -10,6 +10,7 @@ module.exports = {
     entry: {
         main: './src/js/app.js',
         comparison: './src/js/comparison.js',
+        advancedV2: './src/js/advanced-v2.js',
     },
     output: {
         filename: '[name].[contenthash].js',
@@ -137,6 +138,11 @@ module.exports = {
             template: './src/trust-company-structure.html',
             filename: 'trust-company-structure.html',
             chunks: [], // Static guide page — no JS bundle needed
+        }),
+        new HtmlWebpackPlugin({
+            template: './src/advanced-v2.html',
+            filename: 'advanced-v2.html',
+            chunks: ['advancedV2'],
         }),
     ],
 };
