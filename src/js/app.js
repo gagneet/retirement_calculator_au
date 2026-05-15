@@ -1284,9 +1284,10 @@ class RetirementCalculatorApp {
             if (badge) {
                 badge.textContent = badgeText;
                 badge.hidden = false;
-                // Use block display inside super-strategy fields so the badge occupies
-                // its own full-width row and the input renders below it, not beside it.
-                badge.style.display = badge.closest('.super-strategy-field') ? 'block' : 'inline-flex';
+                // Auto-managed helper badges need their own row in the fields that show
+                // detailed blue helper text, otherwise long labels/hints can squeeze the input.
+                const usesStackedAutoIndicator = !!field.closest('.super-strategy-field, .auto-indicator-field');
+                badge.style.display = usesStackedAutoIndicator ? 'block' : 'inline-flex';
             }
             if (hint) {
                 hint.textContent = message;
@@ -1763,6 +1764,69 @@ class RetirementCalculatorApp {
         if (durationHint) {
             durationHint.textContent = `Auto-calculated as expected lifespan ${expectedLifespan} minus aged care start age ${startAge}.`;
         }
+    }
+
+    resolveOutcomeStatusPresentation(outcome) {
+        const inputs = this.collectInputs ? this.collectInputs() : {};
+        const simulation = this.currentResults;
+        const explicitPlanningHorizon = this.hasExplicitPlanningHorizon(inputs);
+
+        const defaultPresentation = {
+            status: outcome.status,
+            statusColor: outcome.status === 'SHORTFALL' ? '#ef4444' : '#22c55e',
+            statusIcon: outcome.status === 'SHORTFALL' ? '⚠️' : '✅',
+            statusLabel: outcome.status === 'SHORTFALL' ? 'Shortfall' : 'On Track',
+            statusDetail: null,
+            gapClass: outcome.status === 'SHORTFALL' ? 'shortfall' : 'surplus',
+            gapAmountText: outcome.status === 'SHORTFALL'
+                ? `${formatCurrency(Math.abs(outcome.gap))}/year`
+                : `${formatCurrency(Math.abs(outcome.gap))}/year surplus`,
+            gapSubtitleHtml: outcome.status === 'SHORTFALL'
+                ? `<span id="outcome-gap-weekly">${formatCurrency(Math.abs(outcome.gapPerWeek))}</span>/week shortfall in today's dollars`
+                : 'You\'re on track in today\'s dollars.'
+        };
+
+        if (!simulation || !explicitPlanningHorizon) {
+            return defaultPresentation;
+        }
+
+        const simulationOnTrack = simulation.finalBalance > 0;
+        const conservativeOnTrack = outcome.status !== 'SHORTFALL';
+        if (simulationOnTrack === conservativeOnTrack) {
+            return defaultPresentation;
+        }
+
+        const projectionEndAge = this.resolveProjectionEndAge(inputs, simulation);
+        const conservativeGapText = `${formatCurrency(Math.abs(outcome.gap))}/year`;
+
+        if (simulationOnTrack) {
+            return {
+                status: 'ON_TRACK',
+                statusColor: '#22c55e',
+                statusIcon: '✅',
+                statusLabel: 'On Track',
+                statusDetail: `Full simulation reaches age ${projectionEndAge} with ${formatCurrency(simulation.finalBalance)} remaining. The quick check is more conservative because it compares a 4% drawdown + Age Pension against the ASFA target income.`,
+                gapClass: 'surplus',
+                gapAmountText: `${formatCurrency(simulation.finalBalance)} remaining`,
+                gapSubtitleHtml: `Full simulation reaches age ${projectionEndAge}. Conservative quick check still shows a ${conservativeGapText}/year income gap versus the target.`
+            };
+        }
+
+        const depletionAgeLabel = simulation.depletionAge
+            ? `around age ${simulation.depletionAge}`
+            : `before age ${projectionEndAge}`;
+        return {
+            status: 'SHORTFALL',
+            statusColor: '#ef4444',
+            statusIcon: '⚠️',
+            statusLabel: 'Shortfall',
+            statusDetail: `Full simulation exhausts assets ${depletionAgeLabel}. The quick check looks better because it does not model the full year-by-year drawdown path.`,
+            gapClass: 'shortfall',
+            gapAmountText: simulation.depletionAge ? `Age ${simulation.depletionAge}` : conservativeGapText,
+            gapSubtitleHtml: simulation.depletionAge
+                ? `Full simulation runs out ${depletionAgeLabel} under the current settings.`
+                : `Full simulation does not sustain the plan to age ${projectionEndAge}.`
+        };
     }
 
     setupProjectionDrivenFields() {
@@ -9960,21 +10024,14 @@ class RetirementCalculatorApp {
         safeSetText('outcome-lifestyle-type', lifestyleType);
 
         // Update gap/surplus indicator
+        const statusPresentation = this.resolveOutcomeStatusPresentation(outcome);
         const gapIndicator = $('outcome-gap-indicator');
         const gapAmount = $('outcome-gap-amount');
         const gapSubtitle = $('outcome-gap-subtitle');
         if (gapIndicator && gapAmount) {
-            if (outcome.status === 'SHORTFALL') {
-                gapIndicator.className = 'gap-indicator shortfall';
-                gapAmount.textContent = `${formatCurrency(Math.abs(outcome.gap))}/year`;
-                if (gapSubtitle) {
-                    gapSubtitle.innerHTML = `<span id="outcome-gap-weekly">${formatCurrency(Math.abs(outcome.gapPerWeek))}</span>/week shortfall in today's dollars`;
-                }
-            } else {
-                gapIndicator.className = 'gap-indicator surplus';
-                gapAmount.textContent = `${formatCurrency(Math.abs(outcome.gap))}/year surplus`;
-                if (gapSubtitle) gapSubtitle.textContent = 'You\'re on track in today\'s dollars.';
-            }
+            gapIndicator.className = `gap-indicator ${statusPresentation.gapClass}`;
+            gapAmount.textContent = statusPresentation.gapAmountText;
+            if (gapSubtitle) gapSubtitle.innerHTML = statusPresentation.gapSubtitleHtml;
         }
 
         // Populate full-simulation overview if simulation results are available
@@ -10077,9 +10134,10 @@ class RetirementCalculatorApp {
             ? this.toTodayDollars(projectedSuperNominal, inflationFactor)
             : outcome.superAtRetirement;
 
-        const statusColor = outcome.status === 'SHORTFALL' ? '#ef4444' : '#22c55e';
-        const statusIcon = outcome.status === 'SHORTFALL' ? '⚠️' : '✅';
-        const statusLabel = outcome.status === 'SHORTFALL' ? 'Shortfall' : 'On Track';
+        const statusPresentation = this.resolveOutcomeStatusPresentation(outcome);
+        const yearsToGoLabel = statusPresentation.statusDetail
+            ? `${outcome.yearsToRetirement} years to go · ${statusPresentation.statusDetail}`
+            : `${outcome.yearsToRetirement} years to go`;
 
         overviewEl.innerHTML = `
             <div class="outcome-overview-stat">
@@ -10104,8 +10162,8 @@ class RetirementCalculatorApp {
             </div>
             <div class="outcome-overview-stat">
                 <div class="outcome-overview-label">Status</div>
-                <div class="outcome-overview-value" style="color: ${statusColor};">${statusIcon} ${statusLabel}</div>
-                <div class="outcome-overview-sublabel">${outcome.yearsToRetirement} years to go</div>
+                <div class="outcome-overview-value" style="color: ${statusPresentation.statusColor};">${statusPresentation.statusIcon} ${statusPresentation.statusLabel}</div>
+                <div class="outcome-overview-sublabel">${yearsToGoLabel}</div>
             </div>
         `;
     }

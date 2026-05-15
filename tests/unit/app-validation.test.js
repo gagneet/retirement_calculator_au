@@ -209,6 +209,36 @@ describe('saved input loading', () => {
     });
 });
 
+describe('outcome status reconciliation', () => {
+    test('prefers the full simulation status when the quick check shows a shortfall but the simulation finishes with a surplus', () => {
+        const app = Object.create(RetirementCalculatorApp.prototype);
+        app.currentResults = {
+            finalBalance: 150000,
+            runUntilDepletionMode: false,
+            effectiveYourLifespan: 93,
+        };
+        app.collectInputs = jest.fn(() => ({
+            yourCurrentAge: 56,
+            retirementAge: 67,
+            yourLifespan: 93,
+            inflation: 0.025,
+        }));
+
+        const presentation = app.resolveOutcomeStatusPresentation({
+            status: 'SHORTFALL',
+            yearsToRetirement: 11,
+            gap: 12000,
+            gapPerWeek: 231,
+        });
+
+        expect(presentation.status).toBe('ON_TRACK');
+        expect(presentation.gapClass).toBe('surplus');
+        expect(presentation.gapAmountText).toContain('remaining');
+        expect(presentation.statusDetail).toContain('reaches age 93');
+        expect(presentation.gapSubtitleHtml).toContain('Conservative quick check still shows');
+    });
+});
+
 describe('depletion summary rendering', () => {
     test('uses open-ended wording and shows depletion age when run-until-depletion mode is used', () => {
         document.body.innerHTML = `

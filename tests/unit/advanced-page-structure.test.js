@@ -230,4 +230,12 @@ describe('Advanced page structure (advanced.html)', () => {
         expect(html).toContain('id="agedCareAnnualCost"');
         expect(html).toContain('value="75000"');
     });
+
+    test('auto-managed contribution and CGT fields use the layout-safe wrapper class', () => {
+        expect(html).toContain('<div class="super-strategy-field auto-indicator-field">');
+        const cgtFieldStart = html.indexOf('for="capitalGainsTaxRate"');
+        expect(cgtFieldStart).toBeGreaterThan(-1);
+        const cgtContext = html.substring(Math.max(0, cgtFieldStart - 200), cgtFieldStart + 200);
+        expect(cgtContext).toContain('auto-indicator-field');
+    });
 });
