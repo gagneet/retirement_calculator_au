@@ -858,13 +858,90 @@ export class RetirementSimulator {
         inputs = effectiveInputs; // eslint-disable-line no-param-reassign
 
         // Pre-retirement accumulation phase
-        let accumulatedSuperBalance = inputs.yourCurrentSuper + inputs.partnerCurrentSuper;
+        let yourSuperBalance = inputs.yourCurrentSuper || 0;
+        let partnerSuperBalance = inputs.partnerCurrentSuper || 0;
+        let accumulatedSuperBalance = yourSuperBalance + partnerSuperBalance;
         // Reduce starting savings by non-mortgage debts (these are liabilities against net worth)
         const totalOtherDebts = (inputs.creditCardBalance || 0) + (inputs.personalLoanBalance || 0) + (inputs.carLoanBalance || 0);
         let accumulatedSavingsBalance = Math.max(0, inputs.currentSavings - totalOtherDebts);
         let accumulatedInvestmentPortfolio = inputs.currentStocks;
         let propertyWasSold = false;
         let propertyEquity = 0;
+        const nccCaps = {
+            annual: this.config.NON_CONCESSIONAL_CAP || 120000,
+            blockThreshold: this.config.TSB_NCC_BLOCK_THRESHOLD || 2000000,
+            threshold3Year: this.config.NCC_BRING_FORWARD_3YR_THRESHOLD || 1660000,
+            threshold2Year: this.config.NCC_BRING_FORWARD_2YR_THRESHOLD || 1780000,
+            threshold1Year: this.config.NCC_BRING_FORWARD_1YR_THRESHOLD || 1900000,
+            cap3Year: this.config.NCC_BRING_FORWARD_3YR_CAP || 360000,
+            cap2Year: this.config.NCC_BRING_FORWARD_2YR_CAP || 240000
+        };
+        const nccState = {
+            your: { remainingCap: null, windowEndYear: 0 },
+            partner: { remainingCap: null, windowEndYear: 0 }
+        };
+        const applyProportionalSuperReduction = (amount) => {
+            if (amount <= 0) return;
+            const totalBalance = yourSuperBalance + partnerSuperBalance;
+            if (totalBalance <= 0) return;
+
+            const yourShare = yourSuperBalance / totalBalance;
+            const partnerShare = 1 - yourShare;
+            yourSuperBalance = Math.max(0, yourSuperBalance - (amount * yourShare));
+            partnerSuperBalance = Math.max(0, partnerSuperBalance - (amount * partnerShare));
+        };
+        const getBringForwardWindow = (openingBalance) => {
+            if (openingBalance >= nccCaps.blockThreshold) {
+                return { totalCap: 0, years: 0 };
+            }
+            if (openingBalance < nccCaps.threshold3Year) {
+                return { totalCap: nccCaps.cap3Year, years: 3 };
+            }
+            if (openingBalance < nccCaps.threshold2Year) {
+                return { totalCap: nccCaps.cap2Year, years: 2 };
+            }
+            if (openingBalance < nccCaps.threshold1Year) {
+                return { totalCap: nccCaps.annual, years: 1 };
+            }
+            return { totalCap: 0, years: 0 };
+        };
+        const calculateAllowedNcc = (requestedAmount, openingBalance, memberState, year) => {
+            if (requestedAmount <= 0) {
+                return 0;
+            }
+
+            // Once a bring-forward window is triggered, the remaining cap stays attached to
+            // that person for the rest of the statutory window instead of collapsing into a
+            // household-wide lockout.
+            if (memberState.windowEndYear >= year && memberState.remainingCap !== null) {
+                const allowedDuringWindow = Math.min(requestedAmount, memberState.remainingCap);
+                memberState.remainingCap -= allowedDuringWindow;
+                if (memberState.remainingCap <= 0) {
+                    memberState.remainingCap = 0;
+                }
+                return allowedDuringWindow;
+            }
+
+            const eligibility = getBringForwardWindow(openingBalance);
+            if (eligibility.totalCap <= 0) {
+                memberState.remainingCap = null;
+                memberState.windowEndYear = 0;
+                return 0;
+            }
+
+            const allowedAmount = Math.min(requestedAmount, eligibility.totalCap);
+            const triggeredBringForward = eligibility.years > 1 && allowedAmount > nccCaps.annual;
+
+            if (triggeredBringForward) {
+                memberState.windowEndYear = year + eligibility.years - 1;
+                memberState.remainingCap = Math.max(0, eligibility.totalCap - allowedAmount);
+            } else {
+                memberState.remainingCap = null;
+                memberState.windowEndYear = 0;
+            }
+
+            return allowedAmount;
+        };
 
         const allocationHistory = [];
         const healthcareCostHistory = [];
@@ -879,6 +956,8 @@ export class RetirementSimulator {
         for (let year = 1; year <= simulationEndYear; year++) {
             const yourCurrentAge = inputs.yourCurrentAge + year;
             const partnerCurrentAge = inputs.isSingleCalculation ? 0 : inputs.partnerCurrentAge + year;
+            const yourOpeningSuperBalance = yourSuperBalance;
+            const partnerOpeningSuperBalance = partnerSuperBalance;
 
             // Stop simulation based on single vs couple status
             if (inputs.isSingleCalculation) {
@@ -973,8 +1052,12 @@ export class RetirementSimulator {
             }
 
             // Apply returns
-            const superEarningsThisYear = accumulatedSuperBalance * inputs.superReturn;
-            accumulatedSuperBalance += superEarningsThisYear;
+            const yourSuperEarningsThisYear = yourSuperBalance * inputs.superReturn;
+            const partnerSuperEarningsThisYear = partnerSuperBalance * inputs.superReturn;
+            const superEarningsThisYear = yourSuperEarningsThisYear + partnerSuperEarningsThisYear;
+            yourSuperBalance += yourSuperEarningsThisYear;
+            partnerSuperBalance += partnerSuperEarningsThisYear;
+            accumulatedSuperBalance = yourSuperBalance + partnerSuperBalance;
             accumulatedSavingsBalance *= (1 + inputs.savingsReturn);
             accumulatedInvestmentPortfolio *= (1 + returnRate);
 
@@ -985,12 +1068,14 @@ export class RetirementSimulator {
             if (div296Year >= 2027 && accumulatedSuperBalance > div296Threshold && superEarningsThisYear > 0) {
                 const excessProportion = (accumulatedSuperBalance - div296Threshold) / accumulatedSuperBalance;
                 const div296Tax = superEarningsThisYear * excessProportion * (this.config.DIVISION_296_RATE || 0.15);
-                accumulatedSuperBalance = Math.max(0, accumulatedSuperBalance - div296Tax);
+                applyProportionalSuperReduction(div296Tax);
+                accumulatedSuperBalance = yourSuperBalance + partnerSuperBalance;
             }
 
             // Deduct SMSF admin costs from super balance
             if (inputs.hasSMSF && inputs.smsfAdminCosts > 0) {
-                accumulatedSuperBalance = Math.max(0, accumulatedSuperBalance - inputs.smsfAdminCosts);
+                applyProportionalSuperReduction(inputs.smsfAdminCosts);
+                accumulatedSuperBalance = yourSuperBalance + partnerSuperBalance;
             }
 
             // Add contributions
@@ -1028,6 +1113,8 @@ export class RetirementSimulator {
 
             let yearlyPostTaxIncome = 0;
             let yearlySuperContribution = 0;
+            let yourNetSuperContribution = 0;
+            let partnerNetSuperContribution = 0;
 
             // TSB gate: when combined super approaches the Transfer Balance Cap, block voluntary
             // contributions (salary sacrifice). Employer SG is mandatory and continues.
@@ -1062,7 +1149,8 @@ export class RetirementSimulator {
                     yourTotalConcessional,
                     yourTaxableSalary + yourTotalConcessional - div293Threshold
                 )) * 0.15;
-                yearlySuperContribution += yourTotalConcessional * 0.85 + yourLISTO - yourDiv293;
+                yourNetSuperContribution = yourTotalConcessional * 0.85 + yourLISTO - yourDiv293;
+                yearlySuperContribution += yourNetSuperContribution;
             }
             if (year <= partnerYearsToWork) {
                 const partnerGrossSalary = this.getSalaryForYear(inputs.partnerSalary, year, inputs, true);
@@ -1084,55 +1172,29 @@ export class RetirementSimulator {
                     partnerTotalConcessional,
                     partnerTaxableSalary + partnerTotalConcessional - div293Threshold
                 )) * 0.15;
-                yearlySuperContribution += partnerTotalConcessional * 0.85 + partnerLISTO - partnerDiv293;
+                partnerNetSuperContribution = partnerTotalConcessional * 0.85 + partnerLISTO - partnerDiv293;
+                yearlySuperContribution += partnerNetSuperContribution;
             }
 
-            accumulatedSuperBalance += yearlySuperContribution;
+            yourSuperBalance += yourNetSuperContribution;
+            partnerSuperBalance += partnerNetSuperContribution;
+            accumulatedSuperBalance = yourSuperBalance + partnerSuperBalance;
 
             // NCC (Non-Concessional Contributions) — after-tax, no contributions tax on entry.
-            // Bring-forward rule: allows 3 years' cap in year 1 if TSB < $1.66M.
-            //   - year 1: apply NCC up to the bring-forward cap (or $120k if no bring-forward)
-            //   - years 2–3: $0 if bring-forward was triggered in year 1
-            //   - year 4+: back to standard $120k annual cap (or $0 if TSB ≥ $1.9M/TBC)
+            // Each member has their own bring-forward window and remaining cap. Eligibility
+            // is assessed against that person's opening super balance for the year, and any
+            // unused bring-forward amount carries through the rest of the statutory window.
             if (year <= yourYearsToWork || year <= partnerYearsToWork) {
-                const nccCap       = this.config.NON_CONCESSIONAL_CAP      || 120000;
-                const tbcBlock     = this.config.TSB_NCC_BLOCK_THRESHOLD    || 2000000;
-                const bf3Threshold = this.config.NCC_BRING_FORWARD_3YR_THRESHOLD || 1660000;
-                const bf2Threshold = this.config.NCC_BRING_FORWARD_2YR_THRESHOLD || 1780000;
-                const bf1Threshold = this.config.NCC_BRING_FORWARD_1YR_THRESHOLD || 1900000;
-                const bf3Cap       = this.config.NCC_BRING_FORWARD_3YR_CAP || 360000;
-                const bf2Cap       = this.config.NCC_BRING_FORWARD_2YR_CAP || 240000;
+                const yourAllowedNcc = year <= yourYearsToWork
+                    ? calculateAllowedNcc(inputs.yourAnnualNCC || 0, yourOpeningSuperBalance, nccState.your, year)
+                    : 0;
+                const partnerAllowedNcc = year <= partnerYearsToWork
+                    ? calculateAllowedNcc(inputs.partnerAnnualNCC || 0, partnerOpeningSuperBalance, nccState.partner, year)
+                    : 0;
 
-                const yourNcc     = inputs.yourAnnualNCC     || 0;
-                const partnerNcc  = inputs.partnerAnnualNCC  || 0;
-                const totalNccRequested = yourNcc + partnerNcc;
-
-                if (totalNccRequested > 0 && accumulatedSuperBalance < tbcBlock) {
-                    let allowedNcc = nccCap * 2; // both people
-                    if (year === 1) {
-                        // Determine bring-forward eligibility based on starting TSB
-                        const startingTsb = inputs.yourCurrentSuper + inputs.partnerCurrentSuper;
-                        if (startingTsb < bf3Threshold) {
-                            allowedNcc = bf3Cap;                     // $360k per person not modelled separately — use joint
-                        } else if (startingTsb < bf2Threshold) {
-                            allowedNcc = bf2Cap;
-                        } else if (startingTsb < bf1Threshold) {
-                            allowedNcc = nccCap;
-                        } else {
-                            allowedNcc = 0; // TSB at/above TBC
-                        }
-                        // Track whether bring-forward was triggered
-                        this._nccBringForwardUsed = totalNccRequested > nccCap;
-                        this._nccBringForwardYears = this._nccBringForwardUsed
-                            ? (totalNccRequested > bf2Cap ? 3 : 2)
-                            : 1;
-                    } else if (this._nccBringForwardUsed && year <= this._nccBringForwardYears) {
-                        allowedNcc = 0; // Lock-out period after bring-forward
-                    } else {
-                        allowedNcc = nccCap; // Standard annual cap (single person; pair treated as 2×)
-                    }
-                    accumulatedSuperBalance += Math.min(totalNccRequested, allowedNcc);
-                }
+                yourSuperBalance += yourAllowedNcc;
+                partnerSuperBalance += partnerAllowedNcc;
+                accumulatedSuperBalance = yourSuperBalance + partnerSuperBalance;
             }
 
             const annualDetailedExpenses = inputs.useDetailedExpenseInputs
