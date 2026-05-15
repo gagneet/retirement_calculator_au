@@ -559,6 +559,8 @@ class RetirementCalculatorApp {
             partnerRetirementAge: finalPartnerAge > 0 ? safeGetValue('partnerRetirementAge', config.personal.partnerRetirementAge) : 0,
             yourLifespan: safeGetValue('yourLifespan', config.personal.yourLifespan),
             partnerLifespan: finalPartnerAge > 0 ? safeGetValue('partnerLifespan', config.personal.partnerLifespan) : 0,
+            yourGender: safeGetSelectValue('yourGender', 'unspecified'),
+            partnerGender: finalPartnerAge > 0 ? safeGetSelectValue('partnerGender', 'unspecified') : 'unspecified',
 
             // Risk profile
             riskTolerance: safeGetValue('riskTolerance', config.risk.riskTolerance),
@@ -699,6 +701,7 @@ class RetirementCalculatorApp {
             shockProbability: safeGetValue('shockProbability', config.simulation.shockProbability) / 100,
             shockMagnitude: safeGetValue('shockMagnitude', config.simulation.shockMagnitude) / 100,
             numRuns: safeGetValue('numRuns', config.simulation.numRuns),
+            useLongevityDistribution: safeGetChecked('useLongevityDistribution', false),
 
             // Australian residency history (Item 7)
             ageCameToAustralia: safeGetValue('ageCameToAustralia', 0),
@@ -745,6 +748,8 @@ class RetirementCalculatorApp {
             // Super strategy (PART 2)
             yourAdditionalSuperContribution: parseFormattedNumber(getRawValue('yourAdditionalSuperContribution', '0')),
             partnerAdditionalSuperContribution: parseFormattedNumber(getRawValue('partnerAdditionalSuperContribution', '0')),
+            yourAnnualNCC: parseFormattedNumber(getRawValue('yourAnnualNCC', '0')),
+            partnerAnnualNCC: finalPartnerAge > 0 ? parseFormattedNumber(getRawValue('partnerAnnualNCC', '0')) : 0,
             concessionalCapUsed: parseFormattedNumber(getRawValue('concessionalCapUsed', '0')),
             spouseContribution: parseFormattedNumber(getRawValue('spouseContribution', '0')),
             downsizeContribution: safeGetChecked('downsizeContribution', false),
@@ -2916,6 +2921,21 @@ class RetirementCalculatorApp {
                             <p class="mt-1 text-xs text-gray-600">Half of all simulations end with more than this. Half end with less. Use this as your planning number.</p>
                         </div>
                     </div>
+                    ${results.longevityStats ? (() => {
+                        const ls = results.longevityStats;
+                        return `
+                    <div class="mt-3 p-3 bg-violet-50 border border-violet-200 rounded text-sm">
+                        <strong class="text-violet-800">Sampled Lifespan Distribution (ABS 2020-22 survival curves)</strong>
+                        <p class="text-xs text-violet-700 mt-1">Each Monte Carlo run drew a lifespan from Australian mortality data. Across ${runs.toLocaleString()} runs:</p>
+                        <div class="grid grid-cols-4 gap-2 mt-2 text-xs text-center">
+                            <div class="bg-white rounded p-1 border border-violet-100"><div class="text-violet-500 font-medium">10th %ile</div><div class="font-semibold">${ls.p10}</div></div>
+                            <div class="bg-white rounded p-1 border border-violet-100"><div class="text-violet-500 font-medium">Median</div><div class="font-semibold">${ls.p50}</div></div>
+                            <div class="bg-white rounded p-1 border border-violet-100"><div class="text-violet-500 font-medium">Mean</div><div class="font-semibold">${ls.mean}</div></div>
+                            <div class="bg-white rounded p-1 border border-violet-100"><div class="text-violet-500 font-medium">90th %ile</div><div class="font-semibold">${ls.p90}</div></div>
+                        </div>
+                        <p class="text-xs text-violet-600 mt-1">Range: age ${ls.min} – ${ls.max}. Because each run used a different lifespan, the success rate already accounts for longevity uncertainty rather than assuming a fixed end age.</p>
+                    </div>`;
+                    })() : ''}
                     ${scenarioCards}
 
                     ${inputs.legacyGoal > 0 && inputs.legacyGoalType !== 'none' ? `

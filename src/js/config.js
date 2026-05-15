@@ -366,6 +366,17 @@ export const ENHANCED_CONFIG = {
         { minAge: 95, maxAge: 999, rate: 0.14 }
     ],
 
+    // Australian survival curve parameters for Monte Carlo longevity sampling.
+    // Source: ABS 2020-22 Life Tables (series 3302.0). Conditional remaining life
+    // expectancy at age 65: male ~84, female ~87. SD ~9.5 years captures the
+    // 10th-90th percentile range of actual deaths.  The simulator shifts the mean
+    // upward when the current age already exceeds the base mean (survivorship bias).
+    MORTALITY_PARAMS: {
+        male:        { mean: 84, sd: 9.5, minAge: 60, maxAge: 110 },
+        female:      { mean: 87, sd: 9.5, minAge: 60, maxAge: 110 },
+        unspecified: { mean: 86, sd: 9.5, minAge: 60, maxAge: 110 }
+    },
+
     // Medicare Levy Surcharge thresholds 2025-26 (singles without private hospital cover)
     // Surcharge: 1% at $93k+, 1.25% at $108k+, 1.5% at $144k+
     MLS_THRESHOLDS: [

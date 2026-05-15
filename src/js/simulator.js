@@ -406,6 +406,27 @@ export class RetirementSimulator {
         }
     }
 
+    /**
+     * Sample a lifespan from Australian survival curves (ABS 2020-22 Life Tables).
+     * Uses a truncated normal distribution via Box-Muller. Conditional mean is
+     * shifted upward when currentAge already exceeds the base modal age (survivorship).
+     *
+     * @param {number} currentAge
+     * @param {'male'|'female'|'unspecified'} gender
+     * @returns {number} sampled age of death (integer, clamped to [minAge, maxAge])
+     */
+    sampleLifespan(currentAge, gender = 'unspecified') {
+        const params = (this.config.MORTALITY_PARAMS || {})[gender]
+            || { mean: 86, sd: 9.5, minAge: 60, maxAge: 110 };
+        // Survivorship: person must survive at least 5 more years from current age
+        const conditionalMean = Math.max(params.mean, currentAge + 5);
+        // Box-Muller transform for standard normal
+        const u1 = Math.max(1e-10, Math.random());
+        const z  = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * Math.random());
+        const sampled = conditionalMean + z * params.sd;
+        return Math.round(Math.max(params.minAge, Math.min(params.maxAge, sampled)));
+    }
+
     // Healthcare cost projection
     // FIX Bug 4: healthcareInflation is already a decimal (e.g. 0.0382 for 3.82%);
     // removed the extra /100 that was making it 100× too small.
@@ -1745,9 +1766,23 @@ export class RetirementSimulator {
         const paths = [];
         const propertyOutcomes = [];
         const yearlyReturns = []; // Track returns for volatility analysis
+        const lifespanSamples = []; // Track sampled lifespans when longevity distribution is on
+
+        const useLongevityDist = !!inputs.useLongevityDistribution;
+        const yourGender   = inputs.yourGender   || 'unspecified';
+        const partnerGender = inputs.partnerGender || 'unspecified';
 
         for (let i = 0; i < runs; i++) {
-            const result = this.simulateRetirement(inputs, true);
+            let runInputs = inputs;
+            if (useLongevityDist) {
+                const sampledYour = this.sampleLifespan(inputs.yourCurrentAge || 50, yourGender);
+                const sampledPartner = (inputs.partnerCurrentAge || 0) > 0
+                    ? this.sampleLifespan(inputs.partnerCurrentAge, partnerGender)
+                    : inputs.partnerLifespan || 0;
+                runInputs = { ...inputs, yourLifespan: sampledYour, partnerLifespan: sampledPartner };
+                lifespanSamples.push(sampledYour);
+            }
+            const result = this.simulateRetirement(runInputs, true);
             outcomes.push(result.finalBalance);
             paths.push(result.balances);
 
@@ -1797,6 +1832,22 @@ export class RetirementSimulator {
             }
         }
 
+        // Longevity distribution stats (populated only when useLongevityDistribution is on)
+        let longevityStats = null;
+        if (lifespanSamples.length > 0) {
+            lifespanSamples.sort((a, b) => a - b);
+            const lp = (p) => lifespanSamples[Math.min(
+                Math.floor((p / 100) * lifespanSamples.length),
+                lifespanSamples.length - 1
+            )];
+            longevityStats = {
+                p10: lp(10), p25: lp(25), p50: lp(50), p75: lp(75), p90: lp(90),
+                min: lifespanSamples[0],
+                max: lifespanSamples[lifespanSamples.length - 1],
+                mean: Math.round(lifespanSamples.reduce((s, v) => s + v, 0) / lifespanSamples.length)
+            };
+        }
+
         return {
             outcomes,
             paths,
@@ -1807,6 +1858,7 @@ export class RetirementSimulator {
             mean: outcomes.reduce((sum, val) => sum + val, 0) / outcomes.length,
             percentiles,
             medianReturnsByYear,
+            longevityStats,
             // Legacy support
             percentile10: percentiles.p10,
             percentile90: percentiles.p90,
