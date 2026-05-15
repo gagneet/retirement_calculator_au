@@ -7314,6 +7314,8 @@ class RetirementCalculatorApp {
     }
 
     // Stress testing
+    // TASK-006: Each scenario now computes a delta vs the base plan so the
+    // display and PDF/Excel export show meaningful impact figures.
     async runStressTest() {
         if (this.isCalculating) return;
 
@@ -7321,18 +7323,39 @@ class RetirementCalculatorApp {
 
         try {
             const inputs = this.collectInputs();
+
+            // Run the base (unstressed) simulation once for comparison.
+            updateProgress(5, 'Running base plan...');
+            const baseResult = this.simulator.simulateRetirement(inputs, false);
+            const baseBalance = baseResult.finalBalance || 0;
+
             const scenarios = ENHANCED_CONFIG.STRESS_SCENARIOS;
             const results = [];
 
             for (let i = 0; i < scenarios.length; i++) {
-                updateProgress((i / scenarios.length) * 100, `Testing scenario: ${scenarios[i].name}`);
-                const result = this.simulator.runStressTest(inputs, scenarios[i]);
+                const scenario = scenarios[i];
+                updateProgress(10 + (i / scenarios.length) * 85, `Testing scenario: ${scenario.name}`);
+
+                // Build stressed inputs: apply any input-level modifications the
+                // scenario defines (e.g. healthcareCostMultiplier, changed return rates).
+                const stressedInputs = buildStressedInputs(inputs, scenario);
+
+                // Run the simulation with the stressed inputs AND the scenario object
+                // (for year-specific return overrides handled inside simulateRetirement).
+                const stressResult = this.simulator.runStressTest(stressedInputs, scenario);
+                const stressBalance = stressResult.finalBalance || 0;
+
                 results.push({
-                    scenario: scenarios[i].name,
-                    finalBalance: result.finalBalance,
-                    success: result.finalBalance > 0
+                    scenario:         scenario.name,
+                    description:      scenario.description || '',
+                    finalBalance:     stressBalance,
+                    baseBalance,
+                    deltaBalance:     stressBalance - baseBalance,  // negative = worse than base
+                    success:          stressBalance > 0,
+                    probability:      scenario.probability || null,
                 });
-                await new Promise(resolve => setTimeout(resolve, 100));
+
+                await new Promise(resolve => setTimeout(resolve, 50));
             }
 
             // Persist for export
@@ -7361,18 +7384,30 @@ class RetirementCalculatorApp {
         stressTestResults.classList.remove('hidden');
         stressTestResults.innerHTML = `
             <h3 class="text-lg font-semibold text-gray-800 mb-3">⚡ Stress Test Results</h3>
+            <p class="text-xs text-gray-500 mb-3">Each scenario is run against your current plan. "Delta" shows how much better or worse the stressed outcome is vs your base plan.</p>
             <div class="space-y-2">
-                ${results.map(result => `
+                ${results.map(result => {
+                    const deltaStr = result.deltaBalance !== undefined
+                        ? (result.deltaBalance >= 0 ? '+' : '') + formatCurrency(result.deltaBalance)
+                        : '';
+                    const deltaColor = !result.deltaBalance ? '' :
+                        result.deltaBalance >= 0 ? 'text-green-600' : 'text-red-600';
+                    const probStr = result.probability != null
+                        ? `<span class="ml-2 text-gray-500 text-xs">~${(result.probability * 100).toFixed(0)}% probability</span>`
+                        : '';
+                    return `
                     <div class="p-3 rounded ${result.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}">
-                        <div class="font-medium ${result.success ? 'text-green-800' : 'text-red-800'}">${result.scenario}</div>
-                        <div class="text-sm mt-1 text-gray-700">
-                            Final Balance: <strong>${formatCurrency(result.finalBalance)}</strong>
-                            <span class="ml-2 font-medium ${result.success ? 'text-green-600' : 'text-red-600'}">
+                        <div class="font-medium ${result.success ? 'text-green-800' : 'text-red-800'}">${result.scenario}${probStr}</div>
+                        ${result.description ? `<div class="text-xs text-gray-500 mt-0.5">${result.description}</div>` : ''}
+                        <div class="text-sm mt-1 text-gray-700 flex flex-wrap gap-x-4">
+                            <span>Final Balance: <strong>${formatCurrency(result.finalBalance)}</strong></span>
+                            ${deltaStr ? `<span>Delta vs Base: <strong class="${deltaColor}">${deltaStr}</strong></span>` : ''}
+                            <span class="font-medium ${result.success ? 'text-green-600' : 'text-red-600'}">
                                 ${result.success ? '✓ Portfolio survives' : '✗ Portfolio depleted'}
                             </span>
                         </div>
-                    </div>
-                `).join('')}
+                    </div>`;
+                }).join('')}
             </div>
         `;
         stressTestResults.scrollIntoView({ behavior: 'smooth' });
@@ -10680,6 +10715,32 @@ document.addEventListener('DOMContentLoaded', () => {
         showDetailedError(error);
     }
 });
+
+// ── TASK-006: Stress test input builder ─────────────────────────────────────
+// Apply scenario-level input modifications before running the stressed simulation.
+// The simulator handles year-by-year return overrides via the scenario object;
+// this function handles any field-level overrides that must be applied to the
+// inputs object before the simulation starts (e.g. healthcareCostMultiplier).
+function buildStressedInputs(baseInputs, scenario) {
+    const stressed = { ...baseInputs };
+
+    // Healthcare cost multiplier (e.g. 2.5× for Healthcare Crisis scenario)
+    if (scenario.healthcareCostMultiplier) {
+        stressed.currentHealthcareCosts =
+            (baseInputs.currentHealthcareCosts || 0) * scenario.healthcareCostMultiplier;
+        // Also inflate the healthcare inflation rate to sustain the elevated cost
+        stressed.healthcareInflation = Math.min(
+            0.20,
+            (baseInputs.healthcareInflation || 0.055) * 1.5
+        );
+    }
+
+    // Other field-level overrides can be added here as new scenarios are defined.
+    // Year-by-year return overrides (equityReturn, bondReturn etc.) are handled
+    // inside simulateRetirement() via the stressScenario param — not here.
+
+    return stressed;
+}
 
 // Browser compatibility check
 function checkBrowserCompatibility() {

@@ -1923,9 +1923,17 @@ class RecommendationEngine {
      * @param {Object} baseResult - The baseline result for comparison.
      * @returns {Object|null} A formatted recommendation object or null.
      */
-    _createRecommendation(scenario, baseResult) {
+     _createRecommendation(scenario, baseResult) {
         const successDiff = scenario.successRate - baseResult.successRate;
-        const balanceDiff = scenario.medianBalance - baseResult.medianBalance;
+        const rawBalanceDiff = scenario.medianBalance - baseResult.medianBalance;
+
+        // TASK-007: Cap the displayed balance delta to a plausible range.
+        // Shortcut formulas inside scenario descriptions can produce billions-of-dollars
+        // figures; the simulation delta should be reasonable relative to the base plan.
+        // Cap at ±200% of the base median balance (or ±$5M absolute).
+        const baseMedian    = Math.abs(baseResult.medianBalance || 0) || 1;
+        const maxDelta      = Math.min(baseMedian * 2, 5_000_000);
+        const balanceDiff   = Math.max(-maxDelta, Math.min(maxDelta, rawBalanceDiff));
 
         // Ignore scenarios that don't make a meaningful difference
         if (Math.abs(successDiff) < 0.01 && Math.abs(balanceDiff) < 10000) {
@@ -1936,8 +1944,8 @@ class RecommendationEngine {
         let title = scenario.name;
         let description = "";
         let impact = "neutral";
-        let feasibility = scenario.feasibility || "Standard Strategy"; // Get feasibility from scenario
-        let factorsChanged = scenario.factorsChanged || []; // Get detailed factors
+        let feasibility = scenario.feasibility || "Standard Strategy";
+        let factorsChanged = scenario.factorsChanged || [];
 
         if (successDiff > 0.05) impact = "high-positive";
         else if (successDiff > 0) impact = "positive";

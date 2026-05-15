@@ -24,7 +24,7 @@
 import { FinancialState }                                                       from './financial_state.js';
 import { projectSalary, projectPartnerSalary, calcInvestmentIncome }            from './income_engine.js';
 import { projectLivingExpenses, projectHealthcareCosts, getAgedCareCost }        from './expense_engine.js';
-import { calcIncomeTax, calcSuperTax }                                           from './tax_engine.js';
+import { calcIncomeTax, calcSuperTax, calcDivision296Tax }                       from './tax_engine.js';
 import { calcSuperContributions, growSuperBalance, calcSuperWithdrawal, getSGRate } from './super_engine.js';
 import { growInvestmentAssets }                                                  from './investment_engine.js';
 import { growPropertyValue, calcPropertyCashFlow, shouldSellProperty, calcPropertyCGT } from './property_engine.js';
@@ -384,8 +384,25 @@ export const runLifeSimulation = (userInputs) => {
         };
 
         // Super growth
+        const prevSuperBalance  = superBalance;
+        const prevPartnerSuper  = partnerSuper;
         superBalance  = growSuperBalance(superBalance, superContrib, superTax, yearInputs);
         partnerSuper  = growSuperBalance(partnerSuper, partnerSuperContrib, partnerSuperTax, yearInputs);
+
+        // ── Division 296 Tax (TASK-014) ───────────────────────────────────────
+        // Effective 1 July 2026 (legislated 13 March 2026).
+        // Additional 15% tax on super EARNINGS proportional to balance above $3M.
+        // Applied here using the canonical calcDivision296Tax() from tax_engine.js
+        // so Pipeline B matches Pipeline A's treatment in simulator.js.
+        // Only applies from calendar year 2026 onward.
+        if (calendarYear >= 2026) {
+            const yourEarnings    = superBalance  - prevSuperBalance  - (superContrib  - superTax);
+            const partnerEarnings = partnerSuper  - prevPartnerSuper  - (partnerSuperContrib - partnerSuperTax);
+            const yourDiv296      = calcDivision296Tax(superBalance,  Math.max(0, yourEarnings));
+            const partnerDiv296   = calcDivision296Tax(partnerSuper,  Math.max(0, partnerEarnings));
+            superBalance = Math.max(0, superBalance  - yourDiv296);
+            partnerSuper = Math.max(0, partnerSuper  - partnerDiv296);
+        }
 
         // Deduct super withdrawal
         const totalSuperBalance = superBalance + partnerSuper;
