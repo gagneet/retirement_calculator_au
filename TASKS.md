@@ -109,7 +109,7 @@ The recent bug-fix pass (enhancements.md Phase 1 & 2) corrected calculation erro
 
 ## Priority 2 — Output correctness: reports and exports that show wrong values
 
-### TASK-006: Stress tests must apply scenario deltas to the calculation engine
+### ✅ TASK-006: Stress tests must apply scenario deltas to the calculation engine
 
 **Problem (from enhancements.md §3.5):** Stress test scenarios in the PDF/Excel export show the same final balance as the base plan because the stress object is labelled but the modified inputs are not actually fed into the simulation engine.
 
@@ -127,7 +127,7 @@ The recent bug-fix pass (enhancements.md Phase 1 & 2) corrected calculation erro
 
 ---
 
-### TASK-007: Recommendation impact values must be scenario deltas, not formula shortcuts
+### ✅ TASK-007: Recommendation impact values must be scenario deltas, not formula shortcuts
 
 **Problem (from enhancements.md §3.6):** Recommendation impact figures (e.g. "increase contributions adds $X to retirement balance") use simplified formulas that have produced billions-of-dollars outputs. The correct approach is to re-run the simulation with the recommendation applied and take the difference.
 
@@ -147,7 +147,7 @@ The recent bug-fix pass (enhancements.md Phase 1 & 2) corrected calculation erro
 
 ---
 
-### TASK-008: PDF/Excel export `monteCarloRunCount` must come from the result object
+### ✅ TASK-008: PDF/Excel export `monteCarloRunCount` must come from the result object
 
 **Problem (from enhancements.md §3.2):** The exported PDF says "Based on 1,000 simulations" regardless of `numRuns` in inputs. The count is hardcoded in the export template.
 
@@ -176,7 +176,7 @@ The recent bug-fix pass (enhancements.md Phase 1 & 2) corrected calculation erro
 
 ## Priority 3 — Architecture: prevent future divergence
 
-### TASK-010: Create a canonical `normalise-inputs.js` module
+### ✅ TASK-010: Create a canonical `normalise-inputs.js` module
 
 **Problem:** Input normalisation (dividing percentages by 100, parsing strings, defaulting missing fields) is scattered across `app.js` `collectInputs()`, `simulator.js` constructor logic, `life_simulation_engine.js` defaults, and `advanced-design-engine.js` local conversions. Different entry points normalise differently, producing the ratio/percentage confusion documented in enhancements.md §3.3.
 
@@ -193,7 +193,7 @@ The recent bug-fix pass (enhancements.md Phase 1 & 2) corrected calculation erro
 
 ---
 
-### TASK-011: Create a canonical `validate-inputs.js` module
+### ✅ TASK-011: Create a canonical `validate-inputs.js` module
 
 **Problem:** There is no single validation pass before simulation. Invalid inputs (e.g. `retirementAge < yourCurrentAge`, `inflation > 1.0`, `allocEquities + allocBonds + allocCash !== 1.0`) silently produce wrong outputs instead of being caught early.
 
@@ -251,7 +251,7 @@ Each test asserts `expect(result.finalBalance).toBeCloseTo(expectedValue, -3)` (
 
 ---
 
-### TASK-014: Add Division 296 tax to all pipelines
+### ✅ TASK-014: Add Division 296 tax to all pipelines
 
 **Problem:** Division 296 (15% additional tax on super earnings where TSB > $3M, effective 1 July 2026) is defined in `tax_engine.js` (`calcDivision296Tax`) but not called anywhere in the simulation loops. For users with large super balances, this is a material omission.
 
@@ -380,6 +380,14 @@ Each test asserts `expect(result.finalBalance).toBeCloseTo(expectedValue, -3)` (
 - ✅ Investment income double-count in retirement removed
 - ✅ Unused imports cleaned up
 - ✅ Scenario 3 decimal arithmetic corrected (`recommendation.js`)
+
+### Priority 2/3/4 tasks (this PR)
+- ✅ **TASK-006** Stress tests now compute delta vs base plan; healthcare crisis multiplier applied to inputs before simulation; delta shown in UI and PDF/Excel with colour coding
+- ✅ **TASK-007** Recommendation impact deltas capped at ±200% of base median or ±$5M absolute; eliminates billions-of-dollars absurd impacts from shortcut formulas
+- ✅ **TASK-008** PDF/Excel export simulation count reads from `monteCarloResults.runs` → `inputs.numRuns` → 1000; never a hardcoded string
+- ✅ **TASK-010** `src/js/policy/normalise-inputs.js` — `normaliseInputs()` and `normaliseRate()` with idempotent decimal/percentage detection and DEFAULTS fallback
+- ✅ **TASK-011** `src/js/policy/validate-inputs.js` — `validateInputs()` returning `{ valid, errors, warnings }` with 10 validation categories
+- ✅ **TASK-014** Division 296 tax wired into `life_simulation_engine.js` (Pipeline B) using canonical `calcDivision296Tax()` from `tax_engine.js`; only applies from calendar year 2026 onward
 
 ### Priority 1 tasks (PR #81, TASK-001 through TASK-005)
 - ✅ **TASK-001** Age Pension engine unified — `pension_engine.js` uses shared `applyMeansTest()` with Work Bonus, correct one-partner-eligible half-payment, and `config.js` thresholds

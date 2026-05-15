@@ -75,6 +75,21 @@ export const hasHighInterestDebt = (inputs = {}) => {
     return flag !== 'none' && flag !== 'false' && flag !== '0' && flag !== '';
 };
 
+/**
+ * Resolve the Monte Carlo simulation run count for display in exports.
+ *
+ * Priority: monteCarloResults.runs → monteCarloResults.numRuns → inputs.numRuns → 1000.
+ *
+ * Exported so tests can assert against this function directly rather than
+ * reimplementing the priority logic (PR review comment #3247765338).
+ *
+ * @param {Object} mcResults – Monte Carlo result object
+ * @param {Object} inputs    – user inputs (may contain numRuns)
+ * @returns {number}         – run count as a number (never a string)
+ */
+export const resolveSimCount = (mcResults = {}, inputs = {}) =>
+    mcResults.runs ?? mcResults.numRuns ?? inputs.numRuns ?? 1000;
+
 // Normalise a value that could be stored as either a decimal ratio (0–1) or
 // a percentage (1–100) into a decimal.  All internal calculations use decimals;
 // only the display layer should call displayPercent().
@@ -1812,7 +1827,10 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
 
         doc.setFontSize(10);
         doc.setTextColor(0);
-        doc.text(`Based on ${monteCarloResults.runs || '1,000'} simulations accounting for market volatility`, 14, yPos);
+        // TASK-008: Use actual run count via the exported resolveSimCount() helper.
+        // PR review fix #3247765338: previously an inline reimplementation.
+        const simCount = resolveSimCount(monteCarloResults, inputs);
+        doc.text(`Based on ${Number(simCount).toLocaleString('en-AU')} simulations accounting for market volatility`, 14, yPos);
         yPos += 10;
 
         const mcBody = [
@@ -3769,24 +3787,39 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         doc.text("Each scenario models a severe market or economic shock applied to your retirement plan.", 14, yPos);
         yPos += 8;
 
+        // TASK-006: Include delta vs base plan column so export matches UI display.
+        const hasDeltas = analysis.stressTestResults.some(r => r.deltaBalance !== undefined);
+        const stressHead = hasDeltas
+            ? [['Stress Scenario', 'Final Balance', 'Delta vs Base', 'Outcome']]
+            : [['Stress Scenario', 'Final Balance', 'Outcome']];
+        const stressBody = analysis.stressTestResults.map(r => {
+            const deltaStr = (r.deltaBalance !== undefined)
+                ? (r.deltaBalance >= 0 ? '+' : '') + formatCurrency(r.deltaBalance)
+                : null;
+            const outcome = r.success ? 'Portfolio Survives' : 'Portfolio Depleted';
+            return hasDeltas
+                ? [r.scenario || 'Scenario', formatCurrency(r.finalBalance || 0), deltaStr || 'N/A', outcome]
+                : [r.scenario || 'Scenario', formatCurrency(r.finalBalance || 0), outcome];
+        });
         doc.autoTable({
             startY: yPos,
-            head: [['Stress Scenario', 'Final Balance', 'Outcome']],
-            body: analysis.stressTestResults.map(r => [
-                r.scenario || 'Scenario',
-                formatCurrency(r.finalBalance || 0),
-                r.success ? 'Portfolio Survives' : 'Portfolio Depleted'
-            ]),
+            head: stressHead,
+            body: stressBody,
             theme: 'striped',
             headStyles: { fillColor: [239, 68, 68] },
             styles: { fontSize: 9 },
-            columnStyles: {
-                2: { fontStyle: 'bold' }
-            },
+            columnStyles: hasDeltas ? { 3: { fontStyle: 'bold' } } : { 2: { fontStyle: 'bold' } },
             didParseCell: (data) => {
-                if (data.column.index === 2 && data.row.index >= 0 && data.section === 'body') {
+                const outColIdx = hasDeltas ? 3 : 2;
+                if (data.column.index === outColIdx && data.row.index >= 0 && data.section === 'body') {
                     const isSuccess = data.cell.text[0] === 'Portfolio Survives';
                     data.cell.styles.textColor = isSuccess ? [5, 150, 105] : [220, 38, 38];
+                }
+                // Colour the delta column: green if positive (better), red if negative
+                if (hasDeltas && data.column.index === 2 && data.row.index >= 0 && data.section === 'body') {
+                    const text = data.cell.text[0] || '';
+                    if (text.startsWith('+')) data.cell.styles.textColor = [5, 150, 105];
+                    else if (text.startsWith('-')) data.cell.styles.textColor = [220, 38, 38];
                 }
             }
         });
@@ -4255,18 +4288,31 @@ function addEnhancedAnalysisToXLSX(wb, analysis) {
         XLSX.utils.book_append_sheet(wb, ws_hc, 'Healthcare Analysis');
     }
 
-    // Stress Test Sheet
+    // Stress Test Sheet — TASK-006: include delta vs base plan
     if (analysis.stressTestResults && analysis.stressTestResults.length > 0) {
+        const hasXlsxDeltas = analysis.stressTestResults.some(r => r.deltaBalance !== undefined);
+        const stressHeader = hasXlsxDeltas
+            ? ['Scenario', 'Final Balance ($)', 'Delta vs Base ($)', 'Base Balance ($)', 'Outcome', 'Approx. Probability']
+            : ['Scenario', 'Final Balance ($)', 'Outcome'];
+        const stressRows = analysis.stressTestResults.map(r => {
+            if (hasXlsxDeltas) {
+                return [
+                    r.scenario || 'Scenario',
+                    r.finalBalance || 0,
+                    r.deltaBalance ?? '',
+                    r.baseBalance  ?? '',
+                    r.success ? 'Portfolio Survives' : 'Portfolio Depleted',
+                    r.probability != null ? `${(r.probability * 100).toFixed(0)}%` : 'N/A',
+                ];
+            }
+            return [r.scenario || 'Scenario', r.finalBalance || 0, r.success ? 'Portfolio Survives' : 'Portfolio Depleted'];
+        });
         const stressData = [
-            ['Stress Test Results', '', ''],
-            ['Scenario', 'Final Balance ($)', 'Outcome'],
-            ...analysis.stressTestResults.map(r => [
-                r.scenario || 'Scenario',
-                r.finalBalance || 0,
-                r.success ? 'Portfolio Survives' : 'Portfolio Depleted'
-            ]),
-            ['', '', ''],
-            ['Note', 'Each scenario applies a severe shock to test portfolio resilience.', '']
+            ['Stress Test Results', ...Array(stressHeader.length - 1).fill('')],
+            stressHeader,
+            ...stressRows,
+            Array(stressHeader.length).fill(''),
+            ['Note', 'Each scenario applies a severe shock to test portfolio resilience.', ...Array(stressHeader.length - 2).fill('')]
         ];
 
         const ws_stress = XLSX.utils.aoa_to_sheet(stressData);
