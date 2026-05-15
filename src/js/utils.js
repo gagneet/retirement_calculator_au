@@ -1125,7 +1125,9 @@ const calculateStandardCouplePension = (person1, person2, homeowner, config) => 
         (person1.investments || 0) + (person2.investments || 0);
     const combinedFinancialAssets = (person1.financialAssets ?? ((person1.super || 0) + (person1.investments || 0))) +
         (person2.financialAssets ?? ((person2.super || 0) + (person2.investments || 0)));
-    const combinedIncome = (person1.salary || 0) + (person2.salary || 0) +
+    const person1Employment = applyWorkBonus(person1.salary || 0, person1.workBonusBalance || 0, false);
+    const person2Employment = applyWorkBonus(person2.salary || 0, person2.workBonusBalance || 0, false);
+    const combinedIncome = person1Employment.assessableEmploymentIncome + person2Employment.assessableEmploymentIncome +
         (person1.otherIncome || 0) + (person2.otherIncome || 0) +
         calculateDeemedIncome(combinedFinancialAssets, true);
 
@@ -1173,7 +1175,9 @@ const calculateNonPensionerCouplePension = (person1, person2, homeowner, config)
         (person1.investments || 0) + (person2.investments || 0);
     const combinedFinancialAssets = (person1.financialAssets ?? ((person1.super || 0) + (person1.investments || 0))) +
         (person2.financialAssets ?? ((person2.super || 0) + (person2.investments || 0)));
-    const combinedIncome = (person1.salary || 0) + (person2.salary || 0) +
+    const person1Employment = applyWorkBonus(person1.salary || 0, person1.workBonusBalance || 0, false);
+    const person2Employment = applyWorkBonus(person2.salary || 0, person2.workBonusBalance || 0, false);
+    const combinedIncome = person1Employment.assessableEmploymentIncome + person2Employment.assessableEmploymentIncome +
         (person1.otherIncome || 0) + (person2.otherIncome || 0) +
         calculateDeemedIncome(combinedFinancialAssets, true);
 
