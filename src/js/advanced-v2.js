@@ -81,6 +81,7 @@ const APP_STATE = {
   chartManager: { charts: {} },
 };
 let initialFormState = null;
+let bootStarted = false;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -417,13 +418,34 @@ function adaptEngineOutput(inp, engineInputs, simulation) {
 // ============================================================
 // 1. ACCORDION — single-open behaviour
 // ============================================================
+function setSectionOpenState(section, isOpen) {
+  if (!section) return;
+  section.classList.toggle('open', isOpen);
+
+  const head = section.querySelector('.section-head');
+  const body = section.querySelector('.section-body');
+
+  if (head) {
+    head.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+
+  if (body) {
+    body.hidden = !isOpen;
+    body.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+  }
+}
+
 function initAccordion() {
+  document.querySelectorAll('.section').forEach((section) => {
+    setSectionOpenState(section, section.classList.contains('open'));
+  });
+
   document.querySelectorAll('.section-head').forEach((head) => {
     head.addEventListener('click', () => {
       const section = head.closest('.section');
       const wasOpen = section.classList.contains('open');
-      document.querySelectorAll('.section').forEach((s) => s.classList.remove('open'));
-      if (!wasOpen) section.classList.add('open');
+      document.querySelectorAll('.section').forEach((s) => setSectionOpenState(s, false));
+      if (!wasOpen) setSectionOpenState(section, true);
     });
   });
 }
@@ -1408,7 +1430,7 @@ async function runAction(button, handler, {
     if (successMessage) showNotification(successMessage, 'success');
     return result;
   } catch (error) {
-    console.error('advanced-v2 action failed', error);
+    adv2Error('advanced-v2 action failed', error);
     showNotification(error.message || 'This action could not be completed.', 'error');
     return null;
   } finally {
@@ -1433,82 +1455,137 @@ function fmt$(n, opts = {}) {
   return sign + '$' + Math.round(abs).toLocaleString('en-AU');
 }
 
+function $(id) {
+  return document.getElementById(id);
+}
+
+function setText(id, text) {
+  const element = $(id);
+  if (element) element.textContent = String(text);
+}
+
+function setHTML(id, html) {
+  const element = $(id);
+  if (element) element.innerHTML = html;
+}
+
+function adv2Info(...args) {
+  if (typeof window !== 'undefined' && window.console && typeof window.console.info === 'function') {
+    window.console.info(...args);
+  }
+}
+
+function adv2Error(...args) {
+  if (typeof window !== 'undefined' && window.console && typeof window.console.error === 'function') {
+    window.console.error(...args);
+  }
+}
+
+function showResultsError(message, prefix = 'Controller error') {
+  const card = document.querySelector('.results-card');
+  if (!card) return;
+
+  let banner = document.getElementById('advanced-v2-error-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'advanced-v2-error-banner';
+    banner.style.cssText = 'background:#fee;color:#900;padding:10px;border-radius:8px;margin-bottom:10px;font-size:12px;border:1px solid #f5c2c7';
+    card.insertBefore(banner, card.firstChild);
+  }
+
+  banner.innerHTML = `<b>${escapeHtml(prefix)}:</b> ${escapeHtml(message)} — open the browser console for details.`;
+}
+
+function clearResultsError() {
+  const banner = document.getElementById('advanced-v2-error-banner');
+  if (banner) banner.remove();
+}
+
 function paint(result, inp) {
   // Hero
-  document.getElementById('r-paycheck').textContent = Math.round(result.monthlyPaycheck).toLocaleString('en-AU');
-  document.getElementById('r-retire-age').textContent = inp.retireAge;
-  document.getElementById('r-lifespan').textContent = inp.lifespan;
-  document.getElementById('r-combined').textContent = inp.household === 'couple' ? ' · combined' : '';
+  setText('r-paycheck', Math.round(result.monthlyPaycheck).toLocaleString('en-AU'));
+  setText('r-retire-age', inp.retireAge);
+  setText('r-lifespan', inp.lifespan);
+  setText('r-combined', inp.household === 'couple' ? ' · combined' : '');
 
   // Runway
-  const ic = document.getElementById('r-runway-icon');
+  const ic = $('r-runway-icon');
   const ok = result.lastsUntil >= inp.lifespan;
   const close = result.lastsUntil >= inp.lifespan - 5;
-  ic.textContent = ok ? '🟢' : close ? '🟡' : '🔴';
-  ic.className = 'runway-icon' + (ok ? '' : close ? ' warn' : ' bad');
-  document.getElementById('r-runway').textContent = result.lastsUntil;
+  if (ic) {
+    ic.textContent = ok ? '🟢' : close ? '🟡' : '🔴';
+    ic.className = 'runway-icon' + (ok ? '' : close ? ' warn' : ' bad');
+  }
+  setText('r-runway', result.lastsUntil);
 
   // Donut
   paintDonut(result.breakdown);
   const total = result.breakdown.super + result.breakdown.pension + (result.breakdown.other || 0) || 1;
   const superPct = (result.breakdown.super / total) * 100;
   const pensionPct = (result.breakdown.pension / total) * 100;
-  document.getElementById('r-self-pct').textContent = Math.round(superPct) + '%';
-  document.getElementById('r-super-pct').textContent = Math.round(superPct) + '%';
-  document.getElementById('r-pension-pct').textContent = Math.round(pensionPct) + '%';
+  setText('r-self-pct', Math.round(superPct) + '%');
+  setText('r-super-pct', Math.round(superPct) + '%');
+  setText('r-pension-pct', Math.round(pensionPct) + '%');
+  setText('r-other-pct', Math.round(100 - superPct - pensionPct) + '%');
 
   // Metrics
-  document.getElementById('r-super-at-retire').innerHTML =
-    fmt$(result.superAtRetire, { compact: true }) + '<span class="sub">today\'s $</span>';
+  setHTML('r-super-at-retire', fmt$(result.superAtRetire, { compact: true }) + '<span class="sub">today\'s $</span>');
   const conf = result.confidence * 100;
   const confLabel = conf >= 85 ? 'Strong' : conf >= 60 ? 'Moderate' : conf >= 35 ? 'Tight' : 'At risk';
   const confColor = conf >= 85 ? 'var(--accent)' : conf >= 60 ? 'var(--gold)' : conf >= 35 ? 'var(--amber)' : 'var(--rose)';
-  const confEl = document.getElementById('r-confidence');
-  confEl.innerHTML = Math.round(conf) + '%<span class="sub">' + confLabel + '</span>';
-  confEl.style.color = confColor;
+  const confEl = $('r-confidence');
+  if (confEl) {
+    confEl.innerHTML = Math.round(conf) + '%<span class="sub">' + confLabel + '</span>';
+    confEl.style.color = confColor;
+  }
+  setText('r-confidence-label', confLabel);
 
   // Gauge
   const targetMonthly = inp.desiredIncome / 12;
-  document.getElementById('r-goal').textContent = '$' + Math.round(targetMonthly).toLocaleString('en-AU');
+  setText('r-goal', '$' + Math.round(targetMonthly).toLocaleString('en-AU'));
   const gauge = Math.min(100, Math.max(0, (result.monthlyPaycheck / targetMonthly) * 100));
-  document.getElementById('r-gauge-fill').style.width = gauge + '%';
+  const gaugeFill = $('r-gauge-fill');
+  if (gaugeFill) gaugeFill.style.width = gauge + '%';
   const gap = result.gapMonthly;
-  const gapEl = document.getElementById('r-gap');
-  if (gap > 0) {
-    gapEl.textContent = '−$' + Math.round(gap).toLocaleString('en-AU') + '/mo';
-    gapEl.style.color = 'var(--rose)';
-  } else {
-    gapEl.textContent = 'On track';
-    gapEl.style.color = 'var(--accent)';
+  const gapEl = $('r-gap');
+  if (gapEl) {
+    if (gap > 0) {
+      gapEl.textContent = '−$' + Math.round(gap).toLocaleString('en-AU') + '/mo';
+      gapEl.style.color = 'var(--rose)';
+    } else {
+      gapEl.textContent = 'On track';
+      gapEl.style.color = 'var(--accent)';
+    }
   }
 
   // Mini chart
   paintMiniChart(result.years, inp);
-  document.getElementById('r-mini-range').textContent = `today → age ${inp.lifespan}`;
+  setText('r-mini-range', `today → age ${inp.lifespan}`);
 
   // Hero stats
-  document.getElementById('hs-age').textContent = inp.age;
-  document.getElementById('hs-plan').textContent = inp.lifespan;
-  document.getElementById('hs-salary').textContent = '$' + Math.round(inp.salary / 1000) + 'k';
-  document.getElementById('hs-super').textContent = '$' + Math.round(inp.superBal / 1000) + 'k';
-  document.getElementById('hs-yrs-to-retire').textContent = Math.max(0, inp.retireAge - inp.age);
+  setText('hs-age', inp.age);
+  setText('hs-plan', inp.lifespan);
+  setText('hs-salary', '$' + Math.round(inp.salary / 1000) + 'k');
+  setText('hs-super', '$' + Math.round(inp.superBal / 1000) + 'k');
+  setText('hs-yrs-to-retire', Math.max(0, inp.retireAge - inp.age));
 
   // Year table
   paintYearTable(result.years, inp);
 
   // Goal translation
-  document.getElementById('goal-week').textContent = '$' + (inp.desiredIncome / 52).toFixed(0);
-  document.getElementById('goal-month').textContent = '$' + (inp.desiredIncome / 12).toFixed(0);
+  setText('goal-week', '$' + (inp.desiredIncome / 52).toFixed(0));
+  setText('goal-month', '$' + (inp.desiredIncome / 12).toFixed(0));
 
   // Slider display
-  const rt = document.getElementById('riskTolerance');
-  const rtd = document.getElementById('riskTolerance-display');
+  const rt = $('riskTolerance');
+  const rtd = $('riskTolerance-display');
   if (rt && rtd) rtd.textContent = rt.value + ' / 10';
 }
 
 // ── Donut ──
 function paintDonut(b) {
-  const svg = document.getElementById('r-donut');
+  const svg = $('r-donut');
+  if (!svg) return;
   svg.innerHTML = '';
   const slices = [
     { v: b.super,   color: 'oklch(0.50 0.09 155)' },
@@ -1598,8 +1675,10 @@ function recalc() {
       const baseState = syncAppState();
       paint(baseState.adaptedResult, baseState.input);
       renderAnalysisPanels();
+      clearResultsError();
     } catch (e) {
-      console.error('recalc failed', e);
+      adv2Error('recalc failed', e);
+      showResultsError(e.message || String(e), 'Live calculation failed');
     }
   }, 100);
 }
@@ -1684,29 +1763,46 @@ export {
   normalizeImportedUserData,
   normaliseRiskProfile,
   runEngine,
+  setSectionOpenState,
   syncPensionMeansTestFields,
 };
 
 // ============================================================
 // BOOT
 // ============================================================
-document.addEventListener('DOMContentLoaded', () => {
-  initAccordion();
-  initSegmented();
-  initTabs();
-  initTopbar();
-  initPensionFieldDefaults();
-  bindConditional('investmentProperty', 'data-ip');
-  bindConditional('goingOverseas', 'data-overseas');
+function boot() {
+  if (bootStarted) return;
+  bootStarted = true;
 
-  // Wire every input/select to recalc
-  document.querySelectorAll('.col-form input, .col-form select').forEach((el) => {
-    el.addEventListener('input', recalc);
-    el.addEventListener('change', recalc);
-  });
+  try {
+    adv2Info('[advanced-v2] boot starting');
+    initAccordion();
+    initSegmented();
+    initTabs();
+    initTopbar();
+    initPensionFieldDefaults();
+    bindConditional('investmentProperty', 'data-ip');
+    bindConditional('goingOverseas', 'data-overseas');
 
-  applyHouseholdVisibility();
-  applyAdvancedVisibility();
-  initialFormState = readInputs();
-  recalc();
-});
+    document.querySelectorAll('.col-form input, .col-form select').forEach((el) => {
+      el.addEventListener('input', recalc);
+      el.addEventListener('change', recalc);
+    });
+
+    applyHouseholdVisibility();
+    applyAdvancedVisibility();
+    initialFormState = readInputs();
+    recalc();
+    clearResultsError();
+    adv2Info('[advanced-v2] boot complete');
+  } catch (error) {
+    adv2Error('[advanced-v2] BOOT FAILED:', error);
+    showResultsError(error.message || String(error));
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  setTimeout(boot, 0);
+}
