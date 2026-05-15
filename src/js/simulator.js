@@ -6,7 +6,10 @@ import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import { ENHANCED_CONFIG } from './config.js';
 import { EnhancedMonteCarloEngine } from './enhanced-monte-carlo.js';
 import { calculateSpending, SPENDING_STRATEGIES } from './simulation_engine/spending_engine.js';
-import { getSGRate } from './simulation_engine/super_engine.js';
+import { getSGRate }                               from './simulation_engine/super_engine.js';
+// TASK-002: import the canonical super tax function so Pipeline A and Pipeline B
+// use identical contributions tax logic (15% base + Division 293 surcharge).
+import { calcSuperTax }                            from './simulation_engine/tax_engine.js';
 import {
     calculatePostTaxIncome,
     calculateAustralianTax,
@@ -24,7 +27,9 @@ import {
     regimeAwareReturn,
     getPropertyCyclePhase,
     getCurrentRateRegime,
-    clamp
+    clamp,
+    hasHighInterestDebt,
+    normaliseRatio
 } from './utils.js';
 
 const RUN_UNTIL_DEPLETION_AGE = 120;
@@ -340,9 +345,12 @@ export class RetirementSimulator {
         else score -= 20; // No emergency fund
 
         // Enhanced debt burden analysis
-        const debtLevel = inputs.hasDebt;
-        if (debtLevel === 'none') score += 20;
-        else if (debtLevel === 'minimal') score += 8; // <10% of income
+        // BUG FIX: hasDebt is a string ("none"/"minimal"/"moderate"/"high").
+        // Checking numeric balances as the primary signal; fall back to the string flag.
+        const hasActualHighDebt = hasHighInterestDebt(inputs);
+        const debtLevel = (inputs.hasDebt || '').toString().toLowerCase();
+        if (!hasActualHighDebt && debtLevel === 'none') score += 20;
+        else if (!hasActualHighDebt && debtLevel === 'minimal') score += 8; // <10% of income
         else if (debtLevel === 'moderate') score -= 12; // 10-30% of income
         else score -= 25; // >30% of income
 
@@ -1352,7 +1360,8 @@ export class RetirementSimulator {
             const listoThreshold = (proposedEnabled && projectionYear >= 2028) ? 45000 : 37000;
             const listoMaxOffset  = (proposedEnabled && projectionYear >= 2028) ? 810   : 500;
             const hasPrivateCover = inputs.hasPrivateHealthCover !== false;
-            const div293Threshold = this.config.DIVISION_293_THRESHOLD || 250000;
+            // div293Threshold removed — Division 293 is now computed inside calcSuperTax()
+            // from tax_engine.js using DIVISION_293_THRESHOLD from that module (TASK-002).
 
             let yearlyPostTaxIncome = 0;
             let yearlySuperContribution = 0;
@@ -1382,17 +1391,16 @@ export class RetirementSimulator {
                 // Pass proposedEnabled so WATO and instant deduction only apply when user opts in.
                 yearlyPostTaxIncome += calculatePostTaxIncome(yourTaxableSalary, taxBrackets, hasPrivateCover, projectionYear, proposedEnabled);
 
-                // Concessional contributions tax: 15% flat; LISTO offsets for low incomes
+                // TASK-002: Use calcSuperTax() (canonical function from tax_engine.js)
+                // instead of inline arithmetic. calcSuperTax returns (baseTax + Div293).
+                // LISTO (Low Income Super Tax Offset) is a genuine additional offset that
+                // is not included in calcSuperTax, so it is applied separately.
                 const yourTotalConcessional = yourEmployerSG + yourSacrifice;
+                const yourSuperTax = calcSuperTax(yourTaxableSalary, yourTotalConcessional);
                 const yourLISTO = yourTaxableSalary <= listoThreshold
                     ? Math.min(yourTotalConcessional * 0.15, listoMaxOffset)
                     : 0;
-                // Division 293: extra 15% where income + concessional > $250,000
-                const yourDiv293 = Math.max(0, Math.min(
-                    yourTotalConcessional,
-                    yourTaxableSalary + yourTotalConcessional - div293Threshold
-                )) * 0.15;
-                yourNetSuperContribution = yourTotalConcessional * 0.85 + yourLISTO - yourDiv293;
+                yourNetSuperContribution = yourTotalConcessional - yourSuperTax + yourLISTO;
                 yearlySuperContribution += yourNetSuperContribution;
             }
             if (year <= partnerYearsToWork) {
@@ -1407,15 +1415,13 @@ export class RetirementSimulator {
                 // Pass proposedEnabled so WATO and instant deduction only apply when user opts in.
                 yearlyPostTaxIncome += calculatePostTaxIncome(partnerTaxableSalary, taxBrackets, hasPrivateCover, projectionYear, proposedEnabled);
 
+                // TASK-002: Same canonical calcSuperTax() call for partner.
                 const partnerTotalConcessional = partnerEmployerSG + partnerSacrifice;
+                const partnerSuperTax = calcSuperTax(partnerTaxableSalary, partnerTotalConcessional);
                 const partnerLISTO = partnerTaxableSalary <= listoThreshold
                     ? Math.min(partnerTotalConcessional * 0.15, listoMaxOffset)
                     : 0;
-                const partnerDiv293 = Math.max(0, Math.min(
-                    partnerTotalConcessional,
-                    partnerTaxableSalary + partnerTotalConcessional - div293Threshold
-                )) * 0.15;
-                partnerNetSuperContribution = partnerTotalConcessional * 0.85 + partnerLISTO - partnerDiv293;
+                partnerNetSuperContribution = partnerTotalConcessional - partnerSuperTax + partnerLISTO;
                 yearlySuperContribution += partnerNetSuperContribution;
             }
 

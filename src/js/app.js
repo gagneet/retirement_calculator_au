@@ -5158,7 +5158,9 @@ class RetirementCalculatorApp {
             strategies.push('You have capacity for higher risk allocation to potentially improve returns');
         }
 
-        if (inputs.australianEquityAllocation < 30) {
+        // BUG FIX 1H: australianEquityAllocation is already a decimal (0–1) from collectInputs().
+        // Compare against 0.30 (30%), not 30, to avoid always triggering this recommendation.
+        if (inputs.australianEquityAllocation < 0.30) {
             strategies.push('Consider increasing Australian equity allocation for franking credit benefits');
         }
 

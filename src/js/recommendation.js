@@ -1114,9 +1114,17 @@ class RecommendationEngine {
         const monthlyDisposableIncome = cashFlowAnalysis.cashFlow.monthlyDisposableIncome;
         const currentPortfolioValue = this.baseInputs.currentStocks + this.baseInputs.currentSavings;
 
+        // BUG FIX 1H: australianEquityAllocation and frankingRate are stored as DECIMALS
+        // (e.g. 0.40 and 0.75) — collectInputs() divides the form values by 100.
+        // Comparisons and display strings must use decimal thresholds / convert for display.
+        const currentAustralianAllocationPct = Math.round(currentAustralianAllocation * 100);
+        const currentFrankingRatePct         = Math.round(currentFrankingRate * 100);
+
         // Scenario 1: Optimize Australian equity allocation for franking credits
-        if (currentAustralianAllocation < 50) {
-            const targetAustralianAllocation = Math.min(60, currentAustralianAllocation + 20);
+        if (currentAustralianAllocation < 0.50) {
+            const targetAustralianAllocationPct = Math.min(60, currentAustralianAllocationPct + 20);
+            const targetAustralianAllocation    = targetAustralianAllocationPct / 100;
+            const deltaPct = targetAustralianAllocationPct - currentAustralianAllocationPct;
             const additionalFrankingBenefit = this.calculateFrankingCreditBenefit(
                 targetAustralianAllocation - currentAustralianAllocation,
                 currentEquityAllocation,
@@ -1126,26 +1134,27 @@ class RecommendationEngine {
             );
 
             scenarios.push({
-                name: `Increase Australian Equity to ${targetAustralianAllocation}% for Franking Credits`,
-                description: `Boost Australian equity allocation from ${currentAustralianAllocation}% to ${targetAustralianAllocation}% to maximize franking credit benefits.`,
+                name: `Increase Australian Equity to ${targetAustralianAllocationPct}% for Franking Credits`,
+                description: `Boost Australian equity allocation from ${currentAustralianAllocationPct}% to ${targetAustralianAllocationPct}% to maximize franking credit benefits.`,
                 modifications: {
                     australianEquityAllocation: targetAustralianAllocation
                 },
                 feasibility: "Portfolio Rebalancing",
                 factorsChanged: [
-                    `Australian equity: ${currentAustralianAllocation}% → ${targetAustralianAllocation}%`,
+                    `Australian equity: ${currentAustralianAllocationPct}% → ${targetAustralianAllocationPct}%`,
                     `Additional franking credits: ~${formatCurrency(additionalFrankingBenefit)}/year`,
                     `Fully refundable in retirement phase (SMSF or low income)`,
                     `Focus on ASX dividend champions: CBA, BHP, RIO, TLS, WBC`,
-                    `${targetAustralianAllocation - currentAustralianAllocation}% more exposure to ASX dividend stocks`,
+                    `${deltaPct}% more exposure to ASX dividend stocks`,
                     "Consider: home bias vs international diversification trade-off"
                 ]
             });
         }
 
         // Scenario 2: Target high-franking dividend stocks
-        if (currentFrankingRate < 80) {
-            const targetFrankingRate = 85; // Target higher franking
+        if (currentFrankingRate < 0.80) {
+            const targetFrankingRatePct = 85; // Target higher franking
+            const targetFrankingRate    = targetFrankingRatePct / 100;
             const currentBenefit = this.calculateFrankingCreditBenefit(
                 currentAustralianAllocation, currentEquityAllocation, currentDividendYield, currentFrankingRate, currentPortfolioValue
             );
@@ -1155,14 +1164,14 @@ class RecommendationEngine {
             const additionalBenefit = targetBenefit - currentBenefit;
 
             scenarios.push({
-                name: `Target Fully Franked Dividend Stocks (${targetFrankingRate}% franking)`,
-                description: `Focus on fully franked dividend stocks to increase franking rate from ${currentFrankingRate}% to ${targetFrankingRate}% for maximum tax benefits.`,
+                name: `Target Fully Franked Dividend Stocks (${targetFrankingRatePct}% franking)`,
+                description: `Focus on fully franked dividend stocks to increase franking rate from ${currentFrankingRatePct}% to ${targetFrankingRatePct}% for maximum tax benefits.`,
                 modifications: {
                     frankingRate: targetFrankingRate
                 },
                 feasibility: "Stock Selection Strategy",
                 factorsChanged: [
-                    `Franking rate: ${currentFrankingRate}% → ${targetFrankingRate}%`,
+                    `Franking rate: ${currentFrankingRatePct}% → ${targetFrankingRatePct}%`,
                     `Additional franking benefit: ${formatCurrency(additionalBenefit)}/year`,
                     "Target stocks: Big 4 banks (CBA, ANZ, WBC, NAB), Telstra, major miners",
                     "Avoid: REITs (no franking), international companies, tech growth stocks",
@@ -1192,7 +1201,9 @@ class RecommendationEngine {
                     description: `Increase monthly investments by $${additionalMonthly}, strategically focused on high-franking Australian dividend stocks.`,
                     modifications: {
                         monthlyStockContribution: this.baseInputs.monthlyStockContribution + additionalMonthly,
-                        australianEquityAllocation: Math.min(65, currentAustralianAllocation + 5)
+                        // BUG FIX 1H audit: currentAustralianAllocation is a decimal (e.g. 0.40).
+                        // +5 would give 5.40 (540%) — must add 0.05 and cap at 0.65 (65%).
+                        australianEquityAllocation: Math.min(0.65, currentAustralianAllocation + 0.05)
                     },
                     feasibility: additionalMonthly <= monthlyDisposableIncome * 0.4 ? "Easily Manageable" : "Requires budgeting",
                     factorsChanged: [
@@ -1236,13 +1247,30 @@ class RecommendationEngine {
     }
 
     /**
-     * Calculate franking credit benefit from allocation changes
+     * Calculate franking credit benefit from allocation changes.
+     *
+     * BUG FIX 1H: All rate parameters (australianAllocation, equityAllocation,
+     * dividendYield, frankingRate) are stored as DECIMALS (0–1) from collectInputs().
+     * Previously this function divided by 100 again, producing values 10,000× too small.
+     * The portfolio-weighted calculation now uses decimal rates directly.
+     *
+     * @param {number} australianAllocation  – decimal fraction of equity that is AU (e.g. 0.40)
+     * @param {number} equityAllocation      – decimal fraction of portfolio in equities (e.g. 0.65)
+     * @param {number} dividendYield         – decimal dividend yield (e.g. 0.04)
+     * @param {number} frankingRate          – decimal franking rate (e.g. 0.75)
+     * @param {number} portfolioValue        – total portfolio value ($)
      */
     calculateFrankingCreditBenefit(australianAllocation, equityAllocation, dividendYield, frankingRate, portfolioValue = 100000) {
-        const australianEquityValue = portfolioValue * (equityAllocation / 100) * (australianAllocation / 100);
-        const grossDividends = australianEquityValue * (dividendYield / 100);
-        const frankedPortion = grossDividends * (frankingRate / 100);
-        const frankingCredits = frankedPortion * (0.30 / 0.70); // 30% corporate tax rate
+        // equityAllocation may be stored as a percent in some places (0–100) — normalise
+        const allocEq  = equityAllocation > 1 ? equityAllocation / 100 : equityAllocation;
+        const allocAU  = australianAllocation > 1 ? australianAllocation / 100 : australianAllocation;
+        const yield_   = dividendYield > 1 ? dividendYield / 100 : dividendYield;
+        const franking = frankingRate > 1 ? frankingRate / 100 : frankingRate;
+
+        const australianEquityValue = portfolioValue * allocEq * allocAU;
+        const grossDividends        = australianEquityValue * yield_;
+        const frankedPortion        = grossDividends * franking;
+        const frankingCredits       = frankedPortion * (0.30 / 0.70); // 30% corporate tax rate
         return frankingCredits;
     }
 

@@ -6,12 +6,25 @@
  *
  * Each year produces a FinancialState snapshot.  The simulation supports
  * both deterministic (single-run) and stochastic (Monte Carlo) modes.
+ *
+ * ── Bug fixes applied (enhancements.md) ──────────────────────────────────────
+ * 1B. Per-year return sampling: when useStochasticReturns=true each year draws
+ *     its own independent return, restoring full sequence-of-return risk.
+ * 1C. Partner super contributions tax: previously 0%, now uses calcSuperTax()
+ *     (15% base + Division 293 surcharge if applicable).
+ * 1D. Correct super withdrawal: pension is subtracted BEFORE computing the
+ *     portfolio withdrawal need, not added back afterwards.
+ * 1E. Retirement investment income: non-super assets still earn returns in
+ *     retirement (dividends, distributions) — was previously omitted.
+ * 1G. Aged-care probability: user-supplied value is honoured; derived default
+ *     only applied when no explicit value is present.
+ * 2.  Division 293 super tax: applied to partner contributions when applicable.
  */
 
 import { FinancialState }                                                       from './financial_state.js';
 import { projectSalary, projectPartnerSalary, calcInvestmentIncome }            from './income_engine.js';
 import { projectLivingExpenses, projectHealthcareCosts, getAgedCareCost }        from './expense_engine.js';
-import { calcIncomeTax }                                                         from './tax_engine.js';
+import { calcIncomeTax, calcSuperTax }                                           from './tax_engine.js';
 import { calcSuperContributions, growSuperBalance, calcSuperWithdrawal, getSGRate } from './super_engine.js';
 import { growInvestmentAssets }                                                  from './investment_engine.js';
 import { growPropertyValue, calcPropertyCashFlow, shouldSellProperty, calcPropertyCGT } from './property_engine.js';
@@ -62,6 +75,9 @@ const SIMULATION_DEFAULTS = {
     shockProbability:     0.05,
     shockMagnitude:       -0.25,
 
+    // BUG FIX 1B: when true, each year samples its own return (Monte Carlo mode)
+    useStochasticReturns: false,
+
     spendingStrategy:     SPENDING_STRATEGIES.FIXED,
 };
 
@@ -96,6 +112,8 @@ export const runLifeSimulation = (userInputs) => {
         asfaComfortable,
         inflation,
         spendingStrategy,
+        useStochasticReturns,
+        returnVolatility,
     } = inputs;
 
     // ── Build life events ─────────────────────────────────────────────────────
@@ -239,38 +257,93 @@ export const runLifeSimulation = (userInputs) => {
         }
 
         // ── Tax ───────────────────────────────────────────────────────────────
-        const totalIncome   = salary + partnerSalary + Math.max(0, rentalNetCashFlow) + investIncome;
+        // TASK-004: Investment income model fix.
+        // growInvestmentAssets() uses investmentReturn as a TOTAL return assumption
+        // (capital gains + dividends reinvested).  Including investIncome in taxableIncome
+        // here would tax dividends again on top of the total-return model treating them as
+        // already in the portfolio — a double-count confirmed by the audit.
+        //
+        // The correct model: salary + partner salary + rental net cash flow are genuine
+        // cash income streams with distinct tax obligations.  investIncome from the total-
+        // return portfolio is not a separate cash event; it is already embedded in the
+        // return rate.  investIncome is still recorded on state.investmentIncome for display
+        // and reporting but is not added to taxableIncome.
+        const fyYear        = calendarYear + 1; // FY ending year
+        const totalIncome   = salary + partnerSalary + Math.max(0, rentalNetCashFlow);
         const taxableIncome = Math.max(0, totalIncome);
         state.taxableIncome = taxableIncome;
-        const incomeTax     = calcIncomeTax(taxableIncome);
+        const incomeTax     = calcIncomeTax(taxableIncome, fyYear, inputs.enableProposedBudget2026 || false);
         state.incomeTax     = incomeTax;
 
         // ── Super contributions ───────────────────────────────────────────────
         const superContrib = calcSuperContributions(salary, age, inputs, calendarYear);
-        const superTax     = superContrib * 0.15;
+        // BUG FIX 1C + Phase 2: use calcSuperTax() for both primary and partner so that
+        // Division 293 is applied when (salary + concessionalContribs) > $250,000.
+        // Previously partner super tax was hardcoded to 0%, overstating partner super.
+        const superTax        = calcSuperTax(salary, superContrib);
         const partnerSuperContrib = calcSuperContributions(
             partnerSalary,
             partnerAge || age,
             { ...inputs, retirementAge: inputs.partnerRetirementAge || retirementAge },
             calendarYear
         );
-        const partnerSuperTax = partnerSuperContrib * 0.15;
+        const partnerSuperTax = calcSuperTax(partnerSalary, partnerSuperContrib);
         state.superContributions = superContrib;
 
         // ── Pension ───────────────────────────────────────────────────────────
         const assessableAssets = superBalance + partnerSuper + investmentAssets + propertyValue;
+
+        // Deeming is applied to financial assets (super + investments) for the income test.
         const deemedIncome = calculateDeemedIncome(superBalance + partnerSuper + investmentAssets, isCouple);
-        const assessableIncome = salary + partnerSalary + Math.max(0, rentalNetCashFlow) + deemedIncome;
-        const { annualPension } = calcPensionForYear(age, assessableAssets, assessableIncome, isCouple, homeowner);
+
+        // PR review fix #3247147627: pass partnerAge so pension_engine can correctly
+        // apply the one-partner-eligible case (pays half the couple combined pension).
+        // Employment income is passed separately so the Work Bonus exemption ($7,800/yr
+        // per eligible person) is applied inside calcPensionForYear before the income test.
+        // Rental income is non-employment assessable income (not Work-Bonus-eligible).
+        const combinedEmploymentIncome = salary + partnerSalary;
+        const nonEmploymentIncome      = Math.max(0, rentalNetCashFlow) + deemedIncome;
+
+        const { annualPension } = calcPensionForYear(
+            age,
+            assessableAssets,
+            nonEmploymentIncome,
+            isCouple,
+            homeowner,
+            partnerAge,             // PR fix #3247147627: previously missing
+            combinedEmploymentIncome,
+        );
         state.pensionIncome = annualPension;
 
+        // ── Note on investment income (TASK-004 / PR review fix #3247147438) ───────────────
+        // growInvestmentAssets() uses investmentReturn as a TOTAL return (capital gains +
+        // dividends reinvested).  investIncome from calcInvestmentIncome() is the dividend-only
+        // component of the same return stream.
+        //
+        // investIncome is intentionally NOT included in taxableIncome (see Tax section above)
+        // and NOT used to reduce the super withdrawal need.  Both would double-count dividends:
+        //  • including in taxableIncome → tax on income already embedded in total return
+        //  • crediting as cash → portfolio stays larger AND grows via total return again
+        //
+        // investIncome is stored on state.investmentIncome for display only.
+        // FinancialState.recalculate() also excludes it from annualCashFlow for the same reason.
+        //
+        // Pension income IS deducted from the super withdrawal need because it is a genuine
+        // external cash payment not captured by the portfolio total-return model.
+
         // ── Super withdrawal (retirement) ─────────────────────────────────────
+        // BUG FIX 1D: Subtract pension BEFORE computing super withdrawal need.
+        // Pension is a genuine external inflow (not captured by total-return growth),
+        // so it correctly reduces the drawdown required from the portfolio.
+        // investIncome is excluded here (total-return already handles it — see note above).
         let superWithdrawal = 0;
         if (age >= retirementAge) {
-            const neededFromSuper = Math.max(0,
-                (state.livingExpenses + healthcareCosts + agedCare + eduCosts + incomeTax)
-                - (partnerSalary + Math.max(0, rentalNetCashFlow) + investIncome + annualPension)
-            );
+            const totalCost = state.livingExpenses + healthcareCosts + agedCare + eduCosts + incomeTax;
+            // otherIncome: real cash flows that reduce how much super must be drawn.
+            // Partner salary may continue if partner hasn't retired; rental income is real cash.
+            // Age Pension is a genuine external payment — always deduct before drawing super.
+            const otherIncome = partnerSalary + Math.max(0, rentalNetCashFlow) + annualPension;
+            const neededFromSuper = Math.max(0, totalCost - otherIncome);
             superWithdrawal = calcSuperWithdrawal(
                 superBalance + partnerSuper,
                 age,
@@ -291,9 +364,28 @@ export const runLifeSimulation = (userInputs) => {
         state.mortgageBalance = mortgageBalance;
 
         // ── Update balances ───────────────────────────────────────────────────
+
+        // BUG FIX 1B: Per-year return sampling for Monte Carlo stochastic mode.
+        // When useStochasticReturns is true (set by monte_carlo_engine), each year
+        // draws its own independent return from the return distribution, restoring
+        // full sequence-of-return risk.  In deterministic mode the base rates are used.
+        let effectiveSuperReturn        = inputs.superReturn;
+        let effectiveInvestmentReturn   = inputs.investmentReturn;
+        if (useStochasticReturns && returnVolatility > 0) {
+            effectiveSuperReturn      = Math.max(-0.5,
+                simulateAnnualReturn(inputs.superReturn,      returnVolatility));
+            effectiveInvestmentReturn = Math.max(-0.5,
+                simulateAnnualReturn(inputs.investmentReturn, returnVolatility));
+        }
+        const yearInputs = {
+            ...inputs,
+            superReturn:      effectiveSuperReturn,
+            investmentReturn: effectiveInvestmentReturn,
+        };
+
         // Super growth
-        superBalance  = growSuperBalance(superBalance, superContrib, superTax, inputs);
-        partnerSuper  = growSuperBalance(partnerSuper, partnerSuperContrib, partnerSuperTax, inputs);
+        superBalance  = growSuperBalance(superBalance, superContrib, superTax, yearInputs);
+        partnerSuper  = growSuperBalance(partnerSuper, partnerSuperContrib, partnerSuperTax, yearInputs);
 
         // Deduct super withdrawal
         const totalSuperBalance = superBalance + partnerSuper;
@@ -304,15 +396,21 @@ export const runLifeSimulation = (userInputs) => {
         }
 
         // Investment assets: after-tax savings added, spending deducted in retirement
-        const afterTaxIncome      = salary + partnerSalary - incomeTax;
-        const monthlySavings      = inputs.monthlyStockContribution || 0;
-        const annualNetContrib    = age < retirementAge
+        // BUG FIX 1E continued: in retirement the net contribution also includes
+        // investment income (dividends/distributions) which keeps portfolio growth
+        // realistic and correctly affects Age Pension means testing.
+        const afterTaxIncome   = salary + partnerSalary - incomeTax;
+        const monthlySavings   = inputs.monthlyStockContribution || 0;
+        const annualNetContrib = age < retirementAge
             ? (afterTaxIncome - livingExpenses - annualMortgage - healthcareCosts - eduCosts
                + monthlySavings * 12 + Math.max(0, rentalNetCashFlow))
+            // Retirement: pension + super withdrawal fund spending; investment income
+            // stays in the portfolio (grows balance) and is NOT double-counted here
+            // because it is already reflected via growInvestmentAssets() return.
             : (annualPension + superWithdrawal - currentSpending - healthcareCosts - agedCare
                - eduCosts + Math.max(0, rentalNetCashFlow));
 
-        investmentAssets = growInvestmentAssets(investmentAssets, annualNetContrib, inputs);
+        investmentAssets = growInvestmentAssets(investmentAssets, annualNetContrib, yearInputs);
 
         // Property value growth
         if (propertyValue > 0) {

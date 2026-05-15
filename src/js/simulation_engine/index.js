@@ -1,10 +1,19 @@
 /**
  * index.js – Unified advanced-simulation API
  *
- * The advanced app historically surfaced multiple calculation engines with
- * materially different assumptions. For the in-app "Life Simulation" workflow,
- * route everything through RetirementSimulator so users see a single answer
- * across the advanced experience.
+ * TASK-003 (enhancements.md): All Monte Carlo paths now route through
+ * RetirementSimulator (Pipeline A).
+ *
+ *  runFullSimulation()  — main Life Simulation tab entry point.
+ *                         Uses RetirementSimulator.runEnhancedMonteCarloSimulation().
+ *
+ *  runMonteCarlo()      — Pipeline B backwards-compatible export.
+ *                         Now delegates to RetirementSimulator.runMonteCarloSimulation()
+ *                         so it uses the same engine as the main calculator tab.
+ *
+ * Both paths therefore call the same regime-aware, per-year stochastic engine
+ * with the same tax, pension, and super contribution logic — eliminating the
+ * contradictory probability figures that appeared when users compared the two tabs.
  */
 
 import { ENHANCED_CONFIG } from '../config.js';

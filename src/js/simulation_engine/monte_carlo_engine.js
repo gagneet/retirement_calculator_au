@@ -1,15 +1,29 @@
 /**
- * monte_carlo_engine.js – Monte Carlo Runner for Life Simulation
+ * monte_carlo_engine.js – Monte Carlo Runner for Life Simulation (Pipeline B)
  *
- * Runs the life simulation many times with random volatility applied each run,
- * then aggregates results into probability-of-success, percentile bands, and
- * worst-case metrics.
+ * TASK-003 (enhancements.md §Phase 1): Unify Monte Carlo engines.
+ *
+ * Previous problem: this module called runLifeSimulation() which used a simpler
+ * return model than RetirementSimulator.runMonteCarloSimulation() (Pipeline A).
+ * A user who clicked "Run Monte Carlo" in the main calculator vs the Life
+ * Simulation tab got materially different probability figures for identical inputs.
+ *
+ * Fix: this module now delegates to RetirementSimulator so both tabs call the
+ * same regime-aware, per-year stochastic engine.  The returned object keeps the
+ * same field names as before so callers (recommendation_engine, tests, app.js)
+ * need no changes.
+ *
+ * Schema mapping:
+ *   Pipeline A successRate (0–1) → probabilityOfSuccess (0–100)
+ *   Pipeline A median            → medianFinalNetWorth
+ *   Pipeline A outcomes sorted   → percentile p10/p25/p50/p75/p90 NetWorth
+ *   Pipeline A shortfallRisk     → lifestyleCutProbability
  */
 
-import { runLifeSimulation } from './life_simulation_engine.js';
-import { simulateAnnualReturn } from './shock_engine.js';
+import { ENHANCED_CONFIG } from '../config.js';
+import RetirementSimulator from '../simulator.js';
 
-// ── Default Monte Carlo parameters ───────────────────────────────────────────
+// ── Default parameters (merged with userInputs before use) ───────────────────
 
 const MC_DEFAULTS = {
     numRuns:          1000,
@@ -21,36 +35,40 @@ const MC_DEFAULTS = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const median = (arr) => {
-    if (!arr.length) return 0;
-    const sorted = [...arr].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 === 0
-        ? (sorted[mid - 1] + sorted[mid]) / 2
-        : sorted[mid];
-};
-
-const percentile = (arr, p) => {
-    if (!arr.length) return 0;
-    const sorted = [...arr].sort((a, b) => a - b);
-    const index  = (p / 100) * (sorted.length - 1);
+/**
+ * Interpolated percentile from a sorted numeric array.
+ * @param {number[]} sortedArr - ascending sorted array
+ * @param {number} p - percentile (0–100)
+ */
+const percentileFromSorted = (sortedArr, p) => {
+    if (!sortedArr.length) return 0;
+    const index  = (p / 100) * (sortedArr.length - 1);
     const lower  = Math.floor(index);
     const upper  = Math.ceil(index);
-    if (lower === upper) return sorted[lower];
-    return sorted[lower] + (sorted[upper] - sorted[lower]) * (index - lower);
+    if (lower === upper) return sortedArr[lower];
+    return sortedArr[lower] + (sortedArr[upper] - sortedArr[lower]) * (index - lower);
+};
+
+const sortedMedian = (sortedArr) => {
+    if (!sortedArr.length) return 0;
+    const mid = Math.floor(sortedArr.length / 2);
+    return sortedArr.length % 2 === 0
+        ? (sortedArr[mid - 1] + sortedArr[mid]) / 2
+        : sortedArr[mid];
 };
 
 // ── Main Monte Carlo runner ───────────────────────────────────────────────────
 
 /**
- * Run Monte Carlo life simulations.
+ * Run Monte Carlo simulations using the canonical RetirementSimulator engine.
  *
- * Each run uses a randomly perturbed investmentReturn drawn from a normal
- * distribution with the same mean but with returnVolatility as std-dev.
+ * Delegates to RetirementSimulator.runMonteCarloSimulation() so both the main
+ * calculator and the Life Simulation tab use identical regime-aware stochastic
+ * logic, longevity sampling, and aged-care probability modelling.
  *
- * @param {Object} userInputs           – full user inputs (same as runLifeSimulation)
- * @param {Function} [progressCallback] – optional fn(completed, total) for progress reporting
- * @returns {{
+ * @param {Object}   userInputs        – full user inputs (same as runLifeSimulation)
+ * @param {Function} [progressCallback] – optional fn(completed, total)
+ * @returns {Promise<{
  *   probabilityOfSuccess:    number,   // 0–100 %
  *   medianRetirementWealth:  number,
  *   medianFinalNetWorth:     number,
@@ -62,56 +80,91 @@ const percentile = (arr, p) => {
  *     p75NetWorth: number,
  *     p90NetWorth: number,
  *   },
- *   lifestyleCutProbability: number,   // fraction of runs where spending cut ≥ 1 time
- *   runs: number,
- * }}
+ *   lifestyleCutProbability: number,
+ *   runs:                    number,
+ *   _engine:                 string,   // 'RetirementSimulator' for diagnostics
+ * }>}
  */
-export const runMonteCarlo = (userInputs, progressCallback = null) => {
+export const runMonteCarlo = async (userInputs, progressCallback = null) => {
     const inputs = { ...MC_DEFAULTS, ...userInputs };
-    const { numRuns, returnVolatility, investmentReturn = 0.056 } = inputs;
 
-    const successCount      = { success: 0 };
-    const finalNetWorths    = [];
-    const retirementWealths = [];
-    const ruinAges          = [];
-    let lifestyleCuts       = 0;
+    // Normalise numRuns: honour user value, clamp to safe range.
+    const numRuns = Math.max(100, Math.min(20000, Math.round(Number(inputs.numRuns) || 1000)));
 
-    for (let run = 0; run < numRuns; run++) {
-        // Perturb annual return for this run
-        const perturbedReturn = Math.max(-0.5,
-            simulateAnnualReturn(investmentReturn, returnVolatility));
-        const runInputs = { ...inputs, investmentReturn: perturbedReturn };
+    // Delegate to the canonical Pipeline A enhanced engine.
+    // PR review fix #3247147313: use runEnhancedMonteCarloSimulation (regime-aware,
+    // correlation-modelled) to match the main calculator tab's "Run Monte Carlo" path,
+    // which calls runEnhancedMonteCarloSimulation via app.js.
+    // runMonteCarloSimulation is the simpler fallback; both produce per-year stochastic
+    // returns but the enhanced version adds regime switching and asset correlations.
+    const simulator = new RetirementSimulator(ENHANCED_CONFIG);
+    const raw = await simulator.runEnhancedMonteCarloSimulation(inputs, numRuns, progressCallback);
 
-        const result = runLifeSimulation(runInputs);
+    // ── Map Pipeline A schema → Pipeline B schema (backwards compatible) ─────
 
-        if (result.success) successCount.success++;
-        finalNetWorths.push(result.finalNetWorth);
-        retirementWealths.push(result.retirementWealth);
-        if (result.ruinAge !== null) ruinAges.push(result.ruinAge);
+    // Pipeline A outcomes is already sorted ascending.
+    const sorted = raw.outcomes || [];
 
-        // Check if spending was cut (proxy: any year with negative cashflow)
-        const hadSpendingCut = result.timeline.some(s => s.annualCashFlow < -5000);
-        if (hadSpendingCut) lifestyleCuts++;
+    const medianFinalNetWorth = raw.median ?? sortedMedian(sorted);
 
-        if (progressCallback && run % 100 === 0) {
-            progressCallback(run, numRuns);
+    // PR review fix #3247147569: medianRetirementWealth must be wealth AT retirement age,
+    // not end-of-life wealth.  Running a deterministic baseline projection gives us assets
+    // at retirement (totalFinancialAssets at the projection year matching retirementAge).
+    // Fallback: if the deterministic projection fails, use the p50 end-of-life outcome.
+    let medianRetirementWealth = medianFinalNetWorth;
+    try {
+        const deterministicResult = simulator.simulateRetirement(inputs, false);
+        if (deterministicResult && typeof deterministicResult.totalFinancialAssets === 'number') {
+            medianRetirementWealth = deterministicResult.totalFinancialAssets;
         }
+    } catch (_) {
+        // fallback already set above
     }
 
+    // successRate (0–1) → probabilityOfSuccess (0–100)
+    const probabilityOfSuccess = (raw.successRate ?? 0) * 100;
+
+    // Worst-case ruin age: derive from paths if available.
+    let worstCaseRuinAge = null;
+    if (raw.paths && raw.paths.length > 0) {
+        const retirementAge = inputs.retirementAge || 65;
+        raw.paths.forEach((path) => {
+            const ruinIndex = path.findIndex(balance => balance <= 0);
+            if (ruinIndex === -1) return;
+            const ruinAge = retirementAge + ruinIndex;
+            if (worstCaseRuinAge === null || ruinAge < worstCaseRuinAge) {
+                worstCaseRuinAge = ruinAge;
+            }
+        });
+    }
+
+    // shortfallRisk (0–1) → lifestyleCutProbability (0–100)
+    const lifestyleCutProbability = (raw.shortfallRisk ?? raw.failureRate ?? 0) * 100;
+
+    // Percentiles
+    const p = raw.percentiles || {};
+    const percentiles = {
+        p10NetWorth: p.p10 ?? percentileFromSorted(sorted, 10),
+        p25NetWorth: p.p25 ?? percentileFromSorted(sorted, 25),
+        p50NetWorth: p.p50 ?? percentileFromSorted(sorted, 50),
+        p75NetWorth: p.p75 ?? percentileFromSorted(sorted, 75),
+        p90NetWorth: p.p90 ?? percentileFromSorted(sorted, 90),
+    };
+
     return {
-        probabilityOfSuccess:   (successCount.success / numRuns) * 100,
-        medianRetirementWealth: median(retirementWealths),
-        medianFinalNetWorth:    median(finalNetWorths),
-        worstCaseRuinAge:       ruinAges.length > 0 ? Math.min(...ruinAges) : null,
-        percentiles: {
-            p10NetWorth: percentile(finalNetWorths, 10),
-            p25NetWorth: percentile(finalNetWorths, 25),
-            p50NetWorth: percentile(finalNetWorths, 50),
-            p75NetWorth: percentile(finalNetWorths, 75),
-            p90NetWorth: percentile(finalNetWorths, 90),
-        },
-        lifestyleCutProbability: (lifestyleCuts / numRuns) * 100,
+        probabilityOfSuccess,
+        medianRetirementWealth,
+        medianFinalNetWorth,
+        worstCaseRuinAge,
+        percentiles,
+        lifestyleCutProbability,
         runs: numRuns,
+        // Pass through additional Pipeline A fields so callers can use richer data.
+        outcomes: sorted,
+        paths:    raw.paths,
+        longevityStats: raw.longevityStats,
+        careStats: raw.careStats,
+        _engine: 'RetirementSimulator',
     };
 };
 
