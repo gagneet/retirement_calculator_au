@@ -1384,6 +1384,10 @@ class RetirementCalculatorApp {
 
     getAutoManagedAsfaDefaults() {
         return [
+            // Keep the immediately prior published ASFA values recognised so existing
+            // saved forms and old defaults still migrate when household status changes.
+            51814,
+            73031,
             ENHANCED_CONFIG.OVERSEAS_RETIREMENT.ASFA_SINGLE_ANNUAL,
             ENHANCED_CONFIG.OVERSEAS_RETIREMENT.ASFA_COUPLE_ANNUAL
         ];
@@ -6315,6 +6319,9 @@ class RetirementCalculatorApp {
         const scenarios = [];
         const currentAge = baseInputs.yourCurrentAge;
         const retirementAge = baseInputs.retirementAge;
+        const analyzer = this._buildOverseasAnalyzer(config, baseInputs);
+        const profileKey = OVERSEAS_COUNTRY_PROFILE_KEY_MAP[config.country];
+        const countryAnalysis = profileKey ? analyzer.analyzeCountry(profileKey) : null;
 
         // Extract projected retirement portfolio from simulation results if available
         const retirementPortfolio = simResults ? {
@@ -6333,12 +6340,11 @@ class RetirementCalculatorApp {
             const profileKey = OVERSEAS_COUNTRY_PROFILE_KEY_MAP[config.country];
             const profile = profileKey ? COUNTRY_PROFILES?.[profileKey] : null;
             const costIndex = profile?.costOfLiving?.index || countryData.costIndex || 0.6;
-            const asfaBase = baseInputs.asfaComfortable || 73000;
-            const annualCostInCountry = asfaBase * costIndex;
-            // Portable pension estimate (simplified: 75% of max if AWLR met, else 40%)
-            const portablePension = baseInputs.agePensionMax
-                ? baseInputs.agePensionMax * (profile?.socialSecurityAgreement ? 0.75 : 0.40)
-                : 0;
+            const annualCostInCountry = countryAnalysis?.costOfLiving?.countryAnnual
+                || countryAnalysis?.costOfLiving?.housingAdjustedAnnual
+                || Math.round((baseInputs.asfaComfortable || 73000) * costIndex);
+            // Use the shared overseas policy engine instead of a hard-coded portability shortcut.
+            const portablePension = countryAnalysis?.agePensionPortability?.pensionCalculation?.overseas || 0;
             const annualNetDraw = Math.max(1, annualCostInCountry - portablePension);
             const yearsPortfolioLasts = retirementPortfolio.total / annualNetDraw;
             runwayData = {
@@ -10939,7 +10945,17 @@ window.generateOverseasScenariosTree = async function generateOverseasScenariosT
             basePension = isCouple ? ENHANCED_CONFIG.COUPLE_PENSION_MAX : ENHANCED_CONFIG.SINGLE_PENSION_MAX;
         }
 
-        const tree = generateOverseasScenarioTree({ basePension, awlrYears, isCouple, agreementCountry });
+        const proposedBudgetEnabled = document.getElementById('enableProposedBudget2026')?.checked || false;
+        const shortAbsenceWeeks = proposedBudgetEnabled
+            ? (ENHANCED_CONFIG.OVERSEAS_RETIREMENT.SHORT_ABSENCE_WEEKS_PROPOSED || 12)
+            : (ENHANCED_CONFIG.OVERSEAS_RETIREMENT.SHORT_ABSENCE_WEEKS || 6);
+        const tree = generateOverseasScenarioTree({
+            basePension,
+            awlrYears,
+            isCouple,
+            agreementCountry,
+            shortAbsenceWeeks
+        });
 
         // Map moveType selector value to which scenario card to visually highlight
         const moveTypeToKey = {
@@ -10963,7 +10979,7 @@ window.generateOverseasScenariosTree = async function generateOverseasScenariosT
             },
             {
                 key: 'shortAbsence',
-                label: `Short Trip ≤${ENHANCED_CONFIG.OVERSEAS_RETIREMENT.SHORT_ABSENCE_WEEKS} weeks`,
+                label: `Short Trip ≤${shortAbsenceWeeks} weeks`,
                 emoji: '✈️',
                 data: tree.shortAbsence,
                 cssClass: 'neutral',
@@ -10971,7 +10987,7 @@ window.generateOverseasScenariosTree = async function generateOverseasScenariosT
             },
             {
                 key: 'longAbsence',
-                label: `Visit/Stay 6–26 weeks`,
+                label: `Visit/Stay ${shortAbsenceWeeks + 1}–26 weeks`,
                 emoji: '🗓️',
                 data: tree.longAbsence,
                 cssClass: tree.longAbsence.pensionReduced ? 'warning' : 'neutral',
@@ -11040,7 +11056,7 @@ window.generateOverseasScenariosTree = async function generateOverseasScenariosT
                 retirementAge:           departureAge,
                 departureAge:            departureAge,
                 australianWorkingLifeYears: awlrYears,
-                enableProposedBudget2026: false
+                enableProposedBudget2026: proposedBudgetEnabled
             };
             const analyzer = new OverseasRetirementAnalyzer(personalDetails, { totalAssets: 0 });
             const fb = analyzer.generateFallbackScenario(countryCode, fallbackAge, fallbackTrigger, agreementCountry);

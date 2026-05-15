@@ -83,6 +83,9 @@ export class OverseasRetirementAnalyzer {
         const proportionalRate = Math.min(awlrYears / cfg.AWLR_REQUIRED_FOR_FULL, 1.0);
         const hasFullPortability = awlrYears >= cfg.AWLR_REQUIRED_FOR_FULL;
         const hasAgreement = !!country.socialSecurityAgreement;
+        const shortAbsenceWeeks = this.useProposedBudget
+            ? (cfg.SHORT_ABSENCE_WEEKS_PROPOSED || 12)
+            : (cfg.SHORT_ABSENCE_WEEKS || 6);
 
         // === BUG FIX: use shared policy engine for pension estimate ===
         // Previously: only investmentBalance was used for deeming (too narrow).
@@ -96,14 +99,13 @@ export class OverseasRetirementAnalyzer {
             basePension: currentPensionResult,
             awlrYears,
             isCouple: !!this.person.partnered,
-            agreementCountry: hasAgreement
+            agreementCountry: hasAgreement,
+            shortAbsenceWeeks
         });
 
         const portabilityKickIn = cfg.PORTABILITY_THRESHOLD_WEEKS;
-        // Overseas supplement full-rate period: 6 weeks (current law) or 12 weeks (proposed, not yet law)
-        const supplementFullWeeks = this.useProposedBudget
-            ? (cfg.SHORT_ABSENCE_WEEKS_PROPOSED || 12)
-            : (cfg.SHORT_ABSENCE_WEEKS || 6);
+        // Overseas supplement full-rate period: current law by default, proposed rule only when toggled on.
+        const supplementFullWeeks = shortAbsenceWeeks;
 
         // Backward-compatible result structure enhanced with scenario tree
         return {

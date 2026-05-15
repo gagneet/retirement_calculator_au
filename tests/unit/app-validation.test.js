@@ -111,6 +111,70 @@ describe('dynamic allocation collection', () => {
 
 });
 
+describe('overseas scenario generation', () => {
+    test('uses analyzer-backed pension portability for runway data', () => {
+        const app = Object.create(RetirementCalculatorApp.prototype);
+        app._buildOverseasAnalyzer = jest.fn(() => ({
+            analyzeCountry: jest.fn(() => ({
+                costOfLiving: { countryAnnual: 45678 },
+                agePensionPortability: {
+                    pensionCalculation: { overseas: 12345 }
+                }
+            }))
+        }));
+        app.getCountryData = jest.fn(() => ({
+            displayName: 'Thailand',
+            costIndex: 0.55,
+            healthcareNotes: 'Good access'
+        }));
+        app.calculateOverseasImpact = jest.fn(() => 'POSITIVE');
+        app.calculateAgePensionImpact = jest.fn(() => 'Portable');
+        app.calculateTaxImplications = jest.fn(() => 'Neutral');
+        app.calculateSuperStrategyImpact = jest.fn(() => 'NEUTRAL');
+        app.calculateSuperTaxImpact = jest.fn(() => 'Tax-free');
+        app.calculateResidencyImpact = jest.fn(() => 'NEUTRAL');
+        app.calculateResidencyTaxImpact = jest.fn(() => 'Neutral');
+        app.calculateReturnFrequencyImpact = jest.fn(() => 'NEUTRAL');
+        app.calculateReturnPensionImpact = jest.fn(() => 'Portable');
+        app.calculateReturnTaxImpact = jest.fn(() => 'Neutral');
+        app.getReturnTimeDescription = jest.fn(() => '3-4 weeks');
+
+        const scenarios = app.generateOverseasScenariosData(
+            {
+                country: 'thailand',
+                departureAge: 67,
+                returnFrequency: 'annually',
+                maintainResidency: false,
+                propertyStrategy: 'keep-personal',
+                trustBeneficiaries: 'you-only',
+                superAccess: 'pension-mode',
+                estimatedLivingCosts: 60000
+            },
+            {
+                yourCurrentAge: 45,
+                retirementAge: 67,
+                asfaComfortable: 73337,
+                partnerCurrentAge: 0,
+                hasInvestmentProperty: false,
+                yourCurrentSuper: 200000,
+                partnerCurrentSuper: 0
+            },
+            {
+                accumulatedSuperBalance: 500000,
+                accumulatedSavingsBalance: 100000,
+                accumulatedInvestmentPortfolio: 50000,
+                totalFinancialAssets: 650000
+            }
+        );
+
+        expect(app._buildOverseasAnalyzer).toHaveBeenCalled();
+        expect(scenarios[0].runwayData).toMatchObject({
+            annualCost: 45678,
+            portablePension: 12345
+        });
+    });
+});
+
 describe('auto calculation gating', () => {
     test('skips automatic recalculation when validation fails', () => {
         const app = Object.create(RetirementCalculatorApp.prototype);

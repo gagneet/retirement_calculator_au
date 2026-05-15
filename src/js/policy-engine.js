@@ -282,10 +282,19 @@ export const OverseasScenarioType = {
  * @param {boolean} params.isCouple - Couple or single
  * @param {boolean} params.agreementCountry - Destination has social security agreement with Australia
  * @param {string} params.scenarioType - One of OverseasScenarioType
+ * @param {number} [params.shortAbsenceWeeks] - Override for the supplement-preserving absence window
  * @returns {Object} Pension outcome for the given scenario
  */
-export function calculatePortablePension({ basePension, awlrYears, isCouple, agreementCountry, scenarioType }) {
+export function calculatePortablePension({
+    basePension,
+    awlrYears,
+    isCouple,
+    agreementCountry,
+    scenarioType,
+    shortAbsenceWeeks
+}) {
     const cfg = ENHANCED_CONFIG.OVERSEAS_RETIREMENT;
+    const effectiveShortAbsenceWeeks = shortAbsenceWeeks ?? cfg.SHORT_ABSENCE_WEEKS;
 
     // AWLR proportion — clamp to [0, AWLR_TOTAL_YEARS] to guard against negative/invalid input
     const awlr = Math.min(Math.max(0, awlrYears || 0), cfg.AWLR_TOTAL_YEARS);
@@ -303,7 +312,7 @@ export function calculatePortablePension({ basePension, awlrYears, isCouple, agr
             return {
                 scenarioType,
                 annualPension: basePension,
-                description: `Full pension continues for up to ${cfg.SHORT_ABSENCE_WEEKS} weeks`,
+                description: `Full pension continues for up to ${effectiveShortAbsenceWeeks} weeks`,
                 supplementLost: 0,
                 awlrApplied: false,
                 pensionReduced: false,
@@ -312,17 +321,17 @@ export function calculatePortablePension({ basePension, awlrYears, isCouple, agr
             };
 
         case OverseasScenarioType.LONG_ABSENCE:
-            // Base rate unchanged; supplements stop after 6 weeks
+            // Base rate unchanged; supplements stop after the current short-absence window.
             return {
                 scenarioType,
                 annualPension: Math.max(0, basePension - supplementLoss),
-                description: 'Base pension continues; Pension Supplement top-up and Energy Supplement stop after 6 weeks',
+                description: `Base pension continues; Pension Supplement top-up and Energy Supplement stop after ${effectiveShortAbsenceWeeks} weeks`,
                 supplementLost: supplementLoss,
                 awlrApplied: false,
                 pensionReduced: supplementLoss > 0,
                 pccValid: false,
                 warnings: [
-                    'Pensioner Concession Card cancelled after 6 weeks overseas',
+                    `Pensioner Concession Card cancelled after ${effectiveShortAbsenceWeeks} weeks overseas`,
                     'Pension Supplement reduced to basic rate only',
                     'Energy Supplement stops'
                 ]
@@ -349,7 +358,7 @@ export function calculatePortablePension({ basePension, awlrYears, isCouple, agr
                 pccValid: false,
                 warnings: [
                     ...(awlrWarning ? [awlrWarning] : []),
-                    'Supplement losses from 6-week threshold continue',
+                    `Supplement losses from the ${effectiveShortAbsenceWeeks}-week threshold continue`,
                     agreementCountry ? 'Agreement country: favourable portability rules apply' : '2-year waiting period applies if you return to Australia within 2 years'
                 ].filter(Boolean)
             };
@@ -423,9 +432,16 @@ export function calculatePortablePension({ basePension, awlrYears, isCouple, agr
  * @param {number} params.awlrYears - AWLR years (age 16 to pension age)
  * @param {boolean} params.isCouple
  * @param {boolean} params.agreementCountry
+ * @param {number} [params.shortAbsenceWeeks]
  * @returns {Object} All five scenarios plus summary
  */
-export function generateOverseasScenarioTree({ basePension, awlrYears, isCouple, agreementCountry }) {
+export function generateOverseasScenarioTree({
+    basePension,
+    awlrYears,
+    isCouple,
+    agreementCountry,
+    shortAbsenceWeeks
+}) {
     const scenarios = {
         stayInAustralia: {
             label: 'Stay in Australia',
@@ -435,19 +451,19 @@ export function generateOverseasScenarioTree({ basePension, awlrYears, isCouple,
             supplements: 'Full supplements retained'
         },
         shortAbsence: calculatePortablePension({
-            basePension, awlrYears, isCouple, agreementCountry,
+            basePension, awlrYears, isCouple, agreementCountry, shortAbsenceWeeks,
             scenarioType: OverseasScenarioType.SHORT_ABSENCE
         }),
         longAbsence: calculatePortablePension({
-            basePension, awlrYears, isCouple, agreementCountry,
+            basePension, awlrYears, isCouple, agreementCountry, shortAbsenceWeeks,
             scenarioType: OverseasScenarioType.LONG_ABSENCE
         }),
         permanentMove: calculatePortablePension({
-            basePension, awlrYears, isCouple, agreementCountry,
+            basePension, awlrYears, isCouple, agreementCountry, shortAbsenceWeeks,
             scenarioType: OverseasScenarioType.PERMANENT_MOVE
         }),
         returnToAustralia: calculatePortablePension({
-            basePension, awlrYears, isCouple, agreementCountry,
+            basePension, awlrYears, isCouple, agreementCountry, shortAbsenceWeeks,
             scenarioType: OverseasScenarioType.RETURN_TO_AUSTRALIA
         })
     };
@@ -467,6 +483,7 @@ export function generateOverseasScenarioTree({ basePension, awlrYears, isCouple,
             agreementCountry,
             awlrYears,
             hasFullPortability: awlrYears >= ENHANCED_CONFIG.OVERSEAS_RETIREMENT.AWLR_REQUIRED_FOR_FULL,
+            shortAbsenceWeeks: shortAbsenceWeeks ?? ENHANCED_CONFIG.OVERSEAS_RETIREMENT.SHORT_ABSENCE_WEEKS,
             policyDate: ENHANCED_CONFIG.POLICY_EFFECTIVE_DATE,
             disclaimer: 'Never rely on these estimates alone. Confirm your personal entitlement with Services Australia before making any overseas move.'
         }

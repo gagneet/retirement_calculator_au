@@ -491,6 +491,20 @@ describe('calculatePortablePension', () => {
         expect(result.awlrApplied).toBe(false); // AWLR not yet applied (<26 weeks)
     });
 
+    test('LONG_ABSENCE honours an overridden short-absence window', () => {
+        const result = calculatePortablePension({
+            basePension,
+            awlrYears: awlrFull,
+            isCouple: false,
+            agreementCountry: false,
+            scenarioType: OverseasScenarioType.LONG_ABSENCE,
+            shortAbsenceWeeks: 12
+        });
+
+        expect(result.description).toContain('after 12 weeks');
+        expect(result.warnings.join(' ')).toContain('12 weeks overseas');
+    });
+
     // === SCENARIO 3: EXTENDED TEMPORARY (>26 weeks, planning to return) ===
     test('EXTENDED_TEMPORARY: AWLR proportion applied when AWLR < 35 years', () => {
         const result = calculatePortablePension({
@@ -670,6 +684,20 @@ describe('generateOverseasScenarioTree', () => {
         });
         expect(withFull.summary.hasFullPortability).toBe(true);
         expect(withPartial.summary.hasFullPortability).toBe(false);
+    });
+
+    test('propagates a proposed short-absence window into the scenario tree summary and labels', () => {
+        const tree = generateOverseasScenarioTree({
+            basePension,
+            awlrYears: 20,
+            isCouple: false,
+            agreementCountry: false,
+            shortAbsenceWeeks: 12
+        });
+
+        expect(tree.summary.shortAbsenceWeeks).toBe(12);
+        expect(tree.shortAbsence.description).toContain('up to 12 weeks');
+        expect(tree.longAbsence.description).toContain('after 12 weeks');
     });
 
     test('pension ordering: stayAustralia >= shortAbsence >= longAbsence >= permanentMove', () => {
