@@ -7630,13 +7630,20 @@ class RetirementCalculatorApp {
                 const csvData = this.currentResults.yearlyData.map(data => ({
                     Year: data.year,
                     Age: data.age,
+                    Lifecycle_Stage: data.lifecycleLabel || data.lifecycleStage || '',
+                    Funding_Stage: data.fundingLabel || data.fundingStage || '',
+                    Decumulation_Strategy: data.decumulationStrategy || '',
                     Start_Balance: data.startBalance,
                     Return_Rate: data.returnRate,
                     Growth: data.growth,
                     Withdrawal: data.withdrawal,
+                    Core_Spending: data.coreSpending || 0,
+                    Essential_Spending: data.essentialSpending || 0,
+                    Discretionary_Spending: data.discretionarySpending || 0,
                     Healthcare_Cost: data.healthcareCost,
                     Aged_Care_Cost: data.agedCareCost,
                     Property_Income: data.propertyIncome || 0,
+                    Other_Income: data.otherIncome || 0,
                     Pension_Income: data.pensionIncome || 0,
                     End_Balance: data.endBalance
                 }));

@@ -5,6 +5,7 @@ const debugLog = process.env.NODE_ENV !== 'production' ? console.log.bind(consol
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
 import { ENHANCED_CONFIG } from './config.js';
 import { EnhancedMonteCarloEngine } from './enhanced-monte-carlo.js';
+import { calculateSpending, SPENDING_STRATEGIES } from './simulation_engine/spending_engine.js';
 import { getSGRate } from './simulation_engine/super_engine.js';
 import {
     calculatePostTaxIncome,
@@ -55,6 +56,244 @@ export class RetirementSimulator {
 
     isOpenEndedLifespan(lifespan) {
         return !(lifespan > 0);
+    }
+
+    getRetirementLifecycleStage(age, retirementAge, pensionAge, agedCareActive) {
+        if (agedCareActive) {
+            return {
+                key: 'late_life_care',
+                label: 'Late-life care',
+                essentialMultiplier: 1.00,
+                lifestyleMultiplier: 0.20
+            };
+        }
+
+        if (age < pensionAge) {
+            return {
+                key: 'pre_pension_bridge',
+                label: 'Pre-Age-Pension bridge',
+                essentialMultiplier: 1.00,
+                lifestyleMultiplier: 1.00
+            };
+        }
+
+        const yearsRetired = Math.max(0, age - retirementAge);
+        if (yearsRetired < 10) {
+            return {
+                key: 'active_retirement',
+                label: 'Active retirement',
+                essentialMultiplier: 1.00,
+                lifestyleMultiplier: 1.00
+            };
+        }
+
+        if (yearsRetired < 20) {
+            return {
+                key: 'stable_retirement',
+                label: 'Stable retirement',
+                essentialMultiplier: 0.97,
+                lifestyleMultiplier: 0.80
+            };
+        }
+
+        return {
+            key: 'slowdown_retirement',
+            label: 'Slowdown retirement',
+            essentialMultiplier: 0.94,
+            lifestyleMultiplier: 0.55
+        };
+    }
+
+    getFundingStage(totalCost, pensionIncome, annualWithdrawal, otherIncome) {
+        const fundingBase = Math.max(totalCost, pensionIncome + annualWithdrawal + otherIncome);
+        const pensionShare = fundingBase > 0 ? pensionIncome / fundingBase : 0;
+
+        if (pensionIncome <= 0) {
+            return { key: 'self_funded', label: 'Self-funded' };
+        }
+
+        if (pensionShare >= 0.6) {
+            return { key: 'pension_heavy', label: 'Pension-heavy' };
+        }
+
+        return { key: 'mixed_funding', label: 'Mixed funding' };
+    }
+
+    buildAgedCareProfile(inputs, useRandomReturns, effectiveYourLifespan) {
+        const probability = clamp(parseFloat(inputs.agedCareProbability || 0), 0, 1);
+        const baseStartAge = parseFloat(inputs.agedCareStartAge || 0);
+        const baseDuration = Math.max(0, parseFloat(inputs.agedCareDuration || 0));
+        const annualCost = Math.max(0, parseFloat(inputs.agedCareAnnualCost || 0));
+        const minStartAge = Math.max(inputs.retirementAge || inputs.yourCurrentAge, inputs.yourCurrentAge);
+        const maxStartAge = Math.max(
+            minStartAge,
+            effectiveYourLifespan - Math.max(1, Math.ceil(baseDuration)) + 1
+        );
+
+        if (probability <= 0 || baseDuration <= 0 || annualCost <= 0 || baseStartAge <= 0) {
+            return {
+                occurs: false,
+                probability,
+                startAge: baseStartAge,
+                duration: 0,
+                costWeight: 0,
+                sampled: false
+            };
+        }
+
+        if (!useRandomReturns) {
+            return {
+                occurs: true,
+                probability,
+                startAge: clamp(baseStartAge, minStartAge, maxStartAge),
+                duration: baseDuration,
+                costWeight: probability,
+                sampled: false
+            };
+        }
+
+        const occurs = Math.random() < probability;
+        if (!occurs) {
+            return {
+                occurs: false,
+                probability,
+                startAge: clamp(baseStartAge, minStartAge, maxStartAge),
+                duration: 0,
+                costWeight: 0,
+                sampled: true
+            };
+        }
+
+        const sampledStartAge = clamp(
+            Math.round(randomNormal(baseStartAge, 2)),
+            minStartAge,
+            maxStartAge
+        );
+        const maxDuration = Math.max(0.5, effectiveYourLifespan - sampledStartAge + 1);
+        const sampledDuration = clamp(
+            randomNormal(baseDuration, 0.75),
+            0.5,
+            Math.max(0.5, Math.min(baseDuration + 2, maxDuration))
+        );
+
+        return {
+            occurs: true,
+            probability,
+            startAge: sampledStartAge,
+            duration: sampledDuration,
+            costWeight: 1,
+            sampled: true
+        };
+    }
+
+    getAnnualAgedCareCost(age, inputs, agedCareProfile, effectiveYourLifespan) {
+        if (!agedCareProfile?.occurs || age < agedCareProfile.startAge) {
+            return 0;
+        }
+
+        const yearsInCare = age - agedCareProfile.startAge;
+        if (yearsInCare >= agedCareProfile.duration) {
+            return 0;
+        }
+
+        const yearsFromNow = age - inputs.yourCurrentAge;
+        let annualCost = inputs.agedCareAnnualCost * Math.pow(1 + inputs.healthcareInflation, yearsFromNow);
+        const remainingCare = agedCareProfile.duration - yearsInCare;
+
+        if (remainingCare < 1 && remainingCare > 0) {
+            annualCost *= remainingCare;
+        }
+
+        if (age >= effectiveYourLifespan) {
+            annualCost = 0;
+        } else if (age + 1 > effectiveYourLifespan) {
+            annualCost *= (effectiveYourLifespan - age);
+        }
+
+        return annualCost * (agedCareProfile.costWeight || 0);
+    }
+
+    buildRetirementSpendingPlan({
+        inputs,
+        retirementYear,
+        currentAge,
+        currentBalance,
+        initialRetirementBalance,
+        previousSpendingTarget,
+        agedCareActive,
+        useRandomReturns
+    }) {
+        const inflationFactor = Math.pow(1 + inputs.inflation, retirementYear);
+        const travelHobbyBase = (inputs.annualTravelBudget || 0) + (inputs.annualHobbyBudget || 0);
+        const pensionAge = this.config.OVERSEAS_RETIREMENT?.PENSION_AGE || 67;
+        const lifecycle = this.getRetirementLifecycleStage(
+            currentAge,
+            inputs.retirementAge,
+            pensionAge,
+            agedCareActive
+        );
+
+        let essentialBase = inputs.asfaComfortable * 0.7 * inflationFactor;
+        let lifestyleBase = (inputs.asfaComfortable * 0.3 * inflationFactor) + (travelHobbyBase * inflationFactor);
+
+        try {
+            const { housingExpense, livingExpense, mortgagePayment } = this.extractBaseExpensesFromCashFlow(inputs);
+            const retirementHousing = Math.max(housingExpense * 0.7, housingExpense - mortgagePayment);
+            const retirementLiving = livingExpense * 0.9;
+            const baseAnnualHousing = retirementHousing * ENHANCED_CONFIG.MONTHS_IN_YEAR * inflationFactor;
+            const baseAnnualLiving = retirementLiving * ENHANCED_CONFIG.MONTHS_IN_YEAR * inflationFactor;
+
+            essentialBase = Math.max(
+                baseAnnualHousing + (baseAnnualLiving * 0.7),
+                inputs.asfaComfortable * 0.6 * inflationFactor
+            );
+            lifestyleBase = Math.max(
+                0,
+                (baseAnnualLiving * 0.3) + (travelHobbyBase * inflationFactor)
+            );
+        } catch (error) {
+            console.warn('Retirement spending plan fallback to ASFA baseline:', error);
+        }
+
+        const essentialSpending = essentialBase * lifecycle.essentialMultiplier;
+        const lifestyleSpending = lifestyleBase * lifecycle.lifestyleMultiplier;
+        const startingTarget = essentialSpending + lifestyleSpending;
+        let targetSpending = calculateSpending({
+            strategy: SPENDING_STRATEGIES.FLOOR_UPSIDE,
+            currentSpending: previousSpendingTarget ?? startingTarget,
+            portfolioValue: currentBalance,
+            initialPortfolio: initialRetirementBalance,
+            initialSpending: startingTarget,
+            yearsRetired: Math.max(0, currentAge - inputs.retirementAge),
+            inflation: inputs.inflation,
+            inputs: {
+                essentialSpending,
+                lifestyleSpending
+            }
+        });
+
+        if (useRandomReturns) {
+            targetSpending += (Math.random() - 0.5) * lifestyleSpending * 0.2;
+        }
+
+        if (previousSpendingTarget && !agedCareActive) {
+            targetSpending = clamp(
+                targetSpending,
+                previousSpendingTarget * 0.9,
+                previousSpendingTarget * 1.07
+            );
+        }
+
+        targetSpending = Math.max(essentialSpending, targetSpending);
+
+        return {
+            lifecycleStage: lifecycle.key,
+            lifecycleLabel: lifecycle.label,
+            decumulationStrategy: SPENDING_STRATEGIES.FLOOR_UPSIDE,
+            essentialSpending,
+            discretionarySpending: Math.max(0, targetSpending - essentialSpending),
+            targetSpending
+        };
     }
 
     // Enhanced Risk profiling calculations with dynamic factors
@@ -1362,6 +1601,9 @@ export class RetirementSimulator {
 
         const balances = [];
         const yearlyData = [];
+        const initialRetirementBalance = currentBalance;
+        const agedCareProfile = this.buildAgedCareProfile(inputs, useRandomReturns, effectiveYourLifespan);
+        let previousSpendingTarget = null;
 
         for (let i = 0; i < yearsInRetirement; i++) {
             const retirementYear = yearsToRetirement + i;
@@ -1401,36 +1643,14 @@ export class RetirementSimulator {
                 inputs.healthcareInflation
             );
 
-            // Aged care costs if applicable - inflate from the current year, not from start age
-            let agedCareCost = 0;
-            if (yourCurrentAge >= inputs.agedCareStartAge &&
-                yourCurrentAge < inputs.agedCareStartAge + inputs.agedCareDuration) {
-                // Calculate years from current age to this aged care year
-                const yearsFromNow = yourCurrentAge - inputs.yourCurrentAge;
-                // Apply healthcare inflation from current year to this aged care year
-                // FIX Bug 4: healthcareInflation is already decimal — no /100 needed.
-                let annualCost = inputs.agedCareAnnualCost * Math.pow(1 + inputs.healthcareInflation, yearsFromNow);
-
-                // Handle partial years - if this is the last year of care and duration has a decimal
-                const yearsInCare = yourCurrentAge - inputs.agedCareStartAge;
-                const remainingCare = inputs.agedCareDuration - yearsInCare;
-
-                // If this is a partial final year (remaining care < 1 year), pro-rate the cost
-                if (remainingCare < 1 && remainingCare > 0) {
-                    annualCost = annualCost * remainingCare;
-                }
-
-                // Also check if person dies during aged care - don't charge beyond lifespan
-                if (yourCurrentAge >= effectiveYourLifespan) {
-                    annualCost = 0; // No cost if person has passed away
-                } else if (yourCurrentAge + 1 > effectiveYourLifespan) {
-                    // Partial year if person dies during this year
-                    const partialYear = effectiveYourLifespan - yourCurrentAge;
-                    annualCost = annualCost * partialYear;
-                }
-
-                agedCareCost = annualCost;
-            }
+            // Deterministic runs use an expected-value care cost; Monte Carlo runs sample an
+            // event path so care is not silently charged to every scenario.
+            const agedCareCost = this.getAnnualAgedCareCost(
+                yourCurrentAge,
+                inputs,
+                agedCareProfile,
+                effectiveYourLifespan
+            );
 
             // Property income (if still owned) and update property equity.
             // Allow negative cash flow: negative gearing losses reduce assessable income
@@ -1457,69 +1677,18 @@ export class RetirementSimulator {
                 propertyEquity = currentValue - remainingLoan;
             }
 
-            // Enhanced realistic expense calculation using cash flow analysis
-            let baseIncomeNeeded;
-
-            if (useRandomReturns) {
-                // Use realistic expense analysis with proper error handling
-                try {
-                    const { housingExpense, livingExpense, mortgagePayment } = this.extractBaseExpensesFromCashFlow(inputs);
-
-                    // Calculate retirement expenses (many costs reduce in retirement)
-                    const retirementHousing = Math.max(
-                        housingExpense * 0.6, // Assume 40% reduction (no mortgage in many cases)
-                        housingExpense - mortgagePayment // Or just remove mortgage
-                    );
-                    const retirementLiving = livingExpense * 0.85; // 15% reduction in living costs
-                    const retirementChildcare = 0; // No childcare in retirement
-
-                    const baseMonthlyExpenses = retirementHousing + retirementLiving + retirementChildcare;
-                    const baseAnnualExpenses = baseMonthlyExpenses * ENHANCED_CONFIG.MONTHS_IN_YEAR;
-
-                    // Apply inflation to get expenses in retirement year
-                    const expensesWithInflation = baseAnnualExpenses * Math.pow(1 + inputs.inflation, retirementYear);
-
-                    // Add realistic randomization based on expense categories
-                    const housingVariation = retirementHousing * ENHANCED_CONFIG.MONTHS_IN_YEAR * (Math.random() - 0.5) * 0.3; // ±30% housing variation
-                    const livingVariation = retirementLiving * ENHANCED_CONFIG.MONTHS_IN_YEAR * (Math.random() - 0.5) * 0.4; // ±40% living variation
-                    const discretionaryVariation = (Math.random() - 0.5) * 20000; // ±$10,000 discretionary spending
-
-                    baseIncomeNeeded = Math.max(
-                        expensesWithInflation + housingVariation + livingVariation + discretionaryVariation,
-                        inputs.asfaComfortable * 0.7 * Math.pow(1 + inputs.inflation, retirementYear) // Minimum safety floor at 70% ASFA
-                    );
-                } catch (error) {
-                    console.warn('Cash flow analysis failed in Monte Carlo, using ASFA fallback:', error);
-                    // Fallback to enhanced ASFA with variation
-                    const asfaWithInflation = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear);
-                    const randomVariation = (Math.random() - 0.5) * 2 * 25000; // ±$25,000 fallback
-                    baseIncomeNeeded = Math.max(0, asfaWithInflation + randomVariation);
-                }
-            } else {
-                // For deterministic runs, use more realistic baseline with error handling
-                try {
-                    const { housingExpense, livingExpense, mortgagePayment } = this.extractBaseExpensesFromCashFlow(inputs);
-
-                    // Conservative retirement expense estimate
-                    const retirementHousing = Math.max(
-                        housingExpense * 0.7, // 30% reduction
-                        housingExpense - mortgagePayment
-                    );
-                    const retirementLiving = livingExpense * 0.9; // 10% reduction
-                    const baseMonthlyExpenses = retirementHousing + retirementLiving;
-                    const baseAnnualExpenses = baseMonthlyExpenses * ENHANCED_CONFIG.MONTHS_IN_YEAR;
-
-                    // Apply inflation
-                    baseIncomeNeeded = Math.max(
-                        baseAnnualExpenses * Math.pow(1 + inputs.inflation, retirementYear),
-                        inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear) // Keep ASFA as minimum
-                    );
-                } catch (error) {
-                    console.warn('Cash flow analysis failed in deterministic calculation, using ASFA fallback:', error);
-                    // Fallback to standard ASFA calculation
-                    baseIncomeNeeded = inputs.asfaComfortable * Math.pow(1 + inputs.inflation, retirementYear);
-                }
-            }
+            const spendingPlan = this.buildRetirementSpendingPlan({
+                inputs,
+                retirementYear,
+                currentAge: yourCurrentAge,
+                currentBalance,
+                initialRetirementBalance,
+                previousSpendingTarget,
+                agedCareActive: agedCareCost > 0,
+                useRandomReturns
+            });
+            const baseIncomeNeeded = spendingPlan.targetSpending;
+            previousSpendingTarget = baseIncomeNeeded;
 
             // LHC loading cost during retirement (mirrors accumulation loop logic)
             let lhcRetirementCost = 0;
@@ -1540,15 +1709,11 @@ export class RetirementSimulator {
                 }
             }
 
-            // Travel and hobby expenses in retirement (inflation-adjusted from today's dollars)
-            const travelHobbyBase = (inputs.annualTravelBudget || 0) + (inputs.annualHobbyBudget || 0);
-            const travelHobbyWithInflation = travelHobbyBase * Math.pow(1 + inputs.inflation, retirementYear);
-
             // Health condition multiplier for healthcare costs
             const healthMultiplier = { excellent: 0.8, good: 1.0, fair: 1.25, poor: 1.6 }[inputs.healthCondition] || 1.0;
             const adjustedHealthcareCost = healthcareCost * healthMultiplier;
 
-            const totalCostWithHealthcare = baseIncomeNeeded + adjustedHealthcareCost + agedCareCost + lhcRetirementCost + travelHobbyWithInflation;
+            const totalCostWithHealthcare = baseIncomeNeeded + adjustedHealthcareCost + agedCareCost + lhcRetirementCost;
 
             // AWLR eligibility check: Age Pension requires 10+ years Australian residence
             // If ageCameToAustralia is set, compute residence years at retirement
@@ -1635,7 +1800,8 @@ export class RetirementSimulator {
             }
 
             // Pension income test uses gross trust distributions; withdrawal offset uses net-of-tax
-            const totalIncome = pensionIncome + propertyIncome + trustDistributionNetIncome;
+            const otherIncome = propertyIncome + trustDistributionNetIncome;
+            const totalIncome = pensionIncome + otherIncome;
             const netWithdrawalNeeded = Math.max(0, totalCostWithHealthcare - totalIncome);
 
             // Enhanced return calculation with regime modeling.
@@ -1723,6 +1889,12 @@ export class RetirementSimulator {
             const minAnnualDraw = currentBalance * minDrawdownRate;
             // Actual withdrawal is the greater of income need and ATO minimum
             const annualWithdrawal = Math.max(netWithdrawalNeeded, minAnnualDraw);
+            const fundingStage = this.getFundingStage(
+                totalCostWithHealthcare,
+                pensionIncome,
+                annualWithdrawal,
+                otherIncome
+            );
 
             // Monthly withdrawal simulation
             const monthlyReturn = Math.pow(1 + actualReturn, 1/12) - 1;
@@ -1767,11 +1939,22 @@ export class RetirementSimulator {
                 returnRate: actualReturn * 100,
                 growth: yearlyGrowth,
                 withdrawal: annualWithdrawal,
+                superIncome: annualWithdrawal,
                 minDrawAmount: minAnnualDraw,
                 minDrawRate: minDrawdownRate,
+                totalPlannedSpending: totalCostWithHealthcare,
+                coreSpending: baseIncomeNeeded,
+                essentialSpending: spendingPlan.essentialSpending,
+                discretionarySpending: spendingPlan.discretionarySpending,
+                decumulationStrategy: spendingPlan.decumulationStrategy,
+                lifecycleStage: spendingPlan.lifecycleStage,
+                lifecycleLabel: spendingPlan.lifecycleLabel,
+                fundingStage: fundingStage.key,
+                fundingLabel: fundingStage.label,
                 healthcareCost,
                 agedCareCost,
                 propertyIncome,
+                otherIncome,
                 pensionIncome,
                 endBalance: currentBalance,
                 liquidAssets,
@@ -1808,6 +1991,7 @@ export class RetirementSimulator {
             homeEquity: homeEquityAtRetirement,
             propertyEquity,
             propertyWasSold,
+            agedCareProfile,
             accumulatedSuperBalance,
             accumulatedSavingsBalance,
             accumulatedInvestmentPortfolio,
@@ -1829,6 +2013,7 @@ export class RetirementSimulator {
         const propertyOutcomes = [];
         const yearlyReturns = []; // Track returns for volatility analysis
         const lifespanSamples = []; // Track sampled lifespans when longevity distribution is on
+        const agedCareOccurrences = [];
 
         const useLongevityDist = !!inputs.useLongevityDistribution;
         const yourGender   = inputs.yourGender   || 'unspecified';
@@ -1847,6 +2032,9 @@ export class RetirementSimulator {
             const result = this.simulateRetirement(runInputs, true);
             outcomes.push(result.finalBalance);
             paths.push(result.balances);
+            agedCareOccurrences.push(
+                result.yearlyData?.some(year => (year.agedCareCost || 0) > 0) ? 1 : 0
+            );
 
             // Track return patterns for analysis
             if (result.yearlyData && result.yearlyData.length > 0) {
@@ -1910,6 +2098,10 @@ export class RetirementSimulator {
             };
         }
 
+        const careEventRate = agedCareOccurrences.length > 0
+            ? agedCareOccurrences.reduce((sum, value) => sum + value, 0) / agedCareOccurrences.length
+            : 0;
+
         return {
             outcomes,
             paths,
@@ -1921,6 +2113,10 @@ export class RetirementSimulator {
             percentiles,
             medianReturnsByYear,
             longevityStats,
+            careStats: {
+                configuredProbability: clamp(parseFloat(inputs.agedCareProbability || 0), 0, 1),
+                simulatedEventRate: careEventRate
+            },
             // Legacy support
             percentile10: percentiles.p10,
             percentile90: percentiles.p90,
