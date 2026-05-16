@@ -1283,15 +1283,19 @@ function renderMonteCarloCharts(mc, inp) {
   }
 
   // ── Histogram ──
+  // The MC result object stores final balances in mc.outcomes (from simulator.js
+  // runMonteCarloSimulation) or mc.statistics?.outcomes (from EnhancedMonteCarloEngine).
+  // mc.finalBalances does not exist — always use mc.outcomes.
   const histWrap = document.getElementById('adv2-hist-chart-wrap');
   const histCanvas = document.getElementById('adv2-hist-chart');
-  if (histWrap && histCanvas && mc.finalBalances && mc.finalBalances.length > 0) {
+  const rawOutcomes = mc.outcomes || mc.statistics?.outcomes || [];
+  if (histWrap && histCanvas && rawOutcomes.length > 0) {
     histWrap.style.display = 'block';
     const existingHist = APP_STATE.chartManager.charts.adv2HistChart;
     if (existingHist) existingHist.destroy();
 
     // Build histogram from final balances
-    const balances = mc.finalBalances.filter((b) => b > 0);
+    const balances = rawOutcomes.filter((b) => b > 0);
     const buckets = 20;
     const maxBal = Math.max(...balances);
     const bucketSize = maxBal / buckets;
@@ -1398,18 +1402,18 @@ function renderSummaryPanel() {
       <div class="mc-results-grid" style="margin-top:10px">
         <div class="mc-stat">
           <div class="mc-k">Investment return</div>
-          <div class="mc-v">${((inp.invReturn || 0) * 100).toFixed(1)}%</div>
+          <div class="mc-v">${(inp.invReturn || ENHANCED_CONFIG.DEFAULTS?.economic?.investmentReturn * 100 || 6.5).toFixed(1)}%</div>
           <div class="mc-sub">User entered</div>
         </div>
         <div class="mc-stat">
           <div class="mc-k">Inflation</div>
-          <div class="mc-v">${((inp.inflation || 0) * 100).toFixed(1)}%</div>
+          <div class="mc-v">${(inp.inflation || ENHANCED_CONFIG.DEFAULTS?.economic?.inflation * 100 || 2.5).toFixed(1)}%</div>
           <div class="mc-sub">User entered</div>
         </div>
         <div class="mc-stat">
           <div class="mc-k">Healthcare inflation</div>
-          <div class="mc-v">${((inp.healthcareInflation || ENHANCED_CONFIG.DEFAULTS?.healthcare?.healthcareInflation || 0.055) * 100).toFixed(1)}%</div>
-          <div class="mc-sub">User entered / model default 5.5%</div>
+          <div class="mc-v">${((ENHANCED_CONFIG.DEFAULTS?.healthcare?.healthcareInflation || 0.055) * 100).toFixed(1)}%</div>
+          <div class="mc-sub">Model default (AIHW long-run)</div>
         </div>
         <div class="mc-stat">
           <div class="mc-k">Aged care probability</div>
@@ -1521,23 +1525,25 @@ function renderRiskPanel() {
   const risk = APP_STATE.riskProfile;
   const stressRows = APP_STATE.stressTestResults || [];
 
-  if (!risk) {
-    setPanelHtml('risk', '<p style="color:var(--ink-3)">Run Monte Carlo or the full simulation to generate your risk capacity, tolerance, requirement, and stress results.</p>');
+  // If neither risk profile nor stress results are available, show a prompt.
+  if (!risk && stressRows.length === 0) {
+    setPanelHtml('risk', '<p style="color:var(--ink-3)">Run Monte Carlo or the Stress Test tool to generate your risk profile and scenario results.</p>');
     return;
   }
 
-  // Build risk profile explanation (why is tolerance high but profile moderate?)
-  const toleranceNote = (risk.riskTolerance != null && risk.riskCapacity != null
-    && risk.riskTolerance > 75 && risk.riskCapacity < 60)
+  // Build the risk profile section — only when profile data is available.
+  // If only stress tests have been run (risk === null), show a placeholder for the profile.
+  const toleranceNote = risk && risk.riskTolerance != null && risk.riskCapacity != null
+    && risk.riskTolerance > 75 && risk.riskCapacity < 60
     ? `<p style="margin:10px 0 0;font-size:12.5px;color:var(--gold);background:var(--gold-soft);border-radius:8px;padding:8px 10px">
         Your risk tolerance score is high (${risk.riskTolerance}/100), but your overall profile is ${escapeHtml(risk.overallRiskProfile || 'balanced')}
         because your risk capacity (${risk.riskCapacity}/100) is more moderate. The recommendation blends all three dimensions —
         capacity, tolerance, and requirement — rather than relying on tolerance alone.
        </p>`
-    : (risk.misalignment?.message ? `<p style="margin:12px 0 0;color:var(--ink-3)">${escapeHtml(risk.misalignment.message)}</p>` : '');
+    : (risk?.misalignment?.message ? `<p style="margin:12px 0 0;color:var(--ink-3)">${escapeHtml(risk.misalignment.message)}</p>` : '');
 
-  setPanelHtml('risk', `
-    <div class="summary-grid">
+  // Risk profile section — shown when MC has been run; placeholder otherwise.
+  const riskProfileSection = risk ? `
       <div class="summary-chart">
         <h5>Risk profile</h5>
         <div class="desc">Three-dimensional risk assessment: capacity × tolerance × requirement</div>
@@ -1567,7 +1573,16 @@ function renderRiskPanel() {
           Overall profile: ${escapeHtml(risk.overallRiskProfile || 'Balanced')}
         </div>
         ${toleranceNote}
-      </div>
+      </div>` : `
+      <div class="summary-chart">
+        <h5>Risk profile</h5>
+        <div class="desc">Run Monte Carlo or the full simulation to generate your three-dimensional risk assessment.</div>
+        <p style="margin:8px 0 0;color:var(--ink-3)">Use the 📊 Monte Carlo tool in the sidebar to assess capacity, tolerance, and requirement scores.</p>
+      </div>`;
+
+  setPanelHtml('risk', `
+    <div class="summary-grid">
+      ${riskProfileSection}
       <div class="summary-chart">
         <h5>Stress scenarios</h5>
         <div class="desc">Deterministic shock outcomes — how your plan holds up under each scenario.</div>
@@ -1592,7 +1607,7 @@ function renderRiskPanel() {
         ` : '<p style="margin:0;color:var(--ink-3)">Run the Stress Test tool to see how your plan responds to market crashes and other adverse events.</p>'}
       </div>
     </div>
-    ${risk.recommendations?.length ? `
+    ${risk?.recommendations?.length ? `
       <div class="summary-chart" style="margin-top:16px">
         <h5>Risk-led actions</h5>
         <div class="desc">Top recommendations from the risk profiling engine based on your three-dimensional profile.</div>
@@ -1841,6 +1856,10 @@ async function runAction(button, handler, {
   }
 
   showLoadingOverlay(runningLabel || 'Running…');
+
+  // Yield to the browser so the overlay class change is painted before the
+  // (potentially synchronous or microtask-only) handler blocks the main thread.
+  await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
 
   try {
     const result = await handler();
