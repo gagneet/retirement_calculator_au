@@ -2750,9 +2750,11 @@ export class RetirementSimulator {
             },
             {
                 name: "High Healthcare Cost Scenario",
-                description: `Healthcare costs inflate at ${this.financialConfig.stressTesting.HEALTHCARE_STRESS.HIGH_INFLATION_RATE.value}% annually instead of ${(baseInputs.healthcareInflation || 6.1).toFixed(1)}% (stress test based on historical spikes)`,
+                description: `Healthcare costs inflate at ${this.financialConfig.stressTesting.HEALTHCARE_STRESS.HIGH_INFLATION_RATE.value}% annually instead of ${((baseInputs.healthcareInflation || 0.055) * 100).toFixed(1)}% (stress test based on historical spikes)`,
                 modifications: {
-                    healthcareInflation: this.financialConfig.stressTesting.HEALTHCARE_STRESS.HIGH_INFLATION_RATE.value
+                    // healthcareInflation is stored as a decimal (0.075 = 7.5%).
+                    // The raw config value is in percentage points (7.5), so divide by 100.
+                    healthcareInflation: this.financialConfig.stressTesting.HEALTHCARE_STRESS.HIGH_INFLATION_RATE.value / 100
                 }
             },
             {

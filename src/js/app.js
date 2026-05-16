@@ -27,7 +27,7 @@ import { ActionGenerator } from './action-generator.js';
 import { WhatIfEngine } from './what-if-engine.js';
 import { ResilienceScenarioEngine } from './resilience-scenarios.js';
 import { runFullSimulation } from './simulation_engine/index.js';
-import { buildStressedInputs } from './policy/stress-helpers.js';
+import { buildStressedInputs, normaliseStressScenarioForTest } from './policy/stress-helpers.js';
 import { RetirementCostAnalyzer } from './retirement-cost-analyzer.js';
 import PersonalizedQuestionEngine from './personalized-qa-engine.js';
 // js/app.js - Main Application Controller
@@ -7341,9 +7341,13 @@ class RetirementCalculatorApp {
                 // scenario defines (e.g. healthcareCostMultiplier, changed return rates).
                 const stressedInputs = buildStressedInputs(inputs, scenario);
 
-                // Run the simulation with the stressed inputs AND the scenario object
-                // (for year-specific return overrides handled inside simulateRetirement).
-                const stressResult = this.simulator.runStressTest(stressedInputs, scenario);
+                // normaliseStressScenarioForTest converts year1/year2/… objects into
+                // yearlyEquityReturns / yearlyBondReturns arrays and sets isRetirementTimed
+                // so simulateRetirement correctly applies multi-year shocks (COVID, GFC).
+                const normalisedScenario = normaliseStressScenarioForTest(scenario);
+
+                // Run the simulation with the stressed inputs AND the normalised scenario.
+                const stressResult = this.simulator.runStressTest(stressedInputs, normalisedScenario);
                 const stressBalance = stressResult.finalBalance || 0;
 
                 results.push({

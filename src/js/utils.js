@@ -3061,10 +3061,21 @@ function getProjectedOutcome(results) {
     else if (finalBalance > 0) outcome = 'Adequate';
     else outcome = 'Needs Improvement';
 
+    // yearsOfFunding represents how many years the residual balance could sustain
+    // $50K/year withdrawals if drawn at a flat rate — a rough approximation only.
+    // When the portfolio remains funded through the full modelled lifespan, this
+    // number will appear large (e.g. 112 years).  Display it only as a supplementary
+    // metric; the primary message is whether the plan survives the modelled lifespan.
+    const rawYearsOfFunding = finalBalance > 0 ? Math.floor(finalBalance / 50000) : 0;
+
     return {
         outcome,
         finalBalance,
-        yearsOfFunding: finalBalance > 0 ? Math.floor(finalBalance / 50000) : 0
+        yearsOfFunding: rawYearsOfFunding,
+        // Human-readable summary avoids the misleading "112 years" figure.
+        fundingSummary: finalBalance > 0
+            ? `Portfolio remains funded through modelled lifespan with residual balance of ${formatCurrency(finalBalance)}.`
+            : 'Portfolio depleted before end of modelled lifespan.'
     };
 }
 
@@ -3153,7 +3164,8 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
             ['Target Amount (25x Rule)', formatCurrency(readiness.targetAmount)],
             ['Funding Gap', readiness.gap > 0 ? formatCurrency(readiness.gap) : 'None'],
             ['Projected Outcome', analysis.enhancedSummary.projectedOutcome.outcome],
-            ['Years of Funding', `${analysis.enhancedSummary.projectedOutcome.yearsOfFunding} years`]
+            ['Funding Assessment', analysis.enhancedSummary.projectedOutcome.fundingSummary
+                || `${analysis.enhancedSummary.projectedOutcome.yearsOfFunding} years of $50K/yr withdrawals from residual balance`]
         ];
 
         doc.autoTable({
@@ -3839,12 +3851,18 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         yPos += 7;
 
         const rp = analysis.riskProfile;
+        // Support both normalised format (advanced-v2: rp.riskCapacity) and
+        // raw format (advanced: rp.dimensions.capacity.score).
+        const rpCapacity  = rp.riskCapacity   ?? rp.dimensions?.capacity?.score   ?? null;
+        const rpTolerance = rp.riskTolerance  ?? rp.dimensions?.tolerance?.score  ?? null;
+        const rpRequirement = rp.riskRequirement ?? rp.dimensions?.requirement?.score ?? null;
+        const rpConfidence  = rp.confidence   ?? rp.confidenceLevel  ?? null;
         const rpBody = [
-            ['Overall Risk Profile', rp.overallRiskProfile || 'N/A'],
-            ['Risk Capacity Score', rp.riskCapacity != null ? `${rp.riskCapacity}/100` : 'N/A'],
-            ['Risk Tolerance Score', rp.riskTolerance != null ? `${rp.riskTolerance}/100` : 'N/A'],
-            ['Risk Requirement Score', rp.riskRequirement != null ? `${rp.riskRequirement}/100` : 'N/A'],
-            ['Confidence', rp.confidence != null ? `${rp.confidence}%` : 'N/A'],
+            ['Overall Risk Profile', rp.overallRiskProfile || rp.riskProfile || 'N/A'],
+            ['Risk Capacity Score', rpCapacity  != null ? `${Math.round(rpCapacity)}/100`   : 'N/A'],
+            ['Risk Tolerance Score', rpTolerance != null ? `${Math.round(rpTolerance)}/100`  : 'N/A'],
+            ['Risk Requirement Score', rpRequirement != null ? `${Math.round(rpRequirement)}/100` : 'N/A'],
+            ['Confidence', rpConfidence != null ? `${Math.round(rpConfidence)}%` : 'N/A'],
         ];
 
         doc.autoTable({
@@ -4322,14 +4340,19 @@ function addEnhancedAnalysisToXLSX(wb, analysis) {
     // Advanced Risk Profile Sheet
     if (analysis.riskProfile) {
         const rp = analysis.riskProfile;
+        // Support both normalised (advanced-v2) and raw (advanced) formats.
+        const xlCapacity    = rp.riskCapacity    ?? rp.dimensions?.capacity?.score    ?? '';
+        const xlTolerance   = rp.riskTolerance   ?? rp.dimensions?.tolerance?.score   ?? '';
+        const xlRequirement = rp.riskRequirement ?? rp.dimensions?.requirement?.score ?? '';
+        const xlConfidence  = rp.confidence      ?? rp.confidenceLevel               ?? '';
         const rpData = [
             ['Advanced Risk Profile', '', ''],
             ['Dimension', 'Score / Value', 'Interpretation'],
-            ['Overall Risk Profile', rp.overallRiskProfile || '', ''],
-            ['Risk Capacity', rp.riskCapacity != null ? rp.riskCapacity : '', 'Ability to absorb financial losses'],
-            ['Risk Tolerance', rp.riskTolerance != null ? rp.riskTolerance : '', 'Willingness to accept volatility'],
-            ['Risk Requirement', rp.riskRequirement != null ? rp.riskRequirement : '', 'Return needed to meet goals'],
-            ['Confidence', rp.confidence != null ? `${rp.confidence}%` : '', 'Model confidence in assessment'],
+            ['Overall Risk Profile', rp.overallRiskProfile || rp.riskProfile || '', ''],
+            ['Risk Capacity', xlCapacity !== '' ? Math.round(xlCapacity) : '', 'Ability to absorb financial losses'],
+            ['Risk Tolerance', xlTolerance !== '' ? Math.round(xlTolerance) : '', 'Willingness to accept volatility'],
+            ['Risk Requirement', xlRequirement !== '' ? Math.round(xlRequirement) : '', 'Return needed to meet goals'],
+            ['Confidence', xlConfidence !== '' ? `${Math.round(xlConfidence)}%` : '', 'Model confidence in assessment'],
         ];
 
         if (rp.recommendations?.length > 0) {

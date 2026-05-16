@@ -1116,3 +1116,140 @@ table.year-table tr.depleted td { color: var(--rose); }
   --border: #cfc8b5;
   --border-2: #a8a08c;
 }
+
+/* ============================================================
+   Loading overlay — shown during long-running actions
+   ============================================================ */
+.adv2-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(22, 20, 15, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.adv2-loading-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+.adv2-loading-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 36px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  min-width: 240px;
+  max-width: 340px;
+}
+.adv2-spinner {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 14px;
+  border: 3.5px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: adv2-spin 0.75s linear infinite;
+}
+@keyframes adv2-spin {
+  to { transform: rotate(360deg); }
+}
+.adv2-loading-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 4px;
+}
+.adv2-loading-sub {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  margin: 0;
+}
+.adv2-progress-bar-wrap {
+  height: 4px;
+  background: var(--surface-3);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+.adv2-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+  width: 0%;
+  transition: width 0.4s ease;
+  animation: adv2-indeterminate 1.4s ease infinite;
+}
+@keyframes adv2-indeterminate {
+  0%   { width: 0%;  margin-left: 0%; }
+  50%  { width: 60%; margin-left: 20%; }
+  100% { width: 0%;  margin-left: 100%; }
+}
+
+/* Monte Carlo results section in summary panel */
+.mc-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.mc-stat {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: center;
+}
+.mc-stat .mc-k {
+  font-size: 11px;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.mc-stat .mc-v {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: var(--font-mono);
+}
+.mc-stat .mc-sub {
+  font-size: 10px;
+  color: var(--ink-4);
+  margin-top: 2px;
+}
+/* Confidence gauge */
+.confidence-gauge-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.gauge-value-text {
+  font-family: var(--font-mono);
+}
+/* Chart containers inside analysis panels */
+.panel-chart-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 14px;
+}
+.panel-chart-wrap h5 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.panel-chart-canvas {
+  max-height: 220px;
+}
