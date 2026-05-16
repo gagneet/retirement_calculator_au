@@ -1284,9 +1284,14 @@ export class RetirementSimulator {
                 );
             }
 
-            // Apply stress scenario if provided
+            // Apply stress scenario if provided.
+            // isRetirementTimed scenarios (COVID, GFC) are only meant to shock the
+            // retirement-phase drawdown loop, not the accumulation phase — applying them
+            // in both loops would double-count the shock.  Skip yearlyEquityReturns here
+            // when isRetirementTimed is set; flat equityReturn scenarios without that flag
+            // are still applied during accumulation (e.g. Property Market Correction).
             if (stressScenario && year <= stressScenario.duration) {
-                if (stressScenario.yearlyEquityReturns) {
+                if (stressScenario.yearlyEquityReturns && !stressScenario.isRetirementTimed) {
                     const idx = year - 1;
                     const eqRet = stressScenario.yearlyEquityReturns[idx] ?? 0;
                     const bdRet = stressScenario.yearlyBondReturns
@@ -1295,7 +1300,7 @@ export class RetirementSimulator {
                     returnRate = (allocation.equity / 100) * eqRet +
                         (allocation.bonds / 100) * bdRet +
                         (allocation.cash / 100) * 0.01;
-                } else if (stressScenario.equityReturn) {
+                } else if (stressScenario.equityReturn && !stressScenario.isRetirementTimed) {
                     returnRate = (allocation.equity / 100) * stressScenario.equityReturn +
                         (allocation.bonds / 100) * (stressScenario.bondReturn || 0.02) +
                         (allocation.cash / 100) * 0.01;
@@ -2750,9 +2755,11 @@ export class RetirementSimulator {
             },
             {
                 name: "High Healthcare Cost Scenario",
-                description: `Healthcare costs inflate at ${this.financialConfig.stressTesting.HEALTHCARE_STRESS.HIGH_INFLATION_RATE.value}% annually instead of ${(baseInputs.healthcareInflation || 6.1).toFixed(1)}% (stress test based on historical spikes)`,
+                description: `Healthcare costs inflate at ${this.financialConfig.stressTesting.HEALTHCARE_STRESS.HIGH_INFLATION_RATE.value}% annually instead of ${((baseInputs.healthcareInflation || 0.055) * 100).toFixed(1)}% (stress test based on historical spikes)`,
                 modifications: {
-                    healthcareInflation: this.financialConfig.stressTesting.HEALTHCARE_STRESS.HIGH_INFLATION_RATE.value
+                    // healthcareInflation is stored as a decimal (0.075 = 7.5%).
+                    // The raw config value is in percentage points (7.5), so divide by 100.
+                    healthcareInflation: this.financialConfig.stressTesting.HEALTHCARE_STRESS.HIGH_INFLATION_RATE.value / 100
                 }
             },
             {

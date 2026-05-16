@@ -20,6 +20,18 @@
 </head>
 <body class="redesign-v2">
 
+<!-- ───── LOADING OVERLAY ───── -->
+<div class="adv2-loading-overlay" id="adv2-loading-overlay" role="status" aria-live="polite" aria-label="Loading">
+  <div class="adv2-loading-card">
+    <div class="adv2-spinner" aria-hidden="true"></div>
+    <p class="adv2-loading-label" id="adv2-loading-label">Running…</p>
+    <p class="adv2-loading-sub" id="adv2-loading-sub">This may take a moment</p>
+    <div class="adv2-progress-bar-wrap">
+      <div class="adv2-progress-bar" id="adv2-progress-bar"></div>
+    </div>
+  </div>
+</div>
+
 <div class="app">
 
   <!-- ───── TOP BAR ───── -->
@@ -777,10 +789,10 @@
             </div>
           </div>
           <div data-tab-panel="risk" hidden>
-            <p style="color:var(--ink-3)">Risk analysis renders here from your <code>resilience-scenarios.js</code> engine.</p>
+            <p style="color:var(--ink-3)">Run the Monte Carlo or Stress Test tool to see your risk profile and scenario results here.</p>
           </div>
           <div data-tab-panel="ai" hidden>
-            <p style="color:var(--ink-3)">AI recommendations render here from your <code>recommendation.js</code> engine.</p>
+            <p style="color:var(--ink-3)">Run AI suggestions or the full simulation to generate personalised recommendations.</p>
           </div>
         </div>
       </div>

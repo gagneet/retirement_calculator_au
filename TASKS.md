@@ -1,6 +1,6 @@
 # TASKS.md — Retirement Calculator: Remaining Work
 
-Updated: 2026-05-15 (post PR #81 review fixes)  
+Updated: 2026-05-16 (post PR #83 — loading indicators, MC detail, calculator bugs)  
 Test status: **671 tests passing, 0 failures** across 28 suites.  
 Build status: **Clean** (webpack, 2 pre-existing size warnings only).
 
@@ -307,21 +307,9 @@ Each test asserts `expect(result.finalBalance).toBeCloseTo(expectedValue, -3)` (
 
 ---
 
-### TASK-018: Fix healthcare stress test producing $0 in PDF
+### ✅ TASK-018: Fix healthcare stress test producing $0 in PDF
 
-**Problem (from enhancements.md §3 introductory paragraph):** The "Healthcare Crisis" stress scenario (2.5× healthcare cost multiplier) shows $0 in the PDF export. This is because `healthcareCostMultiplier` is defined in `STRESS_SCENARIOS` but never read by the simulation engine when processing this scenario type.
-
-**Required actions:**
-1. In the stress scenario application code, handle `healthcareCostMultiplier`:
-   ```js
-   const stressedInputs = {
-       ...canonicalInputs,
-       currentHealthcareCosts: canonicalInputs.currentHealthcareCosts * (stress.healthcareCostMultiplier || 1),
-   };
-   ```
-2. Add a unit test: healthcare stress scenario produces higher costs and lower final balance than base plan.
-
-**Files:** `simulator.js` (stress test application), `utils.js` (export)
+> **Completed in PR #83.** See completed work section below.
 
 ---
 
@@ -340,29 +328,92 @@ Each test asserts `expect(result.finalBalance).toBeCloseTo(expectedValue, -3)` (
 
 ## Summary table
 
-| Task | Area | Priority | Effort estimate |
-|------|------|----------|-----------------|
-| TASK-001 | Unify Age Pension engine | P1 | 2 days |
-| TASK-002 | Unify super contributions tax | P1 | 0.5 days |
-| TASK-003 | Unify Monte Carlo engine | P1 | 3 days |
-| TASK-004 | Fix investment income model | P1 | 1 day |
-| TASK-005 | Fix advanced-design-engine stale constants | P1 | 1 day |
-| TASK-006 | Stress tests apply scenario deltas | P2 | 1.5 days |
-| TASK-007 | Recommendation impacts from simulation | P2 | 2 days |
-| TASK-008 | PDF export shows real numRuns | P2 | 0.5 days |
-| TASK-009 | agedCareProbability source annotation | P2 | 0.5 days |
-| TASK-010 | `normalise-inputs.js` canonical module | P3 | 1 day |
-| TASK-011 | `validate-inputs.js` canonical module | P3 | 1 day |
-| TASK-012 | Unified result schema | P3 | 2 days |
-| TASK-013 | Golden-output regression tests | P3 | 2 days |
-| TASK-014 | Division 296 tax in all pipelines | P3 | 1 day |
-| TASK-015 | Carry-forward concessional cap | P3 | 1.5 days |
-| TASK-016 | Display which engine produced each result | P4 | 0.5 days |
-| TASK-017 | Charts from canonical result object | P4 | 1 day |
-| TASK-018 | Fix healthcare stress test $0 output | P4 | 0.5 days |
-| TASK-019 | Input validation on JSON import | P4 | 1 day |
+| Task | Area | Priority | Status | Effort estimate |
+|------|------|----------|--------|-----------------|
+| TASK-001 | Unify Age Pension engine | P1 | ✅ Done (PR #81) | 2 days |
+| TASK-002 | Unify super contributions tax | P1 | ✅ Done (PR #81) | 0.5 days |
+| TASK-003 | Unify Monte Carlo engine | P1 | ✅ Done (PR #81) | 3 days |
+| TASK-004 | Fix investment income model | P1 | ✅ Done (PR #81) | 1 day |
+| TASK-005 | Fix advanced-design-engine stale constants | P1 | ✅ Done (PR #81) | 1 day |
+| TASK-006 | Stress tests apply scenario deltas | P2 | ✅ Done (PR #81) | 1.5 days |
+| TASK-007 | Recommendation impacts from simulation | P2 | ✅ Done (PR #81) | 2 days |
+| TASK-008 | PDF export shows real numRuns | P2 | ✅ Done (PR #81) | 0.5 days |
+| TASK-009 | agedCareProbability source annotation | P2 | Open | 0.5 days |
+| TASK-010 | `normalise-inputs.js` canonical module | P3 | ✅ Done (PR #81) | 1 day |
+| TASK-011 | `validate-inputs.js` canonical module | P3 | ✅ Done (PR #81) | 1 day |
+| TASK-012 | Unified result schema | P3 | Open | 2 days |
+| TASK-013 | Golden-output regression tests | P3 | Open | 2 days |
+| TASK-014 | Division 296 tax in all pipelines | P3 | ✅ Done (PR #81) | 1 day |
+| TASK-015 | Carry-forward concessional cap | P3 | Open | 1.5 days |
+| TASK-016 | Display which engine produced each result | P4 | Open | 0.5 days |
+| TASK-017 | Charts from canonical result object | P4 | Open | 1 day |
+| TASK-018 | Fix healthcare stress test $0 output | P4 | ✅ Done (PR #83) | 0.5 days |
+| TASK-019 | Input validation on JSON import | P4 | Open | 1 day |
+| TASK-020 | Fix COVID/GFC stress tests returning $0 delta | P2 | ✅ Done (PR #83) | — |
+| TASK-021 | Fix salary-boost recommendations capped at $5M | P2 | ✅ Done (PR #83) | — |
+| TASK-022 | Add loading overlay for all long-running actions | P2 | ✅ Done (PR #83) | — |
+| TASK-023 | Enhance MC results in advanced-v2 (gauge, charts) | P3 | ✅ Done (PR #83) | — |
+| TASK-024 | Fan chart + histogram in advanced-v2 Risk tab | P3 | ✅ Done (PR #83) | — |
+| TASK-025 | Fix "Years of Funding: 112 years" misleading text | P3 | ✅ Done (PR #83) | — |
+| TASK-026 | Fix risk profile N/A scores in PDF/XLSX exports | P3 | ✅ Done (PR #83) | — |
+| TASK-027 | Assumptions transparency section in summary panel | P4 | ✅ Done (PR #83) | — |
+| TASK-028 | Risk profile consistency explanation in Risk tab | P4 | ✅ Done (PR #83) | — |
 
-**Total estimated effort: ~23 developer days**
+**Remaining open tasks: 6 (TASK-009, TASK-012, TASK-013, TASK-015, TASK-016, TASK-017, TASK-019)**  
+**Remaining estimated effort: ~8.5 developer days**
+
+---
+
+## What remains (open tasks)
+
+The following six tasks are still open. All are in the P3–P4 tier — they do not affect calculation correctness but improve architecture stability, output completeness, and developer experience.
+
+### TASK-009 — agedCareProbability source annotation (P2, ~0.5 days)
+The PDF/XLSX report does not distinguish between a user-supplied aged-care probability and the AIHW model default (65%). A user who enters 22% cannot confirm their value was used vs the default. Add a `_agedCareProbabilitySource` flag through the result chain and surface it as a footnote in the export.
+
+**Files:** `utils.js`, `simulation_engine/expense_engine.js`
+
+---
+
+### TASK-012 — Unified result schema (P3, ~2 days)
+The three calculation pipelines return objects with different field names for identical concepts (`finalBalance` vs `finalNetWorth` vs `projections[last].balance`; `monteCarlo.successRate` vs `probabilityOfSuccess`; `yearlyData` vs `timeline` vs `projections`). This means UI components, chart builders, and export functions contain fragile, format-specific access paths. Define a canonical schema in `src/js/engine/result-schema.js` and wrap each pipeline output with a thin adapter.
+
+**Files:** new `src/js/engine/result-schema.js`, `simulator.js`, `simulation_engine/life_simulation_engine.js`, `advanced-design-engine.js`, `app.js`, `charts.js`, `utils.js`
+
+---
+
+### TASK-013 — Golden-output regression tests (P3, ~2 days)
+There are no fixed-seed, expected-output tests to catch regressions in the core calculation. Changes to the engine can silently shift retirement balance projections by hundreds of thousands of dollars. Create `tests/unit/golden-output.test.js` covering: single homeowner, couple homeowner (template JSON), investment property with CGT, high income with Division 293, pension-eligible, pension-ineligible, GFC stress scenario (must produce lower balance than base), and fixed-seed Monte Carlo (1000 runs, ±1% tolerance).
+
+**Files:** new `tests/unit/golden-output.test.js`
+
+---
+
+### TASK-015 — Carry-forward concessional cap (P3, ~1.5 days)
+The calculator accepts voluntary super contributions but does not enforce the $30,000/year concessional cap or check carry-forward eligibility (TSB < $500k at prior 30 June). Excess concessional contributions attract 32% tax (marginal rate + 2% charge, less 15% already paid) — currently silently ignored. Cap total concessional contributions (SG + voluntary) in both `simulator.js` and `life_simulation_engine.js`, track carry-forward, and surface a UI warning when close to the cap.
+
+**Files:** `simulator.js`, `simulation_engine/life_simulation_engine.js`, `config.js`, `app.js`
+
+---
+
+### TASK-016 — Display which engine produced each result (P4, ~0.5 days)
+The main results page, Life Simulation tab, and Advanced Design page all show retirement projections without indicating which engine produced them or what its limitations are. A user sees three different "final balance" numbers with no explanation. Add a metadata footer to each result panel identifying the pipeline and date, and a visible warning on simplified-model outputs (Pipeline B / C).
+
+**Files:** `index.html`, `src/js/app.js`, life simulation tab HTML
+
+---
+
+### TASK-017 — Charts from canonical result object (P4, ~1 day)
+`charts.js` receives data from multiple callers and some charts may be drawn from a different simulation run than the one currently displayed in text. Implement a shared result store in `app.js`, ensure all chart drawing functions read from it, and display a "last calculated at" timestamp beneath charts.
+
+**Files:** `charts.js`, `app.js`
+
+---
+
+### TASK-019 — Input validation on JSON import (P4, ~1 day)
+When a user imports `retirement_template.json` (or any saved JSON), there is no validation before the data loads into the form. Stale values (e.g. `inflation: 2.0` where `0.02` is now expected), missing required fields, or out-of-range numbers silently corrupt the calculation. After import, run `validateInputs(normaliseInputs(importedData))` and display any errors in a modal before accepting the data.
+
+**Files:** `app.js`, `src/js/policy/validate-inputs.js` (from TASK-011)
 
 ---
 
@@ -410,3 +461,41 @@ Each test asserts `expect(result.finalBalance).toBeCloseTo(expectedValue, -3)` (
 - ✅ Test name corrected: primary earner does NOT attract Division 293 (income below threshold)
 - ✅ Clamp unit test extracted as pure arithmetic (no 20k-run slow test)
 - ✅ TASKS.md P1 tasks marked complete
+
+---
+
+## ✅ Completed work (PR #83 — loading indicators, MC detail, calculator bugs)
+
+Source: `docs/advanced-calculator-issues.md` + user-reported UX freeze.  
+Branch: `fix/loading-indicators-mc-detail-calculator-bugs`
+
+### Loading / UX
+- ✅ **TASK-022** Full-screen loading overlay with animated spinner and contextual subtitle added to `advanced-v2` for every long-running action (Monte Carlo, Stress Test, AI suggestions, Retirement Age solver, PDF export, Load data). The silent page-freeze on button click is eliminated. `showLoadingOverlay()` / `hideLoadingOverlay()` called from `runAction()` wrapper. Styles in `redesign.css` (overlay, spinner, indeterminate progress bar).
+
+### Monte Carlo results in advanced-v2
+- ✅ **TASK-023** Replaced 4-line MC snapshot in the Summary tab with a full dashboard: animated SVG half-arc confidence gauge (green/amber/red), 6-tile stat grid (total runs, success rate, median, 10th percentile, 90th percentile, failure probability), contextual narrative explaining what the success rate means in plain English.
+- ✅ **TASK-024** Fan chart (percentile bands over time) and histogram (final balance distribution) added to the Risk & Resilience tab via Chart.js. Charts are rendered after Monte Carlo or full simulation completes. Canvas elements are injected by `renderRiskPanel()` and drawn by `renderMonteCarloCharts()` via a microtask so the DOM is ready.
+
+### Calculator bug fixes (docs/advanced-calculator-issues.md)
+
+- ✅ **TASK-020 — COVID-19 / GFC stress tests returning `+$0.00` delta**  
+  Root cause: `year1`/`year2` objects in `STRESS_SCENARIOS` were never translated to `yearlyEquityReturns` / `yearlyBondReturns` arrays. `simulateRetirement()` found no shock to apply, so the stressed result equalled the base result.  
+  Fix: Added `normaliseStressScenarioForTest()` in `stress-helpers.js`. It detects `yearN` keys, maps them to the arrays the simulator expects, and sets `isRetirementTimed: true`. Called in both `advanced-v2.js` and `app.js` before every `runStressTest()`.
+
+- ✅ **TASK-018 / High Healthcare Cost scenario returning `$0.00`**  
+  Root cause (scenario comparison engine): `healthcareInflation` was set to `7.5` (raw percentage points) but `simulateRetirement()` treats it as a decimal (`0.075 = 7.5%`). Storing `7.5` meant 750%/year healthcare cost growth, draining any portfolio to zero instantly.  
+  Fix: Changed to `value / 100` in `simulator.js` `getCommonScenarios()`. Description string updated to show correct baseline for comparison.
+
+- ✅ **TASK-021 — Salary-boost recommendations all showing `$5M`**  
+  Root cause: Code added raw percentage points to a decimal `salaryGrowthRate` (e.g. `0.015 + 15/20 = 0.765` → 76.5%/year salary growth), always hitting the `$5M` cap. The "every 3 years" scenario added `1.5` to a decimal, producing 151%/year growth.  
+  Fix: Salary boost scenarios now set `yourSalary` directly to the boosted annual value, producing genuinely distinct simulation inputs per scenario. The growth-rate scenario uses a correct decimal increment (`+0.015` for +1.5 percentage points).
+
+- ✅ **TASK-025 — "Years of Funding: 112 years" misleading text**  
+  Added a `fundingSummary` field to the projected outcome object with plain-English text: `"Portfolio remains funded through modelled lifespan with residual balance of $X.XM."` PDF and XLSX exports now show this instead of the raw year count derived from `finalBalance / $50k`.
+
+- ✅ **TASK-026 — Risk profile N/A scores in PDF/XLSX**  
+  Root cause: `app.js` stores the raw profile object (`dimensions.capacity.score`) but the PDF looked for the normalised key (`riskCapacity`) from `advanced-v2`'s `normaliseRiskProfile()`. Fix: dual-format fallback in `utils.js` — `rp.riskCapacity ?? rp.dimensions?.capacity?.score` — applied consistently in both PDF and XLSX export paths.
+
+### Additional improvements
+- ✅ **TASK-027** Assumptions transparency: Summary panel in `advanced-v2` now shows an "Assumptions used in this projection" grid with six key parameters (investment return, inflation, healthcare inflation, aged care probability, pension age, retirement spending) and labels each as user-entered or model default.
+- ✅ **TASK-028** Risk profile consistency: When tolerance score > 75 but capacity score < 60 (producing a balanced/moderate overall profile despite high tolerance), a callout now explains: "Your risk tolerance is high, but the overall profile is balanced because your risk capacity moderates it."

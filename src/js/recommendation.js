@@ -1004,58 +1004,65 @@ class RecommendationEngine {
         const yearsToRetirement = retirementAge - currentAge;
 
         // Scenario 1: Salary boost every 3 years (career progression)
-        const currentGrowthRate = this.baseInputs.salaryGrowthRate;
-        const enhancedGrowthRate = Math.min(currentGrowthRate + 1.5, 8); // Add 1.5% but cap at 8%
+        // salaryGrowthRate is a decimal (e.g. 0.015 = 1.5%). Add a small real increment (0.015 = +1.5pp).
+        const currentGrowthRate = this.baseInputs.salaryGrowthRate || 0.015;
+        const growthBoostDecimal = 0.015; // +1.5 percentage points of real salary growth
+        const enhancedGrowthRate = Math.min(currentGrowthRate + growthBoostDecimal, 0.08); // cap at 8%
         const cyclicBoosts = Math.floor(yearsToRetirement / 3); // Number of 3-year cycles
 
         if (cyclicBoosts > 0) {
+            // Model using only the enhanced growth rate — do NOT also change yourSalary.
+            // Setting both salaryGrowthRate AND a pre-computed boostedSalary would double-count
+            // the benefit: the simulator would grow the already-boosted salary at the higher rate.
+            // Use the growth rate alone so the simulator correctly projects from the current
+            // salary at the marginally improved rate.
             scenarios.push({
                 name: "Strategic Salary Boosts Every 3 Years",
-                description: `Target ${enhancedGrowthRate.toFixed(1)}% annual salary growth through strategic career moves every 3 years - ${cyclicBoosts} opportunities before retirement. **Impact: HIGH POSITIVE** - Extra ${formatCurrency(totalCurrentIncome * 0.015)} annually, compounding over ${yearsToRetirement} years. **Risk: MEDIUM** - Requires active career planning and market opportunities. **Timeline: 2026, 2029, 2032...** - Strategic moves every 3 years to maximize earning potential before retirement.`,
+                description: `Target ${(enhancedGrowthRate * 100).toFixed(1)}% annual real salary growth through strategic career moves every 3 years — ${cyclicBoosts} opportunities before retirement. Extra ${formatCurrency(totalCurrentIncome * growthBoostDecimal)} annually at today's levels, compounding over ${yearsToRetirement} years. Risk: MEDIUM — requires active career planning.`,
                 modifications: {
-                    salaryGrowthRate: enhancedGrowthRate
+                    // Only change the growth rate; current salary stays as-is to avoid double-counting.
+                    salaryGrowthRate: enhancedGrowthRate,
                 },
                 feasibility: "Requires Active Career Planning",
                 factorsChanged: [
-                    `Salary growth: ${currentGrowthRate.toFixed(1)}% → ${enhancedGrowthRate.toFixed(1)}% annually`,
-                    `${cyclicBoosts} strategic career moves (promotions/job changes) over ${yearsToRetirement} years`,
-                    `Extra 1.5% growth = ${formatCurrency(totalCurrentIncome * 0.015)} more per year initially`,
-                    `Compounds over ${yearsToRetirement} years to retirement`,
+                    `Salary growth: ${(currentGrowthRate * 100).toFixed(1)}% → ${(enhancedGrowthRate * 100).toFixed(1)}% annually`,
+                    `${cyclicBoosts} strategic career moves over ${yearsToRetirement} years`,
+                    `Extra ${(growthBoostDecimal * 100).toFixed(1)}% real growth = ${formatCurrency(totalCurrentIncome * growthBoostDecimal)} more per year initially`,
                     `Actions: skill development, networking, performance excellence, strategic job changes`,
                     "Consider: industry growth prospects, skill marketability"
                 ]
             });
         }
 
-        // Scenario 2: One-time significant salary boost (promotion/job change)
+        // Scenario 2: One-time significant salary boost (promotion/job change).
+        // The simulator cannot model a deferred salary start without custom engine logic, so
+        // these scenarios are modelled as an immediate salary increase from today.  The name
+        // and description make this clear so the user is not misled about timing.
+        // Each boostPercent produces a genuinely distinct yourSalary value and therefore a
+        // distinct simulation result — no longer risk of hitting the $5M cap uniformly.
         const salaryBoostOptions = [0.15, 0.25, 0.35]; // 15%, 25%, 35% boosts
-        const timingOptions = [2, 5]; // In 2 or 5 years
 
         salaryBoostOptions.forEach(boostPercent => {
-            timingOptions.forEach(years => {
-                if (years < yearsToRetirement) {
-                    const boostAmount = totalCurrentIncome * boostPercent;
-                    const cumulativeImpact = boostAmount * (yearsToRetirement - years);
-                    const superImpact = cumulativeImpact * 0.12; // Super guarantee benefit
+            const boostAmount = currentSalary * boostPercent;
+            const boostedAnnualSalary = currentSalary + boostAmount;
+            const cumulativeImpact = boostAmount * yearsToRetirement;
+            const superImpact = cumulativeImpact * 0.12; // Super guarantee benefit
 
-                    scenarios.push({
-                        name: `${(boostPercent * 100).toFixed(0)}% Salary Boost in ${years} Years`,
-                        description: `Target a major career move in ${years} years for a ${(boostPercent * 100).toFixed(0)}% salary increase - ${formatCurrency(boostAmount)} annually. **Impact: HIGH POSITIVE** - Cumulative extra earnings of ${formatCurrency(cumulativeImpact)} plus ${formatCurrency(superImpact)} additional super. **Risk: ${boostPercent <= 0.25 ? 'MEDIUM' : 'HIGH'}** - Depends on market conditions and career opportunities. **Timeline: ${2025 + years}** - Strategic career move targeted for ${2025 + years}, benefiting remaining ${yearsToRetirement - years} working years.`,
-                        modifications: {
-                            // This would require custom simulation logic for delayed salary boost
-                            salaryGrowthRate: currentGrowthRate + (boostPercent * 100) / yearsToRetirement
-                        },
-                        feasibility: boostPercent <= 0.25 ? "Achievable with planning" : "Requires significant career change",
-                        factorsChanged: [
-                            `One-time boost: ${formatCurrency(boostAmount)} annually from year ${years}`,
-                            `Cumulative extra earnings: ${formatCurrency(cumulativeImpact)}`,
-                            `Additional super contributions: ${formatCurrency(superImpact)}`,
-                            `Higher capacity for investments from increased salary`,
-                            "Strategies: major promotion, industry change, executive role, consulting",
-                            "Consider: job market conditions, skills development timeline"
-                        ]
-                    });
-                }
+            scenarios.push({
+                name: `${(boostPercent * 100).toFixed(0)}% Salary Increase (Immediate)`,
+                description: `Model your retirement outcome if you achieved a ${(boostPercent * 100).toFixed(0)}% salary increase — ${formatCurrency(boostAmount)} more per year — from now through retirement. Cumulative extra earnings: ${formatCurrency(cumulativeImpact)}, plus ${formatCurrency(superImpact)} additional super over ${yearsToRetirement} working years. Risk: ${boostPercent <= 0.25 ? 'MEDIUM' : 'HIGH'}. Note: modelled as an immediate boost; actual timing depends on career opportunity.`,
+                modifications: {
+                    // Set the boosted salary directly — each boostPercent produces a distinct value.
+                    yourSalary: boostedAnnualSalary,
+                },
+                feasibility: boostPercent <= 0.25 ? "Achievable with planning" : "Requires significant career change",
+                factorsChanged: [
+                    `Salary: ${formatCurrency(currentSalary)} → ${formatCurrency(boostedAnnualSalary)} (+${(boostPercent * 100).toFixed(0)}%)`,
+                    `Cumulative extra earnings over ${yearsToRetirement} years: ${formatCurrency(cumulativeImpact)}`,
+                    `Additional super contributions: ${formatCurrency(superImpact)}`,
+                    "Strategies: major promotion, industry change, executive role, consulting",
+                    "Consider: job market conditions, skills development timeline"
+                ]
             });
         });
 

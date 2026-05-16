@@ -11,7 +11,7 @@ import RetirementSimulator from './simulator.js';
 import RecommendationEngine from './recommendation.js';
 import OverseasRetirementAnalyzer from './overseas-retirement.js';
 import { RiskProfilingEngine } from './risk-profiling-engine.js';
-import { buildStressedInputs } from './policy/stress-helpers.js';
+import { buildStressedInputs, normaliseStressScenarioForTest } from './policy/stress-helpers.js';
 import {
   exportToPDF,
   formatCurrency,
@@ -832,8 +832,15 @@ function buildStressScenarioResults(baseState) {
   const baseBalance = getFinalBalanceValue(baseState.simulation, baseState.adaptedResult);
 
   return (ENHANCED_CONFIG.STRESS_SCENARIOS || []).map((scenario) => {
+    // buildStressedInputs applies field-level modifiers (e.g. healthcare multiplier)
     const stressedInputs = buildStressedInputs(baseState.engineInputs, scenario);
-    const stressedResult = simulator.runStressTest(stressedInputs, scenario);
+
+    // normaliseStressScenarioForTest converts year1/year2/… objects into the
+    // yearlyEquityReturns/yearlyBondReturns arrays that simulateRetirement expects,
+    // and sets isRetirementTimed so the retirement-phase loop applies the shocks.
+    const normalisedScenario = normaliseStressScenarioForTest(scenario);
+
+    const stressedResult = simulator.runStressTest(stressedInputs, normalisedScenario);
     const finalBalance = stressedResult.finalBalance ?? stressedResult.totalFinancialAssets ?? 0;
 
     return {
@@ -1080,6 +1087,266 @@ function buildOverseasExportData(analysis, annualBudget, finalBalance) {
   };
 }
 
+// ============================================================
+// 5a. MONTE CARLO DASHBOARD — rich HTML + Chart.js charts
+// ============================================================
+
+/**
+ * Build the full Monte Carlo results dashboard HTML.
+ * Called from renderSummaryPanel() when results are available.
+ */
+function buildMonteCarloDashboard(mc, inp) {
+  const successPct = (mc.successRate || 0) * 100;
+  const failPct = 100 - successPct;
+
+  // SVG confidence gauge (half-arc, like advanced.html)
+  const gaugeArcLen = 116.2; // circumference of half-arc (r=37 over 180°)
+  const gaugeFill = (successPct / 100) * gaugeArcLen;
+  const gaugeColor = successPct >= 90 ? '#22c55e' : successPct >= 70 ? '#f59e0b' : '#ef4444';
+  const confidenceGaugeSvg = `
+    <div class="confidence-gauge-wrap">
+      <svg width="90" height="52" viewBox="0 0 90 52">
+        <path d="M 8 46 A 37 37 0 0 1 82 46" fill="none" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round"/>
+        <path d="M 8 46 A 37 37 0 0 1 82 46" fill="none" stroke="${gaugeColor}" stroke-width="8"
+              stroke-linecap="round" stroke-dasharray="${gaugeFill} ${gaugeArcLen - gaugeFill}"
+              style="transition: stroke-dasharray 0.6s ease"/>
+        <text x="45" y="44" text-anchor="middle" class="gauge-value-text"
+              font-size="14" font-weight="700" fill="currentColor">${Math.round(successPct)}%</text>
+      </svg>
+      <div style="font-size:11px;color:var(--ink-3);text-align:center;margin-top:2px">Success rate</div>
+    </div>`;
+
+  // Narrative based on success rate
+  let narrative = '';
+  if (successPct >= 95) {
+    narrative = 'Your plan has a very high probability of success. Even under adverse conditions your portfolio is projected to outlast your planned lifespan.';
+  } else if (successPct >= 80) {
+    narrative = 'Your plan is in good shape. Consider building a small buffer — increasing contributions or reducing discretionary spending — to lift confidence further.';
+  } else if (successPct >= 60) {
+    narrative = 'There is meaningful shortfall risk. Review your retirement age, spending targets, or contribution levels to improve the probability of success.';
+  } else {
+    narrative = 'Your current plan has a significant probability of running short. Major adjustments to spending, contributions, or retirement timing are recommended.';
+  }
+
+  const totalRuns = mc.totalRuns || mc.numRuns || (inp?.mcRuns) || '—';
+
+  return `
+    <div class="summary-chart" style="grid-column:1/-1">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+        <div>
+          <h5 style="margin:0 0 4px">Monte Carlo Results</h5>
+          <div class="desc">Based on ${typeof totalRuns === 'number' ? totalRuns.toLocaleString() : totalRuns} simulations accounting for market volatility</div>
+        </div>
+        ${confidenceGaugeSvg}
+      </div>
+
+      <div class="mc-results-grid" style="margin-top:14px">
+        <div class="mc-stat">
+          <div class="mc-k">Total runs</div>
+          <div class="mc-v">${typeof totalRuns === 'number' ? totalRuns.toLocaleString() : totalRuns}</div>
+        </div>
+        <div class="mc-stat" style="border-color:${gaugeColor}40;background:${gaugeColor}10">
+          <div class="mc-k">Success rate</div>
+          <div class="mc-v" style="color:${gaugeColor}">${Math.round(successPct)}%</div>
+          <div class="mc-sub">Probability of not running out</div>
+        </div>
+        <div class="mc-stat">
+          <div class="mc-k">Median balance</div>
+          <div class="mc-v">${fmt$(mc.median || 0, { compact: true })}</div>
+          <div class="mc-sub">50th percentile</div>
+        </div>
+        <div class="mc-stat" style="border-color:var(--rose-soft)">
+          <div class="mc-k">10th percentile</div>
+          <div class="mc-v" style="color:var(--rose)">${fmt$(mc.percentile10 || 0, { compact: true })}</div>
+          <div class="mc-sub">Pessimistic (1-in-10)</div>
+        </div>
+        <div class="mc-stat" style="border-color:var(--accent-soft)">
+          <div class="mc-k">90th percentile</div>
+          <div class="mc-v" style="color:var(--accent)">${fmt$(mc.percentile90 || 0, { compact: true })}</div>
+          <div class="mc-sub">Optimistic (9-in-10)</div>
+        </div>
+        <div class="mc-stat" style="border-color:var(--rose-soft)">
+          <div class="mc-k">Failure probability</div>
+          <div class="mc-v" style="color:var(--rose)">${failPct.toFixed(1)}%</div>
+          <div class="mc-sub">Risk of running out</div>
+        </div>
+      </div>
+
+      <p style="margin:12px 0 0;font-size:12.5px;color:var(--ink-3);line-height:1.6">${escapeHtml(narrative)}</p>
+
+      <div style="margin-top:10px;font-size:11.5px;color:var(--ink-4)">
+        ⚑ Run the full simulation (↻ button) or individual Monte Carlo tool to update these results.
+        Charts available in the <strong>Risk &amp; Resilience</strong> tab.
+      </div>
+    </div>`;
+}
+
+/**
+ * Render the fan chart and histogram into the Risk tab canvases.
+ * Called after runMonteCarloAnalysis() completes.
+ */
+function renderMonteCarloCharts(mc, inp) {
+  if (typeof Chart === 'undefined' || !mc) return;
+
+  const years = inp ? Array.from(
+    { length: (inp.lifespan || 85) - (inp.retireAge || 65) + 1 },
+    (_, i) => (inp.retireAge || 65) + i
+  ) : [];
+
+  // ── Fan chart ──
+  const fanWrap = document.getElementById('adv2-fan-chart-wrap');
+  const fanCanvas = document.getElementById('adv2-fan-chart');
+  if (fanWrap && fanCanvas && years.length > 0) {
+    fanWrap.style.display = 'block';
+    const existingFan = APP_STATE.chartManager.charts.adv2FanChart;
+    if (existingFan) existingFan.destroy();
+
+    // Build fan chart from percentile bands stored on mc.yearlyPercentiles
+    const yearlyP = mc.yearlyPercentiles || null;
+    const labels = years.map(String);
+
+    let p10Data, p50Data, p90Data;
+    if (yearlyP && yearlyP.length === years.length) {
+      p10Data = yearlyP.map((y) => Math.max(0, y.p10 || 0));
+      p50Data = yearlyP.map((y) => Math.max(0, y.p50 || 0));
+      p90Data = yearlyP.map((y) => Math.max(0, y.p90 || 0));
+    } else {
+      // Fallback: simple linear extrapolation from known percentiles
+      const retirementBalance = inp ? (inp.superBal || 0) : 0;
+      p50Data = years.map((_, i) => Math.max(0, (mc.median || 0) * (1 - i / years.length * 0.4)));
+      p10Data = years.map((_, i) => Math.max(0, (mc.percentile10 || 0) * (1 - i / years.length * 0.6)));
+      p90Data = years.map((_, i) => Math.max(0, (mc.percentile90 || 0) * (1 - i / years.length * 0.2)));
+    }
+
+    APP_STATE.chartManager.charts.adv2FanChart = new Chart(fanCanvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: '90th percentile (optimistic)',
+            data: p90Data,
+            borderColor: 'oklch(0.50 0.09 155)',
+            backgroundColor: 'oklch(0.50 0.09 155 / 0.12)',
+            fill: '+1',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0.3,
+          },
+          {
+            label: 'Median',
+            data: p50Data,
+            borderColor: 'oklch(0.50 0.09 155)',
+            backgroundColor: 'oklch(0.50 0.09 155 / 0.06)',
+            fill: '+1',
+            borderWidth: 2.5,
+            pointRadius: 0,
+            tension: 0.3,
+          },
+          {
+            label: '10th percentile (pessimistic)',
+            data: p10Data,
+            borderColor: 'oklch(0.62 0.13 25)',
+            backgroundColor: 'transparent',
+            fill: false,
+            borderWidth: 1.5,
+            borderDash: [4, 3],
+            pointRadius: 0,
+            tension: 0.3,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 2.5,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${fmt$(ctx.parsed.y, { compact: true })}`,
+            },
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 8 } },
+          y: {
+            ticks: {
+              font: { size: 10 },
+              callback: (v) => fmt$(v, { compact: true }),
+              maxTicksLimit: 6,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  // ── Histogram ──
+  // The MC result object stores final balances in mc.outcomes (from simulator.js
+  // runMonteCarloSimulation) or mc.statistics?.outcomes (from EnhancedMonteCarloEngine).
+  // mc.finalBalances does not exist — always use mc.outcomes.
+  const histWrap = document.getElementById('adv2-hist-chart-wrap');
+  const histCanvas = document.getElementById('adv2-hist-chart');
+  const rawOutcomes = mc.outcomes || mc.statistics?.outcomes || [];
+  if (histWrap && histCanvas && rawOutcomes.length > 0) {
+    histWrap.style.display = 'block';
+    const existingHist = APP_STATE.chartManager.charts.adv2HistChart;
+    if (existingHist) existingHist.destroy();
+
+    // Build histogram from final balances
+    const balances = rawOutcomes.filter((b) => b > 0);
+    const buckets = 20;
+    const maxBal = Math.max(...balances);
+    const bucketSize = maxBal / buckets;
+    const counts = Array(buckets).fill(0);
+    balances.forEach((b) => {
+      const idx = Math.min(buckets - 1, Math.floor(b / bucketSize));
+      counts[idx]++;
+    });
+    const histLabels = counts.map((_, i) => fmt$((i + 0.5) * bucketSize, { compact: true }));
+    const medianBucket = Math.floor((mc.median || 0) / bucketSize);
+
+    APP_STATE.chartManager.charts.adv2HistChart = new Chart(histCanvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: histLabels,
+        datasets: [
+          {
+            label: 'Frequency',
+            data: counts,
+            backgroundColor: counts.map((_, i) =>
+              i === medianBucket
+                ? 'oklch(0.50 0.09 155 / 0.85)'
+                : 'oklch(0.50 0.09 155 / 0.35)'
+            ),
+            borderColor: 'oklch(0.50 0.09 155)',
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 2.5,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: (items) => `Balance ~${items[0].label}`,
+              label: (ctx) => `${ctx.parsed.y} simulations`,
+            },
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 9 }, maxTicksLimit: 8 } },
+          y: { ticks: { font: { size: 10 }, maxTicksLimit: 5 }, title: { display: true, text: 'Scenarios', font: { size: 10 } } },
+        },
+      },
+    });
+  }
+}
+
 function renderSummaryPanel() {
   const state = APP_STATE;
   const summaryItems = [
@@ -1106,17 +1373,7 @@ function renderSummaryPanel() {
   ];
 
   const monteCarloBlock = state.monteCarloResults
-    ? `
-      <div class="summary-chart">
-        <h5>Monte Carlo snapshot</h5>
-        <div class="desc">Probabilistic view using your selected run count.</div>
-        <div class="metrics">
-          <div class="metric"><div class="k">Success rate</div><div class="v">${formatPercent(state.monteCarloResults.successRate || 0, 1)}</div></div>
-          <div class="metric"><div class="k">Median balance</div><div class="v">${fmt$(state.monteCarloResults.median || 0, { compact: true })}</div></div>
-          <div class="metric"><div class="k">10th percentile</div><div class="v">${fmt$(state.monteCarloResults.percentile10 || 0, { compact: true })}</div></div>
-          <div class="metric"><div class="k">90th percentile</div><div class="v">${fmt$(state.monteCarloResults.percentile90 || 0, { compact: true })}</div></div>
-        </div>
-      </div>`
+    ? buildMonteCarloDashboard(state.monteCarloResults, state.input)
     : `
       <div class="summary-chart">
         <h5>Full analysis</h5>
@@ -1136,6 +1393,46 @@ function renderSummaryPanel() {
       </div>`
     : '';
 
+  // Assumptions transparency section
+  const inp = state.input || {};
+  const assumptionsBlock = inp.age ? `
+    <div class="summary-chart" style="grid-column:1/-1">
+      <h5>Assumptions used in this projection</h5>
+      <div class="desc">These values are from your inputs or model defaults. User-entered values are marked.</div>
+      <div class="mc-results-grid" style="margin-top:10px">
+        <div class="mc-stat">
+          <div class="mc-k">Investment return</div>
+          <div class="mc-v">${(inp.invReturn || ENHANCED_CONFIG.DEFAULTS?.economic?.investmentReturn * 100 || 6.5).toFixed(1)}%</div>
+          <div class="mc-sub">User entered</div>
+        </div>
+        <div class="mc-stat">
+          <div class="mc-k">Inflation</div>
+          <div class="mc-v">${(inp.inflation || ENHANCED_CONFIG.DEFAULTS?.economic?.inflation * 100 || 2.5).toFixed(1)}%</div>
+          <div class="mc-sub">User entered</div>
+        </div>
+        <div class="mc-stat">
+          <div class="mc-k">Healthcare inflation</div>
+          <div class="mc-v">${((ENHANCED_CONFIG.DEFAULTS?.healthcare?.healthcareInflation || 0.055) * 100).toFixed(1)}%</div>
+          <div class="mc-sub">Model default (AIHW long-run)</div>
+        </div>
+        <div class="mc-stat">
+          <div class="mc-k">Aged care probability</div>
+          <div class="mc-v">${(inp.agedCareProbability || 65)}%</div>
+          <div class="mc-sub">User entered / AIHW default 65%</div>
+        </div>
+        <div class="mc-stat">
+          <div class="mc-k">Age Pension age</div>
+          <div class="mc-v">${inp.agePensionAge || 67}</div>
+          <div class="mc-sub">User entered / legislative default</div>
+        </div>
+        <div class="mc-stat">
+          <div class="mc-k">Retirement spending</div>
+          <div class="mc-v">${fmt$(inp.desiredIncome || 0, { compact: true })}/yr</div>
+          <div class="mc-sub">User entered</div>
+        </div>
+      </div>
+    </div>` : '';
+
   setPanelHtml('summary', `
     <div class="summary-grid">
       <div class="summary-chart">
@@ -1154,6 +1451,7 @@ function renderSummaryPanel() {
       ${monteCarloBlock}
     </div>
     ${recommendationLead}
+    ${assumptionsBlock}
   `);
 }
 
@@ -1227,46 +1525,92 @@ function renderRiskPanel() {
   const risk = APP_STATE.riskProfile;
   const stressRows = APP_STATE.stressTestResults || [];
 
-  if (!risk) {
-    setPanelHtml('risk', '<p style="color:var(--ink-3)">Run Monte Carlo or the full simulation to generate your risk capacity, tolerance, requirement, and stress results.</p>');
+  // If neither risk profile nor stress results are available, show a prompt.
+  if (!risk && stressRows.length === 0) {
+    setPanelHtml('risk', '<p style="color:var(--ink-3)">Run Monte Carlo or the Stress Test tool to generate your risk profile and scenario results.</p>');
     return;
   }
 
-  setPanelHtml('risk', `
-    <div class="summary-grid">
+  // Build the risk profile section — only when profile data is available.
+  // If only stress tests have been run (risk === null), show a placeholder for the profile.
+  const toleranceNote = risk && risk.riskTolerance != null && risk.riskCapacity != null
+    && risk.riskTolerance > 75 && risk.riskCapacity < 60
+    ? `<p style="margin:10px 0 0;font-size:12.5px;color:var(--gold);background:var(--gold-soft);border-radius:8px;padding:8px 10px">
+        Your risk tolerance score is high (${risk.riskTolerance}/100), but your overall profile is ${escapeHtml(risk.overallRiskProfile || 'balanced')}
+        because your risk capacity (${risk.riskCapacity}/100) is more moderate. The recommendation blends all three dimensions —
+        capacity, tolerance, and requirement — rather than relying on tolerance alone.
+       </p>`
+    : (risk?.misalignment?.message ? `<p style="margin:12px 0 0;color:var(--ink-3)">${escapeHtml(risk.misalignment.message)}</p>` : '');
+
+  // Risk profile section — shown when MC has been run; placeholder otherwise.
+  const riskProfileSection = risk ? `
       <div class="summary-chart">
         <h5>Risk profile</h5>
-        <div class="desc">${escapeHtml(risk.overallRiskProfile || 'Balanced profile')}</div>
-        <div class="metrics">
-          <div class="metric"><div class="k">Capacity</div><div class="v">${risk.riskCapacity ?? '—'}<span class="sub">/100</span></div></div>
-          <div class="metric"><div class="k">Tolerance</div><div class="v">${risk.riskTolerance ?? '—'}<span class="sub">/100</span></div></div>
-          <div class="metric"><div class="k">Requirement</div><div class="v">${risk.riskRequirement ?? '—'}<span class="sub">/100</span></div></div>
-          <div class="metric"><div class="k">Confidence</div><div class="v">${risk.confidence ?? '—'}<span class="sub">%</span></div></div>
+        <div class="desc">Three-dimensional risk assessment: capacity × tolerance × requirement</div>
+        <div class="mc-results-grid" style="margin-top:10px">
+          <div class="mc-stat">
+            <div class="mc-k">Capacity</div>
+            <div class="mc-v">${risk.riskCapacity ?? '—'}</div>
+            <div class="mc-sub">Ability to absorb losses</div>
+          </div>
+          <div class="mc-stat">
+            <div class="mc-k">Tolerance</div>
+            <div class="mc-v">${risk.riskTolerance ?? '—'}</div>
+            <div class="mc-sub">Willingness to accept risk</div>
+          </div>
+          <div class="mc-stat">
+            <div class="mc-k">Requirement</div>
+            <div class="mc-v">${risk.riskRequirement ?? '—'}</div>
+            <div class="mc-sub">Return needed for goals</div>
+          </div>
+          <div class="mc-stat">
+            <div class="mc-k">Confidence</div>
+            <div class="mc-v">${risk.confidence ?? '—'}<span style="font-size:11px">%</span></div>
+            <div class="mc-sub">Assessment reliability</div>
+          </div>
         </div>
-        ${risk.misalignment?.message ? `<p style="margin:12px 0 0;color:var(--ink-3)">${escapeHtml(risk.misalignment.message)}</p>` : ''}
-      </div>
+        <div style="margin-top:10px;padding:10px;border-radius:12px;background:var(--accent-soft);font-size:13px;font-weight:600;color:var(--accent-ink)">
+          Overall profile: ${escapeHtml(risk.overallRiskProfile || 'Balanced')}
+        </div>
+        ${toleranceNote}
+      </div>` : `
+      <div class="summary-chart">
+        <h5>Risk profile</h5>
+        <div class="desc">Run Monte Carlo or the full simulation to generate your three-dimensional risk assessment.</div>
+        <p style="margin:8px 0 0;color:var(--ink-3)">Use the 📊 Monte Carlo tool in the sidebar to assess capacity, tolerance, and requirement scores.</p>
+      </div>`;
+
+  setPanelHtml('risk', `
+    <div class="summary-grid">
+      ${riskProfileSection}
       <div class="summary-chart">
         <h5>Stress scenarios</h5>
-        <div class="desc">Deterministic shock outcomes using the configured Australian stress cases.</div>
+        <div class="desc">Deterministic shock outcomes — how your plan holds up under each scenario.</div>
         ${stressRows.length ? `
           <div style="display:grid;gap:10px">
             ${stressRows.map((row) => `
               <div style="padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--surface)">
                 <div style="display:flex;justify-content:space-between;gap:12px;font-weight:600">
-                  <span>${escapeHtml(row.scenario)}</span>
-                  <span style="color:${row.deltaBalance >= 0 ? 'var(--accent)' : 'var(--rose)'}">${row.deltaBalance >= 0 ? '+' : ''}${escapeHtml(formatCurrency(row.deltaBalance || 0))}</span>
+                  <span style="font-size:13px">${escapeHtml(row.scenario)}</span>
+                  <span style="color:${row.deltaBalance >= 0 ? 'var(--accent)' : 'var(--rose)'}">
+                    ${row.deltaBalance >= 0 ? '+' : ''}${escapeHtml(formatCurrency(row.deltaBalance || 0))}
+                  </span>
                 </div>
-                <div style="margin-top:4px;color:var(--ink-3)">Final balance: ${escapeHtml(formatCurrency(row.finalBalance || 0))}</div>
+                <div style="margin-top:4px;font-size:12px;color:var(--ink-3)">
+                  Final balance: ${escapeHtml(formatCurrency(row.finalBalance || 0))}
+                  ${!row.success ? ' <span style="color:var(--rose);font-weight:600">⚠ Depleted</span>' : ''}
+                </div>
+                ${row.description ? `<div style="margin-top:3px;font-size:11px;color:var(--ink-4)">${escapeHtml(row.description)}</div>` : ''}
               </div>
             `).join('')}
           </div>
-        ` : '<p style="margin:0;color:var(--ink-3)">No stress tests have been run yet.</p>'}
+        ` : '<p style="margin:0;color:var(--ink-3)">Run the Stress Test tool to see how your plan responds to market crashes and other adverse events.</p>'}
       </div>
     </div>
-    ${risk.recommendations?.length ? `
+    ${risk?.recommendations?.length ? `
       <div class="summary-chart" style="margin-top:16px">
         <h5>Risk-led actions</h5>
-        <div class="desc">Top recommendations from the existing risk profiling engine.</div>
+        <div class="desc">Top recommendations from the risk profiling engine based on your three-dimensional profile.</div>
         <div style="display:grid;gap:10px">
           ${risk.recommendations.map((item) => `
             <div style="padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--surface)">
@@ -1276,6 +1620,15 @@ function renderRiskPanel() {
         </div>
       </div>
     ` : ''}
+    <!-- Chart canvases (shown/hidden by renderMonteCarloCharts after JS runs) -->
+    <div id="adv2-fan-chart-wrap" class="panel-chart-wrap" style="display:none">
+      <h5>Portfolio Balance Over Time — Percentile Bands</h5>
+      <canvas id="adv2-fan-chart" class="panel-chart-canvas"></canvas>
+    </div>
+    <div id="adv2-hist-chart-wrap" class="panel-chart-wrap" style="display:none;margin-top:14px">
+      <h5>Final Balance Distribution</h5>
+      <canvas id="adv2-hist-chart" class="panel-chart-canvas"></canvas>
+    </div>
   `);
 }
 
@@ -1315,6 +1668,11 @@ function renderAnalysisPanels() {
   renderWhatIfPanel();
   renderRiskPanel();
   renderAiPanel();
+  // Re-render charts after panels rebuild their DOM (canvases are re-created by renderRiskPanel)
+  if (APP_STATE.monteCarloResults) {
+    // Use a microtask to ensure the DOM is updated before drawing
+    Promise.resolve().then(() => renderMonteCarloCharts(APP_STATE.monteCarloResults, APP_STATE.input));
+  }
 }
 
 async function runMonteCarloAnalysis() {
@@ -1329,6 +1687,8 @@ async function runMonteCarloAnalysis() {
   );
   APP_STATE.allocationStrategy = deriveAllocationStrategy(APP_STATE.riskProfile);
   renderAnalysisPanels();
+  // Render fan chart + histogram into the Risk tab after panel HTML is written
+  renderMonteCarloCharts(APP_STATE.monteCarloResults, APP_STATE.input);
   return APP_STATE.monteCarloResults;
 }
 
@@ -1381,6 +1741,8 @@ async function runFullAnalysis() {
   }
   await runRetirementAgeAnalysis();
   renderAnalysisPanels();
+  // Charts may have been cleared by renderAnalysisPanels — re-render them
+  renderMonteCarloCharts(APP_STATE.monteCarloResults, APP_STATE.input);
 }
 
 function setSegmentedValue(bind, value) {
@@ -1455,6 +1817,32 @@ function handlePdfExport() {
   );
 }
 
+// ── Loading overlay helpers ──
+const OVERLAY_SUBTITLES = {
+  'Running…':   'Crunching your retirement numbers…',
+  'Solving…':   'Searching for the earliest viable retirement age…',
+  'Testing…':   'Applying market shock scenarios to your plan…',
+  'Thinking…':  'Generating personalised AI recommendations…',
+  'Analysing…': 'Modelling overseas pension portability and costs…',
+  'Exporting…': 'Generating your PDF report…',
+  'Loading…':   'Importing your saved retirement data…',
+};
+
+function showLoadingOverlay(label = 'Running…') {
+  const overlay = document.getElementById('adv2-loading-overlay');
+  const labelEl = document.getElementById('adv2-loading-label');
+  const subEl   = document.getElementById('adv2-loading-sub');
+  if (!overlay) return;
+  if (labelEl) labelEl.textContent = label;
+  if (subEl)   subEl.textContent = OVERLAY_SUBTITLES[label] || 'This may take a moment…';
+  overlay.classList.add('visible');
+}
+
+function hideLoadingOverlay() {
+  const overlay = document.getElementById('adv2-loading-overlay');
+  if (overlay) overlay.classList.remove('visible');
+}
+
 async function runAction(button, handler, {
   successMessage,
   targetTab,
@@ -1467,6 +1855,12 @@ async function runAction(button, handler, {
     button.innerHTML = runningLabel || 'Running…';
   }
 
+  showLoadingOverlay(runningLabel || 'Running…');
+
+  // Yield to the browser so the overlay class change is painted before the
+  // (potentially synchronous or microtask-only) handler blocks the main thread.
+  await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+
   try {
     const result = await handler();
     if (targetTab) openTab(targetTab);
@@ -1477,6 +1871,7 @@ async function runAction(button, handler, {
     showNotification(error.message || 'This action could not be completed.', 'error');
     return null;
   } finally {
+    hideLoadingOverlay();
     if (button) {
       button.disabled = false;
       button.innerHTML = originalLabel;
