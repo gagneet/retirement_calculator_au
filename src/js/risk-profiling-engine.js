@@ -142,7 +142,10 @@ export class RiskProfilingEngine {
         };
 
         // Risk tolerance questionnaire responses
-        const riskToleranceScore = inputs.riskTolerance || 50; // 0-100 scale
+        const rawRiskTolerance = Number(inputs.riskTolerance);
+        const riskToleranceScore = Number.isFinite(rawRiskTolerance)
+            ? Math.max(0, Math.min(100, rawRiskTolerance <= 10 ? rawRiskTolerance * 10 : rawRiskTolerance))
+            : 50;
 
         // Reaction to loss assessment
         tolerance.factors.reactionToLoss = this.assessReactionToLoss(inputs.lossReaction || 'concerned');
