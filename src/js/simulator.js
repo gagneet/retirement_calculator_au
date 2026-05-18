@@ -1198,6 +1198,39 @@ export class RetirementSimulator {
         const healthcareCostHistory = [];
         const propertyHistory = [];
         const regimeHistory = []; // Track regime changes for enhanced MC
+        const accumulationHistory = [];
+        const currentCalendarYear = new Date().getFullYear();
+        const homeGrowthRateAssumption = inputs.propertyGrowthRate > 0 ? inputs.propertyGrowthRate : inputs.inflation;
+        const getHomeEquityAtYear = (yearsElapsed) => {
+            if (!(inputs.homeValue > 0)) return 0;
+            const projectedHomeValue = inputs.homeValue * Math.pow(1 + homeGrowthRateAssumption, yearsElapsed);
+            const projectedMortgageBalance = Math.max(0,
+                calculateLoanBalance(inputs.mortgageRate, yearsElapsed, inputs.monthlyMortgagePayment, inputs.mortgageBalance)
+            );
+            return projectedHomeValue - projectedMortgageBalance;
+        };
+        const pushAccumulationSnapshot = (yearsElapsed, age, projectedPropertyEquity = null) => {
+            const nonSuperLiquidAssets = accumulatedSavingsBalance + accumulatedInvestmentPortfolio;
+            const propertyEquityForYear = propertyWasSold
+                ? 0
+                : (projectedPropertyEquity ?? ((inputs.investmentPropertyValue || 0) - (inputs.investmentPropertyLoan || 0)));
+            const nonLiquidAssets = getHomeEquityAtYear(yearsElapsed) + propertyEquityForYear;
+            accumulationHistory.push({
+                year: currentCalendarYear + yearsElapsed,
+                age,
+                superBalance: accumulatedSuperBalance,
+                nonSuperLiquidAssets,
+                liquidAssets: accumulatedSuperBalance + nonSuperLiquidAssets,
+                nonLiquidAssets,
+                totalAssets: accumulatedSuperBalance + nonSuperLiquidAssets + nonLiquidAssets,
+                retired: false,
+                withdrawal: 0,
+                pensionIncome: 0,
+                otherIncome: 0
+            });
+        };
+
+        pushAccumulationSnapshot(0, inputs.yourCurrentAge);
 
         // Pre-retirement simulation
         const simulationEndYear = inputs.isSingleCalculation ?
@@ -1578,6 +1611,9 @@ export class RetirementSimulator {
                 inputs.healthcareInflation
             );
             healthcareCostHistory.push(healthcareCost);
+            if (yourCurrentAge <= inputs.retirementAge) {
+                pushAccumulationSnapshot(year, yourCurrentAge, propertyEquity);
+            }
             if (yourCurrentAge > inputs.retirementAge) {
                 break;
             }
@@ -1587,7 +1623,7 @@ export class RetirementSimulator {
         // FIX Bug 7: Primary home should grow at propertyGrowthRate (e.g. 5.8% CoreLogic median),
         // not at general CPI inflation (2.6%). Using inflation was understating home equity at
         // retirement by ~$1.4 M on a $1 M home over 20 years.
-        const homeGrowthRate = inputs.propertyGrowthRate > 0 ? inputs.propertyGrowthRate : inputs.inflation;
+        const homeGrowthRate = homeGrowthRateAssumption;
         const homeValueAtRetirement = inputs.homeValue * Math.pow(1 + homeGrowthRate, yearsToRetirement);
         const mortgageBalanceAtRetirement = Math.max(0,
             calculateLoanBalance(inputs.mortgageRate, yearsToRetirement, inputs.monthlyMortgagePayment, inputs.mortgageBalance)
@@ -1609,6 +1645,12 @@ export class RetirementSimulator {
 
         // Retirement phase simulation
         let currentBalance = accumulatedSuperBalance + accumulatedSavingsBalance + accumulatedInvestmentPortfolio + accessibleHomeEquity;
+        // The simulator models a single liquid retirement pool. The UI still needs a
+        // super/non-super split for the redesigned year table, so we track a parallel
+        // display-only decomposition from the retirement starting mix. These shadow
+        // balances must never drive the actual depletion logic.
+        let displaySuperBalance = accumulatedSuperBalance;
+        let displayNonSuperBalance = accumulatedSavingsBalance + accumulatedInvestmentPortfolio + accessibleHomeEquity;
         const agedCareCosts = this.calculateAgedCareCosts(inputs);
 
         // Calculate non-liquid assets
@@ -1926,6 +1968,8 @@ export class RetirementSimulator {
             const monthlyWithdrawal = annualWithdrawal / 12;
 
             const startBalance = currentBalance;
+            const startSuperBalance = displaySuperBalance;
+            const startNonSuperBalance = displayNonSuperBalance;
             let yearlyGrowth = 0;
 
             for (let month = 1; month <= 12; month++) {
@@ -1933,10 +1977,33 @@ export class RetirementSimulator {
                 yearlyGrowth += monthlyGrowth;
                 currentBalance = currentBalance + monthlyGrowth - monthlyWithdrawal;
 
+                const displayCombinedBalance = displaySuperBalance + displayNonSuperBalance;
+                const superShare = displayCombinedBalance > 0 ? displaySuperBalance / displayCombinedBalance : 0;
+                const superWithdrawal = monthlyWithdrawal * superShare;
+                const nonSuperWithdrawal = monthlyWithdrawal - superWithdrawal;
+                const superGrowth = displaySuperBalance * monthlyReturn;
+                const nonSuperGrowth = displayNonSuperBalance * monthlyReturn;
+
+                displaySuperBalance = Math.max(0, displaySuperBalance + superGrowth - superWithdrawal);
+                displayNonSuperBalance = Math.max(0, displayNonSuperBalance + nonSuperGrowth - nonSuperWithdrawal);
+
                 if (currentBalance <= 0) {
                     currentBalance = 0;
+                    displaySuperBalance = 0;
+                    displayNonSuperBalance = 0;
                     break;
                 }
+            }
+
+            const displayTotal = displaySuperBalance + displayNonSuperBalance;
+            if (currentBalance <= 0 || displayTotal <= 0) {
+                displaySuperBalance = 0;
+                displayNonSuperBalance = 0;
+            } else if (Math.abs(displayTotal - currentBalance) > 0.01) {
+                // Reconcile the UI-only split back to the authoritative combined balance.
+                const scale = currentBalance / displayTotal;
+                displaySuperBalance *= scale;
+                displayNonSuperBalance *= scale;
             }
 
             // Calculate liquid vs non-liquid assets for this year with growth
@@ -1961,6 +2028,8 @@ export class RetirementSimulator {
                 partnerAlive: !inputs.isSingleCalculation && partnerCurrentAge <= effectivePartnerLifespan,
                 allocation: allocation,
                 startBalance,
+                startSuperBalance,
+                startNonSuperBalance,
                 returnRate: actualReturn * 100,
                 growth: yearlyGrowth,
                 withdrawal: annualWithdrawal,
@@ -1982,6 +2051,8 @@ export class RetirementSimulator {
                 otherIncome,
                 pensionIncome,
                 endBalance: currentBalance,
+                endSuperBalance: displaySuperBalance,
+                endNonSuperBalance: displayNonSuperBalance,
                 liquidAssets,
                 nonLiquidAssets,
                 depleted: false
@@ -2006,6 +2077,7 @@ export class RetirementSimulator {
             finalBalance: currentBalance,
             balances,
             yearlyData,
+            accumulationHistory,
             allocationHistory,
             healthcareCostHistory,
             propertyHistory,
@@ -2107,6 +2179,27 @@ export class RetirementSimulator {
             }
         }
 
+        const yearlyPercentiles = [];
+        const maxPathLength = paths.length > 0 ? Math.max(...paths.map(path => path.length)) : 0;
+        for (let yearIndex = 0; yearIndex < maxPathLength; yearIndex++) {
+            const balancesAtYear = paths
+                .map(path => (path[yearIndex] !== undefined ? path[yearIndex] : 0))
+                .sort((a, b) => a - b);
+            if (!balancesAtYear.length) continue;
+
+            const percentileAt = (percentile) => {
+                const index = Math.floor((percentile / 100) * balancesAtYear.length);
+                return balancesAtYear[Math.min(index, balancesAtYear.length - 1)];
+            };
+
+            yearlyPercentiles.push({
+                yearIndex,
+                p10: percentileAt(10),
+                p50: percentileAt(50),
+                p90: percentileAt(90)
+            });
+        }
+
         // Longevity distribution stats (populated only when useLongevityDistribution is on)
         let longevityStats = null;
         if (lifespanSamples.length > 0) {
@@ -2131,12 +2224,14 @@ export class RetirementSimulator {
             outcomes,
             paths,
             propertyOutcomes,
+            totalRuns: runs,
             successRate: successfulOutcomes.length / runs,
             failureRate,
             median: medianOutcome,
             mean: outcomes.reduce((sum, val) => sum + val, 0) / outcomes.length,
             percentiles,
             medianReturnsByYear,
+            yearlyPercentiles,
             longevityStats,
             careStats: {
                 configuredProbability: clamp(parseFloat(inputs.agedCareProbability || 0), 0, 1),

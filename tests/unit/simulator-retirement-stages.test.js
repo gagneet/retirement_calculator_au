@@ -154,6 +154,33 @@ describe('RetirementSimulator staged retirement modelling', () => {
         expect(careYear.discretionarySpending).toBeLessThan(bridgeYear.discretionarySpending);
     });
 
+    test('captures accumulation history and retirement balance components for UI rendering', () => {
+        const simulator = createSimulator();
+        const result = simulator.simulateRetirement(buildInputs({
+            yourCurrentAge: 60,
+            retirementAge: 65,
+            yourSalary: 120000,
+            currentSavings: 50000,
+            currentStocks: 25000,
+            monthlyStockContribution: 500,
+            percentIncomeSaved: 0.1,
+            inflation: 0.025,
+            superReturn: 0.04,
+            savingsReturn: 0.02,
+            investmentReturn: 0.03,
+            homeValue: 800000,
+            mortgageBalance: 200000,
+            monthlyMortgagePayment: 1500,
+        }), false);
+
+        expect(result.accumulationHistory[0].age).toBe(60);
+        expect(result.accumulationHistory.some((year) => year.age === 64)).toBe(true);
+        expect(result.yearlyData[0].startSuperBalance + result.yearlyData[0].startNonSuperBalance)
+            .toBeCloseTo(result.yearlyData[0].startBalance, 2);
+        expect(result.yearlyData[0].endSuperBalance + result.yearlyData[0].endNonSuperBalance)
+            .toBeCloseTo(result.yearlyData[0].endBalance, 2);
+    });
+
     test('reports aged care event frequency in Monte Carlo output', async () => {
         const simulator = createSimulator();
         const result = await simulator.runMonteCarloSimulation(buildInputs({
@@ -164,5 +191,20 @@ describe('RetirementSimulator staged retirement modelling', () => {
 
         expect(result.careStats.configuredProbability).toBe(1);
         expect(result.careStats.simulatedEventRate).toBe(1);
+    });
+
+    test('reports yearly percentile bands for Monte Carlo charting', async () => {
+        const simulator = createSimulator();
+        const result = await simulator.runMonteCarloSimulation(buildInputs({
+            yourCurrentAge: 63,
+            retirementAge: 65,
+            yourCurrentSuper: 500000,
+            asfaComfortable: 30000,
+        }), 5);
+
+        expect(result.totalRuns).toBe(5);
+        expect(result.yearlyPercentiles.length).toBeGreaterThan(0);
+        expect(result.yearlyPercentiles[0].p10).toBeLessThanOrEqual(result.yearlyPercentiles[0].p50);
+        expect(result.yearlyPercentiles[0].p50).toBeLessThanOrEqual(result.yearlyPercentiles[0].p90);
     });
 });
