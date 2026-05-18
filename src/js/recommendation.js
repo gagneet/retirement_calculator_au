@@ -26,6 +26,9 @@ export const capRecommendationDelta = (rawDelta, baseMedian) => {
     return Math.max(-maxDelta, Math.min(maxDelta, rawDelta));
 };
 
+const resolveMonteCarloRuns = (inputs = {}) =>
+    Math.max(100, Math.min(20000, Math.round(Number(inputs.numRuns) || 1000)));
+
 class RecommendationEngine {
     constructor(simulator, inputs, config) {
         if (!simulator || !inputs || !config) {
@@ -76,8 +79,11 @@ class RecommendationEngine {
      */
     async runBaselineSimulation() {
         try {
-            // Use a reasonable number of runs for the baseline analysis
-            const baselineMC = await this.simulator.runMonteCarloSimulation(this.baseInputs, 1000, null);
+            const baselineMC = await this.simulator.runMonteCarloSimulation(
+                this.baseInputs,
+                resolveMonteCarloRuns(this.baseInputs),
+                null
+            );
             const baselineDeterministic = this.simulator.simulateRetirement(this.baseInputs, false);
 
             return {
@@ -460,7 +466,7 @@ class RecommendationEngine {
                     scenarios.push({
                         name: "Salary Sacrifice to Super (Cash Flow Optimized)",
                         description: `Based on your disposable income of $${Math.round(monthlyDisposableIncome)}/month, salary sacrifice $${additionalContrib.toLocaleString()} annually.`,
-                        modifications: { additionalSuperContributions: additionalContrib / totalIncome },
+                        modifications: this.buildSalarySacrificeModifications(additionalContrib),
                         feasibility: savingsCapacity.hasStrongCapacity ? "Easily Affordable" : "Manageable",
                         factorsChanged: [
                             `Monthly super increase: $${additionalMonthly} (within disposable income)`,
@@ -530,7 +536,7 @@ class RecommendationEngine {
                         description: `Transfer $${rebalanceAmount.toLocaleString()} from taxable investments to superannuation for tax efficiency.`,
                         modifications: {
                             currentStocks: this.baseInputs.currentStocks - rebalanceAmount,
-                            additionalSuperContributions: Math.min(rebalanceAmount / totalIncome, 0.1) // Cap at 10% of income
+                            yourAnnualNCC: rebalanceAmount
                         },
                         feasibility: "Tax Optimization Strategy",
                         factorsChanged: [
@@ -1258,9 +1264,7 @@ class RecommendationEngine {
             scenarios.push({
                 name: `Salary Sacrifice $${Math.round(additionalSuperAmount/1000)}k for Franking Credits in Super`,
                 description: `Salary sacrifice ${formatCurrency(additionalSuperAmount)} to super for franking credit benefits at 15% tax rate vs your ${marginalTaxRate}% marginal rate.`,
-                modifications: {
-                    additionalSuperContributions: additionalSuperAmount / (this.baseInputs.yourSalary + this.baseInputs.partnerSalary)
-                },
+                modifications: this.buildSalarySacrificeModifications(additionalSuperAmount),
                 feasibility: "Salary Packaging Required",
                 factorsChanged: [
                     `Additional super contribution: ${formatCurrency(additionalSuperAmount)}`,
@@ -1947,6 +1951,44 @@ class RecommendationEngine {
         return recommendations;
     }
 
+    buildSalarySacrificeModifications(additionalAnnualAmount) {
+        const employerRate = this.baseInputs.employerSuperContributionRate
+            ?? this.baseInputs.superContributionRate
+            ?? 0.12;
+        const concessionalCap = 30000;
+        let remaining = Math.max(0, Number(additionalAnnualAmount) || 0);
+        const modifications = {};
+
+        const candidates = [
+            {
+                salary: this.baseInputs.yourSalary || 0,
+                current: this.baseInputs.yourAdditionalSuperContribution || 0,
+                key: 'yourAdditionalSuperContribution',
+            },
+            {
+                salary: this.baseInputs.partnerSalary || 0,
+                current: this.baseInputs.partnerAdditionalSuperContribution || 0,
+                key: 'partnerAdditionalSuperContribution',
+            },
+        ]
+            .map((candidate) => ({
+                ...candidate,
+                room: Math.max(0, concessionalCap - (candidate.salary * employerRate) - candidate.current),
+            }))
+            .filter((candidate) => candidate.salary > 0 && candidate.room > 0)
+            .sort((left, right) => right.room - left.room);
+
+        for (const candidate of candidates) {
+            if (remaining <= 0) break;
+            const addition = Math.min(remaining, candidate.room);
+            if (addition <= 0) continue;
+            modifications[candidate.key] = candidate.current + addition;
+            remaining -= addition;
+        }
+
+        return modifications;
+    }
+
     /**
      * Creates a single recommendation object by categorizing and formatting the scenario result.
      * @param {Object} scenario - The scenario result object.
@@ -2056,7 +2098,10 @@ class RecommendationEngine {
 
     _formatContributionRecommendation(scenario, baseResult) {
         const successDiff = scenario.successRate - baseResult.successRate;
-        const balanceDiff = scenario.medianBalance - baseResult.medianBalance;
+        const balanceDiff = capRecommendationDelta(
+            scenario.medianBalance - baseResult.medianBalance,
+            baseResult.medianBalance
+        );
 
         let actionText = "";
         if (scenario.name.includes("by $500")) {
@@ -2070,7 +2115,10 @@ class RecommendationEngine {
 
     _formatAllocationRecommendation(scenario, baseResult) {
         const successDiff = scenario.successRate - baseResult.successRate;
-        const balanceDiff = scenario.medianBalance - baseResult.medianBalance;
+        const balanceDiff = capRecommendationDelta(
+            scenario.medianBalance - baseResult.medianBalance,
+            baseResult.medianBalance
+        );
 
         let tradeOffText = "";
         if (successDiff < 0 && balanceDiff > 0) {
