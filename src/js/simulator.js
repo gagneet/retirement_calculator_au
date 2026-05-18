@@ -33,6 +33,8 @@ import {
 } from './utils.js';
 
 const RUN_UNTIL_DEPLETION_AGE = 120;
+const resolveScenarioMonteCarloRuns = (inputs = {}) =>
+    Math.max(100, Math.min(20000, Math.round(Number(inputs.numRuns) || 1000)));
 
 export class RetirementSimulator {
     constructor(config) {
@@ -1103,7 +1105,7 @@ export class RetirementSimulator {
             effectiveYourLifespan - inputs.yourCurrentAge,
             effectivePartnerLifespan - inputs.partnerCurrentAge
         );
-        const yearsInRetirement = Math.max(0, maxYearsFromNow - yearsToRetirement);
+        const yearsInRetirement = Math.max(0, maxYearsFromNow - yearsToRetirement + 1);
 
         // Use scenario-adjusted inputs for all financial calculations
         inputs = effectiveInputs; // eslint-disable-line no-param-reassign
@@ -2403,7 +2405,11 @@ export class RetirementSimulator {
 
             // Run Monte Carlo simulation for this scenario
             // Note: Monte Carlo currently doesn't support stress scenarios, so it ignores them
-            const mcResult = await this.runMonteCarloSimulation(scenarioInputs, 1000, null);
+            const mcResult = await this.runMonteCarloSimulation(
+                scenarioInputs,
+                resolveScenarioMonteCarloRuns(scenarioInputs),
+                null
+            );
 
             // Run deterministic simulation for comparison with stress scenario
             const deterministicResult = this.simulateRetirement(scenarioInputs, false, stressScenario);

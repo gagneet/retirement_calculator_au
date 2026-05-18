@@ -391,6 +391,17 @@ export class HealthcareModelingEngine {
         return baseAmount * Math.pow(1 + rate, years);
     }
 
+    getUserAgedCareProbability(inputs) {
+        if (inputs.agedCareProbability === undefined || inputs.agedCareProbability === null || inputs.agedCareProbability === '') {
+            return null;
+        }
+
+        const raw = Number(inputs.agedCareProbability);
+        if (!Number.isFinite(raw)) return null;
+
+        return Math.max(0, Math.min(1, raw > 1 ? raw / 100 : raw));
+    }
+
     // Calculate condition-based cost multipliers
     calculateConditionMultiplier(conditions, age) {
         let multiplier = 1.0;
@@ -437,12 +448,29 @@ export class HealthcareModelingEngine {
         // Residential care projection
         projections.residentialCare = this.calculateResidentialCareProjection(inputs, careProbs);
 
+        const userProbability = this.getUserAgedCareProbability(inputs);
+        if (userProbability !== null) {
+            const defaultOverall = Math.max(
+                projections.homeCare.probability || 0,
+                projections.residentialCare.probability || 0,
+            );
+
+            if (defaultOverall > 0) {
+                const scale = userProbability / defaultOverall;
+                projections.homeCare.probability = Math.max(0, Math.min(1, projections.homeCare.probability * scale));
+                projections.residentialCare.probability = Math.max(0, Math.min(1, projections.residentialCare.probability * scale));
+            } else {
+                projections.homeCare.probability = userProbability;
+                projections.residentialCare.probability = userProbability;
+            }
+        }
+
         // Calculate weighted expected costs
         const homeCareExpected = projections.homeCare.expectedCost * projections.homeCare.probability;
         const residentialExpected = projections.residentialCare.expectedCost * projections.residentialCare.probability;
 
         projections.totalExpectedCost = homeCareExpected + residentialExpected;
-        projections.probabilityOfNeed = Math.max(projections.homeCare.probability, projections.residentialCare.probability);
+        projections.probabilityOfNeed = userProbability ?? Math.max(projections.homeCare.probability, projections.residentialCare.probability);
 
         projections.recommendations = this.generateAgedCareRecommendations(projections, inputs);
 

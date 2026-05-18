@@ -78,7 +78,8 @@ export const hasHighInterestDebt = (inputs = {}) => {
 /**
  * Resolve the Monte Carlo simulation run count for display in exports.
  *
- * Priority: monteCarloResults.runs → monteCarloResults.numRuns → inputs.numRuns → 1000.
+ * Priority: monteCarloResults.runs → monteCarloResults.totalRuns →
+ * monteCarloResults.numRuns → inputs.numRuns → 1000.
  *
  * Exported so tests can assert against this function directly rather than
  * reimplementing the priority logic (PR review comment #3247765338).
@@ -88,7 +89,7 @@ export const hasHighInterestDebt = (inputs = {}) => {
  * @returns {number}         – run count as a number (never a string)
  */
 export const resolveSimCount = (mcResults = {}, inputs = {}) =>
-    mcResults.runs ?? mcResults.numRuns ?? inputs.numRuns ?? 1000;
+    mcResults.runs ?? mcResults.totalRuns ?? mcResults.numRuns ?? inputs.numRuns ?? 1000;
 
 // Normalise a value that could be stored as either a decimal ratio (0–1) or
 // a percentage (1–100) into a decimal.  All internal calculations use decimals;
@@ -1556,7 +1557,7 @@ export const exportToXLSX = (inputs, results, chartManager, app = null) => {
 
     if (monteCarloResults) {
         summaryData.push(
-            ['Monte Carlo', 'Number of Simulations', monteCarloResults.runs || '1,000'],
+            ['Monte Carlo', 'Number of Simulations', resolveSimCount(monteCarloResults, inputs)],
             ['Monte Carlo', 'Success Rate', formatPercent(monteCarloResults.successRate)],
             ['Monte Carlo', 'Median Final Balance', formatCurrency(monteCarloResults.median)],
             ['Monte Carlo', '10th Percentile (Worst Case)', formatCurrency(monteCarloResults.percentile10 || 0)],
