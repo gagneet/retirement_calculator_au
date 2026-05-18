@@ -79,4 +79,32 @@ describe('report regression fixes', () => {
         expect(changedKey).toBeDefined();
         expect(modifications[changedKey]).toBeGreaterThan(templateData.userData[changedKey] || 0);
     });
+
+    test('rebalance investments to super is modeled as a one-off balance transfer', () => {
+        const simulator = {
+            calculateCashFlowAnalysis: jest.fn().mockReturnValue({
+                cashFlow: { monthlyDisposableIncome: 0 },
+                savingsAnalysis: { canIncreaseSavings: false, hasStrongCapacity: false },
+                opportunities: [],
+            }),
+        };
+        const inputs = {
+            ...templateData.userData,
+            currentStocks: 200_000,
+            yourCurrentSuper: 300_000,
+            hasInvestmentProperty: false,
+        };
+        const engine = new RecommendationEngine(simulator, inputs, ENHANCED_CONFIG);
+
+        const scenario = engine
+            ._analyzeContributions({})
+            .find(({ name }) => name === 'Rebalance Investments to Super');
+
+        expect(scenario).toBeDefined();
+        expect(scenario.modifications).toMatchObject({
+            currentStocks: 160_000,
+            yourCurrentSuper: 340_000,
+        });
+        expect(scenario.modifications.yourAnnualNCC).toBeUndefined();
+    });
 });

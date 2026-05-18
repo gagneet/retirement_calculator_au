@@ -536,12 +536,12 @@ class RecommendationEngine {
                         description: `Transfer $${rebalanceAmount.toLocaleString()} from taxable investments to superannuation for tax efficiency.`,
                         modifications: {
                             currentStocks: this.baseInputs.currentStocks - rebalanceAmount,
-                            yourAnnualNCC: rebalanceAmount
+                            yourCurrentSuper: (this.baseInputs.yourCurrentSuper || 0) + rebalanceAmount
                         },
                         feasibility: "Tax Optimization Strategy",
                         factorsChanged: [
                             `Reduces taxable investment balance by $${rebalanceAmount.toLocaleString()}`,
-                            `Increases super contributions significantly`,
+                            `Moves $${rebalanceAmount.toLocaleString()} into super immediately`,
                             `Improves tax efficiency (super vs. taxable)`,
                             `No change to monthly cash flow requirements`,
                             `Better asset protection in super environment`
