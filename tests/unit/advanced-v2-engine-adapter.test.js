@@ -1,4 +1,5 @@
 import {
+    adaptEngineOutput,
     buildEngineInputs,
     getHouseholdPensionDefaults,
     mapDestinationCode,
@@ -259,13 +260,41 @@ describe('advanced-v2 engine adapter', () => {
 
         expect(result.monthlyPaycheck).toBeGreaterThan(0);
         expect(result.superAtRetire).toBeGreaterThan(0);
-        expect(result.confidence).toBeGreaterThanOrEqual(0.2);
+        expect(result.confidence).toBeGreaterThanOrEqual(0);
         expect(result.confidence).toBeLessThanOrEqual(0.98);
         expect(result.lastsUntil).toBeGreaterThanOrEqual(65);
         expect(result.years.length).toBeGreaterThan(10);
         expect(result.years[0].age).toBe(45);
+        expect(result.years[0].superBalance).toBeGreaterThan(0);
         expect(result.years.some((year) => year.retired)).toBe(true);
         expect(result.breakdown.super + result.breakdown.pension + result.breakdown.other).toBeGreaterThan(0);
+    });
+
+    test('lets confidence drop below the old artificial floor when coverage and longevity are both poor', () => {
+        const inputs = buildRedesignInputs({
+            age: 63,
+            retireAge: 63,
+            lifespan: 95,
+            desiredIncome: 120000,
+        });
+        const engineInputs = buildEngineInputs(inputs);
+        const result = adaptEngineOutput(inputs, engineInputs, {
+            depletionAge: 63,
+            yearlyData: [{
+                age: 63,
+                startBalance: 0,
+                endBalance: 0,
+                withdrawal: 0,
+                superIncome: 0,
+                pensionIncome: 0,
+                otherIncome: 0,
+                nonLiquidAssets: 0,
+            }],
+            accumulationHistory: [],
+        });
+
+        expect(result.gapMonthly).toBeGreaterThan(0);
+        expect(result.confidence).toBe(0);
     });
 
     test('maps redesign overseas destinations to analyzer country codes', () => {

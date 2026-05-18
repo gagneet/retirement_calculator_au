@@ -355,7 +355,46 @@ function buildEngineInputs(inp) {
 }
 
 function buildProjectionYears(inp, simulation) {
-  const retirementYears = simulation.yearlyData.map((year) => ({
+  const accumulationHistory = Array.isArray(simulation.accumulationHistory)
+    ? simulation.accumulationHistory
+    : [];
+  // Retirement rows come from the simulator's authoritative yearly output. The
+  // super/non-super columns are optional display fields added for the redesigned
+  // table; when they are unavailable, the renderer falls back to total assets.
+  const retirementYears = (simulation.yearlyData || []).map((year) => ({
+    year: year.year,
+    age: year.age,
+    superBalance: Number.isFinite(year.endSuperBalance) ? year.endSuperBalance : null,
+    nonSuperLiquidAssets: Number.isFinite(year.endNonSuperBalance) ? year.endNonSuperBalance : null,
+    liquidAssets: year.endBalance ?? year.liquidAssets ?? 0,
+    nonLiquidAssets: year.nonLiquidAssets ?? 0,
+    totalAssets: (year.endBalance ?? 0) + (year.nonLiquidAssets ?? 0),
+    retired: true,
+    withdraw: Math.max(0, year.withdrawal || year.superIncome || 0),
+    pension: Math.max(0, year.pensionIncome || 0),
+    otherIncome: year.otherIncome || 0,
+  }));
+
+  if (accumulationHistory.length) {
+    const bridgeYears = accumulationHistory
+      .filter((year) => year.age < inp.retireAge)
+      .map((year) => ({
+        year: year.year,
+        age: year.age,
+        superBalance: year.superBalance ?? null,
+        nonSuperLiquidAssets: year.nonSuperLiquidAssets ?? null,
+        liquidAssets: year.liquidAssets ?? 0,
+        nonLiquidAssets: year.nonLiquidAssets ?? 0,
+        totalAssets: year.totalAssets ?? ((year.liquidAssets || 0) + (year.nonLiquidAssets || 0)),
+        retired: false,
+        withdraw: 0,
+        pension: 0,
+        otherIncome: 0,
+      }));
+    return [...bridgeYears, ...retirementYears];
+  }
+
+  const fallbackRetirementYears = simulation.yearlyData.map((year) => ({
     age: year.age,
     totalAssets: Math.max(0, (year.endBalance || 0) + (year.nonLiquidAssets || 0)),
     retired: true,
@@ -363,7 +402,7 @@ function buildProjectionYears(inp, simulation) {
     pension: Math.max(0, year.pensionIncome || 0),
   }));
 
-  if (!retirementYears.length) return [];
+  if (!fallbackRetirementYears.length) return [];
 
   const currentAssets = Math.max(
     0,
@@ -372,7 +411,7 @@ function buildProjectionYears(inp, simulation) {
     inp.cash +
     inp.stocks
   );
-  const firstRetirementAssets = retirementYears[0].totalAssets || currentAssets;
+  const firstRetirementAssets = fallbackRetirementYears[0].totalAssets || currentAssets;
   const yearsToRetire = Math.max(0, inp.retireAge - inp.age);
   const growthRate = currentAssets > 0 && firstRetirementAssets > 0 && yearsToRetire > 0
     ? Math.pow(firstRetirementAssets / currentAssets, 1 / yearsToRetire) - 1
@@ -393,7 +432,7 @@ function buildProjectionYears(inp, simulation) {
     };
   });
 
-  return [...bridgeYears, ...retirementYears];
+  return [...bridgeYears, ...fallbackRetirementYears];
 }
 
 function adaptEngineOutput(inp, engineInputs, simulation) {
@@ -426,9 +465,10 @@ function adaptEngineOutput(inp, engineInputs, simulation) {
       pension: Math.max(0, pensionIncomeToday),
       other: Math.max(0, otherIncomeToday),
     },
-    confidence: clamp((coverageScore * 0.7) + (longevityScore * 0.3), 0.2, 0.98),
+    confidence: clamp((coverageScore * 0.7) + (longevityScore * 0.3), 0, 0.98),
     gapMonthly: Math.max(0, targetMonthly - monthlyPaycheck),
     lastsUntil,
+    isCouple: engineInputs.isCouple,
     years: buildProjectionYears(inp, simulation),
   };
 }
@@ -754,6 +794,11 @@ function setPanelHtml(tabName, html) {
 function openTab(tabName) {
   const button = document.querySelector(`.analysis-tabs button[data-tab="${tabName}"]`);
   if (button) button.click();
+}
+
+function getDisplayUnits() {
+  const segmented = document.querySelector('[data-bind="displayUnits"]');
+  return segmented?.dataset?.value === 'nominal' ? 'nominal' : 'today';
 }
 
 function getFinalBalanceValue(result = APP_STATE.simulation, adaptedResult = APP_STATE.adaptedResult) {
@@ -1188,10 +1233,13 @@ function buildMonteCarloDashboard(mc, inp) {
 function renderMonteCarloCharts(mc, inp) {
   if (typeof Chart === 'undefined' || !mc) return;
 
-  const years = inp ? Array.from(
-    { length: (inp.lifespan || 85) - (inp.retireAge || 65) + 1 },
-    (_, i) => (inp.retireAge || 65) + i
-  ) : [];
+  const yearlyP = Array.isArray(mc.yearlyPercentiles) ? mc.yearlyPercentiles : [];
+  const years = yearlyP.length > 0
+    ? yearlyP.map((_, i) => (inp?.retireAge || 65) + i)
+    : (inp ? Array.from(
+      { length: Math.max(0, (inp.lifespan || 85) - (inp.retireAge || 65)) },
+      (_, i) => (inp.retireAge || 65) + i
+    ) : []);
 
   // ── Fan chart ──
   const fanWrap = document.getElementById('adv2-fan-chart-wrap');
@@ -1201,18 +1249,15 @@ function renderMonteCarloCharts(mc, inp) {
     const existingFan = APP_STATE.chartManager.charts.adv2FanChart;
     if (existingFan) existingFan.destroy();
 
-    // Build fan chart from percentile bands stored on mc.yearlyPercentiles
-    const yearlyP = mc.yearlyPercentiles || null;
     const labels = years.map(String);
 
     let p10Data, p50Data, p90Data;
-    if (yearlyP && yearlyP.length === years.length) {
+    if (yearlyP.length === years.length) {
       p10Data = yearlyP.map((y) => Math.max(0, y.p10 || 0));
       p50Data = yearlyP.map((y) => Math.max(0, y.p50 || 0));
       p90Data = yearlyP.map((y) => Math.max(0, y.p90 || 0));
     } else {
       // Fallback: simple linear extrapolation from known percentiles
-      const retirementBalance = inp ? (inp.superBal || 0) : 0;
       p50Data = years.map((_, i) => Math.max(0, (mc.median || 0) * (1 - i / years.length * 0.4)));
       p10Data = years.map((_, i) => Math.max(0, (mc.percentile10 || 0) * (1 - i / years.length * 0.6)));
       p90Data = years.map((_, i) => Math.max(0, (mc.percentile90 || 0) * (1 - i / years.length * 0.2)));
@@ -1295,17 +1340,26 @@ function renderMonteCarloCharts(mc, inp) {
     if (existingHist) existingHist.destroy();
 
     // Build histogram from final balances
-    const balances = rawOutcomes.filter((b) => b > 0);
+    const balances = rawOutcomes
+      .map((b) => Number(b))
+      .filter((b) => Number.isFinite(b));
+    if (!balances.length) return;
     const buckets = 20;
+    const minBal = Math.min(...balances);
     const maxBal = Math.max(...balances);
-    const bucketSize = maxBal / buckets;
+    const range = maxBal - minBal;
+    const bucketSize = range > 0 ? range / buckets : 1;
     const counts = Array(buckets).fill(0);
     balances.forEach((b) => {
-      const idx = Math.min(buckets - 1, Math.floor(b / bucketSize));
+      const normalised = bucketSize > 0 ? (b - minBal) / bucketSize : 0;
+      const idx = Math.min(buckets - 1, Math.max(0, Math.floor(normalised)));
       counts[idx]++;
     });
-    const histLabels = counts.map((_, i) => fmt$((i + 0.5) * bucketSize, { compact: true }));
-    const medianBucket = Math.floor((mc.median || 0) / bucketSize);
+    const histLabels = counts.map((_, i) => fmt$(minBal + ((i + 0.5) * bucketSize), { compact: true }));
+    const medianBucket = Math.min(
+      buckets - 1,
+      Math.max(0, Math.floor(((mc.median || 0) - minBal) / bucketSize))
+    );
 
     APP_STATE.chartManager.charts.adv2HistChart = new Chart(histCanvas.getContext('2d'), {
       type: 'bar',
@@ -1944,7 +1998,7 @@ function paint(result, inp) {
   setText('r-paycheck', Math.round(result.monthlyPaycheck).toLocaleString('en-AU'));
   setText('r-retire-age', inp.retireAge);
   setText('r-lifespan', inp.lifespan);
-  setText('r-combined', inp.household === 'couple' ? ' · combined' : '');
+  setText('r-combined', result.isCouple ? ' · combined' : '');
 
   // Runway
   const ic = $('r-runway-icon');
@@ -1998,7 +2052,7 @@ function paint(result, inp) {
 
   // Mini chart
   paintMiniChart(result.years, inp);
-  setText('r-mini-range', `today → age ${inp.lifespan}`);
+  setText('r-mini-range', `today → age ${result.years[result.years.length - 1]?.age ?? inp.lifespan}`);
 
   // Hero stats
   setText('hs-age', inp.age);
@@ -2085,18 +2139,29 @@ function paintMiniChart(years, inp) {
 function paintYearTable(years, inp) {
   const body = document.getElementById('year-tbody');
   if (!body) return;
+  const currentYear = new Date().getFullYear();
   const inflR = inp.inflation / 100;
+  const displayUnits = getDisplayUnits();
+  const formatAmount = (value, year) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return '—';
+    const yearsAhead = Math.max(0, (year || currentYear) - currentYear);
+    const adjusted = displayUnits === 'today'
+      ? numeric / Math.pow(1 + inflR, yearsAhead)
+      : numeric;
+    return '$' + Math.round(adjusted / 1000).toLocaleString('en-AU') + 'k';
+  };
+
   body.innerHTML = years.slice(0, 60).map((y, i) => {
-    const k = (v) => v ? '$' + Math.round(v / Math.pow(1 + inflR, y.age - inp.age) / 1000) + 'k' : '—';
     return `<tr class="${y.age === inp.retireAge ? 'retire' : ''} ${y.age >= inp.agePensionAge ? 'pension' : ''}">
-      <td>${2026 + i}</td>
+      <td>${y.year || (currentYear + i)}</td>
       <td>${y.age}${y.age === inp.retireAge ? ' ★' : ''}</td>
-      <td>${k(y.totalAssets * 0.85)}</td>
-      <td>${k(y.totalAssets * 0.15)}</td>
-      <td>${k(y.totalAssets)}</td>
-      <td>${k(y.withdraw)}</td>
-      <td>${k(y.pension)}</td>
-      <td>${k(y.withdraw + y.pension)}</td>
+      <td>${formatAmount(y.superBalance, y.year)}</td>
+      <td>${formatAmount(y.nonSuperLiquidAssets, y.year)}</td>
+      <td>${formatAmount(y.totalAssets, y.year)}</td>
+      <td>${formatAmount(y.withdraw, y.year)}</td>
+      <td>${formatAmount(y.pension, y.year)}</td>
+      <td>${formatAmount((y.withdraw || 0) + (y.pension || 0) + (y.otherIncome || 0), y.year)}</td>
     </tr>`;
   }).join('');
 }
