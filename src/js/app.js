@@ -2222,8 +2222,8 @@ class RetirementCalculatorApp {
 
         const withdrawal = firstRetirementYear.withdrawal || 0;
         const pension = firstRetirementYear.pensionIncome || 0;
-        const propertyIncome = firstRetirementYear.propertyIncome || 0;
-        const totalAnnual = withdrawal + pension + propertyIncome;
+        const otherIncome = firstRetirementYear.otherIncome ?? firstRetirementYear.propertyIncome ?? 0;
+        const totalAnnual = withdrawal + pension + otherIncome;
 
         // yearlyData[*].year is an absolute calendar year (simulator.js:1510 sets it to
         // `new Date().getFullYear() + retirementYear`). Convert to "years from now" for
@@ -2245,7 +2245,7 @@ class RetirementCalculatorApp {
         };
         setText('retirementIncomeSuper', withdrawal);
         setText('retirementIncomePension', pension);
-        setText('retirementIncomeProperty', propertyIncome);
+        setText('retirementIncomeProperty', otherIncome);
 
         const asfaTarget = inputs.asfaComfortable || 0;
         const vsAsfaEl = $('retirementIncomeVsAsfa');
@@ -2264,7 +2264,7 @@ class RetirementCalculatorApp {
 
         const note = $('currentRetirementIncomeNote');
         if (note) {
-            note.textContent = `Estimated annual income at retirement (age ${retirementAge}), in today's dollars after ${yearsAhead} year${yearsAhead === 1 ? '' : 's'} of inflation. Sources: super drawdown + age pension + property income.`;
+            note.textContent = `Estimated annual income at retirement (age ${retirementAge}), in today's dollars after ${yearsAhead} year${yearsAhead === 1 ? '' : 's'} of inflation. Sources: super drawdown + age pension + other income.`;
         }
 
         this.renderRetirementIncomeCharts(result, inputs, retirementAge);
@@ -2292,7 +2292,7 @@ class RetirementCalculatorApp {
         const ageLabels = slice.map(d => d.yourAge ?? d.age);
         const superSeries = slice.map(d => Math.round(toToday(d.withdrawal || 0, d.year)));
         const pensionSeries = slice.map(d => Math.round(toToday(d.pensionIncome || 0, d.year)));
-        const propertySeries = slice.map(d => Math.round(toToday(d.propertyIncome || 0, d.year)));
+        const otherSeries = slice.map(d => Math.round(toToday(d.otherIncome ?? d.propertyIncome ?? 0, d.year)));
 
         const timelineCtx = document.getElementById('retirementIncomeTimelineChart');
         if (timelineCtx) {
@@ -2323,8 +2323,8 @@ class RetirementCalculatorApp {
                             pointRadius: 0,
                         },
                         {
-                            label: 'Property income',
-                            data: propertySeries,
+                            label: 'Other income',
+                            data: otherSeries,
                             backgroundColor: 'rgba(245,158,11,0.55)',
                             borderColor: '#f59e0b',
                             borderWidth: 1,
@@ -2382,7 +2382,7 @@ class RetirementCalculatorApp {
         const firstYear = slice[0];
         const firstSuper = Math.round(toToday(firstYear.withdrawal || 0, firstYear.year));
         const firstPension = Math.round(toToday(firstYear.pensionIncome || 0, firstYear.year));
-        const firstProperty = Math.round(toToday(firstYear.propertyIncome || 0, firstYear.year));
+        const firstOther = Math.round(toToday(firstYear.otherIncome ?? firstYear.propertyIncome ?? 0, firstYear.year));
 
         const doughnutCtx = document.getElementById('retirementIncomeBreakdownChart');
         if (doughnutCtx) {
@@ -2390,9 +2390,9 @@ class RetirementCalculatorApp {
             this._retirementIncomeBreakdownChart = new Chart(doughnutCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Super drawdown', 'Age pension', 'Property income'],
+                    labels: ['Super drawdown', 'Age pension', 'Other income'],
                     datasets: [{
-                        data: [firstSuper, firstPension, firstProperty],
+                        data: [firstSuper, firstPension, firstOther],
                         backgroundColor: ['#4f46e5', '#10b981', '#f59e0b'],
                         borderColor: '#ffffff',
                         borderWidth: 2,
@@ -10203,7 +10203,7 @@ class RetirementCalculatorApp {
                         age,
                         superIncome: deflate(yr.superDrawdown || yr.superIncome || 0),
                         pensionIncome: deflate(yr.agePension || yr.pensionIncome || 0),
-                        otherIncome: deflate(yr.propertyIncome || yr.rentalIncome || yr.otherIncome || 0)
+                        otherIncome: deflate(yr.otherIncome ?? yr.propertyIncome ?? yr.rentalIncome ?? 0)
                     });
                 });
 
@@ -10987,7 +10987,7 @@ window.updatePaycheckCard = function updatePaycheckCard(outcome, sim) {
     // superIncome = total sustainable income minus the Age Pension component
     const superIncome = outcome.superIncome ?? Math.max(0, (outcome.sustainableIncome ?? 0) - (outcome.agePension ?? 0));
     const pensionIncome = outcome.agePension ?? 0;
-    const otherIncome = outcome.propertyIncome ?? outcome.rentalIncome ?? 0;
+    const otherIncome = outcome.otherIncome ?? outcome.propertyIncome ?? outcome.rentalIncome ?? 0;
     const total = Math.max(0, superIncome + pensionIncome + otherIncome);
 
     if (total <= 0) {
