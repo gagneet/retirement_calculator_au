@@ -533,6 +533,10 @@ describe('TASK-008 — resolveSimCount() from utils.js', () => {
         expect(resolveSimCount({ numRuns: 3000 })).toBe(3000);
     });
 
+    test('supports enhanced Monte Carlo results that expose totalRuns', () => {
+        expect(resolveSimCount({ totalRuns: 16000 })).toBe(16000);
+    });
+
     test('falls back to inputs.numRuns when both mc fields are absent', () => {
         expect(resolveSimCount({}, { numRuns: 16000 })).toBe(16000);
     });
