@@ -2152,9 +2152,10 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
                 if (currencyFields.includes(key)) {
                     formattedInputs[key] = parseFloat(value.toFixed(2));
                 } else if (percentageFields.includes(key)) {
-                    // Percentage values are already in decimal form (e.g., 0.09 for 9%)
-                    // Just format to appropriate precision
-                    formattedInputs[key] = parseFloat(value.toFixed(6));
+                    // Percentage values stored in decimal form (e.g., 0.09 for 9%).
+                    // Round to 6 significant figures — enough for any rate used here
+                    // while eliminating float noise like 0.16199999999997.
+                    formattedInputs[key] = parseFloat(value.toPrecision(6));
                 }
             }
         }
