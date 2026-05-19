@@ -1,6 +1,7 @@
 // js/utils.js - Utility Functions for Enhanced Retirement Calculator
 
 import { ENHANCED_CONFIG } from './config.js';
+import { ensureAdvancedFieldTooltips } from './field-tooltips.js';
 
 const debugLog = process.env.NODE_ENV !== 'production' ? console.log.bind(console) : () => {};
 
@@ -2674,6 +2675,10 @@ export const animateValue = (element, start, end, duration = 1000) => {
 
 // Tooltip utilities
 export const initializeTooltips = () => {
+    // Backfill missing field help on the advanced pages before wiring the shared
+    // tooltip behaviour so generated and hand-authored tooltips work the same way.
+    ensureAdvancedFieldTooltips(document);
+
     const tooltips = document.querySelectorAll('.tooltip');
 
     tooltips.forEach(tooltip => {

@@ -396,6 +396,29 @@ button { cursor: pointer; }
   color: var(--ink-4);
   font-weight: 400;
 }
+.redesign-v2 .label-with-tooltip {
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 0;
+}
+.redesign-v2 .label-with-tooltip label {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: normal;
+}
+.redesign-v2 .nested-label-with-tooltip {
+  align-items: flex-start;
+}
+.redesign-v2 .nested-label-with-tooltip label.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.redesign-v2 .label-with-tooltip .tooltip {
+  margin-left: 0;
+  margin-top: 1px;
+}
 .field-input {
   position: relative;
   display: flex;
