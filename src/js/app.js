@@ -829,7 +829,15 @@ class RetirementCalculatorApp {
             // When TRUE, models: 14% rate (FY2027-28), WATO $250, $1,000 instant
             // deduction, CGT reform (inflation-indexed + 30% min).
             // These measures are NOT yet passed by Parliament.
-            enableProposedBudget2026: safeGetChecked('enableProposedBudget2026', false)
+            enableProposedBudget2026: safeGetChecked('enableProposedBudget2026', false),
+
+            // Overseas retirement — wire the Overseas tab fields into the simulator
+            // so the Year-by-Year projection uses the overseas living budget from
+            // the specified departure age instead of the domestic ASFA target.
+            goingOverseas: safeGetSelectValue('overseasCountry', '') !== '',
+            overseasStartAge: parseInt(safeGetValue('overseasAge', 0)) || 0,
+            overseasAnnualBudget: parseFormattedNumber(getRawValue('estimatedLivingCosts', '0')),
+            overseasReturnFrequency: safeGetSelectValue('returnFrequency', 'annually')
         };
 
         if (inputs.useGlidePath) {
@@ -2161,6 +2169,7 @@ class RetirementCalculatorApp {
         const retirementAge = inputs.retirementAge || 65;
 
         this.updateCurrentRetirementIncomePanel(result, inputs);
+        this.renderCareerImpactBanner(inputs);
 
         result.yearlyData.slice(0, 30).forEach(data => {
             if (data.depleted) {
@@ -2183,18 +2192,36 @@ class RetirementCalculatorApp {
             }
 
             const isRetirementYear = data.age === retirementAge || (data.yourAge === retirementAge);
-            const rowClass = isRetirementYear ? 'retirement-row' : '';
+            const isOverseas = data.overseasYear === true;
+            const rowClass = [isRetirementYear ? 'retirement-row' : '', isOverseas ? 'overseas-row' : ''].filter(Boolean).join(' ');
             const endBal = data.endBalance || 0;
             const netWorth = endBal + (data.nonLiquidAssets || 0);
 
+            // Derive withdrawal funding source from super/non-super balance split
+            const superBal = data.endSuperBalance ?? 0;
+            const nonSuperBal = data.endNonSuperBalance ?? 0;
+            let srcLabel = '', srcClass = '';
+            if (superBal > 0 || nonSuperBal > 0) {
+                const superFrac = (superBal + nonSuperBal) > 0 ? superBal / (superBal + nonSuperBal) : 0;
+                if (superFrac > 0.85)      { srcLabel = 'Super';   srcClass = 'src-super'; }
+                else if (superFrac < 0.15) { srcLabel = 'Savings'; srcClass = 'src-savings'; }
+                else                        { srcLabel = 'Mixed';   srcClass = 'src-mixed'; }
+            }
+
+            const travelCost = data.travelCost ?? 0;
+            const livingCost = Math.max(0, (data.withdrawal || 0) - travelCost);
+            const withdrawTip = isOverseas
+                ? `Overseas living: ${formatCurrency(livingCost)} + Return travel: ${formatCurrency(travelCost)}. Source: ${srcLabel || '—'}.`
+                : `Annual portfolio withdrawal. Source: ${srcLabel || '—'}.`;
+
             projectionTable.innerHTML += `
                 <tr class="${rowClass}">
-                    <td class="px-4 py-2 age-cell">${data.year}${isRetirementYear ? ' <span title="Retirement year" style="color:var(--color-gold-500)">★</span>' : ''}</td>
+                    <td class="px-4 py-2 age-cell">${data.year}${isRetirementYear ? ' <span title="Retirement year" style="color:var(--color-gold-500)">★</span>' : ''}${isOverseas ? ' <span title="Overseas retirement year" style="color:#0d9488">✈</span>' : ''}</td>
                     <td class="px-4 py-2 age-cell">${ageDisplay}</td>
                     <td class="px-4 py-2 num">${formatCurrency(data.startBalance)}</td>
                     <td class="px-4 py-2 num">${formatCurrency(data.nonLiquidAssets || 0)}</td>
                     <td class="px-4 py-2 num positive">+${formatCurrency(data.growth || 0)}</td>
-                    <td class="px-4 py-2 num negative">-${formatCurrency(data.withdrawal || 0)}</td>
+                    <td class="px-4 py-2 num negative" title="${withdrawTip}">-${formatCurrency(data.withdrawal || 0)}${srcLabel ? `<span class="wy-src ${srcClass}">${srcLabel}</span>` : ''}</td>
                     <td class="px-4 py-2 num positive">+${formatCurrency(data.propertyIncome || 0)}</td>
                     <td class="px-4 py-2 num negative">-${formatCurrency(data.healthcareCost)}</td>
                     <td class="px-4 py-2 num negative">-${formatCurrency(data.agedCareCost)}</td>
@@ -2203,6 +2230,49 @@ class RetirementCalculatorApp {
                 </tr>
             `;
         });
+    }
+
+    renderCareerImpactBanner(inputs) {
+        const container = $('careerImpactBanner');
+        if (!container) return;
+        const items = [];
+
+        if (inputs.isCarerForParents && inputs.carerYearsExpected > 0) {
+            const pct = Math.round((inputs.carerReducedWorkPercent || 0) * 100);
+            const annualLoss = (inputs.yourSalary || 0) * (inputs.carerReducedWorkPercent || 0);
+            const totalLoss = annualLoss * inputs.carerYearsExpected;
+            const superLoss = totalLoss * 0.12;
+            items.push(`<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">👴 Carer ${inputs.carerYearsExpected} yr${inputs.carerYearsExpected > 1 ? 's' : ''} at −${pct}% income · ~${formatCurrency(totalLoss)} income / ~${formatCurrency(superLoss)} super foregone</span>`);
+            if ((inputs.carerAnnualExpense || 0) > 0) {
+                items.push(`<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">💸 Parent support ${formatCurrency(inputs.carerAnnualExpense)}/yr during carer period</span>`);
+            }
+        }
+
+        if (inputs.enableReducedIncome && inputs.reducedIncomeAge > 0) {
+            const yrs = Math.max(0, (inputs.retirementAge || 65) - inputs.reducedIncomeAge);
+            if (yrs > 0) {
+                const diff = Math.max(0, (inputs.yourSalary || 0) - (inputs.reducedIncomeSalary || 0));
+                items.push(`<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium">📉 Reduced income age ${inputs.reducedIncomeAge}→${inputs.retirementAge}: ${formatCurrency(inputs.reducedIncomeSalary)}/yr · ~${formatCurrency(diff * yrs)} cumulative difference</span>`);
+            }
+        }
+
+        if (inputs.dependents > 0 && inputs.educationCostPerChild > 0) {
+            items.push(`<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-50 border border-green-200 text-green-800 text-xs font-medium">🎓 Education ${formatCurrency(inputs.educationCostPerChild)}/yr × ${inputs.dependents} child${inputs.dependents > 1 ? 'ren' : ''}${inputs.privateSchool ? ' (private school)' : ''}</span>`);
+        }
+
+        if (inputs.goingOverseas && inputs.overseasStartAge > 0) {
+            const travelPerPerson = { annually: 5000, biannually: 10000, quarterly: 20000, seasonal: 30000, never: 0 }[inputs.overseasReturnFrequency] ?? 0;
+            const travelTotal = travelPerPerson * (inputs.isCouple ? 2 : 1);
+            items.push(`<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-teal-50 border border-teal-200 text-teal-800 text-xs font-medium">✈ Overseas from age ${inputs.overseasStartAge}: ${formatCurrency(inputs.overseasAnnualBudget)}/yr living + ${formatCurrency(travelTotal)}/yr return travel</span>`);
+        }
+
+        container.innerHTML = items.length
+            ? `<div class="mb-4 p-3 rounded-lg border border-gray-200 bg-gray-50">
+                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Life events modelled in this projection</p>
+                <div class="flex flex-wrap gap-2">${items.join('')}</div>
+                <p class="text-xs text-gray-400 mt-2">These irregular income changes and expenses are modelled year-by-year. Monte Carlo scatters returns and inflation around these values.</p>
+               </div>`
+            : '';
     }
 
     // Populate the Moneysmart-style "Your current retirement income" headline
@@ -8321,16 +8391,23 @@ class RetirementCalculatorApp {
         const hasSMSF = document.getElementById('hasSMSF');
         const smsfSection = document.getElementById('smsfSection');
         if (hasSMSF && smsfSection) {
+            const updateSmsfWarning = () => {
+                if (!hasSMSF.checked) return;
+                const superBalance = (safeGetValue('yourCurrentSuper', 0) || 0) +
+                    (safeGetValue('partnerCurrentSuper', 0) || 0);
+                const warning = document.getElementById('smsfLowBalanceWarning');
+                if (warning) warning.classList.toggle('hidden', superBalance >= 300000);
+            };
             const toggleSMSF = () => {
                 smsfSection.classList.toggle('hidden', !hasSMSF.checked);
-                if (hasSMSF.checked) {
-                    const superBalance = (safeGetValue('yourCurrentSuper', 0) || 0) +
-                        (safeGetValue('partnerCurrentSuper', 0) || 0);
-                    const warning = document.getElementById('smsfLowBalanceWarning');
-                    if (warning) warning.classList.toggle('hidden', superBalance >= 300000);
-                }
+                updateSmsfWarning();
             };
             hasSMSF.addEventListener('change', toggleSMSF);
+            // Re-check warning whenever super balances change
+            ['yourCurrentSuper', 'partnerCurrentSuper'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.addEventListener('input', updateSmsfWarning); el.addEventListener('change', updateSmsfWarning); }
+            });
             toggleSMSF();
         }
 
