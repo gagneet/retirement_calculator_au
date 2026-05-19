@@ -913,6 +913,14 @@ table.year-table tr.retire td { background: color-mix(in oklab, var(--accent) 8%
 table.year-table tr.retire td:first-child { background: color-mix(in oklab, var(--accent) 12%, var(--surface)); }
 table.year-table tr.pension td:first-child { color: var(--accent-ink); }
 table.year-table tr.depleted td { color: var(--rose); }
+table.year-table tr.overseas td:first-child { color: var(--teal, #0d9488); }
+table.year-table tr.overseas td { background: color-mix(in oklab, var(--teal, #0d9488) 4%, var(--surface)); }
+.wy-src { display: inline-block; font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; vertical-align: middle; font-weight: 600; letter-spacing: 0.02em; }
+.wy-src.src-super { background: color-mix(in oklab, var(--accent) 15%, var(--surface-2)); color: var(--accent-ink); }
+.wy-src.src-savings { background: color-mix(in oklab, #16a34a 15%, var(--surface-2)); color: #15803d; }
+.wy-src.src-mixed { background: color-mix(in oklab, #d97706 12%, var(--surface-2)); color: #b45309; }
+.wy-src.src-depleted { background: color-mix(in oklab, var(--rose) 15%, var(--surface-2)); color: var(--rose); }
+table.year-table th[title] { cursor: help; border-bottom: 1px dotted var(--border); }
 
 /* ============================================================
    Floating action bar (mobile + tools)
