@@ -19,6 +19,7 @@ import {
   importUserData,
   showNotification,
   calculateStateLandTax,
+  initializeTooltips,
 } from './utils.js';
 
 const simulator = new RetirementSimulator(ENHANCED_CONFIG);
@@ -2480,6 +2481,9 @@ function boot() {
     initSegmented();
     initTabs();
     initTopbar();
+    // advanced-v2 relies on the shared tooltip backfill because many fields use
+    // lightweight label markup instead of the classic page's inline tooltip HTML.
+    initializeTooltips();
     initPensionFieldDefaults();
     bindConditional('investmentProperty', 'data-ip');
     bindConditional('goingOverseas', 'data-overseas');
