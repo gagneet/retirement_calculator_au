@@ -60,10 +60,19 @@ const PENSION_MEANS_TEST_DEFAULTS = {
 
 const COUNTRY_CODE_MAP = {
   portugal: 'PORTUGAL',
+  spain: 'SPAIN',
+  italy: 'ITALY',
+  canada: 'CANADA',
+  newzealand: 'NEW_ZEALAND',
   nz: 'NEW_ZEALAND',
+  japan: 'JAPAN',
+  india: 'INDIA',
+  usa: 'USA',
   thailand: 'THAILAND',
   vietnam: 'VIETNAM',
   malaysia: 'MALAYSIA',
+  bali: 'BALI',
+  philippines: 'PHILIPPINES',
 };
 
 const APP_STATE = {
@@ -286,17 +295,17 @@ function buildEngineInputs(inp) {
     allocCash: pct(DEFAULTS.allocation.allocCash, DEFAULTS.allocation.allocCash),
 
     hasTrustAssets: inp.hasTrust,
-    trustType: DEFAULTS.trust.trustType,
-    trustControlLevel: DEFAULTS.trust.trustControlLevel,
-    trustNetAssets: 0,
-    trustAttributionPercentage: 1,
-    trustAnnualDistributions: 0,
-    trustTaxRate: 0.3,
-    familyTrustIncomeDistribution: 0,
-    beneficiaryAllocation: 1,
-    homeInTrust: false,
-    investmentPropertyInTrust: false,
-    stocksInTrust: false,
+    trustType: inp.trustType || DEFAULTS.trust.trustType,
+    trustControlLevel: inp.trustControlLevel || DEFAULTS.trust.trustControlLevel,
+    trustNetAssets: inp.trustNetAssets || 0,
+    trustAttributionPercentage: pct(inp.trustAttributionPercentage ?? 100, 100),
+    trustAnnualDistributions: inp.trustAnnualDistributions || 0,
+    trustTaxRate: pct(inp.trustTaxRate ?? 30, 30),
+    familyTrustIncomeDistribution: inp.familyTrustIncomeDistribution || 0,
+    beneficiaryAllocation: pct(inp.beneficiaryAllocation ?? 100, 100),
+    homeInTrust: inp.homeInTrust || false,
+    investmentPropertyInTrust: inp.investmentPropertyInTrust || false,
+    stocksInTrust: inp.stocksInTrust || false,
 
     returnVolatility: pct(inp.returnVolatility || DEFAULTS.simulation.returnVolatility, DEFAULTS.simulation.returnVolatility),
     enableShocks: inp.enableShocks,
@@ -325,7 +334,8 @@ function buildEngineInputs(inp) {
     isCarerForParents: inp.isCarer,
     carerReducedWorkPercent: inp.isCarer ? pct(inp.carerReducedWorkPercent) : 0,
     carerYearsExpected: inp.isCarer ? inp.carerYearsExpected : 0,
-    carerAnnualExpense: inp.annualParentSupport,
+    agedParentsLocation: inp.agedParentsLocation || 'australia',
+    carerAnnualExpense: inp.isCarer ? (inp.carerAnnualExpense ?? inp.annualParentSupport ?? 0) : 0,
     privateSchool: inp.privateSchool,
     universitySupport: inp.uniSupport,
     educationCostPerChild: inp.educationCostPerChild,
@@ -337,12 +347,18 @@ function buildEngineInputs(inp) {
     spouseContribution: inp.spouseContribution,
     downsizeContribution: inp.useDownsizer,
     hasSMSF: inp.hasSmsf,
-    smsfAdminCosts: 3500,
+    smsfAdminCosts: inp.smsfAdminCosts ?? 3500,
+    smsfInvestmentStrategy: inp.smsfInvestmentStrategy || 'balanced',
     annualTravelBudget: 0,
     annualHobbyBudget: 0,
     legacyGoal: 0,
     legacyGoalType: 'none',
     enableProposedBudget2026: inp.budget2627,
+
+    goingOverseas: inp.goingOverseas,
+    overseasStartAge: inp.goingOverseas ? (inp.ageMovingOverseas || 0) : 0,
+    overseasAnnualBudget: inp.goingOverseas ? (inp.annualLivingCostOverseas || 0) : 0,
+    overseasReturnFrequency: inp.returnFrequency || 'never',
 
     creditCardBalance: inp.ccBalance,
     creditCardRate: pct(inp.ccRate || 20, 20),
@@ -352,6 +368,18 @@ function buildEngineInputs(inp) {
     carLoanRate: pct(inp.carLoanRate || 8, 8),
     hecsBalance: inp.hecsBalance,
   };
+}
+
+function deriveWithdrawSource(superBal, nonSuperBal) {
+  const s = superBal ?? 0;
+  const n = nonSuperBal ?? 0;
+  if (s <= 0 && n <= 0) return 'depleted';
+  if (s <= 0) return 'savings';
+  if (n <= 0) return 'super';
+  const superFraction = s / (s + n);
+  if (superFraction > 0.85) return 'super';
+  if (superFraction < 0.15) return 'savings';
+  return 'mixed';
 }
 
 function buildProjectionYears(inp, simulation) {
@@ -373,6 +401,9 @@ function buildProjectionYears(inp, simulation) {
     withdraw: Math.max(0, year.withdrawal || year.superIncome || 0),
     pension: Math.max(0, year.pensionIncome || 0),
     otherIncome: year.otherIncome || 0,
+    withdrawSource: deriveWithdrawSource(year.endSuperBalance, year.endNonSuperBalance),
+    overseasYear: year.overseasYear ?? false,
+    travelCost: year.travelCost ?? 0,
   }));
 
   if (accumulationHistory.length) {
@@ -390,6 +421,9 @@ function buildProjectionYears(inp, simulation) {
         withdraw: 0,
         pension: 0,
         otherIncome: 0,
+        withdrawSource: 'accumulating',
+        overseasYear: false,
+        travelCost: 0,
       }));
     return [...bridgeYears, ...retirementYears];
   }
@@ -594,6 +628,15 @@ function bindConditional(toggleId, containerAttr) {
   apply();
 }
 
+function updateSmsfLowBalanceWarning() {
+  const warning = document.getElementById('smsfLowBalanceWarning');
+  if (!warning) return;
+  const hasSmsf = document.getElementById('hasSmsf');
+  const superBal = document.getElementById('superBal');
+  const balance = superBal ? (parseFloat(superBal.value) || 0) : 0;
+  warning.hidden = !(hasSmsf?.checked && balance < 300000);
+}
+
 // ============================================================
 // 5. READ INPUTS
 // ============================================================
@@ -675,6 +718,8 @@ function readInputs() {
     annualParentSupport: num('annualParentSupport'),
     carerReducedWorkPercent: num('carerReducedWorkPercent'),
     carerYearsExpected: num('carerYearsExpected'),
+    agedParentsLocation: val('agedParentsLocation', 'australia'),
+    carerAnnualExpense: num('carerAnnualExpense'),
 
     // Property & debt
     homeValue: num('homeValue'),
@@ -700,7 +745,20 @@ function readInputs() {
 
     // SMSF & Trust
     hasSmsf: chk('hasSmsf'),
+    smsfAdminCosts: num('smsfAdminCosts', 3500),
+    smsfInvestmentStrategy: val('smsfInvestmentStrategy', 'balanced'),
     hasTrust: chk('hasTrust'),
+    trustType: val('trustType', 'discretionary'),
+    trustControlLevel: val('trustControlLevel', 'high'),
+    trustNetAssets: num('trustNetAssets'),
+    trustAttributionPercentage: num('trustAttributionPercentage', 100),
+    trustAnnualDistributions: num('trustAnnualDistributions'),
+    homeInTrust: chk('homeInTrust'),
+    investmentPropertyInTrust: chk('investmentPropertyInTrust'),
+    stocksInTrust: chk('stocksInTrust'),
+    trustTaxRate: num('trustTaxRate', 30),
+    familyTrustIncomeDistribution: num('familyTrustIncomeDistribution'),
+    beneficiaryAllocation: num('beneficiaryAllocation', 100),
 
     // Goal
     desiredIncome: num('desiredIncome', 73000),
@@ -738,8 +796,25 @@ function readInputs() {
     // Overseas
     goingOverseas: chk('goingOverseas'),
     destination: val('destination'),
+    australianResidenceYears: num('australianResidenceYears'),
     ageMovingOverseas: num('ageMovingOverseas'),
     annualLivingCostOverseas: num('annualLivingCostOverseas', 40000),
+    returnFrequency: val('returnFrequency', 'never'),
+    overseasMoveType: val('overseasMoveType', 'permanent'),
+    overseasAgreementCountry: chk('overseasAgreementCountry'),
+    overseasTaxResidency: val('overseasTaxResidency', 'australian'),
+    overseasHealthCover: val('overseasHealthCover', 'international_private'),
+    maintainResidency: chk('maintainResidency'),
+    propertyStrategy: val('propertyStrategy', 'keep-personal'),
+    trustBeneficiaries: val('trustBeneficiaries', 'you-only'),
+    superAccess: val('superAccess', 'pension-mode'),
+    estimatedLivingCosts: num('estimatedLivingCosts', 60000),
+    overseasSpendingCurrency: val('overseasSpendingCurrency', 'AUD'),
+    overseasAudFxChange: num('overseasAudFxChange', -1),
+    overseasHousingType: val('overseasHousingType', 'rent'),
+    overseasAnnualRent: num('overseasAnnualRent', 18000),
+    overseasFallbackAge: num('overseasFallbackAge'),
+    overseasFallbackTrigger: val('overseasFallbackTrigger', 'none'),
   };
 }
 
@@ -1086,9 +1161,11 @@ function buildOverseasAnalyzer(baseState) {
       retirementAge: baseState.input.retireAge,
       partnered: baseState.engineInputs?.isCouple,
       ageCameToAustralia: baseState.input.ageCameToAU,
-      australianResidenceYears: baseState.input.ageCameToAU > 0
-        ? Math.max(0, baseState.input.retireAge - baseState.input.ageCameToAU)
-        : Math.max(0, baseState.input.retireAge - 16),
+      australianResidenceYears: baseState.input.australianResidenceYears > 0
+        ? baseState.input.australianResidenceYears
+        : baseState.input.ageCameToAU > 0
+          ? Math.max(0, baseState.input.retireAge - baseState.input.ageCameToAU)
+          : Math.max(0, baseState.input.retireAge - 16),
       enableProposedBudget2026: baseState.input.budget2627,
     },
     {
@@ -1401,6 +1478,91 @@ function renderMonteCarloCharts(mc, inp) {
   }
 }
 
+function buildCareerImpactBlock(inp) {
+  if (!inp || !inp.age) return '';
+  const items = [];
+
+  // Caring for ageing parents
+  if (inp.isCarer && inp.carerYearsExpected > 0) {
+    const reducedPct = inp.carerReducedWorkPercent || 0;
+    const baseSalary = inp.salary || 0;
+    const annualIncomeLoss = baseSalary * (reducedPct / 100);
+    const totalIncomeLoss = annualIncomeLoss * inp.carerYearsExpected;
+    const superLoss = totalIncomeLoss * 0.12;
+    const yrs = inp.carerYearsExpected;
+    items.push(`
+      <div class="mc-stat">
+        <div class="mc-k">Caring for parents · ${yrs} yr${yrs > 1 ? 's' : ''}</div>
+        <div class="mc-v">−${reducedPct}% income</div>
+        <div class="mc-sub">Est. ${fmt$(totalIncomeLoss, { compact: true })} income · ${fmt$(superLoss, { compact: true })} super foregone</div>
+      </div>`);
+    if ((inp.carerAnnualExpense ?? inp.annualParentSupport) > 0) {
+      const expenseAmt = inp.carerAnnualExpense ?? inp.annualParentSupport;
+      items.push(`
+      <div class="mc-stat">
+        <div class="mc-k">Parent support cost</div>
+        <div class="mc-v">${fmt$(expenseAmt)}/yr</div>
+        <div class="mc-sub">Additional cash outflow during carer period</div>
+      </div>`);
+    }
+  }
+
+  // Reduced income before retirement (wind-down phase)
+  if (inp.reducedIncomeEnabled && inp.reducedIncomeAge > 0 && inp.reducedIncomeSalary >= 0) {
+    const retireAge = inp.retireAge || 65;
+    const yearsReduced = Math.max(0, retireAge - inp.reducedIncomeAge);
+    if (yearsReduced > 0) {
+      const annualDiff = Math.max(0, (inp.salary || 0) - inp.reducedIncomeSalary);
+      const cumulativeDiff = annualDiff * yearsReduced;
+      const superDiff = cumulativeDiff * 0.12;
+      items.push(`
+      <div class="mc-stat">
+        <div class="mc-k">Reduced income from age ${inp.reducedIncomeAge}</div>
+        <div class="mc-v">${fmt$(inp.reducedIncomeSalary)}/yr</div>
+        <div class="mc-sub">${yearsReduced} yr${yearsReduced > 1 ? 's' : ''} · ${fmt$(cumulativeDiff, { compact: true })} cumulative less · ${fmt$(superDiff, { compact: true })} super impact</div>
+      </div>`);
+    }
+  }
+
+  // Children's education costs
+  const numChildren = inp.dependents || 0;
+  if (numChildren > 0 && inp.educationCostPerChild > 0) {
+    const yearsPerChild = inp.privateSchool ? 13 : (inp.uniSupport ? 3 : 0);
+    const totalEd = numChildren * inp.educationCostPerChild * Math.max(1, yearsPerChild);
+    items.push(`
+      <div class="mc-stat">
+        <div class="mc-k">Education · ${numChildren} child${numChildren > 1 ? 'ren' : ''}</div>
+        <div class="mc-v">${fmt$(inp.educationCostPerChild)}/yr each</div>
+        <div class="mc-sub">${inp.privateSchool ? 'Private school (13 yrs)' : inp.uniSupport ? 'University support (3 yrs)' : 'Annual contribution'} · Est. ${fmt$(totalEd, { compact: true })} total</div>
+      </div>`);
+  }
+
+  // Overseas retirement cost summary
+  if (inp.goingOverseas && inp.ageMovingOverseas > 0 && inp.annualLivingCostOverseas > 0) {
+    const freq = inp.returnFrequency || 'never';
+    const travelPerPerson = { annually: 5000, biannually: 10000, quarterly: 20000, seasonal: 30000, never: 0 }[freq] ?? 0;
+    const travelTotal = travelPerPerson * (inp.household === 'couple' ? 2 : 1);
+    const overseasTotal = inp.annualLivingCostOverseas + travelTotal;
+    items.push(`
+      <div class="mc-stat">
+        <div class="mc-k">Overseas retirement from age ${inp.ageMovingOverseas}</div>
+        <div class="mc-v">${fmt$(overseasTotal)}/yr</div>
+        <div class="mc-sub">${fmt$(inp.annualLivingCostOverseas)} living + ${fmt$(travelTotal)} return travel (${freq})</div>
+      </div>`);
+  }
+
+  if (!items.length) return '';
+
+  return `
+    <div class="summary-chart" style="grid-column:1/-1">
+      <h5>Life events factored into this projection</h5>
+      <div class="desc">These irregular income changes and expenses are already modelled year-by-year in the simulation. Monte Carlo runs scatter investment returns and inflation around these values — the Year-by-Year table reflects their direct impact.</div>
+      <div class="mc-results-grid" style="margin-top:10px">
+        ${items.join('')}
+      </div>
+    </div>`;
+}
+
 function renderSummaryPanel() {
   const state = APP_STATE;
   const summaryItems = [
@@ -1487,6 +1649,8 @@ function renderSummaryPanel() {
       </div>
     </div>` : '';
 
+  const careerImpactBlock = buildCareerImpactBlock(inp);
+
   setPanelHtml('summary', `
     <div class="summary-grid">
       <div class="summary-chart">
@@ -1505,6 +1669,7 @@ function renderSummaryPanel() {
       ${monteCarloBlock}
     </div>
     ${recommendationLead}
+    ${careerImpactBlock}
     ${assumptionsBlock}
   `);
 }
@@ -1843,7 +2008,7 @@ function applyImportedUserData(userData) {
   }
 
   applyHouseholdVisibility();
-  ['investmentProperty', 'goingOverseas'].forEach((id) => {
+  ['investmentProperty', 'goingOverseas', 'isCarer', 'hasSmsf', 'hasTrust'].forEach((id) => {
     const checkbox = document.getElementById(id);
     if (checkbox) checkbox.dispatchEvent(new Event('change', { bubbles: true }));
   });
@@ -2152,16 +2317,48 @@ function paintYearTable(years, inp) {
     return '$' + Math.round(adjusted / 1000).toLocaleString('en-AU') + 'k';
   };
 
+  const SOURCE_LABEL = { super: 'Super', savings: 'Savings', mixed: 'Mixed', depleted: 'Depleted', accumulating: '' };
+  const SOURCE_CLASS = { super: 'src-super', savings: 'src-savings', mixed: 'src-mixed', depleted: 'src-depleted', accumulating: '' };
+
   body.innerHTML = years.slice(0, 60).map((y, i) => {
-    return `<tr class="${y.age === inp.retireAge ? 'retire' : ''} ${y.age >= inp.agePensionAge ? 'pension' : ''}">
-      <td>${y.year || (currentYear + i)}</td>
-      <td>${y.age}${y.age === inp.retireAge ? ' ★' : ''}</td>
-      <td>${formatAmount(y.superBalance, y.year)}</td>
-      <td>${formatAmount(y.nonSuperLiquidAssets, y.year)}</td>
-      <td>${formatAmount(y.totalAssets, y.year)}</td>
-      <td>${formatAmount(y.withdraw, y.year)}</td>
-      <td>${formatAmount(y.pension, y.year)}</td>
-      <td>${formatAmount((y.withdraw || 0) + (y.pension || 0) + (y.otherIncome || 0), y.year)}</td>
+    const calYear = y.year || (currentYear + i);
+    const retireFlag = y.age === inp.retireAge;
+    const pensionFlag = y.age >= inp.agePensionAge;
+    const isOverseas = y.overseasYear;
+    const travelCost = y.travelCost ?? 0;
+    const livingCost = Math.max(0, (y.withdraw || 0) - travelCost);
+    const srcLabel = SOURCE_LABEL[y.withdrawSource] || '';
+    const srcCls = SOURCE_CLASS[y.withdrawSource] || '';
+
+    const superTip = y.superBalance != null
+      ? `Super balance at end of year ${calYear}. ${y.age >= 60 ? 'Tax-free in pension phase.' : 'Preservation age not yet reached.'}`
+      : 'Super balance not available for this year.';
+
+    const nonSuperTip = y.nonSuperLiquidAssets != null
+      ? `Non-super liquid assets at end of year ${calYear}: cash, shares, ETFs and managed funds outside super.`
+      : 'Non-super balance not available for this year.';
+
+    const totalTip = `Total assets at end of year ${calYear}: super + non-super liquid + home equity + investment property equity.`;
+
+    const withdrawBreakdown = isOverseas
+      ? `Overseas living: ${formatAmount(livingCost, calYear)} + Return travel: ${formatAmount(travelCost, calYear)}. Source: ${srcLabel || '—'}.`
+      : `Annual portfolio withdrawal to fund living expenses. Primary source: ${srcLabel || '—'}.`;
+
+    const pensionTip = y.pension > 0
+      ? `Age Pension income for year ${calYear}. Amount reflects assets/income test and any AWLR portability adjustment.`
+      : `No Age Pension this year (assets/income test result or below pension age ${inp.agePensionAge}).`;
+
+    const incomeTip = `Total retirement income for year ${calYear}: withdrawals + Age Pension + investment property income + other sources.`;
+
+    return `<tr class="${retireFlag ? 'retire' : ''} ${pensionFlag ? 'pension' : ''} ${isOverseas ? 'overseas' : ''}">
+      <td title="Calendar year">${calYear}${isOverseas ? ' ✈' : ''}</td>
+      <td title="Age at start of year ${calYear}">${y.age}${retireFlag ? ' ★' : ''}</td>
+      <td title="${escapeHtml(superTip)}">${formatAmount(y.superBalance, calYear)}</td>
+      <td title="${escapeHtml(nonSuperTip)}">${formatAmount(y.nonSuperLiquidAssets, calYear)}</td>
+      <td title="${escapeHtml(totalTip)}">${formatAmount(y.totalAssets, calYear)}</td>
+      <td title="${escapeHtml(withdrawBreakdown)}">${formatAmount(y.withdraw, calYear)}${srcLabel ? ` <span class="wy-src ${escapeHtml(srcCls)}">${escapeHtml(srcLabel)}</span>` : ''}</td>
+      <td title="${escapeHtml(pensionTip)}">${formatAmount(y.pension, calYear)}</td>
+      <td title="${escapeHtml(incomeTip)}">${formatAmount((y.withdraw || 0) + (y.pension || 0) + (y.otherIncome || 0), calYear)}</td>
     </tr>`;
   }).join('');
 }
@@ -2286,11 +2483,23 @@ function boot() {
     initPensionFieldDefaults();
     bindConditional('investmentProperty', 'data-ip');
     bindConditional('goingOverseas', 'data-overseas');
+    bindConditional('isCarer', 'data-carer');
+    bindConditional('hasSmsf', 'data-smsf');
+    bindConditional('hasTrust', 'data-trust');
 
     document.querySelectorAll('.col-form input, .col-form select').forEach((el) => {
       el.addEventListener('input', recalc);
       el.addEventListener('change', recalc);
     });
+
+    ['hasSmsf', 'superBal'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('change', updateSmsfLowBalanceWarning);
+        el.addEventListener('input', updateSmsfLowBalanceWarning);
+      }
+    });
+    updateSmsfLowBalanceWarning();
 
     applyHouseholdVisibility();
     applyAdvancedVisibility();

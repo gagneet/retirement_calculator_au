@@ -828,6 +828,13 @@
             border-top: 2px solid var(--color-gold-500);
             border-bottom: 2px solid var(--color-gold-500);
         }
+        .data-table tbody tr.overseas-row td:first-child { color: #0d9488; font-weight: 700; }
+        .data-table tbody tr.overseas-row { background: #f0fdfa; }
+        .wy-src { display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle;font-weight:600; }
+        .wy-src.src-super { background:#ede9fe;color:#5b21b6; }
+        .wy-src.src-savings { background:#dcfce7;color:#15803d; }
+        .wy-src.src-mixed { background:#fef3c7;color:#b45309; }
+        .wy-src.src-depleted { background:#fee2e2;color:#b91c1c; }
         .data-table tbody td {
             padding: 0.5rem 0.75rem;
             color: var(--color-charcoal-700);
@@ -3186,7 +3193,7 @@
                                 <option value="conservative">Conservative (40% equities, 60% other)</option>
                                 <option value="directProperty">Direct Property in SMSF (liquidity risk)</option>
                             </select>
-                            <p class="mt-1 text-xs text-gray-500">Strategy affects return expectations and liquidity risk</p>
+                            <p class="mt-1 text-xs text-gray-500">Stored with your profile for reference and reporting</p>
                         </div>
                     </div>
                 </div>
@@ -4716,44 +4723,51 @@
                 <p><strong>Note:</strong> This projection includes healthcare costs, aged care planning, and investment
                     property modeling.</p>
             </div>
+            <div id="careerImpactBanner"></div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 data-table">
                     <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-help"
+                            title="Calendar year. ★ marks the retirement year. ✈ marks years spent overseas.">
                             Year
                         </th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-help"
+                            title="Your age (and partner age if applicable) at the start of the year.">Age
                         </th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-help"
-                            title="Super, savings, stocks, and accessible home equity - can be spent during retirement">
+                            title="Super, savings, shares and accessible home equity — assets that can be drawn down during retirement without selling property.">
                             Liquid Assets 💳
                         </th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-help"
-                            title="Home equity and investment property - requires selling/downsizing to access">
+                            title="Home equity and investment property equity — requires selling or downsizing to access. Not counted in drawdown calculations.">
                             Non-Liquid Assets 🏘️
                         </th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-help"
+                            title="Investment growth on liquid assets during the year (return rate × beginning balance). Does not include property capital growth.">
                             Growth
                         </th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-help"
+                            title="Annual amount drawn from your portfolio to fund living expenses. Badge shows primary funding source: Super / Savings / Mixed. Overseas years show living cost + return-travel cost.">
                             Yearly Withdrawal
                         </th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-help"
+                            title="Net cash flow from investment property: rental income minus loan interest, expenses, and land tax. Can be negative (negative gearing).">
                             Property Income
                         </th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-help"
+                            title="Annual healthcare costs, growing at the healthcare inflation rate (typically 5–6% p.a. per AIHW long-run data), which is faster than general CPI.">
                             Healthcare
                         </th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aged
-                            Care
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-help"
+                            title="Aged care costs when applicable (65% probability per AIHW). Modelled as a lump-sum event starting at the age you specify. Average cost ~$75,000/year.">
+                            Aged Care
                         </th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-help"
-                            title="Liquid assets available for spending after all transactions">End Balance 💰
+                            title="Liquid assets remaining at year-end after growth, withdrawal, property income, healthcare and aged care costs.">End Balance 💰
                         </th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-help"
-                            title="Total net worth including property equity (liquid + non-liquid assets)">Total Net
-                            Worth 🏠
+                            title="Total net worth: liquid assets + home equity + investment property equity. Property is shown at estimated market value less outstanding loan.">Total Net Worth 🏠
                         </th>
                     </tr>
                     </thead>

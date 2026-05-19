@@ -220,6 +220,11 @@ export class RetirementSimulator {
         return annualCost * (agedCareProfile.costWeight || 0);
     }
 
+    static getAnnualTravelCost(frequency, isCouple) {
+        const perPerson = { annually: 5000, biannually: 10000, quarterly: 20000, seasonal: 30000, never: 0 }[frequency] ?? 0;
+        return perPerson * (isCouple ? 2 : 1);
+    }
+
     buildRetirementSpendingPlan({
         inputs,
         retirementYear,
@@ -228,9 +233,27 @@ export class RetirementSimulator {
         initialRetirementBalance,
         previousSpendingTarget,
         agedCareActive,
-        useRandomReturns
+        useRandomReturns,
+        overrideInflationFactor,
     }) {
-        const inflationFactor = Math.pow(1 + inputs.inflation, retirementYear);
+        const inflationFactor = overrideInflationFactor ?? Math.pow(1 + inputs.inflation, retirementYear);
+
+        // Overseas phase: substitute overseas living budget + return travel cost
+        if (inputs.goingOverseas && inputs.overseasStartAge > 0 && currentAge >= inputs.overseasStartAge) {
+            const travelCost = RetirementSimulator.getAnnualTravelCost(inputs.overseasReturnFrequency, inputs.isCouple);
+            const totalOverseasCost = (inputs.overseasAnnualBudget + travelCost) * inflationFactor;
+            const essentialSpending = totalOverseasCost * 0.85;
+            return {
+                lifecycleStage: 'overseas',
+                lifecycleLabel: 'Overseas retirement',
+                decumulationStrategy: 'overseas_fixed',
+                essentialSpending,
+                discretionarySpending: totalOverseasCost - essentialSpending,
+                targetSpending: totalOverseasCost,
+                overseasTravelCost: travelCost * inflationFactor,
+            };
+        }
+
         const travelHobbyBase = (inputs.annualTravelBudget || 0) + (inputs.annualHobbyBudget || 0);
         const pensionAge = this.config.OVERSEAS_RETIREMENT?.PENSION_AGE || 67;
         const lifecycle = this.getRetirementLifecycleStage(
@@ -1663,6 +1686,11 @@ export class RetirementSimulator {
         const initialRetirementBalance = currentBalance;
         const agedCareProfile = this.buildAgedCareProfile(inputs, useRandomReturns, effectiveYourLifespan);
         let previousSpendingTarget = null;
+        // Per-year inflation scatter: each Monte Carlo run experiences a different inflation path
+        // centred on the user's input, giving realistic variability in spending targets.
+        // Seed with deterministic pre-retirement inflation so year-0 of retirement correctly
+        // expresses spending targets in retirement-year dollars (not today's dollars).
+        let cumulativeInflationFactor = Math.pow(1 + inputs.inflation, yearsToRetirement);
 
         for (let i = 0; i < yearsInRetirement; i++) {
             const retirementYear = yearsToRetirement + i;
@@ -1749,10 +1777,18 @@ export class RetirementSimulator {
                 initialRetirementBalance,
                 previousSpendingTarget,
                 agedCareActive: agedCareCost > 0,
-                useRandomReturns
+                useRandomReturns,
+                overrideInflationFactor: useRandomReturns ? cumulativeInflationFactor : undefined,
             });
             const baseIncomeNeeded = spendingPlan.targetSpending;
             previousSpendingTarget = baseIncomeNeeded;
+
+            // Advance the cumulative inflation factor for the next retirement year.
+            // Multiplying AFTER using the factor ensures year i uses the correct base.
+            if (useRandomReturns) {
+                const yearInflation = Math.max(0.005, randomNormal(inputs.inflation, inputs.inflation * 0.25));
+                cumulativeInflationFactor *= (1 + yearInflation);
+            }
 
             // LHC loading cost during retirement (mirrors accumulation loop logic)
             let lhcRetirementCost = 0;
@@ -2057,7 +2093,11 @@ export class RetirementSimulator {
                 endNonSuperBalance: displayNonSuperBalance,
                 liquidAssets,
                 nonLiquidAssets,
-                depleted: false
+                depleted: false,
+                overseasYear: !!(inputs.goingOverseas && inputs.overseasStartAge > 0 && yourCurrentAge >= inputs.overseasStartAge),
+                // Use the inflated travel cost already computed inside buildRetirementSpendingPlan
+                // so the tooltip breakdown (living cost = withdraw - travelCost) is consistent.
+                travelCost: spendingPlan.overseasTravelCost ?? 0,
             };
 
             // Add pension details for first year if available

@@ -465,15 +465,37 @@
           </div>
 
           <div class="subhead">Family carer</div>
-          <div class="fields three">
+          <div class="fields">
             <label class="toggle"><input id="isCarer" type="checkbox" /><span class="track"></span><span class="label">I am a carer for aged parents / family</span></label>
-            <div class="field">
-              <label class="field-label" for="carerReducedWorkPercent"><span>Work reduction</span><span class="hint">%</span></label>
-              <div class="field-input"><input id="carerReducedWorkPercent" type="number" step="1" value="0" /><span class="suffix">%</span></div>
-            </div>
-            <div class="field">
-              <label class="field-label" for="carerYearsExpected"><span>Expected carer years</span></label>
-              <div class="field-input"><input id="carerYearsExpected" type="number" value="0" /><span class="suffix">yrs</span></div>
+          </div>
+          <div data-carer="true" hidden>
+            <div class="fields three">
+              <div class="field">
+                <label class="field-label" for="carerReducedWorkPercent"><span>Work reduction due to caring</span><span class="hint">%</span></label>
+                <div class="field-input"><input id="carerReducedWorkPercent" type="number" step="1" value="0" /><span class="suffix">%</span></div>
+                <div class="field-help">Estimated % reduction in income/work capacity while caring</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="carerYearsExpected"><span>Expected years of caring</span></label>
+                <div class="field-input"><input id="carerYearsExpected" type="number" value="0" /><span class="suffix">yrs</span></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="agedParentsLocation"><span>Aged parents location</span></label>
+                <div class="field-input">
+                  <select id="agedParentsLocation">
+                    <option value="australia">In Australia (citizens / residents)</option>
+                    <option value="australia-non-citizen">In Australia (non-citizens / temp visa)</option>
+                    <option value="overseas">Overseas (no AU Age Pension)</option>
+                    <option value="mixed">Mixed (some AU, some overseas)</option>
+                  </select>
+                </div>
+                <div class="field-help">Non-citizen parents overseas do not receive the Australian Age Pension</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="carerAnnualExpense"><span>Annual financial support to parents / family</span><span class="hint">$/year</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="carerAnnualExpense" type="number" value="0" /><span class="suffix">/yr</span></div>
+                <div class="field-help">Funds sent or spent supporting parents — reduces your savings capacity</div>
+              </div>
             </div>
           </div>
         </div>
@@ -554,11 +576,105 @@
           <svg class="section-chev" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="section-body">
+
+          <!-- ── SMSF ── -->
+          <div class="subhead">Self-Managed Super Fund (SMSF)</div>
+          <div class="notice"><span class="ic">⚠️</span><div><b>SMSF regulatory note:</b> ASIC recommends a balance of at least $200k–$500k to justify ongoing costs. Balances below $300k may result in higher fees as a proportion of assets. <a href="smsf-guide.html">Read the SMSF guide →</a></div></div>
           <div class="fields">
-            <label class="toggle"><input id="hasSmsf" type="checkbox" /><span class="track"></span><span class="label">I have a Self-Managed Super Fund</span></label>
+            <label class="toggle"><input id="hasSmsf" type="checkbox" /><span class="track"></span><span class="label">I have a Self-Managed Super Fund (SMSF)</span></label>
+          </div>
+          <div data-smsf="true" hidden>
+            <div id="smsfLowBalanceWarning" class="notice" hidden><span class="ic">⚠️</span><div>SMSF balance below $300,000 — admin costs may represent a disproportionate share. Consider consolidating into a retail or industry super fund.</div></div>
+            <div class="fields">
+              <div class="field">
+                <label class="field-label" for="smsfAdminCosts"><span>Annual SMSF admin &amp; compliance costs</span><span class="hint">$/year</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="smsfAdminCosts" type="number" value="3500" /></div>
+                <div class="field-help">Audit, accounting, ASIC fees, and admin (typically $3,000–$6,000/yr)</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="smsfInvestmentStrategy"><span>SMSF investment strategy</span></label>
+                <div class="field-input">
+                  <select id="smsfInvestmentStrategy">
+                    <option value="balanced">Balanced (60% equities, 40% other)</option>
+                    <option value="growth">Growth (80% equities, 20% other)</option>
+                    <option value="highGrowth">High Growth (90%+ equities)</option>
+                    <option value="conservative">Conservative (40% equities, 60% other)</option>
+                    <option value="directProperty">Direct Property in SMSF (liquidity risk)</option>
+                  </select>
+                </div>
+                <div class="field-help">Stored with your profile for reference and reporting</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── TRUST ── -->
+          <div class="subhead" style="margin-top:18px">Trust assets &amp; control</div>
+          <div class="notice"><span class="ic">ℹ️</span><div>Trust assets may be attributed to you for Age Pension means testing if you have control. Consult a financial adviser. <a href="trust-company-structure.html">Trusts &amp; companies guide →</a></div></div>
+          <div class="fields">
             <label class="toggle"><input id="hasTrust" type="checkbox" /><span class="track"></span><span class="label">I have trust assets or control</span></label>
           </div>
-          <div class="notice"><span class="ic">ℹ️</span><div>See <a href="smsf-guide.html">SMSF guide</a> · <a href="trust-company-structure.html">Trusts &amp; companies guide</a></div></div>
+          <div data-trust="true" hidden>
+            <div class="fields three">
+              <div class="field">
+                <label class="field-label" for="trustType"><span>Primary trust type</span></label>
+                <div class="field-input">
+                  <select id="trustType">
+                    <option value="discretionary">Discretionary Family Trust</option>
+                    <option value="unit">Unit Trust</option>
+                    <option value="hybrid">Hybrid Trust</option>
+                    <option value="other">Other Trust Structure</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="trustControlLevel"><span>Control level</span></label>
+                <div class="field-input">
+                  <select id="trustControlLevel">
+                    <option value="high">High Control (Trustee / Appointer / Beneficiary)</option>
+                    <option value="medium">Medium Control (Beneficiary with influence)</option>
+                    <option value="low">Low Control (Beneficiary only)</option>
+                    <option value="none">No Control (Arms-length)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="trustNetAssets"><span>Current trust net assets</span><span class="hint">$</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="trustNetAssets" type="number" value="0" /></div>
+                <div class="field-help">Total trust assets minus liabilities</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="trustAttributionPercentage"><span>Centrelink attribution</span><span class="hint">%</span></label>
+                <div class="field-input"><input id="trustAttributionPercentage" type="number" step="1" value="100" min="0" max="100" /><span class="suffix">%</span></div>
+                <div class="field-help">% of trust assets attributed to you (100% = high control)</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="trustAnnualDistributions"><span>Annual distributions received</span><span class="hint">$</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="trustAnnualDistributions" type="number" value="0" /></div>
+                <div class="field-help">Actual distributions received in last financial year</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="trustTaxRate"><span>Trust tax rate</span><span class="hint">%</span></label>
+                <div class="field-input"><input id="trustTaxRate" type="number" step="1" value="30" min="0" max="47" /><span class="suffix">%</span></div>
+                <div class="field-help">Effective rate on undistributed income (typically 30–47%)</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="familyTrustIncomeDistribution"><span>Annual income distributed from trust</span><span class="hint">$</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="familyTrustIncomeDistribution" type="number" value="0" /></div>
+                <div class="field-help">Total distributions to all beneficiaries (income test)</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="beneficiaryAllocation"><span>Your share of distributions</span><span class="hint">%</span></label>
+                <div class="field-input"><input id="beneficiaryAllocation" type="number" step="1" value="100" min="0" max="100" /><span class="suffix">%</span></div>
+                <div class="field-help">% of trust distributions allocated to you (income test)</div>
+              </div>
+            </div>
+            <div class="fields">
+              <label class="toggle"><input id="homeInTrust" type="checkbox" /><span class="track"></span><span class="label">Principal residence held in trust (may lose Age Pension home exemption)</span></label>
+              <label class="toggle"><input id="investmentPropertyInTrust" type="checkbox" /><span class="track"></span><span class="label">Investment property held in trust</span></label>
+              <label class="toggle"><input id="stocksInTrust" type="checkbox" /><span class="track"></span><span class="label">Share portfolio held in trust</span></label>
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -722,22 +838,239 @@
             <label class="toggle"><input id="goingOverseas" type="checkbox" /><span class="track"></span><span class="label">I plan to retire (partly or fully) overseas</span></label>
           </div>
           <div data-overseas="true" hidden>
+
+            <!-- Status banner -->
+            <div class="notice" id="overseasBanner"><span class="ic">🌍</span><div>
+              <b>Overseas retirement analysis</b> — age pension portability, tax residency, and FX impact will be assessed when you run the simulation.
+            </div></div>
+
+            <!-- ── Residence plans ── -->
+            <div class="subhead">Residence plans</div>
+            <div class="fields">
+              <div class="field">
+                <label class="field-label" for="destination"><span>Retirement destination</span></label>
+                <div class="field-input">
+                  <select id="destination">
+                    <option value="">Select country…</option>
+                    <optgroup label="Social Security Agreement countries">
+                      <option value="portugal">Portugal 🇵🇹 (SSA + NHR tax scheme)</option>
+                      <option value="spain">Spain 🇪🇸 (SSA)</option>
+                      <option value="italy">Italy 🇮🇹 (SSA + 7% flat tax regions)</option>
+                      <option value="canada">Canada 🇨🇦 (SSA)</option>
+                      <option value="newzealand">New Zealand 🇳🇿 (SSA + easy visa)</option>
+                      <option value="japan">Japan 🇯🇵 (SSA + world-class healthcare)</option>
+                      <option value="india">India 🇮🇳 (SSA + ultra-low cost)</option>
+                      <option value="usa">United States 🇺🇸 (SSA — high cost, hard visa)</option>
+                    </optgroup>
+                    <optgroup label="Popular destinations (no SSA)">
+                      <option value="thailand">Thailand 🇹🇭 (very affordable, LTR visa)</option>
+                      <option value="vietnam">Vietnam 🇻🇳 (lowest cost, DTA, e-visa)</option>
+                      <option value="malaysia">Malaysia 🇲🇾 (MM2H visa, English)</option>
+                      <option value="bali">Bali, Indonesia 🇮🇩 (closest, low cost)</option>
+                      <option value="philippines">Philippines 🇵🇭 (SRRV visa, English)</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                      <option value="other">Other country</option>
+                    </optgroup>
+                  </select>
+                </div>
+              </div>
+            </div>
             <div class="fields three">
               <div class="field">
-                <label class="field-label" for="destination"><span>Destination</span></label>
-                <div class="field-input"><select id="destination">
-                  <option value="">Select country…</option>
-                  <option value="portugal">Portugal 🇵🇹 (SSA)</option>
-                  <option value="nz">New Zealand 🇳🇿 (SSA)</option>
-                  <option value="thailand">Thailand 🇹🇭</option>
-                  <option value="vietnam">Vietnam 🇻🇳</option>
-                  <option value="malaysia">Malaysia 🇲🇾</option>
-                  <option value="other">Other</option>
-                </select></div>
+                <label class="field-label" for="australianResidenceYears"><span>Years lived in Australia</span><span class="hint">for AWLR</span></label>
+                <div class="field-input"><input id="australianResidenceYears" type="number" value="" min="0" max="51" /><span class="suffix">yrs</span></div>
+                <div class="field-help">Between ages 16–67. Leave blank to auto-calculate from your current age.</div>
               </div>
-              <div class="field"><label class="field-label" for="ageMovingOverseas"><span>Age moving overseas</span></label><div class="field-input"><input id="ageMovingOverseas" type="number" value="0" /><span class="suffix">yrs</span></div></div>
-              <div class="field"><label class="field-label" for="annualLivingCostOverseas"><span>Annual living cost</span><span class="hint">AUD/yr</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="annualLivingCostOverseas" type="number" value="40000" /></div></div>
+              <div class="field">
+                <label class="field-label" for="ageMovingOverseas"><span>Age moving overseas</span></label>
+                <div class="field-input"><input id="ageMovingOverseas" type="number" value="65" min="55" max="90" /><span class="suffix">yrs</span></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="annualLivingCostOverseas"><span>Annual living cost overseas</span><span class="hint">AUD/yr</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="annualLivingCostOverseas" type="number" value="40000" /></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="returnFrequency"><span>Return to Australia frequency</span></label>
+                <div class="field-input">
+                  <select id="returnFrequency">
+                    <option value="never">Never (permanent move)</option>
+                    <option value="annually">Once per year (3–4 weeks)</option>
+                    <option value="biannually">Twice per year (6–8 weeks total)</option>
+                    <option value="quarterly">Every 3 months (3–4 months/yr)</option>
+                    <option value="seasonal">6 months each (seasonal)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="overseasMoveType"><span>Type of move</span></label>
+                <div class="field-input">
+                  <select id="overseasMoveType">
+                    <option value="permanent">Permanent move (living overseas)</option>
+                    <option value="extended_temporary">Extended stay &gt;26 weeks (planning to return)</option>
+                    <option value="long_absence">Holiday / visit 6–26 weeks</option>
+                    <option value="short_absence">Short trip ≤6 weeks</option>
+                  </select>
+                </div>
+                <div class="field-help">For a permanent move, Pension Supplement stops from the departure date — not after 26 weeks</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="overseasTaxResidency"><span>Tax residency assumption</span></label>
+                <div class="field-input">
+                  <select id="overseasTaxResidency">
+                    <option value="australian">Remain Australian tax resident</option>
+                    <option value="foreign">Become foreign tax resident</option>
+                    <option value="uncertain">Uncertain — seek advice</option>
+                  </select>
+                </div>
+                <div class="field-help">Foreign residents lose the tax-free threshold; 30% flat rate on AU-sourced income</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="overseasHealthCover"><span>Overseas health cover plan</span></label>
+                <div class="field-input">
+                  <select id="overseasHealthCover">
+                    <option value="international_private">International private health insurance</option>
+                    <option value="local_public">Local public healthcare system</option>
+                    <option value="local_private">Local private insurance</option>
+                    <option value="none">No cover arranged yet</option>
+                  </select>
+                </div>
+                <div class="field-help">Medicare does not cover overseas treatment. Pensioner Concession Card cancelled after 6 weeks abroad.</div>
+              </div>
             </div>
+            <div class="fields">
+              <label class="toggle"><input id="overseasAgreementCountry" type="checkbox" /><span class="track"></span><span class="label">Destination has Social Security Agreement with Australia (avoids 2-year former-resident waiting period)</span></label>
+              <label class="toggle"><input id="maintainResidency" type="checkbox" /><span class="track"></span><span class="label">Maintain Australian tax residency (complex — seek specialist advice)</span></label>
+            </div>
+
+            <!-- ── Asset structure ── -->
+            <div class="subhead">Asset structure strategy</div>
+            <div class="fields three">
+              <div class="field">
+                <label class="field-label" for="propertyStrategy"><span>Property strategy</span></label>
+                <div class="field-input">
+                  <select id="propertyStrategy">
+                    <option value="keep-personal">Keep in personal names</option>
+                    <option value="transfer-trust">Transfer to Family Trust</option>
+                    <option value="sell-before">Sell before departure</option>
+                    <option value="sell-after">Sell after establishing overseas residency</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="trustBeneficiaries"><span>Trust beneficiaries (if using trust)</span></label>
+                <div class="field-input">
+                  <select id="trustBeneficiaries">
+                    <option value="you-only">Yourself only</option>
+                    <option value="you-partner">You and partner</option>
+                    <option value="family">Extended family</option>
+                    <option value="australian-residents">Australian resident children</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="superAccess"><span>Superannuation access strategy</span></label>
+                <div class="field-input">
+                  <select id="superAccess">
+                    <option value="pension-mode">Pension mode (regular payments)</option>
+                    <option value="partial-lump">Partial lump sum before departure</option>
+                    <option value="full-lump">Full lump sum before departure</option>
+                    <option value="mixed">Mixed strategy</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="estimatedLivingCosts"><span>Estimated annual living costs overseas</span><span class="hint">AUD/yr</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="estimatedLivingCosts" type="number" value="60000" step="1000" /></div>
+                <div class="field-help">In Australian dollars — include healthcare, housing, and lifestyle</div>
+              </div>
+            </div>
+
+            <!-- ── Currency & housing ── -->
+            <div class="subhead">Currency &amp; housing</div>
+            <div class="fields three">
+              <div class="field">
+                <label class="field-label" for="overseasSpendingCurrency"><span>Spending currency</span></label>
+                <div class="field-input">
+                  <select id="overseasSpendingCurrency">
+                    <option value="AUD">AUD (Australian Dollar)</option>
+                    <option value="EUR">EUR (Euro)</option>
+                    <option value="GBP">GBP (British Pound)</option>
+                    <option value="USD">USD (US Dollar)</option>
+                    <option value="NZD">NZD (New Zealand Dollar)</option>
+                    <option value="SGD">SGD (Singapore Dollar)</option>
+                    <option value="THB">THB (Thai Baht)</option>
+                    <option value="IDR">IDR (Indonesian Rupiah)</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="overseasAudFxChange"><span>Annual AUD FX change vs local</span><span class="hint">%/yr</span></label>
+                <div class="field-input"><input id="overseasAudFxChange" type="number" step="0.5" value="-1" min="-10" max="10" /><span class="suffix">%</span></div>
+                <div class="field-help">Negative = AUD depreciates (your costs rise). Positive = AUD strengthens.</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="overseasHousingType"><span>Local housing arrangement</span></label>
+                <div class="field-input">
+                  <select id="overseasHousingType">
+                    <option value="rent">Renting</option>
+                    <option value="own">Own local property</option>
+                    <option value="family">Living with family</option>
+                    <option value="nomadic">Nomadic / short-term stays</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="overseasAnnualRent"><span>Annual rent (AUD equivalent)</span><span class="hint">if renting</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="overseasAnnualRent" type="number" value="18000" step="500" /></div>
+                <div class="field-help">Annual rent converted to AUD at current rates. Subject to FX drift.</div>
+              </div>
+            </div>
+
+            <!-- ── Return-to-Australia fallback ── -->
+            <div class="subhead">Return-to-Australia fallback</div>
+            <div class="fields">
+              <div class="field">
+                <label class="field-label" for="overseasFallbackAge"><span>Age of return</span><span class="hint">0 = no planned return</span></label>
+                <div class="field-input"><input id="overseasFallbackAge" type="number" value="0" min="0" max="110" step="1" /><span class="suffix">yrs</span></div>
+                <div class="field-help">Pension portability and AWLR rules reset on return</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="overseasFallbackTrigger"><span>Likely return trigger</span></label>
+                <div class="field-input">
+                  <select id="overseasFallbackTrigger">
+                    <option value="none">No planned return</option>
+                    <option value="health">Health / aged care needs</option>
+                    <option value="financial">Financial difficulty</option>
+                    <option value="social">Social / family reasons</option>
+                    <option value="partner_death">After partner death</option>
+                    <option value="elective">Elective lifestyle choice</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Scenario results container (populated by JS) ── -->
+            <div class="notice" style="margin-top:14px"><span class="ic">📊</span><div>
+              Run the simulation to see the <b>four-scenario Age Pension comparison</b> (stay in AU vs permanent move vs extended stay vs seasonal) in the Summary tab.
+            </div></div>
+
+            <!-- ── Key rules ── -->
+            <details style="margin-top:14px">
+              <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-2);padding:8px 0">⚠️ Key overseas retirement rules (March 2026)</summary>
+              <div style="font-size:12.5px;color:var(--ink-2);line-height:1.7;margin-top:8px;padding:12px;background:var(--surface-2,#f9f9f9);border-radius:10px">
+                <p>• <b>6-week rule:</b> After 6 weeks continuously overseas the Pension Supplement drops to basic rate only and Energy Supplement stops. Pensioner Concession Card is cancelled. Base pension rate is unchanged.</p>
+                <p>• <b>26-week rule:</b> After 26 weeks, an AWLR-proportional rate applies if your Australian Working Life Residence is below 35 years. 35+ years = full rate continues.</p>
+                <p>• <b>Permanent move:</b> Pension Supplement top-up and Energy Supplement stop from the <em>departure date</em> — not after 6 weeks. Critical distinction.</p>
+                <p>• <b>Principal home — asset test:</b> The home is fully exempt. If you sell and rent, you become a non-homeowner; higher thresholds apply but sale proceeds are assessable for 24 months unless reinvested.</p>
+                <p>• <b>Return to AU:</b> Leaving again within 2 years of returning and starting Age Pension may stop payments (exceptions: SSA countries, humanitarian visas).</p>
+                <p>• <b>Healthcare:</b> Medicare does not cover overseas treatment. Private international health insurance strongly recommended.</p>
+                <p>• <b>Super:</b> Access rules (age 60+) apply regardless of residency. Some funds close accounts for permanent overseas residents — check with your fund.</p>
+                <p>• <b>Tax:</b> Foreign residents lose the tax-free threshold and pay 30% on AU-sourced income from the first dollar. Double Tax Agreements may reduce this for SSA countries.</p>
+              </div>
+            </details>
+
           </div>
         </div>
       </section>
@@ -783,7 +1116,16 @@
             </div>
             <div class="year-table-wrap">
               <table class="year-table">
-                <thead><tr><th>Year</th><th>Age</th><th>Super</th><th>Other liquid</th><th>Total assets</th><th>Withdraw</th><th>Age Pension</th><th>Income</th></tr></thead>
+                <thead><tr>
+                  <th title="Calendar year">Year</th>
+                  <th title="Your age at the start of the year. ★ marks retirement year.">Age</th>
+                  <th title="Superannuation account balance at year-end (accumulation + account-based pension phase combined).">Super</th>
+                  <th title="Non-super liquid assets: cash savings, shares, ETFs, term deposits and managed funds held outside super.">Other liquid</th>
+                  <th title="Super + other liquid + home equity + investment property equity. Non-liquid assets do not fund spending directly.">Total assets</th>
+                  <th title="Amount drawn from your portfolio to fund living expenses. Badge shows primary source: Super / Savings / Mixed. Overseas years show living cost + return-travel cost breakdown.">Withdraw</th>
+                  <th title="Government Age Pension income. Subject to assets test and income test. AWLR-proportional if living overseas.">Age Pension</th>
+                  <th title="Total retirement income: portfolio withdrawals + Age Pension + investment property income + other income sources.">Income</th>
+                </tr></thead>
                 <tbody id="year-tbody"></tbody>
               </table>
             </div>
