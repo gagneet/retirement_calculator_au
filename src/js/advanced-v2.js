@@ -286,17 +286,17 @@ function buildEngineInputs(inp) {
     allocCash: pct(DEFAULTS.allocation.allocCash, DEFAULTS.allocation.allocCash),
 
     hasTrustAssets: inp.hasTrust,
-    trustType: DEFAULTS.trust.trustType,
-    trustControlLevel: DEFAULTS.trust.trustControlLevel,
-    trustNetAssets: 0,
-    trustAttributionPercentage: 1,
-    trustAnnualDistributions: 0,
-    trustTaxRate: 0.3,
-    familyTrustIncomeDistribution: 0,
-    beneficiaryAllocation: 1,
-    homeInTrust: false,
-    investmentPropertyInTrust: false,
-    stocksInTrust: false,
+    trustType: inp.trustType || DEFAULTS.trust.trustType,
+    trustControlLevel: inp.trustControlLevel || DEFAULTS.trust.trustControlLevel,
+    trustNetAssets: inp.trustNetAssets || 0,
+    trustAttributionPercentage: pct(inp.trustAttributionPercentage ?? 100, 100),
+    trustAnnualDistributions: inp.trustAnnualDistributions || 0,
+    trustTaxRate: pct(inp.trustTaxRate ?? 30, 30),
+    familyTrustIncomeDistribution: inp.familyTrustIncomeDistribution || 0,
+    beneficiaryAllocation: pct(inp.beneficiaryAllocation ?? 100, 100),
+    homeInTrust: inp.homeInTrust || false,
+    investmentPropertyInTrust: inp.investmentPropertyInTrust || false,
+    stocksInTrust: inp.stocksInTrust || false,
 
     returnVolatility: pct(inp.returnVolatility || DEFAULTS.simulation.returnVolatility, DEFAULTS.simulation.returnVolatility),
     enableShocks: inp.enableShocks,
@@ -325,7 +325,8 @@ function buildEngineInputs(inp) {
     isCarerForParents: inp.isCarer,
     carerReducedWorkPercent: inp.isCarer ? pct(inp.carerReducedWorkPercent) : 0,
     carerYearsExpected: inp.isCarer ? inp.carerYearsExpected : 0,
-    carerAnnualExpense: inp.annualParentSupport,
+    agedParentsLocation: inp.agedParentsLocation || 'australia',
+    carerAnnualExpense: inp.isCarer ? (inp.carerAnnualExpense || inp.annualParentSupport || 0) : 0,
     privateSchool: inp.privateSchool,
     universitySupport: inp.uniSupport,
     educationCostPerChild: inp.educationCostPerChild,
@@ -337,7 +338,8 @@ function buildEngineInputs(inp) {
     spouseContribution: inp.spouseContribution,
     downsizeContribution: inp.useDownsizer,
     hasSMSF: inp.hasSmsf,
-    smsfAdminCosts: 3500,
+    smsfAdminCosts: inp.smsfAdminCosts || 3500,
+    smsfInvestmentStrategy: inp.smsfInvestmentStrategy || 'balanced',
     annualTravelBudget: 0,
     annualHobbyBudget: 0,
     legacyGoal: 0,
@@ -675,6 +677,8 @@ function readInputs() {
     annualParentSupport: num('annualParentSupport'),
     carerReducedWorkPercent: num('carerReducedWorkPercent'),
     carerYearsExpected: num('carerYearsExpected'),
+    agedParentsLocation: val('agedParentsLocation', 'australia'),
+    carerAnnualExpense: num('carerAnnualExpense'),
 
     // Property & debt
     homeValue: num('homeValue'),
@@ -700,7 +704,20 @@ function readInputs() {
 
     // SMSF & Trust
     hasSmsf: chk('hasSmsf'),
+    smsfAdminCosts: num('smsfAdminCosts', 3500),
+    smsfInvestmentStrategy: val('smsfInvestmentStrategy', 'balanced'),
     hasTrust: chk('hasTrust'),
+    trustType: val('trustType', 'discretionary'),
+    trustControlLevel: val('trustControlLevel', 'high'),
+    trustNetAssets: num('trustNetAssets'),
+    trustAttributionPercentage: num('trustAttributionPercentage', 100),
+    trustAnnualDistributions: num('trustAnnualDistributions'),
+    homeInTrust: chk('homeInTrust'),
+    investmentPropertyInTrust: chk('investmentPropertyInTrust'),
+    stocksInTrust: chk('stocksInTrust'),
+    trustTaxRate: num('trustTaxRate', 30),
+    familyTrustIncomeDistribution: num('familyTrustIncomeDistribution'),
+    beneficiaryAllocation: num('beneficiaryAllocation', 100),
 
     // Goal
     desiredIncome: num('desiredIncome', 73000),
@@ -738,8 +755,25 @@ function readInputs() {
     // Overseas
     goingOverseas: chk('goingOverseas'),
     destination: val('destination'),
+    australianResidenceYears: num('australianResidenceYears'),
     ageMovingOverseas: num('ageMovingOverseas'),
     annualLivingCostOverseas: num('annualLivingCostOverseas', 40000),
+    returnFrequency: val('returnFrequency', 'never'),
+    overseasMoveType: val('overseasMoveType', 'permanent'),
+    overseasAgreementCountry: chk('overseasAgreementCountry'),
+    overseasTaxResidency: val('overseasTaxResidency', 'australian'),
+    overseasHealthCover: val('overseasHealthCover', 'international_private'),
+    maintainResidency: chk('maintainResidency'),
+    propertyStrategy: val('propertyStrategy', 'keep-personal'),
+    trustBeneficiaries: val('trustBeneficiaries', 'you-only'),
+    superAccess: val('superAccess', 'pension-mode'),
+    estimatedLivingCosts: num('estimatedLivingCosts', 60000),
+    overseasSpendingCurrency: val('overseasSpendingCurrency', 'AUD'),
+    overseasAudFxChange: num('overseasAudFxChange', -1),
+    overseasHousingType: val('overseasHousingType', 'rent'),
+    overseasAnnualRent: num('overseasAnnualRent', 18000),
+    overseasFallbackAge: num('overseasFallbackAge'),
+    overseasFallbackTrigger: val('overseasFallbackTrigger', 'none'),
   };
 }
 
@@ -2286,6 +2320,9 @@ function boot() {
     initPensionFieldDefaults();
     bindConditional('investmentProperty', 'data-ip');
     bindConditional('goingOverseas', 'data-overseas');
+    bindConditional('isCarer', 'data-carer');
+    bindConditional('hasSmsf', 'data-smsf');
+    bindConditional('hasTrust', 'data-trust');
 
     document.querySelectorAll('.col-form input, .col-form select').forEach((el) => {
       el.addEventListener('input', recalc);
