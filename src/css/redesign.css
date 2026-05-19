@@ -1284,3 +1284,198 @@ table.year-table th[title] { cursor: help; border-bottom: 1px dotted var(--borde
 .panel-chart-canvas {
   max-height: 220px;
 }
+
+/* ============================================================
+   Senior-friendly UX — comfort improvements for 55-70+ users
+   All rules scoped to .redesign-v2 to avoid cross-page impact.
+   ============================================================ */
+
+/* ── Tooltip icon: eucalyptus-tinted, not jarring blue ── */
+.redesign-v2 .tooltip-icon {
+  width: 20px;
+  height: 20px;
+  background: var(--accent-soft);
+  border: 1.5px solid oklch(0.75 0.06 155);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+  border-radius: 50%;
+  cursor: help;
+  margin: 0 2px;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, color 0.15s,
+              transform 0.15s, box-shadow 0.15s;
+  box-shadow: none;
+}
+.redesign-v2 .tooltip-icon:hover,
+.redesign-v2 .tooltip-icon:focus-visible {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px oklch(0.50 0.09 155 / 0.28);
+  outline: none;
+}
+[data-theme="dark"] .redesign-v2 .tooltip-icon {
+  background: var(--accent-soft);
+  border-color: oklch(0.55 0.08 155 / 0.45);
+  color: var(--accent-ink);
+}
+[data-theme="dark"] .redesign-v2 .tooltip-icon:hover,
+[data-theme="dark"] .redesign-v2 .tooltip-icon:focus-visible {
+  background: oklch(0.72 0.10 155);
+  border-color: oklch(0.72 0.10 155);
+  color: oklch(0.14 0.03 155);
+}
+
+/* ── Tooltip popup: warm palette, readable size ── */
+.redesign-v2 .tooltip .tooltiptext {
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 1px solid var(--border-2);
+  border-radius: 12px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  padding: 13px 15px;
+  box-shadow: var(--shadow);
+  width: 300px;
+  font-family: var(--font-sans);
+}
+.redesign-v2 .tooltip .tooltiptext strong {
+  display: block;
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 5px;
+  font-weight: 700;
+}
+.redesign-v2 .tooltip .tooltiptext::after {
+  border-color: var(--surface) transparent transparent transparent;
+}
+[data-theme="dark"] .redesign-v2 .tooltip .tooltiptext {
+  background: var(--surface-3);
+  border-color: var(--border-2);
+  box-shadow: var(--shadow-lg);
+}
+[data-theme="dark"] .redesign-v2 .tooltip .tooltiptext::after {
+  border-color: var(--surface-3) transparent transparent transparent;
+}
+[data-theme="dark"] .redesign-v2 .tooltip-right .tooltiptext::after {
+  border-color: transparent var(--surface-3) transparent transparent;
+}
+
+/* ── Field labels: higher contrast, readable size ── */
+.redesign-v2 .field-label {
+  font-size: 15px;
+  color: var(--ink);
+  font-weight: 600;
+  gap: 8px;
+  line-height: 1.4;
+}
+.redesign-v2 .field-label .hint {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* ── Section accordion headers: substantial, easy to tap ── */
+.redesign-v2 .section-head {
+  min-height: 66px;
+  padding: 18px 20px;
+  gap: 16px;
+}
+.redesign-v2 .section-title h3 {
+  font-size: 18px;
+  font-weight: 700;
+}
+.redesign-v2 .section-title small {
+  font-size: 14px;
+}
+.redesign-v2 .section-num {
+  width: 34px;
+  height: 34px;
+  font-size: 13px;
+}
+
+/* ── Form inputs: 48 px minimum touch target ── */
+.redesign-v2 .field-input input,
+.redesign-v2 .field-input select {
+  min-height: 48px;
+  font-size: 15.5px;
+  padding: 12px 14px;
+}
+.redesign-v2 .field-input.has-prefix input {
+  padding-left: 10px;
+}
+
+/* ── Toggles: larger track and thumb for arthritic-friendly tapping ── */
+.redesign-v2 .toggle {
+  gap: 12px;
+  min-height: 36px;
+  align-items: center;
+}
+.redesign-v2 .toggle .track {
+  width: 42px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.redesign-v2 .toggle .track::after {
+  width: 18px;
+  height: 18px;
+  top: 4px;
+  left: 4px;
+}
+.redesign-v2 .toggle input:checked + .track::after {
+  transform: translateX(16px);
+}
+.redesign-v2 .toggle span.label {
+  font-size: 14.5px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+
+/* ── Segmented controls: roomier options ── */
+.redesign-v2 .segmented button {
+  padding: 10px 16px;
+  font-size: 14.5px;
+  min-height: 42px;
+}
+
+/* ── Slider thumb: bigger grab target ── */
+.redesign-v2 input[type="range"]::-webkit-slider-thumb {
+  width: 30px;
+  height: 30px;
+  margin-top: -13px;
+}
+.redesign-v2 input[type="range"]::-moz-range-thumb {
+  width: 30px;
+  height: 30px;
+}
+
+/* ── Sub-section labels: clearer visual breaks ── */
+.redesign-v2 .subhead {
+  font-size: 12px;
+  padding-top: 14px;
+  margin-top: 6px;
+}
+
+/* ── Field help text: comfortable reading size ── */
+.redesign-v2 .field-help {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+
+/* ── Notice boxes: slightly larger for scanning ── */
+.redesign-v2 .notice {
+  font-size: 13.5px;
+  padding: 14px 16px;
+  line-height: 1.55;
+}
+
+/* ── Topbar action buttons: taller touch target ── */
+.redesign-v2 .topbar .iconbtn {
+  height: 36px;
+  font-size: 13px;
+  padding: 0 12px;
+}
