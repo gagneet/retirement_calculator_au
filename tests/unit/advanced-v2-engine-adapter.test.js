@@ -60,6 +60,7 @@ const buildRedesignInputs = (overrides = {}) => ({
     uniSupport: false,
     isCarer: false,
     annualParentSupport: 0,
+    carerAnnualExpense: undefined,
     carerReducedWorkPercent: 0,
     carerYearsExpected: 0,
     homeValue: 850000,
@@ -83,7 +84,14 @@ const buildRedesignInputs = (overrides = {}) => ({
     ipGrowthRate: 4,
     ipState: '',
     hasSmsf: false,
+    smsfAdminCosts: undefined,
     hasTrust: false,
+    trustNetAssets: 0,
+    trustAttributionPercentage: 100,
+    trustAnnualDistributions: 0,
+    trustTaxRate: 30,
+    familyTrustIncomeDistribution: 0,
+    beneficiaryAllocation: 100,
     desiredIncome: 73000,
     hasPrivateHospital: true,
     healthCondition: 'good',
@@ -300,7 +308,62 @@ describe('advanced-v2 engine adapter', () => {
     test('maps redesign overseas destinations to analyzer country codes', () => {
         expect(mapDestinationCode('portugal')).toBe('PORTUGAL');
         expect(mapDestinationCode('nz')).toBe('NEW_ZEALAND');
+        expect(mapDestinationCode('newzealand')).toBe('NEW_ZEALAND');
+        expect(mapDestinationCode('spain')).toBe('SPAIN');
+        expect(mapDestinationCode('italy')).toBe('ITALY');
+        expect(mapDestinationCode('canada')).toBe('CANADA');
+        expect(mapDestinationCode('japan')).toBe('JAPAN');
+        expect(mapDestinationCode('india')).toBe('INDIA');
+        expect(mapDestinationCode('usa')).toBe('USA');
+        expect(mapDestinationCode('bali')).toBe('BALI');
+        expect(mapDestinationCode('philippines')).toBe('PHILIPPINES');
         expect(mapDestinationCode('')).toBeNull();
+    });
+
+    test('maps SMSF fields with nullish coalescing — explicit 0 is preserved', () => {
+        const withZero = buildEngineInputs(buildRedesignInputs({ hasSmsf: true, smsfAdminCosts: 0 }));
+        expect(withZero.hasSMSF).toBe(true);
+        expect(withZero.smsfAdminCosts).toBe(0);
+
+        const withDefault = buildEngineInputs(buildRedesignInputs({ hasSmsf: true }));
+        expect(withDefault.smsfAdminCosts).toBe(3500);
+    });
+
+    test('maps trust fields with correct percent-to-ratio conversions', () => {
+        const engineInputs = buildEngineInputs(buildRedesignInputs({
+            hasTrust: true,
+            trustType: 'discretionary',
+            trustControlLevel: 'high',
+            trustNetAssets: 500000,
+            trustAttributionPercentage: 80,
+            trustAnnualDistributions: 20000,
+            trustTaxRate: 15,
+            familyTrustIncomeDistribution: 10000,
+            beneficiaryAllocation: 50,
+        }));
+
+        expect(engineInputs.hasTrustAssets).toBe(true);
+        expect(engineInputs.trustNetAssets).toBe(500000);
+        expect(engineInputs.trustAttributionPercentage).toBeCloseTo(0.8);
+        expect(engineInputs.trustTaxRate).toBeCloseTo(0.15);
+        expect(engineInputs.beneficiaryAllocation).toBeCloseTo(0.5);
+        expect(engineInputs.trustAnnualDistributions).toBe(20000);
+        expect(engineInputs.familyTrustIncomeDistribution).toBe(10000);
+    });
+
+    test('carerAnnualExpense uses nullish coalescing — explicit 0 is not replaced by annualParentSupport', () => {
+        const withExplicitZero = buildEngineInputs(buildRedesignInputs({
+            isCarer: true,
+            carerAnnualExpense: 0,
+            annualParentSupport: 8000,
+        }));
+        expect(withExplicitZero.carerAnnualExpense).toBe(0);
+
+        const withFallback = buildEngineInputs(buildRedesignInputs({
+            isCarer: true,
+            annualParentSupport: 8000,
+        }));
+        expect(withFallback.carerAnnualExpense).toBe(8000);
     });
 
     test('normalises risk profile summary for export and rendering', () => {
