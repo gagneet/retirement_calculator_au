@@ -1365,6 +1365,31 @@ table.year-table th[title] { cursor: help; border-bottom: 1px dotted var(--borde
   border-color: transparent var(--surface-3) transparent transparent;
 }
 
+/* ── Section overflow: allow tooltip popups to escape the section card ──
+   .section uses overflow:hidden to clip the section-head hover background
+   to the card's rounded corners. Switching to overflow:visible here lets
+   absolutely-positioned tooltips escape, then we restore the visual rounding
+   by giving section-head its own border-radius + overflow:hidden. */
+.redesign-v2 .section {
+  overflow: visible;
+}
+/* Top rounded corners: clip hover background of open section's header */
+.redesign-v2 .section-head {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  overflow: hidden;
+}
+/* Closed section: full radius on the header (it IS the entire visible card) */
+.redesign-v2 .section:not(.open) .section-head {
+  border-radius: var(--radius-lg);
+}
+
+/* ── Tooltip popup positioning: correct margin for 300px width ──
+   The base styles.css uses margin-left:-140px (half of 280px). Since
+   .redesign-v2 tooltips are 300px wide, restate the correct half-offset. */
+.redesign-v2 .tooltip .tooltiptext {
+  margin-left: -150px;
+}
+
 /* ── Field labels: higher contrast, readable size ── */
 .redesign-v2 .field-label {
   font-size: 15px;

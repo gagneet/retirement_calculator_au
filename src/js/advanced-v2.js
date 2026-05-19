@@ -2597,6 +2597,37 @@ function boot() {
 
     applyHouseholdVisibility();
     applyAdvancedVisibility();
+
+    // Reposition tooltip popups that would overflow the right or left viewport edge.
+    // Runs on mouseenter so it recalculates after any layout shift (e.g. section open/close).
+    // Adjusts `left` + `margin-left` on the .tooltiptext span in place; arrow stays centred.
+    document.querySelectorAll('.tooltip').forEach((tooltipEl) => {
+      tooltipEl.addEventListener('mouseenter', () => {
+        const tip = tooltipEl.querySelector('.tooltiptext');
+        if (!tip) return;
+
+        // Reset any previous inline adjustment so getBoundingClientRect is unaffected
+        tip.style.left = '';
+        tip.style.marginLeft = '';
+
+        const iconRect = tooltipEl.getBoundingClientRect();
+        const tipW = tip.offsetWidth || 300;
+        const vw = window.innerWidth;
+        const iconCx = iconRect.left + iconRect.width / 2; // centre of the icon
+        const MARGIN = 12; // minimum gap from viewport edge
+
+        const idealLeft = iconCx - tipW / 2;           // default: centred on icon
+        const clampedLeft = Math.max(MARGIN, Math.min(idealLeft, vw - tipW - MARGIN));
+
+        if (Math.abs(clampedLeft - idealLeft) > 1) {
+          // Convert clamped viewport-X back to a left offset relative to .tooltip
+          const parentLeft = tooltipEl.getBoundingClientRect().left;
+          tip.style.left = (clampedLeft - parentLeft) + 'px';
+          tip.style.marginLeft = '0';
+        }
+      });
+    });
+
     initialFormState = readInputs();
     recalc();
     clearResultsError();
