@@ -115,9 +115,10 @@
             <div class="field">
               <label class="field-label" for="lifespan"><span class="req"></span><span>Plan to age</span><span class="hint">lifespan</span></label>
               <div class="field-input">
-                <input id="lifespan" type="number" value="90" min="65" max="110" />
+                <input id="lifespan" type="number" value="90" min="0" max="120" />
                 <span class="suffix">yrs</span>
               </div>
+              <div class="field-help">Enter 65–120 for a fixed planning horizon. Enter <b>0</b> to simulate until the money runs out (models to age 120 — useful for stress-testing longevity risk).</div>
             </div>
           </div>
           <div class="fields">
@@ -162,7 +163,8 @@
               </div>
               <div class="field">
                 <label class="field-label" for="partnerLifespan"><span>Partner plan to age</span></label>
-                <div class="field-input"><input id="partnerLifespan" type="number" value="92" /><span class="suffix">yrs</span></div>
+                <div class="field-input"><input id="partnerLifespan" type="number" value="92" min="0" max="120" /><span class="suffix">yrs</span></div>
+                <div class="field-help">Enter 0 to simulate the partner to age 120 (open-ended).</div>
               </div>
             </div>
             <div class="fields">
@@ -1209,6 +1211,7 @@
                   <th title="Amount drawn from your portfolio to fund living expenses. Badge shows primary source: Super / Savings / Mixed. Overseas years show living cost + return-travel cost breakdown.">Withdraw</th>
                   <th title="Government Age Pension income. Subject to assets test and income test. AWLR-proportional if living overseas.">Age Pension</th>
                   <th title="Total retirement income: portfolio withdrawals + Age Pension + investment property income + other income sources.">Income</th>
+                  <th title="Planned monthly living expenses for this year, deflated to today's purchasing power using the inflation rate you entered. Pre-retirement years show — as there are no drawdown expenses.">Expenses/mo (today's $)</th>
                 </tr></thead>
                 <tbody id="year-tbody"></tbody>
               </table>
@@ -1247,7 +1250,7 @@
           <span class="ccy">$</span><span id="r-paycheck">—</span>
         </div>
         <div class="hero-unit">
-          per <b>month</b> at retirement (age <span id="r-retire-age">—</span>)<span id="r-combined"></span>
+          per <b>month</b> at retirement (age <span id="r-retire-age">—</span>) · inflation-adjusted to today's $<span id="r-combined"></span>
         </div>
 
         <div class="runway">
