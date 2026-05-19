@@ -197,7 +197,9 @@ function buildEngineInputs(inp) {
     yourCurrentAge: inp.age,
     partnerCurrentAge: isCouple ? inp.partnerAge : 0,
     yourLifespan: inp.lifespan,
-    partnerLifespan: isCouple ? (inp.partnerLifespan || DEFAULTS.personal.partnerLifespan) : 0,
+    // partnerLifespan=0 means "open-ended" (simulate to age 120). Use ?? so 0 is not
+    // replaced by the default; only null/undefined fall back to the default.
+    partnerLifespan: isCouple ? (inp.partnerLifespan ?? DEFAULTS.personal.partnerLifespan) : 0,
     lifeExpectancy: inp.lifespan,
     yourGender: inp.gender === 'prefer_not_say' ? 'unspecified' : inp.gender,
     partnerGender: isCouple && inp.partnerGender !== 'prefer_not_say' ? inp.partnerGender : 'unspecified',
@@ -421,6 +423,9 @@ function buildProjectionYears(inp, simulation) {
     withdrawSource: deriveWithdrawSource(year.endSuperBalance, year.endNonSuperBalance),
     overseasYear: year.overseasYear ?? false,
     travelCost: year.travelCost ?? 0,
+    // Annual planned living expenses (healthcare + aged care + base spending).
+    // Deflated to today's dollars in paintYearTable for the expenses column.
+    plannedSpending: year.totalPlannedSpending ?? year.coreSpending ?? 0,
   }));
 
   if (accumulationHistory.length) {
@@ -502,11 +507,12 @@ function adaptEngineOutput(inp, engineInputs, simulation) {
   const annualIncomeToday = superIncomeToday + pensionIncomeToday + otherIncomeToday;
   const monthlyPaycheck = annualIncomeToday / 12;
   const targetMonthly = Math.max(1, inp.desiredIncome / 12);
-  const lastsUntil = simulation.depletionAge || inp.lifespan;
+  const effectivePlanAge = inp.lifespan > 0 ? inp.lifespan : 120;
+  const lastsUntil = simulation.depletionAge || effectivePlanAge;
   const coverageScore = monthlyPaycheck / targetMonthly;
-  const longevityScore = lastsUntil >= inp.lifespan
+  const longevityScore = lastsUntil >= effectivePlanAge
     ? 1
-    : clamp((lastsUntil - inp.retireAge) / Math.max(1, inp.lifespan - inp.retireAge), 0, 1);
+    : clamp((lastsUntil - inp.retireAge) / Math.max(1, effectivePlanAge - inp.retireAge), 0, 1);
 
   return {
     monthlyPaycheck,
@@ -1017,7 +1023,11 @@ function mapDestinationCode(destination) {
 function toDisplayPercent(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return '';
-  return numeric > 1 ? numeric : numeric * 100;
+  // Values already >1 are assumed to be display-percent already (e.g. from v2 saves).
+  // Values <=1 are decimal fractions from legacy saves: multiply by 100 and round to
+  // 4 significant decimal places to eliminate float noise (0.162 * 100 = 16.200000000000002).
+  if (numeric > 1) return numeric;
+  return parseFloat((numeric * 100).toFixed(4));
 }
 
 function mapCanonicalEmergencyFund(value) {
@@ -1153,21 +1163,46 @@ function normalizeImportedUserData(userData = {}) {
     [annualPensionField]: userData.agePensionMax ?? base[annualPensionField],
     pensionAssetThreshold: userData.pensionAssetThreshold ?? base.pensionAssetThreshold,
     pensionAssetCutoff: userData.pensionAssetLimit ?? base.pensionAssetCutoff,
-    mcRuns: userData.numRuns ?? base.mcRuns,
+    mcRuns: userData.numRuns ?? userData.mcRuns ?? base.mcRuns,
     returnVolatility: userData.returnVolatility !== undefined ? toDisplayPercent(userData.returnVolatility) : base.returnVolatility,
     scenarioMode: userData.scenarioMode ?? base.scenarioMode,
     enableShocks: Boolean(userData.enableShocks ?? base.enableShocks),
-    sampleLifespan: Boolean(userData.useLongevityDistribution ?? base.sampleLifespan),
-    budget2627: Boolean(userData.enableProposedBudget2026 ?? base.budget2627),
+    shockProbability: userData.shockProbability ?? base.shockProbability,
+    shockMagnitude: userData.shockMagnitude ?? base.shockMagnitude,
+    sampleLifespan: Boolean(userData.useLongevityDistribution ?? userData.sampleLifespan ?? base.sampleLifespan),
+    budget2627: Boolean(userData.enableProposedBudget2026 ?? userData.budget2627 ?? base.budget2627),
+    // New fields added in 2026 — mapped from both v2 names and any legacy equivalents
+    fhssTotalContributions: userData.fhssTotalContributions ?? base.fhssTotalContributions,
+    fhssAnnualContribution: userData.fhssAnnualContribution ?? base.fhssAnnualContribution,
+    useFHSS: Boolean(userData.useFHSS ?? base.useFHSS),
+    annualParentSupport: userData.annualParentSupport ?? userData.carerAnnualExpense ?? base.annualParentSupport,
+    hasSpousalMaintenance: Boolean(userData.hasSpousalMaintenance ?? base.hasSpousalMaintenance),
+    annualSpousalMaintenance: userData.annualSpousalMaintenance ?? base.annualSpousalMaintenance,
+    spousalMaintenanceEndsAge: userData.spousalMaintenanceEndsAge ?? base.spousalMaintenanceEndsAge,
+    hasChildSupport: Boolean(userData.hasChildSupport ?? base.hasChildSupport),
+    annualChildSupport: userData.annualChildSupport ?? base.annualChildSupport,
+    youngestChildAge: userData.youngestChildAge ?? base.youngestChildAge,
   };
 }
 
 function exportRedesignUserData(inputs, scenarioName = 'Advanced Calculator v2') {
+  // Clamp float noise on rate fields before serialising.
+  // These fields are stored as display-percent (e.g. "3.5" not "0.035"), so they only
+  // need 1–2 decimal places. String(parseFloat(x)) can produce 16.199999999997 etc.
+  const cleanInputs = { ...inputs };
+  const oneDP = ['inflation', 'invReturn', 'superGrowth', 'savingsReturn'];
+  const twoDP = ['mortgageRate', 'ccRate', 'personalLoanRate', 'carLoanRate',
+                 'ipRate', 'ipGrowthRate', 'returnVolatility',
+                 'shockProbability', 'shockMagnitude',
+                 'agedCareProbability', 'employerRate', 'carerReducedWorkPercent'];
+  oneDP.forEach((k) => { if (cleanInputs[k] != null) cleanInputs[k] = parseFloat(Number(cleanInputs[k]).toFixed(1)); });
+  twoDP.forEach((k) => { if (cleanInputs[k] != null) cleanInputs[k] = parseFloat(Number(cleanInputs[k]).toFixed(2)); });
+
   const exportData = {
     version: '4.0',
     exportDate: new Date().toISOString(),
     scenarioName,
-    userData: inputs,
+    userData: cleanInputs,
     metadata: {
       calculatorVersion: '2026.1',
       description: 'Australian Retirement Calculator - Advanced v2 input data',
@@ -1944,9 +1979,13 @@ function renderAnalysisPanels() {
 
 async function runMonteCarloAnalysis() {
   const baseState = syncAppState();
+  // Use engineInputs.numRuns (set by buildEngineInputs from the mcRuns form field).
+  // This is the single source of truth — avoids any double-read discrepancy between
+  // the select element and the already-computed engine state.
+  const runsToUse = baseState.engineInputs.numRuns || DEFAULTS.simulation.numRuns || 500;
   APP_STATE.monteCarloResults = await simulator.runMonteCarloSimulation(
     baseState.engineInputs,
-    baseState.input.mcRuns || 500,
+    runsToUse,
     null
   );
   APP_STATE.riskProfile = normaliseRiskProfile(
@@ -2032,13 +2071,49 @@ function setInputValue(id, value, options = {}) {
   }
 }
 
+// Round rate/percentage fields to their display precision after programmatic value assignment.
+// `enforceDecimals` only fires on user-initiated change events, not on el.value = x.
+function normalizeLoadedDecimals() {
+  const oneDP = ['inflation', 'invReturn', 'superGrowth', 'savingsReturn'];
+  const twoDP = ['mortgageRate', 'ccRate', 'personalLoanRate', 'carLoanRate',
+                 'ipRate', 'ipGrowthRate', 'returnVolatility'];
+  oneDP.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) { const v = parseFloat(el.value); if (!isNaN(v)) el.value = parseFloat(v.toFixed(1)); }
+  });
+  twoDP.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) { const v = parseFloat(el.value); if (!isNaN(v)) el.value = parseFloat(v.toFixed(2)); }
+  });
+}
+
 function applyImportedUserData(userData) {
   const normalized = normalizeImportedUserData(userData);
   setSegmentedValue('household', normalized.household || 'single');
   setSegmentedValue('downsizePlan', normalized.downsizePlan || 'no');
 
+  // Handle mcRuns specially: the select only accepts 200/500/1000/5000/10000/"custom".
+  // If the loaded value doesn't match a standard option, route it through "custom".
+  const MC_STANDARD = new Set(['200', '500', '1000', '5000', '10000']);
+  if (normalized.mcRuns != null) {
+    const mcSel = document.getElementById('mcRuns');
+    const mcCustom = document.getElementById('mcRunsCustom');
+    const mcWrap = document.getElementById('mcRunsCustomWrap');
+    if (mcSel) {
+      const strVal = String(normalized.mcRuns);
+      if (MC_STANDARD.has(strVal)) {
+        mcSel.value = strVal;
+        if (mcWrap) mcWrap.style.display = 'none';
+      } else if (mcCustom) {
+        mcSel.value = 'custom';
+        mcCustom.value = Math.min(20000, Math.max(100, Number(normalized.mcRuns) || 500));
+        if (mcWrap) mcWrap.style.display = 'flex';
+      }
+    }
+  }
+
   Object.entries(normalized).forEach(([key, value]) => {
-    if (key === 'household' || key === 'downsizePlan') return;
+    if (key === 'household' || key === 'downsizePlan' || key === 'mcRuns') return;
     const element = document.getElementById(key);
     if (!element || value == null) return;
     if (element.type === 'checkbox') {
@@ -2055,8 +2130,12 @@ function applyImportedUserData(userData) {
     });
   }
 
+  // Normalize decimal precision: toDisplayPercent can introduce float noise (e.g. 0.162*100 = 16.200000000000002)
+  normalizeLoadedDecimals();
+
   applyHouseholdVisibility();
-  ['investmentProperty', 'goingOverseas', 'isCarer', 'hasSmsf', 'hasTrust'].forEach((id) => {
+  ['investmentProperty', 'goingOverseas', 'isCarer', 'hasSmsf', 'hasTrust',
+   'hasSpousalMaintenance', 'hasChildSupport', 'useFHSS', 'enableShocks'].forEach((id) => {
     const checkbox = document.getElementById(id);
     if (checkbox) checkbox.dispatchEvent(new Event('change', { bubbles: true }));
   });
@@ -2210,13 +2289,16 @@ function paint(result, inp) {
   // Hero
   setText('r-paycheck', Math.round(result.monthlyPaycheck).toLocaleString('en-AU'));
   setText('r-retire-age', inp.retireAge);
-  setText('r-lifespan', inp.lifespan);
+  // lifespan=0 means "simulate to depletion" (age 120). Show "any age" in the UI.
+  const openEnded = !(inp.lifespan > 0);
+  const effectiveLifespan = openEnded ? 120 : inp.lifespan;
+  setText('r-lifespan', openEnded ? 'any age' : inp.lifespan);
   setText('r-combined', result.isCouple ? ' · combined' : '');
 
-  // Runway
+  // Runway — when open-ended, green only if money lasts to 120
   const ic = $('r-runway-icon');
-  const ok = result.lastsUntil >= inp.lifespan;
-  const close = result.lastsUntil >= inp.lifespan - 5;
+  const ok = result.lastsUntil >= effectiveLifespan;
+  const close = result.lastsUntil >= effectiveLifespan - 5;
   if (ic) {
     ic.textContent = ok ? '🟢' : close ? '🟡' : '🔴';
     ic.className = 'runway-icon' + (ok ? '' : close ? ' warn' : ' bad');
@@ -2265,11 +2347,11 @@ function paint(result, inp) {
 
   // Mini chart
   paintMiniChart(result.years, inp);
-  setText('r-mini-range', `today → age ${result.years[result.years.length - 1]?.age ?? inp.lifespan}`);
+  setText('r-mini-range', `today → age ${result.years[result.years.length - 1]?.age ?? effectiveLifespan}`);
 
   // Hero stats
   setText('hs-age', inp.age);
-  setText('hs-plan', inp.lifespan);
+  setText('hs-plan', openEnded ? 'any age' : inp.lifespan);
   setText('hs-salary', '$' + Math.round(inp.salary / 1000) + 'k');
   setText('hs-super', '$' + Math.round(inp.superBal / 1000) + 'k');
   setText('hs-yrs-to-retire', Math.max(0, inp.retireAge - inp.age));
@@ -2398,6 +2480,19 @@ function paintYearTable(years, inp) {
 
     const incomeTip = `Total retirement income for year ${calYear}: withdrawals + Age Pension + investment property income + other sources.`;
 
+    // Monthly expenses: deflate plannedSpending to today's dollars, then divide by 12.
+    // Pre-retirement accumulation rows have plannedSpending=0, shown as em-dash.
+    const expensesTip = y.retired && y.plannedSpending > 0
+      ? `Planned annual living expenses for ${calYear}: ${formatAmount(y.plannedSpending, calYear)} nominal. Shown here deflated to today's purchasing power (÷12 for monthly).`
+      : 'Pre-retirement year — no drawdown expenses modelled.';
+    const monthlyExpensesToday = (y.retired && y.plannedSpending > 0)
+      ? (() => {
+          const yearsAhead = Math.max(0, calYear - currentYear);
+          const inToday = y.plannedSpending / Math.pow(1 + inflR, yearsAhead);
+          return '$' + Math.round(inToday / 12).toLocaleString('en-AU');
+        })()
+      : '—';
+
     return `<tr class="${retireFlag ? 'retire' : ''} ${pensionFlag ? 'pension' : ''} ${isOverseas ? 'overseas' : ''}">
       <td title="Calendar year">${calYear}${isOverseas ? ' ✈' : ''}</td>
       <td title="Age at start of year ${calYear}">${y.age}${retireFlag ? ' ★' : ''}</td>
@@ -2407,6 +2502,7 @@ function paintYearTable(years, inp) {
       <td title="${escapeHtml(withdrawBreakdown)}">${formatAmount(y.withdraw, calYear)}${srcLabel ? ` <span class="wy-src ${escapeHtml(srcCls)}">${escapeHtml(srcLabel)}</span>` : ''}</td>
       <td title="${escapeHtml(pensionTip)}">${formatAmount(y.pension, calYear)}</td>
       <td title="${escapeHtml(incomeTip)}">${formatAmount((y.withdraw || 0) + (y.pension || 0) + (y.otherIncome || 0), calYear)}</td>
+      <td title="${escapeHtml(expensesTip)}">${monthlyExpensesToday}</td>
     </tr>`;
   }).join('');
 }
