@@ -687,13 +687,26 @@ function readInputs() {
     household,
     age: num('age', 49),
     retireAge: num('retireAge', 65),
-    lifespan: num('lifespan', 90),
+    // lifespan=0 means open-ended (simulate to age 120). Any non-zero value must exceed
+    // the user's current age; clamp silently here so a stale/invalid value never
+    // produces a negative simulation window (the field validator handles the user warning).
+    lifespan: (() => {
+      const v = num('lifespan', 90);
+      const age = num('age', 49);
+      if (v === 0) return 0;
+      return v > age ? v : 0; // fall back to open-ended rather than crash
+    })(),
     gender: val('gender', 'prefer_not_say'),
     ageCameToAU: num('ageCameToAU'),
     ageStartedEarningAU: num('ageStartedEarningAU'),
     partnerAge: num('partnerAge'),
     partnerRetireAge: num('partnerRetireAge'),
-    partnerLifespan: num('partnerLifespan'),
+    partnerLifespan: (() => {
+      const v = num('partnerLifespan', 0);
+      const pAge = num('partnerAge', 0);
+      if (v === 0) return 0;
+      return (pAge > 0 && v <= pAge) ? 0 : v;
+    })(),
     partnerGender: val('partnerGender', 'prefer_not_say'),
     partnerAgeCameToAU: num('partnerAgeCameToAU'),
     partnerAgeStartedEarningAU: num('partnerAgeStartedEarningAU'),
@@ -2658,6 +2671,37 @@ function boot() {
     }
     ['inflation', 'invReturn', 'superGrowth', 'savingsReturn'].forEach(id => enforceDecimals(id, 1));
     ['mortgageRate', 'ccRate', 'personalLoanRate', 'carLoanRate', 'ipRate', 'ipGrowthRate', 'returnVolatility'].forEach(id => enforceDecimals(id, 2));
+
+    // Lifespan validation: must be 0 (open-ended) OR strictly greater than the linked age field.
+    // Runs on input so feedback is immediate; also re-checked when the age field changes.
+    function bindLifespanValidation(lifespanId, ageId) {
+      const lifespanEl = document.getElementById(lifespanId);
+      const ageEl = document.getElementById(ageId);
+      if (!lifespanEl || !ageEl) return;
+
+      function validate() {
+        const lifespan = parseInt(lifespanEl.value, 10);
+        const age = parseInt(ageEl.value, 10);
+        if (isNaN(lifespan) || lifespan === 0) {
+          lifespanEl.setCustomValidity('');          // 0 = open-ended, always valid
+        } else if (!isNaN(age) && lifespan <= age) {
+          lifespanEl.setCustomValidity(
+            `Must be greater than current age (${age}), or enter 0 to simulate until money runs out.`
+          );
+        } else {
+          lifespanEl.setCustomValidity('');
+        }
+        lifespanEl.reportValidity && lifespanEl.reportValidity();
+      }
+
+      lifespanEl.addEventListener('input', validate);
+      lifespanEl.addEventListener('change', validate);
+      ageEl.addEventListener('input', validate);
+      ageEl.addEventListener('change', validate);
+    }
+
+    bindLifespanValidation('lifespan', 'age');
+    bindLifespanValidation('partnerLifespan', 'partnerAge');
 
     // Auto-fill spending currency when overseas destination changes
     (function bindDestinationCurrency() {

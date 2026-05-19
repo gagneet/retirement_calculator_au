@@ -11387,6 +11387,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         window.setDisplayMode('real');
     }, 0);
+
+    // Real-time lifespan validation: must be 0 (open-ended) OR > the linked age field.
+    // Mirrors the rule enforced in validateInputs() but gives immediate feedback.
+    function bindLifespanValidation(lifespanId, ageId, label) {
+        const lifespanEl = document.getElementById(lifespanId);
+        const ageEl = document.getElementById(ageId);
+        if (!lifespanEl || !ageEl) return;
+        function validate() {
+            const lifespan = parseInt(lifespanEl.value, 10);
+            const age = parseInt(ageEl.value, 10);
+            if (isNaN(lifespan) || lifespan === 0) {
+                lifespanEl.setCustomValidity('');
+            } else if (!isNaN(age) && lifespan <= age) {
+                lifespanEl.setCustomValidity(
+                    `${label} must be greater than current age (${age}), or enter 0 to simulate until money runs out.`
+                );
+            } else {
+                lifespanEl.setCustomValidity('');
+            }
+        }
+        lifespanEl.addEventListener('input', validate);
+        lifespanEl.addEventListener('change', validate);
+        ageEl.addEventListener('input', validate);
+        ageEl.addEventListener('change', validate);
+    }
+    bindLifespanValidation('yourLifespan', 'yourCurrentAge', 'Your expected lifespan');
+    bindLifespanValidation('partnerLifespan', 'partnerCurrentAge', "Partner's expected lifespan");
 });
 
 export default RetirementCalculatorApp;
