@@ -310,8 +310,8 @@ function buildEngineInputs(inp) {
 
     returnVolatility: pct(inp.returnVolatility || DEFAULTS.simulation.returnVolatility, DEFAULTS.simulation.returnVolatility),
     enableShocks: inp.enableShocks,
-    shockProbability: pct(DEFAULTS.simulation.shockProbability, DEFAULTS.simulation.shockProbability),
-    shockMagnitude: pct(DEFAULTS.simulation.shockMagnitude, DEFAULTS.simulation.shockMagnitude),
+    shockProbability: pct(inp.shockProbability ?? DEFAULTS.simulation.shockProbability, DEFAULTS.simulation.shockProbability),
+    shockMagnitude: pct(inp.shockMagnitude ?? DEFAULTS.simulation.shockMagnitude, DEFAULTS.simulation.shockMagnitude),
     numRuns: inp.mcRuns || DEFAULTS.simulation.numRuns,
     useLongevityDistribution: inp.sampleLifespan,
     scenarioMode: inp.scenarioMode || 'baseline',
@@ -332,11 +332,27 @@ function buildEngineInputs(inp) {
 
     businessIncome: inp.businessIncome,
     investmentIncome: inp.investmentIncomeOutsideSuper,
-    isCarerForParents: inp.isCarer,
-    carerReducedWorkPercent: inp.isCarer ? pct(inp.carerReducedWorkPercent) : 0,
-    carerYearsExpected: inp.isCarer ? inp.carerYearsExpected : 0,
+    // Family obligations: any non-zero expense must reach the simulator regardless of isCarer flag.
+    // The simulator gates expenses on isCarerForParents && carerYearsExpected > 0 && year <= carerYearsExpected.
+    // When isCarer=false but obligations exist: set isCarerForParents=true, carerYearsExpected=999 (indefinite),
+    // carerReducedWorkPercent=0 so there is no work-reduction side-effect.
+    // When isCarer=true: work reduction and carer expenses apply for carerYearsExpected years.
+    // NOTE: time-bounded legal obligations (spousalMaintenanceEndsAge, youngestChildAge) are not yet
+    // enforced per-year — they run for the full carerYearsExpected window. This is a known limitation.
+    ...(() => {
+      const nonCarerExpense = (inp.annualParentSupport || 0)
+        + (inp.hasSpousalMaintenance ? (inp.annualSpousalMaintenance || 0) : 0)
+        + (inp.hasChildSupport ? (inp.annualChildSupport || 0) : 0);
+      const carerExpense = inp.isCarer ? (inp.carerAnnualExpense || 0) : 0;
+      const totalFamilyExpense = carerExpense + nonCarerExpense;
+      return {
+        isCarerForParents: inp.isCarer || nonCarerExpense > 0,
+        carerReducedWorkPercent: inp.isCarer ? pct(inp.carerReducedWorkPercent) : 0,
+        carerYearsExpected: inp.isCarer ? (inp.carerYearsExpected || 0) : (nonCarerExpense > 0 ? 999 : 0),
+        carerAnnualExpense: totalFamilyExpense,
+      };
+    })(),
     agedParentsLocation: inp.agedParentsLocation || 'australia',
-    carerAnnualExpense: inp.isCarer ? (inp.carerAnnualExpense ?? inp.annualParentSupport ?? 0) : 0,
     privateSchool: inp.privateSchool,
     universitySupport: inp.uniSupport,
     educationCostPerChild: inp.educationCostPerChild,
@@ -787,12 +803,32 @@ function readInputs() {
     pensionAssetCutoff: num('pensionAssetCutoff', getHouseholdPensionDefaults(household).cutoff),
 
     // Simulation
-    mcRuns: num('mcRuns', 500),
+    mcRuns: (() => {
+      const sel = document.getElementById('mcRuns');
+      if (sel?.value === 'custom') {
+        const v = parseInt(document.getElementById('mcRunsCustom')?.value) || 2000;
+        return Math.min(20000, Math.max(100, v));
+      }
+      return parseInt(sel?.value) || 500;
+    })(),
     returnVolatility: num('returnVolatility', 12),
     scenarioMode: val('scenarioMode', 'baseline'),
     enableShocks: chk('enableShocks'),
+    shockProbability: num('shockProbability', DEFAULTS.simulation.shockProbability),
+    shockMagnitude: num('shockMagnitude', DEFAULTS.simulation.shockMagnitude),
     sampleLifespan: chk('sampleLifespan'),
     budget2627: chk('budget2627'),
+    // FHSS fields captured for display/eligibility checks only — not yet wired into simulation engine.
+    // Properly modeling FHSS release mechanics (withdrawal timing, tax treatment on release) requires
+    // a dedicated pre-retirement phase that the current simulator doesn't support.
+    fhssTotalContributions: num('fhssTotalContributions', 0),
+    fhssAnnualContribution: num('fhssAnnualContribution', 0),
+    hasSpousalMaintenance: chk('hasSpousalMaintenance'),
+    annualSpousalMaintenance: num('annualSpousalMaintenance', 0),
+    spousalMaintenanceEndsAge: num('spousalMaintenanceEndsAge', 0),
+    hasChildSupport: chk('hasChildSupport'),
+    annualChildSupport: num('annualChildSupport', 0),
+    youngestChildAge: num('youngestChildAge', 0),
 
     // Overseas
     goingOverseas: chk('goingOverseas'),
@@ -1483,7 +1519,7 @@ function buildCareerImpactBlock(inp) {
   if (!inp || !inp.age) return '';
   const items = [];
 
-  // Caring for ageing parents
+  // Caring for ageing parents (work-reduction impact)
   if (inp.isCarer && inp.carerYearsExpected > 0) {
     const reducedPct = inp.carerReducedWorkPercent || 0;
     const baseSalary = inp.salary || 0;
@@ -1497,15 +1533,26 @@ function buildCareerImpactBlock(inp) {
         <div class="mc-v">−${reducedPct}% income</div>
         <div class="mc-sub">Est. ${fmt$(totalIncomeLoss, { compact: true })} income · ${fmt$(superLoss, { compact: true })} super foregone</div>
       </div>`);
-    if ((inp.carerAnnualExpense ?? inp.annualParentSupport) > 0) {
-      const expenseAmt = inp.carerAnnualExpense ?? inp.annualParentSupport;
-      items.push(`
+  }
+
+  // Family financial obligations (expenses) — shown independently of isCarer flag
+  const carerExpenseOnly = inp.isCarer ? (inp.carerAnnualExpense || 0) : 0;
+  const parentSupport = inp.annualParentSupport || 0;
+  const spousalAmt = inp.hasSpousalMaintenance ? (inp.annualSpousalMaintenance || 0) : 0;
+  const childSupportAmt = inp.hasChildSupport ? (inp.annualChildSupport || 0) : 0;
+  const totalFamilyExpense = carerExpenseOnly + parentSupport + spousalAmt + childSupportAmt;
+  if (totalFamilyExpense > 0) {
+    const lines = [];
+    if (carerExpenseOnly > 0) lines.push(`Carer costs ${fmt$(carerExpenseOnly)}/yr`);
+    if (parentSupport > 0) lines.push(`Family support ${fmt$(parentSupport)}/yr`);
+    if (spousalAmt > 0) lines.push(`Spousal maintenance ${fmt$(spousalAmt)}/yr`);
+    if (childSupportAmt > 0) lines.push(`Child support ${fmt$(childSupportAmt)}/yr`);
+    items.push(`
       <div class="mc-stat">
-        <div class="mc-k">Parent support cost</div>
-        <div class="mc-v">${fmt$(expenseAmt)}/yr</div>
-        <div class="mc-sub">Additional cash outflow during carer period</div>
+        <div class="mc-k">Family obligations</div>
+        <div class="mc-v">${fmt$(totalFamilyExpense)}/yr total</div>
+        <div class="mc-sub">${lines.join(' · ')}</div>
       </div>`);
-    }
   }
 
   // Reduced income before retirement (wind-down phase)
@@ -2490,6 +2537,49 @@ function boot() {
     bindConditional('isCarer', 'data-carer');
     bindConditional('hasSmsf', 'data-smsf');
     bindConditional('hasTrust', 'data-trust');
+    bindConditional('useFHSS', 'data-fhss');
+    bindConditional('enableShocks', 'data-shocks');
+    bindConditional('hasSpousalMaintenance', 'data-spousal');
+    bindConditional('hasChildSupport', 'data-childsupport');
+
+    // Monte Carlo custom runs show/hide
+    const mcRunsSel = document.getElementById('mcRuns');
+    const mcRunsCustomWrap = document.getElementById('mcRunsCustomWrap');
+    if (mcRunsSel && mcRunsCustomWrap) {
+      const toggleMcCustom = () => { mcRunsCustomWrap.style.display = mcRunsSel.value === 'custom' ? 'flex' : 'none'; };
+      mcRunsSel.addEventListener('change', () => { toggleMcCustom(); recalc(); });
+      toggleMcCustom();
+    }
+
+    // Enforce decimal precision on key rate fields (on blur/change)
+    function enforceDecimals(id, places) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('change', () => {
+        const v = parseFloat(el.value);
+        if (!isNaN(v)) el.value = parseFloat(v.toFixed(places));
+      });
+    }
+    ['inflation', 'invReturn', 'superGrowth', 'savingsReturn'].forEach(id => enforceDecimals(id, 1));
+    ['mortgageRate', 'ccRate', 'personalLoanRate', 'carLoanRate', 'ipRate', 'ipGrowthRate', 'returnVolatility'].forEach(id => enforceDecimals(id, 2));
+
+    // Auto-fill spending currency when overseas destination changes
+    (function bindDestinationCurrency() {
+      const destEl = document.getElementById('destination');
+      const currEl = document.getElementById('overseasSpendingCurrency');
+      if (!destEl || !currEl) return;
+      const DEST_CURRENCY_MAP = {
+        portugal: 'EUR', spain: 'EUR', italy: 'EUR',
+        canada: 'CAD', newzealand: 'NZD', japan: 'JPY',
+        india: 'INR', usa: 'USD', thailand: 'THB',
+        vietnam: 'VND', malaysia: 'MYR', bali: 'IDR',
+        philippines: 'PHP',
+      };
+      destEl.addEventListener('change', () => {
+        const currency = DEST_CURRENCY_MAP[destEl.value];
+        if (currency) currEl.value = currency;
+      });
+    })();
 
     document.querySelectorAll('.col-form input, .col-form select').forEach((el) => {
       el.addEventListener('input', recalc);

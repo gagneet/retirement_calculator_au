@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en-AU" data-theme="light" data-density="comfortable">
+<html lang="en-AU" data-theme="light" data-density="spacious">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -373,14 +373,6 @@
                 <div class="field-input has-prefix"><span class="prefix">$</span><input id="spouseContribution" type="number" value="0" /><span class="suffix">/yr</span></div>
                 <div class="field-help">Up to $540 tax offset for contributions to a lower-earning spouse.</div>
               </div>
-              <div class="field">
-                <label class="field-label"><span>Plan to use downsizer (55+, $300k cap)</span></label>
-                <label class="toggle">
-                  <input id="useDownsizer" type="checkbox" />
-                  <span class="track"></span>
-                  <span class="label">Enable downsizer contribution</span>
-                </label>
-              </div>
             </div>
 
             <div class="subhead">First Home Super Saver (FHSS)</div>
@@ -391,6 +383,20 @@
                   <span class="track"></span>
                   <span class="label">I plan to use FHSS for a first home deposit</span>
                 </label>
+              </div>
+            </div>
+            <div data-fhss="true" hidden>
+              <div class="fields">
+                <div class="field">
+                  <label class="field-label" for="fhssTotalContributions"><span>Total FHSS-eligible contributions already made</span><span class="hint">$</span></label>
+                  <div class="field-input has-prefix"><span class="prefix">$</span><input id="fhssTotalContributions" type="number" value="0" min="0" max="50000" step="1" /></div>
+                  <div class="field-help">Voluntary contributions already eligible for FHSS withdrawal. Lifetime cap $50,000 (from 1 July 2022); max $15,000 per financial year.</div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="fhssAnnualContribution"><span>Planned annual FHSS contributions</span><span class="hint">$/yr</span></label>
+                  <div class="field-input has-prefix"><span class="prefix">$</span><input id="fhssAnnualContribution" type="number" value="0" min="0" max="15000" step="500" /><span class="suffix">/yr</span></div>
+                  <div class="field-help">Additional voluntary contributions for FHSS each year (max $15,000/yr, on top of salary sacrifice above). Subject to the $50,000 lifetime cap.</div>
+                </div>
               </div>
             </div>
 
@@ -455,13 +461,47 @@
               <div class="field-input has-prefix"><span class="prefix">$</span><input id="educationCostPerChild" type="number" value="0" /></div>
             </div>
             <div class="field">
-              <label class="field-label" for="annualParentSupport"><span>Annual support to family</span><span class="hint">$/year</span></label>
+              <label class="field-label" for="annualParentSupport"><span>Annual financial support to family</span><span class="hint">$/year</span></label>
               <div class="field-input has-prefix"><span class="prefix">$</span><input id="annualParentSupport" type="number" value="0" /><span class="suffix">/yr</span></div>
+              <div class="field-help">Regular voluntary support to family members (parents, siblings, relatives). Always applied to projections — separate from the carer expense below.</div>
             </div>
           </div>
           <div class="fields">
             <label class="toggle"><input id="privateSchool" type="checkbox" /><span class="track"></span><span class="label">Private school (~$25k/child/yr)</span></label>
             <label class="toggle"><input id="uniSupport" type="checkbox" /><span class="track"></span><span class="label">University support (~$15k/child/yr)</span></label>
+          </div>
+
+          <div class="subhead">Ongoing legal obligations</div>
+          <div class="notice"><span class="ic">⚖️</span><div>Spousal maintenance and child support reduce your savings capacity but are <b>not deductible</b> for the Centrelink income test — they do not directly reduce your Age Pension assessment. Super is unaffected (super splitting is a separate one-time event).</div></div>
+          <div class="fields">
+            <label class="toggle"><input id="hasSpousalMaintenance" type="checkbox" /><span class="track"></span><span class="label">I pay spousal / partner maintenance</span></label>
+            <label class="toggle"><input id="hasChildSupport" type="checkbox" /><span class="track"></span><span class="label">I pay child support</span></label>
+          </div>
+          <div data-spousal="true" hidden>
+            <div class="fields">
+              <div class="field">
+                <label class="field-label" for="annualSpousalMaintenance"><span>Annual spousal maintenance</span><span class="hint">$/year</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="annualSpousalMaintenance" type="number" value="0" step="500" /><span class="suffix">/yr</span></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="spousalMaintenanceEndsAge"><span>Maintenance ends when you are</span><span class="hint">your age</span></label>
+                <div class="field-input"><input id="spousalMaintenanceEndsAge" type="number" value="65" min="0" max="100" /><span class="suffix">yrs</span></div>
+                <div class="field-help">Under Family Law Act 1975. Can end on recipient remarriage, court variation, or a set date. Enter your age at the expected end. Set to 0 for ongoing (open-ended orders).</div>
+              </div>
+            </div>
+          </div>
+          <div data-childsupport="true" hidden>
+            <div class="fields">
+              <div class="field">
+                <label class="field-label" for="annualChildSupport"><span>Annual child support paid</span><span class="hint">$/year</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="annualChildSupport" type="number" value="0" step="500" /><span class="suffix">/yr</span></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="youngestChildAge"><span>Youngest child's current age</span><span class="hint">years</span></label>
+                <div class="field-input"><input id="youngestChildAge" type="number" value="10" min="0" max="17" /><span class="suffix">yrs</span></div>
+                <div class="field-help">Under Child Support (Assessment) Act 1989 — typically ends when the youngest child turns 18 or completes Year 12. Payments are removed from projections after that year.</div>
+              </div>
+            </div>
           </div>
 
           <div class="subhead">Family carer</div>
@@ -522,7 +562,7 @@
             </div>
             <div class="field">
               <label class="field-label" for="mortgageRate"><span>Mortgage rate</span><span class="hint">%</span></label>
-              <div class="field-input"><input id="mortgageRate" type="number" step="0.05" value="6.0" /><span class="suffix">%</span></div>
+              <div class="field-input"><input id="mortgageRate" type="number" step="0.01" value="6.00" /><span class="suffix">%</span></div>
             </div>
           </div>
           <div class="fields">
@@ -530,8 +570,17 @@
               <label class="field-label"><span>Plan to downsize?</span></label>
               <div class="segmented" data-bind="downsizePlan">
                 <button type="button" class="on" data-value="no">Stay in current home</button>
-                <button type="button" data-value="yes">Yes — downsize & access equity</button>
+                <button type="button" data-value="yes">Yes — downsize &amp; access equity</button>
               </div>
+            </div>
+            <div class="field">
+              <label class="field-label"><span>Downsizer super contribution (55+, $300k cap)</span></label>
+              <label class="toggle">
+                <input id="useDownsizer" type="checkbox" />
+                <span class="track"></span>
+                <span class="label">Contribute sale proceeds to super</span>
+              </label>
+              <div class="field-help">If you downsize, you may contribute up to $300,000 (each) of proceeds into super outside the usual contribution caps. Must be aged 55+ and have owned the home for 10+ years. Enable only if you plan to downsize.</div>
             </div>
           </div>
 
@@ -539,11 +588,11 @@
             <div class="subhead">Other debts</div>
             <div class="fields three">
               <div class="field"><label class="field-label" for="ccBalance"><span>Credit card balance</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ccBalance" type="number" value="0" /></div></div>
-              <div class="field"><label class="field-label" for="ccRate"><span>CC rate</span><span class="hint">%</span></label><div class="field-input"><input id="ccRate" type="number" step="0.1" value="19.99" /><span class="suffix">%</span></div></div>
+              <div class="field"><label class="field-label" for="ccRate"><span>CC rate</span><span class="hint">%</span></label><div class="field-input"><input id="ccRate" type="number" step="0.01" value="19.99" /><span class="suffix">%</span></div></div>
               <div class="field"><label class="field-label" for="personalLoan"><span>Personal loan</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="personalLoan" type="number" value="0" /></div></div>
-              <div class="field"><label class="field-label" for="personalLoanRate"><span>Personal loan rate</span><span class="hint">%</span></label><div class="field-input"><input id="personalLoanRate" type="number" step="0.1" value="9" /><span class="suffix">%</span></div></div>
+              <div class="field"><label class="field-label" for="personalLoanRate"><span>Personal loan rate</span><span class="hint">%</span></label><div class="field-input"><input id="personalLoanRate" type="number" step="0.01" value="9.00" /><span class="suffix">%</span></div></div>
               <div class="field"><label class="field-label" for="carLoan"><span>Car loan</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="carLoan" type="number" value="0" /></div></div>
-              <div class="field"><label class="field-label" for="carLoanRate"><span>Car loan rate</span><span class="hint">%</span></label><div class="field-input"><input id="carLoanRate" type="number" step="0.1" value="8" /><span class="suffix">%</span></div></div>
+              <div class="field"><label class="field-label" for="carLoanRate"><span>Car loan rate</span><span class="hint">%</span></label><div class="field-input"><input id="carLoanRate" type="number" step="0.01" value="8.00" /><span class="suffix">%</span></div></div>
               <div class="field"><label class="field-label" for="hecsBalance"><span>HECS / HELP balance</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="hecsBalance" type="number" value="0" /></div></div>
             </div>
 
@@ -555,11 +604,11 @@
               <div class="fields three">
                 <div class="field"><label class="field-label" for="ipValue"><span>Current value</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ipValue" type="number" value="0" /></div></div>
                 <div class="field"><label class="field-label" for="ipLoan"><span>Outstanding loan</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ipLoan" type="number" value="0" /></div></div>
-                <div class="field"><label class="field-label" for="ipRate"><span>Loan rate</span><span class="hint">%</span></label><div class="field-input"><input id="ipRate" type="number" step="0.05" value="6.35" /><span class="suffix">%</span></div></div>
+                <div class="field"><label class="field-label" for="ipRate"><span>Loan rate</span><span class="hint">%</span></label><div class="field-input"><input id="ipRate" type="number" step="0.01" value="6.35" /><span class="suffix">%</span></div></div>
                 <div class="field"><label class="field-label" for="ipWeeklyRent"><span>Weekly rent</span><span class="hint">$/wk</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ipWeeklyRent" type="number" value="0" /><span class="suffix">/wk</span></div></div>
                 <div class="field"><label class="field-label" for="ipAnnualExpenses"><span>Annual expenses</span><span class="hint">$/yr</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ipAnnualExpenses" type="number" value="0" /></div></div>
                 <div class="field"><label class="field-label" for="landTax"><span>Annual land tax</span><span class="hint">$/yr</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="landTax" type="number" value="0" /></div><div class="field-help">Auto-filled for states with configured brackets; override if your assessment differs.</div></div>
-                <div class="field"><label class="field-label" for="ipGrowthRate"><span>Annual growth</span><span class="hint">%</span></label><div class="field-input"><input id="ipGrowthRate" type="number" step="0.1" value="4.0" /><span class="suffix">%</span></div></div>
+                <div class="field"><label class="field-label" for="ipGrowthRate"><span>Annual growth</span><span class="hint">%</span></label><div class="field-input"><input id="ipGrowthRate" type="number" step="0.01" value="4.00" /><span class="suffix">%</span></div></div>
                 <div class="field"><label class="field-label" for="ipState"><span>State</span></label><div class="field-input"><select id="ipState"><option value="">— select for land tax —</option><option value="NSW">NSW</option><option value="VIC">VIC</option><option value="QLD">QLD</option><option value="WA">WA</option><option value="SA">SA</option><option value="TAS">TAS</option><option value="ACT">ACT</option><option value="NT">NT</option></select></div></div>
               </div>
             </div>
@@ -691,7 +740,7 @@
             <div class="field">
               <label class="field-label" for="desiredIncome"><span>Desired annual income</span><span class="hint">today's $</span></label>
               <div class="field-input has-prefix"><span class="prefix">$</span><input id="desiredIncome" type="number" value="73000" /><span class="suffix">/yr</span></div>
-              <div class="field-help">ASFA Comfortable: $73,031 couple · $51,814 single (Mar 2025).</div>
+              <div class="field-help">ASFA Retirement Standard (Sep 2024 quarter). <b>Couple:</b> Modest $47,731 · Comfortable $73,031. <b>Single:</b> Modest $33,134 · Comfortable $51,814. Presets below use couple figures — adjust manually if planning as single.</div>
             </div>
             <div class="field">
               <label class="field-label"><span>Lifestyle preset</span></label>
@@ -700,6 +749,7 @@
                 <button type="button" class="on" data-value="73031">Comfortable</button>
                 <button type="button" data-value="110000">Premium</button>
               </div>
+              <div class="field-help">Modest and Comfortable are confirmed ASFA figures (Sep 2024). Premium ($110k) is a planning estimate — no official ASFA Premium category exists.</div>
             </div>
           </div>
           <div class="notice"><span class="ic">⛵</span><div><b>Translation:</b> <span id="goal-week">$1,404</span>/week · <span id="goal-month">$6,083</span>/month. Inflated to future dollars automatically.</div></div>
@@ -737,7 +787,7 @@
             <div class="fields three">
               <div class="field"><label class="field-label" for="agedCareProbability"><span>Aged care probability</span><span class="hint">%</span></label><div class="field-input"><input id="agedCareProbability" type="number" value="68" /><span class="suffix">%</span></div></div>
               <div class="field"><label class="field-label" for="agedCareStartAge"><span>Start age</span></label><div class="field-input"><input id="agedCareStartAge" type="number" value="85" /><span class="suffix">yrs</span></div></div>
-              <div class="field"><label class="field-label" for="agedCareAnnualCost"><span>Annual cost</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="agedCareAnnualCost" type="number" value="76000" /></div></div>
+              <div class="field"><label class="field-label" for="agedCareAnnualCost"><span>Annual cost</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="agedCareAnnualCost" type="number" value="65000" /></div><div class="field-help">Arithmetic mean for residential aged care 2024-25: basic daily fee ~$23k + means-tested care fee ~$15k + accommodation contribution ~$27k. Source: AIHW / Aged Care Act fee schedules.</div></div>
             </div>
           </div>
         </div>
@@ -769,7 +819,8 @@
             </div>
             <div class="field">
               <label class="field-label" for="savingsReturn"><span>Savings / cash return</span><span class="hint">% / yr</span></label>
-              <div class="field-input"><input id="savingsReturn" type="number" step="0.1" value="1.4" /><span class="suffix">%</span></div>
+              <div class="field-input"><input id="savingsReturn" type="number" step="0.1" value="3.5" /><span class="suffix">%</span></div>
+              <div class="field-help">Arithmetic mean across high-yield savings (~5%), term deposits (~4.5%) and standard accounts (~1%) in 2025. Adjust for your actual mix.</div>
             </div>
           </div>
         </div>
@@ -806,7 +857,11 @@
           <div class="fields three">
             <div class="field">
               <label class="field-label" for="mcRuns"><span>Monte Carlo runs</span></label>
-              <div class="field-input"><select id="mcRuns"><option value="200">200 (quick)</option><option value="500" selected>500 (recommended)</option><option value="1000">1,000 (detailed)</option><option value="5000">5,000 (slower)</option></select></div>
+              <div class="field-input"><select id="mcRuns"><option value="200">200 (quick)</option><option value="500" selected>500 (recommended)</option><option value="1000">1,000 (detailed)</option><option value="5000">5,000 (slower)</option><option value="10000">10,000 (thorough)</option><option value="custom">Custom…</option></select></div>
+              <div id="mcRunsCustomWrap" style="display:none;margin-top:6px;flex-direction:column;gap:4px">
+                <div class="field-input"><input id="mcRunsCustom" type="number" value="2000" min="100" max="20000" step="100" placeholder="100 – 20,000" /><span class="suffix">runs</span></div>
+                <div class="field-help">Enter a value between 100 and 20,000. Values above 10,000 may take 30–60 seconds.</div>
+              </div>
             </div>
             <div class="field">
               <label class="field-label" for="returnVolatility"><span>Return volatility</span><span class="hint">% σ</span></label>
@@ -817,10 +872,36 @@
               <div class="field-input"><select id="scenarioMode"><option value="baseline" selected>Baseline</option><option value="optimistic">Optimistic</option><option value="pessimistic">Pessimistic</option><option value="crisis">Crisis</option></select></div>
             </div>
           </div>
-          <div class="fields">
-            <label class="toggle"><input id="enableShocks" type="checkbox" /><span class="track"></span><span class="label">Enable market shocks</span></label>
-            <label class="toggle"><input id="sampleLifespan" type="checkbox" /><span class="track"></span><span class="label">Sample lifespan from survival curve</span></label>
-            <label class="toggle"><input id="budget2627" type="checkbox" /><span class="track"></span><span class="label">Include proposed Budget 2026-27 changes</span></label>
+          <div class="fields one">
+            <div class="field">
+              <label class="toggle"><input id="enableShocks" type="checkbox" /><span class="track"></span><span class="label">Enable market shocks</span></label>
+            </div>
+          </div>
+          <div data-shocks="true" hidden>
+            <div class="fields">
+              <div class="field">
+                <label class="field-label" for="shockProbability"><span>Shock probability</span><span class="hint">% / yr</span></label>
+                <div class="field-input"><input id="shockProbability" type="number" step="1" value="5" min="1" max="50" /><span class="suffix">%</span></div>
+                <div class="field-help">Annual probability of a major market shock occurring. Default 5% ≈ roughly one significant crash every 20 years — consistent with historical frequency (1987, 2000, 2008, 2020).</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="shockMagnitude"><span>Shock magnitude</span><span class="hint">% loss</span></label>
+                <div class="field-input"><input id="shockMagnitude" type="number" step="1" value="-25" min="-80" max="-5" /><span class="suffix">%</span></div>
+                <div class="field-help">Portfolio loss applied to the equity portion in a shock year. −25% ≈ a severe correction; −50% ≈ a 2008-style global financial crisis.</div>
+              </div>
+            </div>
+          </div>
+          <div class="fields one">
+            <div class="field">
+              <label class="toggle"><input id="sampleLifespan" type="checkbox" /><span class="track"></span><span class="label">Sample lifespan from survival curve <span style="font-weight:400;font-size:0.9em;color:var(--ink-3)">(Monte Carlo)</span></span></label>
+              <div class="field-help" style="margin-top:4px">When enabled, each Monte Carlo run draws a different lifespan from Australian mortality data (ABS 2020-22) rather than your fixed lifespan. Shows the full spread of longevity risk — some runs end at 75, others at 103. Your gender setting calibrates the distribution. Disable for deterministic scenarios.</div>
+            </div>
+          </div>
+          <div class="fields one">
+            <div class="field">
+              <label class="toggle"><input id="budget2627" type="checkbox" /><span class="track"></span><span class="label">Include proposed Budget 2026-27 changes</span></label>
+              <div class="field-help" style="margin-top:4px">[Not yet Law] When enabled, projects: 14% super tax rate from FY 2027-28 (currently 15%), $250 WATO offset from FY 2027-28, $1,000 instant work deduction from FY 2026-27, and CGT reform from 1 July 2027 (inflation-indexed discount + 30% minimum). These are Budget 2026-27 proposals and have not been passed by Parliament. Unchecked = current legislated law only.</div>
+            </div>
           </div>
         </div>
       </section>
@@ -887,8 +968,9 @@
                 <div class="field-input"><input id="ageMovingOverseas" type="number" value="65" min="55" max="90" /><span class="suffix">yrs</span></div>
               </div>
               <div class="field">
-                <label class="field-label" for="annualLivingCostOverseas"><span>Annual living cost overseas</span><span class="hint">AUD/yr</span></label>
-                <div class="field-input has-prefix"><span class="prefix">$</span><input id="annualLivingCostOverseas" type="number" value="40000" /></div>
+                <label class="field-label" for="annualLivingCostOverseas"><span>Annual living costs overseas (all-in)</span><span class="hint">AUD/yr</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="annualLivingCostOverseas" type="number" value="40000" step="1000" /></div>
+                <div class="field-help">Total annual spend in AUD — include rent/accommodation, food, transport, healthcare, leisure, and return travel. This is the primary figure used in all overseas projections.</div>
               </div>
               <div class="field">
                 <label class="field-label" for="returnFrequency"><span>Return to Australia frequency</span></label>
@@ -979,11 +1061,6 @@
                   </select>
                 </div>
               </div>
-              <div class="field">
-                <label class="field-label" for="estimatedLivingCosts"><span>Estimated annual living costs overseas</span><span class="hint">AUD/yr</span></label>
-                <div class="field-input has-prefix"><span class="prefix">$</span><input id="estimatedLivingCosts" type="number" value="60000" step="1000" /></div>
-                <div class="field-help">In Australian dollars — include healthcare, housing, and lifestyle</div>
-              </div>
             </div>
 
             <!-- ── Currency & housing ── -->
@@ -998,12 +1075,19 @@
                     <option value="GBP">GBP (British Pound)</option>
                     <option value="USD">USD (US Dollar)</option>
                     <option value="NZD">NZD (New Zealand Dollar)</option>
+                    <option value="CAD">CAD (Canadian Dollar)</option>
+                    <option value="JPY">JPY (Japanese Yen)</option>
+                    <option value="INR">INR (Indian Rupee)</option>
                     <option value="SGD">SGD (Singapore Dollar)</option>
                     <option value="THB">THB (Thai Baht)</option>
+                    <option value="VND">VND (Vietnamese Dong)</option>
+                    <option value="MYR">MYR (Malaysian Ringgit)</option>
                     <option value="IDR">IDR (Indonesian Rupiah)</option>
+                    <option value="PHP">PHP (Philippine Peso)</option>
                     <option value="other">Other</option>
                   </select>
                 </div>
+                <div class="field-help">Auto-filled when you select a retirement destination above. Change if you plan to use a different currency.</div>
               </div>
               <div class="field">
                 <label class="field-label" for="overseasAudFxChange"><span>Annual AUD FX change vs local</span><span class="hint">%/yr</span></label>
