@@ -36,6 +36,26 @@ const RUN_UNTIL_DEPLETION_AGE = 120;
 const resolveScenarioMonteCarloRuns = (inputs = {}) =>
     Math.max(100, Math.min(20000, Math.round(Number(inputs.numRuns) || 1000)));
 
+/**
+ * Generate a stochastic annual rate by applying a bounded asymmetric variation
+ * to the user-supplied median rate.  The user's input is treated as the MEDIAN
+ * (50th-percentile) value; each simulated year draws a perturbation uniformly
+ * from [-0.045, +0.035] (−4.5 pp to +3.5 pp).  The asymmetric range reflects
+ * that adverse macro surprises (rate spikes, recessions) tend to be larger and
+ * faster than positive surprises.
+ *
+ * @param {number}  medianRate   - Median rate in decimal form (e.g. 0.026 for 2.6%)
+ * @param {boolean} useRandom    - When false returns the medianRate unchanged (deterministic mode)
+ * @param {number}  [floor=0]    - Hard floor for the result (default 0 – rates cannot go negative)
+ * @returns {number} Perturbed rate in decimal form
+ */
+function stochasticRate(medianRate, useRandom, floor = 0) {
+    if (!useRandom) return medianRate;
+    // Uniform draw in [-0.045, +0.035]
+    const perturbation = -0.045 + Math.random() * 0.08; // 0.08 = 0.035 − (−0.045)
+    return Math.max(floor, medianRate + perturbation);
+}
+
 export class RetirementSimulator {
     constructor(config) {
         // Merge original config with enhanced financial config
@@ -171,6 +191,11 @@ export class RetirementSimulator {
             };
         }
 
+        // Aged care start age is sampled from a normal distribution centred on the user's
+        // estimate (σ = 2 years). The user's entry is a planning *assumption*, not a
+        // certainty — care can begin earlier or later depending on health trajectory.
+        // Each MC run draws a different onset age, producing realistic scenario spread
+        // (some runs: care starts at 83; others: 87+). Clamped to [minStartAge, maxStartAge].
         const sampledStartAge = clamp(
             Math.round(randomNormal(baseStartAge, 2)),
             minStartAge,
@@ -193,7 +218,7 @@ export class RetirementSimulator {
         };
     }
 
-    getAnnualAgedCareCost(age, inputs, agedCareProfile, effectiveYourLifespan) {
+    getAnnualAgedCareCost(age, inputs, agedCareProfile, effectiveYourLifespan, overrideHealthcareInflation = null) {
         if (!agedCareProfile?.occurs || age < agedCareProfile.startAge) {
             return 0;
         }
@@ -204,7 +229,10 @@ export class RetirementSimulator {
         }
 
         const yearsFromNow = age - inputs.yourCurrentAge;
-        let annualCost = inputs.agedCareAnnualCost * Math.pow(1 + inputs.healthcareInflation, yearsFromNow);
+        // Use overrideHealthcareInflation when provided (stochastic MC rate) so aged care
+        // costs compound at the per-run drawn rate, not the fixed median every time.
+        const hcRate = overrideHealthcareInflation ?? inputs.healthcareInflation;
+        let annualCost = inputs.agedCareAnnualCost * Math.pow(1 + hcRate, yearsFromNow);
         const remainingCare = agedCareProfile.duration - yearsInCare;
 
         if (remainingCare < 1 && remainingCare > 0) {
@@ -235,8 +263,14 @@ export class RetirementSimulator {
         agedCareActive,
         useRandomReturns,
         overrideInflationFactor,
+        yearInflationRate,
     }) {
         const inflationFactor = overrideInflationFactor ?? Math.pow(1 + inputs.inflation, retirementYear);
+        // Per-year inflation rate for use by spending strategies that need it (e.g. Guyton-Klinger).
+        // In stochastic mode this is the drawn rate for the current year; deterministic uses median.
+        const effectiveYearInflation = (useRandomReturns && yearInflationRate != null)
+            ? yearInflationRate
+            : inputs.inflation;
 
         // Overseas phase: substitute overseas living budget + return travel cost
         if (inputs.goingOverseas && inputs.overseasStartAge > 0 && currentAge >= inputs.overseasStartAge) {
@@ -295,16 +329,22 @@ export class RetirementSimulator {
             initialPortfolio: initialRetirementBalance,
             initialSpending: startingTarget,
             yearsRetired: Math.max(0, currentAge - inputs.retirementAge),
-            inflation: inputs.inflation,
+            inflation: effectiveYearInflation,
             inputs: {
                 essentialSpending,
                 lifestyleSpending
             }
         });
 
-        if (useRandomReturns) {
-            targetSpending += (Math.random() - 0.5) * lifestyleSpending * 0.2;
-        }
+        // NOTE: A raw ±10% uniform noise on lifestyle spending was previously applied here
+        // in Monte Carlo runs. It has been removed because:
+        //   1. Spending is a user-configured input — silently randomising it violates
+        //      the principle that only *financial rates* (returns, inflation) vary per run.
+        //   2. The stochasticRate() variation on inflation at the retirement-year level
+        //      already propagates realistic spending uncertainty through the cumulative
+        //      inflation factor — adding a second layer of noise is redundant.
+        //   3. Uniform distribution is inconsistent with all other stochastic modelling
+        //      which uses Gaussian draws or bounded uniform rate perturbations.
 
         if (previousSpendingTarget && !agedCareActive) {
             targetSpending = clamp(
@@ -730,10 +770,15 @@ export class RetirementSimulator {
 
     // Investment property calculations with cycle-based modeling
     calculatePropertyValue(currentValue, growthRate, years) {
-        const { PROPERTY_GROWTH_MAX_RATE, PROPERTY_GROWTH_MAX_YEARS } = this.config.SIMULATION;
+        const { PROPERTY_GROWTH_MAX_RATE, PROPERTY_GROWTH_MIN_RATE, PROPERTY_GROWTH_MAX_YEARS } = this.config.SIMULATION;
         const rate = growthRate > 1 ? growthRate / 100 : growthRate;
         const cappedYears = Math.min(years, PROPERTY_GROWTH_MAX_YEARS);
-        const cappedRate = Math.max(0, Math.min(rate, PROPERTY_GROWTH_MAX_RATE));
+        // Allow negative rates — property CAN and DOES fall in value.
+        // ABS RPPI data: national composite −5.1% (2018), inner-city apartments −12% in single years.
+        // Floor at PROPERTY_GROWTH_MIN_RATE (-15%) to prevent extreme tail compounding over many years.
+        // Removed the previous Math.max(0, ...) which blocked all negative growth.
+        const minRate = PROPERTY_GROWTH_MIN_RATE ?? -0.15;
+        const cappedRate = Math.max(minRate, Math.min(rate, PROPERTY_GROWTH_MAX_RATE));
         return currentValue * Math.pow(1 + cappedRate, cappedYears);
     }
 
@@ -778,10 +823,13 @@ export class RetirementSimulator {
         return calculateLoanBalance(rate, years, monthlyPayment * 12, principal);
     }
 
-    calculatePropertyCashFlow(inputs, year = 0) {
+    calculatePropertyCashFlow(inputs, year = 0, overrideInflationRate = null) {
         if (!inputs.hasInvestmentProperty) return null;
 
-        const inflationRate = inputs.inflation;
+        // Use overrideInflationRate when provided (stochastic MC run rate) so that
+        // rental income and expenses compound at the per-run drawn rate, not the
+        // fixed median every time.
+        const inflationRate = overrideInflationRate ?? inputs.inflation;
         const vacancyRate = inputs.vacancyRate || 0.04; // default 4% vacancy
         const maintenanceInflationRate = inputs.maintenanceInflation || inflationRate;
         const annualLandTax = (inputs.landTax || 0) * Math.pow(1 + inflationRate, year);
@@ -917,12 +965,12 @@ export class RetirementSimulator {
     }
 
     // Salary progression with lean years
-    getSalaryForYear(baseSalary, year, inputs, isPartner = false) {
+    getSalaryForYear(baseSalary, year, inputs, isPartner = false, overrideInflationRate = null, overrideSalaryGrowthRate = null) {
         const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
-        // FIX Bug 2: inputs.salaryGrowthRate is already a decimal (e.g. 0.015 = 1.5%).
-        // The previous code divided by 100 again, making growth 100× too small.
-        const realGrowthRate = inputs.salaryGrowthRate;
-        const inflationRate = inputs.inflation;
+        // Use override rates when provided (stochastic MC draws) so salary compounds at
+        // a different rate per MC run, not the same fixed median every time.
+        const realGrowthRate = overrideSalaryGrowthRate ?? inputs.salaryGrowthRate;
+        const inflationRate = overrideInflationRate ?? inputs.inflation;
 
         let salary = baseSalary * Math.pow(1 + realGrowthRate + inflationRate, year);
 
@@ -1097,10 +1145,14 @@ export class RetirementSimulator {
 
     // Main simulation engine
     simulateRetirement(inputs, useRandomReturns = false, stressScenario = null, scenarioReturns = null) {
-        // Reset previous returns for each simulation
+        // Reset previous returns for each simulation.
+        // investmentProperty and primaryHome are tracked separately so their respective
+        // serial-correlation paths do not contaminate each other.
         this.previousReturns = {
             portfolio: null,
-            property: null
+            property: null,          // used by accumulation-phase investment property
+            investmentProperty: null, // retirement-phase investment property
+            primaryHome: null         // retirement-phase primary home (separate state)
         };
 
         // Apply scenario mode adjustments (PART 1)
@@ -1122,6 +1174,25 @@ export class RetirementSimulator {
             : this.getEffectiveLifespan(inputs.partnerLifespan);
         const maxLifespan = Math.max(effectiveYourLifespan, effectivePartnerLifespan);
         const yearsToRetirement = Math.max(0, inputs.retirementAge - inputs.yourCurrentAge);
+
+        // ── Per-run stochastic rates ──────────────────────────────────────────────
+        // All compound formulas of the form Math.pow(1 + rate, n) use one of these
+        // drawn rates so that every MC run compounds at a different rate while still
+        // using the correct compounding formula.  In deterministic mode they equal
+        // the user-entered median values unchanged.
+        //
+        // Drawing once per run (rather than per year) is correct for quantities that
+        // require a single snapshot value (home at retirement, salary path baseline,
+        // etc.).  Quantities that are re-calculated each year inside the loop (savings
+        // return, super return, retirement inflation) already use per-year draws via
+        // stochasticRate() and are unaffected by these run-level draws.
+        const runInflationRate        = stochasticRate(inputs.inflation,            useRandomReturns, 0.001);
+        const runPropertyGrowthRate   = stochasticRate(
+            inputs.propertyGrowthRate > 0 ? inputs.propertyGrowthRate : inputs.inflation,
+            useRandomReturns, 0.001
+        );
+        const runHealthcareInflRate   = stochasticRate(inputs.healthcareInflation || 0.065, useRandomReturns, 0.01);
+        const runSalaryGrowthRate     = stochasticRate(inputs.salaryGrowthRate || 0.02,     useRandomReturns, 0);
 
         // Calculate total simulation years based on the maximum lifespan from current age
         const maxYearsFromNow = Math.max(
@@ -1226,13 +1297,26 @@ export class RetirementSimulator {
         const accumulationHistory = [];
         const currentCalendarYear = new Date().getFullYear();
         const homeGrowthRateAssumption = inputs.propertyGrowthRate > 0 ? inputs.propertyGrowthRate : inputs.inflation;
+
+        // Running primary home value tracked year-by-year through the accumulation loop.
+        // In MC mode: updated each year with calculateEnhancedPropertyReturn() so the home
+        // can have negative growth years (rate-hike corrections, oversupply). This produces a
+        // realistic path-dependent value at retirement rather than a single smooth compound.
+        // In deterministic mode: advances at the fixed rate each year (same net result as Math.pow).
+        // previousPrimaryHomeReturn: seed for serial correlation in the property cycle model.
+        let accumulationPrimaryHomeValue = inputs.homeValue > 0 ? inputs.homeValue : 0;
+        let previousPrimaryHomeReturn = null;
+
         const getHomeEquityAtYear = (yearsElapsed) => {
             if (!(inputs.homeValue > 0)) return 0;
-            const projectedHomeValue = inputs.homeValue * Math.pow(1 + homeGrowthRateAssumption, yearsElapsed);
+            // In MC mode accumulationPrimaryHomeValue is already the path-tracked value —
+            // we just need to subtract the outstanding mortgage balance.
+            // In deterministic mode it also advances year-by-year identically, so the same
+            // formula applies in both modes.
             const projectedMortgageBalance = Math.max(0,
                 calculateLoanBalance(inputs.mortgageRate, yearsElapsed, inputs.monthlyMortgagePayment, inputs.mortgageBalance)
             );
-            return projectedHomeValue - projectedMortgageBalance;
+            return Math.max(0, accumulationPrimaryHomeValue - projectedMortgageBalance);
         };
         const pushAccumulationSnapshot = (yearsElapsed, age, projectedPropertyEquity = null) => {
             const nonSuperLiquidAssets = accumulatedSavingsBalance + accumulatedInvestmentPortfolio;
@@ -1365,14 +1449,36 @@ export class RetirementSimulator {
                 }
             }
 
-            // Apply returns
-            const yourSuperEarningsThisYear = yourSuperBalance * inputs.superReturn;
-            const partnerSuperEarningsThisYear = partnerSuperBalance * inputs.superReturn;
+            // Update primary home value year-by-year.
+            // MC mode: uses calculateEnhancedPropertyReturn() with serial correlation so the
+            // home follows realistic boom/bust cycles and CAN be negative in individual years.
+            // Deterministic mode: advances at the fixed median rate each year.
+            if (accumulationPrimaryHomeValue > 0) {
+                if (useRandomReturns) {
+                    const yearlyHomeReturn = this.calculateEnhancedPropertyReturn(
+                        year,
+                        homeGrowthRateAssumption,
+                        true,
+                        previousPrimaryHomeReturn
+                    );
+                    previousPrimaryHomeReturn = yearlyHomeReturn;
+                    accumulationPrimaryHomeValue = Math.max(0, accumulationPrimaryHomeValue * (1 + yearlyHomeReturn));
+                } else {
+                    accumulationPrimaryHomeValue *= (1 + homeGrowthRateAssumption);
+                }
+            }
+
+            // Apply returns — super and savings use stochastic rates in Monte Carlo mode
+            // (user-entered rate treated as median; each year perturbed ±[−4.5pp, +3.5pp])
+            const yearSuperReturn = stochasticRate(inputs.superReturn, useRandomReturns, 0);
+            const yearSavingsReturn = stochasticRate(inputs.savingsReturn, useRandomReturns, 0);
+            const yourSuperEarningsThisYear = yourSuperBalance * yearSuperReturn;
+            const partnerSuperEarningsThisYear = partnerSuperBalance * yearSuperReturn;
             const superEarningsThisYear = yourSuperEarningsThisYear + partnerSuperEarningsThisYear;
             yourSuperBalance += yourSuperEarningsThisYear;
             partnerSuperBalance += partnerSuperEarningsThisYear;
             accumulatedSuperBalance = yourSuperBalance + partnerSuperBalance;
-            accumulatedSavingsBalance *= (1 + inputs.savingsReturn);
+            accumulatedSavingsBalance *= (1 + yearSavingsReturn);
             accumulatedInvestmentPortfolio *= (1 + returnRate);
 
             // Division 296 Tax — effective 1 July 2026 (already law).
@@ -1441,7 +1547,9 @@ export class RetirementSimulator {
             const concessionalAlreadyUsed = (year === 1) ? (inputs.concessionalCapUsed || 0) : 0;
 
             if (year <= yourYearsToWork) {
-                const yourGrossSalary = this.getSalaryForYear(inputs.yourSalary, year, inputs);
+                const yourGrossSalary = this.getSalaryForYear(inputs.yourSalary, year, inputs, false,
+                    useRandomReturns ? runInflationRate : null,
+                    useRandomReturns ? runSalaryGrowthRate : null);
                 // Salary sacrifice: voluntary pre-tax super, capped so total concessional ≤ $30,000.
                 // Blocked entirely when TSB ≥ Transfer Balance Cap.
                 const effectiveEmployerRate = inputs.employerSuperContributionRate ?? inputs.superContributionRate ?? getSGRate(projectionYear);
@@ -1467,7 +1575,9 @@ export class RetirementSimulator {
                 yearlySuperContribution += yourNetSuperContribution;
             }
             if (year <= partnerYearsToWork) {
-                const partnerGrossSalary = this.getSalaryForYear(inputs.partnerSalary, year, inputs, true);
+                const partnerGrossSalary = this.getSalaryForYear(inputs.partnerSalary, year, inputs, true,
+                    useRandomReturns ? runInflationRate : null,
+                    useRandomReturns ? runSalaryGrowthRate : null);
                 const effectiveEmployerRate = inputs.employerSuperContributionRate ?? inputs.superContributionRate ?? getSGRate(projectionYear);
                 const partnerEmployerSG = partnerGrossSalary * effectiveEmployerRate;
                 const partnerSacrifice = superIsCapped ? 0 : Math.min(
@@ -1541,7 +1651,7 @@ export class RetirementSimulator {
             // Carer expense: direct annual financial support to aged parents/family (inflated)
             if (inputs.isCarerForParents && inputs.carerAnnualExpense > 0
                 && year <= inputs.carerYearsExpected) {
-                const inflatedCarerExpense = inputs.carerAnnualExpense * Math.pow(1 + inputs.inflation, year);
+                const inflatedCarerExpense = inputs.carerAnnualExpense * Math.pow(1 + runInflationRate, year);
                 accumulatedSavingsBalance = Math.max(0, accumulatedSavingsBalance - inflatedCarerExpense);
             }
 
@@ -1560,7 +1670,7 @@ export class RetirementSimulator {
                     const basePremium = inputs.isSingleCalculation
                         ? (this.config.LHC_BASE_PREMIUMS?.single || 2800)
                         : (this.config.LHC_BASE_PREMIUMS?.couple || 5200);
-                    const lhcAnnualCost = basePremium * loadingPct * Math.pow(1 + (inputs.inflation || 0.025), year - 1);
+                    const lhcAnnualCost = basePremium * loadingPct * Math.pow(1 + runInflationRate, year - 1);
                     accumulatedSavingsBalance = Math.max(0, accumulatedSavingsBalance - lhcAnnualCost);
                 }
             }
@@ -1577,13 +1687,13 @@ export class RetirementSimulator {
                 if (inputs.universitySupport) {
                     annualEdCost += 15000 * childCount; // university support ~$15k/child
                 }
-                annualEdCost *= Math.pow(1 + inputs.inflation, year); // inflate over time
+                annualEdCost *= Math.pow(1 + runInflationRate, year); // inflate over time
                 accumulatedSavingsBalance = Math.max(0, accumulatedSavingsBalance - annualEdCost);
             }
 
             // Property calculations
             if (inputs.hasInvestmentProperty && yourCurrentAge <= inputs.retirementAge) {
-                const propertyCashFlow = this.calculatePropertyCashFlow(inputs, year);
+                const propertyCashFlow = this.calculatePropertyCashFlow(inputs, year, useRandomReturns ? runInflationRate : null);
                 if (propertyCashFlow) {
                     propertyHistory.push(propertyCashFlow);
 
@@ -1645,11 +1755,14 @@ export class RetirementSimulator {
         }
 
         // At retirement setup
-        // FIX Bug 7: Primary home should grow at propertyGrowthRate (e.g. 5.8% CoreLogic median),
-        // not at general CPI inflation (2.6%). Using inflation was understating home equity at
-        // retirement by ~$1.4 M on a $1 M home over 20 years.
-        const homeGrowthRate = homeGrowthRateAssumption;
-        const homeValueAtRetirement = inputs.homeValue * Math.pow(1 + homeGrowthRate, yearsToRetirement);
+        // Home value is now the path-tracked value built year-by-year in the accumulation loop
+        // above (accumulationPrimaryHomeValue). In MC mode this reflects actual boom/bust cycles
+        // including negative years; in deterministic mode it equals Math.pow(1+rate, years).
+        // homeGrowthRate is still needed for the post-retirement loop (same per-run rate).
+        const homeGrowthRate = homeGrowthRateAssumption; // used as base for calculateEnhancedPropertyReturn in retirement
+        const homeValueAtRetirement = accumulationPrimaryHomeValue > 0
+            ? accumulationPrimaryHomeValue
+            : (inputs.homeValue * Math.pow(1 + homeGrowthRate, yearsToRetirement)); // fallback if home=0
         const mortgageBalanceAtRetirement = Math.max(0,
             calculateLoanBalance(inputs.mortgageRate, yearsToRetirement, inputs.monthlyMortgagePayment, inputs.mortgageBalance)
         );
@@ -1681,6 +1794,15 @@ export class RetirementSimulator {
         // Calculate non-liquid assets
         const inaccessibleHomeEquity = inputs.planToDownsize ? 0 : homeEquityAtRetirement;
 
+        // Running home value tracked year-by-year in retirement.
+        // In MC mode: updated each year using calculateEnhancedPropertyReturn() so the
+        // home can experience negative growth years (e.g. -5% in a rate-hike cycle), just
+        // like the investment property accumulation path.
+        // In deterministic mode: grows at the fixed homeGrowthRate each year (same as before).
+        // This replaces the previous Math.pow(1 + homeGrowthRate, yearsFromRetirement) which
+        // could not produce negative compounding in any individual year.
+        let runningHomeValue = inputs.planToDownsize ? 0 : homeValueAtRetirement;
+
         const balances = [];
         const yearlyData = [];
         const initialRetirementBalance = currentBalance;
@@ -1688,9 +1810,10 @@ export class RetirementSimulator {
         let previousSpendingTarget = null;
         // Per-year inflation scatter: each Monte Carlo run experiences a different inflation path
         // centred on the user's input, giving realistic variability in spending targets.
-        // Seed with deterministic pre-retirement inflation so year-0 of retirement correctly
-        // expresses spending targets in retirement-year dollars (not today's dollars).
-        let cumulativeInflationFactor = Math.pow(1 + inputs.inflation, yearsToRetirement);
+        // Seed with the per-run inflation rate so each MC run begins retirement with a
+        // differently inflated spending baseline (not the same fixed value every run).
+        // Deterministic runs use inputs.inflation unchanged.
+        let cumulativeInflationFactor = Math.pow(1 + runInflationRate, yearsToRetirement);
 
         for (let i = 0; i < yearsInRetirement; i++) {
             const retirementYear = yearsToRetirement + i;
@@ -1727,37 +1850,87 @@ export class RetirementSimulator {
             // covers the full simulation horizon, not just the pre-retirement phase.
             allocationHistory.push(allocation);
 
-            // Enhanced healthcare costs
-            const healthcareCost = this.projectHealthcareCosts(
-                inputs.currentHealthcareCosts,
-                retirementYear,
-                inputs.healthcareInflation
-            );
+            // ── Step A: draw this year's stochastic rates ────────────────────────
+            // yearInflationRate MUST be declared before any calculation that uses it.
+            // It drives healthcare costs, spending targets, and the cumulative factor.
+            // MC mode: uniform draw in [median − 4.5pp, median + 3.5pp], floored at 0.5%.
+            // Deterministic mode: the user-entered median, unchanged.
+            const yearInflationRate = useRandomReturns
+                ? stochasticRate(inputs.inflation, true, 0.005)
+                : inputs.inflation;
 
-            // Deterministic runs use an expected-value care cost; Monte Carlo runs sample an
-            // event path so care is not silently charged to every scenario.
+            // ── Step B: healthcare costs ─────────────────────────────────────────
+            // MC mode: apply yearInflationRate as this year's general inflation component,
+            // PLUS the structural healthcare premium (healthcareInflation − generalInflation).
+            // This gives: effectiveHcRate = yearInflationRate + uplift.
+            // The cumulative factor is then built by multiplying the running
+            // cumulativeInflationFactor (which already encodes prior years' stochastic
+            // inflation) by (1 + uplift) for this year only — NOT Math.pow(uplift, retirementYear)
+            // which would double-compound the uplift over all prior years as well.
+            // Deterministic mode: fixed compound formula via projectHealthcareCosts().
+            let healthcareCost;
+            if (useRandomReturns) {
+                const hcUplift = Math.max(0, (inputs.healthcareInflation || 0.065) - (inputs.inflation || 0.026));
+                // effectiveHcRate is not used for compounding here; healthcareCost is derived
+                // directly from cumulativeInflationFactor (already the product of all prior
+                // yearInflationRate draws) scaled by a single year's uplift.
+                const hcFactor = cumulativeInflationFactor * (1 + hcUplift);
+                healthcareCost = inputs.currentHealthcareCosts * hcFactor;
+            } else {
+                healthcareCost = this.projectHealthcareCosts(
+                    inputs.currentHealthcareCosts,
+                    retirementYear,
+                    inputs.healthcareInflation
+                );
+            }
+
+            // ── Step C: aged care ────────────────────────────────────────────────
+            // Deterministic runs use an expected-value care cost; MC runs sample an
+            // event path (occurrence + duration drawn in buildAgedCareProfile) so care
+            // is not silently charged to every scenario.
             const agedCareCost = this.getAnnualAgedCareCost(
                 yourCurrentAge,
                 inputs,
                 agedCareProfile,
-                effectiveYourLifespan
+                effectiveYourLifespan,
+                useRandomReturns ? runHealthcareInflRate : null
             );
 
-            // Property income (if still owned) and update property equity.
-            // Allow negative cash flow: negative gearing losses reduce assessable income
-            // in the Age Pension income test AND increase portfolio drawdown need — both
-            // are behaviourally correct. Do NOT clamp to zero.
+            // ── Step D: investment property income and equity ─────────────────────
+            // Property income uses runInflationRate (per-run draw) for rental/expense
+            // compounding.  Property equity uses calculateEnhancedPropertyReturn() with
+            // its own serial-correlation state (previousInvestmentPropertyReturn) so each
+            // retirement year experiences a cycle-realistic return that can be negative.
+            // This is consistent with the accumulation phase treatment.
             let propertyIncome = 0;
             if (inputs.hasInvestmentProperty && !propertyWasSold) {
-                const propertyCashFlow = this.calculatePropertyCashFlow(inputs, retirementYear);
+                const propertyCashFlow = this.calculatePropertyCashFlow(
+                    inputs, retirementYear, useRandomReturns ? runInflationRate : null
+                );
                 if (propertyCashFlow) {
                     propertyIncome = propertyCashFlow.netCashFlow; // may be negative (neg. gearing)
                 }
 
-                // Update property equity for current retirement year
+                // Update investment property equity with a per-year cycle-aware return.
+                // Uses a SEPARATE serial-correlation state (previousInvestmentPropertyReturn)
+                // so it does not contaminate the primary home's cycle path.
+                let ipYearReturn;
+                if (useRandomReturns) {
+                    ipYearReturn = this.calculateEnhancedPropertyReturn(
+                        retirementYear,
+                        inputs.propertyGrowthRate,
+                        true,
+                        this.previousReturns.investmentProperty
+                    );
+                    this.previousReturns.investmentProperty = ipYearReturn;
+                } else {
+                    ipYearReturn = inputs.propertyGrowthRate;
+                }
+                // Use calculatePropertyValue for the loan-balance calculation; pass the
+                // per-year return so negative years reduce the equity correctly.
                 const currentValue = this.calculatePropertyValue(
                     inputs.investmentPropertyValue,
-                    inputs.propertyGrowthRate,
+                    ipYearReturn,
                     retirementYear
                 );
                 const remainingLoan = this.calculatePropertyLoanBalance(
@@ -1766,7 +1939,6 @@ export class RetirementSimulator {
                     retirementYear
                 );
                 propertyEquity = currentValue - remainingLoan;
-
             }
 
             const spendingPlan = this.buildRetirementSpendingPlan({
@@ -1779,15 +1951,14 @@ export class RetirementSimulator {
                 agedCareActive: agedCareCost > 0,
                 useRandomReturns,
                 overrideInflationFactor: useRandomReturns ? cumulativeInflationFactor : undefined,
+                yearInflationRate,
             });
             const baseIncomeNeeded = spendingPlan.targetSpending;
             previousSpendingTarget = baseIncomeNeeded;
 
-            // Advance the cumulative inflation factor for the next retirement year.
-            // Multiplying AFTER using the factor ensures year i uses the correct base.
+            // Advance the cumulative inflation factor using the rate already drawn above.
             if (useRandomReturns) {
-                const yearInflation = Math.max(0.005, randomNormal(inputs.inflation, inputs.inflation * 0.25));
-                cumulativeInflationFactor *= (1 + yearInflation);
+                cumulativeInflationFactor *= (1 + yearInflationRate);
             }
 
             // LHC loading cost during retirement (mirrors accumulation loop logic)
@@ -1805,7 +1976,9 @@ export class RetirementSimulator {
                     const basePremium = inputs.isSingleCalculation
                         ? (this.config.LHC_BASE_PREMIUMS?.single || 2800)
                         : (this.config.LHC_BASE_PREMIUMS?.couple || 5200);
-                    lhcRetirementCost = basePremium * loadingPct * Math.pow(1 + (inputs.inflation || 0.025), retirementYear);
+                    // retirementYear = yearsToRetirement + i — always years from today,
+                    // never a calendar year — so Math.pow is safe and correct here.
+                    lhcRetirementCost = basePremium * loadingPct * Math.pow(1 + runInflationRate, retirementYear);
                 }
             }
 
@@ -2048,11 +2221,27 @@ export class RetirementSimulator {
             const liquidAssets = startBalance; // Beginning of year liquid assets
             const endLiquidAssets = currentBalance; // End of year liquid assets after transactions
 
-            // Update home equity with property growth over time
-            // FIX Bug 7 (cont.): use propertyGrowthRate, not CPI inflation, for home equity growth.
-            const yearsFromRetirement = i;
-            const currentHomeEquity = inputs.planToDownsize ? 0 :
-                homeEquityAtRetirement * Math.pow(1 + homeGrowthRate, yearsFromRetirement);
+            // Update home value year-by-year.
+            // MC mode: draw a fresh per-year property return so the home can have negative
+            // growth years (apartments −5% to −12% historically) rather than smooth compounding.
+            // Deterministic mode: grow at the fixed homeGrowthRate (same behaviour as before).
+            if (!inputs.planToDownsize) {
+                if (useRandomReturns) {
+                    // Uses primaryHome serial-correlation state — separate from the investment
+                    // property's state so the two cycles are independent.
+                    const yearlyHomeReturn = this.calculateEnhancedPropertyReturn(
+                        retirementYear,
+                        homeGrowthRate,
+                        true,
+                        this.previousReturns.primaryHome
+                    );
+                    this.previousReturns.primaryHome = yearlyHomeReturn;
+                    runningHomeValue = Math.max(0, runningHomeValue * (1 + yearlyHomeReturn));
+                } else {
+                    runningHomeValue = runningHomeValue * (1 + homeGrowthRate);
+                }
+            }
+            const currentHomeEquity = runningHomeValue;
 
             const nonLiquidAssets = currentHomeEquity + propertyEquity;
 
