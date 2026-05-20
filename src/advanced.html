@@ -3037,6 +3037,23 @@
                         </label>
                     </div>
                     <div id="investmentPropertySection">
+                        <!-- Property type — affects capital growth rate, strata levy, and negative growth floor -->
+                        <div class="grid grid-cols-2 gap-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg mb-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700" for="investmentPropertyType">Property Type</label>
+                                <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="investmentPropertyType">
+                                    <option value="house">House / Land</option>
+                                    <option value="townhouse">Townhouse / Villa</option>
+                                    <option value="unit" selected>Unit / Apartment (Strata)</option>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500">Houses have higher long-run capital growth (land appreciates); units yield more but grow slower. A structural growth adjustment of −1.5 pp (unit) or −0.5 pp (townhouse) is applied relative to the rate you enter below.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700" for="investmentPropertyStrataLevy">Annual Strata Levy ($)</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="investmentPropertyStrataLevy" type="text" value="6000" min="0">
+                                <p class="mt-1 text-xs text-gray-500">Body corporate admin + sinking fund levies. Auto-filled by type (house $0, townhouse $2,500, unit $6,000). Typical ranges: walk-up $2k–$4k, mid-rise $4k–$8k, high-rise $8k–$20k+/yr.</p>
+                            </div>
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700" for="investmentPropertyValue">Current
                                 Value ($)</label>
@@ -3086,10 +3103,10 @@
                                    value="11356" min="0">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700" for="propertyGrowthRate">Annual
-                                Growth Rate (%)</label>
+                            <label class="block text-sm font-medium text-gray-700" for="propertyGrowthRate">Annual Growth Rate — Median (%)</label>
                             <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="propertyGrowthRate" step="0.1" type="text"
                                    value="1.81" min="0" max="30">
+                            <p class="mt-1 text-xs text-gray-500" id="propertyGrowthRateHelp">Your expected long-run median growth rate. Monte Carlo runs apply a bounded stochastic variation each year. A structural adjustment is applied based on property type above.</p>
                         </div>
                         <div>
                             <div class="label-with-tooltip">

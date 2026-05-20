@@ -423,13 +423,26 @@ export const ENHANCED_CONFIG = {
             { name: "Crisis High", cashRate: 0.085, duration: 2, probability: 0.05, period: "1990s recession" }
         ],
 
-        // Property cycles based on Australian historical patterns (7-year cycles)
+        // Property cycles based on Australian historical patterns (7-year cycles).
+        // Calibrated against ABS RPPI 8-capital-city composite 2002–2024 (n=23 years):
+        //   Mean nominal return: +5.6%/yr, Std Dev: 6.9%, Negative years: 4/23 = 17%
+        //   Worst year: -5.1% (2018 APRA tightening), Best year: +23.7% (2021 post-COVID)
+        //   Units/apartments: mean ~4.5%, std dev ~6.5%, negative ~20-25% of years
+        // baseReturn is used as the central estimate; volatility drives the normal scatter.
+        // Note: negative baseReturn phases ARE intentional — APRA tightening (2018),
+        // rate-hike cycles (2022), and mining-bust regions (Perth/Darwin 2015–2019)
+        // all produced sustained national or capital-city negative annual returns.
         propertyCycles: [
-            { phase: "Boom", yearsInCycle: [1, 2], baseReturn: 0.12, volatility: 0.08, probability: 0.20 },
-            { phase: "Peak", yearsInCycle: [3], baseReturn: 0.08, volatility: 0.12, probability: 0.10 },
-            { phase: "Decline", yearsInCycle: [4, 5], baseReturn: -0.05, volatility: 0.15, probability: 0.25 },
-            { phase: "Trough", yearsInCycle: [6], baseReturn: -0.02, volatility: 0.10, probability: 0.15 },
-            { phase: "Recovery", yearsInCycle: [7, 1], baseReturn: 0.06, volatility: 0.08, probability: 0.30 }
+            // Boom: post-COVID 2021 (+23.7%), 2013-16 Sydney (+10-12%), 2002-03 (+12-17%)
+            { phase: "Boom",     yearsInCycle: [1, 2], baseReturn:  0.12, volatility: 0.09, probability: 0.20 },
+            // Peak: returns moderate before correction; still positive but slowing
+            { phase: "Peak",     yearsInCycle: [3],    baseReturn:  0.05, volatility: 0.10, probability: 0.10 },
+            // Decline: APRA tightening 2018 (-5.1%), rate hikes 2022 (-5.0%), Perth/Darwin -6% p.a.
+            { phase: "Decline",  yearsInCycle: [4, 5], baseReturn: -0.05, volatility: 0.06, probability: 0.25 },
+            // Trough: market bottoms; may still be negative (inner-city apartment oversupply -2 to -4%)
+            { phase: "Trough",   yearsInCycle: [6],    baseReturn: -0.01, volatility: 0.05, probability: 0.15 },
+            // Recovery: re-acceleration as credit loosens, migration resumes
+            { phase: "Recovery", yearsInCycle: [7, 1], baseReturn:  0.07, volatility: 0.07, probability: 0.30 }
         ],
 
         // ASX market volatility patterns
@@ -1801,9 +1814,50 @@ export const ENHANCED_CONFIG = {
     // ── Simulation engine caps & scenario deltas ─────────────────────────────
     // Grouped here so they can be updated in one place without hunting for
     // inline literals scattered across simulator.js.
+    // Investment property type differentiation.
+    // Source: Domain House Price Report / ABS RPPI 8-city composite 2002-2024,
+    //         Domain Rental Report March 2026.
+    //
+    // Long-run capital growth differential (25-year horizon):
+    //   Houses:     ~7.0-8.0% p.a. (land appreciates; high land-to-asset ratio)
+    //   Townhouses: ~6.0-7.0% p.a. (partial land content)
+    //   Units/Apts: ~5.5-6.0% p.a. (low land-to-asset ratio; building depreciates)
+    // The user's entered ipGrowthRate is treated as the house baseline.
+    // Unit/townhouse rates are derived by applying a structural discount below.
+    //
+    // Strata levy estimates (industry benchmarks, 2024-25):
+    //   Walk-up (no lift): $2,000-$4,000/yr
+    //   Mid-rise (lift, no pool): $4,000-$8,000/yr
+    //   High-rise (pool/gym/concierge): $8,000-$20,000+/yr
+    // These are separate from annualPropertyExpenses (rates, insurance, maintenance).
+    INVESTMENT_PROPERTY_TYPES: {
+        house: {
+            label: 'House / Land',
+            growthRateAdjustment: 0,          // baseline — user's entered rate applies directly
+            defaultStrataLevy: 0,             // no strata levy for standalone houses
+            negativeGrowthFloor: -0.10,       // houses rarely fall >10% in a year nationally
+        },
+        townhouse: {
+            label: 'Townhouse / Villa',
+            growthRateAdjustment: -0.005,     // −0.5 pp below house rate (partial land)
+            defaultStrataLevy: 2500,          // typical townhouse body corp ~$2,500/yr
+            negativeGrowthFloor: -0.12,
+        },
+        unit: {
+            label: 'Unit / Apartment (Strata)',
+            growthRateAdjustment: -0.015,     // −1.5 pp structural discount vs houses (25yr data)
+            defaultStrataLevy: 6000,          // mid-range apartment strata levy ~$6,000/yr
+            negativeGrowthFloor: -0.15,       // inner-city units have hit −12%; -15% is tail floor
+        },
+    },
+
     SIMULATION: {
         // Property growth caps used in calculatePropertyValue()
         PROPERTY_GROWTH_MAX_RATE: 0.20,    // 20% annual cap — prevents runaway projections
+        PROPERTY_GROWTH_MIN_RATE: -0.15,   // -15% annual floor — based on ABS RPPI data:
+                                           // worst recorded national year: -5.1% (2018).
+                                           // Inner-city apartments have hit ~-12% in single
+                                           // years; -15% is a conservative tail-risk floor.
         PROPERTY_GROWTH_MAX_YEARS: 50,     // Cap projection horizon to 50 years
 
         // Minimum annual return floor — prevents negative-infinity compounding
