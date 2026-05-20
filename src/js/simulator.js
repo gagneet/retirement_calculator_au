@@ -1361,6 +1361,17 @@ export class RetirementSimulator {
         let accumulationPrimaryHomeValue = inputs.homeValue > 0 ? inputs.homeValue : 0;
         let previousPrimaryHomeReturn = null;
 
+        // Running investment property value tracked year-by-year through the accumulation loop.
+        // Exactly mirrors the primary home pattern. The per-year return is drawn from
+        // calculateEnhancedPropertyReturn() with the investment property's type applied.
+        // This value at end-of-accumulation becomes the retirement-phase seed (ipValueAtRetirement),
+        // ensuring the retirement loop starts from the correct path-dependent value, not a
+        // fresh Math.pow compound from the original purchase price.
+        let accumulationIPValue = inputs.hasInvestmentProperty
+            ? (inputs.investmentPropertyValue || 0)
+            : 0;
+        let previousAccumulationIPReturn = null;
+
         const getHomeEquityAtYear = (yearsElapsed) => {
             if (!(inputs.homeValue > 0)) return 0;
             // In MC mode accumulationPrimaryHomeValue is already the path-tracked value —
@@ -1763,39 +1774,42 @@ export class RetirementSimulator {
                             propertyHistory[propertyHistory.length - 1].saleResult = saleResult;
                         }
                     } else {
-                        // Calculate current property equity with enhanced cycle-based returns
-                        // inputs.propertyGrowthRate is already in decimal form (e.g. 0.05 for 5%)
-                        let propertyReturn;
+                        // Update investment property value incrementally each year — same pattern
+                        // as accumulationPrimaryHomeValue — using calculateEnhancedPropertyReturn()
+                        // with the property type applied.
+                        //
+                        // IMPORTANT: do NOT call calculatePropertyValue(initialValue, perYearReturn, year)
+                        // here.  That formula computes initialValue × (1+perYearReturn)^year, compounding
+                        // a single-year draw across the entire elapsed period — producing nonsense.
+                        // Instead, multiply the running value by (1 + thisYearReturn) each year.
                         if (useRandomReturns) {
-                            propertyReturn = this.calculateEnhancedPropertyReturn(
+                            const ipReturn = this.calculateEnhancedPropertyReturn(
                                 year,
                                 inputs.propertyGrowthRate,
                                 true,
-                                this.previousReturns.property,
+                                previousAccumulationIPReturn,
                                 inputs.investmentPropertyType || 'unit'
                             );
-                            this.previousReturns.property = propertyReturn;
+                            previousAccumulationIPReturn = ipReturn;
+                            this.previousReturns.property = ipReturn; // keep legacy field in sync
+                            accumulationIPValue = Math.max(0, accumulationIPValue * (1 + ipReturn));
                         } else {
-                            propertyReturn = this.calculateEnhancedPropertyReturn(
+                            const ipReturn = this.calculateEnhancedPropertyReturn(
                                 year,
                                 inputs.propertyGrowthRate,
                                 false,
                                 null,
                                 inputs.investmentPropertyType || 'unit'
                             );
+                            accumulationIPValue = Math.max(0, accumulationIPValue * (1 + ipReturn));
                         }
 
-                        const currentValue = this.calculatePropertyValue(
-                            inputs.investmentPropertyValue,
-                            propertyReturn,
-                            year
-                        );
                         const remainingLoan = this.calculatePropertyLoanBalance(
                             inputs.investmentPropertyLoan,
                             inputs.investmentPropertyRate,
                             year
                         );
-                        propertyEquity = currentValue - remainingLoan;
+                        propertyEquity = accumulationIPValue - remainingLoan;
                     }
                 }
             }
@@ -1864,20 +1878,16 @@ export class RetirementSimulator {
         // could not produce negative compounding in any individual year.
         let runningHomeValue = inputs.planToDownsize ? 0 : homeValueAtRetirement;
 
-        // Running investment property value tracked year-by-year in retirement.
-        // Mirrors the same pattern as runningHomeValue so that:
-        //   1. Each year's return is applied incrementally (not compounded from year 0).
-        //   2. Negative growth years correctly reduce the running value.
-        // The loan balance is still computed via calculatePropertyLoanBalance() using
-        // the original principal and contractual rate — it is independent of price.
-        const ipValueAtRetirement = inputs.hasInvestmentProperty
-            ? this.calculatePropertyValue(
-                inputs.investmentPropertyValue,
-                inputs.propertyGrowthRate,   // deterministic seed value at retirement
-                yearsToRetirement
-            )
+        // Running investment property value for the retirement phase.
+        // Seeded from accumulationIPValue — the path-tracked value built year-by-year
+        // in the accumulation loop above — so the retirement loop begins from the correct
+        // end-of-accumulation value rather than re-computing from the original purchase price.
+        // In deterministic mode accumulationIPValue equals Math.pow(adjustedRate, yearsToRetirement)
+        // applied incrementally, which gives the same result as the old formula.
+        // In MC mode it reflects the actual stochastic path including any negative years.
+        let runningInvestmentPropertyValue = inputs.hasInvestmentProperty
+            ? accumulationIPValue
             : 0;
-        let runningInvestmentPropertyValue = ipValueAtRetirement;
 
         const balances = [];
         const yearlyData = [];
