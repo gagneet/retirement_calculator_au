@@ -755,6 +755,27 @@
             </div>
           </div>
           <div class="notice"><span class="ic">⛵</span><div><b>Translation:</b> <span id="goal-week">$1,404</span>/week · <span id="goal-month">$6,083</span>/month. Inflated to future dollars automatically.</div></div>
+
+          <!-- Legacy & Inheritance Planning -->
+          <div style="margin-top:16px;padding:14px;background:var(--purple-soft,#f5f3ff);border:1px solid var(--purple-mid,#c4b5fd);border-radius:10px">
+            <div class="subhead" style="color:var(--purple-dark,#5b21b6)">Legacy &amp; Inheritance Planning</div>
+            <div class="fields two" style="margin-top:10px">
+              <div class="field">
+                <label class="field-label" for="legacyGoal"><span>Inheritance / estate goal</span><span class="hint">$</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="legacyGoal" type="number" value="0" min="0" placeholder="e.g. 200000" /></div>
+                <div class="field-help">Amount you want to leave to children, charity, or estate. Set to 0 to spend everything.</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="legacyGoalType"><span>Legacy priority</span></label>
+                <div class="field-input"><select id="legacyGoalType">
+                  <option value="none">No legacy goal — spend everything</option>
+                  <option value="nice_to_have">Nice to have — if money is left over</option>
+                  <option value="important">Important — target as minimum final balance</option>
+                </select></div>
+                <div class="field-help">Sets your intent for how the plan is assessed. The amount and priority are passed to the simulation engine and displayed in the recommendation output.</div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -806,23 +827,24 @@
         <div class="section-body">
           <div class="fields">
             <div class="field">
-              <label class="field-label" for="inflation"><span>Inflation</span><span class="hint">% / yr</span></label>
+              <label class="field-label" for="inflation"><span>Inflation (median)</span><span class="hint">% / yr</span></label>
               <div class="field-input"><input id="inflation" type="number" step="0.1" value="2.6" /><span class="suffix">%</span></div>
-              <div class="field-help">RBA target 2–3%. AU CPI median 2.6%.</div>
+              <div class="field-help">RBA target 2–3%. AU CPI median 2.6%. Treated as the <b>median annual rate</b> — Monte Carlo runs apply a bounded random variation of −4.5 to +3.5 percentage points each year, reflecting realistic macro uncertainty.</div>
             </div>
             <div class="field">
-              <label class="field-label" for="invReturn"><span>Investment return (outside super)</span><span class="hint">% / yr</span></label>
+              <label class="field-label" for="invReturn"><span>Investment return — non-super (median)</span><span class="hint">% / yr</span></label>
               <div class="field-input"><input id="invReturn" type="number" step="0.1" value="6.5" /><span class="suffix">%</span></div>
+              <div class="field-help">Treated as the <b>median annual return</b>. Monte Carlo runs use regime-aware stochastic modelling (bull/bear/crash cycles) with this as the central value.</div>
             </div>
             <div class="field">
-              <label class="field-label" for="superGrowth"><span>Super growth</span><span class="hint">% / yr</span></label>
+              <label class="field-label" for="superGrowth"><span>Super growth (median)</span><span class="hint">% / yr</span></label>
               <div class="field-input"><input id="superGrowth" type="number" step="0.1" value="7.5" /><span class="suffix">%</span></div>
-              <div class="field-help">AU balanced super median ~7.5% (APRA).</div>
+              <div class="field-help">AU balanced super median ~7.5% (APRA). Treated as the <b>median annual return</b> — Monte Carlo runs vary this ±[−4.5 pp, +3.5 pp] each year.</div>
             </div>
             <div class="field">
-              <label class="field-label" for="savingsReturn"><span>Savings / cash return</span><span class="hint">% / yr</span></label>
+              <label class="field-label" for="savingsReturn"><span>Savings / cash return (median)</span><span class="hint">% / yr</span></label>
               <div class="field-input"><input id="savingsReturn" type="number" step="0.1" value="3.5" /><span class="suffix">%</span></div>
-              <div class="field-help">Arithmetic mean across high-yield savings (~5%), term deposits (~4.5%) and standard accounts (~1%) in 2025. Adjust for your actual mix.</div>
+              <div class="field-help">Median across high-yield savings (~5%), term deposits (~4.5%) and standard accounts (~1%) in 2025. Treated as the <b>median annual return</b> — Monte Carlo runs vary this ±[−4.5 pp, +3.5 pp] each year. Adjust for your actual mix.</div>
             </div>
           </div>
         </div>
@@ -1314,7 +1336,7 @@
       <div class="tools-card">
         <h4>Tools</h4>
         <div class="tools-list">
-          <button id="tool-mc"><span class="ic">📊</span> Monte Carlo<span class="sm">1000 runs · risk</span></button>
+          <button id="tool-mc"><span class="ic">📊</span> Monte Carlo<span class="sm"><span id="tool-mc-label">500 runs</span> · risk</span></button>
           <button id="tool-when"><span class="ic">🎯</span> When can I retire?<span class="sm">Earliest age</span></button>
           <button id="tool-stress"><span class="ic">⛑️</span> Stress test<span class="sm">Market crash</span></button>
           <button id="tool-ai"><span class="ic">🤖</span> AI suggestions<span class="sm">Personalised</span></button>

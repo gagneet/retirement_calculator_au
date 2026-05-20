@@ -370,8 +370,8 @@ function buildEngineInputs(inp) {
     smsfInvestmentStrategy: inp.smsfInvestmentStrategy || 'balanced',
     annualTravelBudget: 0,
     annualHobbyBudget: 0,
-    legacyGoal: 0,
-    legacyGoalType: 'none',
+    legacyGoal: inp.legacyGoal || 0,
+    legacyGoalType: inp.legacyGoalType || 'none',
     enableProposedBudget2026: inp.budget2627,
 
     goingOverseas: inp.goingOverseas,
@@ -798,6 +798,8 @@ function readInputs() {
 
     // Goal
     desiredIncome: num('desiredIncome', 73000),
+    legacyGoal: num('legacyGoal', 0),
+    legacyGoalType: val('legacyGoalType', 'none'),
 
     // Healthcare
     hasPrivateHospital: chk('hasPrivateHospital'),
@@ -2651,13 +2653,33 @@ function boot() {
     bindConditional('hasSpousalMaintenance', 'data-spousal');
     bindConditional('hasChildSupport', 'data-childsupport');
 
-    // Monte Carlo custom runs show/hide
+    // Monte Carlo custom runs show/hide + update sidebar label
     const mcRunsSel = document.getElementById('mcRuns');
     const mcRunsCustomWrap = document.getElementById('mcRunsCustomWrap');
+    const mcRunsCustomInput = document.getElementById('mcRunsCustom');
+    const toolMcLabel = document.getElementById('tool-mc-label');
+
+    function updateMcRunsLabel() {
+      if (!toolMcLabel || !mcRunsSel) return;
+      let runs;
+      if (mcRunsSel.value === 'custom') {
+        runs = parseInt(mcRunsCustomInput?.value) || 2000;
+        runs = Math.min(20000, Math.max(100, runs));
+      } else {
+        runs = parseInt(mcRunsSel.value) || 500;
+      }
+      toolMcLabel.textContent = runs.toLocaleString() + ' runs';
+    }
+
     if (mcRunsSel && mcRunsCustomWrap) {
       const toggleMcCustom = () => { mcRunsCustomWrap.style.display = mcRunsSel.value === 'custom' ? 'flex' : 'none'; };
-      mcRunsSel.addEventListener('change', () => { toggleMcCustom(); recalc(); });
+      mcRunsSel.addEventListener('change', () => { toggleMcCustom(); updateMcRunsLabel(); recalc(); });
+      if (mcRunsCustomInput) {
+        mcRunsCustomInput.addEventListener('input', updateMcRunsLabel);
+        mcRunsCustomInput.addEventListener('change', updateMcRunsLabel);
+      }
       toggleMcCustom();
+      updateMcRunsLabel();
     }
 
     // Enforce decimal precision on key rate fields (on blur/change)
