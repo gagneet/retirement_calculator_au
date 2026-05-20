@@ -634,6 +634,8 @@ class RetirementCalculatorApp {
 
             // Investment property
             hasInvestmentProperty: safeGetChecked('hasInvestmentProperty', config.property.hasInvestmentProperty),
+            investmentPropertyType: safeGetSelectValue('investmentPropertyType', 'unit'),
+            investmentPropertyStrataLevy: parseFormattedNumber(getRawValue('investmentPropertyStrataLevy', '0')),
             investmentPropertyValue: safeGetValue('investmentPropertyValue', config.property.investmentPropertyValue),
             investmentPropertyLoan: safeGetValue('investmentPropertyLoan', config.property.investmentPropertyLoan),
             investmentPropertyRate: safeGetValue('investmentPropertyRate', config.property.investmentPropertyRate) / 100,
@@ -5357,11 +5359,61 @@ class RetirementCalculatorApp {
             recommendations.push('Consider budgeting more for healthcare costs - average is $3,500+ annually');
         }
 
-        // Property recommendations
+        // Property recommendations — type-aware sell-timing analysis
         if (inputs.hasInvestmentProperty) {
-            const cashFlow = result.propertyHistory[0];
+            const cashFlow = result.propertyHistory?.[0];
             if (cashFlow && cashFlow.netCashFlow < 0) {
-                recommendations.push('Investment property has negative cash flow - review holding strategy');
+                recommendations.push('Investment property has negative cash flow — review holding strategy');
+            }
+
+            const propType   = inputs.investmentPropertyType || 'unit';
+            const isUnit     = propType === 'unit';
+            const isTownhouse = propType === 'townhouse';
+            const ipValue    = inputs.investmentPropertyValue || 0;
+            const strataLevy = inputs.investmentPropertyStrataLevy || 0;
+            const weeklyRent = inputs.weeklyRentalIncome || 0;
+            const grossYield = ipValue > 0 ? (weeklyRent * 52 / ipValue * 100) : 0;
+            const strataLevyPct = ipValue > 0 ? (strataLevy / ipValue * 100) : 0;
+            const growthRate = (inputs.propertyGrowthRate || 0) * 100; // back to display %
+
+            // Always: CGT 12-month threshold reminder
+            recommendations.push(
+                'Hold investment property for at least 12 months to secure the 50% CGT discount before selling — the tax saving can exceed $30,000 per owner on a typical capital gain.'
+            );
+
+            // Yield vs holding cost signal
+            if (grossYield > 0 && grossYield < 4.5) {
+                recommendations.push(
+                    `Investment property gross yield of ~${grossYield.toFixed(1)}% p.a. is below typical AU investment loan rates (~6.5%). Negative gearing is advantageous at high marginal tax rates but recalculate when your income drops near retirement.`
+                );
+            }
+
+            // Strata levy erosion (units/townhouses with high levy relative to value)
+            if ((isUnit || isTownhouse) && strataLevyPct > 1.0) {
+                recommendations.push(
+                    `Annual strata levy ($${strataLevy.toLocaleString()}, ${strataLevyPct.toFixed(1)}% of value) materially erodes your net rental yield. If a special levy for building defects or cladding rectification is forthcoming, consider selling before it is issued.`
+                );
+            }
+
+            // Unit depreciation cliff
+            if (isUnit) {
+                recommendations.push(
+                    'If your unit was purchased new (post-1985), plant and equipment depreciation deductions typically exhaust around years 12–15. After this point the after-tax holding cost rises — review your hold/sell position at that milestone.'
+                );
+            }
+
+            // Low growth rate signal for units
+            if (isUnit && growthRate < 4.5) {
+                recommendations.push(
+                    `Your unit growth rate of ${growthRate.toFixed(1)}% p.a. combined with strata costs may produce returns below diversified equities on a risk-adjusted basis. Consider whether selling and redirecting capital into super or index funds would improve outcomes.`
+                );
+            }
+
+            // Long-run house vs unit differential note
+            if (isUnit || isTownhouse) {
+                recommendations.push(
+                    `Long-run data (ABS RPPI 25yr): houses outperform units by ~1.5 pp p.a. due to land appreciation. Units deliver higher rental yields (+~2 pp) and stronger early depreciation benefits, but this advantage reverses over 20+ year horizons.`
+                );
             }
         }
 
@@ -11414,6 +11466,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     bindLifespanValidation('yourLifespan', 'yourCurrentAge', 'Your expected lifespan');
     bindLifespanValidation('partnerLifespan', 'partnerCurrentAge', "Partner's expected lifespan");
+
+    // Investment property type auto-fill: strata levy default and growth rate help text.
+    // Mirrors the same logic in advanced-v2.js so both pages behave consistently.
+    (function () {
+        const ipTypeSel     = document.getElementById('investmentPropertyType');
+        const strataInput   = document.getElementById('investmentPropertyStrataLevy');
+        const growthHelpEl  = document.getElementById('propertyGrowthRateHelp');
+        if (!ipTypeSel || !strataInput) return;
+
+        const strataDefaults = { house: 0, townhouse: 2500, unit: 6000 };
+        const growthAdj      = { house: 0, townhouse: -0.5, unit: -1.5 };
+
+        function onTypeChange() {
+            const type = ipTypeSel.value;
+            // Auto-fill strata only when the current value matches a known default
+            const currentLevy = parseFloat(strataInput.value.replace(/,/g, '')) || 0;
+            const isDefault   = Object.values(strataDefaults).includes(currentLevy);
+            if (isDefault) strataInput.value = strataDefaults[type] ?? 0;
+
+            // Update growth rate help text
+            if (growthHelpEl) {
+                const adj = growthAdj[type] ?? 0;
+                growthHelpEl.textContent = adj === 0
+                    ? 'Your expected long-run median growth rate. No structural adjustment for houses — full rate used in simulation.'
+                    : `Your expected long-run median growth rate. A structural adjustment of ${adj.toFixed(1)} pp is applied for ${type}s to reflect lower land content vs houses (ABS RPPI 25-year data).`;
+            }
+        }
+
+        ipTypeSel.addEventListener('change', onTypeChange);
+        onTypeChange(); // apply on page load
+    }());
 });
 
 export default RetirementCalculatorApp;
