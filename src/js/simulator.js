@@ -37,23 +37,33 @@ const resolveScenarioMonteCarloRuns = (inputs = {}) =>
     Math.max(100, Math.min(20000, Math.round(Number(inputs.numRuns) || 1000)));
 
 /**
- * Generate a stochastic annual rate by applying a bounded asymmetric variation
- * to the user-supplied median rate.  The user's input is treated as the MEDIAN
- * (50th-percentile) value; each simulated year draws a perturbation uniformly
- * from [-0.045, +0.035] (−4.5 pp to +3.5 pp).  The asymmetric range reflects
- * that adverse macro surprises (rate spikes, recessions) tend to be larger and
- * faster than positive surprises.
+ * Generate a stochastic annual rate by applying a bounded symmetric variation
+ * to the user-supplied central estimate.  The user's input is treated as the
+ * central value (mean = median for a symmetric distribution); each MC draw
+ * applies a uniform perturbation from [-0.04, +0.04] (±4 pp), so the
+ * expected perturbation is exactly 0 and the distribution is centred on the
+ * user's input.
  *
- * @param {number}  medianRate   - Median rate in decimal form (e.g. 0.026 for 2.6%)
- * @param {boolean} useRandom    - When false returns the medianRate unchanged (deterministic mode)
- * @param {number}  [floor=0]    - Hard floor for the result (default 0 – rates cannot go negative)
- * @returns {number} Perturbed rate in decimal form
+ * Why ±4 pp?  AU macro data (RBA/ABS 2002-2024):
+ *   CPI std dev ≈ 1.8 pp  →  ±4 pp covers roughly ±2.2 σ  (≈97% of history)
+ *   Super returns std dev ≈ 8 pp  →  ±4 pp is a conservative ±0.5 σ
+ * The same range is used for all rates for simplicity; the floor parameter
+ * prevents rates from going below a caller-specified minimum.
+ *
+ * Note: an asymmetric range such as [-0.045, +0.035] shifts the median of
+ * the distribution by -0.5 pp relative to the user input, biasing all MC
+ * runs downward — which is why this implementation uses a symmetric range.
+ *
+ * @param {number}  centralRate  - Central (mean/median) rate as decimal (e.g. 0.026 for 2.6%)
+ * @param {boolean} useRandom    - When false returns centralRate unchanged (deterministic mode)
+ * @param {number}  [floor=0]    - Hard floor for result (e.g. 0.001 = 0.1% minimum)
+ * @returns {number} Perturbed rate in decimal form, ≥ floor
  */
-function stochasticRate(medianRate, useRandom, floor = 0) {
-    if (!useRandom) return medianRate;
-    // Uniform draw in [-0.045, +0.035]
-    const perturbation = -0.045 + Math.random() * 0.08; // 0.08 = 0.035 − (−0.045)
-    return Math.max(floor, medianRate + perturbation);
+function stochasticRate(centralRate, useRandom, floor = 0) {
+    if (!useRandom) return centralRate;
+    // Symmetric uniform draw: perturbation ∈ [-0.04, +0.04], E[perturbation] = 0
+    const perturbation = (Math.random() - 0.5) * 0.08; // 0.08 = 2 × 0.04
+    return Math.max(floor, centralRate + perturbation);
 }
 
 export class RetirementSimulator {
@@ -782,31 +792,52 @@ export class RetirementSimulator {
         return currentValue * Math.pow(1 + cappedRate, cappedYears);
     }
 
-    // Enhanced property calculation with Australian cycle patterns
+    // Enhanced property calculation with Australian cycle patterns.
+    // In stochastic mode the per-year return is drawn from a regime-aware distribution
+    // centred on the user's baseGrowthRate rather than the hard-coded config cycle mean.
+    //
+    // Why re-centring is necessary:
+    //   The config propertyCycles encode a probability-weighted long-run mean of ~3.6%
+    //   (Boom 0.12×0.20 + Peak 0.05×0.10 + Decline -0.05×0.25 + Trough -0.01×0.15
+    //    + Recovery 0.07×0.30 = 0.036).  Without adjustment, a user entering 6% property
+    //   growth would receive the same MC paths as a user entering 3% — the user input
+    //   was only honoured in deterministic mode.
+    //
+    // Fix: compute the shift = userRate − configMean, then add it to the cycle draw.
+    //   This preserves all cycle dynamics (boom/bust shape, serial correlation, volatility)
+    //   while anchoring the long-run mean at the user's input.
+    //
+    // CONFIG_CYCLE_MEAN is the probability-weighted average of propertyCycles baseReturns.
+    // It is computed from the config at call time so it updates if the config changes.
     calculateEnhancedPropertyReturn(year, baseGrowthRate, useVolatility = false, prevReturn = null) {
         if (!useVolatility) {
             return baseGrowthRate;
         }
 
         const cyclePhase = getPropertyCyclePhase(year);
-        const cycleConfig = this.config.MARKET_REGIMES.propertyCycles.find(
-            c => c.phase === cyclePhase
-        ) || this.config.MARKET_REGIMES.propertyCycles[4]; // Default to recovery
+        const cycles = this.config.MARKET_REGIMES.propertyCycles;
+        const cycleConfig = cycles.find(c => c.phase === cyclePhase)
+            || cycles[4]; // Default to recovery
 
-        let actualReturn;
-        if (useVolatility) {
-            actualReturn = regimeAwareReturn(
-                cycleConfig.baseReturn,
-                cycleConfig.volatility,
-                prevReturn,
-                0.15 // Property has higher sequential correlation
-            );
-        } else {
-            actualReturn = cycleConfig.baseReturn;
-        }
+        // Probability-weighted mean of all cycle baseReturns from config.
+        const configCycleMean = cycles.reduce((sum, c) => sum + c.baseReturn * c.probability, 0);
 
-        // Ensure property returns don't go below -30% (historical floor)
-        return Math.max(-0.30, actualReturn);
+        // Regime-aware draw centred on the config cycle's baseReturn.
+        const cycleRawReturn = regimeAwareReturn(
+            cycleConfig.baseReturn,
+            cycleConfig.volatility,
+            prevReturn,
+            0.15 // Property has higher serial correlation than equities
+        );
+
+        // Shift the draw so the long-run mean equals the user's baseGrowthRate.
+        // shift = userRate − configMean  →  all cycle draws move up/down by 'shift'.
+        const shift = baseGrowthRate - configCycleMean;
+        const actualReturn = cycleRawReturn + shift;
+
+        // Floor at -30% (no historical AU market has fallen more than ~-25% in a year).
+        const { PROPERTY_GROWTH_MIN_RATE } = this.config.SIMULATION;
+        return Math.max(PROPERTY_GROWTH_MIN_RATE ?? -0.30, actualReturn);
     }
 
     calculatePropertyLoanBalance(principal, rate, years, isInterestOnly = false) {
@@ -1186,13 +1217,15 @@ export class RetirementSimulator {
         // etc.).  Quantities that are re-calculated each year inside the loop (savings
         // return, super return, retirement inflation) already use per-year draws via
         // stochasticRate() and are unaffected by these run-level draws.
-        const runInflationRate        = stochasticRate(inputs.inflation,            useRandomReturns, 0.001);
-        const runPropertyGrowthRate   = stochasticRate(
-            inputs.propertyGrowthRate > 0 ? inputs.propertyGrowthRate : inputs.inflation,
-            useRandomReturns, 0.001
-        );
-        const runHealthcareInflRate   = stochasticRate(inputs.healthcareInflation || 0.065, useRandomReturns, 0.01);
-        const runSalaryGrowthRate     = stochasticRate(inputs.salaryGrowthRate || 0.02,     useRandomReturns, 0);
+        const runInflationRate      = stochasticRate(inputs.inflation,            useRandomReturns, 0.001);
+        const runHealthcareInflRate = stochasticRate(inputs.healthcareInflation || 0.065, useRandomReturns, 0.01);
+        const runSalaryGrowthRate   = stochasticRate(inputs.salaryGrowthRate || 0.02,     useRandomReturns, 0);
+        // NOTE: property growth is NOT drawn as a single per-run rate here.
+        // Instead, calculateEnhancedPropertyReturn() is called each year inside the
+        // accumulation and retirement loops so each year can experience a different
+        // regime-aware return (including negative years).  The user's propertyGrowthRate
+        // is used to re-centre those per-year draws — see COP-4 fix in
+        // calculateEnhancedPropertyReturn().
 
         // Calculate total simulation years based on the maximum lifespan from current age
         const maxYearsFromNow = Math.max(
@@ -1803,6 +1836,21 @@ export class RetirementSimulator {
         // could not produce negative compounding in any individual year.
         let runningHomeValue = inputs.planToDownsize ? 0 : homeValueAtRetirement;
 
+        // Running investment property value tracked year-by-year in retirement.
+        // Mirrors the same pattern as runningHomeValue so that:
+        //   1. Each year's return is applied incrementally (not compounded from year 0).
+        //   2. Negative growth years correctly reduce the running value.
+        // The loan balance is still computed via calculatePropertyLoanBalance() using
+        // the original principal and contractual rate — it is independent of price.
+        const ipValueAtRetirement = inputs.hasInvestmentProperty
+            ? this.calculatePropertyValue(
+                inputs.investmentPropertyValue,
+                inputs.propertyGrowthRate,   // deterministic seed value at retirement
+                yearsToRetirement
+            )
+            : 0;
+        let runningInvestmentPropertyValue = ipValueAtRetirement;
+
         const balances = [];
         const yearlyData = [];
         const initialRetirementBalance = currentBalance;
@@ -1814,6 +1862,17 @@ export class RetirementSimulator {
         // differently inflated spending baseline (not the same fixed value every run).
         // Deterministic runs use inputs.inflation unchanged.
         let cumulativeInflationFactor = Math.pow(1 + runInflationRate, yearsToRetirement);
+
+        // Separate cumulative factor for healthcare costs in MC mode.
+        // Healthcare inflation = general inflation + a structural uplift (historically ~3-4 pp above CPI).
+        // cumulativeInflationFactor tracks only the general inflation path; to correctly compound
+        // the full healthcare rate we maintain a parallel factor that accumulates the uplift
+        // component year-by-year.  Both factors start from the pre-retirement seed.
+        // In deterministic mode this is unused (projectHealthcareCosts() handles it with Math.pow).
+        const hcUplift = Math.max(0, (inputs.healthcareInflation || 0.065) - (inputs.inflation || 0.026));
+        // Seed: compound the structural uplift over the pre-retirement years (deterministic,
+        // since the uplift is a fixed structural differential, not a stochastic rate).
+        let cumulativeHcUpliftFactor = Math.pow(1 + hcUplift, yearsToRetirement);
 
         for (let i = 0; i < yearsInRetirement; i++) {
             const retirementYear = yearsToRetirement + i;
@@ -1860,22 +1919,27 @@ export class RetirementSimulator {
                 : inputs.inflation;
 
             // ── Step B: healthcare costs ─────────────────────────────────────────
-            // MC mode: apply yearInflationRate as this year's general inflation component,
-            // PLUS the structural healthcare premium (healthcareInflation − generalInflation).
-            // This gives: effectiveHcRate = yearInflationRate + uplift.
-            // The cumulative factor is then built by multiplying the running
-            // cumulativeInflationFactor (which already encodes prior years' stochastic
-            // inflation) by (1 + uplift) for this year only — NOT Math.pow(uplift, retirementYear)
-            // which would double-compound the uplift over all prior years as well.
+            // MC mode: healthcare cost = baseCost × cumulativeInflationFactor
+            //                                     × cumulativeHcUpliftFactor
+            //
+            // cumulativeInflationFactor accumulates per-year stochastic general inflation
+            // draws.  cumulativeHcUpliftFactor accumulates the structural healthcare
+            // premium (healthcareInflation − generalInflation) compounded year-by-year.
+            // Both are advanced at the END of this block so this year's cost uses the
+            // factor as it stood at the START of the year.
+            //
+            // This correctly compounds the uplift across all retirement years — fixing
+            // the prior bug where (1 + hcUplift) was applied only as a flat one-year
+            // scalar regardless of how many retirement years had elapsed.
+            //
             // Deterministic mode: fixed compound formula via projectHealthcareCosts().
             let healthcareCost;
             if (useRandomReturns) {
-                const hcUplift = Math.max(0, (inputs.healthcareInflation || 0.065) - (inputs.inflation || 0.026));
-                // effectiveHcRate is not used for compounding here; healthcareCost is derived
-                // directly from cumulativeInflationFactor (already the product of all prior
-                // yearInflationRate draws) scaled by a single year's uplift.
-                const hcFactor = cumulativeInflationFactor * (1 + hcUplift);
-                healthcareCost = inputs.currentHealthcareCosts * hcFactor;
+                healthcareCost = inputs.currentHealthcareCosts
+                    * cumulativeInflationFactor
+                    * cumulativeHcUpliftFactor;
+                // Advance the uplift factor for next year.
+                cumulativeHcUpliftFactor *= (1 + hcUplift);
             } else {
                 healthcareCost = this.projectHealthcareCosts(
                     inputs.currentHealthcareCosts,
@@ -1911,34 +1975,36 @@ export class RetirementSimulator {
                     propertyIncome = propertyCashFlow.netCashFlow; // may be negative (neg. gearing)
                 }
 
-                // Update investment property equity with a per-year cycle-aware return.
-                // Uses a SEPARATE serial-correlation state (previousInvestmentPropertyReturn)
+                // Update investment property value incrementally each year.
+                // Uses a SEPARATE serial-correlation state (this.previousReturns.investmentProperty)
                 // so it does not contaminate the primary home's cycle path.
-                let ipYearReturn;
+                //
+                // Per-year incremental compounding (runningInvestmentPropertyValue) fixes the
+                // prior bug where calculatePropertyValue(initialValue, ipYearReturn, retirementYear)
+                // compounded a single-year return across the full elapsed horizon — producing
+                // nonsense for later retirement years.
                 if (useRandomReturns) {
-                    ipYearReturn = this.calculateEnhancedPropertyReturn(
+                    const ipYearReturn = this.calculateEnhancedPropertyReturn(
                         retirementYear,
                         inputs.propertyGrowthRate,
                         true,
                         this.previousReturns.investmentProperty
                     );
                     this.previousReturns.investmentProperty = ipYearReturn;
+                    runningInvestmentPropertyValue = Math.max(
+                        0,
+                        runningInvestmentPropertyValue * (1 + ipYearReturn)
+                    );
                 } else {
-                    ipYearReturn = inputs.propertyGrowthRate;
+                    // Deterministic: grow at the fixed rate each year.
+                    runningInvestmentPropertyValue *= (1 + inputs.propertyGrowthRate);
                 }
-                // Use calculatePropertyValue for the loan-balance calculation; pass the
-                // per-year return so negative years reduce the equity correctly.
-                const currentValue = this.calculatePropertyValue(
-                    inputs.investmentPropertyValue,
-                    ipYearReturn,
-                    retirementYear
-                );
                 const remainingLoan = this.calculatePropertyLoanBalance(
                     inputs.investmentPropertyLoan,
                     inputs.investmentPropertyRate,
                     retirementYear
                 );
-                propertyEquity = currentValue - remainingLoan;
+                propertyEquity = runningInvestmentPropertyValue - remainingLoan;
             }
 
             const spendingPlan = this.buildRetirementSpendingPlan({
@@ -2241,7 +2307,22 @@ export class RetirementSimulator {
                     runningHomeValue = runningHomeValue * (1 + homeGrowthRate);
                 }
             }
-            const currentHomeEquity = runningHomeValue;
+            // currentHomeEquity = gross home value − outstanding mortgage balance.
+            // runningHomeValue is the gross value (price); we must subtract the remaining
+            // loan so that nonLiquidAssets reflects true equity, not gross property value.
+            // mortgageBalanceAtRetirement is the balance at retirement; we continue
+            // amortising it over years-in-retirement using the same contractual rate.
+            // If the mortgage is fully paid off (balance ≤ 0) the result clamps to 0.
+            const yearsIntoRetirement = i; // i is the retirement loop counter (0-based)
+            const outstandingMortgageInRetirement = inputs.planToDownsize ? 0 : Math.max(0,
+                calculateLoanBalance(
+                    inputs.mortgageRate,
+                    yearsIntoRetirement,
+                    inputs.monthlyMortgagePayment,
+                    mortgageBalanceAtRetirement
+                )
+            );
+            const currentHomeEquity = Math.max(0, runningHomeValue - outstandingMortgageInRetirement);
 
             const nonLiquidAssets = currentHomeEquity + propertyEquity;
 
