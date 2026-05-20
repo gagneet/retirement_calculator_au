@@ -1968,7 +1968,6 @@ function renderRiskPanel() {
 function generatePropertySellTimingInsight(inp, engineInputs) {
   if (!inp?.investmentProperty) return null;
 
-  const yearsHeld = Math.max(0, (inp.age || 0) - (2024 - (engineInputs?.investmentPropertyValue > 0 ? 10 : 0)));
   const propType  = inp.ipType || 'unit';
   const isUnit    = propType === 'unit';
   const isTownhouse = propType === 'townhouse';

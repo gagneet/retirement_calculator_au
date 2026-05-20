@@ -59,7 +59,7 @@ const resolveScenarioMonteCarloRuns = (inputs = {}) =>
  * @param {number}  [floor=0]    - Hard floor for result (e.g. 0.001 = 0.1% minimum)
  * @returns {number} Perturbed rate in decimal form, ≥ floor
  */
-function stochasticRate(centralRate, useRandom, floor = 0) {
+export function stochasticRate(centralRate, useRandom, floor = 0) {
     if (!useRandom) return centralRate;
     // Symmetric uniform draw: perturbation ∈ [-0.04, +0.04], E[perturbation] = 0
     const perturbation = (Math.random() - 0.5) * 0.08; // 0.08 = 2 × 0.04
@@ -1534,7 +1534,7 @@ export class RetirementSimulator {
             }
 
             // Apply returns — super and savings use stochastic rates in Monte Carlo mode
-            // (user-entered rate treated as median; each year perturbed ±[−4.5pp, +3.5pp])
+            // (user-entered rate treated as median; each year perturbed uniformly by ±4pp)
             const yearSuperReturn = stochasticRate(inputs.superReturn, useRandomReturns, 0);
             const yearSavingsReturn = stochasticRate(inputs.savingsReturn, useRandomReturns, 0);
             const yourSuperEarningsThisYear = yourSuperBalance * yearSuperReturn;
@@ -1950,7 +1950,7 @@ export class RetirementSimulator {
             // ── Step A: draw this year's stochastic rates ────────────────────────
             // yearInflationRate MUST be declared before any calculation that uses it.
             // It drives healthcare costs, spending targets, and the cumulative factor.
-            // MC mode: uniform draw in [median − 4.5pp, median + 3.5pp], floored at 0.5%.
+            // MC mode: uniform draw in [median − 4pp, median + 4pp], floored at 0.5%.
             // Deterministic mode: the user-entered median, unchanged.
             const yearInflationRate = useRandomReturns
                 ? stochasticRate(inputs.inflation, true, 0.005)
