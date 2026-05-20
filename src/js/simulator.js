@@ -809,9 +809,12 @@ export class RetirementSimulator {
     //
     // CONFIG_CYCLE_MEAN is the probability-weighted average of propertyCycles baseReturns.
     // It is computed from the config at call time so it updates if the config changes.
-    calculateEnhancedPropertyReturn(year, baseGrowthRate, useVolatility = false, prevReturn = null) {
+    calculateEnhancedPropertyReturn(year, baseGrowthRate, useVolatility = false, prevReturn = null, propertyType = 'house') {
         if (!useVolatility) {
-            return baseGrowthRate;
+            // In deterministic mode, still apply the structural type adjustment.
+            const typeConfig = this.config.INVESTMENT_PROPERTY_TYPES?.[propertyType]
+                || this.config.INVESTMENT_PROPERTY_TYPES?.house;
+            return baseGrowthRate + (typeConfig?.growthRateAdjustment ?? 0);
         }
 
         const cyclePhase = getPropertyCyclePhase(year);
@@ -830,14 +833,24 @@ export class RetirementSimulator {
             0.15 // Property has higher serial correlation than equities
         );
 
-        // Shift the draw so the long-run mean equals the user's baseGrowthRate.
-        // shift = userRate − configMean  →  all cycle draws move up/down by 'shift'.
-        const shift = baseGrowthRate - configCycleMean;
+        // Apply property-type structural adjustment BEFORE shifting to the user's rate.
+        // Units/apartments have a long-run structural growth discount of −1.5 pp vs houses
+        // (lower land-to-asset ratio; building depreciates while land appreciates).
+        // Townhouses: −0.5 pp.  Houses: no adjustment.
+        // Source: ABS RPPI 8-city composite 2002–2024 (25-year horizon analysis).
+        const typeConfig = this.config.INVESTMENT_PROPERTY_TYPES?.[propertyType]
+            || this.config.INVESTMENT_PROPERTY_TYPES?.house;
+        const typeAdjustment = typeConfig?.growthRateAdjustment ?? 0;
+
+        // Effective user target = user's entered rate + type adjustment.
+        // The cycle is then shifted so its long-run mean lands on this adjusted rate.
+        const effectiveUserRate = baseGrowthRate + typeAdjustment;
+        const shift = effectiveUserRate - configCycleMean;
         const actualReturn = cycleRawReturn + shift;
 
-        // Floor at -30% (no historical AU market has fallen more than ~-25% in a year).
-        const { PROPERTY_GROWTH_MIN_RATE } = this.config.SIMULATION;
-        return Math.max(PROPERTY_GROWTH_MIN_RATE ?? -0.30, actualReturn);
+        // Floor: use type-specific floor (units can fall harder than houses).
+        const typeFloor = typeConfig?.negativeGrowthFloor ?? (this.config.SIMULATION?.PROPERTY_GROWTH_MIN_RATE ?? -0.15);
+        return Math.max(typeFloor, actualReturn);
     }
 
     calculatePropertyLoanBalance(principal, rate, years, isInterestOnly = false) {
@@ -869,9 +882,17 @@ export class RetirementSimulator {
         const grossRental = inputs.weeklyRentalIncome * 52 * Math.pow(1 + inflationRate, year);
         const currentRental = grossRental * (1 - vacancyRate);
 
+        // Strata levy (units/townhouses only) — separate from annualPropertyExpenses.
+        // Strata levies inflate at the general inflation rate (body corp decisions are
+        // typically CPI-linked or set at AGM; we use inflationRate as the proxy).
+        // For houses, investmentPropertyStrataLevy is 0.
+        const annualStrataLevy = (inputs.investmentPropertyStrataLevy || 0)
+            * Math.pow(1 + inflationRate, year);
+
         // Expenses grow at maintenance-specific inflation rate
         const currentExpenses = inputs.annualPropertyExpenses * Math.pow(1 + maintenanceInflationRate, year)
-            + annualLandTax;
+            + annualLandTax
+            + annualStrataLevy;
 
         // Calculate interest cost
         const isIO = inputs.investmentPropertyLoanType === 'io';
@@ -1750,11 +1771,18 @@ export class RetirementSimulator {
                                 year,
                                 inputs.propertyGrowthRate,
                                 true,
-                                this.previousReturns.property
+                                this.previousReturns.property,
+                                inputs.investmentPropertyType || 'unit'
                             );
                             this.previousReturns.property = propertyReturn;
                         } else {
-                            propertyReturn = inputs.propertyGrowthRate;
+                            propertyReturn = this.calculateEnhancedPropertyReturn(
+                                year,
+                                inputs.propertyGrowthRate,
+                                false,
+                                null,
+                                inputs.investmentPropertyType || 'unit'
+                            );
                         }
 
                         const currentValue = this.calculatePropertyValue(
@@ -1988,7 +2016,8 @@ export class RetirementSimulator {
                         retirementYear,
                         inputs.propertyGrowthRate,
                         true,
-                        this.previousReturns.investmentProperty
+                        this.previousReturns.investmentProperty,
+                        inputs.investmentPropertyType || 'unit'
                     );
                     this.previousReturns.investmentProperty = ipYearReturn;
                     runningInvestmentPropertyValue = Math.max(
@@ -1996,8 +2025,15 @@ export class RetirementSimulator {
                         runningInvestmentPropertyValue * (1 + ipYearReturn)
                     );
                 } else {
-                    // Deterministic: grow at the fixed rate each year.
-                    runningInvestmentPropertyValue *= (1 + inputs.propertyGrowthRate);
+                    // Deterministic: apply the type-adjusted rate each year.
+                    const deterministicIpRate = this.calculateEnhancedPropertyReturn(
+                        retirementYear,
+                        inputs.propertyGrowthRate,
+                        false, // deterministic
+                        null,
+                        inputs.investmentPropertyType || 'unit'
+                    );
+                    runningInvestmentPropertyValue *= (1 + deterministicIpRate);
                 }
                 const remainingLoan = this.calculatePropertyLoanBalance(
                     inputs.investmentPropertyLoan,

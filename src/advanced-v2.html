@@ -603,14 +603,30 @@
               <label class="toggle"><input id="investmentProperty" type="checkbox" /><span class="track"></span><span class="label">I own an investment property</span></label>
             </div>
             <div data-ip="true" hidden>
+              <div class="fields two">
+                <div class="field">
+                  <label class="field-label" for="ipType"><span>Property type</span></label>
+                  <div class="field-input"><select id="ipType">
+                    <option value="house">House / Land</option>
+                    <option value="townhouse">Townhouse / Villa</option>
+                    <option value="unit" selected>Unit / Apartment (Strata)</option>
+                  </select></div>
+                  <div class="field-help">Affects capital growth rate and strata levy. <b>Houses</b> have higher long-run capital growth (land appreciates); <b>units</b> have lower growth but higher rental yield and ATO depreciation benefits. Strata levies auto-fill for units and townhouses.</div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="ipStrataLevy"><span>Annual strata levy</span><span class="hint">$/yr</span></label>
+                  <div class="field-input has-prefix"><span class="prefix">$</span><input id="ipStrataLevy" type="number" value="6000" /></div>
+                  <div class="field-help">Body corporate levies (admin + sinking fund). Auto-filled when property type is set. Override if you know your actual levy. Typical ranges: walk-up $2k–$4k, mid-rise $4k–$8k, high-rise $8k–$20k+/yr. Not applicable for houses.</div>
+                </div>
+              </div>
               <div class="fields three">
                 <div class="field"><label class="field-label" for="ipValue"><span>Current value</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ipValue" type="number" value="0" /></div></div>
                 <div class="field"><label class="field-label" for="ipLoan"><span>Outstanding loan</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ipLoan" type="number" value="0" /></div></div>
                 <div class="field"><label class="field-label" for="ipRate"><span>Loan rate</span><span class="hint">%</span></label><div class="field-input"><input id="ipRate" type="number" step="0.01" value="6.35" /><span class="suffix">%</span></div></div>
                 <div class="field"><label class="field-label" for="ipWeeklyRent"><span>Weekly rent</span><span class="hint">$/wk</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ipWeeklyRent" type="number" value="0" /><span class="suffix">/wk</span></div></div>
-                <div class="field"><label class="field-label" for="ipAnnualExpenses"><span>Annual expenses</span><span class="hint">$/yr</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ipAnnualExpenses" type="number" value="0" /></div></div>
+                <div class="field"><label class="field-label" for="ipAnnualExpenses"><span>Annual expenses</span><span class="hint">$/yr</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="ipAnnualExpenses" type="number" value="0" /></div><div class="field-help">Rates, insurance, maintenance, property management. Excludes strata levy (entered above) and land tax (auto-filled below).</div></div>
                 <div class="field"><label class="field-label" for="landTax"><span>Annual land tax</span><span class="hint">$/yr</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="landTax" type="number" value="0" /></div><div class="field-help">Auto-filled for states with configured brackets; override if your assessment differs.</div></div>
-                <div class="field"><label class="field-label" for="ipGrowthRate"><span>Annual growth</span><span class="hint">%</span></label><div class="field-input"><input id="ipGrowthRate" type="number" step="0.01" value="4.00" /><span class="suffix">%</span></div></div>
+                <div class="field"><label class="field-label" for="ipGrowthRate"><span>Annual growth (median)</span><span class="hint">%</span></label><div class="field-input"><input id="ipGrowthRate" type="number" step="0.01" value="4.00" /><span class="suffix">%</span></div><div class="field-help">Your expected long-run median growth rate. The simulator applies a structural adjustment (−1.5 pp for units, −0.5 pp for townhouses) relative to this figure to reflect lower land content.</div></div>
                 <div class="field"><label class="field-label" for="ipState"><span>State</span></label><div class="field-input"><select id="ipState"><option value="">— select for land tax —</option><option value="NSW">NSW</option><option value="VIC">VIC</option><option value="QLD">QLD</option><option value="WA">WA</option><option value="SA">SA</option><option value="TAS">TAS</option><option value="ACT">ACT</option><option value="NT">NT</option></select></div></div>
               </div>
             </div>

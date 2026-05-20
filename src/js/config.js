@@ -1814,6 +1814,43 @@ export const ENHANCED_CONFIG = {
     // ── Simulation engine caps & scenario deltas ─────────────────────────────
     // Grouped here so they can be updated in one place without hunting for
     // inline literals scattered across simulator.js.
+    // Investment property type differentiation.
+    // Source: Domain House Price Report / ABS RPPI 8-city composite 2002-2024,
+    //         Domain Rental Report March 2026.
+    //
+    // Long-run capital growth differential (25-year horizon):
+    //   Houses:     ~7.0-8.0% p.a. (land appreciates; high land-to-asset ratio)
+    //   Townhouses: ~6.0-7.0% p.a. (partial land content)
+    //   Units/Apts: ~5.5-6.0% p.a. (low land-to-asset ratio; building depreciates)
+    // The user's entered ipGrowthRate is treated as the house baseline.
+    // Unit/townhouse rates are derived by applying a structural discount below.
+    //
+    // Strata levy estimates (industry benchmarks, 2024-25):
+    //   Walk-up (no lift): $2,000-$4,000/yr
+    //   Mid-rise (lift, no pool): $4,000-$8,000/yr
+    //   High-rise (pool/gym/concierge): $8,000-$20,000+/yr
+    // These are separate from annualPropertyExpenses (rates, insurance, maintenance).
+    INVESTMENT_PROPERTY_TYPES: {
+        house: {
+            label: 'House / Land',
+            growthRateAdjustment: 0,          // baseline — user's entered rate applies directly
+            defaultStrataLevy: 0,             // no strata levy for standalone houses
+            negativeGrowthFloor: -0.10,       // houses rarely fall >10% in a year nationally
+        },
+        townhouse: {
+            label: 'Townhouse / Villa',
+            growthRateAdjustment: -0.005,     // −0.5 pp below house rate (partial land)
+            defaultStrataLevy: 2500,          // typical townhouse body corp ~$2,500/yr
+            negativeGrowthFloor: -0.12,
+        },
+        unit: {
+            label: 'Unit / Apartment (Strata)',
+            growthRateAdjustment: -0.015,     // −1.5 pp structural discount vs houses (25yr data)
+            defaultStrataLevy: 6000,          // mid-range apartment strata levy ~$6,000/yr
+            negativeGrowthFloor: -0.15,       // inner-city units have hit −12%; -15% is tail floor
+        },
+    },
+
     SIMULATION: {
         // Property growth caps used in calculatePropertyValue()
         PROPERTY_GROWTH_MAX_RATE: 0.20,    // 20% annual cap — prevents runaway projections

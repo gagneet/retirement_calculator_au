@@ -246,11 +246,16 @@ function buildEngineInputs(inp) {
     planToDownsize: inp.downsizePlan === 'yes',
 
     hasInvestmentProperty: inp.investmentProperty,
+    investmentPropertyType: inp.ipType || 'unit',
     investmentPropertyValue: inp.ipValue,
     investmentPropertyLoan: inp.ipLoan,
     investmentPropertyRate,
     weeklyRentalIncome: inp.ipWeeklyRent,
     annualPropertyExpenses: inp.ipAnnualExpenses,
+    // strataLevy is stored separately from annualPropertyExpenses so the engine
+    // can model it as a unit-specific structural cost that inflates independently.
+    // For houses ipStrataLevy is 0; the UI auto-fills a default for units/townhouses.
+    investmentPropertyStrataLevy: inp.ipType === 'house' ? 0 : (inp.ipStrataLevy || 0),
     propertyGrowthRate: pct(inp.ipGrowthRate || DEFAULTS.property.propertyGrowthRate, DEFAULTS.property.propertyGrowthRate),
     propertyState: inp.ipState || '',
     landTax: deriveLandTax(inp),
@@ -770,6 +775,8 @@ function readInputs() {
     carLoanRate: num('carLoanRate', 8),
     hecsBalance: num('hecsBalance'),
     investmentProperty: chk('investmentProperty'),
+    ipType: val('ipType', 'unit'),
+    ipStrataLevy: num('ipStrataLevy', 0),
     ipValue: num('ipValue'),
     ipLoan: num('ipLoan'),
     ipRate: num('ipRate', DEFAULTS.property.investmentPropertyRate),
@@ -1949,17 +1956,96 @@ function renderRiskPanel() {
   `);
 }
 
+/**
+ * Generate property sell-timing analysis for the AI recommendations panel.
+ * Only produced when the user has an investment property.
+ * Based on ABS RPPI / Domain / ATO research:
+ *   - Never sell before 12 months (CGT discount loss)
+ *   - Optimal windows: rate cycle peaks, vacancy rate rising above 2%, yield < cash rate + 1%
+ *   - Unit-specific: flag approaching depreciation cliff (year 12-15 of new build)
+ *   - Strata: flag if special levy risk is elevated (proxy: high strata levy amount)
+ */
+function generatePropertySellTimingInsight(inp, engineInputs) {
+  if (!inp?.investmentProperty) return null;
+
+  const yearsHeld = Math.max(0, (inp.age || 0) - (2024 - (engineInputs?.investmentPropertyValue > 0 ? 10 : 0)));
+  const propType  = inp.ipType || 'unit';
+  const isUnit    = propType === 'unit';
+  const isTownhouse = propType === 'townhouse';
+  const growthRate  = (inp.ipGrowthRate || 4);
+  const grossYield  = inp.ipWeeklyRent > 0 && inp.ipValue > 0
+      ? (inp.ipWeeklyRent * 52 / inp.ipValue * 100) : 0;
+  const strataLevy  = inp.ipStrataLevy || 0;
+  const ipValue     = inp.ipValue || 0;
+  const strataLevyPct = ipValue > 0 ? (strataLevy / ipValue * 100) : 0;
+
+  // Signals
+  const signals = [];
+  let urgency = 'low';
+
+  // Signal 1: CGT 12-month discount (always relevant if held < 12 months)
+  signals.push('Hold for at least 12 months to secure the 50% CGT discount. Selling at 11 months vs 13 months can cost $30k–$50k+ per owner in extra tax on a typical capital gain.');
+
+  // Signal 2: Yield vs holding cost
+  if (grossYield > 0 && grossYield < 4.5) {
+    signals.push(`Gross rental yield of ~${grossYield.toFixed(1)}% is below the typical AU investment loan rate (~6.5%). You are negatively geared — this is beneficial while your marginal tax rate is high, but re-evaluate if your income drops in retirement.`);
+    urgency = 'medium';
+  }
+
+  // Signal 3: Unit-specific — strata levy erosion
+  if ((isUnit || isTownhouse) && strataLevyPct > 1.0) {
+    signals.push(`Annual strata levy of $${strataLevy.toLocaleString()} (${strataLevyPct.toFixed(1)}% of property value) materially erodes your net rental yield. High strata costs relative to value is a sell indicator, particularly if a special levy (e.g., building defects, cladding rectification) is forthcoming.`);
+    urgency = 'medium';
+  }
+
+  // Signal 4: Unit depreciation cliff
+  if (isUnit) {
+    signals.push('If your unit was purchased new (post-1985), significant plant & equipment depreciation deductions typically exhaust around years 12–15. After this point, the tax benefit of negative gearing reduces materially — recalculate your after-tax position at that point.');
+  }
+
+  // Signal 5: Growth rate vs capital city benchmark
+  if (growthRate < 4.5 && isUnit) {
+    signals.push(`Your entered growth rate of ${growthRate.toFixed(1)}% p.a. is below the long-run AU unit average (~5.5%). With strata costs, your real net return may be approaching the break-even point where alternative investments (index funds, additional super) outperform on a risk-adjusted basis.`);
+    urgency = 'high';
+  }
+
+  // Signal 6: House vs unit long-run differential reminder
+  if (isUnit) {
+    signals.push('Research note: Over 25-year horizons, Australian houses have outperformed units by ~1.5 pp p.a. due to land appreciation. Units provide higher rental yields (typically +2 pp) and better depreciation benefits in early years, but this reverses at longer horizons. If your planned hold period is 20+ years, consider whether a house in the same area would deliver better net returns.');
+  }
+
+  return {
+    category: 'Investment Property',
+    title: `${propType === 'house' ? 'House' : propType === 'townhouse' ? 'Townhouse' : 'Unit/Apartment'} sell-timing analysis`,
+    impact: urgency === 'high' ? 'high' : urgency === 'medium' ? 'medium' : 'low',
+    description: signals[0], // Lead signal
+    details: signals.slice(1),
+    feasibility: 'Property-specific analysis — consult a financial adviser and tax agent before selling',
+    successRateDiff: null,
+    medianBalanceDiff: null,
+    isSellTimingCard: true,
+  };
+}
+
 function renderAiPanel() {
   const recommendations = APP_STATE.recommendations || [];
+  const inp = APP_STATE.input || {};
+  const engineInputs = APP_STATE.engineInputs || {};
 
-  if (!recommendations.length) {
+  // Inject property sell-timing insight if applicable
+  const sellTimingRec = generatePropertySellTimingInsight(inp, engineInputs);
+  const allRecs = sellTimingRec
+      ? [sellTimingRec, ...recommendations]
+      : recommendations;
+
+  if (!allRecs.length) {
     setPanelHtml('ai', '<p style="color:var(--ink-3)">Run AI suggestions or the full simulation to generate prioritised recommendations from the existing recommendation engine.</p>');
     return;
   }
 
   setPanelHtml('ai', `
     <div style="display:grid;gap:12px">
-      ${recommendations.slice(0, 6).map((rec) => `
+      ${allRecs.slice(0, 7).map((rec) => `
         <div style="padding:16px;border:1px solid var(--border);border-radius:18px;background:var(--surface)">
           <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
             <div>
@@ -1969,9 +2055,14 @@ function renderAiPanel() {
             <span class="chip">${escapeHtml(rec.impact || 'neutral')}</span>
           </div>
           <p style="margin:10px 0 0;color:var(--ink-2)">${escapeHtml(rec.description || '')}</p>
+          ${rec.isSellTimingCard && rec.details?.length ? `
+            <ul style="margin:8px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px;display:grid;gap:6px">
+              ${rec.details.map(d => `<li>${escapeHtml(d)}</li>`).join('')}
+            </ul>
+          ` : ''}
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-            <span class="chip">Success delta ${rec.successRateDiff != null ? formatPercent(rec.successRateDiff, 1) : 'n/a'}</span>
-            <span class="chip">Balance delta ${escapeHtml(formatCurrency(rec.medianBalanceDiff || 0))}</span>
+            ${rec.successRateDiff != null ? `<span class="chip">Success delta ${formatPercent(rec.successRateDiff, 1)}</span>` : ''}
+            ${rec.medianBalanceDiff != null ? `<span class="chip">Balance delta ${escapeHtml(formatCurrency(rec.medianBalanceDiff || 0))}</span>` : ''}
             <span class="chip">${escapeHtml(rec.feasibility || 'Standard strategy')}</span>
           </div>
         </div>
@@ -2645,6 +2736,43 @@ function boot() {
     initPensionFieldDefaults();
     bindConditional('investmentProperty', 'data-ip');
     bindConditional('goingOverseas', 'data-overseas');
+
+    // Investment property type → auto-fill strata levy default and update growth rate hint
+    (function () {
+        const ipTypeSel      = document.getElementById('ipType');
+        const ipStrataInput  = document.getElementById('ipStrataLevy');
+        const ipGrowthInput  = document.getElementById('ipGrowthRate');
+        if (!ipTypeSel || !ipStrataInput) return;
+
+        // Strata levy defaults by property type (mirrors config.INVESTMENT_PROPERTY_TYPES)
+        const strataDefaults = { house: 0, townhouse: 2500, unit: 6000 };
+        // Growth rate structural adjustment (pp) relative to user's entered rate
+        const growthAdj      = { house: 0, townhouse: -0.5, unit: -1.5 };
+
+        function onTypeChange() {
+            const type = ipTypeSel.value;
+            // Only auto-fill strata if the field is still at a default value (don't overwrite user edits)
+            const currentLevy = parseFloat(ipStrataInput.value) || 0;
+            const isDefaultValue = Object.values(strataDefaults).includes(currentLevy);
+            if (isDefaultValue) {
+                ipStrataInput.value = strataDefaults[type] ?? 0;
+            }
+            // Update growth rate hint in the field-help below ipGrowthRate
+            const adj = growthAdj[type] ?? 0;
+            const hintEl = ipGrowthInput?.parentElement?.nextElementSibling;
+            if (hintEl && hintEl.classList.contains('field-help')) {
+                if (adj === 0) {
+                    hintEl.textContent = 'Your expected long-run median growth rate. No structural adjustment applied for houses — full rate used.';
+                } else {
+                    hintEl.textContent = `Your expected long-run median growth rate. A structural adjustment of ${adj.toFixed(1)} pp is applied for ${type}s to reflect lower land content vs houses (ABS RPPI 25-year data).`;
+                }
+            }
+            recalc();
+        }
+
+        ipTypeSel.addEventListener('change', onTypeChange);
+        onTypeChange(); // run on boot to set initial state
+    }());
     bindConditional('isCarer', 'data-carer');
     bindConditional('hasSmsf', 'data-smsf');
     bindConditional('hasTrust', 'data-trust');
