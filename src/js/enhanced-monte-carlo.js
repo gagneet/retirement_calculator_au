@@ -309,8 +309,14 @@ export class EnhancedMonteCarloEngine {
                 stressTestResults.push(stressResult);
             }
 
-            if (progressCallback && i % 100 === 0) {
+            // Report progress every 50 iterations. The await ensures the browser
+            // can paint the updated progress bar and avoids freezing the UI thread
+            // for large run counts (>5,000).
+            if (progressCallback && i % 50 === 0) {
                 await progressCallback(i, runs);
+            } else if (i % 50 === 0 && runs > 1000) {
+                // Even without a callback, yield to keep the UI responsive for large runs
+                await new Promise((resolve) => setTimeout(resolve, 0));
             }
         }
 

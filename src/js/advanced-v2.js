@@ -347,15 +347,18 @@ function buildEngineInputs(inp) {
     // NOTE: time-bounded legal obligations (spousalMaintenanceEndsAge, youngestChildAge) are not yet
     // enforced per-year — they run for the full carerYearsExpected window. This is a known limitation.
     ...(() => {
-      const nonCarerExpense = (inp.annualParentSupport || 0)
-        + (inp.hasSpousalMaintenance ? (inp.annualSpousalMaintenance || 0) : 0)
-        + (inp.hasChildSupport ? (inp.annualChildSupport || 0) : 0);
-      const carerExpense = inp.isCarer ? (inp.carerAnnualExpense || 0) : 0;
-      const totalFamilyExpense = carerExpense + nonCarerExpense;
+      // Use nullish coalescing so explicit carerAnnualExpense=0 is preserved and
+      // annualParentSupport only acts as a fallback when carerAnnualExpense is unset.
+      const parentCareExpense = inp.isCarer
+        ? (inp.carerAnnualExpense ?? inp.annualParentSupport ?? 0)
+        : (inp.annualParentSupport || 0);
+      const spousalExpense = inp.hasSpousalMaintenance ? (inp.annualSpousalMaintenance || 0) : 0;
+      const childSupportExpense = inp.hasChildSupport ? (inp.annualChildSupport || 0) : 0;
+      const totalFamilyExpense = parentCareExpense + spousalExpense + childSupportExpense;
       return {
-        isCarerForParents: inp.isCarer || nonCarerExpense > 0,
+        isCarerForParents: !!(inp.isCarer || (inp.annualParentSupport || 0) > 0),
         carerReducedWorkPercent: inp.isCarer ? pct(inp.carerReducedWorkPercent) : 0,
-        carerYearsExpected: inp.isCarer ? (inp.carerYearsExpected || 0) : (nonCarerExpense > 0 ? 999 : 0),
+        carerYearsExpected: inp.isCarer ? (inp.carerYearsExpected || 0) : ((inp.annualParentSupport || 0) > 0 ? 999 : 0),
         carerAnnualExpense: totalFamilyExpense,
       };
     })(),
@@ -383,6 +386,21 @@ function buildEngineInputs(inp) {
     overseasStartAge: inp.goingOverseas ? (inp.ageMovingOverseas || 0) : 0,
     overseasAnnualBudget: inp.goingOverseas ? (inp.annualLivingCostOverseas || 0) : 0,
     overseasReturnFrequency: inp.returnFrequency || 'never',
+    overseasMoveType: inp.overseasMoveType || 'permanent',
+    overseasTaxResidency: inp.overseasTaxResidency || 'australian',
+    overseasHealthCover: inp.overseasHealthCover || 'international_private',
+    maintainResidency: Boolean(inp.maintainResidency),
+    overseasPropertyStrategy: inp.propertyStrategy || 'keep-personal',
+    overseasTrustBeneficiaries: inp.trustBeneficiaries || 'you-only',
+    overseasSuperAccessStrategy: inp.superAccess || 'pension-mode',
+    overseasAgreementCountry: Boolean(inp.overseasAgreementCountry),
+    overseasFallbackAge: inp.overseasFallbackAge || 0,
+    overseasFallbackTrigger: inp.overseasFallbackTrigger || 'none',
+    overseasSpendingCurrency: inp.overseasSpendingCurrency || 'AUD',
+    overseasAudFxChange: pct(inp.overseasAudFxChange !== undefined ? inp.overseasAudFxChange : -1, -1),
+    overseasHousingType: inp.overseasHousingType || 'rent',
+    overseasAnnualRent: inp.overseasAnnualRent || 0,
+    overseasDestination: inp.destination || '',
 
     creditCardBalance: inp.ccBalance,
     creditCardRate: pct(inp.ccRate || 20, 20),
@@ -391,6 +409,22 @@ function buildEngineInputs(inp) {
     carLoanBalance: inp.carLoan,
     carLoanRate: pct(inp.carLoanRate || 8, 8),
     hecsBalance: inp.hecsBalance,
+
+    // Age-related optional costs
+    enableHomeModifications: Boolean(inp.enableHomeModifications),
+    homeModificationCost: inp.homeModificationCost || 0,
+    homeModificationAge: inp.homeModificationAge || 78,
+    homeModificationRecurring: inp.homeModificationRecurring || 0,
+    enableAnnuity: Boolean(inp.enableAnnuity),
+    annuityPurchaseAge: inp.annuityPurchaseAge || 67,
+    annuityLumpSum: inp.annuityLumpSum || 0,
+    annuityAnnualIncome: inp.annuityAnnualIncome || 0,
+    enableTieredSpending: Boolean(inp.enableTieredSpending),
+    tieredSpendingActiveAge: inp.tieredSpendingActiveAge || 75,
+    tieredSpendingFrailAge: inp.tieredSpendingFrailAge || 85,
+    tieredSpendingActiveMultiplier: pct(inp.tieredSpendingActiveMultiplier || 110, 110),
+    tieredSpendingStableMultiplier: pct(inp.tieredSpendingStableMultiplier || 90, 90),
+    tieredSpendingFrailMultiplier: pct(inp.tieredSpendingFrailMultiplier || 115, 115),
   };
 }
 
@@ -817,6 +851,22 @@ function readInputs() {
     agedCareStartAge: num('agedCareStartAge'),
     agedCareAnnualCost: num('agedCareAnnualCost'),
 
+    // Age-related optional costs (Section 13)
+    enableHomeModifications: chk('enableHomeModifications'),
+    homeModificationCost: num('homeModificationCost', 25000),
+    homeModificationAge: num('homeModificationAge', 78),
+    homeModificationRecurring: num('homeModificationRecurring', 2000),
+    enableAnnuity: chk('enableAnnuity'),
+    annuityPurchaseAge: num('annuityPurchaseAge', 67),
+    annuityLumpSum: num('annuityLumpSum', 200000),
+    annuityAnnualIncome: num('annuityAnnualIncome', 14000),
+    enableTieredSpending: chk('enableTieredSpending'),
+    tieredSpendingActiveAge: num('tieredSpendingActiveAge', 75),
+    tieredSpendingFrailAge: num('tieredSpendingFrailAge', 85),
+    tieredSpendingActiveMultiplier: num('tieredSpendingActiveMultiplier', 110),
+    tieredSpendingStableMultiplier: num('tieredSpendingStableMultiplier', 90),
+    tieredSpendingFrailMultiplier: num('tieredSpendingFrailMultiplier', 115),
+
     // Markets
     inflation: num('inflation', 2.6),
     invReturn: num('invReturn', 6.5),
@@ -975,6 +1025,10 @@ function buildExportAppBridge() {
     currentRiskProfile: APP_STATE.riskProfile,
     currentAllocationStrategy: APP_STATE.allocationStrategy,
     currentOverseasData: APP_STATE.overseasExportData,
+    // Plain-English narrative text for PDF
+    plainEnglishNarrative: APP_STATE.adaptedResult && APP_STATE.input
+      ? buildPlainEnglishNarrativeText(APP_STATE.adaptedResult, APP_STATE.input, APP_STATE.monteCarloResults)
+      : null,
   };
 }
 
@@ -1204,6 +1258,43 @@ function normalizeImportedUserData(userData = {}) {
     hasChildSupport: Boolean(userData.hasChildSupport ?? base.hasChildSupport),
     annualChildSupport: userData.annualChildSupport ?? base.annualChildSupport,
     youngestChildAge: userData.youngestChildAge ?? base.youngestChildAge,
+    // Overseas retirement — map classic advanced.html field names → v2 field names.
+    // This ensures a JSON saved on either page loads correctly on the other.
+    goingOverseas: userData.goingOverseas ?? (userData.overseasCountry ? userData.overseasCountry !== '' : base.goingOverseas),
+    destination: userData.destination ?? userData.overseasCountry ?? base.destination,
+    ageMovingOverseas: userData.ageMovingOverseas ?? userData.overseasAge ?? userData.overseasStartAge ?? base.ageMovingOverseas,
+    annualLivingCostOverseas: userData.annualLivingCostOverseas ?? userData.estimatedLivingCosts ?? userData.overseasAnnualBudget ?? base.annualLivingCostOverseas,
+    returnFrequency: userData.returnFrequency ?? userData.overseasReturnFrequency ?? base.returnFrequency,
+    overseasMoveType: userData.overseasMoveType ?? base.overseasMoveType,
+    overseasTaxResidency: userData.overseasTaxResidency ?? base.overseasTaxResidency,
+    overseasHealthCover: userData.overseasHealthCover ?? base.overseasHealthCover,
+    maintainResidency: Boolean(userData.maintainResidency ?? base.maintainResidency),
+    overseasAgreementCountry: Boolean(userData.overseasAgreementCountry ?? base.overseasAgreementCountry),
+    propertyStrategy: userData.propertyStrategy ?? base.propertyStrategy,
+    trustBeneficiaries: userData.trustBeneficiaries ?? base.trustBeneficiaries,
+    superAccess: userData.superAccess ?? base.superAccess,
+    overseasSpendingCurrency: userData.overseasSpendingCurrency ?? base.overseasSpendingCurrency,
+    overseasAudFxChange: userData.overseasAudFxChange ?? base.overseasAudFxChange,
+    overseasHousingType: userData.overseasHousingType ?? base.overseasHousingType,
+    overseasAnnualRent: userData.overseasAnnualRent ?? base.overseasAnnualRent,
+    overseasFallbackAge: userData.overseasFallbackAge ?? base.overseasFallbackAge,
+    overseasFallbackTrigger: userData.overseasFallbackTrigger ?? base.overseasFallbackTrigger,
+    australianResidenceYears: userData.australianResidenceYears ?? base.australianResidenceYears,
+    // Age-related optional costs (Section 13)
+    enableHomeModifications: Boolean(userData.enableHomeModifications ?? base.enableHomeModifications),
+    homeModificationCost: userData.homeModificationCost ?? base.homeModificationCost,
+    homeModificationAge: userData.homeModificationAge ?? base.homeModificationAge,
+    homeModificationRecurring: userData.homeModificationRecurring ?? base.homeModificationRecurring,
+    enableAnnuity: Boolean(userData.enableAnnuity ?? base.enableAnnuity),
+    annuityPurchaseAge: userData.annuityPurchaseAge ?? base.annuityPurchaseAge,
+    annuityLumpSum: userData.annuityLumpSum ?? base.annuityLumpSum,
+    annuityAnnualIncome: userData.annuityAnnualIncome ?? base.annuityAnnualIncome,
+    enableTieredSpending: Boolean(userData.enableTieredSpending ?? base.enableTieredSpending),
+    tieredSpendingActiveAge: userData.tieredSpendingActiveAge ?? base.tieredSpendingActiveAge,
+    tieredSpendingFrailAge: userData.tieredSpendingFrailAge ?? base.tieredSpendingFrailAge,
+    tieredSpendingActiveMultiplier: userData.tieredSpendingActiveMultiplier ?? base.tieredSpendingActiveMultiplier,
+    tieredSpendingStableMultiplier: userData.tieredSpendingStableMultiplier ?? base.tieredSpendingStableMultiplier,
+    tieredSpendingFrailMultiplier: userData.tieredSpendingFrailMultiplier ?? base.tieredSpendingFrailMultiplier,
   };
 }
 
@@ -1261,6 +1352,7 @@ function buildOverseasAnalyzer(baseState) {
           ? Math.max(0, baseState.input.retireAge - baseState.input.ageCameToAU)
           : Math.max(0, baseState.input.retireAge - 16),
       enableProposedBudget2026: baseState.input.budget2627,
+      overseasTaxResidency: baseState.input.overseasTaxResidency || 'australian',
     },
     {
       superBalance: baseState.input.superBal + (baseState.engineInputs?.isCouple ? baseState.input.partnerSuperBal : 0),
@@ -1282,12 +1374,17 @@ function buildOverseasExportData(analysis, annualBudget, finalBalance) {
     ? Math.round(((annualCost - australiaAnnual) / australiaAnnual) * 100)
     : 0;
   const availableAnnualIncome = (APP_STATE.adaptedResult?.monthlyPaycheck || 0) * 12;
+  const input = APP_STATE.input || {};
 
   return {
     config: {
       destinationCountry: analysis.country,
       currency: 'AUD',
       monthlyBudget,
+      moveType: input.overseasMoveType || 'unknown',
+      taxResidency: input.overseasTaxResidency || 'unknown',
+      returnFrequency: input.returnFrequency || 'unknown',
+      ageMovingOverseas: input.ageMovingOverseas || null,
     },
     scenarios: [
       {
@@ -1300,6 +1397,12 @@ function buildOverseasExportData(analysis, annualBudget, finalBalance) {
         availableAnnualIncome,
       },
     ],
+    pensionPortability: analysis.agePensionPortability || null,
+    taxImplications: analysis.taxImplications || null,
+    healthcare: analysis.healthcare || null,
+    riskAssessment: analysis.riskAssessment || null,
+    recommendations: analysis.recommendations || null,
+    overview: analysis.overview || null,
   };
 }
 
@@ -1668,6 +1771,192 @@ function buildCareerImpactBlock(inp) {
     </div>`;
 }
 
+/**
+ * Build a plain-text (no HTML) version of the narrative for PDF export.
+ */
+function buildPlainEnglishNarrativeText(adaptedResult, inp, mc) {
+  if (!adaptedResult || !inp?.age) return null;
+
+  const lastsUntil = adaptedResult.lastsUntil;
+  const lifespan = inp.lifespan || 90;
+  const monthlyPaycheck = adaptedResult.monthlyPaycheck || 0;
+  const asfaMonthly = (inp.household === 'couple') ? 5900 : 4080;
+  const asfaLabel = (inp.household === 'couple') ? 'ASFA comfortable couple' : 'ASFA comfortable single';
+
+  const paycheckVsAsfa = monthlyPaycheck >= asfaMonthly
+    ? `Your monthly retirement paycheck of ${fmt$(monthlyPaycheck)} meets the ${asfaLabel} standard of ${fmt$(asfaMonthly)}/month.`
+    : `Your monthly retirement paycheck of ${fmt$(monthlyPaycheck)} is below the ${asfaLabel} standard of ${fmt$(asfaMonthly)}/month — consider increasing savings.`;
+
+  let fundingLine;
+  if (!lastsUntil || lastsUntil === 0) {
+    fundingLine = 'Your funds are projected to run out before retirement — urgent action needed.';
+  } else if (lastsUntil >= lifespan) {
+    fundingLine = `Your retirement savings are projected to cover your full planned lifespan to age ${lifespan}.`;
+  } else {
+    const shortfall = lifespan - lastsUntil;
+    fundingLine = `Your funds are projected to last until age ${lastsUntil}, which is ${shortfall} year${shortfall !== 1 ? 's' : ''} short of your planned lifespan (${lifespan}).`;
+  }
+
+  let topRisk = 'longevity';
+  if (inp.healthCondition === 'poor' || inp.healthCondition === 'fair') topRisk = 'healthcare costs';
+  else if (mc && (mc.successRate || 0) < 0.7) topRisk = 'investment sequence of returns';
+  else if ((inp.inflation || 2.6) > 3.5) topRisk = 'high inflation';
+  else if (lastsUntil && lastsUntil < lifespan) topRisk = 'insufficient savings rate';
+
+  return `${fundingLine} ${paycheckVsAsfa} Your biggest risk factor is ${topRisk}. Use the AI Recommendations section for prioritised actions to strengthen your plan.`;
+}
+
+/**
+ * Build a plain-English narrative summary of the retirement plan.
+ * Surfaces the most important outcomes in 2–3 readable sentences.
+ */
+function buildPlainEnglishNarrative(adaptedResult, inp, mc) {
+  if (!adaptedResult || !inp?.age) return '';
+
+  const lastsUntil = adaptedResult.lastsUntil;
+  const lifespan = inp.lifespan || 90;
+  const retireAge = inp.retireAge || 65;
+  const monthlyPaycheck = adaptedResult.monthlyPaycheck || 0;
+  // ASFA comfortable 2025: $5,900/month couple, $4,080/month single
+  const asfaMonthly = (inp.household === 'couple') ? 5900 : 4080;
+  const asfaLabel = (inp.household === 'couple') ? 'ASFA comfortable couple' : 'ASFA comfortable single';
+  const paycheckVsAsfa = monthlyPaycheck >= asfaMonthly
+    ? `your monthly retirement paycheck of ${fmt$(monthlyPaycheck)} <b>meets</b> the ${asfaLabel} standard of ${fmt$(asfaMonthly)}/month`
+    : `your monthly retirement paycheck of ${fmt$(monthlyPaycheck)} is <b>below</b> the ${asfaLabel} standard of ${fmt$(asfaMonthly)}/month — you may need to adjust your target income or savings rate`;
+
+  let fundingLine;
+  if (!lastsUntil || lastsUntil === 0) {
+    fundingLine = 'Your funds are projected to <b>run out before retirement</b> — urgent action needed.';
+  } else if (lastsUntil >= lifespan) {
+    fundingLine = `Your retirement savings are projected to <b>cover your full planned lifespan to age ${lifespan}</b>.`;
+  } else {
+    const shortfall = lifespan - lastsUntil;
+    fundingLine = `Your funds are projected to last until age <b>${lastsUntil}</b>, which is <b>${shortfall} year${shortfall !== 1 ? 's' : ''} short</b> of your planned lifespan (${lifespan}).`;
+  }
+
+  // Identify the top risk
+  let topRisk = 'longevity';
+  if (inp.healthCondition === 'poor' || inp.healthCondition === 'fair') topRisk = 'healthcare costs';
+  else if (mc && (mc.successRate || 0) < 0.7) topRisk = 'investment sequence of returns';
+  else if ((inp.inflation || 2.6) > 3.5) topRisk = 'high inflation';
+  else if (lastsUntil && lastsUntil < lifespan) topRisk = 'insufficient savings rate';
+
+  const riskLine = `Your biggest risk factor is <b>${topRisk}</b>.`;
+
+  // Downsize extension hint
+  const downsizeLine = (inp.downsizePlan === 'yes' && adaptedResult.superAtRetire > 0)
+    ? ' Proceeding with your planned downsize will provide a lump-sum injection \u2014 revisit the Year-by-Year table after it is modelled.'
+    : '';
+
+  return `
+    <div class="summary-chart" style="grid-column:1/-1;background:linear-gradient(135deg,var(--surface) 0%,color-mix(in srgb,var(--accent) 6%,var(--surface)) 100%);border:1.5px solid color-mix(in srgb,var(--accent) 25%,var(--border))">
+      <h5 style="color:var(--accent)">📖 Plain-English Summary</h5>
+      <p style="margin:0 0 10px;line-height:1.7;font-size:14px">${fundingLine} Based on your inputs, ${paycheckVsAsfa}.${downsizeLine}</p>
+      <p style="margin:0;line-height:1.7;font-size:14px;color:var(--ink-2)">${riskLine} Use the <b>AI Recommendations</b> tab for prioritised actions to strengthen your plan.</p>
+    </div>`;
+}
+
+/**
+ * Build the "Retirement Target Builder" card — shows what income the user will
+ * actually need in retirement by subtracting one-off pre-retirement costs from
+ * their current spending.
+ */
+function buildRetirementTargetBuilder(inp) {
+  if (!inp?.age) return '';
+
+  const currentSpending = (inp.desiredIncome || 0);
+  if (currentSpending <= 0) return '';
+
+  // Mortgage costs that end at retirement
+  const annualMortgage = inp.mortgage > 0
+    ? Math.min(currentSpending * 0.25, (inp.mortgage * pct(inp.mortgageRate || 5, 5) * 1.1))
+    : 0;
+
+  // Children / education costs that end when youngest child finishes uni (est. age 22)
+  const childrenCosts = inp.dependents > 0
+    ? Math.min(currentSpending * 0.15,
+        inp.dependents * ((inp.educationCostPerChild || 0) / Math.max(1, (22 - (inp.youngestChildAge || 10)))))
+    : 0;
+
+  // Healthcare premium uplift in retirement (healthcare tends to grow faster than general inflation)
+  const hcUplift = (inp.hasPrivateHospital ? 2500 : 0) + (inp.healthCondition === 'fair' ? 3000 : 0) + (inp.healthCondition === 'poor' ? 6000 : 0);
+
+  const estimatedRetirementNeed = Math.max(0, currentSpending - annualMortgage - childrenCosts + hcUplift);
+  const monthly = Math.round(estimatedRetirementNeed / 12);
+  const asfaComfortable = (inp.household === 'couple') ? 70800 : 48960;
+  const gap = estimatedRetirementNeed - (inp.desiredIncome || 0);
+
+  const rows = [
+    { label: 'Your target retirement income', val: fmt$(currentSpending) + '/yr', note: 'As entered' },
+    annualMortgage > 0 ? { label: '− Mortgage payments (end at retirement)', val: `−${fmt$(Math.round(annualMortgage))}/yr`, note: 'Freed up' } : null,
+    childrenCosts > 0 ? { label: '− Children / education costs', val: `−${fmt$(Math.round(childrenCosts))}/yr`, note: 'Freed up' } : null,
+    hcUplift > 0 ? { label: '+ Healthcare premium uplift', val: `+${fmt$(hcUplift)}/yr`, note: 'Retirement health costs tend to rise faster than CPI' } : null,
+    { label: '= Estimated lifestyle need in retirement', val: `<b>${fmt$(Math.round(estimatedRetirementNeed))}/yr</b>`, note: `${fmt$(monthly)}/month`, bold: true },
+    { label: 'ASFA comfortable standard (2025)', val: fmt$(asfaComfortable) + '/yr', note: `${(inp.household === 'couple') ? 'Couple' : 'Single'} — covers a comfortable lifestyle without being extravagant` },
+  ].filter(Boolean);
+
+  return `
+    <div class="summary-chart" style="grid-column:1/-1">
+      <h5>🎯 Retirement Target Builder</h5>
+      <div class="desc">What you'll actually need in retirement — your current spending adjusted for costs that stop (mortgage, children) and costs that grow (healthcare).</div>
+      <div class="mc-results-grid" style="margin-top:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+        ${rows.map((r) => `
+          <div class="mc-stat" style="${r.bold ? 'background:color-mix(in srgb,var(--accent) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--accent) 20%,var(--border))' : ''}">
+            <div class="mc-k">${r.label}</div>
+            <div class="mc-v" style="${r.bold ? 'color:var(--accent)' : ''}">${r.val}</div>
+            <div class="mc-sub">${r.note}</div>
+          </div>
+        `).join('')}
+      </div>
+      <p style="margin:10px 0 0;font-size:12px;color:var(--ink-3)">These adjustments are indicative only. Actual retirement costs vary by health, lifestyle, and personal circumstances.</p>
+    </div>`;
+}
+
+/**
+ * Build a Sequence of Returns Risk callout for the risk/summary panel.
+ * Uses MC results when available to estimate early-crash vs late-crash impact.
+ */
+function buildSequenceOfReturnsCallout(mc, adaptedResult, inp) {
+  if (!inp?.age || !adaptedResult) return '';
+
+  // If we have MC results, compute early crash vs late crash delta
+  // from the scenarios array (sorted: scenarios[0] = best, last = worst)
+  let earlyRiskHtml = '';
+  let lateRiskHtml = '';
+  if (mc?.scenarios?.length >= 2) {
+    const best = mc.scenarios[mc.scenarios.length - 1]?.finalBalance || 0;
+    const worst = mc.scenarios[0]?.finalBalance || 0;
+    const spread = best - worst;
+    const spreadYears = adaptedResult?.monthlyPaycheck > 0
+      ? Math.round(spread / ((adaptedResult.monthlyPaycheck * 12) || 1))
+      : 0;
+    earlyRiskHtml = `<div class="mc-stat"><div class="mc-k">🔴 Crash in Year 1 of retirement</div><div class="mc-v" style="color:var(--danger)">${fmt$(worst, { compact: true })}</div><div class="mc-sub">10th-percentile final balance</div></div>`;
+    lateRiskHtml = `<div class="mc-stat"><div class="mc-k">🟢 Strong early returns</div><div class="mc-v" style="color:var(--success)">${fmt$(best, { compact: true })}</div><div class="mc-sub">90th-percentile final balance</div></div>`;
+    if (spreadYears > 0) {
+      earlyRiskHtml += `<div class="mc-stat" style="grid-column:1/-1"><div class="mc-k">Impact spread</div><div class="mc-v">${spreadYears} years</div><div class="mc-sub">A crash in year 1 vs strong early returns can mean ${spreadYears} years' difference in portfolio longevity</div></div>`;
+    }
+  } else if (adaptedResult) {
+    const baseBalance = adaptedResult.finalBalance || 0;
+    const earlyBad = Math.round(baseBalance * 0.55); // ~45% drop scenario
+    const lateBad = Math.round(baseBalance * 0.80);  // ~20% drop scenario
+    earlyRiskHtml = `<div class="mc-stat"><div class="mc-k">🔴 Crash in Year 1 (estimated)</div><div class="mc-v" style="color:var(--danger)">${fmt$(earlyBad, { compact: true })}</div><div class="mc-sub">~45% reduction in final balance vs base case</div></div>`;
+    lateRiskHtml = `<div class="mc-stat"><div class="mc-k">🟡 Crash in Year 10 (estimated)</div><div class="mc-v" style="color:var(--warning)">${fmt$(lateBad, { compact: true })}</div><div class="mc-sub">~20% reduction in final balance vs base case</div></div>`;
+  }
+
+  if (!earlyRiskHtml) return '';
+
+  return `
+    <div class="summary-chart">
+      <h5>⚡ Sequence of Returns Risk</h5>
+      <div class="desc">When a market crash occurs matters enormously. A crash in your first year of retirement is far more damaging than one a decade later — your portfolio has less time to recover while you're still drawing from it.</div>
+      <div class="mc-results-grid" style="margin-top:10px">
+        ${earlyRiskHtml}
+        ${lateRiskHtml}
+      </div>
+      <p style="margin:10px 0 0;font-size:12px;color:var(--ink-3)">Run Monte Carlo with 5,000+ runs for a more accurate spread. Consider holding 1–2 years of income in cash as a buffer against early retirement crashes.</p>
+    </div>`;
+}
+
 function renderSummaryPanel() {
   const state = APP_STATE;
   const summaryItems = [
@@ -1755,6 +2044,9 @@ function renderSummaryPanel() {
     </div>` : '';
 
   const careerImpactBlock = buildCareerImpactBlock(inp);
+  const narrativeBlock = buildPlainEnglishNarrative(state.adaptedResult, inp, state.monteCarloResults);
+  const targetBuilderBlock = buildRetirementTargetBuilder(inp);
+  const sorBlock = buildSequenceOfReturnsCallout(state.monteCarloResults, state.adaptedResult, inp);
 
   setPanelHtml('summary', `
     <div class="summary-grid">
@@ -1772,7 +2064,10 @@ function renderSummaryPanel() {
         </div>
       </div>
       ${monteCarloBlock}
+      ${narrativeBlock}
     </div>
+    ${targetBuilderBlock}
+    ${sorBlock}
     ${recommendationLead}
     ${careerImpactBlock}
     ${assumptionsBlock}
@@ -2088,11 +2383,32 @@ async function runMonteCarloAnalysis() {
   // This is the single source of truth — avoids any double-read discrepancy between
   // the select element and the already-computed engine state.
   const runsToUse = baseState.engineInputs.numRuns || DEFAULTS.simulation.numRuns || 500;
+
+  // Wire up a progress callback so the loading overlay shows real progress for large runs.
+  const progressBarEl = document.getElementById('adv2-progress-bar');
+  const progressLabelEl = document.getElementById('adv2-loading-label');
+  const progressSubEl = document.getElementById('adv2-loading-sub');
+
+  const mcProgressCallback = runsToUse >= 500 ? async (completed, total) => {
+    const pct = Math.round((completed / total) * 100);
+    if (progressBarEl) progressBarEl.style.width = pct + '%';
+    const remaining = total - completed;
+    const approxSecs = Math.ceil((remaining / total) * (total > 5000 ? 45 : 15));
+    if (progressLabelEl) progressLabelEl.textContent = `Running… ${pct}%`;
+    if (progressSubEl) progressSubEl.textContent = `Completed ${completed.toLocaleString()} of ${total.toLocaleString()} runs${approxSecs > 2 ? ` — ~${approxSecs}s remaining` : ''}`;
+    // Yield to the browser so the progress bar updates are visible
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  } : null;
+
+  if (progressBarEl) progressBarEl.style.width = '0%';
+
   APP_STATE.monteCarloResults = await simulator.runMonteCarloSimulation(
     baseState.engineInputs,
     runsToUse,
-    null
+    mcProgressCallback
   );
+
+  if (progressBarEl) progressBarEl.style.width = '100%';
   APP_STATE.riskProfile = normaliseRiskProfile(
     riskProfiler.generateRiskProfileSummary(baseState.engineInputs, APP_STATE.monteCarloResults)
   );
@@ -2779,6 +3095,9 @@ function boot() {
     bindConditional('enableShocks', 'data-shocks');
     bindConditional('hasSpousalMaintenance', 'data-spousal');
     bindConditional('hasChildSupport', 'data-childsupport');
+    bindConditional('enableHomeModifications', 'data-home-mods');
+    bindConditional('enableAnnuity', 'data-annuity');
+    bindConditional('enableTieredSpending', 'data-tiered-spending');
 
     // Monte Carlo custom runs show/hide + update sidebar label
     const mcRunsSel = document.getElementById('mcRuns');
@@ -2851,6 +3170,54 @@ function boot() {
 
     bindLifespanValidation('lifespan', 'age');
     bindLifespanValidation('partnerLifespan', 'partnerAge');
+
+    // Link returnFrequency to overseasMoveType:
+    // A 'permanent' move means there are no return trips — lock frequency to 'never'.
+    (function bindOverseasMoveType() {
+      const moveTypeEl = document.getElementById('overseasMoveType');
+      const returnFreqEl = document.getElementById('returnFrequency');
+      if (!moveTypeEl || !returnFreqEl) return;
+
+      function syncReturnFrequency() {
+        if (moveTypeEl.value === 'permanent') {
+          returnFreqEl.value = 'never';
+          returnFreqEl.disabled = true;
+          returnFreqEl.title = 'Return visits disabled for a permanent move';
+        } else {
+          returnFreqEl.disabled = false;
+          returnFreqEl.title = '';
+          if (returnFreqEl.value === 'never' && moveTypeEl.value !== 'permanent') {
+            returnFreqEl.value = 'annually';
+          }
+        }
+      }
+
+      moveTypeEl.addEventListener('change', syncReturnFrequency);
+      syncReturnFrequency();
+    })();
+
+    // trustBeneficiaries should only be active when a trust structure is in use.
+    (function bindTrustBeneficiaries() {
+      const propertyStratEl = document.getElementById('propertyStrategy');
+      const hasTrustEl = document.getElementById('hasTrust');
+      const benefRow = document.getElementById('trustBeneficiaries')?.closest('.field');
+      if (!benefRow) return;
+
+      function syncTrustBeneficiaries() {
+        const usingTrust = (propertyStratEl?.value === 'transfer-trust') || Boolean(hasTrustEl?.checked);
+        benefRow.style.opacity = usingTrust ? '' : '0.35';
+        benefRow.title = usingTrust ? '' : 'Enable a trust structure above to configure beneficiaries';
+        const sel = document.getElementById('trustBeneficiaries');
+        if (sel) sel.disabled = !usingTrust;
+      }
+
+      if (propertyStratEl) propertyStratEl.addEventListener('change', syncTrustBeneficiaries);
+      if (hasTrustEl) {
+        hasTrustEl.addEventListener('change', syncTrustBeneficiaries);
+        hasTrustEl.addEventListener('input', syncTrustBeneficiaries);
+      }
+      syncTrustBeneficiaries();
+    })();
 
     // Auto-fill spending currency when overseas destination changes
     (function bindDestinationCurrency() {

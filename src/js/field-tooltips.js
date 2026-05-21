@@ -614,6 +614,81 @@ const FIELD_TOOLTIP_DEFINITIONS = {
         title: 'Likely return trigger',
         body: 'This captures the event most likely to bring you back to Australia so fallback recommendations reflect a realistic contingency.',
     },
+    // ── Age-Related Optional Costs ───────────────────────────────────────────
+    enableHomeModifications: {
+        title: 'Home modifications',
+        body: 'Enable to model a one-off accessibility spend (ramps, grab rails, bathroom refit) and optional recurring maintenance at a chosen age.',
+    },
+    homeModificationCost: {
+        title: 'One-off modification cost',
+        body: 'Lump-sum amount spent adapting your home for mobility or safety at the target age. This is drawn from accumulated assets in that year.',
+    },
+    homeModificationAge: {
+        title: 'Age to apply modification cost',
+        body: 'The year-of-age when the one-off home modification expense is deducted from your balance. Typically 75–80 when mobility needs often emerge.',
+    },
+    homeModificationRecurring: {
+        title: 'Annual recurring cost after modifications',
+        body: 'Ongoing maintenance or strata fees following the modification. Applied every year from the modification age to end of plan.',
+    },
+    enableAnnuity: {
+        title: 'Lifetime annuity / longevity insurance',
+        body: 'Model the purchase of a guaranteed income stream at a specific age to protect against outliving your super. The lump sum is deducted once; the annual income flows in thereafter.',
+    },
+    annuityPurchaseAge: {
+        title: 'Annuity purchase age',
+        body: 'The age at which you exchange a lump sum for a guaranteed income stream. Typically age 75–80 when longevity uncertainty becomes more pressing.',
+    },
+    annuityLumpSum: {
+        title: 'Annuity purchase price',
+        body: 'The single premium paid to the insurer in the purchase year. This is deducted from your balance in that year.',
+    },
+    annuityAnnualIncome: {
+        title: 'Annual annuity income',
+        body: 'The guaranteed income received each year from the annuity. This is added to pension and other income to reduce super drawdown.',
+    },
+    enableTieredSpending: {
+        title: 'Tiered retirement spending',
+        body: 'Research shows spending follows an Active → Stable → Frail curve. Enable to apply custom multipliers for each stage so the model reflects real spending behaviour.',
+    },
+    tieredSpendingActiveMultiplier: {
+        title: 'Active stage spending multiplier',
+        body: 'Spending in the early active years as a proportion of your target income. Values above 1.0 mean higher spending; below 1.0 means lower.',
+        example: '1.10 = 10% more than target income',
+    },
+    tieredSpendingActiveAge: {
+        title: 'Active stage end age',
+        body: 'The age at which the active high-spending phase transitions to the stable middle phase. Research typically places this around age 72–78.',
+    },
+    tieredSpendingStableMultiplier: {
+        title: 'Stable stage spending multiplier',
+        body: 'Spending in the quieter middle years as a proportion of target income. Often 0.85–0.95 as travel and social costs decline.',
+    },
+    tieredSpendingFrailAge: {
+        title: 'Frail stage start age',
+        body: 'The age at which late-life care needs drive spending back up. Research typically places this around age 82–88.',
+    },
+    tieredSpendingFrailMultiplier: {
+        title: 'Frail stage spending multiplier',
+        body: 'Spending in the high-care final years as a proportion of target income. Often 1.10–1.30 when healthcare and aged-care costs escalate.',
+    },
+    // ── Legal / Financial Obligations ────────────────────────────────────────
+    hasSpousalMaintenance: {
+        title: 'Spousal/partner maintenance',
+        body: 'Enable if you are legally required to pay ongoing maintenance to a former partner. The annual amount will be deducted from your available income.',
+    },
+    annualSpousalMaintenance: {
+        title: 'Annual spousal maintenance',
+        body: 'Court-ordered or agreed maintenance paid to a former spouse each year. This reduces your net disposable income during the payment period.',
+    },
+    hasChildSupport: {
+        title: 'Child support obligations',
+        body: 'Enable if you pay child support. The annual amount reduces your disposable income each year until obligations end.',
+    },
+    annualChildSupport: {
+        title: 'Annual child support paid',
+        body: 'Child support obligations reduce available cash flow each year. Enter the annual total; the model deducts this from income before calculating retirement savings.',
+    },
 };
 
 const ADVANCED_TOOLTIP_PAGE_SELECTOR = '#advancedCalculatorForm, .redesign-v2';

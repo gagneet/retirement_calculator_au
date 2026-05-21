@@ -2098,7 +2098,59 @@ export class RetirementSimulator {
             const healthMultiplier = { excellent: 0.8, good: 1.0, fair: 1.25, poor: 1.6 }[inputs.healthCondition] || 1.0;
             const adjustedHealthcareCost = healthcareCost * healthMultiplier;
 
-            const totalCostWithHealthcare = baseIncomeNeeded + adjustedHealthcareCost + agedCareCost + lhcRetirementCost;
+            // ── Tiered spending multiplier (optional — Active / Stable / Frail) ────
+            // Applied to baseIncomeNeeded before other additive costs so it scales
+            // lifestyle spend only, not healthcare or aged-care costs.
+            let tieredSpendingMultiplier = 1.0;
+            if (inputs.enableTieredSpending) {
+                if (yourCurrentAge < (inputs.tieredSpendingActiveAge || 75)) {
+                    tieredSpendingMultiplier = (inputs.tieredSpendingActiveMultiplier || 1.1);
+                } else if (yourCurrentAge < (inputs.tieredSpendingFrailAge || 85)) {
+                    tieredSpendingMultiplier = (inputs.tieredSpendingStableMultiplier || 0.9);
+                } else {
+                    tieredSpendingMultiplier = (inputs.tieredSpendingFrailMultiplier || 1.15);
+                }
+            }
+            const tieredBaseIncome = baseIncomeNeeded * tieredSpendingMultiplier;
+
+            // ── Home modifications (optional) ─────────────────────────────────────
+            // One-off lump sum in the year of the modification age, plus ongoing
+            // annual maintenance starting that year. Omitted if user plans to
+            // downsize to strata/aged care (maintenance is covered by levies there).
+            let homeModCost = 0;
+            if (inputs.enableHomeModifications) {
+                const modAge = inputs.homeModificationAge || 78;
+                if (yourCurrentAge === modAge) {
+                    homeModCost += (inputs.homeModificationCost || 0);
+                }
+                if (yourCurrentAge >= modAge) {
+                    const inflatedRecurring = (inputs.homeModificationRecurring || 0)
+                        * Math.pow(1 + (inputs.inflation || 0.026), retirementYear);
+                    homeModCost += inflatedRecurring;
+                }
+            }
+
+            // ── Annuity income (optional) ─────────────────────────────────────────
+            // At the purchase age, the lump sum is drawn from the portfolio (treated
+            // as a one-off withdrawal). From that age onwards, the guaranteed income
+            // offsets withdrawals — similar to how Age Pension income is applied.
+            let annuityIncome = 0;
+            let annuityLumpSumCost = 0;
+            if (inputs.enableAnnuity) {
+                const purchaseAge = inputs.annuityPurchaseAge || 67;
+                if (yourCurrentAge === purchaseAge) {
+                    annuityLumpSumCost = inputs.annuityLumpSum || 0;
+                }
+                if (yourCurrentAge >= purchaseAge) {
+                    // Annual income is inflation-indexed from the purchase year
+                    annuityIncome = (inputs.annuityAnnualIncome || 0)
+                        * Math.pow(1 + (inputs.inflation || 0.026),
+                            yourCurrentAge - purchaseAge);
+                }
+            }
+
+            const totalCostWithHealthcare = tieredBaseIncome + adjustedHealthcareCost + agedCareCost
+                + lhcRetirementCost + homeModCost + annuityLumpSumCost;
 
             // AWLR eligibility check: Age Pension requires 10+ years Australian residence
             // If ageCameToAustralia is set, compute residence years at retirement
@@ -2185,7 +2237,7 @@ export class RetirementSimulator {
             }
 
             // Pension income test uses gross trust distributions; withdrawal offset uses net-of-tax
-            const otherIncome = propertyIncome + trustDistributionNetIncome;
+            const otherIncome = propertyIncome + trustDistributionNetIncome + annuityIncome;
             const totalIncome = pensionIncome + otherIncome;
             const netWithdrawalNeeded = Math.max(0, totalCostWithHealthcare - totalIncome);
 
