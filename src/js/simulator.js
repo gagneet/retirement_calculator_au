@@ -2113,6 +2113,10 @@ export class RetirementSimulator {
             }
             const tieredBaseIncome = baseIncomeNeeded * tieredSpendingMultiplier;
 
+            const optionalCostInflationRate = useRandomReturns
+                ? runInflationRate
+                : (inputs.inflation || 0.026);
+
             // ── Home modifications (optional) ─────────────────────────────────────
             // One-off lump sum in the year of the modification age, plus ongoing
             // annual maintenance starting that year. Omitted if user plans to
@@ -2123,9 +2127,9 @@ export class RetirementSimulator {
                 if (yourCurrentAge === modAge) {
                     homeModCost += (inputs.homeModificationCost || 0);
                 }
-                if (yourCurrentAge >= modAge) {
+                if (yourCurrentAge >= modAge && !inputs.planToDownsize) {
                     const inflatedRecurring = (inputs.homeModificationRecurring || 0)
-                        * Math.pow(1 + (inputs.inflation || 0.026), retirementYear);
+                        * Math.pow(1 + optionalCostInflationRate, retirementYear);
                     homeModCost += inflatedRecurring;
                 }
             }
@@ -2144,7 +2148,7 @@ export class RetirementSimulator {
                 if (yourCurrentAge >= purchaseAge) {
                     // Annual income is inflation-indexed from the purchase year
                     annuityIncome = (inputs.annuityAnnualIncome || 0)
-                        * Math.pow(1 + (inputs.inflation || 0.026),
+                        * Math.pow(1 + optionalCostInflationRate,
                             yourCurrentAge - purchaseAge);
                 }
             }

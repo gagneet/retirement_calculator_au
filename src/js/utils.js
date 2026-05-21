@@ -4060,11 +4060,16 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
             doc.text('Age Pension Portability', 14, yPos);
             yPos += 6;
             const pp = overseas.pensionPortability;
+            const fullPortability = pp.fullPortability ?? pp.hasFullPortability;
+            const proportionalRate = pp.scenarioTree?.permanentMove?.proportionalRate ?? pp.proportionalRate;
+            const portablePensionAnnual = pp.scenarioTree?.permanentMove?.annualPension
+                ?? pp.portablePensionAnnual
+                ?? pp.pensionCalculation?.overseas;
             const ppBody = [
-                ['Full Portability', pp.hasFullPortability ? 'Yes' : 'No'],
+                ['Full Portability', fullPortability != null ? (fullPortability ? 'Yes' : 'No') : 'N/A'],
                 ['Social Security Agreement', pp.hasAgreement ? 'Yes' : 'No'],
-                ['Proportional Rate', pp.proportionalRate != null ? `${(pp.proportionalRate * 100).toFixed(0)}%` : 'N/A'],
-                ['Annual Pension (Portable)', pp.portablePensionAnnual != null ? formatCurrency(pp.portablePensionAnnual) : 'N/A'],
+                ['Proportional Rate', proportionalRate != null ? `${(proportionalRate * 100).toFixed(0)}%` : 'N/A'],
+                ['Annual Pension (Portable)', portablePensionAnnual != null ? formatCurrency(portablePensionAnnual) : 'N/A'],
             ].filter(r => r[1] !== 'N/A');
             if (ppBody.length > 0) {
                 doc.autoTable({
@@ -4087,13 +4092,38 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
             doc.text('Tax Implications', 14, yPos);
             yPos += 6;
             const ti = overseas.taxImplications;
+            const joinParts = (parts) => parts.filter(Boolean).join('; ');
+            const residencyImplications = Array.isArray(ti.australianTaxResidency?.implications)
+                ? ti.australianTaxResidency.implications.join('; ')
+                : null;
+            const superImplications = Array.isArray(ti.superannuation?.considerations)
+                ? ti.superannuation.considerations.join('; ')
+                : null;
             const tiRows = [
-                ti.australianResidency ? ['Australian Tax Residency', ti.australianResidency] : null,
-                ti.superTaxation ? ['Superannuation Taxation', ti.superTaxation] : null,
+                ti.australianTaxResidency
+                    ? ['Australian Tax Residency', joinParts([
+                        ti.australianTaxResidency.status,
+                        residencyImplications,
+                        ti.australianTaxResidency.note,
+                    ])]
+                    : (ti.australianResidency ? ['Australian Tax Residency', ti.australianResidency] : null),
+                ti.superannuation
+                    ? ['Superannuation Taxation', joinParts([
+                        ti.superannuation.access,
+                        ti.superannuation.taxation,
+                        superImplications,
+                    ])]
+                    : (ti.superTaxation ? ['Superannuation Taxation', ti.superTaxation] : null),
+                ti.doubleTaxAgreement
+                    ? ['Double Tax Agreement', joinParts([
+                        ti.doubleTaxAgreement.exists === true ? 'Available' : null,
+                        ti.doubleTaxAgreement.exists === false ? 'Not available' : null,
+                        ti.doubleTaxAgreement.summary,
+                    ])]
+                    : (ti.dtaStatus ? ['Double Tax Agreement', ti.dtaStatus] : null),
                 ti.foreignIncomeTax ? ['Foreign Income Tax', ti.foreignIncomeTax] : null,
                 ti.capitalGainsTax ? ['Capital Gains Tax', ti.capitalGainsTax] : null,
-                ti.dtaStatus ? ['Double Tax Agreement', ti.dtaStatus] : null,
-            ].filter(Boolean);
+            ].filter((row) => row && row[1]);
             if (tiRows.length > 0) {
                 doc.autoTable({
                     startY: yPos,

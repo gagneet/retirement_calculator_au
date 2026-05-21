@@ -870,7 +870,10 @@ class RetirementCalculatorApp {
             trustBeneficiaries: safeGetSelectValue('trustBeneficiaries', 'you-only'),
             superAccess: safeGetSelectValue('superAccess', 'pension-mode'),
             overseasSpendingCurrency: safeGetSelectValue('overseasSpendingCurrency', 'AUD'),
-            overseasAudFxChange: parseFloat(safeGetValue('overseasAudFxChange', '-1')) || -1,
+            overseasAudFxChange: (() => {
+                const fxChange = parseFloat(safeGetValue('overseasAudFxChange', '-1'));
+                return Number.isNaN(fxChange) ? -1 : fxChange;
+            })(),
             overseasHousingType: safeGetSelectValue('overseasHousingType', 'rent'),
             overseasAnnualRent: parseFormattedNumber(getRawValue('overseasAnnualRent', '0')),
             overseasFallbackAge: parseInt(safeGetValue('overseasFallbackAge', 0)) || 0,

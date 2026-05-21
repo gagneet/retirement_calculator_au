@@ -1884,8 +1884,6 @@ function buildRetirementTargetBuilder(inp) {
   const estimatedRetirementNeed = Math.max(0, currentSpending - annualMortgage - childrenCosts + hcUplift);
   const monthly = Math.round(estimatedRetirementNeed / 12);
   const asfaComfortable = (inp.household === 'couple') ? 70800 : 48960;
-  const gap = estimatedRetirementNeed - (inp.desiredIncome || 0);
-
   const rows = [
     { label: 'Your target retirement income', val: fmt$(currentSpending) + '/yr', note: 'As entered' },
     annualMortgage > 0 ? { label: '− Mortgage payments (end at retirement)', val: `−${fmt$(Math.round(annualMortgage))}/yr`, note: 'Freed up' } : null,
@@ -1920,12 +1918,14 @@ function buildSequenceOfReturnsCallout(mc, adaptedResult, inp) {
   if (!inp?.age || !adaptedResult) return '';
 
   // If we have MC results, compute early crash vs late crash delta
-  // from the scenarios array (sorted: scenarios[0] = best, last = worst)
+  // using available percentile outputs.
   let earlyRiskHtml = '';
   let lateRiskHtml = '';
-  if (mc?.scenarios?.length >= 2) {
-    const best = mc.scenarios[mc.scenarios.length - 1]?.finalBalance || 0;
-    const worst = mc.scenarios[0]?.finalBalance || 0;
+  const mcWorst = mc?.percentiles?.p10 ?? mc?.percentile10;
+  const mcBest = mc?.percentiles?.p90 ?? mc?.percentile90;
+  if (mcWorst != null && mcBest != null) {
+    const best = mcBest || 0;
+    const worst = mcWorst || 0;
     const spread = best - worst;
     const spreadYears = adaptedResult?.monthlyPaycheck > 0
       ? Math.round(spread / ((adaptedResult.monthlyPaycheck * 12) || 1))
