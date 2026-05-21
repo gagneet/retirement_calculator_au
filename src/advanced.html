@@ -3697,6 +3697,98 @@
                                value="75000" min="0">
                     </div>
                 </div>
+
+                <!-- Age-Related Optional Costs (mirrors advanced-v2.html Section 13) -->
+                <div class="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <h4 class="text-sm font-semibold text-orange-800 mb-3">Age-Related Optional Costs
+                        <span class="section-badge badge-optional ml-2">Optional</span>
+                    </h4>
+                    <p class="text-xs text-orange-700 mb-3">Toggle the scenarios you want to model. Costs are applied in the simulation when the trigger age is reached. If downsizing to a newer/strata property is planned, maintenance costs may drop but body-corporate fees may apply.</p>
+
+                    <!-- Home Modifications -->
+                    <div class="mb-3 p-3 bg-white border border-orange-100 rounded">
+                        <label class="flex items-center gap-2 font-medium text-sm text-gray-700 mb-2">
+                            <input type="checkbox" id="enableHomeModifications" class="rounded border-gray-300 text-orange-500">
+                            🏠 Home Modifications &amp; Accessibility
+                        </label>
+                        <div id="homeModsFields" style="display:none" class="grid grid-cols-2 gap-2 mt-2">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700" for="homeModificationCost">One-off Modification Cost ($)</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="homeModificationCost" type="text" value="25000" min="0" placeholder="e.g. 25000">
+                                <p class="text-xs text-gray-500 mt-0.5">Ramps, grab rails, bathroom modifications</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700" for="homeModificationAge">Age to Apply Cost</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="homeModificationAge" type="text" value="75" min="60" max="100" placeholder="e.g. 75">
+                                <p class="text-xs text-gray-500 mt-0.5">Typically 75–80 years</p>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs font-medium text-gray-700" for="homeModificationRecurring">Annual Recurring Cost ($)</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="homeModificationRecurring" type="text" value="2000" min="0" placeholder="e.g. 2000">
+                                <p class="text-xs text-gray-500 mt-0.5">Ongoing home help, garden care after modification age. 0 if downsizing to managed facility.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Longevity Insurance / Annuity -->
+                    <div class="mb-3 p-3 bg-white border border-orange-100 rounded">
+                        <label class="flex items-center gap-2 font-medium text-sm text-gray-700 mb-2">
+                            <input type="checkbox" id="enableAnnuity" class="rounded border-gray-300 text-orange-500">
+                            🛡️ Longevity Insurance / Annuity
+                        </label>
+                        <div id="annuityFields" style="display:none" class="grid grid-cols-2 gap-2 mt-2">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700" for="annuityPurchaseAge">Purchase Age</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="annuityPurchaseAge" type="text" value="67" min="55" max="80" placeholder="e.g. 67">
+                                <p class="text-xs text-gray-500 mt-0.5">Age when you buy the annuity</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700" for="annuityLumpSum">Annuity Purchase Price ($)</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="annuityLumpSum" type="text" value="200000" min="0" placeholder="e.g. 200000">
+                                <p class="text-xs text-gray-500 mt-0.5">Lump sum invested in annuity</p>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs font-medium text-gray-700" for="annuityAnnualIncome">Annual Annuity Income ($)</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="annuityAnnualIncome" type="text" value="12000" min="0" placeholder="e.g. 12000">
+                                <p class="text-xs text-gray-500 mt-0.5">Guaranteed annual income from annuity — reduces portfolio drawdown after purchase age</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tiered Spending (Active / Stable / Frail) -->
+                    <div class="p-3 bg-white border border-orange-100 rounded">
+                        <label class="flex items-center gap-2 font-medium text-sm text-gray-700 mb-2">
+                            <input type="checkbox" id="enableTieredSpending" class="rounded border-gray-300 text-orange-500">
+                            📉 Tiered Spending Stages
+                        </label>
+                        <p class="text-xs text-gray-500 mb-2">Research shows retirement spending typically follows an Active → Stable → Frail pattern, falling in the middle years before rising for late-life care.</p>
+                        <div id="tieredSpendingFields" style="display:none" class="grid grid-cols-2 gap-2 mt-2">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700" for="tieredSpendingActiveAge">Active Phase End Age</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="tieredSpendingActiveAge" type="text" value="75" min="60" max="85" placeholder="e.g. 75">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700" for="tieredSpendingFrailAge">Frail Phase Start Age</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="tieredSpendingFrailAge" type="text" value="85" min="70" max="100" placeholder="e.g. 85">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700" for="tieredSpendingActiveMultiplier">Active Phase Spending (%)</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="tieredSpendingActiveMultiplier" type="text" value="110" min="80" max="150" placeholder="e.g. 110">
+                                <p class="text-xs text-gray-500 mt-0.5">% of base spending — typically higher in early retirement (travel, leisure)</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700" for="tieredSpendingStableMultiplier">Stable Phase Spending (%)</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="tieredSpendingStableMultiplier" type="text" value="90" min="50" max="120" placeholder="e.g. 90">
+                                <p class="text-xs text-gray-500 mt-0.5">% of base spending — typically lower in mid-retirement (less activity)</p>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs font-medium text-gray-700" for="tieredSpendingFrailMultiplier">Frail Phase Spending (%)</label>
+                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="tieredSpendingFrailMultiplier" type="text" value="120" min="80" max="200" placeholder="e.g. 120">
+                                <p class="text-xs text-gray-500 mt-0.5">% of base spending — typically higher again (healthcare, assistance)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -4782,6 +4874,10 @@
                         </th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-help"
                             title="Liquid assets remaining at year-end after growth, withdrawal, property income, healthcare and aged care costs.">End Balance 💰
+                        </th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-help overseas-col"
+                            title="Annual overseas living cost (excluding return travel). Only populated in years marked with ✈. The travel component is shown separately in the Yearly Withdrawal tooltip.">
+                            Overseas 🌏
                         </th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-help"
                             title="Total net worth: liquid assets + home equity + investment property equity. Property is shown at estimated market value less outstanding loan.">Total Net Worth 🏠
