@@ -1,4 +1,4 @@
-Exploratory QA tools are often pitched as: **give it a URL, and a swarm of AI “users” explores the app like humans would — signing up, clicking links, entering edge-case data, trying strange paths, and reporting breakages.** Its site says: “Drop a URL. A swarm of AI users tries to break it, sign up, hit edge sizes, click every link.” ([example.com][1])
+Exploratory QA tools are often pitched as: **give it a URL, and a swarm of AI “users” explores the app like humans would — signing up, clicking links, entering edge-case data, trying strange paths, and reporting breakages.**
 
 For your retirement calculator, the equivalent should not just be “AI clicks around”. Because it is a **financial projection calculator**, QA must combine:
 
@@ -342,10 +342,8 @@ exploratory AI testing
 
 That gives you something much stronger than a generic AI website tester: a **financial-calculator QA harness** that can catch both “button is broken” bugs and “the Age Pension calculation is logically wrong” bugs.
 
-[1]: https://example.com/?utm_source=chatgpt.com "Exploratory QA example"
 [2]: https://retirement.gagneet.com/advanced-v2.html "Australian Retirement Calculator | Advanced v2"
-[3]: https://playwright.dev/docs/codegen?utm_source=chatgpt.com "Test generator"
-[4]: https://playwright.dev/docs/best-practices?utm_source=chatgpt.com "Best Practices"
-[5]: https://playwright.dev/docs/accessibility-testing?utm_source=chatgpt.com "Accessibility testing"
-[6]: https://playwright.dev/docs/codegen-intro?utm_source=chatgpt.com "Generating tests"
-
+[3]: https://playwright.dev/docs/codegen "Test generator"
+[4]: https://playwright.dev/docs/best-practices "Best Practices"
+[5]: https://playwright.dev/docs/accessibility-testing "Accessibility testing"
+[6]: https://playwright.dev/docs/codegen-intro "Generating tests"

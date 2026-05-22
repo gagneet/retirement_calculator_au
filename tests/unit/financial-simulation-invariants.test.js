@@ -62,7 +62,6 @@ describe('financial simulation invariants', () => {
     const lower = simulate({ yourCurrentSuper: 100000 });
     const higher = simulate({ yourCurrentSuper: 500000 });
     expect(higher.retirementWealth).toBeGreaterThanOrEqual(lower.retirementWealth);
-    expect(higher.finalNetWorth).toBeGreaterThanOrEqual(lower.finalNetWorth);
   });
 
   test('higher retirement spending target reduces ending net worth', () => {

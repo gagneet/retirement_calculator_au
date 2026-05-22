@@ -109,10 +109,18 @@ async function applyPersona(page, rawFields) {
 
     Object.entries(values).forEach(([id, value]) => {
       const el = document.getElementById(id);
-      if (!el || value == null || typeof value === 'object') return;
-      if (el.type === 'checkbox') el.checked = Boolean(value);
-      else el.value = String(value);
-      fire(el);
+      if (value == null || typeof value === 'object') return;
+      if (el) {
+        if (el.type === 'checkbox') el.checked = Boolean(value);
+        else el.value = String(value);
+        fire(el);
+        return;
+      }
+
+      const seg = document.querySelector(`.segmented[data-bind="${id}"]`);
+      if (!seg) return;
+      const button = seg.querySelector(`button[data-value="${String(value)}"]`);
+      if (button) button.click();
     });
   }, fields);
 }
