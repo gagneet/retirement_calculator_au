@@ -37,6 +37,7 @@ describe('retirement_template.json Advanced v2 simulation validation', () => {
   test('template is Advanced v2 form-shaped data', () => {
     expect(templateData.version).toBe('4.0');
     expect(templateData.metadata.page).toBe('advanced-v2');
+    expect(templateData.metadata.schema).toBe('advanced-v2-form');
     expect(userData.household).toBe('couple');
     expect(userData.age).toBe(49);
     expect(userData.retireAge).toBe(71);
@@ -67,9 +68,7 @@ describe('retirement_template.json Advanced v2 simulation validation', () => {
     expect(engineInputs.trustTaxRate).toBeCloseTo(0.30, 6);
     expect(engineInputs.beneficiaryAllocation).toBeCloseTo(1.0, 6);
 
-    // The form contains employerRate: 0, and the adapter currently treats that as
-    // "use the default SG rate" rather than a literal zero contribution rate.
-    expect(engineInputs.superContributionRate).toBeGreaterThan(0);
+    expect(userData.employerRate).toBe(12);
     expect(engineInputs.superContributionRate).toBeCloseTo(0.12, 6);
   });
 

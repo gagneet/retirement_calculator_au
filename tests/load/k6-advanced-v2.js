@@ -21,7 +21,10 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.BASE_URL || 'https://retirement.gagneet.com';
+const BASE_URL = __ENV.BASE_URL;
+if (!BASE_URL) {
+  throw new Error('BASE_URL is required. Example: BASE_URL=https://retirement.gagneet.com npm run test:load');
+}
 const htmlTtfb = new Trend('html_ttfb');
 const staticAssetOk = new Rate('static_asset_ok');
 

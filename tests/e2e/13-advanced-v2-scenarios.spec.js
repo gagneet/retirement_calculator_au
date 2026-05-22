@@ -123,18 +123,36 @@ async function applyPersona(page, rawFields) {
       if (button) button.click();
     });
   }, fields);
+  return fields;
 }
 
-async function runSimulation(page) {
+async function runSimulation(page, expectedFields = {}) {
   // Advanced v2 performs a debounced live deterministic recalculation after input
-  // changes. The full button also chains Monte Carlo and solver tools, which is
-  // intentionally covered elsewhere and is too heavy for this persona matrix.
-  await page.waitForFunction(() => {
+  // changes. Wait for scenario-specific hero values so assertions cannot pass on
+  // the page's previous/default live projection.
+  await page.waitForFunction((expected) => {
     const runway = document.getElementById('r-runway')?.textContent?.trim();
     const superAtRetire = document.getElementById('r-super-at-retire')?.textContent?.trim();
-    return runway && runway !== '-' && runway !== '—' &&
-      superAtRetire && superAtRetire !== '-' && superAtRetire !== '—';
-  }, { timeout: 10000 });
+    if (!runway || runway === '-' || runway === '—') return false;
+    if (!superAtRetire || superAtRetire === '-' || superAtRetire === '—') return false;
+
+    const age = document.getElementById('hs-age')?.textContent?.trim();
+    if (expected.age != null && age !== String(expected.age)) return false;
+
+    const salary = document.getElementById('hs-salary')?.textContent?.trim();
+    if (expected.salary != null) {
+      const expectedSalary = '$' + Math.round(Number(expected.salary) / 1000) + 'k';
+      if (salary !== expectedSalary) return false;
+    }
+
+    const superSummary = document.getElementById('hs-super')?.textContent?.trim();
+    if (expected.superBal != null) {
+      const expectedSuper = '$' + Math.round(Number(expected.superBal) / 1000) + 'k';
+      if (superSummary !== expectedSuper) return false;
+    }
+
+    return true;
+  }, expectedFields, { timeout: 10000 });
 }
 
 async function expectNoInvalidNumbers(page) {
@@ -148,8 +166,8 @@ test.describe('Advanced v2 retirement personas', () => {
       page.on('pageerror', (err) => pageErrors.push(err.message));
 
       await openAdvancedV2(page);
-      await applyPersona(page, loadScenarioFields(scenario));
-      await runSimulation(page);
+      const fields = await applyPersona(page, loadScenarioFields(scenario));
+      await runSimulation(page, fields);
 
       if (scenario.checks.includes('summary')) {
         await expect(page.locator('#r-super-at-retire')).not.toContainText(/-|—/);
@@ -192,12 +210,12 @@ test.describe('Advanced v2 retirement personas', () => {
 test.describe('Advanced v2 financial UI invariants', () => {
   test('higher super balance does not reduce displayed super at retirement', async ({ page }) => {
     await openAdvancedV2(page);
-    await applyPersona(page, { age: 50, retireAge: 67, superBal: 100000, partnerSuperBal: 0 });
-    await runSimulation(page);
+    const lowFields = await applyPersona(page, { age: 50, retireAge: 67, superBal: 100000, partnerSuperBal: 0 });
+    await runSimulation(page, lowFields);
     const lowSuper = await page.locator('#r-super-at-retire').textContent();
 
-    await applyPersona(page, { superBal: 500000, partnerSuperBal: 0 });
-    await runSimulation(page);
+    const highFields = await applyPersona(page, { superBal: 500000, partnerSuperBal: 0 });
+    await runSimulation(page, highFields);
     const highSuper = await page.locator('#r-super-at-retire').textContent();
 
     const parseMoney = (text) => Number(String(text).replace(/[^0-9.]/g, ''));
@@ -208,8 +226,8 @@ test.describe('Advanced v2 financial UI invariants', () => {
   test('mobile viewport can run and inspect results without invalid output', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openAdvancedV2(page);
-    await applyPersona(page, { age: 49, retireAge: 67, salary: 120000, superBal: 250000, desiredIncome: 72000 });
-    await runSimulation(page);
+    const fields = await applyPersona(page, { age: 49, retireAge: 67, salary: 120000, superBal: 250000, desiredIncome: 72000 });
+    await runSimulation(page, fields);
 
     await expect(page.locator('.fab .fab-btn')).toBeVisible();
     await expect(page.locator('#r-runway')).not.toContainText(/-|—/);

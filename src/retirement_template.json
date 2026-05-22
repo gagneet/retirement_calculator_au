@@ -32,7 +32,7 @@
     "monthlyStockContrib": 300,
     "salarySacrifice": 5699,
     "partnerSalarySacrifice": 25224,
-    "employerRate": 0,
+    "employerRate": 12,
     "ncc": 0,
     "partnerNCC": 0,
     "concessionalUsedThisYear": 0,
@@ -169,6 +169,7 @@
     "description": "Australian Retirement Calculator - Advanced v2 input data",
     "fields": 160,
     "page": "advanced-v2",
-    "note": "This file contains Advanced v2 input data for the redesigned calculator."
+    "note": "This file contains Advanced v2 input data for the redesigned calculator.",
+    "schema": "advanced-v2-form"
   }
 }
