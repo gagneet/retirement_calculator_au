@@ -2564,6 +2564,10 @@ export class RetirementSimulator {
             }
         }
 
+        if (progressCallback) {
+            await progressCallback(runs, runs);
+        }
+
         outcomes.sort((a, b) => a - b);
 
         // Enhanced statistical analysis using median-based calculations
@@ -3179,6 +3183,10 @@ export class RetirementSimulator {
             if (progressCallback && i % 100 === 0) {
                 await progressCallback(i, runs);
             }
+        }
+
+        if (progressCallback) {
+            await progressCallback(runs, runs);
         }
 
         outcomes.sort((a, b) => a - b);

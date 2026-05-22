@@ -36,7 +36,7 @@ export class OverseasRetirementAnalyzer {
      * @param {string} countryCode - Country code (e.g., 'PORTUGAL', 'THAILAND')
      * @returns {Object} Comprehensive country analysis
      */
-    analyzeCountry(countryCode) {
+    analyzeCountry(countryCode, fxOptions = {}) {
         const country = COUNTRY_PROFILES[countryCode];
 
         if (!country) {
@@ -45,10 +45,15 @@ export class OverseasRetirementAnalyzer {
 
         return {
             country: country.name,
+            countryCode,
             overview: country.overview,
+            currency: country.currency,
+            distanceFromAustralia: country.distanceFromAustralia,
+            flightTime: country.flightTime,
+            climate: country.climate || null,
             agePensionPortability: this.calculatePensionPortability(country),
             taxImplications: this.analyzeTaxImplications(country),
-            costOfLiving: this.compareCostOfLiving(country),
+            costOfLiving: this.compareCostOfLiving(country, fxOptions),
             healthcare: country.healthcare,
             visaRequirements: country.visa,
             riskAssessment: this.assessRisks(country),
