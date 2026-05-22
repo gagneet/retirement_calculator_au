@@ -1,0 +1,123 @@
+[
+  {
+    "persona": "Normal Australian Couple",
+    "fields": {
+      "age": 45,
+      "partnerAge": 43,
+      "retireAge": 67,
+      "partnerRetireAge": 67,
+      "lifespan": 95,
+      "partnerLifespan": 95,
+      "salary": 150000,
+      "partnerSalary": 90000,
+      "superBal": 350000,
+      "partnerSuperBal": 180000,
+      "desiredIncome": 90000,
+      "homeValue": 1200000,
+      "mortgage": 450000
+    },
+    "checks": [
+      "summary",
+      "year",
+      "noInvalidNumbers"
+    ]
+  },
+  {
+    "persona": "Single Late Starter",
+    "fields": {
+      "household": "single",
+      "age": 55,
+      "partnerAge": 0,
+      "retireAge": 67,
+      "lifespan": 92,
+      "salary": 85000,
+      "partnerSalary": 0,
+      "superBal": 75000,
+      "partnerSuperBal": 0,
+      "desiredIncome": 68000,
+      "cash": 10000,
+      "stocks": 5000
+    },
+    "checks": [
+      "summary",
+      "riskSignal",
+      "noInvalidNumbers"
+    ]
+  },
+  {
+    "persona": "Overseas Retirement Planner",
+    "fields": {
+      "age": 52,
+      "retireAge": 60,
+      "lifespan": 95,
+      "salary": 130000,
+      "superBal": 410000,
+      "goingOverseas": true,
+      "destination": "india",
+      "annualLivingCostOverseas": 30000,
+      "ageMovingOverseas": 62,
+      "overseasMoveType": "permanent",
+      "australianResidenceYears": 35
+    },
+    "checks": [
+      "summary",
+      "overseas",
+      "noInvalidNumbers"
+    ]
+  },
+  {
+    "persona": "SMSF Trust Edge User",
+    "fields": {
+      "age": 58,
+      "retireAge": 65,
+      "salary": 110000,
+      "superBal": 250000,
+      "hasSmsf": true,
+      "hasTrust": true,
+      "trustBeneficiaries": "family",
+      "investmentProperty": true,
+      "ipValue": 700000,
+      "ipLoan": 520000,
+      "ipWeeklyRent": 650
+    },
+    "checks": [
+      "summary",
+      "warningSurface",
+      "noInvalidNumbers"
+    ]
+  },
+  {
+    "persona": "Template v2 Import Shape",
+    "template": "../../src/retirement_template.json",
+    "checks": [
+      "summary",
+      "overseas",
+      "noInvalidNumbers"
+    ]
+  },
+  {
+    "persona": "Template v1 Import Shape",
+    "template": "../../src/retirement_template_v1.json",
+    "checks": [
+      "summary",
+      "overseas",
+      "noInvalidNumbers"
+    ]
+  },
+  {
+    "persona": "Broken Input User",
+    "fields": {
+      "age": -1,
+      "retireAge": 40,
+      "lifespan": 150,
+      "inflation": 99,
+      "superGrowth": -50,
+      "homeValue": 999999999999,
+      "mortgage": 999999999999
+    },
+    "checks": [
+      "noInvalidNumbers",
+      "noCriticalPageErrors"
+    ]
+  }
+]

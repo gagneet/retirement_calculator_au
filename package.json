@@ -9,7 +9,8 @@
     "test": "jest --testPathPatterns=tests/",
     "test:e2e": "playwright_modules/node_modules/.bin/playwright test",
     "test:e2e:ui": "playwright_modules/node_modules/.bin/playwright test --ui",
-    "test:e2e:report": "playwright_modules/node_modules/.bin/playwright show-report"
+    "test:e2e:report": "playwright_modules/node_modules/.bin/playwright show-report",
+    "test:load": "k6 run tests/load/k6-advanced-v2.js"
   },
   "jest": {
     "testEnvironment": "jsdom",
