@@ -1308,7 +1308,7 @@ function exportRedesignUserData(inputs, scenarioName = 'Advanced Calculator v2')
                  'ipRate', 'ipGrowthRate', 'returnVolatility',
                  'shockProbability', 'shockMagnitude',
                  'agedCareProbability', 'employerRate', 'carerReducedWorkPercent'];
-  oneDP.forEach((k) => { if (cleanInputs[k] != null) cleanInputs[k] = parseFloat(Number(cleanInputs[k]).toFixed(1)); });
+  oneDP.forEach((k) => { if (cleanInputs[k] != null) cleanInputs[k] = parseFloat(Number(cleanInputs[k]).toFixed(2)); });
   twoDP.forEach((k) => { if (cleanInputs[k] != null) cleanInputs[k] = parseFloat(Number(cleanInputs[k]).toFixed(2)); });
 
   const exportData = {
@@ -2500,7 +2500,7 @@ function normalizeLoadedDecimals() {
                  'ipRate', 'ipGrowthRate', 'returnVolatility'];
   oneDP.forEach((id) => {
     const el = document.getElementById(id);
-    if (el) { const v = parseFloat(el.value); if (!isNaN(v)) el.value = parseFloat(v.toFixed(1)); }
+    if (el) { const v = parseFloat(el.value); if (!isNaN(v)) el.value = parseFloat(v.toFixed(2)); }
   });
   twoDP.forEach((id) => {
     const el = document.getElementById(id);
@@ -3137,7 +3137,7 @@ function boot() {
         if (!isNaN(v)) el.value = parseFloat(v.toFixed(places));
       });
     }
-    ['inflation', 'invReturn', 'superGrowth', 'savingsReturn'].forEach(id => enforceDecimals(id, 1));
+    ['inflation', 'invReturn', 'superGrowth', 'savingsReturn'].forEach(id => enforceDecimals(id, 2));
     ['mortgageRate', 'ccRate', 'personalLoanRate', 'carLoanRate', 'ipRate', 'ipGrowthRate', 'returnVolatility'].forEach(id => enforceDecimals(id, 2));
 
     // Lifespan validation: must be 0 (open-ended) OR strictly greater than the linked age field.
