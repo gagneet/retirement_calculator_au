@@ -338,17 +338,24 @@ export function calculatePortablePension({
             };
 
         case OverseasScenarioType.EXTENDED_TEMPORARY: {
-            // AWLR proportion applied; supplements already lost
-            const awlrAdjusted = basePension * proportionalRate;
-            const finalPension = Math.max(0, awlrAdjusted - supplementLoss);
+            // AWLR proportion applies after 26 weeks.
+            // Correct logic: The Basic Pension Rate is pro-rated. The Pension Supplement (Basic) is NOT pro-rated.
+            // Energy Supplement and Supplement Top-up are lost.
+            const annualBasicSupplement = isCouple ? cfg.PENSION_SUPPLEMENT_BASIC_COUPLE * 2 * 26 : cfg.PENSION_SUPPLEMENT_BASIC_SINGLE * 26;
+            // 1. Isolate the base pension rate (excluding all supplements)
+            const fullAnnualSupplement = supplementLoss + annualBasicSupplement;
+            const basePensionRateOnly = Math.max(0, basePension - fullAnnualSupplement);
+            // 2. Pro-rate the base rate by AWLR; 3. Add back retained basic supplement
+            const proRatedBase = basePensionRateOnly * proportionalRate;
+            const finalPension = (basePension > 0) ? (proRatedBase + annualBasicSupplement) : 0;
             const awlrWarning = hasFullPortability
                 ? null
-                : `AWLR: ${awlr}/${cfg.AWLR_REQUIRED_FOR_FULL} years — pension reduced to ${(proportionalRate * 100).toFixed(1)}%`;
+                : `AWLR: ${awlr}/${cfg.AWLR_REQUIRED_FOR_FULL} years — base rate reduced to ${(proportionalRate * 100).toFixed(1)}%`;
 
             return {
                 scenarioType,
                 annualPension: finalPension,
-                description: `Pension ${hasFullPortability ? 'continues at full rate' : `reduced to ${(proportionalRate * 100).toFixed(1)}% of eligible rate`} after 26 weeks`,
+                description: `Pension ${hasFullPortability ? 'continues at full rate' : `basic rate reduced to ${(proportionalRate * 100).toFixed(1)}%`} after 26 weeks`,
                 supplementLost: supplementLoss,
                 awlrApplied: !hasFullPortability,
                 awlrYears: awlr,
@@ -367,8 +374,11 @@ export function calculatePortablePension({
         case OverseasScenarioType.PERMANENT_MOVE: {
             // Supplements stop FROM DEPARTURE (not after 6 weeks)
             // AWLR proportion applies after 26 weeks
-            const awlrAdjusted = basePension * proportionalRate;
-            const finalPension = Math.max(0, awlrAdjusted - supplementLoss);
+            const annualBasicSupplement = isCouple ? cfg.PENSION_SUPPLEMENT_BASIC_COUPLE * 2 * 26 : cfg.PENSION_SUPPLEMENT_BASIC_SINGLE * 26;
+            const fullAnnualSupplement = supplementLoss + annualBasicSupplement;
+            const basePensionRateOnly = Math.max(0, basePension - fullAnnualSupplement);
+            const proRatedBase = basePensionRateOnly * proportionalRate;
+            const finalPension = (basePension > 0) ? (proRatedBase + annualBasicSupplement) : 0;
 
             return {
                 scenarioType,
@@ -383,9 +393,10 @@ export function calculatePortablePension({
                 pccValid: false,
                 warnings: [
                     'Supplement reductions apply immediately from departure date (permanent move)',
+                    '⚠️ Important: You must usually be an Australian resident in the country for at least 2 years after the pension is granted for it to remain portable.',
                     hasFullPortability
                         ? 'Full AWLR (35+ years): base pension rate preserved'
-                        : `Reduced AWLR (${awlr} years): pension at ${(proportionalRate * 100).toFixed(1)}% after 26 weeks`,
+                        : `Reduced AWLR (${awlr} years): base pension at ${(proportionalRate * 100).toFixed(1)}% after 26 weeks`,
                     agreementCountry
                         ? 'Agreement country: no 2-year waiting period on return'
                         : `Non-agreement country: 2-year waiting period applies if you return within ${cfg.RETURN_WAITING_PERIOD_YEARS} years`

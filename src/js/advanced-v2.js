@@ -3587,6 +3587,38 @@ function boot() {
       });
     })();
 
+    // Link Overseas Move Type, Return Frequency and Tax Residency
+    (function bindOverseasLogic() {
+      const moveTypeEl = document.getElementById('overseasMoveType');
+      const freqEl = document.getElementById('returnFrequency');
+      const taxResEl = document.getElementById('overseasTaxResidency');
+      if (!moveTypeEl || !freqEl || !taxResEl) return;
+
+      moveTypeEl.addEventListener('change', () => {
+        const moveType = moveTypeEl.value;
+        if (moveType === 'permanent') {
+          freqEl.value = 'never';
+          taxResEl.value = 'foreign';
+        } else if (moveType === 'short_absence') {
+          freqEl.value = 'annually';
+          taxResEl.value = 'australian';
+        }
+        recalc();
+      });
+
+      freqEl.addEventListener('change', () => {
+        const freq = freqEl.value;
+        if (freq === 'never') {
+          moveTypeEl.value = 'permanent';
+          taxResEl.value = 'foreign';
+        } else if (freq === 'seasonal' || freq === 'quarterly') {
+          moveTypeEl.value = 'extended_temporary';
+          taxResEl.value = 'australian';
+        }
+        recalc();
+      });
+    })();
+
     document.querySelectorAll('.col-form input, .col-form select').forEach((el) => {
       el.addEventListener('input', recalc);
       el.addEventListener('change', recalc);

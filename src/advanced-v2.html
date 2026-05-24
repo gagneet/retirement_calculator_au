@@ -301,10 +301,20 @@
         </button>
         <div class="section-body">
           <div class="subhead">Salary (excl. employer super)</div>
-          <div class="fields">
+          <div class="fields three">
             <div class="field">
               <label class="field-label" for="salary"><span class="req"></span><span>Your base salary</span><span class="hint">$/year</span></label>
               <div class="field-input has-prefix"><span class="prefix">$</span><input id="salary" type="number" value="145000" /><span class="suffix">/yr</span></div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="salaryGrowthType"><span>Salary growth pattern</span></label>
+              <div class="field-input">
+                <select id="salaryGrowthType">
+                  <option value="standard" selected>Standard (CPI indexation)</option>
+                  <option value="career">Career Progression (+2% p.a.)</option>
+                  <option value="stagnant">Stagnant (Inc. every 3 years)</option>
+                </select>
+              </div>
             </div>
             <div class="field" data-household="couple">
               <label class="field-label" for="partnerSalary"><span>Partner base salary</span><span class="hint">$/year</span></label>
@@ -585,6 +595,23 @@
               <div class="field-help">If you downsize, you may contribute up to $300,000 (each) of proceeds into super outside the usual contribution caps. Must be aged 55+ and have owned the home for 10+ years. Enable only if you plan to downsize.</div>
             </div>
           </div>
+          <div data-bind="downsizePlan" data-show-if="yes" hidden>
+            <div class="fields three">
+              <div class="field">
+                <label class="field-label" for="downsizeAge"><span>Age to downsize</span></label>
+                <div class="field-input"><input id="downsizeAge" type="number" value="75" /><span class="suffix">yrs</span></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="downsizeTargetHomeValue"><span>New home value</span><span class="hint">today's $</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="downsizeTargetHomeValue" type="number" value="800000" /></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="downsizeOngoingFees"><span>Ongoing fees</span><span class="hint">$/yr</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="downsizeOngoingFees" type="number" value="12000" /></div>
+                <div class="field-help">Strata or village service fees for the downsized property.</div>
+              </div>
+            </div>
+          </div>
 
           <div data-advanced="true">
             <div class="subhead">Other debts</div>
@@ -760,6 +787,32 @@
               <div class="field-input has-prefix"><span class="prefix">$</span><input id="desiredIncome" type="number" value="73000" /><span class="suffix">/yr</span></div>
               <div class="field-help">ASFA Retirement Standard (Sep 2024 quarter). <b>Couple:</b> Modest $47,731 · Comfortable $73,031. <b>Single:</b> Modest $33,134 · Comfortable $51,814. Presets below use couple figures — adjust manually if planning as single.</div>
             </div>
+          </div>
+          
+          <div class="subhead">Expense-based Target Builder</div>
+          <div class="fields three">
+            <div class="field">
+              <label class="field-label" for="builderCurrentIncome"><span>Current net income</span><span class="hint">$/mo</span></label>
+              <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderCurrentIncome" type="number" value="8500" /></div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="builderMortgage"><span>Current mortgage/rent</span><span class="hint">$/mo</span></label>
+              <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderMortgage" type="number" value="3200" /></div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="builderChildren"><span>Children/work costs</span><span class="hint">$/mo</span></label>
+              <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderChildren" type="number" value="1200" /></div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="builderBuffer"><span>Holidays/hobbies buffer</span><span class="hint">%</span></label>
+              <div class="field-input"><input id="builderBuffer" type="number" value="10" /><span class="suffix">%</span></div>
+            </div>
+            <div class="field" style="grid-column: span 2; display: flex; align-items: flex-end;">
+              <button type="button" class="iconbtn primary" id="btn-apply-builder" style="width:100%">Apply derived target to goal</button>
+            </div>
+          </div>
+
+          <div class="fields">
             <div class="field">
               <label class="field-label"><span>Lifestyle preset</span></label>
               <div class="segmented" data-bind="lifestylePreset" data-target="desiredIncome">
@@ -819,6 +872,18 @@
             <div class="field">
               <label class="field-label" for="ageFirstHadCover"><span>Age first had cover</span><span class="hint">LHC loading</span></label>
               <div class="field-input"><input id="ageFirstHadCover" type="number" value="30" /><span class="suffix">yrs</span></div>
+            </div>
+          </div>
+          <div class="subhead">Home Modification &amp; Mobility</div>
+          <div class="fields two">
+            <div class="field">
+              <label class="field-label" for="homeModAge"><span>Age for modification</span></label>
+              <div class="field-input"><input id="homeModAge" type="number" value="75" /><span class="suffix">yrs</span></div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="homeModBudget"><span>One-off budget</span><span class="hint">today's $</span></label>
+              <div class="field-input has-prefix"><span class="prefix">$</span><input id="homeModBudget" type="number" value="20000" /></div>
+              <div class="field-help">One-off expense for mobility ramps, bathroom mods, or other age-related home improvements.</div>
             </div>
           </div>
           <div data-advanced="true">
@@ -1329,7 +1394,29 @@
         </div>
         <div class="analysis-body">
           <div data-tab-panel="summary">
-            <p style="color:var(--ink-3)">Run the calculation to see your enhanced summary and top drivers here.</p>
+            <!-- The Bottom Line Summary Dashboard -->
+            <div id="adv2-bottom-line" style="margin-bottom:24px; display:none;">
+              <h4 style="font-family:var(--font-display); font-size:1.4rem; margin-bottom:12px;">The Bottom Line</h4>
+              <div class="summary-grid">
+                <div class="summary-chart">
+                  <div style="font-size:2rem; margin-bottom:8px;">⛵</div>
+                  <h5>Lifestyle goals</h5>
+                  <p id="bl-lifestyle" style="margin:0; color:var(--ink-2); font-size:13px;">...</p>
+                </div>
+                <div class="summary-chart">
+                  <div style="font-size:2rem; margin-bottom:8px;">🛡️</div>
+                  <h5>Crash safety net</h5>
+                  <p id="bl-crash" style="margin:0; color:var(--ink-2); font-size:13px;">...</p>
+                </div>
+                <div class="summary-chart">
+                  <div style="font-size:2rem; margin-bottom:8px;">🏛️</div>
+                  <h5>Pension transition</h5>
+                  <p id="bl-transition" style="margin:0; color:var(--ink-2); font-size:13px;">...</p>
+                </div>
+              </div>
+            </div>
+            
+            <p style="color:var(--ink-3)" id="summary-placeholder">Run the calculation to see your enhanced summary and top drivers here.</p>
             <div id="analysis-summary"></div>
           </div>
           <div data-tab-panel="whatif" hidden>
