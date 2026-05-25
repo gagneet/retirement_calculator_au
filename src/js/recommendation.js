@@ -1664,7 +1664,7 @@ class RecommendationEngine {
         }
 
         // Life Insurance Analysis - Universal for all with dependents or debt
-        const mortgage = inputs.yourMortgage || 0;
+        const mortgage = inputs.mortgageBalance || 0;
         const hasFinancialDependents = (inputs.partnerSalary > 0) || mortgage > 0 || (inputs.yourCurrentAge < 50);
 
         if (hasFinancialDependents && annualIncome > 25000) {

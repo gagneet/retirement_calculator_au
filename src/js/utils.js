@@ -1853,6 +1853,20 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
     // Get the final Y position after the first table
     let yPos = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 180;
 
+    // --- Plain-English Narrative Summary ---
+    if (enhancedAnalysis.plainEnglishNarrative) {
+        if (yPos > 220) { doc.addPage(); yPos = 20; }
+        doc.setFontSize(13);
+        doc.setTextColor(0, 71, 171);
+        doc.text('Plan Summary', 14, yPos);
+        yPos += 8;
+        doc.setFontSize(10);
+        doc.setTextColor(40, 40, 40);
+        const narrativeLines = doc.splitTextToSize(enhancedAnalysis.plainEnglishNarrative, 175);
+        doc.text(narrativeLines, 14, yPos);
+        yPos += (narrativeLines.length * 5) + 12;
+    }
+
     // --- Monte Carlo Analysis Section ---
     if (monteCarloResults) {
         if (yPos > 200) {
@@ -2436,6 +2450,23 @@ export const populateFormFromData = (userData, version = '2.0') => {
             } else {
                 // Handle field mapping for legacy/alternative field names
                 let targetKey = fieldMapping[key] || key;
+
+                // Map v2 overseas field names to advanced.html element IDs
+                const v2ToClassicMap = {
+                    destination: 'overseasCountry',
+                    ageMovingOverseas: 'overseasAge',
+                    annualLivingCostOverseas: 'estimatedLivingCosts',
+                };
+                if (v2ToClassicMap[key]) {
+                    const el = $(v2ToClassicMap[key]);
+                    if (el) {
+                        el.value = value == null ? '' : value;
+                        fieldsPopulated++;
+                        debugLog(`✓ Mapped v2 field ${key} → ${v2ToClassicMap[key]}: ${value}`);
+                    }
+                    // Also try the v2 key itself (in case the page uses it natively)
+                    targetKey = $(key) ? key : v2ToClassicMap[key];
+                }
 
                 // Map returnRate to specific investment return fields
                 if (key === 'returnRate') {
@@ -3057,6 +3088,7 @@ function extractAnalysisData(inputs, results, app) {
         riskProfile: null,
         allocationStrategy: null,
         overseasData: null,
+        plainEnglishNarrative: null,
     };
 
     try {
@@ -3144,6 +3176,11 @@ function extractAnalysisData(inputs, results, app) {
         // Overseas retirement scenarios (if run)
         if (app?.currentOverseasData) {
             analysis.overseasData = app.currentOverseasData;
+        }
+
+        // Plain-English narrative text for PDF header
+        if (app?.plainEnglishNarrative) {
+            analysis.plainEnglishNarrative = app.plainEnglishNarrative;
         }
 
     } catch (error) {
@@ -4078,13 +4115,28 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
         if (config.destinationCountry || config.currency) {
             doc.setFontSize(10);
             doc.setTextColor(100);
-            const configText = [
+            const configParts = [
                 config.destinationCountry ? `Destination: ${config.destinationCountry}` : null,
                 config.currency ? `Currency: ${config.currency}` : null,
                 config.monthlyBudget ? `Monthly Budget: ${config.currency || '$'}${config.monthlyBudget?.toLocaleString()}` : null,
-            ].filter(Boolean).join('   |   ');
-            doc.text(configText, 14, yPos);
-            yPos += 10;
+                config.moveType && config.moveType !== 'unknown' ? `Move Type: ${config.moveType}` : null,
+                config.taxResidency && config.taxResidency !== 'unknown' ? `Tax Residency: ${config.taxResidency}` : null,
+                config.returnFrequency && config.returnFrequency !== 'unknown' ? `Return Visits: ${config.returnFrequency}` : null,
+                config.ageMovingOverseas ? `Moving Overseas at Age: ${config.ageMovingOverseas}` : null,
+            ].filter(Boolean);
+            configParts.forEach(part => {
+                doc.text(part, 14, yPos);
+                yPos += 6;
+            });
+            yPos += 4;
+        }
+
+        if (overseas.overview) {
+            doc.setFontSize(9);
+            doc.setTextColor(60);
+            const overviewLines = doc.splitTextToSize(overseas.overview, 175);
+            doc.text(overviewLines, 14, yPos);
+            yPos += overviewLines.length * 5 + 8;
         }
 
         if (scenarios.length > 0) {
@@ -4114,7 +4166,116 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
                 }
             });
             yPos = doc.lastAutoTable.finalY + 10;
-        } else {
+        }
+
+        // Age Pension Portability
+        if (overseas.pensionPortability) {
+            if (yPos > 220) { doc.addPage(); yPos = 20; }
+            doc.setFontSize(12);
+            doc.setTextColor(8, 145, 178);
+            doc.text('Age Pension Portability', 14, yPos);
+            yPos += 6;
+            const pp = overseas.pensionPortability;
+            const fullPortability = pp.fullPortability ?? pp.hasFullPortability;
+            const proportionalRate = pp.scenarioTree?.permanentMove?.proportionalRate ?? pp.proportionalRate;
+            const portablePensionAnnual = pp.scenarioTree?.permanentMove?.annualPension
+                ?? pp.portablePensionAnnual
+                ?? pp.pensionCalculation?.overseas;
+            const ppBody = [
+                ['Full Portability', fullPortability != null ? (fullPortability ? 'Yes' : 'No') : 'N/A'],
+                ['Social Security Agreement', pp.hasAgreement ? 'Yes' : 'No'],
+                ['Proportional Rate', proportionalRate != null ? `${(proportionalRate * 100).toFixed(0)}%` : 'N/A'],
+                ['Annual Pension (Portable)', portablePensionAnnual != null ? formatCurrency(portablePensionAnnual) : 'N/A'],
+            ].filter(r => r[1] !== 'N/A');
+            if (ppBody.length > 0) {
+                doc.autoTable({
+                    startY: yPos,
+                    head: [['Pension Metric', 'Value']],
+                    body: ppBody,
+                    theme: 'grid',
+                    headStyles: { fillColor: [8, 145, 178] },
+                    styles: { fontSize: 8 }
+                });
+                yPos = doc.lastAutoTable.finalY + 8;
+            }
+        }
+
+        // Tax Implications
+        if (overseas.taxImplications) {
+            if (yPos > 220) { doc.addPage(); yPos = 20; }
+            doc.setFontSize(12);
+            doc.setTextColor(8, 145, 178);
+            doc.text('Tax Implications', 14, yPos);
+            yPos += 6;
+            const ti = overseas.taxImplications;
+            const joinParts = (parts) => parts.filter(Boolean).join('; ');
+            const residencyImplications = Array.isArray(ti.australianTaxResidency?.implications)
+                ? ti.australianTaxResidency.implications.join('; ')
+                : null;
+            const superImplications = Array.isArray(ti.superannuation?.considerations)
+                ? ti.superannuation.considerations.join('; ')
+                : null;
+            const tiRows = [
+                ti.australianTaxResidency
+                    ? ['Australian Tax Residency', joinParts([
+                        ti.australianTaxResidency.status,
+                        residencyImplications,
+                        ti.australianTaxResidency.note,
+                    ])]
+                    : (ti.australianResidency ? ['Australian Tax Residency', ti.australianResidency] : null),
+                ti.superannuation
+                    ? ['Superannuation Taxation', joinParts([
+                        ti.superannuation.access,
+                        ti.superannuation.taxation,
+                        superImplications,
+                    ])]
+                    : (ti.superTaxation ? ['Superannuation Taxation', ti.superTaxation] : null),
+                ti.doubleTaxAgreement
+                    ? ['Double Tax Agreement', joinParts([
+                        ti.doubleTaxAgreement.exists === true ? 'Available' : null,
+                        ti.doubleTaxAgreement.exists === false ? 'Not available' : null,
+                        ti.doubleTaxAgreement.summary,
+                    ])]
+                    : (ti.dtaStatus ? ['Double Tax Agreement', ti.dtaStatus] : null),
+                ti.foreignIncomeTax ? ['Foreign Income Tax', ti.foreignIncomeTax] : null,
+                ti.capitalGainsTax ? ['Capital Gains Tax', ti.capitalGainsTax] : null,
+            ].filter((row) => row && row[1]);
+            if (tiRows.length > 0) {
+                doc.autoTable({
+                    startY: yPos,
+                    head: [['Tax Area', 'Details']],
+                    body: tiRows,
+                    theme: 'striped',
+                    headStyles: { fillColor: [8, 145, 178] },
+                    styles: { fontSize: 8, cellPadding: 3 },
+                    columnStyles: { 0: { cellWidth: 55 }, 1: { cellWidth: 115 } }
+                });
+                yPos = doc.lastAutoTable.finalY + 8;
+            }
+        }
+
+        // Overseas-specific recommendations
+        if (overseas.recommendations?.length > 0) {
+            if (yPos > 220) { doc.addPage(); yPos = 20; }
+            doc.setFontSize(12);
+            doc.setTextColor(8, 145, 178);
+            doc.text('Overseas Retirement Recommendations', 14, yPos);
+            yPos += 6;
+            doc.autoTable({
+                startY: yPos,
+                head: [['Recommendation', 'Priority']],
+                body: overseas.recommendations.slice(0, 8).map(r => [
+                    typeof r === 'string' ? r : (r.recommendation || r.action || r.title || ''),
+                    r.priority || 'Review'
+                ]),
+                theme: 'grid',
+                headStyles: { fillColor: [8, 145, 178] },
+                styles: { fontSize: 8 }
+            });
+            yPos = doc.lastAutoTable.finalY + 8;
+        }
+
+        if (!overseas.overview && !scenarios.length) {
             doc.setFontSize(9);
             doc.setTextColor(150);
             doc.text('No overseas scenario data available for detailed breakdown.', 14, yPos);

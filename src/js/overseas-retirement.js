@@ -36,7 +36,7 @@ export class OverseasRetirementAnalyzer {
      * @param {string} countryCode - Country code (e.g., 'PORTUGAL', 'THAILAND')
      * @returns {Object} Comprehensive country analysis
      */
-    analyzeCountry(countryCode) {
+    analyzeCountry(countryCode, fxOptions = {}) {
         const country = COUNTRY_PROFILES[countryCode];
 
         if (!country) {
@@ -45,10 +45,15 @@ export class OverseasRetirementAnalyzer {
 
         return {
             country: country.name,
+            countryCode,
             overview: country.overview,
+            currency: country.currency,
+            distanceFromAustralia: country.distanceFromAustralia,
+            flightTime: country.flightTime,
+            climate: country.climate || null,
             agePensionPortability: this.calculatePensionPortability(country),
             taxImplications: this.analyzeTaxImplications(country),
-            costOfLiving: this.compareCostOfLiving(country),
+            costOfLiving: this.compareCostOfLiving(country, fxOptions),
             healthcare: country.healthcare,
             visaRequirements: country.visa,
             riskAssessment: this.assessRisks(country),
@@ -207,36 +212,86 @@ export class OverseasRetirementAnalyzer {
      * Analyze tax implications
      */
     analyzeTaxImplications(country) {
-        return {
-            australianTaxResidency: {
-                status: 'Initially remain Australian tax resident',
-                implications: [
-                    'Taxed on worldwide income',
-                    'Can access super tax-free from age 60',
-                    'Investment income taxed at Australian rates'
-                ],
-                transitionToForeign: {
-                    when: 'After establishing permanent residence',
-                    implications: [
-                        'Only Australian-sourced income taxed in Australia',
-                        'Super withdrawals still tax-free (age 60+)',
-                        'No tax-free threshold (30% flat rate on Australian income)'
-                    ]
-                }
-            },
+        // Use the tax residency preference set by the user, falling back to 'australian'
+        const taxResidency = this.person?.overseasTaxResidency || 'australian';
+        const hasDTA = !!(country.tax?.doubleTaxAgreement);
+        const dtaSummary = country.tax?.agreementSummary || 'No formal agreement — consult a cross-border tax adviser';
+
+        const base = {
+            selectedResidency: taxResidency,
             superannuation: {
                 access: 'Can access at age 60 regardless of overseas residence',
                 taxation: 'Tax-free from age 60 (Australian tax)',
                 considerations: [
                     'Some funds may close accounts for permanent overseas residents',
                     'Currency conversion fees apply',
-                    country.tax?.superTaxation || 'Check local tax rules'
+                    country.tax?.superTaxation || 'Check local tax rules for super withdrawals'
                 ]
             },
             doubleTaxAgreement: {
-                exists: country.tax?.doubleTaxAgreement || false,
+                exists: hasDTA,
                 nhrScheme: country.tax?.nhrScheme || null,
-                summary: country.tax?.agreementSummary || 'Consult tax adviser'
+                summary: dtaSummary
+            }
+        };
+
+        if (taxResidency === 'foreign') {
+            return {
+                ...base,
+                australianTaxResidency: {
+                    status: 'Foreign tax resident of Australia',
+                    implications: [
+                        'Only Australian-sourced income is taxed in Australia',
+                        'No tax-free threshold — 30% flat rate applies to Australian income',
+                        'Withholding tax (typically 10–15%) applies to Australian bank interest',
+                        'Super withdrawals remain tax-free at age 60+',
+                        'Capital gains on Australian property taxed at 32.5% (no 50% CGT discount)'
+                    ],
+                    note: hasDTA
+                        ? `Australia has a Double Tax Agreement with ${country.name} — may reduce Australian withholding tax on dividends, interest and royalties.`
+                        : `No Double Tax Agreement with ${country.name} — potential for double taxation on investment income. Consider restructuring before departure.`
+                }
+            };
+        }
+
+        if (taxResidency === 'dta') {
+            return {
+                ...base,
+                australianTaxResidency: {
+                    status: 'Relying on Double Tax Agreement provisions',
+                    implications: hasDTA ? [
+                        `Australia–${country.name} DTA limits withholding tax on dividends, interest, and royalties`,
+                        'Age Pension is generally only taxable in Australia under most DTAs',
+                        'Super lump-sum payments may be exempt or reduced under DTA',
+                        'Tiebreaker residency rules in the DTA determine primary taxing rights',
+                        'Mutual agreement procedure available if both countries attempt to tax the same income'
+                    ] : [
+                        `No DTA exists between Australia and ${country.name}`,
+                        'Cannot rely on DTA tiebreaker rules — manual tax advice required',
+                        'Consider whether the additional tax cost changes the viability of this destination',
+                        'Unilateral foreign tax offset (FTO) may provide partial relief for foreign taxes paid'
+                    ],
+                    note: hasDTA ? dtaSummary : 'No DTA available — seek specialist cross-border tax advice before finalising plans.'
+                }
+            };
+        }
+
+        // Default: 'australian' — user intends to maintain Australian tax residency
+        return {
+            ...base,
+            australianTaxResidency: {
+                status: 'Maintain Australian tax residency',
+                implications: [
+                    'Taxed on worldwide income at Australian rates',
+                    'Retains tax-free threshold and full Medicare entitlements for Australian-sourced income',
+                    'Can access super tax-free from age 60',
+                    'Investment income from overseas assets taxed at Australian marginal rates',
+                    'Requires strong ongoing ties to Australia (property, bank accounts, family, intention to return)'
+                ],
+                transitionRisk: {
+                    trigger: 'ATO may deem you a foreign resident if you permanently sever ties',
+                    implication: 'Deemed disposal of assets at CGT event on departure — advance planning critical'
+                }
             }
         };
     }

@@ -351,15 +351,17 @@ function buildEngineInputs(inp) {
     // NOTE: time-bounded legal obligations (spousalMaintenanceEndsAge, youngestChildAge) are not yet
     // enforced per-year — they run for the full carerYearsExpected window. This is a known limitation.
     ...(() => {
-      const nonCarerExpense = (inp.annualParentSupport || 0)
-        + (inp.hasSpousalMaintenance ? (inp.annualSpousalMaintenance || 0) : 0)
-        + (inp.hasChildSupport ? (inp.annualChildSupport || 0) : 0);
-      const carerExpense = inp.isCarer ? (inp.carerAnnualExpense ?? 0) : 0;
-      const totalFamilyExpense = carerExpense + nonCarerExpense;
+      const parentCareExpense = inp.isCarer
+        ? (inp.carerAnnualExpense ?? inp.annualParentSupport ?? 0)
+        : (inp.annualParentSupport || 0);
+      const spousalExpense = inp.hasSpousalMaintenance ? (inp.annualSpousalMaintenance || 0) : 0;
+      const childSupportExpense = inp.hasChildSupport ? (inp.annualChildSupport || 0) : 0;
+      const totalFamilyExpense = parentCareExpense + spousalExpense + childSupportExpense;
+      const hasFamilyObligations = totalFamilyExpense > 0;
       return {
-        isCarerForParents: inp.isCarer || nonCarerExpense > 0,
+        isCarerForParents: !!(inp.isCarer || hasFamilyObligations),
         carerReducedWorkPercent: inp.isCarer ? pct(inp.carerReducedWorkPercent) : 0,
-        carerYearsExpected: inp.isCarer ? (inp.carerYearsExpected || 0) : (nonCarerExpense > 0 ? 999 : 0),
+        carerYearsExpected: inp.isCarer ? (inp.carerYearsExpected || 0) : (hasFamilyObligations ? 999 : 0),
         carerAnnualExpense: totalFamilyExpense,
       };
     })(),
@@ -391,6 +393,21 @@ function buildEngineInputs(inp) {
     overseasStartAge: inp.goingOverseas ? (inp.ageMovingOverseas || 0) : 0,
     overseasAnnualBudget: inp.goingOverseas ? (inp.annualLivingCostOverseas || 0) : 0,
     overseasReturnFrequency: inp.returnFrequency || 'never',
+    overseasMoveType: inp.overseasMoveType || 'permanent',
+    overseasTaxResidency: inp.overseasTaxResidency || 'australian',
+    overseasHealthCover: inp.overseasHealthCover || 'international_private',
+    maintainResidency: Boolean(inp.maintainResidency),
+    overseasPropertyStrategy: inp.propertyStrategy || 'keep-personal',
+    overseasTrustBeneficiaries: inp.trustBeneficiaries || 'you-only',
+    overseasSuperAccessStrategy: inp.superAccess || 'pension-mode',
+    overseasAgreementCountry: Boolean(inp.overseasAgreementCountry),
+    overseasFallbackAge: inp.overseasFallbackAge || 0,
+    overseasFallbackTrigger: inp.overseasFallbackTrigger || 'none',
+    overseasSpendingCurrency: inp.overseasSpendingCurrency || 'AUD',
+    overseasAudFxChange: pct(inp.overseasAudFxChange !== undefined ? inp.overseasAudFxChange : -1, -1),
+    overseasHousingType: inp.overseasHousingType || 'rent',
+    overseasAnnualRent: inp.overseasAnnualRent || 0,
+    overseasDestination: inp.destination || '',
 
     creditCardBalance: inp.ccBalance,
     creditCardRate: pct(inp.ccRate || 20, 20),
@@ -399,6 +416,22 @@ function buildEngineInputs(inp) {
     carLoanBalance: inp.carLoan,
     carLoanRate: pct(inp.carLoanRate || 8, 8),
     hecsBalance: inp.hecsBalance,
+
+    // Age-related optional costs
+    enableHomeModifications: Boolean(inp.enableHomeModifications),
+    homeModificationCost: inp.homeModificationCost || 0,
+    homeModificationAge: inp.homeModificationAge || 78,
+    homeModificationRecurring: inp.homeModificationRecurring || 0,
+    enableAnnuity: Boolean(inp.enableAnnuity),
+    annuityPurchaseAge: inp.annuityPurchaseAge || 67,
+    annuityLumpSum: inp.annuityLumpSum || 0,
+    annuityAnnualIncome: inp.annuityAnnualIncome || 0,
+    enableTieredSpending: Boolean(inp.enableTieredSpending),
+    tieredSpendingActiveAge: inp.tieredSpendingActiveAge || 75,
+    tieredSpendingFrailAge: inp.tieredSpendingFrailAge || 85,
+    tieredSpendingActiveMultiplier: pct(inp.tieredSpendingActiveMultiplier || 110, 110),
+    tieredSpendingStableMultiplier: pct(inp.tieredSpendingStableMultiplier || 90, 90),
+    tieredSpendingFrailMultiplier: pct(inp.tieredSpendingFrailMultiplier || 115, 115),
   };
 }
 
@@ -521,7 +554,7 @@ function adaptEngineOutput(inp, engineInputs, simulation) {
   const monthlyPaycheck = annualIncomeToday / 12;
   const targetMonthly = Math.max(1, inp.desiredIncome / 12);
   const effectivePlanAge = inp.lifespan > 0 ? inp.lifespan : 120;
-  const lastsUntil = simulation.depletionAge || effectivePlanAge;
+  const lastsUntil = Math.min(simulation.depletionAge || effectivePlanAge, effectivePlanAge);
   const coverageScore = monthlyPaycheck / targetMonthly;
   const longevityScore = lastsUntil >= effectivePlanAge
     ? 1
@@ -836,6 +869,22 @@ function readInputs() {
     agedCareStartAge: num('agedCareStartAge'),
     agedCareAnnualCost: num('agedCareAnnualCost'),
 
+    // Age-related optional costs (Section 13)
+    enableHomeModifications: chk('enableHomeModifications'),
+    homeModificationCost: num('homeModificationCost', 25000),
+    homeModificationAge: num('homeModificationAge', 78),
+    homeModificationRecurring: num('homeModificationRecurring', 2000),
+    enableAnnuity: chk('enableAnnuity'),
+    annuityPurchaseAge: num('annuityPurchaseAge', 67),
+    annuityLumpSum: num('annuityLumpSum', 200000),
+    annuityAnnualIncome: num('annuityAnnualIncome', 14000),
+    enableTieredSpending: chk('enableTieredSpending'),
+    tieredSpendingActiveAge: num('tieredSpendingActiveAge', 75),
+    tieredSpendingFrailAge: num('tieredSpendingFrailAge', 85),
+    tieredSpendingActiveMultiplier: num('tieredSpendingActiveMultiplier', 110),
+    tieredSpendingStableMultiplier: num('tieredSpendingStableMultiplier', 90),
+    tieredSpendingFrailMultiplier: num('tieredSpendingFrailMultiplier', 115),
+
     // Markets
     inflation: num('inflation', 2.6),
     invReturn: num('invReturn', 6.5),
@@ -994,6 +1043,10 @@ function buildExportAppBridge() {
     currentRiskProfile: APP_STATE.riskProfile,
     currentAllocationStrategy: APP_STATE.allocationStrategy,
     currentOverseasData: APP_STATE.overseasExportData,
+    // Plain-English narrative text for PDF
+    plainEnglishNarrative: APP_STATE.adaptedResult && APP_STATE.input
+      ? buildPlainEnglishNarrativeText(APP_STATE.adaptedResult, APP_STATE.input, APP_STATE.monteCarloResults)
+      : null,
   };
 }
 
@@ -1223,20 +1276,58 @@ function normalizeImportedUserData(userData = {}) {
     hasChildSupport: Boolean(userData.hasChildSupport ?? base.hasChildSupport),
     annualChildSupport: userData.annualChildSupport ?? base.annualChildSupport,
     youngestChildAge: userData.youngestChildAge ?? base.youngestChildAge,
+    // Overseas retirement — map classic advanced.html field names → v2 field names.
+    // This ensures a JSON saved on either page loads correctly on the other.
+    goingOverseas: userData.goingOverseas ?? (userData.overseasCountry ? userData.overseasCountry !== '' : base.goingOverseas),
+    destination: userData.destination ?? userData.overseasCountry ?? base.destination,
+    ageMovingOverseas: userData.ageMovingOverseas ?? userData.overseasAge ?? userData.overseasStartAge ?? base.ageMovingOverseas,
+    annualLivingCostOverseas: userData.annualLivingCostOverseas ?? userData.estimatedLivingCosts ?? userData.overseasAnnualBudget ?? base.annualLivingCostOverseas,
+    returnFrequency: userData.returnFrequency ?? userData.overseasReturnFrequency ?? base.returnFrequency,
+    overseasMoveType: userData.overseasMoveType ?? base.overseasMoveType,
+    overseasTaxResidency: userData.overseasTaxResidency ?? base.overseasTaxResidency,
+    overseasHealthCover: userData.overseasHealthCover ?? base.overseasHealthCover,
+    maintainResidency: Boolean(userData.maintainResidency ?? base.maintainResidency),
+    overseasAgreementCountry: Boolean(userData.overseasAgreementCountry ?? base.overseasAgreementCountry),
+    propertyStrategy: userData.propertyStrategy ?? base.propertyStrategy,
+    trustBeneficiaries: userData.trustBeneficiaries ?? base.trustBeneficiaries,
+    superAccess: userData.superAccess ?? base.superAccess,
+    overseasSpendingCurrency: userData.overseasSpendingCurrency ?? base.overseasSpendingCurrency,
+    overseasAudFxChange: userData.overseasAudFxChange ?? base.overseasAudFxChange,
+    overseasHousingType: userData.overseasHousingType ?? base.overseasHousingType,
+    overseasAnnualRent: userData.overseasAnnualRent ?? base.overseasAnnualRent,
+    overseasFallbackAge: userData.overseasFallbackAge ?? base.overseasFallbackAge,
+    overseasFallbackTrigger: userData.overseasFallbackTrigger ?? base.overseasFallbackTrigger,
+    australianResidenceYears: userData.australianResidenceYears ?? base.australianResidenceYears,
+    // Age-related optional costs (Section 13)
+    enableHomeModifications: Boolean(userData.enableHomeModifications ?? base.enableHomeModifications),
+    homeModificationCost: userData.homeModificationCost ?? base.homeModificationCost,
+    homeModificationAge: userData.homeModificationAge ?? base.homeModificationAge,
+    homeModificationRecurring: userData.homeModificationRecurring ?? base.homeModificationRecurring,
+    enableAnnuity: Boolean(userData.enableAnnuity ?? base.enableAnnuity),
+    annuityPurchaseAge: userData.annuityPurchaseAge ?? base.annuityPurchaseAge,
+    annuityLumpSum: userData.annuityLumpSum ?? base.annuityLumpSum,
+    annuityAnnualIncome: userData.annuityAnnualIncome ?? base.annuityAnnualIncome,
+    enableTieredSpending: Boolean(userData.enableTieredSpending ?? base.enableTieredSpending),
+    tieredSpendingActiveAge: userData.tieredSpendingActiveAge ?? base.tieredSpendingActiveAge,
+    tieredSpendingFrailAge: userData.tieredSpendingFrailAge ?? base.tieredSpendingFrailAge,
+    tieredSpendingActiveMultiplier: userData.tieredSpendingActiveMultiplier ?? base.tieredSpendingActiveMultiplier,
+    tieredSpendingStableMultiplier: userData.tieredSpendingStableMultiplier ?? base.tieredSpendingStableMultiplier,
+    tieredSpendingFrailMultiplier: userData.tieredSpendingFrailMultiplier ?? base.tieredSpendingFrailMultiplier,
   };
 }
 
 function exportRedesignUserData(inputs, scenarioName = 'Advanced Calculator v2') {
   // Clamp float noise on rate fields before serialising.
-  // These fields are stored as display-percent (e.g. "3.5" not "0.035"), so they only
-  // need 1–2 decimal places. String(parseFloat(x)) can produce 16.199999999997 etc.
+  // These fields are stored as display-percent (e.g. "3.5" not "0.035").
+  // Clamp float noise to 2 dp — String(parseFloat(x)) can produce 16.199999999997 etc.
   const cleanInputs = { ...inputs };
-  const oneDP = ['inflation', 'invReturn', 'superGrowth', 'savingsReturn'];
-  const twoDP = ['mortgageRate', 'ccRate', 'personalLoanRate', 'carLoanRate',
-                 'ipRate', 'ipGrowthRate', 'returnVolatility',
-                 'shockProbability', 'shockMagnitude',
-                 'agedCareProbability', 'employerRate', 'carerReducedWorkPercent'];
-  oneDP.forEach((k) => { if (cleanInputs[k] != null) cleanInputs[k] = parseFloat(Number(cleanInputs[k]).toFixed(1)); });
+  const twoDP = [
+    'inflation', 'invReturn', 'superGrowth', 'savingsReturn',
+    'mortgageRate', 'ccRate', 'personalLoanRate', 'carLoanRate',
+    'ipRate', 'ipGrowthRate', 'returnVolatility',
+    'shockProbability', 'shockMagnitude',
+    'agedCareProbability', 'employerRate', 'carerReducedWorkPercent',
+  ];
   twoDP.forEach((k) => { if (cleanInputs[k] != null) cleanInputs[k] = parseFloat(Number(cleanInputs[k]).toFixed(2)); });
 
   const exportData = {
@@ -1280,6 +1371,7 @@ function buildOverseasAnalyzer(baseState) {
           ? Math.max(0, baseState.input.retireAge - baseState.input.ageCameToAU)
           : Math.max(0, baseState.input.retireAge - 16),
       enableProposedBudget2026: baseState.input.budget2627,
+      overseasTaxResidency: baseState.input.overseasTaxResidency || 'australian',
     },
     {
       superBalance: baseState.input.superBal + (baseState.engineInputs?.isCouple ? baseState.input.partnerSuperBal : 0),
@@ -1301,12 +1393,17 @@ function buildOverseasExportData(analysis, annualBudget, finalBalance) {
     ? Math.round(((annualCost - australiaAnnual) / australiaAnnual) * 100)
     : 0;
   const availableAnnualIncome = (APP_STATE.adaptedResult?.monthlyPaycheck || 0) * 12;
+  const input = APP_STATE.input || {};
 
   return {
     config: {
       destinationCountry: analysis.country,
       currency: 'AUD',
       monthlyBudget,
+      moveType: input.overseasMoveType || 'unknown',
+      taxResidency: input.overseasTaxResidency || 'unknown',
+      returnFrequency: input.returnFrequency || 'unknown',
+      ageMovingOverseas: input.ageMovingOverseas || null,
     },
     scenarios: [
       {
@@ -1319,6 +1416,12 @@ function buildOverseasExportData(analysis, annualBudget, finalBalance) {
         availableAnnualIncome,
       },
     ],
+    pensionPortability: analysis.agePensionPortability || null,
+    taxImplications: analysis.taxImplications || null,
+    healthcare: analysis.healthcare || null,
+    riskAssessment: analysis.riskAssessment || null,
+    recommendations: analysis.recommendations || null,
+    overview: analysis.overview || null,
   };
 }
 
@@ -1687,6 +1790,192 @@ function buildCareerImpactBlock(inp) {
     </div>`;
 }
 
+/**
+ * Build a plain-text (no HTML) version of the narrative for PDF export.
+ */
+function buildPlainEnglishNarrativeText(adaptedResult, inp, mc) {
+  if (!adaptedResult || !inp?.age) return null;
+
+  const lastsUntil = adaptedResult.lastsUntil;
+  const lifespan = inp.lifespan || 90;
+  const monthlyPaycheck = adaptedResult.monthlyPaycheck || 0;
+  const asfaMonthly = (inp.household === 'couple') ? 5900 : 4080;
+  const asfaLabel = (inp.household === 'couple') ? 'ASFA comfortable couple' : 'ASFA comfortable single';
+
+  const paycheckVsAsfa = monthlyPaycheck >= asfaMonthly
+    ? `Your monthly retirement paycheck of ${fmt$(monthlyPaycheck)} meets the ${asfaLabel} standard of ${fmt$(asfaMonthly)}/month.`
+    : `Your monthly retirement paycheck of ${fmt$(monthlyPaycheck)} is below the ${asfaLabel} standard of ${fmt$(asfaMonthly)}/month — consider increasing savings.`;
+
+  let fundingLine;
+  if (!lastsUntil || lastsUntil === 0) {
+    fundingLine = 'Your funds are projected to run out before retirement — urgent action needed.';
+  } else if (lastsUntil >= lifespan) {
+    fundingLine = `Your retirement savings are projected to cover your full planned lifespan to age ${lifespan}.`;
+  } else {
+    const shortfall = lifespan - lastsUntil;
+    fundingLine = `Your funds are projected to last until age ${lastsUntil}, which is ${shortfall} year${shortfall !== 1 ? 's' : ''} short of your planned lifespan (${lifespan}).`;
+  }
+
+  let topRisk = 'longevity';
+  if (inp.healthCondition === 'poor' || inp.healthCondition === 'fair') topRisk = 'healthcare costs';
+  else if (mc && (mc.successRate || 0) < 0.7) topRisk = 'investment sequence of returns';
+  else if ((inp.inflation || 2.6) > 3.5) topRisk = 'high inflation';
+  else if (lastsUntil && lastsUntil < lifespan) topRisk = 'insufficient savings rate';
+
+  return `${fundingLine} ${paycheckVsAsfa} Your biggest risk factor is ${topRisk}. Use the AI Recommendations section for prioritised actions to strengthen your plan.`;
+}
+
+/**
+ * Build a plain-English narrative summary of the retirement plan.
+ * Surfaces the most important outcomes in 2–3 readable sentences.
+ */
+function buildPlainEnglishNarrative(adaptedResult, inp, mc) {
+  if (!adaptedResult || !inp?.age) return '';
+
+  const lastsUntil = adaptedResult.lastsUntil;
+  const lifespan = inp.lifespan || 90;
+  const retireAge = inp.retireAge || 65;
+  const monthlyPaycheck = adaptedResult.monthlyPaycheck || 0;
+  // ASFA comfortable 2025: $5,900/month couple, $4,080/month single
+  const asfaMonthly = (inp.household === 'couple') ? 5900 : 4080;
+  const asfaLabel = (inp.household === 'couple') ? 'ASFA comfortable couple' : 'ASFA comfortable single';
+  const paycheckVsAsfa = monthlyPaycheck >= asfaMonthly
+    ? `your monthly retirement paycheck of ${fmt$(monthlyPaycheck)} <b>meets</b> the ${asfaLabel} standard of ${fmt$(asfaMonthly)}/month`
+    : `your monthly retirement paycheck of ${fmt$(monthlyPaycheck)} is <b>below</b> the ${asfaLabel} standard of ${fmt$(asfaMonthly)}/month — you may need to adjust your target income or savings rate`;
+
+  let fundingLine;
+  if (!lastsUntil || lastsUntil === 0) {
+    fundingLine = 'Your funds are projected to <b>run out before retirement</b> — urgent action needed.';
+  } else if (lastsUntil >= lifespan) {
+    fundingLine = `Your retirement savings are projected to <b>cover your full planned lifespan to age ${lifespan}</b>.`;
+  } else {
+    const shortfall = lifespan - lastsUntil;
+    fundingLine = `Your funds are projected to last until age <b>${lastsUntil}</b>, which is <b>${shortfall} year${shortfall !== 1 ? 's' : ''} short</b> of your planned lifespan (${lifespan}).`;
+  }
+
+  // Identify the top risk
+  let topRisk = 'longevity';
+  if (inp.healthCondition === 'poor' || inp.healthCondition === 'fair') topRisk = 'healthcare costs';
+  else if (mc && (mc.successRate || 0) < 0.7) topRisk = 'investment sequence of returns';
+  else if ((inp.inflation || 2.6) > 3.5) topRisk = 'high inflation';
+  else if (lastsUntil && lastsUntil < lifespan) topRisk = 'insufficient savings rate';
+
+  const riskLine = `Your biggest risk factor is <b>${topRisk}</b>.`;
+
+  // Downsize extension hint
+  const downsizeLine = (inp.downsizePlan === 'yes' && adaptedResult.superAtRetire > 0)
+    ? ' Proceeding with your planned downsize will provide a lump-sum injection \u2014 revisit the Year-by-Year table after it is modelled.'
+    : '';
+
+  return `
+    <div class="summary-chart" style="grid-column:1/-1;background:linear-gradient(135deg,var(--surface) 0%,color-mix(in srgb,var(--accent) 6%,var(--surface)) 100%);border:1.5px solid color-mix(in srgb,var(--accent) 25%,var(--border))">
+      <h5 style="color:var(--accent)">📖 Plain-English Summary</h5>
+      <p style="margin:0 0 10px;line-height:1.7;font-size:14px">${fundingLine} Based on your inputs, ${paycheckVsAsfa}.${downsizeLine}</p>
+      <p style="margin:0;line-height:1.7;font-size:14px;color:var(--ink-2)">${riskLine} Use the <b>AI Recommendations</b> tab for prioritised actions to strengthen your plan.</p>
+    </div>`;
+}
+
+/**
+ * Build the "Retirement Target Builder" card — shows what income the user will
+ * actually need in retirement by subtracting one-off pre-retirement costs from
+ * their current spending.
+ */
+function buildRetirementTargetBuilder(inp) {
+  if (!inp?.age) return '';
+
+  const currentSpending = (inp.desiredIncome || 0);
+  if (currentSpending <= 0) return '';
+
+  // Mortgage costs that end at retirement
+  const annualMortgage = inp.mortgage > 0
+    ? Math.min(currentSpending * 0.25, (inp.mortgage * pct(inp.mortgageRate || 5, 5) * 1.1))
+    : 0;
+
+  // Children / education costs that end when youngest child finishes uni (est. age 22)
+  const childrenCosts = inp.dependents > 0
+    ? Math.min(currentSpending * 0.15,
+        inp.dependents * ((inp.educationCostPerChild || 0) / Math.max(1, (22 - (inp.youngestChildAge || 10)))))
+    : 0;
+
+  // Healthcare premium uplift in retirement (healthcare tends to grow faster than general inflation)
+  const hcUplift = (inp.hasPrivateHospital ? 2500 : 0) + (inp.healthCondition === 'fair' ? 3000 : 0) + (inp.healthCondition === 'poor' ? 6000 : 0);
+
+  const estimatedRetirementNeed = Math.max(0, currentSpending - annualMortgage - childrenCosts + hcUplift);
+  const monthly = Math.round(estimatedRetirementNeed / 12);
+  const asfaComfortable = (inp.household === 'couple') ? 70800 : 48960;
+  const rows = [
+    { label: 'Your target retirement income', val: fmt$(currentSpending) + '/yr', note: 'As entered' },
+    annualMortgage > 0 ? { label: '− Mortgage payments (end at retirement)', val: `−${fmt$(Math.round(annualMortgage))}/yr`, note: 'Freed up' } : null,
+    childrenCosts > 0 ? { label: '− Children / education costs', val: `−${fmt$(Math.round(childrenCosts))}/yr`, note: 'Freed up' } : null,
+    hcUplift > 0 ? { label: '+ Healthcare premium uplift', val: `+${fmt$(hcUplift)}/yr`, note: 'Retirement health costs tend to rise faster than CPI' } : null,
+    { label: '= Estimated lifestyle need in retirement', val: `<b>${fmt$(Math.round(estimatedRetirementNeed))}/yr</b>`, note: `${fmt$(monthly)}/month`, bold: true },
+    { label: 'ASFA comfortable standard (2025)', val: fmt$(asfaComfortable) + '/yr', note: `${(inp.household === 'couple') ? 'Couple' : 'Single'} — covers a comfortable lifestyle without being extravagant` },
+  ].filter(Boolean);
+
+  return `
+    <div class="summary-chart" style="grid-column:1/-1">
+      <h5>🎯 Retirement Target Builder</h5>
+      <div class="desc">What you'll actually need in retirement — your current spending adjusted for costs that stop (mortgage, children) and costs that grow (healthcare).</div>
+      <div class="mc-results-grid" style="margin-top:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+        ${rows.map((r) => `
+          <div class="mc-stat" style="${r.bold ? 'background:color-mix(in srgb,var(--accent) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--accent) 20%,var(--border))' : ''}">
+            <div class="mc-k">${r.label}</div>
+            <div class="mc-v" style="${r.bold ? 'color:var(--accent)' : ''}">${r.val}</div>
+            <div class="mc-sub">${r.note}</div>
+          </div>
+        `).join('')}
+      </div>
+      <p style="margin:10px 0 0;font-size:12px;color:var(--ink-3)">These adjustments are indicative only. Actual retirement costs vary by health, lifestyle, and personal circumstances.</p>
+    </div>`;
+}
+
+/**
+ * Build a Sequence of Returns Risk callout for the risk/summary panel.
+ * Uses MC results when available to estimate early-crash vs late-crash impact.
+ */
+function buildSequenceOfReturnsCallout(mc, adaptedResult, inp) {
+  if (!inp?.age || !adaptedResult) return '';
+
+  // If we have MC results, compute early crash vs late crash delta
+  // using available percentile outputs.
+  let earlyRiskHtml = '';
+  let lateRiskHtml = '';
+  const mcWorst = mc?.percentiles?.p10 ?? mc?.percentile10;
+  const mcBest = mc?.percentiles?.p90 ?? mc?.percentile90;
+  if (mcWorst != null && mcBest != null) {
+    const best = mcBest || 0;
+    const worst = mcWorst || 0;
+    const spread = best - worst;
+    const spreadYears = adaptedResult?.monthlyPaycheck > 0
+      ? Math.round(spread / ((adaptedResult.monthlyPaycheck * 12) || 1))
+      : 0;
+    earlyRiskHtml = `<div class="mc-stat"><div class="mc-k">🔴 Crash in Year 1 of retirement</div><div class="mc-v" style="color:var(--danger)">${fmt$(worst, { compact: true })}</div><div class="mc-sub">10th-percentile final balance</div></div>`;
+    lateRiskHtml = `<div class="mc-stat"><div class="mc-k">🟢 Strong early returns</div><div class="mc-v" style="color:var(--success)">${fmt$(best, { compact: true })}</div><div class="mc-sub">90th-percentile final balance</div></div>`;
+    if (spreadYears > 0) {
+      earlyRiskHtml += `<div class="mc-stat" style="grid-column:1/-1"><div class="mc-k">Impact spread</div><div class="mc-v">${spreadYears} years</div><div class="mc-sub">A crash in year 1 vs strong early returns can mean ${spreadYears} years' difference in portfolio longevity</div></div>`;
+    }
+  } else if (adaptedResult) {
+    const baseBalance = adaptedResult.finalBalance || 0;
+    const earlyBad = Math.round(baseBalance * 0.55); // ~45% drop scenario
+    const lateBad = Math.round(baseBalance * 0.80);  // ~20% drop scenario
+    earlyRiskHtml = `<div class="mc-stat"><div class="mc-k">🔴 Crash in Year 1 (estimated)</div><div class="mc-v" style="color:var(--danger)">${fmt$(earlyBad, { compact: true })}</div><div class="mc-sub">~45% reduction in final balance vs base case</div></div>`;
+    lateRiskHtml = `<div class="mc-stat"><div class="mc-k">🟡 Crash in Year 10 (estimated)</div><div class="mc-v" style="color:var(--warning)">${fmt$(lateBad, { compact: true })}</div><div class="mc-sub">~20% reduction in final balance vs base case</div></div>`;
+  }
+
+  if (!earlyRiskHtml) return '';
+
+  return `
+    <div class="summary-chart">
+      <h5>⚡ Sequence of Returns Risk</h5>
+      <div class="desc">When a market crash occurs matters enormously. A crash in your first year of retirement is far more damaging than one a decade later — your portfolio has less time to recover while you're still drawing from it.</div>
+      <div class="mc-results-grid" style="margin-top:10px">
+        ${earlyRiskHtml}
+        ${lateRiskHtml}
+      </div>
+      <p style="margin:10px 0 0;font-size:12px;color:var(--ink-3)">Run Monte Carlo with 5,000+ runs for a more accurate spread. Consider holding 1–2 years of income in cash as a buffer against early retirement crashes.</p>
+    </div>`;
+}
+
 function renderSummaryPanel() {
   const state = APP_STATE;
 
@@ -1806,6 +2095,9 @@ function renderSummaryPanel() {
     </div>` : '';
 
   const careerImpactBlock = buildCareerImpactBlock(inp);
+  const narrativeBlock = buildPlainEnglishNarrative(state.adaptedResult, inp, state.monteCarloResults);
+  const targetBuilderBlock = buildRetirementTargetBuilder(inp);
+  const sorBlock = buildSequenceOfReturnsCallout(state.monteCarloResults, state.adaptedResult, inp);
 
   setPanelHtml('summary', `
     <div class="summary-grid">
@@ -1823,7 +2115,10 @@ function renderSummaryPanel() {
         </div>
       </div>
       ${monteCarloBlock}
+      ${narrativeBlock}
     </div>
+    ${targetBuilderBlock}
+    ${sorBlock}
     ${recommendationLead}
     ${careerImpactBlock}
     ${assumptionsBlock}
@@ -1881,15 +2176,16 @@ function renderWhatIfPanel() {
       </div>
       <div class="whatif-card">
         <h5>Overseas plan</h5>
-        <div class="desc">Destination-specific pension portability and cost view.</div>
+        <div class="desc">Destination-specific pension portability, cost and risk view.</div>
         ${overseas ? `
           <div class="whatif-impact">
             <span class="pill"><b>${escapeHtml(overseas.country)}</b></span>
-            <span class="pill"><b>${escapeHtml(overseas.agePensionPortability?.rules?.status || 'General portability')}</b></span>
+            <span class="pill"><b>${escapeHtml(overseas.recommendations?.suitability || overseas.agePensionPortability?.rules?.status || 'Analysed')}</b></span>
           </div>
-          <p style="margin:10px 0 0;color:var(--ink-3)">Annual overseas budget used: ${escapeHtml(formatCurrency(overseasBudget || 0))}</p>
+          <p style="margin:8px 0 0;color:var(--ink-3)">Annual cost: ${escapeHtml(formatCurrency(overseasBudget || 0))} · Pension overseas: ${escapeHtml(formatCurrency(overseas.agePensionPortability?.pensionCalculation?.overseas || 0))}/yr</p>
+          <p style="margin:6px 0 0;font-size:12px;color:var(--ink-3)">See the <b>✈️ Overseas Plan</b> tab for full pension portability, tax, and risk details.</p>
         ` : `
-          <p style="margin:0;color:var(--ink-3)">Enable an overseas destination and run the Overseas plan tool.</p>
+          <p style="margin:0;color:var(--ink-3)">Enable an overseas destination above and click the Overseas Plan tool to see full analysis.</p>
         `}
       </div>
     </div>
@@ -2077,6 +2373,326 @@ function generatePropertySellTimingInsight(inp, engineInputs) {
   };
 }
 
+function renderOverseasPanel() {
+  const analysis = APP_STATE.overseasAnalysis;
+  const exportData = APP_STATE.overseasExportData;
+
+  if (!analysis || analysis.error) {
+    setPanelHtml('overseas', '<p style="color:var(--ink-3)">Enable an overseas destination in the Overseas section, then click the Overseas Plan tool.</p>');
+    return;
+  }
+
+  const pension = analysis.agePensionPortability || {};
+  const pc = pension.pensionCalculation || {};
+  const cost = analysis.costOfLiving || {};
+  const tax = analysis.taxImplications || {};
+  const health = analysis.healthcare || {};
+  const visa = analysis.visaRequirements || {};
+  const risk = analysis.riskAssessment || {};
+  const recs = analysis.recommendations || {};
+  const fallback = analysis.fallbackScenario || null;
+  const scenario = exportData?.scenarios?.[0] || {};
+  const cfg = exportData?.config || {};
+
+  const riskColor = (level) => level === 'LOW' ? 'var(--green)' : level === 'HIGH' ? 'var(--rose)' : 'var(--gold)';
+  const riskBg   = (level) => level === 'LOW' ? 'var(--green-soft,#ecfdf5)' : level === 'HIGH' ? 'var(--rose-soft,#fff1f2)' : 'var(--gold-soft)';
+  const suitColor = (s) => s === 'HIGHLY SUITABLE' ? 'var(--green)' : s === 'SUITABLE' ? 'var(--blue,#3b82f6)' : s === 'MODERATELY SUITABLE' ? 'var(--gold)' : 'var(--rose)';
+
+  // AWLR progress bar
+  const awlrYears = pension.AWLR || 0;
+  const awlrPct = Math.min(100, Math.round((awlrYears / 35) * 100));
+  const awlrColor = awlrPct >= 100 ? 'var(--green)' : awlrPct >= 70 ? 'var(--gold)' : 'var(--rose)';
+
+  // 4-scenario tree rows
+  const tree = pension.scenarioTree || {};
+  const scenarioRows = [
+    { label: 'Short absence (≤' + (pension.portabilityKickIn || 6) + ' wks)', data: tree.shortAbsence },
+    { label: 'Long absence (6 wks – 26 wks)', data: tree.longAbsence },
+    { label: 'Extended / proportional (>26 wks)', data: tree.proportional },
+    { label: 'Permanent move', data: tree.permanentMove },
+  ].filter(r => r.data);
+
+  // Cost of living columns
+  const annualBudget = scenario.annualCost || cost.countryAnnual || 0;
+  const auAnnual = cost.australiaAnnual || 0;
+  const saving = auAnnual > 0 ? auAnnual - annualBudget : 0;
+  const savingPct = auAnnual > 0 ? Math.round(((auAnnual - annualBudget) / auAnnual) * 100) : 0;
+
+  // Financial viability
+  const viability = recs.financialViability || {};
+
+  // Tax residency label map
+  const residencyLabels = {
+    australian: 'Maintain Australian residency',
+    foreign: 'Become foreign tax resident',
+    dta: 'Rely on Double Tax Agreement',
+  };
+
+  // Cost breakdown (from country profile breakdown object)
+  const breakdown = cost.breakdown || {};
+
+  setPanelHtml('overseas', `
+    <div style="display:grid;gap:16px">
+
+      <!-- ── Hero ── -->
+      <div style="padding:20px;border:1px solid var(--border);border-radius:18px;background:var(--surface);display:grid;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-size:20px;font-weight:800">${escapeHtml(analysis.country)}</div>
+            <div style="color:var(--ink-3);font-size:13px;margin-top:2px">${escapeHtml(analysis.currency || '')}${analysis.distanceFromAustralia ? ` · ${(analysis.distanceFromAustralia / 1000).toFixed(0)}k km from AU` : ''}${analysis.flightTime ? ` · ${escapeHtml(analysis.flightTime)}` : ''}</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <span class="chip" style="background:${suitColor(recs.suitability)};color:#fff;border-color:transparent">${escapeHtml(recs.suitability || '—')}</span>
+            <span class="chip" style="background:${riskBg(risk.overall)};color:${riskColor(risk.overall)}">${escapeHtml(risk.overall || '?')} overall risk</span>
+            ${pension.hasAgreement ? '<span class="chip" style="background:var(--green-soft,#ecfdf5);color:var(--green)">SSA country</span>' : ''}
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
+          ${cfg.ageMovingOverseas ? `<div><div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em">Moving at age</div><div style="font-weight:700">${cfg.ageMovingOverseas}</div></div>` : ''}
+          ${annualBudget ? `<div><div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em">Annual budget</div><div style="font-weight:700">${escapeHtml(formatCurrency(annualBudget))}</div></div>` : ''}
+          ${scenario.yearsOfFunding != null ? `<div><div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em">Portfolio runway</div><div style="font-weight:700;color:${scenario.yearsOfFunding >= 30 ? 'var(--green)' : scenario.yearsOfFunding >= 20 ? 'var(--gold)' : 'var(--rose)'}">${scenario.yearsOfFunding} yrs</div></div>` : ''}
+          ${saving !== 0 ? `<div><div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em">vs Australia</div><div style="font-weight:700;color:${saving > 0 ? 'var(--green)' : 'var(--rose)'}">${saving > 0 ? '-' : '+'}${Math.abs(savingPct)}%</div></div>` : ''}
+          ${cfg.moveType ? `<div><div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em">Move type</div><div style="font-weight:700;text-transform:capitalize">${escapeHtml(cfg.moveType.replace('-', ' '))}</div></div>` : ''}
+        </div>
+        ${analysis.overview ? `<p style="margin:0;color:var(--ink-3);font-size:13px;border-top:1px solid var(--border);padding-top:10px">${escapeHtml(typeof analysis.overview === 'string' ? analysis.overview : '')}</p>` : ''}
+      </div>
+
+      <!-- ── Age Pension Portability ── -->
+      <div style="padding:18px;border:1px solid var(--border);border-radius:18px;background:var(--surface)">
+        <h5 style="margin:0 0 12px;font-size:14px">Age Pension Portability</h5>
+
+        <!-- AWLR bar -->
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3);margin-bottom:4px">
+            <span>Australian Working Life Residence (AWLR)</span>
+            <span style="font-weight:700;color:${awlrColor}">${awlrYears} / 35 yrs (${awlrPct}%)</span>
+          </div>
+          <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${awlrPct}%;background:${awlrColor};border-radius:3px;transition:width .3s"></div>
+          </div>
+          <div style="font-size:11px;color:var(--ink-3);margin-top:4px">${awlrPct >= 100 ? '✅ Full portability — no AWLR reduction' : `⚠️ Proportional: ${awlrPct}% of eligible rate after 26 weeks`}</div>
+        </div>
+
+        <!-- In Australia vs overseas amounts -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="padding:10px;background:var(--bg);border-radius:10px;border:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em">Age Pension (AU)</div>
+            <div style="font-size:18px;font-weight:800;margin-top:3px">${escapeHtml(formatCurrency(pc.inAustralia || 0))}</div>
+            <div style="font-size:11px;color:var(--ink-3)">per year</div>
+          </div>
+          <div style="padding:10px;background:var(--bg);border-radius:10px;border:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em">Permanent overseas</div>
+            <div style="font-size:18px;font-weight:800;margin-top:3px;color:${(pc.overseas || 0) < (pc.inAustralia || 0) ? 'var(--rose)' : 'var(--green)'}">${escapeHtml(formatCurrency(pc.overseas || 0))}</div>
+            <div style="font-size:11px;color:var(--ink-3)">${pc.reductionPercent > 0 ? `−${pc.reductionPercent}% from supplement/AWLR` : 'per year'}</div>
+          </div>
+        </div>
+
+        <!-- 4-scenario table -->
+        ${scenarioRows.length ? `
+        <table style="width:100%;font-size:12px;border-collapse:collapse">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:5px 6px;color:var(--ink-3);font-weight:600">Scenario</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--ink-3);font-weight:600">Annual pension</th>
+              <th style="text-align:right;padding:5px 6px;color:var(--ink-3);font-weight:600">Supplement lost</th>
+              <th style="text-align:left;padding:5px 6px;color:var(--ink-3);font-weight:600">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${scenarioRows.map(r => `
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:6px;font-weight:500">${escapeHtml(r.label)}</td>
+              <td style="padding:6px;text-align:right;font-weight:700">${escapeHtml(formatCurrency(r.data.annualPension || 0))}</td>
+              <td style="padding:6px;text-align:right;color:${(r.data.supplementLost || 0) > 0 ? 'var(--rose)' : 'var(--ink-3)'}">${r.data.supplementLost > 0 ? '−' + escapeHtml(formatCurrency(r.data.supplementLost)) : '—'}</td>
+              <td style="padding:6px">
+                ${r.data.pccValid ? '<span style="color:var(--green);font-size:11px">✅ PCC valid</span>' : '<span style="color:var(--rose);font-size:11px">❌ PCC cancelled</span>'}
+                ${r.data.awlrApplied ? `<span style="margin-left:6px;color:var(--gold);font-size:11px">AWLR ${Math.round((r.data.proportionalRate || 0) * 100)}%</span>` : ''}
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        ` : ''}
+
+        <!-- Rules summary -->
+        ${pension.rules ? `
+        <div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:10px;font-size:12px">
+          <div style="font-weight:600;margin-bottom:6px;color:${pension.hasAgreement ? 'var(--green)' : 'var(--gold)'}">${pension.hasAgreement ? '✅ Social Security Agreement country' : '⚠️ No social security agreement'}</div>
+          ${pension.rules.initialPeriod ? `<div style="color:var(--ink-2);margin-bottom:3px">• ${escapeHtml(pension.rules.initialPeriod)}</div>` : ''}
+          ${pension.rules.afterSixWeeks ? `<div style="color:var(--ink-2);margin-bottom:3px">• ${escapeHtml(pension.rules.afterSixWeeks)}</div>` : ''}
+          ${pension.rules.afterSixMonths ? `<div style="color:var(--ink-2)">• ${escapeHtml(pension.rules.afterSixMonths)}</div>` : ''}
+          ${(pension.rules.advantages || []).map(a => `<div style="color:var(--green);margin-top:3px">✅ ${escapeHtml(a)}</div>`).join('')}
+          ${(pension.rules.disadvantages || []).map(d => `<div style="color:var(--rose);margin-top:3px">${escapeHtml(d)}</div>`).join('')}
+        </div>` : ''}
+      </div>
+
+      <!-- ── Cost of Living ── -->
+      <div style="padding:18px;border:1px solid var(--border);border-radius:18px;background:var(--surface)">
+        <h5 style="margin:0 0 12px;font-size:14px">Cost of Living</h5>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px">
+          <div style="padding:10px;background:var(--bg);border-radius:10px;border:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em">Estimated annual</div>
+            <div style="font-size:18px;font-weight:800;margin-top:3px">${escapeHtml(formatCurrency(annualBudget))}</div>
+            <div style="font-size:11px;color:var(--ink-3)">in ${escapeHtml(analysis.country)}</div>
+          </div>
+          <div style="padding:10px;background:var(--bg);border-radius:10px;border:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em">ASFA comfortable (AU)</div>
+            <div style="font-size:18px;font-weight:800;margin-top:3px">${escapeHtml(formatCurrency(auAnnual))}</div>
+            <div style="font-size:11px;color:var(--ink-3)">Australia baseline</div>
+          </div>
+          ${saving !== 0 ? `<div style="padding:10px;background:var(--bg);border-radius:10px;border:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em">${saving > 0 ? 'Annual saving' : 'Extra cost'}</div>
+            <div style="font-size:18px;font-weight:800;margin-top:3px;color:${saving > 0 ? 'var(--green)' : 'var(--rose)'}">${escapeHtml(formatCurrency(Math.abs(saving)))}</div>
+            <div style="font-size:11px;color:${saving > 0 ? 'var(--green)' : 'var(--rose)'}">${saving > 0 ? savingPct + '% cheaper' : Math.abs(savingPct) + '% more'}</div>
+          </div>` : ''}
+          ${cost.fxAdjustedAnnual && cost.fxAdjustedAnnual !== annualBudget ? `<div style="padding:10px;background:var(--bg);border-radius:10px;border:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em">FX-adjusted (${cost.projectionYears || 20}yr)</div>
+            <div style="font-size:18px;font-weight:800;margin-top:3px;color:var(--gold)">${escapeHtml(formatCurrency(cost.fxAdjustedAnnual))}</div>
+            <div style="font-size:11px;color:var(--ink-3)">${cost.audFxChangePerYear !== 0 ? (cost.audFxChangePerYear * 100).toFixed(1) + '%/yr AUD drift' : ''}</div>
+          </div>` : ''}
+        </div>
+        ${cost.note ? `<p style="margin:0;font-size:12px;color:var(--ink-3)">${escapeHtml(cost.note)}</p>` : ''}
+        ${cost.housingAdjustedAnnual && cost.housingAdjustedAnnual !== annualBudget ? `
+        <div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:var(--bg);font-size:12px;color:var(--ink-2)">
+          Housing-adjusted (${escapeHtml(cost.housingType || 'rent')}): <b>${escapeHtml(formatCurrency(cost.housingAdjustedAnnual))}/yr</b>
+          ${cost.effectiveHousingCost ? ` · Rent: ${escapeHtml(formatCurrency(cost.effectiveHousingCost))}/yr` : ''}
+        </div>` : ''}
+      </div>
+
+      <!-- ── Tax + Healthcare ── -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+
+        <!-- Tax -->
+        <div style="padding:18px;border:1px solid var(--border);border-radius:18px;background:var(--surface)">
+          <h5 style="margin:0 0 10px;font-size:14px">Tax Implications</h5>
+          ${tax.australianTaxResidency ? `
+          <div style="font-weight:600;font-size:12px;margin-bottom:6px">${escapeHtml(tax.australianTaxResidency.status)}</div>
+          <ul style="margin:0;padding-left:16px;font-size:12px;color:var(--ink-2);display:grid;gap:4px">
+            ${(tax.australianTaxResidency.implications || []).map(i => `<li>${escapeHtml(i)}</li>`).join('')}
+          </ul>
+          ${tax.australianTaxResidency.transitionRisk ? `
+          <div style="margin-top:8px;padding:6px 8px;border-radius:7px;background:var(--gold-soft);font-size:11px;color:var(--ink-1)">
+            ⚠️ ${escapeHtml(tax.australianTaxResidency.transitionRisk.implication || '')}
+          </div>` : ''}` : ''}
+          ${tax.doubleTaxAgreement ? `
+          <div style="margin-top:10px;padding:6px 8px;border-radius:7px;background:${tax.doubleTaxAgreement.exists ? 'var(--green-soft,#ecfdf5)' : 'var(--gold-soft)'};font-size:11px;color:var(--ink-1)">
+            ${tax.doubleTaxAgreement.exists ? `✅ DTA exists — ${escapeHtml(tax.doubleTaxAgreement.summary)}` : `⚠️ No DTA — ${escapeHtml(tax.doubleTaxAgreement.summary || 'Consult a cross-border tax adviser')}`}
+          </div>` : ''}
+          ${tax.superannuation ? `
+          <div style="margin-top:8px;font-size:12px;color:var(--ink-3)">
+            <b>Super:</b> ${escapeHtml(tax.superannuation.taxation || '')}
+          </div>` : ''}
+        </div>
+
+        <!-- Healthcare + Visa -->
+        <div style="display:grid;gap:12px">
+          <div style="padding:18px;border:1px solid var(--border);border-radius:18px;background:var(--surface)">
+            <h5 style="margin:0 0 10px;font-size:14px">Healthcare</h5>
+            ${health.rating != null ? `
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <div style="font-size:22px;font-weight:800;color:${health.rating >= 8 ? 'var(--green)' : health.rating >= 6 ? 'var(--gold)' : 'var(--rose)'}">${health.rating}/10</div>
+              <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+                <div style="height:100%;width:${Math.round(health.rating * 10)}%;background:${health.rating >= 8 ? 'var(--green)' : health.rating >= 6 ? 'var(--gold)' : 'var(--rose)'};border-radius:3px"></div>
+              </div>
+            </div>` : ''}
+            ${health.quality ? `<p style="margin:0 0 4px;font-size:12px;color:var(--ink-2)">${escapeHtml(health.quality)}</p>` : ''}
+            ${health.insurance ? `<p style="margin:0;font-size:11px;color:var(--ink-3)">Insurance: ${escapeHtml(health.insurance)}</p>` : ''}
+          </div>
+          <div style="padding:18px;border:1px solid var(--border);border-radius:18px;background:var(--surface)">
+            <h5 style="margin:0 0 10px;font-size:14px">Visa</h5>
+            ${visa.easeOfAccess ? `<span class="chip" style="background:${visa.easeOfAccess === 'EASY' ? 'var(--green-soft,#ecfdf5)' : visa.easeOfAccess === 'MODERATE' ? 'var(--gold-soft)' : 'var(--rose-soft)'};color:${visa.easeOfAccess === 'EASY' ? 'var(--green)' : visa.easeOfAccess === 'MODERATE' ? 'var(--gold)' : 'var(--rose)'}">Ease: ${escapeHtml(visa.easeOfAccess)}</span>` : ''}
+            ${visa.type ? `<p style="margin:8px 0 4px;font-size:12px;font-weight:600">${escapeHtml(visa.type)}</p>` : ''}
+            ${visa.duration ? `<p style="margin:0 0 4px;font-size:12px;color:var(--ink-2)">${escapeHtml(visa.duration)}</p>` : ''}
+            ${visa.cost ? `<p style="margin:0;font-size:11px;color:var(--ink-3)">${escapeHtml(visa.cost)}</p>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Risk Dashboard ── -->
+      <div style="padding:18px;border:1px solid var(--border);border-radius:18px;background:var(--surface)">
+        <h5 style="margin:0 0 12px;font-size:14px">Risk Assessment</h5>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">
+          ${[
+            { label: 'Overall', level: risk.overall, note: '' },
+            { label: 'Currency', level: risk.factors?.currency?.level, note: risk.factors?.currency?.note },
+            { label: 'Healthcare', level: risk.factors?.healthcare?.level, note: risk.factors?.healthcare?.rating ? `Rating ${risk.factors.healthcare.rating}/10` : '' },
+            { label: 'Political', level: risk.factors?.political?.level, note: risk.factors?.political?.note },
+            { label: 'Distance', level: risk.factors?.distance?.level, note: risk.factors?.distance?.flightTime || '' },
+          ].filter(f => f.level).map(f => `
+            <div style="padding:10px;border-radius:10px;background:${riskBg(f.level)};border:1px solid ${riskColor(f.level)}22">
+              <div style="font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em">${escapeHtml(f.label)}</div>
+              <div style="font-weight:700;color:${riskColor(f.level)};margin-top:3px">${escapeHtml(f.level)}</div>
+              ${f.note ? `<div style="font-size:11px;color:var(--ink-3);margin-top:2px">${escapeHtml(f.note)}</div>` : ''}
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- ── Financial Viability ── -->
+      ${viability.message ? `
+      <div style="padding:14px 18px;border:1px solid var(--border);border-radius:14px;background:${viability.viable ? 'var(--green-soft,#ecfdf5)' : 'var(--rose-soft,#fff1f2)'};display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:22px">${viability.viable ? '✅' : '⚠️'}</div>
+        <div>
+          <div style="font-weight:700;color:${viability.viable ? 'var(--green)' : 'var(--rose)'}">${escapeHtml(viability.message)}</div>
+          ${viability.surplus != null ? `<div style="font-size:12px;color:var(--ink-2);margin-top:3px">Annual surplus on pension: ${escapeHtml(formatCurrency(viability.surplus))}</div>` : ''}
+          ${viability.shortfall != null ? `<div style="font-size:12px;color:var(--ink-2);margin-top:3px">Annual shortfall to fund from portfolio: ${escapeHtml(formatCurrency(viability.shortfall))}</div>` : ''}
+          ${viability.note ? `<div style="font-size:12px;color:var(--ink-3);margin-top:3px">${escapeHtml(viability.note)}</div>` : ''}
+        </div>
+      </div>` : ''}
+
+      <!-- ── Fallback Scenario ── -->
+      ${fallback ? `
+      <div style="padding:18px;border:1px solid var(--border);border-radius:18px;background:var(--surface)">
+        <h5 style="margin:0 0 10px;font-size:14px">Return-to-Australia Scenario</h5>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+          <span class="chip">Return at age ${fallback.fallbackAge}</span>
+          <span class="chip">${fallback.yearsOverseas} yr${fallback.yearsOverseas !== 1 ? 's' : ''} overseas</span>
+          <span class="chip">${escapeHtml(fallback.triggerLabel || '')}</span>
+          ${fallback.waitingPeriod > 0 ? `<span class="chip" style="color:var(--rose)">${fallback.waitingPeriod}-yr waiting period</span>` : '<span class="chip" style="color:var(--green)">No waiting period</span>'}
+        </div>
+        ${fallback.pensionLostDuringWait && fallback.estimatedLostPension > 0 ? `
+        <div style="padding:8px 10px;background:var(--rose-soft,#fff1f2);border-radius:8px;font-size:12px;color:var(--rose);margin-bottom:8px">
+          ⚠️ Estimated pension suspended during waiting period: ${escapeHtml(formatCurrency(fallback.estimatedLostPension))}
+        </div>` : ''}
+        <ul style="margin:0;padding-left:0;list-style:none;font-size:12px;color:var(--ink-2);display:grid;gap:4px">
+          ${(fallback.notes || []).map(n => `<li>${escapeHtml(n)}</li>`).join('')}
+        </ul>
+      </div>` : ''}
+
+      <!-- ── Key Steps ── -->
+      ${recs.keySteps?.length ? `
+      <div style="padding:18px;border:1px solid var(--border);border-radius:18px;background:var(--surface)">
+        <h5 style="margin:0 0 10px;font-size:14px">Key Action Steps</h5>
+        <ol style="margin:0;padding-left:18px;font-size:13px;color:var(--ink-2);display:grid;gap:6px">
+          ${recs.keySteps.map(s => `<li>${escapeHtml(s.replace(/^\d+\.\s*/, ''))}</li>`).join('')}
+        </ol>
+      </div>` : ''}
+
+      <!-- ── Best For / Challenges ── -->
+      ${(recs.bestFor?.length || recs.challenges?.length) ? `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+        ${recs.bestFor?.length ? `
+        <div style="padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface)">
+          <h5 style="margin:0 0 8px;font-size:13px;color:var(--green)">Best for</h5>
+          <ul style="margin:0;padding-left:16px;font-size:12px;color:var(--ink-2);display:grid;gap:4px">
+            ${recs.bestFor.map(b => `<li>${escapeHtml(b)}</li>`).join('')}
+          </ul>
+        </div>` : ''}
+        ${recs.challenges?.length ? `
+        <div style="padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface)">
+          <h5 style="margin:0 0 8px;font-size:13px;color:var(--gold)">Challenges</h5>
+          <ul style="margin:0;padding-left:16px;font-size:12px;color:var(--ink-2);display:grid;gap:4px">
+            ${recs.challenges.map(c => `<li>${escapeHtml(c)}</li>`).join('')}
+          </ul>
+        </div>` : ''}
+      </div>` : ''}
+
+      ${(recs.additionalNotes?.length) ? `
+      <div style="padding:10px 14px;background:var(--bg);border-radius:10px;font-size:12px;color:var(--ink-3)">
+        ${recs.additionalNotes.map(n => `<p style="margin:0 0 4px">${escapeHtml(n)}</p>`).join('')}
+      </div>` : ''}
+    </div>
+  `);
+}
+
 function renderAiPanel() {
   const recommendations = APP_STATE.recommendations || [];
   const inp = APP_STATE.input || {};
@@ -2126,6 +2742,7 @@ function renderAnalysisPanels() {
   renderWhatIfPanel();
   renderRiskPanel();
   renderAiPanel();
+  renderOverseasPanel();
   // Re-render charts after panels rebuild their DOM (canvases are re-created by renderRiskPanel)
   if (APP_STATE.monteCarloResults) {
     // Use a microtask to ensure the DOM is updated before drawing
@@ -2139,11 +2756,32 @@ async function runMonteCarloAnalysis() {
   // This is the single source of truth — avoids any double-read discrepancy between
   // the select element and the already-computed engine state.
   const runsToUse = baseState.engineInputs.numRuns || DEFAULTS.simulation.numRuns || 500;
+
+  // Wire up a progress callback so the loading overlay shows real progress for large runs.
+  const progressBarEl = document.getElementById('adv2-progress-bar');
+  const progressLabelEl = document.getElementById('adv2-loading-label');
+  const progressSubEl = document.getElementById('adv2-loading-sub');
+
+  const mcProgressCallback = runsToUse >= 500 ? async (completed, total) => {
+    const pct = Math.round((completed / total) * 100);
+    if (progressBarEl) progressBarEl.style.width = pct + '%';
+    const remaining = total - completed;
+    const approxSecs = Math.ceil((remaining / total) * (total > 5000 ? 45 : 15));
+    if (progressLabelEl) progressLabelEl.textContent = `Running… ${pct}%`;
+    if (progressSubEl) progressSubEl.textContent = `Completed ${completed.toLocaleString()} of ${total.toLocaleString()} runs${approxSecs > 2 ? ` — ~${approxSecs}s remaining` : ''}`;
+    // Yield to the browser so the progress bar updates are visible
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  } : null;
+
+  if (progressBarEl) progressBarEl.style.width = '0%';
+
   APP_STATE.monteCarloResults = await simulator.runMonteCarloSimulation(
     baseState.engineInputs,
     runsToUse,
-    null
+    mcProgressCallback
   );
+
+  if (progressBarEl) progressBarEl.style.width = '100%';
   APP_STATE.riskProfile = normaliseRiskProfile(
     riskProfiler.generateRiskProfileSummary(baseState.engineInputs, APP_STATE.monteCarloResults)
   );
@@ -2183,8 +2821,27 @@ function runOverseasAnalysis() {
     throw new Error('Choose a supported destination in the Overseas section first.');
   }
 
+  const fxOptions = {
+    audFxChangePerYear: baseState.engineInputs.overseasAudFxChange || -0.01,
+    projectionYears: 20,
+    housingType: baseState.input.overseasHousingType || 'rent',
+    annualRentAUD: baseState.input.overseasAnnualRent || 0,
+  };
+
   const analyzer = buildOverseasAnalyzer(baseState);
-  APP_STATE.overseasAnalysis = analyzer.analyzeCountry(countryCode);
+  APP_STATE.overseasAnalysis = analyzer.analyzeCountry(countryCode, fxOptions);
+
+  // Attach fallback scenario if a return age is configured
+  const fallbackAge = baseState.input.overseasFallbackAge || 0;
+  if (fallbackAge > 0) {
+    APP_STATE.overseasAnalysis.fallbackScenario = analyzer.generateFallbackScenario(
+      countryCode,
+      fallbackAge,
+      baseState.input.overseasFallbackTrigger || 'none',
+      APP_STATE.overseasAnalysis.agePensionPortability?.hasAgreement || false
+    );
+  }
+
   APP_STATE.overseasExportData = buildOverseasExportData(
     APP_STATE.overseasAnalysis,
     baseState.input.annualLivingCostOverseas,
@@ -2230,13 +2887,11 @@ function setInputValue(id, value, options = {}) {
 // Round rate/percentage fields to their display precision after programmatic value assignment.
 // `enforceDecimals` only fires on user-initiated change events, not on el.value = x.
 function normalizeLoadedDecimals() {
-  const oneDP = ['inflation', 'invReturn', 'superGrowth', 'savingsReturn'];
-  const twoDP = ['mortgageRate', 'ccRate', 'personalLoanRate', 'carLoanRate',
-                 'ipRate', 'ipGrowthRate', 'returnVolatility'];
-  oneDP.forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) { const v = parseFloat(el.value); if (!isNaN(v)) el.value = parseFloat(v.toFixed(1)); }
-  });
+  const twoDP = [
+    'inflation', 'invReturn', 'superGrowth', 'savingsReturn',
+    'mortgageRate', 'ccRate', 'personalLoanRate', 'carLoanRate',
+    'ipRate', 'ipGrowthRate', 'returnVolatility',
+  ];
   twoDP.forEach((id) => {
     const el = document.getElementById(id);
     if (el) { const v = parseFloat(el.value); if (!isNaN(v)) el.value = parseFloat(v.toFixed(2)); }
@@ -2741,7 +3396,7 @@ function initTopbar() {
     ['tool-when', runRetirementAgeAnalysis, 'Retirement-age solver updated.', 'whatif', 'Solving…'],
     ['tool-stress', runStressAnalysis, 'Stress scenarios updated.', 'risk', 'Testing…'],
     ['tool-ai', runRecommendationAnalysis, 'AI recommendations updated.', 'ai', 'Thinking…'],
-    ['tool-overseas', runOverseasAnalysis, 'Overseas analysis updated.', 'whatif', 'Analysing…'],
+    ['tool-overseas', runOverseasAnalysis, 'Overseas analysis updated.', 'overseas', 'Analysing…'],
     ['tool-pdf', handlePdfExport, null, null, 'Exporting…'],
   ];
 
@@ -2802,6 +3457,16 @@ function boot() {
     bindConditional('investmentProperty', 'data-ip');
     bindConditional('goingOverseas', 'data-overseas');
 
+    // Show/hide the Overseas tab whenever the goingOverseas toggle changes
+    (function () {
+      const overseasCb = document.getElementById('goingOverseas');
+      const overseasTabBtn = document.getElementById('overseas-tab-btn');
+      if (!overseasCb || !overseasTabBtn) return;
+      const syncTab = () => { overseasTabBtn.hidden = !overseasCb.checked; };
+      overseasCb.addEventListener('change', syncTab);
+      syncTab();
+    }());
+
     // Investment property type → auto-fill strata levy default and update growth rate hint
     (function () {
         const ipTypeSel      = document.getElementById('ipType');
@@ -2845,6 +3510,9 @@ function boot() {
     bindConditional('enableShocks', 'data-shocks');
     bindConditional('hasSpousalMaintenance', 'data-spousal');
     bindConditional('hasChildSupport', 'data-childsupport');
+    bindConditional('enableHomeModifications', 'data-home-mods');
+    bindConditional('enableAnnuity', 'data-annuity');
+    bindConditional('enableTieredSpending', 'data-tiered-spending');
 
     // Monte Carlo custom runs show/hide + update sidebar label
     const mcRunsSel = document.getElementById('mcRuns');
@@ -2884,7 +3552,7 @@ function boot() {
         if (!isNaN(v)) el.value = parseFloat(v.toFixed(places));
       });
     }
-    ['inflation', 'invReturn', 'superGrowth', 'savingsReturn'].forEach(id => enforceDecimals(id, 1));
+    ['inflation', 'invReturn', 'superGrowth', 'savingsReturn'].forEach(id => enforceDecimals(id, 2));
     ['mortgageRate', 'ccRate', 'personalLoanRate', 'carLoanRate', 'ipRate', 'ipGrowthRate', 'returnVolatility'].forEach(id => enforceDecimals(id, 2));
 
     // Lifespan validation: must be 0 (open-ended) OR strictly greater than the linked age field.
@@ -2917,6 +3585,54 @@ function boot() {
 
     bindLifespanValidation('lifespan', 'age');
     bindLifespanValidation('partnerLifespan', 'partnerAge');
+
+    // Link returnFrequency to overseasMoveType:
+    // A 'permanent' move means there are no return trips — lock frequency to 'never'.
+    (function bindOverseasMoveType() {
+      const moveTypeEl = document.getElementById('overseasMoveType');
+      const returnFreqEl = document.getElementById('returnFrequency');
+      if (!moveTypeEl || !returnFreqEl) return;
+
+      function syncReturnFrequency() {
+        if (moveTypeEl.value === 'permanent') {
+          returnFreqEl.value = 'never';
+          returnFreqEl.disabled = true;
+          returnFreqEl.title = 'Return visits disabled for a permanent move';
+        } else {
+          returnFreqEl.disabled = false;
+          returnFreqEl.title = '';
+          if (returnFreqEl.value === 'never' && moveTypeEl.value !== 'permanent') {
+            returnFreqEl.value = 'annually';
+          }
+        }
+      }
+
+      moveTypeEl.addEventListener('change', syncReturnFrequency);
+      syncReturnFrequency();
+    })();
+
+    // trustBeneficiaries should only be active when a trust structure is in use.
+    (function bindTrustBeneficiaries() {
+      const propertyStratEl = document.getElementById('propertyStrategy');
+      const hasTrustEl = document.getElementById('hasTrust');
+      const benefRow = document.getElementById('trustBeneficiaries')?.closest('.field');
+      if (!benefRow) return;
+
+      function syncTrustBeneficiaries() {
+        const usingTrust = (propertyStratEl?.value === 'transfer-trust') || Boolean(hasTrustEl?.checked);
+        benefRow.style.opacity = usingTrust ? '' : '0.35';
+        benefRow.title = usingTrust ? '' : 'Enable a trust structure above to configure beneficiaries';
+        const sel = document.getElementById('trustBeneficiaries');
+        if (sel) sel.disabled = !usingTrust;
+      }
+
+      if (propertyStratEl) propertyStratEl.addEventListener('change', syncTrustBeneficiaries);
+      if (hasTrustEl) {
+        hasTrustEl.addEventListener('change', syncTrustBeneficiaries);
+        hasTrustEl.addEventListener('input', syncTrustBeneficiaries);
+      }
+      syncTrustBeneficiaries();
+    })();
 
     // Auto-fill spending currency when overseas destination changes
     (function bindDestinationCurrency() {

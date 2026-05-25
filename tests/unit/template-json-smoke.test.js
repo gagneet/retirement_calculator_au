@@ -1,7 +1,7 @@
 /**
  * template-json-smoke.test.js
  *
- * Smoke tests that load the real retirement_template.json user data and drive
+ * Smoke tests that load the legacy retirement_template_v1.json user data and drive
  * it through every calculation sub-engine that was modified in the recent
  * bug-fix pass.  Asserts:
  *
@@ -22,7 +22,7 @@
  * golden-output regression test.
  */
 
-import templateData from '../../src/retirement_template.json';
+import templateData from '../../src/retirement_template_v1.json';
 
 import { hasHighInterestDebt, normaliseRatio } from '../../src/js/utils.js';
 

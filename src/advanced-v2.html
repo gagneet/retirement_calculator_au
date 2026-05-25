@@ -788,7 +788,6 @@
               <div class="field-help">ASFA Retirement Standard (Sep 2024 quarter). <b>Couple:</b> Modest $47,731 · Comfortable $73,031. <b>Single:</b> Modest $33,134 · Comfortable $51,814. Presets below use couple figures — adjust manually if planning as single.</div>
             </div>
           </div>
-
           <div class="subhead">Expense-based Target Builder</div>
           <div class="fields three">
             <div class="field">
@@ -909,22 +908,22 @@
           <div class="fields">
             <div class="field">
               <label class="field-label" for="inflation"><span>Inflation (median)</span><span class="hint">% / yr</span></label>
-              <div class="field-input"><input id="inflation" type="number" step="0.1" value="2.6" /><span class="suffix">%</span></div>
+              <div class="field-input"><input id="inflation" type="number" step="0.01" value="2.6" /><span class="suffix">%</span></div>
               <div class="field-help">RBA target 2–3%. AU CPI median 2.6%. Treated as the <b>median annual rate</b> — Monte Carlo runs apply a bounded random variation of ±4 percentage points each year, reflecting realistic macro uncertainty.</div>
             </div>
             <div class="field">
               <label class="field-label" for="invReturn"><span>Investment return — non-super (median)</span><span class="hint">% / yr</span></label>
-              <div class="field-input"><input id="invReturn" type="number" step="0.1" value="6.5" /><span class="suffix">%</span></div>
+              <div class="field-input"><input id="invReturn" type="number" step="0.01" value="6.5" /><span class="suffix">%</span></div>
               <div class="field-help">Treated as the <b>median annual return</b>. Monte Carlo runs use regime-aware stochastic modelling (bull/bear/crash cycles) with this as the central value.</div>
             </div>
             <div class="field">
               <label class="field-label" for="superGrowth"><span>Super growth (median)</span><span class="hint">% / yr</span></label>
-              <div class="field-input"><input id="superGrowth" type="number" step="0.1" value="7.5" /><span class="suffix">%</span></div>
+              <div class="field-input"><input id="superGrowth" type="number" step="0.01" value="7.5" /><span class="suffix">%</span></div>
               <div class="field-help">AU balanced super median ~7.5% (APRA). Treated as the <b>median annual return</b> — Monte Carlo runs vary this ±4 pp each year.</div>
             </div>
             <div class="field">
               <label class="field-label" for="savingsReturn"><span>Savings / cash return (median)</span><span class="hint">% / yr</span></label>
-              <div class="field-input"><input id="savingsReturn" type="number" step="0.1" value="3.5" /><span class="suffix">%</span></div>
+              <div class="field-input"><input id="savingsReturn" type="number" step="0.01" value="3.5" /><span class="suffix">%</span></div>
               <div class="field-help">Median across high-yield savings (~5%), term deposits (~4.5%) and standard accounts (~1%) in 2025. Treated as the <b>median annual return</b> — Monte Carlo runs vary this ±4 pp each year. Adjust for your actual mix.</div>
             </div>
           </div>
@@ -962,7 +961,7 @@
           <div class="fields three">
             <div class="field">
               <label class="field-label" for="mcRuns"><span>Monte Carlo runs</span></label>
-              <div class="field-input"><select id="mcRuns"><option value="200">200 (quick)</option><option value="500" selected>500 (recommended)</option><option value="1000">1,000 (detailed)</option><option value="5000">5,000 (slower)</option><option value="10000">10,000 (thorough)</option><option value="custom">Custom…</option></select></div>
+              <div class="field-input"><select id="mcRuns"><option value="200">200 (quick)</option><option value="500" selected>500 (recommended)</option><option value="1000">1,000 (detailed)</option><option value="5000">5,000 (slower)</option><option value="10000">10,000 (thorough)</option><option value="20000">20,000 (exhaustive — slow)</option><option value="custom">Custom…</option></select></div>
               <div id="mcRunsCustomWrap" style="display:none;margin-top:6px;flex-direction:column;gap:4px">
                 <div class="field-input"><input id="mcRunsCustom" type="number" value="2000" min="100" max="20000" step="100" placeholder="100 – 20,000" /><span class="suffix">runs</span></div>
                 <div class="field-help">Enter a value between 100 and 20,000. Values above 10,000 may take 30–60 seconds.</div>
@@ -1264,7 +1263,110 @@
         </div>
       </section>
 
-      <!-- ──────────── ACTION STRIP ──────────── -->
+      <!-- ──────────── 13 · AGE-RELATED OPTIONAL COSTS (advanced) ──────────── -->
+      <section class="section" data-section="age-options" data-advanced="true">
+        <button class="section-head" type="button">
+          <span class="section-num">13</span>
+          <span class="section-title"><h3>Age-related optional costs</h3><small>Home modifications, annuity income, tiered spending</small></span>
+          <span class="section-meta"><span class="pill">optional</span></span>
+          <svg class="section-chev" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="section-body">
+          <div class="notice"><span class="ic">🏠</span><div>These optional settings model real costs that typically arise in later retirement. All are disabled by default — enable only what applies to your situation. Linked to your downsize plan: if you plan to downsize, ongoing maintenance costs are automatically removed.</div></div>
+
+          <!-- ── Home modifications ── -->
+          <div class="subhead">Home modifications</div>
+          <div class="fields one">
+            <div class="field">
+              <label class="toggle"><input id="enableHomeModifications" type="checkbox" /><span class="track"></span><span class="label">Plan for home accessibility modifications</span></label>
+              <div class="field-help">One-off cost to adapt your home for mobility or safety (ramps, grab rails, bathroom refit, etc.).</div>
+            </div>
+          </div>
+          <div data-home-mods="true" hidden>
+            <div class="fields three">
+              <div class="field">
+                <label class="field-label" for="homeModificationCost"><span>Estimated modification cost</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="homeModificationCost" type="number" value="25000" step="1000" min="0" /></div>
+                <div class="field-help">National average ~$15,000–$35,000. Larger homes or comprehensive retrofits may reach $80,000+.</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="homeModificationAge"><span>Expected age for modifications</span></label>
+                <div class="field-input"><input id="homeModificationAge" type="number" value="78" min="60" max="100" /><span class="suffix">yrs</span></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="homeModificationRecurring"><span>Annual ongoing maintenance</span><span class="hint">after mods</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="homeModificationRecurring" type="number" value="2000" step="250" min="0" /></div>
+                <div class="field-help">Annual upkeep of accessibility features. Set to $0 if downsizing to strata/aged care (maintenance is covered by levies).</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Longevity insurance / annuity ── -->
+          <div class="subhead">Longevity insurance (annuity)</div>
+          <div class="fields one">
+            <div class="field">
+              <label class="toggle"><input id="enableAnnuity" type="checkbox" /><span class="track"></span><span class="label">Purchase a lifetime annuity</span></label>
+              <div class="field-help">Model the purchase of a guaranteed income stream (annuity or similar product like a Lifetime Income Stream) at a specific age. This provides certainty against outliving your super.</div>
+            </div>
+          </div>
+          <div data-annuity="true" hidden>
+            <div class="fields three">
+              <div class="field">
+                <label class="field-label" for="annuityPurchaseAge"><span>Age of annuity purchase</span></label>
+                <div class="field-input"><input id="annuityPurchaseAge" type="number" value="67" min="55" max="90" /><span class="suffix">yrs</span></div>
+                <div class="field-help">Typically purchased at or just after retirement age for maximum guaranty period.</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="annuityLumpSum"><span>Purchase lump sum</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="annuityLumpSum" type="number" value="200000" step="10000" min="0" /></div>
+                <div class="field-help">Amount drawn from super/savings to purchase the annuity. Removed from your portfolio at the purchase age.</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="annuityAnnualIncome"><span>Annual guaranteed income</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="annuityAnnualIncome" type="number" value="14000" step="500" min="0" /></div>
+                <div class="field-help">Annual income received from the annuity for life. Typical payout rate ~6–8% of lump sum for a 67-year-old.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Tiered spending (Active / Stable / Frail) ── -->
+          <div class="subhead">Tiered spending by retirement stage</div>
+          <div class="fields one">
+            <div class="field">
+              <label class="toggle"><input id="enableTieredSpending" type="checkbox" /><span class="track"></span><span class="label">Apply tiered spending multipliers (Active → Stable → Frail)</span></label>
+              <div class="field-help">Research shows retirement spending follows a "smile" curve. The early "Active" years have high lifestyle spending; the middle "Stable" years decline; the late "Frail" years rise sharply due to care costs. Enable to apply custom multipliers per stage.</div>
+            </div>
+          </div>
+          <div data-tiered-spending="true" hidden>
+            <div class="fields">
+              <div class="field">
+                <label class="field-label" for="tieredSpendingActiveAge"><span>Active stage ends at age</span></label>
+                <div class="field-input"><input id="tieredSpendingActiveAge" type="number" value="75" min="65" max="85" /><span class="suffix">yrs</span></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="tieredSpendingFrailAge"><span>Frail stage begins at age</span></label>
+                <div class="field-input"><input id="tieredSpendingFrailAge" type="number" value="85" min="70" max="100" /><span class="suffix">yrs</span></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="tieredSpendingActiveMultiplier"><span>Active stage spending</span><span class="hint">% of base</span></label>
+                <div class="field-input"><input id="tieredSpendingActiveMultiplier" type="number" value="110" min="80" max="150" step="5" /><span class="suffix">%</span></div>
+                <div class="field-help">Default 110% — early retirees typically spend 10% more on travel and lifestyle.</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="tieredSpendingStableMultiplier"><span>Stable stage spending</span><span class="hint">% of base</span></label>
+                <div class="field-input"><input id="tieredSpendingStableMultiplier" type="number" value="90" min="60" max="120" step="5" /><span class="suffix">%</span></div>
+                <div class="field-help">Default 90% — mid-retirement spending typically falls as travel and activity decline.</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="tieredSpendingFrailMultiplier"><span>Frail stage spending</span><span class="hint">% of base</span></label>
+                <div class="field-input"><input id="tieredSpendingFrailMultiplier" type="number" value="115" min="90" max="200" step="5" /><span class="suffix">%</span></div>
+                <div class="field-help">Default 115% — late retirement includes higher healthcare and care costs.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
       <div class="action-strip" style="display:grid;grid-template-columns:1fr auto;gap:14px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:16px;align-items:center">
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <span style="font-size:11.5px;color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-right:4px">Step 2 — Explore</span>
@@ -1287,6 +1389,7 @@
           <button data-tab="year">📅 Year-by-Year</button>
           <button data-tab="risk">⛑️ Risk &amp; Resilience</button>
           <button data-tab="ai">🤖 AI Recommendations</button>
+          <button data-tab="overseas" id="overseas-tab-btn" hidden>✈️ Overseas Plan</button>
         </div>
         <div class="analysis-body">
           <div data-tab-panel="summary">
@@ -1311,7 +1414,6 @@
                 </div>
               </div>
             </div>
-
             <p style="color:var(--ink-3)" id="summary-placeholder">Run the calculation to see your enhanced summary and top drivers here.</p>
             <div id="analysis-summary"></div>
           </div>
@@ -1347,6 +1449,9 @@
           </div>
           <div data-tab-panel="ai" hidden>
             <p style="color:var(--ink-3)">Run AI suggestions or the full simulation to generate personalised recommendations.</p>
+          </div>
+          <div data-tab-panel="overseas" hidden>
+            <p style="color:var(--ink-3)">Enable an overseas destination above, then click the Overseas Plan tool to see destination-specific pension portability, cost of living, tax and risk analysis.</p>
           </div>
         </div>
       </div>

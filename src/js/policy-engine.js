@@ -341,7 +341,6 @@ export function calculatePortablePension({
             // AWLR proportion applies after 26 weeks.
             // Correct logic: The Basic Pension Rate is pro-rated. The Pension Supplement (Basic) is NOT pro-rated.
             // Energy Supplement and Supplement Top-up are lost.
-
             const annualBasicSupplement = isCouple ? cfg.PENSION_SUPPLEMENT_BASIC_COUPLE * 2 * 26 : cfg.PENSION_SUPPLEMENT_BASIC_SINGLE * 26;
 
             // 1. Isolate the base pension rate (excluding all supplements)
@@ -384,7 +383,6 @@ export function calculatePortablePension({
             const annualBasicSupplement = isCouple ? cfg.PENSION_SUPPLEMENT_BASIC_COUPLE * 2 * 26 : cfg.PENSION_SUPPLEMENT_BASIC_SINGLE * 26;
             const fullAnnualSupplement = supplementLoss + annualBasicSupplement;
             const basePensionRateOnly = Math.max(0, basePension - fullAnnualSupplement);
-
             const proRatedBase = basePensionRateOnly * proportionalRate;
             const finalPension = (basePension > 0) ? (proRatedBase + annualBasicSupplement) : 0;
 

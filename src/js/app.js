@@ -664,6 +664,22 @@ class RetirementCalculatorApp {
             agedCareDuration: safeGetValue('agedCareDuration', config.healthcare.agedCareDuration),
             agedCareAnnualCost: safeGetValue('agedCareAnnualCost', config.healthcare.agedCareAnnualCost),
 
+            // Age-related optional costs (mirrors advanced-v2.html Section 13)
+            enableHomeModifications: safeGetChecked('enableHomeModifications', false),
+            homeModificationCost: safeGetValue('homeModificationCost', 25000),
+            homeModificationAge: safeGetValue('homeModificationAge', 75),
+            homeModificationRecurring: safeGetValue('homeModificationRecurring', 2000),
+            enableAnnuity: safeGetChecked('enableAnnuity', false),
+            annuityPurchaseAge: safeGetValue('annuityPurchaseAge', 67),
+            annuityLumpSum: safeGetValue('annuityLumpSum', 200000),
+            annuityAnnualIncome: safeGetValue('annuityAnnualIncome', 12000),
+            enableTieredSpending: safeGetChecked('enableTieredSpending', false),
+            tieredSpendingActiveAge: safeGetValue('tieredSpendingActiveAge', 75),
+            tieredSpendingFrailAge: safeGetValue('tieredSpendingFrailAge', 85),
+            tieredSpendingActiveMultiplier: safeGetValue('tieredSpendingActiveMultiplier', 110) / 100,
+            tieredSpendingStableMultiplier: safeGetValue('tieredSpendingStableMultiplier', 90) / 100,
+            tieredSpendingFrailMultiplier: safeGetValue('tieredSpendingFrailMultiplier', 120) / 100,
+
             // Economic assumptions
             inflation: safeGetValue('inflation', config.economic.inflation) / 100,
             investmentReturn: safeGetValue('investmentReturn', config.economic.investmentReturn) / 100,
@@ -833,9 +849,8 @@ class RetirementCalculatorApp {
             // These measures are NOT yet passed by Parliament.
             enableProposedBudget2026: safeGetChecked('enableProposedBudget2026', false),
 
-            // Overseas retirement — wire the Overseas tab fields into the simulator
-            // so the Year-by-Year projection uses the overseas living budget from
-            // the specified departure age instead of the domestic ASFA target.
+            // Overseas retirement — wire the Overseas tab fields into the simulator.
+            // Keep classic field names plus engine-facing aliases for v2 compatibility.
             overseasCountry: safeGetSelectValue('overseasCountry', ''),
             goingOverseas: safeGetSelectValue('overseasCountry', '') !== '',
             overseasAge: parseInt(safeGetValue('overseasAge', 0)) || 0,
@@ -863,12 +878,10 @@ class RetirementCalculatorApp {
             hasFHSS: safeGetChecked('hasFHSS', false),
             fhssContributed: parseFormattedNumber(getRawValue('fhssContributed', '0')),
 
-            // New Age-related factors
+            // Legacy age-related fields used by older advanced page sections.
             homeModificationsCost: parseFormattedNumber(getRawValue('homeModificationsCost', '30000')),
             homeModificationsAge: parseInt(safeGetValue('homeModificationsAge', 75)) || 75,
-            annuityPurchaseAmount: parseFormattedNumber(getRawValue('annuityPurchaseAmount', '0')),
-            annuityAnnualIncome: parseFormattedNumber(getRawValue('annuityAnnualIncome', '0')),
-            annuityPurchaseAge: parseInt(safeGetValue('annuityPurchaseAge', 67)) || 67
+            annuityPurchaseAmount: parseFormattedNumber(getRawValue('annuityPurchaseAmount', '0'))
         };
 
         if (inputs.useGlidePath) {
@@ -2206,7 +2219,7 @@ class RetirementCalculatorApp {
             if (data.depleted) {
                 projectionTable.innerHTML += `
                     <tr class="bg-red-100">
-                        <td colspan="11" class="px-4 py-2 text-center font-bold text-red-800" style="font-family:var(--font-ui,'DM Sans',sans-serif)">
+                        <td colspan="12" class="px-4 py-2 text-center font-bold text-red-800" style="font-family:var(--font-ui,'DM Sans',sans-serif)">
                             ⚠️ Modelled assets depleted in ${data.year} at age ${data.age}${data.partnerAlive ? ` (partner age ${data.partnerAge})` : ''}${data.pensionIncome > 0 ? ` — projected ${data.partnerAlive ? 'combined ' : ''}Age Pension ${formatCurrency(data.pensionIncome)}/year` : ' — no Age Pension projected at that point'}
                         </td>
                     </tr>
@@ -2244,6 +2257,9 @@ class RetirementCalculatorApp {
             const withdrawTip = isOverseas
                 ? `Overseas living: ${formatCurrency(livingCost)} + Return travel: ${formatCurrency(travelCost)}. Source: ${srcLabel || '—'}.`
                 : `Annual portfolio withdrawal. Source: ${srcLabel || '—'}.`;
+            const overseasCellContent = isOverseas
+                ? `${formatCurrency(livingCost)}${travelCost > 0 ? `<span class="wy-src src-overseas" title="Return travel">+${formatCurrency(travelCost)} ✈</span>` : ''}`
+                : '<span style="color:#9ca3af">—</span>';
 
             projectionTable.innerHTML += `
                 <tr class="${rowClass}">
@@ -2257,6 +2273,7 @@ class RetirementCalculatorApp {
                     <td class="px-4 py-2 num negative">-${formatCurrency(data.healthcareCost)}</td>
                     <td class="px-4 py-2 num negative">-${formatCurrency(data.agedCareCost)}</td>
                     <td class="px-4 py-2 num ${endBal < 0 ? 'negative' : ''}" style="font-weight:600">${formatCurrency(endBal)}</td>
+                    <td class="px-4 py-2 num overseas-col${isOverseas ? ' teal' : ''}">${overseasCellContent}</td>
                     <td class="px-4 py-2 num" style="font-weight:600;color:#6D28D9">${formatCurrency(netWorth)}</td>
                 </tr>
             `;
@@ -11526,6 +11543,20 @@ document.addEventListener('DOMContentLoaded', () => {
         ipTypeSel.addEventListener('change', onTypeChange);
         onTypeChange(); // apply on page load
     }());
+
+    // Age-related optional cost section toggles (Home Modifications, Annuity, Tiered Spending)
+    [
+        { checkboxId: 'enableHomeModifications', fieldsId: 'homeModsFields' },
+        { checkboxId: 'enableAnnuity', fieldsId: 'annuityFields' },
+        { checkboxId: 'enableTieredSpending', fieldsId: 'tieredSpendingFields' },
+    ].forEach(({ checkboxId, fieldsId }) => {
+        const cb = document.getElementById(checkboxId);
+        const fields = document.getElementById(fieldsId);
+        if (!cb || !fields) return;
+        function toggle() { fields.style.display = cb.checked ? '' : 'none'; }
+        cb.addEventListener('change', toggle);
+        toggle();
+    });
 });
 
 export default RetirementCalculatorApp;
