@@ -614,6 +614,70 @@ const FIELD_TOOLTIP_DEFINITIONS = {
         title: 'Likely return trigger',
         body: 'This captures the event most likely to bring you back to Australia so fallback recommendations reflect a realistic contingency.',
     },
+    salaryGrowthType: {
+        title: 'Salary growth pattern',
+        body: 'Sets how your salary increases each year before retirement. Standard tracks inflation; Career adds 2% real growth; Stagnant represents infrequent raises.',
+    },
+    downsizeAge: {
+        title: 'Age to downsize',
+        body: 'The age when you plan to sell your current home and buy a smaller or cheaper one, releasing equity for retirement.',
+    },
+    downsizeTargetHomeValue: {
+        title: 'New home value',
+        body: 'The estimated cost of the new, smaller home in today\'s dollars. The model adjusts this for inflation until your downsize age.',
+    },
+    downsizeTransactionCost: {
+        title: 'Downsizing costs',
+        body: 'The percentage of the home sale price lost to agent fees, marketing, legal costs, and moving expenses. Standard is 6.6% (incl. GST).',
+    },
+    downsizeOngoingFees: {
+        title: 'Ongoing village/strata fees',
+        body: 'Annual service or strata fees associated with the new property (e.g., retirement village levies).',
+    },
+    builderCurrentIncome: {
+        title: 'Current monthly net income',
+        body: 'Your total household take-home pay each month after tax.',
+    },
+    builderMortgage: {
+        title: 'Current monthly mortgage/rent',
+        body: 'Your regular monthly housing repayment which is assumed to stop once the home is owned outright in retirement.',
+    },
+    builderChildren: {
+        title: 'Monthly children/work costs',
+        body: 'Ongoing costs like school fees or commuting expenses that will likely disappear when you retire.',
+    },
+    builderBuffer: {
+        title: 'Holidays & hobbies buffer',
+        body: 'An extra percentage added to your derived base expenses to allow for a more comfortable retirement lifestyle.',
+    },
+    homeModAge: {
+        title: 'Expected age for home modification',
+        body: 'The age when you anticipate needing to spend a lump sum on home improvements like ramps or bathroom rails.',
+    },
+    homeModBudget: {
+        title: 'Modification budget',
+        body: 'A one-off amount in today\'s dollars for age-related home modifications.',
+    },
+    annuityPurchaseAmount: {
+        title: 'Annuity purchase amount',
+        body: 'The total capital you plan to use to purchase a lifetime annuity (longevity insurance).',
+    },
+    annuityAnnualIncome: {
+        title: 'Annuity annual income',
+        body: 'The guaranteed annual income payment you receive from your lifetime annuity.',
+    },
+    annuityPurchaseAge: {
+        title: 'Annuity purchase age',
+        body: 'The age when you plan to start your lifetime annuity payments.',
+    },
+    annualSpousalMaintenance: {
+        title: 'Annual spousal maintenance',
+        body: 'Annual amount paid for spousal or partner maintenance following a separation.',
+    },
+    annualChildSupport: {
+        title: 'Annual child support',
+        body: 'Annual child support payments, typically ending when the youngest child turns 18.',
+    },
 };
 
 const ADVANCED_TOOLTIP_PAGE_SELECTOR = '#advancedCalculatorForm, .redesign-v2';

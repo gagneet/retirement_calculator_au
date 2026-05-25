@@ -1744,6 +1744,44 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
     doc.text("This report is for informational purposes only and does not constitute financial advice.", 14, 65);
     doc.text("Please consult with a licensed financial adviser before making investment decisions.", 14, 72);
 
+    // Prominent Plain English Summary
+    const effectivePlanAge = inputs.yourLifespan > 0 ? inputs.yourLifespan : 120;
+    const lastsUntil = results.depletionAge || effectivePlanAge;
+
+    // --- Bottom Line Section (Plain English) ---
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(27, 79, 114);
+    doc.text("The Bottom Line", 14, 85);
+
+    let currentY = 95;
+    const drawBottomLineItem = (icon, title, text) => {
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${icon} ${title}`, 14, currentY);
+        doc.setFont("helvetica", "normal");
+        const lines = doc.splitTextToSize(text, 170);
+        doc.text(lines, 20, currentY + 7);
+        currentY += (lines.length * 7) + 12;
+    };
+
+    const lifestyleStatus = results.finalBalance > 0 ? 'Affordable' : 'Tight';
+    const lifestyleYears = results.depletionAge ? `until age ${results.depletionAge}` : `for full lifespan`;
+    drawBottomLineItem("⛵", "Lifestyle Goals", `${lifestyleStatus}: Your plan sustains your ${formatCurrency(inputs.asfaComfortable)} lifestyle ${lifestyleYears}.`);
+
+    const hasBuffer = (results.accumulatedSavingsBalance > inputs.asfaComfortable * 0.5);
+    const crashText = hasBuffer
+        ? `Resilient: You have a ${formatCurrency(results.accumulatedSavingsBalance)} cash buffer to weather market volatility.`
+        : `Exposure: Low cash reserves mean you may be forced to sell assets during a market downturn.`;
+    drawBottomLineItem("🛡️", "Crash Safety Net", crashText);
+
+    const startPensionYear = results.yearlyData.find(y => y.pensionIncome > 0);
+    const pensionText = startPensionYear
+        ? `Hybrid: You transition to a part-pension at age ${startPensionYear.age}, extending your portfolio's life.`
+        : `Self-Funded: You remain above the asset test cutoff for the projected period.`;
+    drawBottomLineItem("🏛️", "Pension Transition", pensionText);
+
     // --- Table of Contents ---
     doc.addPage();
     doc.setFontSize(18);
@@ -2128,10 +2166,14 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
         'carerAnnualExpense', 'creditCardBalance', 'personalLoanBalance',
         'carLoanBalance', 'hecsBalance', 'annualTravelBudget', 'annualHobbyBudget',
         'legacyGoal', 'reducedIncomeSalary', 'partnerReducedIncomeSalary',
-        'businessIncome', 'investmentIncome'
+        'businessIncome', 'investmentIncome', 'estimatedLivingCosts', 'overseasAnnualRent',
+        'fhssContributed', 'homeModificationsCost', 'annuityPurchaseAmount', 'annuityAnnualIncome',
+        'downsizeTargetHomeValue', 'downsizeOngoingFees', 'homeModBudget', 'builderCurrentIncome',
+        'builderMortgage', 'builderChildren'
     ];
 
     const percentageFields = [
+        'downsizeTransactionCost',
         'percentIncomeSaved', 'mortgageRate', 'investmentPropertyRate',
         'propertyGrowthRate', 'capitalGainsTaxRate', 'healthcareInflation',
         'agedCareProbability', 'inflation', 'investmentReturn', 'returnDeclineRate',
@@ -2141,7 +2183,7 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
         'vacancyRate', 'maintenanceInflation', 'trustTaxRate', 'beneficiaryAllocation',
         'extremeInflationProbability', 'propertyCrashProbability',
         'creditCardRate', 'personalLoanRate', 'carerReducedWorkPercent', 'carLoanRate',
-        'employerSuperContributionRate'
+        'employerSuperContributionRate', 'overseasAudFxChange'
     ];
 
     // Format currency and percentage fields
@@ -2270,7 +2312,7 @@ export const populateFormFromData = (userData, version = '2.0') => {
         'shockProbability', 'shockMagnitude', 'australianEquityAllocation', 'allocEquities', 'allocBonds', 'allocCash', 'trustAttributionPercentage',
         'carerReducedWorkPercent', 'vacancyRate', 'maintenanceInflation',
         'trustTaxRate', 'beneficiaryAllocation', 'extremeInflationProbability', 'propertyCrashProbability',
-        'creditCardRate', 'personalLoanRate', 'carLoanRate', 'employerSuperContributionRate'
+        'creditCardRate', 'personalLoanRate', 'carLoanRate', 'employerSuperContributionRate', 'overseasAudFxChange'
     ];
 
     const dependentPercentageFields = [
@@ -2290,6 +2332,80 @@ export const populateFormFromData = (userData, version = '2.0') => {
             debugLog('✓ Triggered visibility for dependent details section.');
         }
     }
+
+    // Field mapping for cross-version compatibility (v2 -> v1)
+    const fieldMapping = {
+        'age': 'yourCurrentAge',
+        'retireAge': 'retirementAge',
+        'lifespan': 'yourLifespan',
+        'partnerAge': 'partnerCurrentAge',
+        'partnerRetireAge': 'partnerRetirementAge',
+        'partnerLifespan': 'partnerLifespan',
+        'salary': 'yourSalary',
+        'superBal': 'yourCurrentSuper',
+        'partnerSuperBal': 'partnerCurrentSuper',
+        'cash': 'currentSavings',
+        'stocks': 'currentStocks',
+        'invReturn': 'investmentReturn',
+        'superGrowth': 'superReturn',
+        'savingsReturn': 'savingsReturn',
+        'employerRate': 'employerSuperContributionRate',
+        'desiredIncome': 'asfaComfortable',
+        'mortgage': 'mortgageBalance',
+        'ipValue': 'investmentPropertyValue',
+        'ipLoan': 'investmentPropertyLoan',
+        'ipRate': 'investmentPropertyRate',
+        'ipWeeklyRent': 'weeklyRentalIncome',
+        'ipAnnualExpenses': 'annualPropertyExpenses',
+        'ipGrowthRate': 'propertyGrowthRate',
+        'ipState': 'propertyState',
+        'healthcareCost': 'currentHealthcareCosts',
+        'hasPrivateHospital': 'hasPrivateHealthCover',
+        'ageFirstHadCover': 'ageFirstPrivateCover',
+        'ageCameToAU': 'ageCameToAustralia',
+        'ageStartedEarningAU': 'ageStartedEarningAustralia',
+        'partnerAgeCameToAU': 'partnerAgeCameToAustralia',
+        'partnerAgeStartedEarningAU': 'partnerAgeStartedEarningAustralia',
+        'reducedIncomeEnabled': 'enableReducedIncome',
+        'reducedIncomeAge': 'reducedIncomeAge',
+        'reducedIncomeSalary': 'reducedIncomeSalary',
+        'partnerReducedIncomeAge': 'partnerReducedIncomeAge',
+        'partnerReducedIncomeSalary': 'partnerReducedIncomeSalary',
+        'isCarer': 'isCarerForParents',
+        'carerAnnualExpense': 'carerAnnualExpense',
+        'carerYearsExpected': 'carerYearsExpected',
+        'carerReducedWorkPercent': 'carerReducedWorkPercent',
+        'salarySacrifice': 'yourAdditionalSuperContribution',
+        'partnerSalarySacrifice': 'partnerAdditionalSuperContribution',
+        'ncc': 'yourAnnualNCC',
+        'partnerNCC': 'partnerAnnualNCC',
+        'concessionalUsedThisYear': 'concessionalCapUsed',
+        'useDownsizer': 'downsizeContribution',
+        'downsizeAge': 'downsizeAge',
+        'downsizeTargetHomeValue': 'downsizeTargetHomeValue',
+        'downsizeTransactionCost': 'downsizeTransactionCost',
+        'downsizeOngoingFees': 'downsizeOngoingFees',
+        'salaryGrowthType': 'salaryGrowthType',
+        'builderCurrentIncome': 'builderCurrentIncome',
+        'builderMortgage': 'builderMortgage',
+        'builderChildren': 'builderChildren',
+        'builderBuffer': 'builderBuffer',
+        'homeModAge': 'homeModAge',
+        'homeModBudget': 'homeModBudget',
+        'hasSmsf': 'hasSMSF',
+        'hasTrust': 'hasTrustAssets',
+        'mcRuns': 'numRuns',
+        'sampleLifespan': 'useLongevityDistribution',
+        'budget2627': 'enableProposedBudget2026',
+        'destination': 'overseasCountry',
+        'ageMovingOverseas': 'overseasAge',
+        'annualLivingCostOverseas': 'estimatedLivingCosts',
+        'annuityPurchaseAmount': 'annuityPurchaseAmount',
+        'annuityAnnualIncome': 'annuityAnnualIncome',
+        'annuityPurchaseAge': 'annuityPurchaseAge',
+        'homeModificationsCost': 'homeModificationsCost',
+        'homeModificationsAge': 'homeModificationsAge'
+    };
 
     Object.entries(userData).forEach(([key, value]) => {
         try {
@@ -2319,7 +2435,7 @@ export const populateFormFromData = (userData, version = '2.0') => {
                 });
             } else {
                 // Handle field mapping for legacy/alternative field names
-                let targetKey = key;
+                let targetKey = fieldMapping[key] || key;
 
                 // Map returnRate to specific investment return fields
                 if (key === 'returnRate') {

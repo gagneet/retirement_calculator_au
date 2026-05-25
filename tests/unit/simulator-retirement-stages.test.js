@@ -144,14 +144,15 @@ describe('RetirementSimulator staged retirement modelling', () => {
 
         const bridgeYear = result.yearlyData.find(year => year.age === 65);
         const stableYear = result.yearlyData.find(year => year.age === 75);
-        const careYear = result.yearlyData.find(year => year.age === 85);
+        const lateYear = result.yearlyData.find(year => year.age === 85);
 
-        expect(bridgeYear.lifecycleStage).toBe('pre_pension_bridge');
+        // Updated for "Spending Smile" (Go-Go, Slow-Go, No-Go)
+        expect(bridgeYear.lifecycleStage).toBe('active_retirement');
         expect(bridgeYear.fundingStage).toBe('self_funded');
         expect(bridgeYear.decumulationStrategy).toBe('floor_upside');
         expect(stableYear.lifecycleStage).toBe('stable_retirement');
-        expect(careYear.lifecycleStage).toBe('late_life_care');
-        expect(careYear.discretionarySpending).toBeLessThan(bridgeYear.discretionarySpending);
+        expect(lateYear.lifecycleStage).toBe('late_life_care');
+        expect(lateYear.discretionarySpending).toBeLessThan(bridgeYear.discretionarySpending);
     });
 
     test('captures accumulation history and retirement balance components for UI rendering', () => {

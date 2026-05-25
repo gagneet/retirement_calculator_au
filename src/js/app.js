@@ -836,10 +836,39 @@ class RetirementCalculatorApp {
             // Overseas retirement — wire the Overseas tab fields into the simulator
             // so the Year-by-Year projection uses the overseas living budget from
             // the specified departure age instead of the domestic ASFA target.
+            overseasCountry: safeGetSelectValue('overseasCountry', ''),
             goingOverseas: safeGetSelectValue('overseasCountry', '') !== '',
+            overseasAge: parseInt(safeGetValue('overseasAge', 0)) || 0,
             overseasStartAge: parseInt(safeGetValue('overseasAge', 0)) || 0,
-            overseasAnnualBudget: parseFormattedNumber(getRawValue('estimatedLivingCosts', '0')),
-            overseasReturnFrequency: safeGetSelectValue('returnFrequency', 'annually')
+            overseasMoveType: safeGetSelectValue('overseasMoveType', 'permanent'),
+            overseasAgreementCountry: safeGetChecked('overseasAgreementCountry', false),
+            overseasTaxResidency: safeGetSelectValue('overseasTaxResidency', 'australian'),
+            overseasHealthCover: safeGetSelectValue('overseasHealthCover', 'international_private'),
+            maintainResidency: safeGetChecked('maintainResidency', false),
+            propertyStrategy: safeGetSelectValue('propertyStrategy', 'keep-personal'),
+            trustBeneficiaries: safeGetSelectValue('trustBeneficiaries', 'you-only'),
+            superAccess: safeGetSelectValue('superAccess', 'pension-mode'),
+            estimatedLivingCosts: parseFormattedNumber(getRawValue('estimatedLivingCosts', '60000')),
+            overseasAnnualBudget: parseFormattedNumber(getRawValue('estimatedLivingCosts', '60000')),
+            overseasSpendingCurrency: safeGetSelectValue('overseasSpendingCurrency', 'AUD'),
+            overseasAudFxChange: safeGetValue('overseasAudFxChange', -1) / 100,
+            overseasHousingType: safeGetSelectValue('overseasHousingType', 'rent'),
+            overseasAnnualRent: parseFormattedNumber(getRawValue('overseasAnnualRent', '18000')),
+            overseasFallbackAge: parseInt(safeGetValue('overseasFallbackAge', 0)) || 0,
+            overseasFallbackTrigger: safeGetSelectValue('overseasFallbackTrigger', 'none'),
+            returnFrequency: safeGetSelectValue('returnFrequency', 'annually'),
+            overseasReturnFrequency: safeGetSelectValue('returnFrequency', 'annually'),
+
+            // FHSS
+            hasFHSS: safeGetChecked('hasFHSS', false),
+            fhssContributed: parseFormattedNumber(getRawValue('fhssContributed', '0')),
+
+            // New Age-related factors
+            homeModificationsCost: parseFormattedNumber(getRawValue('homeModificationsCost', '30000')),
+            homeModificationsAge: parseInt(safeGetValue('homeModificationsAge', 75)) || 75,
+            annuityPurchaseAmount: parseFormattedNumber(getRawValue('annuityPurchaseAmount', '0')),
+            annuityAnnualIncome: parseFormattedNumber(getRawValue('annuityAnnualIncome', '0')),
+            annuityPurchaseAge: parseInt(safeGetValue('annuityPurchaseAge', 67)) || 67
         };
 
         if (inputs.useGlidePath) {

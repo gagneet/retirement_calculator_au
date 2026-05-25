@@ -244,6 +244,10 @@ function buildEngineInputs(inp) {
     monthlyMortgagePayment: deriveMortgagePayment(inp.mortgage, mortgageRate),
     mortgageTermLeft: inp.mortgage > 0 ? 30 : 0,
     planToDownsize: inp.downsizePlan === 'yes',
+    downsizeAge: inp.downsizeAge,
+    downsizeTargetHomeValue: inp.downsizeTargetHomeValue,
+    downsizeTransactionCost: inp.downsizeTransactionCost,
+    downsizeOngoingFees: inp.downsizeOngoingFees,
 
     hasInvestmentProperty: inp.investmentProperty,
     investmentPropertyType: inp.ipType || 'unit',
@@ -350,7 +354,7 @@ function buildEngineInputs(inp) {
       const nonCarerExpense = (inp.annualParentSupport || 0)
         + (inp.hasSpousalMaintenance ? (inp.annualSpousalMaintenance || 0) : 0)
         + (inp.hasChildSupport ? (inp.annualChildSupport || 0) : 0);
-      const carerExpense = inp.isCarer ? (inp.carerAnnualExpense || 0) : 0;
+      const carerExpense = inp.isCarer ? (inp.carerAnnualExpense ?? 0) : 0;
       const totalFamilyExpense = carerExpense + nonCarerExpense;
       return {
         isCarerForParents: inp.isCarer || nonCarerExpense > 0,
@@ -363,6 +367,7 @@ function buildEngineInputs(inp) {
     privateSchool: inp.privateSchool,
     universitySupport: inp.uniSupport,
     educationCostPerChild: inp.educationCostPerChild,
+    salaryGrowthType: inp.salaryGrowthType,
     yourAdditionalSuperContribution: inp.salarySacrifice,
     partnerAdditionalSuperContribution: isCouple ? inp.partnerSalarySacrifice : 0,
     yourAnnualNCC: inp.ncc,
@@ -378,6 +383,9 @@ function buildEngineInputs(inp) {
     legacyGoal: inp.legacyGoal || 0,
     legacyGoalType: inp.legacyGoalType || 'none',
     enableProposedBudget2026: inp.budget2627,
+
+    homeModificationsCost: inp.homeModBudget,
+    homeModificationsAge: inp.homeModAge,
 
     goingOverseas: inp.goingOverseas,
     overseasStartAge: inp.goingOverseas ? (inp.ageMovingOverseas || 0) : 0,
@@ -702,6 +710,7 @@ function readInputs() {
       return v > age ? v : 0; // fall back to open-ended rather than crash
     })(),
     gender: val('gender', 'prefer_not_say'),
+    salaryGrowthType: val('salaryGrowthType', 'standard'),
     ageCameToAU: num('ageCameToAU'),
     ageStartedEarningAU: num('ageStartedEarningAU'),
     partnerAge: num('partnerAge'),
@@ -767,6 +776,10 @@ function readInputs() {
     mortgage: num('mortgage'),
     mortgageRate: num('mortgageRate'),
     downsizePlan: (document.querySelector('[data-bind="downsizePlan"]') || {}).dataset?.value || 'no',
+    downsizeAge: num('downsizeAge', 75),
+    downsizeTargetHomeValue: num('downsizeTargetHomeValue', 800000),
+    downsizeTransactionCost: num('downsizeTransactionCost', 6.6),
+    downsizeOngoingFees: num('downsizeOngoingFees', 12000),
     ccBalance: num('ccBalance'),
     ccRate: num('ccRate'),
     personalLoan: num('personalLoan'),
@@ -805,6 +818,10 @@ function readInputs() {
 
     // Goal
     desiredIncome: num('desiredIncome', 73000),
+    builderCurrentIncome: num('builderCurrentIncome', 8500),
+    builderMortgage: num('builderMortgage', 3200),
+    builderChildren: num('builderChildren', 1200),
+    builderBuffer: num('builderBuffer', 10),
     legacyGoal: num('legacyGoal', 0),
     legacyGoalType: val('legacyGoalType', 'none'),
 
@@ -813,6 +830,8 @@ function readInputs() {
     healthCondition: val('healthCondition'),
     healthcareCost: num('healthcareCost'),
     ageFirstHadCover: num('ageFirstHadCover'),
+    homeModAge: num('homeModAge', 75),
+    homeModBudget: num('homeModBudget', 20000),
     agedCareProbability: num('agedCareProbability'),
     agedCareStartAge: num('agedCareStartAge'),
     agedCareAnnualCost: num('agedCareAnnualCost'),
@@ -1670,6 +1689,38 @@ function buildCareerImpactBlock(inp) {
 
 function renderSummaryPanel() {
   const state = APP_STATE;
+
+  const bottomLine = document.getElementById('adv2-bottom-line');
+  if (bottomLine) {
+    bottomLine.style.display = 'block';
+
+    // Lifestyle goals
+    const blLifestyle = document.getElementById('bl-lifestyle');
+    if (blLifestyle) {
+      const status = state.simulation?.finalBalance > 0 ? 'Affordable' : 'Tight';
+      const years = state.simulation?.depletionAge ? `until age ${state.simulation.depletionAge}` : `for full lifespan`;
+      blLifestyle.innerHTML = `<strong>${status}:</strong> Plan sustains your lifestyle ${years}.`;
+    }
+
+    // Crash net
+    const blCrash = document.getElementById('bl-crash');
+    if (blCrash) {
+      const hasBuffer = state.simulation?.accumulatedSavingsBalance > (state.input?.desiredIncome * 0.5);
+      blCrash.innerHTML = hasBuffer
+        ? `<strong>Resilient:</strong> ${fmt$(state.simulation.accumulatedSavingsBalance, {compact:true})} cash buffer available.`
+        : `<strong>Exposure:</strong> Low cash reserves — downturn risk elevated.`;
+    }
+
+    // Transition
+    const blTransition = document.getElementById('bl-transition');
+    if (blTransition) {
+      const startPensionYear = state.simulation?.yearlyData.find(y => y.pensionIncome > 0);
+      blTransition.innerHTML = startPensionYear
+        ? `<strong>Hybrid:</strong> Part-pension transition at age ${startPensionYear.age}.`
+        : `<strong>Self-Funded:</strong> Fully funded for the projected period.`;
+    }
+  }
+
   const summaryItems = [
     {
       label: 'Monthly retirement income',
@@ -2733,6 +2784,21 @@ function boot() {
     // lightweight label markup instead of the classic page's inline tooltip HTML.
     initializeTooltips();
     initPensionFieldDefaults();
+
+    const btnApplyBuilder = document.getElementById('btn-apply-builder');
+    if (btnApplyBuilder) {
+      btnApplyBuilder.addEventListener('click', () => {
+        const i = readInputs();
+        const derived = Math.max(0, (i.builderCurrentIncome - i.builderMortgage - i.builderChildren) * 12 * (1 + i.builderBuffer / 100));
+        const goalInp = document.getElementById('desiredIncome');
+        if (goalInp) {
+          goalInp.value = Math.round(derived);
+          goalInp.dispatchEvent(new Event('input'));
+          showNotification(`Applied derived target: ${formatCurrency(derived)}`, 'success');
+        }
+      });
+    }
+
     bindConditional('investmentProperty', 'data-ip');
     bindConditional('goingOverseas', 'data-overseas');
 
@@ -2867,6 +2933,38 @@ function boot() {
       destEl.addEventListener('change', () => {
         const currency = DEST_CURRENCY_MAP[destEl.value];
         if (currency) currEl.value = currency;
+      });
+    })();
+
+    // Link Overseas Move Type, Return Frequency and Tax Residency
+    (function bindOverseasLogic() {
+      const moveTypeEl = document.getElementById('overseasMoveType');
+      const freqEl = document.getElementById('returnFrequency');
+      const taxResEl = document.getElementById('overseasTaxResidency');
+      if (!moveTypeEl || !freqEl || !taxResEl) return;
+
+      moveTypeEl.addEventListener('change', () => {
+        const moveType = moveTypeEl.value;
+        if (moveType === 'permanent') {
+          freqEl.value = 'never';
+          taxResEl.value = 'foreign';
+        } else if (moveType === 'short_absence') {
+          freqEl.value = 'annually';
+          taxResEl.value = 'australian';
+        }
+        recalc();
+      });
+
+      freqEl.addEventListener('change', () => {
+        const freq = freqEl.value;
+        if (freq === 'never') {
+          moveTypeEl.value = 'permanent';
+          taxResEl.value = 'foreign';
+        } else if (freq === 'seasonal' || freq === 'quarterly') {
+          moveTypeEl.value = 'extended_temporary';
+          taxResEl.value = 'australian';
+        }
+        recalc();
       });
     })();
 
