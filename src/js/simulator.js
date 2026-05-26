@@ -2008,6 +2008,9 @@ export class RetirementSimulator {
         const agedCareProfile = this.buildAgedCareProfile(inputs, useRandomReturns, effectiveYourLifespan);
         let previousSpendingTarget = null;
         let downsizeOccurred = inputs.planToDownsize && inputs.downsizeAge <= inputs.retirementAge;
+        // Track the first depletion year so we can mark it once but still continue the loop
+        // through to the user's lifespan in deterministic mode (Age Pension–only rows).
+        let hasDepleted = false;
 
         // Per-year inflation scatter: each Monte Carlo run experiences a different inflation path
         // centred on the user's input, giving realistic variability in spending targets.
@@ -2528,8 +2531,12 @@ export class RetirementSimulator {
             // draw at least this percentage of opening balance each year regardless of need.
             const minDrawdownRate = this.getMinDrawdownRate(yourCurrentAge);
             const minAnnualDraw = currentBalance * minDrawdownRate;
-            // Actual withdrawal is the greater of income need and ATO minimum
-            const annualWithdrawal = Math.max(netWithdrawalNeeded, minAnnualDraw);
+            // Actual withdrawal is the greater of income need and ATO minimum.
+            // Once the portfolio is exhausted there is nothing left to draw — the row
+            // must show $0 withdrawal so the Year-by-Year table reflects an Age Pension–only year.
+            const annualWithdrawal = currentBalance > 0
+                ? Math.max(netWithdrawalNeeded, minAnnualDraw)
+                : 0;
             const fundingStage = this.getFundingStage(
                 totalCostWithHealthcare,
                 pensionIncome,
@@ -2713,8 +2720,14 @@ export class RetirementSimulator {
             yearlyData.push(yearData);
 
             if (currentBalance <= 0) {
-                yearlyData[yearlyData.length - 1].depleted = true;
-                break;
+                if (!hasDepleted) {
+                    yearlyData[yearlyData.length - 1].depleted = true;
+                    hasDepleted = true;
+                }
+                // Deterministic runs (year-by-year table, summary view) keep iterating
+                // so the user sees Age Pension–only rows from depletion through to lifespan.
+                // Monte Carlo runs short-circuit to preserve volatility/return-series semantics.
+                if (useRandomReturns) break;
             }
         }
 

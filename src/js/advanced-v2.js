@@ -3261,7 +3261,7 @@ function paintYearTable(years, inp) {
   const SOURCE_LABEL = { super: 'Super', savings: 'Savings', mixed: 'Mixed', depleted: 'Depleted', accumulating: '' };
   const SOURCE_CLASS = { super: 'src-super', savings: 'src-savings', mixed: 'src-mixed', depleted: 'src-depleted', accumulating: '' };
 
-  body.innerHTML = years.slice(0, 60).map((y, i) => {
+  body.innerHTML = years.map((y, i) => {
     const calYear = y.year || (currentYear + i);
     const retireFlag = y.age === inp.retireAge;
     const pensionFlag = y.age >= inp.agePensionAge;
