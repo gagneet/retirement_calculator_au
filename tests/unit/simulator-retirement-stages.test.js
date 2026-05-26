@@ -144,14 +144,15 @@ describe('RetirementSimulator staged retirement modelling', () => {
 
         const bridgeYear = result.yearlyData.find(year => year.age === 65);
         const stableYear = result.yearlyData.find(year => year.age === 75);
-        const careYear = result.yearlyData.find(year => year.age === 85);
+        const lateYear = result.yearlyData.find(year => year.age === 85);
 
-        expect(bridgeYear.lifecycleStage).toBe('pre_pension_bridge');
+        // Updated for "Spending Smile" (Go-Go, Slow-Go, No-Go)
+        expect(bridgeYear.lifecycleStage).toBe('active_retirement');
         expect(bridgeYear.fundingStage).toBe('self_funded');
         expect(bridgeYear.decumulationStrategy).toBe('floor_upside');
         expect(stableYear.lifecycleStage).toBe('stable_retirement');
-        expect(careYear.lifecycleStage).toBe('late_life_care');
-        expect(careYear.discretionarySpending).toBeLessThan(bridgeYear.discretionarySpending);
+        expect(lateYear.lifecycleStage).toBe('late_life_care');
+        expect(lateYear.discretionarySpending).toBeLessThan(bridgeYear.discretionarySpending);
     });
 
     test('captures accumulation history and retirement balance components for UI rendering', () => {
@@ -179,6 +180,43 @@ describe('RetirementSimulator staged retirement modelling', () => {
             .toBeCloseTo(result.yearlyData[0].startBalance, 2);
         expect(result.yearlyData[0].endSuperBalance + result.yearlyData[0].endNonSuperBalance)
             .toBeCloseTo(result.yearlyData[0].endBalance, 2);
+    });
+
+    test('uses configured downsizing transaction costs and inflation-adjusted target home value before retirement', () => {
+        const simulator = createSimulator();
+        const baseOverrides = {
+            yourCurrentAge: 60,
+            retirementAge: 65,
+            yourLifespan: 90,
+            homeValue: 1000000,
+            propertyGrowthRate: 0.03,
+            mortgageBalance: 0,
+            planToDownsize: true,
+            downsizeAge: 65,
+            downsizeTargetHomeValue: 800000,
+            asfaComfortable: 0,
+            annualTravelBudget: 0,
+            annualHobbyBudget: 0,
+        };
+
+        const noInflation = simulator.simulateRetirement(buildInputs({
+            ...baseOverrides,
+            inflation: 0,
+            downsizeTransactionCost: 0,
+        }), false);
+        const withInflation = simulator.simulateRetirement(buildInputs({
+            ...baseOverrides,
+            inflation: 0.02,
+            downsizeTransactionCost: 0,
+        }), false);
+        const withCosts = simulator.simulateRetirement(buildInputs({
+            ...baseOverrides,
+            inflation: 0.02,
+            downsizeTransactionCost: 0.20,
+        }), false);
+
+        expect(withInflation.accessibleHomeEquity).toBeLessThan(noInflation.accessibleHomeEquity);
+        expect(withCosts.accessibleHomeEquity).toBeCloseTo(withInflation.accessibleHomeEquity * 0.8, 2);
     });
 
     test('reports aged care event frequency in Monte Carlo output', async () => {

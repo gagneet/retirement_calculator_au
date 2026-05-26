@@ -342,12 +342,18 @@ export function calculatePortablePension({
             // Correct logic: The Basic Pension Rate is pro-rated. The Pension Supplement (Basic) is NOT pro-rated.
             // Energy Supplement and Supplement Top-up are lost.
             const annualBasicSupplement = isCouple ? cfg.PENSION_SUPPLEMENT_BASIC_COUPLE * 2 * 26 : cfg.PENSION_SUPPLEMENT_BASIC_SINGLE * 26;
+
             // 1. Isolate the base pension rate (excluding all supplements)
+            // fullSupplement = lost_portion + retained_portion
             const fullAnnualSupplement = supplementLoss + annualBasicSupplement;
             const basePensionRateOnly = Math.max(0, basePension - fullAnnualSupplement);
-            // 2. Pro-rate the base rate by AWLR; 3. Add back retained basic supplement
+
+            // 2. Pro-rate the base rate by AWLR
             const proRatedBase = basePensionRateOnly * proportionalRate;
+
+            // 3. Add back the retained basic supplement (only if they are eligible for some pension)
             const finalPension = (basePension > 0) ? (proRatedBase + annualBasicSupplement) : 0;
+
             const awlrWarning = hasFullPortability
                 ? null
                 : `AWLR: ${awlr}/${cfg.AWLR_REQUIRED_FOR_FULL} years — base rate reduced to ${(proportionalRate * 100).toFixed(1)}%`;

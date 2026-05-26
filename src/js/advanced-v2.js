@@ -244,6 +244,10 @@ function buildEngineInputs(inp) {
     monthlyMortgagePayment: deriveMortgagePayment(inp.mortgage, mortgageRate),
     mortgageTermLeft: inp.mortgage > 0 ? 30 : 0,
     planToDownsize: inp.downsizePlan === 'yes',
+    downsizeAge: inp.downsizeAge,
+    downsizeTargetHomeValue: inp.downsizeTargetHomeValue,
+    downsizeTransactionCost: inp.downsizeTransactionCost,
+    downsizeOngoingFees: inp.downsizeOngoingFees,
 
     hasInvestmentProperty: inp.investmentProperty,
     investmentPropertyType: inp.ipType || 'unit',
@@ -347,18 +351,17 @@ function buildEngineInputs(inp) {
     // NOTE: time-bounded legal obligations (spousalMaintenanceEndsAge, youngestChildAge) are not yet
     // enforced per-year — they run for the full carerYearsExpected window. This is a known limitation.
     ...(() => {
-      // Use nullish coalescing so explicit carerAnnualExpense=0 is preserved and
-      // annualParentSupport only acts as a fallback when carerAnnualExpense is unset.
       const parentCareExpense = inp.isCarer
         ? (inp.carerAnnualExpense ?? inp.annualParentSupport ?? 0)
         : (inp.annualParentSupport || 0);
       const spousalExpense = inp.hasSpousalMaintenance ? (inp.annualSpousalMaintenance || 0) : 0;
       const childSupportExpense = inp.hasChildSupport ? (inp.annualChildSupport || 0) : 0;
       const totalFamilyExpense = parentCareExpense + spousalExpense + childSupportExpense;
+      const hasFamilyObligations = totalFamilyExpense > 0;
       return {
-        isCarerForParents: !!(inp.isCarer || (inp.annualParentSupport || 0) > 0),
+        isCarerForParents: !!(inp.isCarer || hasFamilyObligations),
         carerReducedWorkPercent: inp.isCarer ? pct(inp.carerReducedWorkPercent) : 0,
-        carerYearsExpected: inp.isCarer ? (inp.carerYearsExpected || 0) : ((inp.annualParentSupport || 0) > 0 ? 999 : 0),
+        carerYearsExpected: inp.isCarer ? (inp.carerYearsExpected || 0) : (hasFamilyObligations ? 999 : 0),
         carerAnnualExpense: totalFamilyExpense,
       };
     })(),
@@ -366,6 +369,7 @@ function buildEngineInputs(inp) {
     privateSchool: inp.privateSchool,
     universitySupport: inp.uniSupport,
     educationCostPerChild: inp.educationCostPerChild,
+    salaryGrowthType: inp.salaryGrowthType,
     yourAdditionalSuperContribution: inp.salarySacrifice,
     partnerAdditionalSuperContribution: isCouple ? inp.partnerSalarySacrifice : 0,
     yourAnnualNCC: inp.ncc,
@@ -381,6 +385,9 @@ function buildEngineInputs(inp) {
     legacyGoal: inp.legacyGoal || 0,
     legacyGoalType: inp.legacyGoalType || 'none',
     enableProposedBudget2026: inp.budget2627,
+
+    homeModificationsCost: inp.homeModBudget,
+    homeModificationsAge: inp.homeModAge,
 
     goingOverseas: inp.goingOverseas,
     overseasStartAge: inp.goingOverseas ? (inp.ageMovingOverseas || 0) : 0,
@@ -547,7 +554,7 @@ function adaptEngineOutput(inp, engineInputs, simulation) {
   const monthlyPaycheck = annualIncomeToday / 12;
   const targetMonthly = Math.max(1, inp.desiredIncome / 12);
   const effectivePlanAge = inp.lifespan > 0 ? inp.lifespan : 120;
-  const lastsUntil = simulation.depletionAge || effectivePlanAge;
+  const lastsUntil = Math.min(simulation.depletionAge || effectivePlanAge, effectivePlanAge);
   const coverageScore = monthlyPaycheck / targetMonthly;
   const longevityScore = lastsUntil >= effectivePlanAge
     ? 1
@@ -736,6 +743,7 @@ function readInputs() {
       return v > age ? v : 0; // fall back to open-ended rather than crash
     })(),
     gender: val('gender', 'prefer_not_say'),
+    salaryGrowthType: val('salaryGrowthType', 'standard'),
     ageCameToAU: num('ageCameToAU'),
     ageStartedEarningAU: num('ageStartedEarningAU'),
     partnerAge: num('partnerAge'),
@@ -801,6 +809,10 @@ function readInputs() {
     mortgage: num('mortgage'),
     mortgageRate: num('mortgageRate'),
     downsizePlan: (document.querySelector('[data-bind="downsizePlan"]') || {}).dataset?.value || 'no',
+    downsizeAge: num('downsizeAge', 75),
+    downsizeTargetHomeValue: num('downsizeTargetHomeValue', 800000),
+    downsizeTransactionCost: num('downsizeTransactionCost', 6.6),
+    downsizeOngoingFees: num('downsizeOngoingFees', 12000),
     ccBalance: num('ccBalance'),
     ccRate: num('ccRate'),
     personalLoan: num('personalLoan'),
@@ -839,6 +851,10 @@ function readInputs() {
 
     // Goal
     desiredIncome: num('desiredIncome', 73000),
+    builderCurrentIncome: num('builderCurrentIncome', 8500),
+    builderMortgage: num('builderMortgage', 3200),
+    builderChildren: num('builderChildren', 1200),
+    builderBuffer: num('builderBuffer', 10),
     legacyGoal: num('legacyGoal', 0),
     legacyGoalType: val('legacyGoalType', 'none'),
 
@@ -847,6 +863,8 @@ function readInputs() {
     healthCondition: val('healthCondition'),
     healthcareCost: num('healthcareCost'),
     ageFirstHadCover: num('ageFirstHadCover'),
+    homeModAge: num('homeModAge', 75),
+    homeModBudget: num('homeModBudget', 20000),
     agedCareProbability: num('agedCareProbability'),
     agedCareStartAge: num('agedCareStartAge'),
     agedCareAnnualCost: num('agedCareAnnualCost'),
@@ -1960,6 +1978,38 @@ function buildSequenceOfReturnsCallout(mc, adaptedResult, inp) {
 
 function renderSummaryPanel() {
   const state = APP_STATE;
+
+  const bottomLine = document.getElementById('adv2-bottom-line');
+  if (bottomLine) {
+    bottomLine.style.display = 'block';
+
+    // Lifestyle goals
+    const blLifestyle = document.getElementById('bl-lifestyle');
+    if (blLifestyle) {
+      const status = state.simulation?.finalBalance > 0 ? 'Affordable' : 'Tight';
+      const years = state.simulation?.depletionAge ? `until age ${state.simulation.depletionAge}` : `for full lifespan`;
+      blLifestyle.innerHTML = `<strong>${status}:</strong> Plan sustains your lifestyle ${years}.`;
+    }
+
+    // Crash net
+    const blCrash = document.getElementById('bl-crash');
+    if (blCrash) {
+      const hasBuffer = state.simulation?.accumulatedSavingsBalance > (state.input?.desiredIncome * 0.5);
+      blCrash.innerHTML = hasBuffer
+        ? `<strong>Resilient:</strong> ${fmt$(state.simulation.accumulatedSavingsBalance, {compact:true})} cash buffer available.`
+        : `<strong>Exposure:</strong> Low cash reserves — downturn risk elevated.`;
+    }
+
+    // Transition
+    const blTransition = document.getElementById('bl-transition');
+    if (blTransition) {
+      const startPensionYear = state.simulation?.yearlyData.find(y => y.pensionIncome > 0);
+      blTransition.innerHTML = startPensionYear
+        ? `<strong>Hybrid:</strong> Part-pension transition at age ${startPensionYear.age}.`
+        : `<strong>Self-Funded:</strong> Fully funded for the projected period.`;
+    }
+  }
+
   const summaryItems = [
     {
       label: 'Monthly retirement income',
@@ -3389,6 +3439,21 @@ function boot() {
     // lightweight label markup instead of the classic page's inline tooltip HTML.
     initializeTooltips();
     initPensionFieldDefaults();
+
+    const btnApplyBuilder = document.getElementById('btn-apply-builder');
+    if (btnApplyBuilder) {
+      btnApplyBuilder.addEventListener('click', () => {
+        const i = readInputs();
+        const derived = Math.max(0, (i.builderCurrentIncome - i.builderMortgage - i.builderChildren) * 12 * (1 + i.builderBuffer / 100));
+        const goalInp = document.getElementById('desiredIncome');
+        if (goalInp) {
+          goalInp.value = Math.round(derived);
+          goalInp.dispatchEvent(new Event('input'));
+          showNotification(`Applied derived target: ${formatCurrency(derived)}`, 'success');
+        }
+      });
+    }
+
     bindConditional('investmentProperty', 'data-ip');
     bindConditional('goingOverseas', 'data-overseas');
 

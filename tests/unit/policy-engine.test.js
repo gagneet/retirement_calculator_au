@@ -513,9 +513,13 @@ describe('calculatePortablePension', () => {
             scenarioType: OverseasScenarioType.EXTENDED_TEMPORARY
         });
         const proportionalRate = awlrPartial / 35;
-        const awlrAdjusted = basePension * proportionalRate;
+
+        // New logic: basic supplement NOT pro-rated.
         const supplementLoss = C.OVERSEAS_RETIREMENT.PENSION_SUPPLEMENT_REDUCTION_SINGLE;
-        const expected = Math.max(0, awlrAdjusted - supplementLoss);
+        const annualBasicSupplement = C.OVERSEAS_RETIREMENT.PENSION_SUPPLEMENT_BASIC_SINGLE * 26;
+        const basePensionRateOnly = Math.max(0, basePension - (supplementLoss + annualBasicSupplement));
+        const expected = (basePensionRateOnly * proportionalRate) + annualBasicSupplement;
+
         expect(result.annualPension).toBeCloseTo(expected, 0);
         expect(result.awlrApplied).toBe(true);
         expect(result.proportionalRate).toBeCloseTo(proportionalRate, 4);
@@ -531,14 +535,14 @@ describe('calculatePortablePension', () => {
         expect(result.proportionalRate).toBe(1.0);
     });
 
-    test('EXTENDED_TEMPORARY with AWLR=0 yields zero pension (supplements dominate)', () => {
+    test('EXTENDED_TEMPORARY with AWLR=0 yields basic supplement only', () => {
         const result = calculatePortablePension({
             basePension: 5000, awlrYears: 0,
             isCouple: false, agreementCountry: false,
             scenarioType: OverseasScenarioType.EXTENDED_TEMPORARY
         });
-        // AWLR 0/35 = 0%, pension = 0, then deduct supplements → clamp to 0
-        expect(result.annualPension).toBe(0);
+        const annualBasicSupplement = C.OVERSEAS_RETIREMENT.PENSION_SUPPLEMENT_BASIC_SINGLE * 26;
+        expect(result.annualPension).toBeCloseTo(annualBasicSupplement, 0);
     });
 
     // === SCENARIO 4: PERMANENT MOVE ===
@@ -549,9 +553,12 @@ describe('calculatePortablePension', () => {
             scenarioType: OverseasScenarioType.PERMANENT_MOVE
         });
         const proportionalRate = awlrPartial / 35;
-        const awlrAdjusted = basePension * proportionalRate;
+
         const supplementLoss = C.OVERSEAS_RETIREMENT.PENSION_SUPPLEMENT_REDUCTION_SINGLE;
-        const expected = Math.max(0, awlrAdjusted - supplementLoss);
+        const annualBasicSupplement = C.OVERSEAS_RETIREMENT.PENSION_SUPPLEMENT_BASIC_SINGLE * 26;
+        const basePensionRateOnly = Math.max(0, basePension - (supplementLoss + annualBasicSupplement));
+        const expected = (basePensionRateOnly * proportionalRate) + annualBasicSupplement;
+
         expect(result.annualPension).toBeCloseTo(expected, 0);
         expect(result.pensionReduced).toBe(true);
         expect(result.pccValid).toBe(false);

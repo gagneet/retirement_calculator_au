@@ -1017,10 +1017,10 @@ export class RetirementSimulator {
         const inflationRate = overrideInflationRate ?? inputs.inflation;
         
         let realGrowthRate = overrideSalaryGrowthRate ?? inputs.salaryGrowthRate;
-        
+
         // Structured Salary Growth Types
         const growthType = inputs.salaryGrowthType || 'standard';
-        
+
         if (growthType === 'career') {
             // Career Progression: Inflation + 2% annually
             realGrowthRate = (overrideSalaryGrowthRate ?? inputs.salaryGrowthRate) + 0.02;
@@ -1203,7 +1203,88 @@ export class RetirementSimulator {
     }
 
     // Main simulation engine
+    normaliseInputsForSimulation(inputs) {
+        if (!inputs || inputs.yourCurrentAge !== undefined || inputs.age === undefined) {
+            return inputs;
+        }
+
+        const pct = (value, fallback = 0) => {
+            const n = Number(value ?? fallback);
+            if (!Number.isFinite(n)) return fallback;
+            return Math.abs(n) > 1 ? n / 100 : n;
+        };
+        const num = (value, fallback = 0) => {
+            const n = Number(value ?? fallback);
+            return Number.isFinite(n) ? n : fallback;
+        };
+        const isCouple = inputs.household === 'couple' || num(inputs.partnerAge) > 0;
+
+        return {
+            ...inputs,
+            isCouple,
+            isSingleCalculation: !isCouple,
+            yourCurrentAge: num(inputs.age),
+            retirementAge: num(inputs.retireAge, 65),
+            yourLifespan: num(inputs.lifespan, 90),
+            partnerCurrentAge: isCouple ? num(inputs.partnerAge) : 0,
+            partnerRetirementAge: isCouple ? num(inputs.partnerRetireAge, inputs.retireAge || 65) : 0,
+            partnerLifespan: isCouple ? num(inputs.partnerLifespan, inputs.lifespan || 90) : 0,
+            yourSalary: num(inputs.salary),
+            partnerSalary: isCouple ? num(inputs.partnerSalary) : 0,
+            yourCurrentSuper: num(inputs.superBal),
+            partnerCurrentSuper: isCouple ? num(inputs.partnerSuperBal) : 0,
+            currentSavings: num(inputs.cash),
+            currentStocks: num(inputs.stocks),
+            monthlyStockContribution: num(inputs.monthlyStockContrib),
+            asfaComfortable: num(inputs.desiredIncome, 73000),
+            mortgageBalance: num(inputs.mortgage),
+            mortgageRate: pct(inputs.mortgageRate, 0.06),
+            monthlyMortgagePayment: num(inputs.monthlyMortgagePayment),
+            inflation: pct(inputs.inflation, 0.026),
+            investmentReturn: pct(inputs.invReturn ?? inputs.investmentReturn, 0.06),
+            superReturn: pct(inputs.superGrowth ?? inputs.superReturn, 0.06),
+            savingsReturn: pct(inputs.savingsReturn, 0.035),
+            salaryGrowthRate: pct(inputs.salaryGrowthRate, 0.02),
+            returnDeclineRate: pct(inputs.returnDeclineRate, 0.0003),
+            returnVolatility: pct(inputs.returnVolatility, 0.12),
+            healthcareInflation: pct(inputs.healthcareInflation, 0.065),
+            currentHealthcareCosts: num(inputs.healthcareCost ?? inputs.currentHealthcareCosts),
+            agedCareProbability: pct(inputs.agedCareProbability, 0),
+            agedCareStartAge: num(inputs.agedCareStartAge, 85),
+            agedCareDuration: num(inputs.agedCareDuration, 3),
+            agedCareAnnualCost: num(inputs.agedCareAnnualCost),
+            employerSuperContributionRate: pct(inputs.employerRate, 0.12),
+            yourAdditionalSuperContribution: num(inputs.salarySacrifice),
+            partnerAdditionalSuperContribution: isCouple ? num(inputs.partnerSalarySacrifice) : 0,
+            yourAnnualNCC: num(inputs.ncc),
+            partnerAnnualNCC: isCouple ? num(inputs.partnerNCC) : 0,
+            downsizeContribution: !!inputs.useDownsizer,
+            hasInvestmentProperty: !!inputs.hasInvestmentProperty,
+            investmentPropertyValue: num(inputs.ipValue ?? inputs.investmentPropertyValue),
+            investmentPropertyLoan: num(inputs.ipLoan ?? inputs.investmentPropertyLoan),
+            investmentPropertyRate: pct(inputs.ipRate ?? inputs.investmentPropertyRate, 0.06),
+            weeklyRentalIncome: num(inputs.ipWeeklyRent ?? inputs.weeklyRentalIncome),
+            annualPropertyExpenses: num(inputs.ipAnnualExpenses ?? inputs.annualPropertyExpenses),
+            propertyGrowthRate: pct(inputs.ipGrowthRate ?? inputs.propertyGrowthRate, 0.04),
+            ageCameToAustralia: num(inputs.ageCameToAU),
+            ageStartedEarningAustralia: num(inputs.ageStartedEarningAU),
+            partnerAgeCameToAustralia: isCouple ? num(inputs.partnerAgeCameToAU) : 0,
+            partnerAgeStartedEarningAustralia: isCouple ? num(inputs.partnerAgeStartedEarningAU) : 0,
+            enableReducedIncome: !!inputs.reducedIncomeEnabled,
+            isCarerForParents: !!inputs.isCarer,
+            carerAnnualExpense: num(inputs.carerAnnualExpense),
+            carerYearsExpected: num(inputs.carerYearsExpected),
+            carerReducedWorkPercent: pct(inputs.carerReducedWorkPercent, 0),
+            numRuns: num(inputs.mcRuns, inputs.numRuns || 1000),
+            allocEquities: pct(inputs.allocEquities, 0.65),
+            allocBonds: pct(inputs.allocBonds, 0.25),
+            allocCash: pct(inputs.allocCash, 0.10),
+        };
+    }
+
     simulateRetirement(inputs, useRandomReturns = false, stressScenario = null, scenarioReturns = null) {
+        inputs = this.normaliseInputsForSimulation(inputs);
+
         // Peak wealth tracking
         let peakWealth = 0;
         let peakWealthAge = inputs.yourCurrentAge;
@@ -1860,21 +1941,36 @@ export class RetirementSimulator {
         const homeEquityAtRetirement = homeValueAtRetirement - mortgageBalanceAtRetirement;
 
         // Retirement phase simulation
-        
         // Super Transfer Balance Cap (TBC) Enforcement
         // Only the amount up to the TBC can move into the tax-free pension phase.
         // Amounts above remain in accumulation phase (taxed at 15% on earnings).
         // TBC is indexed: currently $1.9M (2024), using $2M for 2025/26.
         const tbc = this.config.TRANSFER_BALANCE_CAP || 2000000;
-        
         // Split super into pension phase (tax-free earnings) and accumulation phase (15% tax)
         let pensionPhaseBalance = Math.min(accumulatedSuperBalance, tbc);
         let accumulationPhaseBalance = Math.max(0, accumulatedSuperBalance - tbc);
-        
         // Other liquid assets (savings, stocks) are also taxed (assumed ~15% for simplicity in this model)
         let nonSuperLiquidBalance = accumulatedSavingsBalance + accumulatedInvestmentPortfolio;
 
         let currentBalance = accumulatedSuperBalance + accumulatedSavingsBalance + accumulatedInvestmentPortfolio;
+
+        // Downsizing logic: calculate equity release if they downsize at or before retirement.
+        let accessibleHomeEquity = 0;
+        if (inputs.planToDownsize && inputs.downsizeAge <= inputs.retirementAge) {
+            const inflationAdjustedTargetHomeValue = (inputs.downsizeTargetHomeValue || 800000)
+                * Math.pow(1 + runInflationRate, yearsToRetirement);
+            const rawTransactionCostRate = Number.isFinite(inputs.downsizeTransactionCost)
+                ? Math.max(0, inputs.downsizeTransactionCost)
+                : 0.06;
+            const transactionCostRate = rawTransactionCostRate > 1
+                ? rawTransactionCostRate / 100
+                : rawTransactionCostRate;
+            const release = Math.max(0, homeEquityAtRetirement - inflationAdjustedTargetHomeValue);
+            accessibleHomeEquity = release * Math.max(0, 1 - transactionCostRate);
+            currentBalance += accessibleHomeEquity;
+            nonSuperLiquidBalance += accessibleHomeEquity;
+        }
+
         // The simulator models a single liquid retirement pool. The UI still needs a
         // super/non-super split for the redesigned year table, so we track a parallel
         // display-only decomposition from the retirement starting mix. These shadow
@@ -2117,9 +2213,8 @@ export class RetirementSimulator {
             const healthMultiplier = { excellent: 0.8, good: 1.0, fair: 1.25, poor: 1.6 }[inputs.healthCondition] || 1.0;
             const adjustedHealthcareCost = healthcareCost * healthMultiplier;
 
-            // ── Tiered spending multiplier (optional — Active / Stable / Frail) ────
-            // Applied to baseIncomeNeeded before other additive costs so it scales
-            // lifestyle spend only, not healthcare or aged-care costs.
+            // Tiered spending multiplier (optional: Active, Stable, Frail).
+            // Applied to baseIncomeNeeded before additive costs so it scales lifestyle spend only.
             let tieredSpendingMultiplier = 1.0;
             if (inputs.enableTieredSpending) {
                 if (yourCurrentAge < (inputs.tieredSpendingActiveAge || 75)) {
@@ -2132,18 +2227,21 @@ export class RetirementSimulator {
             }
             const tieredBaseIncome = baseIncomeNeeded * tieredSpendingMultiplier;
 
-            // ── Dynamic Downsizing: inject equity at target age ─────────────────
             let downsizeEquityInjection = 0;
             if (inputs.planToDownsize && !downsizeOccurred && yourCurrentAge >= inputs.downsizeAge) {
                 const currentHomeValueAtDownsize = runningHomeValue;
                 const targetHomeValue = inputs.downsizeTargetHomeValue * Math.pow(1 + runInflationRate, retirementYear);
-                const transactionCostRate = 0.06; // 6% (agent + stamp duty + moving)
+                const rawTransactionCostRate = Number.isFinite(inputs.downsizeTransactionCost)
+                    ? Math.max(0, inputs.downsizeTransactionCost)
+                    : 0.06;
+                const transactionCostRate = rawTransactionCostRate > 1
+                    ? rawTransactionCostRate / 100
+                    : rawTransactionCostRate;
                 const transactionCosts = (currentHomeValueAtDownsize + targetHomeValue) * transactionCostRate;
                 downsizeEquityInjection = Math.max(0, currentHomeValueAtDownsize - targetHomeValue - transactionCosts);
 
                 currentBalance += downsizeEquityInjection;
 
-                // Downsizer Contribution (up to $300k per person into super)
                 if (inputs.downsizeContribution && yourCurrentAge >= 55) {
                     const maxDownsizer = inputs.isCouple ? 600000 : 300000;
                     const amountToSuper = Math.min(downsizeEquityInjection, maxDownsizer);
@@ -2159,7 +2257,6 @@ export class RetirementSimulator {
                 downsizeOccurred = true;
             }
 
-            // ── Downsize Ongoing Fees (Village/Strata) ──────────────────────────────
             let downsizeFees = 0;
             if (downsizeOccurred) {
                 downsizeFees = (inputs.downsizeOngoingFees || 0) * Math.pow(1 + runInflationRate, retirementYear);
@@ -2169,43 +2266,50 @@ export class RetirementSimulator {
                 ? runInflationRate
                 : (inputs.inflation || 0.026);
 
-            // ── Home modifications (optional) ─────────────────────────────────────
-            // One-off lump sum in the year of the modification age, plus ongoing
-            // annual maintenance starting that year.
             let homeModCost = 0;
+            const DISCRETIONARY_THRESHOLD = 50000;
+            let homeModStatus = 'none';
+
+            if (inputs.homeModificationsCost > 0 && yourCurrentAge === inputs.homeModificationsAge) {
+                const projectedCost = inputs.homeModificationsCost * Math.pow(1 + optionalCostInflationRate, retirementYear);
+                if (currentBalance > projectedCost + DISCRETIONARY_THRESHOLD) {
+                    homeModCost += projectedCost;
+                    homeModStatus = 'paid';
+                } else {
+                    homeModStatus = 'skipped_low_funds';
+                }
+            }
+
             if (inputs.enableHomeModifications) {
                 const modAge = inputs.homeModificationAge || 78;
                 if (yourCurrentAge === modAge) {
-                    homeModCost += (inputs.homeModificationCost || 0);
+                    homeModCost += (inputs.homeModificationCost || 0) * Math.pow(1 + optionalCostInflationRate, retirementYear);
+                    if (homeModStatus === 'none') homeModStatus = 'paid';
                 }
                 if (yourCurrentAge >= modAge && !inputs.planToDownsize) {
-                    const inflatedRecurring = (inputs.homeModificationRecurring || 0)
+                    homeModCost += (inputs.homeModificationRecurring || 0)
                         * Math.pow(1 + optionalCostInflationRate, retirementYear);
-                    homeModCost += inflatedRecurring;
                 }
             }
 
-            // ── Annuity income (optional) ─────────────────────────────────────────
             let annuityIncome = 0;
             let annuityLumpSumCost = 0;
-            if (inputs.enableAnnuity) {
-                const purchaseAge = inputs.annuityPurchaseAge || 67;
-                if (yourCurrentAge === purchaseAge) {
-                    annuityLumpSumCost = inputs.annuityLumpSum || 0;
-                }
-                if (yourCurrentAge >= purchaseAge) {
-                    annuityIncome = (inputs.annuityAnnualIncome || 0)
-                        * Math.pow(1 + optionalCostInflationRate, yourCurrentAge - purchaseAge);
-                }
+            const annuityPurchaseAge = inputs.annuityPurchaseAge || 67;
+            const annuityPurchaseAmount = inputs.enableAnnuity
+                ? (inputs.annuityLumpSum || 0)
+                : (inputs.annuityPurchaseAmount || 0);
+            if (annuityPurchaseAmount > 0 && yourCurrentAge === annuityPurchaseAge) {
+                annuityLumpSumCost = annuityPurchaseAmount * Math.pow(1 + optionalCostInflationRate, retirementYear);
             }
-
-            // Index Legacy Goal to inflation
-            const legacyGoal = (inputs.legacyGoal || 0) * Math.pow(1 + runInflationRate, retirementYear);
+            if ((inputs.annuityAnnualIncome || 0) > 0 && yourCurrentAge >= annuityPurchaseAge) {
+                annuityIncome = (inputs.annuityAnnualIncome || 0)
+                    * Math.pow(1 + optionalCostInflationRate, yourCurrentAge - annuityPurchaseAge);
+            }
 
             const totalCostWithHealthcare = tieredBaseIncome + adjustedHealthcareCost + agedCareCost
                 + lhcRetirementCost + homeModCost + downsizeFees + annuityLumpSumCost;
 
-            // ── Overseas year flag (used for AWLR, portability and tax adjustments) ──
+            // Overseas year flag (used for AWLR, portability and tax adjustments).
             const isOverseasYear = !!(inputs.goingOverseas && inputs.overseasStartAge > 0 && yourCurrentAge >= inputs.overseasStartAge);
 
             // AWLR eligibility check: Age Pension requires 10+ years Australian residence
@@ -2213,7 +2317,6 @@ export class RetirementSimulator {
             // AWLR is the period as an Australian resident between age 16 and Age Pension age (67).
             const ageArrival = parseFloat(inputs.ageCameToAustralia || 0);
             const ageDeparture = isOverseasYear ? inputs.overseasStartAge : yourCurrentAge;
-            
             // Current AWLR years: years in AU between 16 and 67
             const awlrYearsCurrent = ageArrival > 0
                 ? Math.max(0, Math.min(ageDeparture, 67) - Math.max(16, ageArrival))
@@ -2227,7 +2330,6 @@ export class RetirementSimulator {
             const trustAttributedAssets = inputs.hasTrustAssets
                 ? (parseFloat(inputs.trustNetAssets || 0) * parseFloat(inputs.trustAttributionPercentage || 0))
                 : 0;
-            
             // Principal Home Exemption: The home you live in is EXEMPT from the assets test.
             // If the home is in a trust, it LOSES the exemption (Centrelink Rule).
             // assessableAssets = liquid assets + investment property equity + trust assets + (home if in trust)
@@ -2244,7 +2346,7 @@ export class RetirementSimulator {
             const trustTaxRate = parseFloat(inputs.trustTaxRate || 0);
             const financialAssetsForDeeming = Math.max(0, currentBalance + trustAttributedAssets);
             const deemedIncome = calculateDeemedIncome(financialAssetsForDeeming, isCouple);
-            // If trust assets are attributed and deemed, actual distributions are generally ignored 
+            // If trust assets are attributed and deemed, actual distributions are generally ignored
             // for the income test to avoid double counting.
             const trustDistributionIncome = inputs.hasTrustAssets ? 0 : trustDistributionGross;
             const trustDistributionNetIncome = trustDistributionGross * (1 - trustTaxRate);
@@ -2302,7 +2404,7 @@ export class RetirementSimulator {
                 );
             }
 
-            // ── Age Pension Portability Adjustment (Overseas) ────────────────────
+            // Age Pension Portability Adjustment (Overseas)
             if (isOverseasYear && pensionIncome > 0) {
                 let scenarioType = OverseasScenarioType.PERMANENT_MOVE;
                 const moveType = inputs.overseasMoveType;
@@ -2332,7 +2434,6 @@ export class RetirementSimulator {
                 // trustDistributionNetIncome already has some tax, but let's ensure it's at least 30%
                 const effectiveTrustTax = Math.max(trustTaxRate, 0.30);
                 const adjustedTrustNet = trustDistributionGross * (1 - effectiveTrustTax);
-                
                 otherIncome = (propertyIncome - propertyTax) + adjustedTrustNet + (annuityIncome - annuityTax);
             }
 
@@ -2445,17 +2546,14 @@ export class RetirementSimulator {
             const startNonSuperBalance = displayNonSuperBalance;
             let yearlyGrowth = 0;
 
-
             for (let month = 1; month <= 12; month++) {
                 // Growth calculation with TBC awareness
                 // 1. Pension phase: 0% tax on earnings
                 const pensionGrowth = pensionPhaseBalance * monthlyReturn;
-                
                 // 2. Accumulation phase & Non-Super: ~15% tax on earnings
                 const taxRate = 0.15;
                 const accumulationGrowth = accumulationPhaseBalance * monthlyReturn * (1 - taxRate);
                 const nonSuperGrowthReal = nonSuperLiquidBalance * monthlyReturn * (1 - taxRate);
-                
                 const totalMonthlyGrowth = pensionGrowth + accumulationGrowth + nonSuperGrowthReal;
                 yearlyGrowth += totalMonthlyGrowth;
 
@@ -2463,14 +2561,12 @@ export class RetirementSimulator {
                 pensionPhaseBalance += pensionGrowth;
                 accumulationPhaseBalance += accumulationGrowth;
                 nonSuperLiquidBalance += nonSuperGrowthReal;
-                
                 // Withdrawals (proportional)
                 const totalLiquid = pensionPhaseBalance + accumulationPhaseBalance + nonSuperLiquidBalance;
                 if (totalLiquid > 0) {
                     const pShare = pensionPhaseBalance / totalLiquid;
                     const aShare = accumulationPhaseBalance / totalLiquid;
                     const nShare = nonSuperLiquidBalance / totalLiquid;
-                    
                     pensionPhaseBalance = Math.max(0, pensionPhaseBalance - monthlyWithdrawal * pShare);
                     accumulationPhaseBalance = Math.max(0, accumulationPhaseBalance - monthlyWithdrawal * aShare);
                     nonSuperLiquidBalance = Math.max(0, nonSuperLiquidBalance - monthlyWithdrawal * nShare);
@@ -2483,7 +2579,7 @@ export class RetirementSimulator {
                 const superShare = displayCombinedBalance > 0 ? displaySuperBalance / displayCombinedBalance : 0;
                 const superWithdrawal = monthlyWithdrawal * superShare;
                 const nonSuperWithdrawal = monthlyWithdrawal - superWithdrawal;
-                
+
                 // Use total return for display growth (simplified)
                 const superGrowthDisp = displaySuperBalance * monthlyReturn;
                 const nonSuperGrowthDisp = displayNonSuperBalance * monthlyReturn;
@@ -2604,6 +2700,9 @@ export class RetirementSimulator {
                 // Use the inflated travel cost already computed inside buildRetirementSpendingPlan
                 // so the tooltip breakdown (living cost = withdraw - travelCost) is consistent.
                 travelCost: spendingPlan.overseasTravelCost ?? 0,
+                homeModCost,
+                homeModStatus,
+                annuityIncome,
             };
 
             // Add pension details for first year if available

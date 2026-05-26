@@ -109,6 +109,95 @@ describe('dynamic allocation collection', () => {
         expect(inputs.allocCash).toBeCloseTo(0.10);
     });
 
+    test('collects salary growth type and downsizing fields, and keeps missing legacy home modifications at zero', () => {
+        document.body.innerHTML = `
+            <input id="yourCurrentAge" value="45">
+            <select id="salaryGrowthType">
+                <option value="standard">Standard</option>
+                <option value="career" selected>Career</option>
+            </select>
+            <select id="planToDownsize">
+                <option value="false">No</option>
+                <option value="true" selected>Yes</option>
+            </select>
+            <input id="downsizeAge" value="72">
+            <input id="downsizeTransactionCost" value="7.5">
+            <input id="downsizeTargetHomeValue" value="900,000">
+            <input id="downsizeOngoingFees" value="12,000">
+            <input id="useGlidePath" type="checkbox">
+            <input id="allocEquities" value="60">
+            <input id="allocBonds" value="30">
+            <input id="allocCash" value="10">
+        `;
+
+        const app = Object.create(RetirementCalculatorApp.prototype);
+        app.config = ENHANCED_CONFIG;
+        app.simulator = {
+            calculateDynamicAllocation: jest.fn(() => ({
+                equity: 65,
+                bonds: 25,
+                cash: 10,
+            })),
+        };
+
+        const inputs = app.collectInputs();
+
+        expect(inputs.salaryGrowthType).toBe('career');
+        expect(inputs.downsizeAge).toBe(72);
+        expect(inputs.downsizeTransactionCost).toBeCloseTo(0.075, 6);
+        expect(inputs.downsizeTargetHomeValue).toBe(900000);
+        expect(inputs.downsizeOngoingFees).toBe(12000);
+        expect(inputs.homeModificationsCost).toBe(0);
+    });
+});
+
+describe('downsizing UI wiring', () => {
+    test('shows and enables downsize detail fields only when downsizing is selected', () => {
+        document.body.innerHTML = `
+            <select id="planToDownsize">
+                <option value="false" selected>No</option>
+                <option value="true">Yes</option>
+            </select>
+            <input id="downsizeContribution" type="checkbox" checked>
+            <div id="downsizeDetails" class="hidden"></div>
+            <input id="downsizeAge" value="75">
+            <input id="downsizeTransactionCost" value="6.6">
+            <input id="downsizeTargetHomeValue" value="800000">
+            <input id="downsizeOngoingFees" value="12000">
+        `;
+
+        const app = Object.create(RetirementCalculatorApp.prototype);
+        app.updateUIElements();
+
+        expect(document.getElementById('downsizeDetails').classList.contains('hidden')).toBe(true);
+        expect(document.getElementById('downsizeAge').disabled).toBe(true);
+        expect(document.getElementById('downsizeContribution').checked).toBe(false);
+
+        const planToDownsize = document.getElementById('planToDownsize');
+        planToDownsize.value = 'true';
+        planToDownsize.dispatchEvent(new Event('change'));
+
+        expect(document.getElementById('downsizeDetails').classList.contains('hidden')).toBe(false);
+        expect(document.getElementById('downsizeAge').disabled).toBe(false);
+        expect(document.getElementById('downsizeContribution').checked).toBe(true);
+    });
+});
+
+describe('target income builder wiring', () => {
+    test('applies derived annual target income to the desired retirement income field', () => {
+        document.body.innerHTML = `
+            <input id="builderCurrentIncome" value="8,500">
+            <input id="builderMortgage" value="3,200">
+            <input id="builderChildren" value="1,200">
+            <input id="builderBuffer" value="10">
+            <input id="asfaComfortable" value="73031">
+        `;
+
+        const app = Object.create(RetirementCalculatorApp.prototype);
+        app.applyTargetIncomeBuilder();
+
+        expect(document.getElementById('asfaComfortable').value).toBe('54120');
+    });
 });
 
 describe('overseas scenario generation', () => {
