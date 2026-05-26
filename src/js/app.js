@@ -631,6 +631,10 @@ class RetirementCalculatorApp {
             mortgageRate: safeGetValue('mortgageRate', config.property.mortgageRate) / 100,
             monthlyMortgagePayment: safeGetValue('monthlyMortgagePayment', config.property.monthlyMortgagePayment),
             planToDownsize: safeGetSelectValue('planToDownsize', 'false') === 'true',
+            downsizeAge: safeGetValue('downsizeAge', 75),
+            downsizeTransactionCost: safeGetValue('downsizeTransactionCost', 6.6) / 100,
+            downsizeTargetHomeValue: parseFormattedNumber(getRawValue('downsizeTargetHomeValue', '800000')),
+            downsizeOngoingFees: parseFormattedNumber(getRawValue('downsizeOngoingFees', '0')),
 
             // Investment property
             hasInvestmentProperty: safeGetChecked('hasInvestmentProperty', config.property.hasInvestmentProperty),
@@ -695,6 +699,7 @@ class RetirementCalculatorApp {
                 return customRate > 0 ? customRate / 100 : ENHANCED_CONFIG.SUPER_GUARANTEE_RATE;
             })(),
             salaryGrowthRate: safeGetValue('salaryGrowthRate', config.economic.salaryGrowthRate) / 100,
+            salaryGrowthType: safeGetSelectValue('salaryGrowthType', 'standard'),
             leanYearsStart: safeGetValue('leanYearsStart', config.economic.leanYearsStart),
             leanYearsReduction: safeGetValue('leanYearsReduction', config.economic.leanYearsReduction) / 100,
 
@@ -879,7 +884,7 @@ class RetirementCalculatorApp {
             fhssContributed: parseFormattedNumber(getRawValue('fhssContributed', '0')),
 
             // Legacy age-related fields used by older advanced page sections.
-            homeModificationsCost: parseFormattedNumber(getRawValue('homeModificationsCost', '30000')),
+            homeModificationsCost: parseFormattedNumber(getRawValue('homeModificationsCost', '0')),
             homeModificationsAge: parseInt(safeGetValue('homeModificationsAge', 75)) || 75,
             annuityPurchaseAmount: parseFormattedNumber(getRawValue('annuityPurchaseAmount', '0'))
         };
@@ -8426,17 +8431,33 @@ class RetirementCalculatorApp {
         }
 
         const planToDownsize = $('planToDownsize');
+        const downsizeDetails = $('downsizeDetails');
         const downsizeContribution = $('downsizeContribution');
-        if (planToDownsize && downsizeContribution) {
+        const downsizeDetailFieldIds = [
+            'downsizeAge',
+            'downsizeTransactionCost',
+            'downsizeTargetHomeValue',
+            'downsizeOngoingFees'
+        ];
+        if (planToDownsize) {
             const toggleDownsizeContribution = (isUserChange = false) => {
                 const enabled = planToDownsize.value === 'true';
+                if (downsizeContribution) {
                 downsizeContribution.disabled = !enabled;
-                if (enabled && isUserChange) {
+                }
+                if (downsizeDetails) {
+                    downsizeDetails.classList.toggle('hidden', !enabled);
+                }
+                downsizeDetailFieldIds.forEach((fieldId) => {
+                    const field = $(fieldId);
+                    if (field) field.disabled = !enabled;
+                });
+                if (downsizeContribution && enabled && isUserChange) {
                     // Auto-check when the user actively selects "Yes – Downsize".
                     // They can still uncheck it manually afterwards.
                     downsizeContribution.checked = true;
                 }
-                if (!enabled) {
+                if (downsizeContribution && !enabled) {
                     downsizeContribution.checked = false;
                 }
             };
@@ -8558,6 +8579,24 @@ class RetirementCalculatorApp {
         }
     }
 
+    applyTargetIncomeBuilder() {
+        const currentIncome = parseFormattedNumber(getRawValue('builderCurrentIncome', '8500'));
+        const mortgageOrRent = parseFormattedNumber(getRawValue('builderMortgage', '3200'));
+        const childrenCosts = parseFormattedNumber(getRawValue('builderChildren', '1200'));
+        const bufferPct = parseFormattedNumber(getRawValue('builderBuffer', '10'));
+        const derivedAnnualTarget = Math.max(
+            0,
+            (currentIncome - mortgageOrRent - childrenCosts) * 12 * (1 + (bufferPct / 100))
+        );
+
+        const targetInput = $('asfaComfortable');
+        if (!targetInput) return;
+
+        safeSetValue('asfaComfortable', Math.round(derivedAnnualTarget));
+        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+        showNotification(`Applied derived target: ${formatCurrency(derivedAnnualTarget)}`, 'success');
+    }
+
     setupEventListeners() {
         debugLog('setupEventListeners called!');
         // Prevent duplicate event listener setup
@@ -8579,6 +8618,7 @@ class RetirementCalculatorApp {
         this.instrumentClick('btnDynamicAllocation', 'Asset Allocation', this.runDynamicAllocationAnalysis);
         this.instrumentClick('btnStressTest', 'Run Stress Test', this.runStressTest);
         this.instrumentClick('btnRetirementSolver', 'When Can I Retire?', this.runRetirementSolver);
+        this.instrumentClick('btnApplyTargetBuilder', 'Apply Target Income Builder', this.applyTargetIncomeBuilder);
         this.instrumentClick('btnCostReality', 'Cost Reality Check', () => { showTab('costReality', true); });
         this.instrumentClick('btnRunCostReality', 'Run Cost Reality Analysis', this.runCostRealityAnalysis);
         this.instrumentClick('btnScenarioComparison', 'Compare Scenarios', this.initializeScenarioComparison);

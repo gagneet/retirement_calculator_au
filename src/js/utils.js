@@ -1744,10 +1744,6 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
     doc.text("This report is for informational purposes only and does not constitute financial advice.", 14, 65);
     doc.text("Please consult with a licensed financial adviser before making investment decisions.", 14, 72);
 
-    // Prominent Plain English Summary
-    const effectivePlanAge = inputs.yourLifespan > 0 ? inputs.yourLifespan : 120;
-    const lastsUntil = results.depletionAge || effectivePlanAge;
-
     // --- Bottom Line Section (Plain English) ---
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
@@ -2347,7 +2343,7 @@ export const populateFormFromData = (userData, version = '2.0') => {
         }
     }
 
-    // Field mapping for cross-version compatibility (v2 -> v1)
+    // Field mapping for cross-version compatibility (legacy keys -> current field IDs)
     const fieldMapping = {
         'age': 'yourCurrentAge',
         'retireAge': 'retirementAge',

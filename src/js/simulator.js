@@ -1957,8 +1957,16 @@ export class RetirementSimulator {
         // Downsizing logic: calculate equity release if they downsize at or before retirement.
         let accessibleHomeEquity = 0;
         if (inputs.planToDownsize && inputs.downsizeAge <= inputs.retirementAge) {
-            const release = Math.max(0, homeEquityAtRetirement - (inputs.downsizeTargetHomeValue || 800000));
-            accessibleHomeEquity = release * 0.94;
+            const inflationAdjustedTargetHomeValue = (inputs.downsizeTargetHomeValue || 800000)
+                * Math.pow(1 + runInflationRate, yearsToRetirement);
+            const rawTransactionCostRate = Number.isFinite(inputs.downsizeTransactionCost)
+                ? Math.max(0, inputs.downsizeTransactionCost)
+                : 0.06;
+            const transactionCostRate = rawTransactionCostRate > 1
+                ? rawTransactionCostRate / 100
+                : rawTransactionCostRate;
+            const release = Math.max(0, homeEquityAtRetirement - inflationAdjustedTargetHomeValue);
+            accessibleHomeEquity = release * Math.max(0, 1 - transactionCostRate);
             currentBalance += accessibleHomeEquity;
             nonSuperLiquidBalance += accessibleHomeEquity;
         }
@@ -2223,7 +2231,12 @@ export class RetirementSimulator {
             if (inputs.planToDownsize && !downsizeOccurred && yourCurrentAge >= inputs.downsizeAge) {
                 const currentHomeValueAtDownsize = runningHomeValue;
                 const targetHomeValue = inputs.downsizeTargetHomeValue * Math.pow(1 + runInflationRate, retirementYear);
-                const transactionCostRate = 0.06;
+                const rawTransactionCostRate = Number.isFinite(inputs.downsizeTransactionCost)
+                    ? Math.max(0, inputs.downsizeTransactionCost)
+                    : 0.06;
+                const transactionCostRate = rawTransactionCostRate > 1
+                    ? rawTransactionCostRate / 100
+                    : rawTransactionCostRate;
                 const transactionCosts = (currentHomeValueAtDownsize + targetHomeValue) * transactionCostRate;
                 downsizeEquityInjection = Math.max(0, currentHomeValueAtDownsize - targetHomeValue - transactionCosts);
 
