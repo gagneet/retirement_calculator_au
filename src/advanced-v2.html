@@ -563,18 +563,43 @@
         </button>
         <div class="section-body">
           <div class="subhead">Primary residence</div>
+          <div class="fields">
+            <div class="field">
+              <label class="field-label" for="primaryResidenceType"><span>Home ownership status</span></label>
+              <div class="field-input">
+                <select id="primaryResidenceType">
+                  <option value="own_mortgage" selected>Paying a mortgage</option>
+                  <option value="own_outright">Own outright (no mortgage)</option>
+                  <option value="renting">Renting</option>
+                  <option value="family">Living with family / partner's home</option>
+                </select>
+              </div>
+              <div class="field-help">Your living arrangement affects the Age Pension assets test. Homeowners have a lower asset threshold for the full pension.</div>
+            </div>
+          </div>
+          <div id="primary-home-details">
           <div class="fields three">
             <div class="field">
               <label class="field-label" for="homeValue"><span>Home value</span><span class="hint">$</span></label>
               <div class="field-input has-prefix"><span class="prefix">$</span><input id="homeValue" type="number" value="1250000" /></div>
             </div>
-            <div class="field">
+            <div class="field" id="mortgage-field">
               <label class="field-label" for="mortgage"><span>Mortgage left</span><span class="hint">$</span></label>
               <div class="field-input has-prefix"><span class="prefix">$</span><input id="mortgage" type="number" value="480000" /></div>
             </div>
-            <div class="field">
+            <div class="field" id="mortgage-rate-field">
               <label class="field-label" for="mortgageRate"><span>Mortgage rate</span><span class="hint">%</span></label>
               <div class="field-input"><input id="mortgageRate" type="number" step="0.01" value="6.00" /><span class="suffix">%</span></div>
+            </div>
+          </div>
+          </div>
+          <div id="renting-fields" hidden>
+            <div class="fields two">
+              <div class="field">
+                <label class="field-label" for="primaryRentMonthly"><span>Monthly rent</span><span class="hint">$/mo</span></label>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="primaryRentMonthly" type="number" value="2500" /><span class="suffix">/mo</span></div>
+                <div class="field-help">As a renter, you are classified as a non-homeowner for the Age Pension assets test. Non-homeowner thresholds are higher by ~$258,000.</div>
+              </div>
             </div>
           </div>
           <div class="fields">
@@ -781,48 +806,60 @@
           <svg class="section-chev" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="section-body">
+          <!-- A.3: Lifestyle preset is FIRST — user picks a standard before tweaking -->
           <div class="fields">
             <div class="field">
-              <label class="field-label" for="desiredIncome"><span>Desired annual income</span><span class="hint">today's $</span></label>
-              <div class="field-input has-prefix"><span class="prefix">$</span><input id="desiredIncome" type="number" value="73000" /><span class="suffix">/yr</span></div>
-              <div class="field-help">ASFA Retirement Standard (Sep 2024 quarter). <b>Couple:</b> Modest $47,731 · Comfortable $73,031. <b>Single:</b> Modest $33,134 · Comfortable $51,814. Presets below use couple figures — adjust manually if planning as single.</div>
-            </div>
-          </div>
-          <div class="subhead">Expense-based Target Builder</div>
-          <div class="fields three">
-            <div class="field">
-              <label class="field-label" for="builderCurrentIncome"><span>Current net income</span><span class="hint">$/mo</span></label>
-              <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderCurrentIncome" type="number" value="8500" /></div>
-            </div>
-            <div class="field">
-              <label class="field-label" for="builderMortgage"><span>Current mortgage/rent</span><span class="hint">$/mo</span></label>
-              <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderMortgage" type="number" value="3200" /></div>
-            </div>
-            <div class="field">
-              <label class="field-label" for="builderChildren"><span>Children/work costs</span><span class="hint">$/mo</span></label>
-              <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderChildren" type="number" value="1200" /></div>
-            </div>
-            <div class="field">
-              <label class="field-label" for="builderBuffer"><span>Holidays/hobbies buffer</span><span class="hint">%</span></label>
-              <div class="field-input"><input id="builderBuffer" type="number" value="10" /><span class="suffix">%</span></div>
-            </div>
-            <div class="field" style="grid-column: span 2; display: flex; align-items: flex-end;">
-              <button type="button" class="iconbtn primary" id="btn-apply-builder" style="width:100%">Apply derived target to goal</button>
+              <label class="field-label"><span>Lifestyle preset</span></label>
+              <div class="segmented" data-bind="lifestylePreset" data-target="desiredIncome">
+                <button type="button" data-value="47383">Modest</button>
+                <button type="button" class="on" data-value="73337">Comfortable</button>
+                <button type="button" data-value="110000">Premium</button>
+              </div>
+              <div class="field-help">ASFA Dec 2025 quarter. <b>Couple:</b> Modest $47,383 · Comfortable $73,337. Premium ($110k) is a planning estimate. Figures update automatically when you switch to Single above.</div>
             </div>
           </div>
 
           <div class="fields">
             <div class="field">
-              <label class="field-label"><span>Lifestyle preset</span></label>
-              <div class="segmented" data-bind="lifestylePreset" data-target="desiredIncome">
-                <button type="button" data-value="47731">Modest</button>
-                <button type="button" class="on" data-value="73031">Comfortable</button>
-                <button type="button" data-value="110000">Premium</button>
-              </div>
-              <div class="field-help">Modest and Comfortable are confirmed ASFA figures (Sep 2024). Premium ($110k) is a planning estimate — no official ASFA Premium category exists.</div>
+              <label class="field-label" for="desiredIncome"><span>Desired annual income</span><span class="hint">today's $</span></label>
+              <div class="field-input has-prefix"><span class="prefix">$</span><input id="desiredIncome" type="number" value="73337" /><span class="suffix">/yr</span></div>
+              <div class="field-help">ASFA Dec 2025 quarter. <b>Couple:</b> Modest $47,383 · Comfortable $73,337. Use presets above or enter your own target.</div>
             </div>
           </div>
-          <div class="notice"><span class="ic">⛵</span><div><b>Translation:</b> <span id="goal-week">$1,404</span>/week · <span id="goal-month">$6,083</span>/month. Inflated to future dollars automatically.</div></div>
+          <div class="notice"><span class="ic">⛵</span><div><b>Translation:</b> <span id="goal-week">$1,410</span>/week · <span id="goal-month">$6,111</span>/month. Inflated to future dollars automatically.</div></div>
+
+          <!-- A.4: Expense-based Target Builder — with context and pre-fill note -->
+          <details style="margin-top:12px">
+            <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-2);padding:8px 0;user-select:none">📐 Expense-based Target Builder <span style="font-weight:400;color:var(--ink-3)">(optional — derive your target from current spending)</span></summary>
+            <div style="margin-top:8px;padding:12px;background:var(--surface-2,#f8f9fa);border:1px solid var(--border);border-radius:8px">
+              <p style="font-size:12px;color:var(--ink-3);margin:0 0 10px">This builder estimates your retirement income need by taking your current net income, removing costs that stop at retirement (mortgage, children/work) and adding a lifestyle buffer. The result is used to set the Desired annual income above. <b>You do not need to re-enter your salary or mortgage here</b> — these fields are separate from your main inputs above and are pre-filled as a starting point.</p>
+              <div class="fields three">
+                <div class="field">
+                  <label class="field-label" for="builderCurrentIncome"><span>Current net income</span><span class="hint">$/mo</span></label>
+                  <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderCurrentIncome" type="number" value="8500" /></div>
+                  <div class="field-help">Your approximate monthly take-home pay (after tax). Pre-filled with a typical figure — override with your actual amount.</div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="builderMortgage"><span>Mortgage/rent to stop</span><span class="hint">$/mo</span></label>
+                  <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderMortgage" type="number" value="3200" /></div>
+                  <div class="field-help">Monthly mortgage or rent that will no longer apply in retirement (e.g. mortgage paid off). Set to $0 if you'll still rent in retirement.</div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="builderChildren"><span>Work/children costs to stop</span><span class="hint">$/mo</span></label>
+                  <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderChildren" type="number" value="1200" /></div>
+                  <div class="field-help">Monthly costs that end at retirement: commuting, work clothing, childcare, school fees, etc.</div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="builderBuffer"><span>Lifestyle / travel buffer</span><span class="hint">%</span></label>
+                  <div class="field-input"><input id="builderBuffer" type="number" value="10" min="0" max="50" /><span class="suffix">%</span></div>
+                  <div class="field-help">Add a % uplift for holidays, hobbies, and leisure that you expect to enjoy more in retirement. 10% = typical; 20%+ = active traveller.</div>
+                </div>
+                <div class="field" style="grid-column: span 2; display: flex; align-items: flex-end;">
+                  <button type="button" class="iconbtn primary" id="btn-apply-builder" style="width:100%">▶ Apply derived target to goal</button>
+                </div>
+              </div>
+            </div>
+          </details>
 
           <!-- Legacy & Inheritance Planning -->
           <div style="margin-top:16px;padding:14px;background:var(--purple-soft,#f5f3ff);border:1px solid var(--purple-mid,#c4b5fd);border-radius:10px">
@@ -928,22 +965,22 @@
           <div class="fields">
             <div class="field">
               <label class="field-label" for="inflation"><span>Inflation (median)</span><span class="hint">% / yr</span></label>
-              <div class="field-input"><input id="inflation" type="number" step="0.01" value="2.6" /><span class="suffix">%</span></div>
-              <div class="field-help">RBA target 2–3%. AU CPI median 2.6%. Treated as the <b>median annual rate</b> — Monte Carlo runs apply a bounded random variation of ±4 percentage points each year, reflecting realistic macro uncertainty.</div>
+              <div class="field-input"><input id="inflation" type="number" step="0.01" value="2.60" /><span class="suffix">%</span></div>
+              <div class="field-help">RBA target 2–3%. AU CPI median 2.60%. Treated as the <b>median annual rate</b> — Monte Carlo runs apply a bounded random variation of ±4 percentage points each year, reflecting realistic macro uncertainty.</div>
             </div>
             <div class="field">
               <label class="field-label" for="invReturn"><span>Investment return — non-super (median)</span><span class="hint">% / yr</span></label>
-              <div class="field-input"><input id="invReturn" type="number" step="0.01" value="6.5" /><span class="suffix">%</span></div>
+              <div class="field-input"><input id="invReturn" type="number" step="0.01" value="6.50" /><span class="suffix">%</span></div>
               <div class="field-help">Treated as the <b>median annual return</b>. Monte Carlo runs use regime-aware stochastic modelling (bull/bear/crash cycles) with this as the central value.</div>
             </div>
             <div class="field">
               <label class="field-label" for="superGrowth"><span>Super growth (median)</span><span class="hint">% / yr</span></label>
-              <div class="field-input"><input id="superGrowth" type="number" step="0.01" value="7.5" /><span class="suffix">%</span></div>
-              <div class="field-help">AU balanced super median ~7.5% (APRA). Treated as the <b>median annual return</b> — Monte Carlo runs vary this ±4 pp each year.</div>
+              <div class="field-input"><input id="superGrowth" type="number" step="0.01" value="7.50" /><span class="suffix">%</span></div>
+              <div class="field-help">AU balanced super median ~7.50% (APRA). Treated as the <b>median annual return</b> — Monte Carlo runs vary this ±4 pp each year.</div>
             </div>
             <div class="field">
               <label class="field-label" for="savingsReturn"><span>Savings / cash return (median)</span><span class="hint">% / yr</span></label>
-              <div class="field-input"><input id="savingsReturn" type="number" step="0.01" value="3.5" /><span class="suffix">%</span></div>
+              <div class="field-input"><input id="savingsReturn" type="number" step="0.01" value="3.50" /><span class="suffix">%</span></div>
               <div class="field-help">Median across high-yield savings (~5%), term deposits (~4.5%) and standard accounts (~1%) in 2025. Treated as the <b>median annual return</b> — Monte Carlo runs vary this ±4 pp each year. Adjust for your actual mix.</div>
             </div>
           </div>

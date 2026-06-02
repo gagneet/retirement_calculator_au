@@ -178,11 +178,14 @@ function buildEngineInputs(inp) {
   const employerContributionRate = pct(inp.employerRate || DEFAULTS.economic.employerSuperContributionRate || 12, 12);
   const mortgageRate = pct(inp.mortgageRate || DEFAULTS.property.mortgageRate, DEFAULTS.property.mortgageRate);
   const investmentPropertyRate = pct(inp.ipRate || DEFAULTS.property.investmentPropertyRate, DEFAULTS.property.investmentPropertyRate);
-  const pensionAssetThreshold = inp.pensionAssetThreshold || (
-    isCouple ? ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD : ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD
+  const isNonHomeowner = inp.primaryResidenceType === 'renting' || inp.primaryResidenceType === 'family';
+  const pensionAssetThreshold = inp.pensionAssetThreshold || (isCouple
+    ? (isNonHomeowner ? ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER : ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD)
+    : (isNonHomeowner ? ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER : ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD)
   );
-  const pensionAssetLimit = inp.pensionAssetCutoff || (
-    isCouple ? ENHANCED_CONFIG.COUPLE_ASSET_LIMIT : ENHANCED_CONFIG.SINGLE_ASSET_LIMIT
+  const pensionAssetLimit = inp.pensionAssetCutoff || (isCouple
+    ? (isNonHomeowner ? ENHANCED_CONFIG.COUPLE_ASSET_LIMIT_NON_HOMEOWNER : ENHANCED_CONFIG.COUPLE_ASSET_LIMIT)
+    : (isNonHomeowner ? ENHANCED_CONFIG.SINGLE_ASSET_LIMIT_NON_HOMEOWNER : ENHANCED_CONFIG.SINGLE_ASSET_LIMIT)
   );
   const agePensionMax = isCouple
     ? (inp.pensionAnnualCouple || ENHANCED_CONFIG.COUPLE_PENSION_MAX)
@@ -618,6 +621,12 @@ function initSegmented() {
   document.querySelectorAll('.segmented').forEach((seg) => {
     const bindKey = seg.dataset.bind;
     const target = seg.dataset.target;       // optional: set a numeric input
+    // Initialise dataset.value from whichever button has class="on" so that
+    // applyHouseholdVisibility() works correctly on first load (before any click).
+    const initialOn = seg.querySelector('button.on');
+    if (initialOn && !seg.dataset.value) {
+      seg.dataset.value = initialOn.dataset.value;
+    }
     seg.querySelectorAll('button').forEach((b) => {
       b.addEventListener('click', () => {
         seg.querySelectorAll('button').forEach((x) => x.classList.remove('on'));
@@ -649,6 +658,57 @@ function applyHouseholdVisibility() {
   document.querySelectorAll('[data-household]').forEach((el) => {
     el.hidden = el.dataset.household !== value;
   });
+
+  // A.5: Adjust healthcare cost default for single vs couple
+  const hcField = document.getElementById('healthcareCost');
+  if (hcField && !hcField.dataset.userEdited) {
+    hcField.value = value === 'single' ? 3600 : 4800;
+  }
+
+  // A.3: Update lifestyle preset ASFA values for single vs couple
+  const presetSeg = document.querySelector('[data-bind="lifestylePreset"]');
+  if (presetSeg) {
+    const isSingle = value === 'single';
+    const presetMap = {
+      // ASFA Dec 2025 quarter: single comfortable $52,085 / couple comfortable $73,337
+      Modest:      isSingle ? 32915  : 47383,
+      Comfortable: isSingle ? 52085  : 73337,
+      Premium:     isSingle ? 78000  : 110000,
+    };
+    presetSeg.querySelectorAll('button').forEach((b) => {
+      const label = b.textContent.trim();
+      if (presetMap[label] !== undefined) {
+        b.dataset.value = String(presetMap[label]);
+        if (b.classList.contains('on')) {
+          const target = presetSeg.dataset.target;
+          if (target) {
+            const inp = document.getElementById(target);
+            if (inp) inp.value = b.dataset.value;
+          }
+        }
+      }
+    });
+    // Update the help text
+    const helpEl = presetSeg.closest('.field')?.querySelector('.field-help');
+    if (helpEl) {
+      helpEl.textContent = isSingle
+        ? 'ASFA Dec 2025 quarter. Single: Modest $32,915 · Comfortable $52,085. Premium ($78k) is a planning estimate.'
+        : 'ASFA Dec 2025 quarter. Couple: Modest $47,383 · Comfortable $73,337. Premium ($110k) is a planning estimate.';
+    }
+  }
+
+  // Update desired income field help text
+  const desiredIncomeHelp = document.querySelector('#desiredIncome + .field-help, label[for="desiredIncome"] ~ .field-help');
+  // also check via closest .field
+  const desiredIncomeField = document.getElementById('desiredIncome');
+  if (desiredIncomeField) {
+    const fieldHelp = desiredIncomeField.closest('.field')?.querySelector('.field-help');
+    if (fieldHelp) {
+      fieldHelp.innerHTML = value === 'single'
+        ? 'ASFA Dec 2025 quarter. <b>Single:</b> Modest $32,915 · Comfortable $52,085. Use presets above or enter your own target.'
+        : 'ASFA Dec 2025 quarter. <b>Couple:</b> Modest $47,383 · Comfortable $73,337. Use presets above or enter your own target.';
+    }
+  }
 }
 
 // ============================================================
@@ -805,6 +865,8 @@ function readInputs() {
     carerAnnualExpense: num('carerAnnualExpense'),
 
     // Property & debt
+    primaryResidenceType: val('primaryResidenceType', 'own_mortgage'),
+    primaryRentMonthly: num('primaryRentMonthly', 0),
     homeValue: num('homeValue'),
     mortgage: num('mortgage'),
     mortgageRate: num('mortgageRate'),
@@ -3748,10 +3810,46 @@ function boot() {
       syncTrustBeneficiaries();
     })();
 
-    // Auto-fill spending currency when overseas destination changes
+    // Mark healthcare cost field as user-edited when changed directly
+    (function markHealthcareEdited() {
+      const hcField = document.getElementById('healthcareCost');
+      if (hcField) {
+        hcField.addEventListener('input', () => { hcField.dataset.userEdited = 'true'; });
+        hcField.addEventListener('change', () => { hcField.dataset.userEdited = 'true'; });
+      }
+    })();
+
+    // A.6: Private hospital cover — affect MLS and show premium cost effect
+    (function bindPrivateHospital() {
+      const chkEl = document.getElementById('hasPrivateHospital');
+      const ageEl = document.getElementById('ageFirstHadCover');
+      if (!chkEl) return;
+      function updatePrivateHospitalHelp() {
+        const isChecked = chkEl.checked;
+        const fieldDiv = chkEl.closest('.fields');
+        let helpEl = fieldDiv?.querySelector('.private-hospital-help');
+        if (!helpEl) {
+          helpEl = document.createElement('div');
+          helpEl.className = 'field-help private-hospital-help';
+          fieldDiv?.appendChild(helpEl);
+        }
+        if (isChecked) {
+          helpEl.innerHTML = '<b>Covered:</b> Avoids Medicare Levy Surcharge (1–1.5% of income for earnings above $93k). Annual hospital cover premium (~$2,800/yr single or ~$5,200/yr couple) is included in your healthcare cost above. Enter age you first got cover below for LHC loading.';
+          if (ageEl) ageEl.closest('.field')?.removeAttribute('hidden');
+        } else {
+          helpEl.innerHTML = '<b>No cover:</b> If your income exceeds $93,000 (single) you pay Medicare Levy Surcharge (1–1.5% extra tax). Enable cover to model the tax saving vs premium cost trade-off.';
+          if (ageEl) ageEl.closest('.field')?.setAttribute('hidden', '');
+        }
+      }
+      chkEl.addEventListener('change', updatePrivateHospitalHelp);
+      updatePrivateHospitalHelp();
+    })();
+
+    // A.8: Auto-fill spending currency AND FX change rate when overseas destination changes
     (function bindDestinationCurrency() {
       const destEl = document.getElementById('destination');
       const currEl = document.getElementById('overseasSpendingCurrency');
+      const fxEl = document.getElementById('overseasAudFxChange');
       if (!destEl || !currEl) return;
       const DEST_CURRENCY_MAP = {
         portugal: 'EUR', spain: 'EUR', italy: 'EUR',
@@ -3760,9 +3858,148 @@ function boot() {
         vietnam: 'VND', malaysia: 'MYR', bali: 'IDR',
         philippines: 'PHP',
       };
+      // One-time AUD FX annual change vs local currency (based on 10-yr rolling average, Jun 2026)
+      // Negative = AUD has tended to depreciate vs that currency (costs rise for Australians)
+      // Positive = AUD has tended to appreciate vs that currency (costs fall for Australians)
+      const DEST_FX_CHANGE_MAP = {
+        portugal: -0.5,   // EUR: AUD/EUR relatively stable, slight AUD weakness
+        spain:    -0.5,
+        italy:    -0.5,
+        canada:   -0.5,   // CAD: similar commodity exposure
+        newzealand: 0.2,  // NZD: AUD usually slightly stronger
+        japan:    -1.5,   // JPY: AUD has strengthened vs JPY over 10yr
+        india:    -2.0,   // INR: AUD has appreciated vs INR historically
+        usa:      -0.5,   // USD: slight AUD weakness
+        thailand: -1.5,   // THB: AUD has appreciated vs THB
+        vietnam:  -2.5,   // VND: AUD has appreciated strongly
+        malaysia: -1.0,   // MYR: moderate AUD appreciation
+        bali:     -1.5,   // IDR: AUD has appreciated
+        philippines: -2.0, // PHP: AUD has appreciated
+      };
       destEl.addEventListener('change', () => {
         const currency = DEST_CURRENCY_MAP[destEl.value];
         if (currency) currEl.value = currency;
+        if (fxEl && !fxEl.dataset.userEdited && DEST_FX_CHANGE_MAP[destEl.value] !== undefined) {
+          fxEl.value = DEST_FX_CHANGE_MAP[destEl.value].toFixed(2);
+        }
+      });
+      if (fxEl) {
+        fxEl.addEventListener('input', () => { fxEl.dataset.userEdited = 'true'; });
+      }
+    })();
+
+    // A.9: Housing arrangement → rent field — show $0 when not renting/nomadic
+    (function bindOverseasHousingType() {
+      const housingEl = document.getElementById('overseasHousingType');
+      const rentEl = document.getElementById('overseasAnnualRent');
+      if (!housingEl || !rentEl) return;
+      function updateRentField() {
+        const isRenting = housingEl.value === 'rent' || housingEl.value === 'nomadic';
+        const label = rentEl.closest('.field')?.querySelector('.field-label');
+        if (!isRenting) {
+          if (!rentEl.dataset.userSetForNonRent) {
+            rentEl.value = '0';
+          }
+          if (label) label.querySelector('span:first-child').textContent = 'Annual accommodation cost (AUD equivalent)';
+          rentEl.closest('.field').querySelector('.field-help').textContent = 'Not renting — enter $0 or an annual accommodation fee if applicable (e.g., village fees).';
+        } else {
+          if (label) label.querySelector('span:first-child').textContent = 'Annual rent (AUD equivalent)';
+          rentEl.closest('.field').querySelector('.field-help').textContent = 'Annual rent converted to AUD at current rates. Subject to FX drift.';
+        }
+      }
+      housingEl.addEventListener('change', updateRentField);
+      rentEl.addEventListener('input', () => { rentEl.dataset.userSetForNonRent = 'true'; });
+      updateRentField();
+    })();
+
+    // A.2: Primary residence type selector — show/hide mortgage and home value fields
+    (function bindPrimaryResidenceType() {
+      const typeEl = document.getElementById('primaryResidenceType');
+      const homeDetails = document.getElementById('primary-home-details');
+      const rentingFields = document.getElementById('renting-fields');
+      const mortgageField = document.getElementById('mortgage-field');
+      const mortgageRateField = document.getElementById('mortgage-rate-field');
+      if (!typeEl) return;
+      function updateResidenceFields() {
+        const val = typeEl.value;
+        const isOwner = val === 'own_mortgage' || val === 'own_outright';
+        const isRenting = val === 'renting' || val === 'family';
+        const hasMortgage = val === 'own_mortgage';
+        if (homeDetails) homeDetails.hidden = isRenting;
+        if (rentingFields) rentingFields.hidden = !isRenting;
+        if (mortgageField) mortgageField.hidden = !hasMortgage;
+        if (mortgageRateField) mortgageRateField.hidden = !hasMortgage;
+        // Non-homeowner flag for pension means test (inform the hidden field or annotation)
+        const isNonHomeowner = isRenting;
+        // Update pension threshold if still at auto-default
+        if (isNonHomeowner) {
+          const householdSeg = document.querySelector('[data-bind="household"]');
+          const household = householdSeg?.dataset?.value || 'couple';
+          const threshField = document.getElementById('pensionAssetThreshold');
+          const cutoffField = document.getElementById('pensionAssetCutoff');
+          if (threshField?.dataset?.autoDefault !== 'false') {
+            const nhThresh = household === 'single'
+              ? ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER
+              : ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER;
+            if (threshField) { threshField.value = String(nhThresh); threshField.dataset.autoDefault = 'true'; }
+          }
+          if (cutoffField?.dataset?.autoDefault !== 'false') {
+            const nhCutoff = household === 'single'
+              ? ENHANCED_CONFIG.SINGLE_ASSET_LIMIT_NON_HOMEOWNER
+              : ENHANCED_CONFIG.COUPLE_ASSET_LIMIT_NON_HOMEOWNER;
+            if (cutoffField) { cutoffField.value = String(nhCutoff); cutoffField.dataset.autoDefault = 'true'; }
+          }
+        } else {
+          syncPensionMeansTestFields();
+        }
+      }
+      typeEl.addEventListener('change', () => { updateResidenceFields(); recalc(); });
+      updateResidenceFields();
+    })();
+
+    // A.7: Enforce 2 decimal places on blur for economic rate fields
+    (function bind2dpRates() {
+      ['inflation', 'invReturn', 'superGrowth', 'savingsReturn', 'returnVolatility'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('blur', () => {
+          const v = parseFloat(el.value);
+          if (!isNaN(v)) el.value = v.toFixed(2);
+        });
+      });
+    })();
+
+    // Pre-fill expense builder from current form data on section open
+    (function bindBuilderPrefill() {
+      const builderSummary = document.querySelector('details summary');
+      if (!builderSummary) return;
+      builderSummary.addEventListener('click', () => {
+        const salaryEl = document.getElementById('salary');
+        const partnerSalaryEl = document.getElementById('partnerSalary');
+        const mortgageEl = document.getElementById('mortgage');
+        const mortgageRateEl = document.getElementById('mortgageRate');
+        const incomeField = document.getElementById('builderCurrentIncome');
+        const mortField = document.getElementById('builderMortgage');
+        if (!incomeField || !mortField) return;
+        // Only pre-fill if user hasn't changed them
+        if (!incomeField.dataset.userEdited && salaryEl) {
+          const salary = parseFloat(salaryEl.value) || 0;
+          const partnerSalary = parseFloat(partnerSalaryEl?.value) || 0;
+          // Rough after-tax estimate: 70% of gross for planning purposes
+          incomeField.value = Math.round((salary + partnerSalary) * 0.70 / 12);
+        }
+        if (!mortField.dataset.userEdited && mortgageEl && mortgageRateEl) {
+          const bal = parseFloat(mortgageEl.value) || 0;
+          const rate = parseFloat(mortgageRateEl.value) / 100 || 0.06;
+          if (bal > 0) {
+            const monthly = (bal * (rate / 12)) / (1 - Math.pow(1 + rate / 12, -360));
+            mortField.value = Math.round(monthly);
+          }
+        }
+      });
+      ['builderCurrentIncome', 'builderMortgage', 'builderChildren', 'builderBuffer'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => { el.dataset.userEdited = 'true'; });
       });
     })();
 
