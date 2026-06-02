@@ -1204,25 +1204,48 @@ table.year-table th[title] { cursor: help; border-bottom: 1px dotted var(--borde
   margin: 0;
 }
 .adv2-progress-bar-wrap {
-  height: 4px;
-  background: var(--surface-3);
+  height: 6px;
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface-3));
   border-radius: 99px;
   overflow: hidden;
-  margin-top: 16px;
+  margin-top: 18px;
+  position: relative;
 }
+/* Indeterminate shimmer — shown while waiting for the first real progress tick */
 .adv2-progress-bar {
   height: 100%;
-  background: var(--accent);
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, white));
   border-radius: 99px;
+  width: 30%;
+  margin-left: 0%;
+  animation: adv2-indeterminate 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transition: none;
+}
+/* Determinate mode — once real progress is available, kills the shimmer */
+.adv2-progress-bar.is-determinate {
+  animation: none;
   width: 0%;
-  transition: width 0.4s ease;
-  animation: adv2-indeterminate 1.4s ease infinite;
+  margin-left: 0;
+  transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+              background 0.4s ease;
+}
+/* "Done" flash colour when the bar reaches 100% */
+.adv2-progress-bar.is-complete {
+  background: linear-gradient(90deg, var(--green, #22c55e), color-mix(in srgb, var(--green, #22c55e) 70%, white));
 }
 @keyframes adv2-indeterminate {
-  0%   { width: 0%;  margin-left: 0%; }
-  50%  { width: 60%; margin-left: 20%; }
-  100% { width: 0%;  margin-left: 100%; }
+  0%   { transform: translateX(-100%); width: 40%; }
+  50%  { transform: translateX(110%);  width: 60%; }
+  100% { transform: translateX(110%);  width: 60%; }
 }
+/* Phase label colour cycling */
+.adv2-loading-label {
+  transition: color 0.3s ease;
+}
+.adv2-loading-label.phase-analyse { color: var(--accent); }
+.adv2-loading-label.phase-build   { color: color-mix(in srgb, var(--accent) 80%, var(--ink-2)); }
+.adv2-loading-label.phase-render  { color: color-mix(in srgb, var(--accent) 60%, var(--ink-2)); }
+.adv2-loading-label.phase-done    { color: var(--green, #22c55e); }
 
 /* Monte Carlo results section in summary panel */
 .mc-results-grid {

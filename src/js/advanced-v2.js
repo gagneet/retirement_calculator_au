@@ -2923,23 +2923,87 @@ async function runMonteCarloAnalysis() {
   // the select element and the already-computed engine state.
   const runsToUse = baseState.engineInputs.numRuns || DEFAULTS.simulation.numRuns || 500;
 
-  // Wire up a progress callback so the loading overlay shows real progress for large runs.
   const progressBarEl = document.getElementById('adv2-progress-bar');
   const progressLabelEl = document.getElementById('adv2-loading-label');
   const progressSubEl = document.getElementById('adv2-loading-sub');
 
-  const mcProgressCallback = runsToUse >= 500 ? async (completed, total) => {
-    const pct = Math.round((completed / total) * 100);
-    if (progressBarEl) progressBarEl.style.width = pct + '%';
-    const remaining = total - completed;
-    const approxSecs = Math.ceil((remaining / total) * (total > 5000 ? 45 : 15));
-    if (progressLabelEl) progressLabelEl.textContent = `Running… ${pct}%`;
-    if (progressSubEl) progressSubEl.textContent = `Completed ${completed.toLocaleString()} of ${total.toLocaleString()} runs${approxSecs > 2 ? ` — ~${approxSecs}s remaining` : ''}`;
-    // Yield to the browser so the progress bar updates are visible
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  } : null;
+  // Helper: update bar, label, sub; optionally add a CSS phase class on the label.
+  // Yields two ticks (rAF + setTimeout) so the browser has time to repaint.
+  const setProgress = async (pct, label, sub, phaseClass = '') => {
+    if (progressBarEl) {
+      // First call with pct > 0: switch from indeterminate shimmer → determinate fill
+      if (pct > 0 && !progressBarEl.classList.contains('is-determinate')) {
+        progressBarEl.classList.add('is-determinate');
+      }
+      if (pct >= 100) progressBarEl.classList.add('is-complete');
+      progressBarEl.style.width = pct + '%';
+    }
+    if (progressLabelEl) {
+      progressLabelEl.textContent = label;
+      progressLabelEl.className = 'adv2-loading-label' + (phaseClass ? ` ${phaseClass}` : '');
+    }
+    if (progressSubEl) progressSubEl.textContent = sub;
+    await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+  };
 
-  if (progressBarEl) progressBarEl.style.width = '0%';
+  // Reset bar to indeterminate shimmer state for a clean start
+  if (progressBarEl) {
+    progressBarEl.classList.remove('is-determinate', 'is-complete');
+    progressBarEl.style.width = '';
+  }
+  if (progressLabelEl) progressLabelEl.className = 'adv2-loading-label';
+
+  // Phase allocation (% of bar):
+  //   0 – 78%  →  Monte Carlo run loop     (progress callback every 100 runs)
+  //  78 – 85%  →  Statistical analysis     (sort, percentiles, success rate)
+  //  85 – 92%  →  Risk profile + strategy
+  //  92 – 97%  →  Panel HTML rendering
+  //  97 – 100% →  Chart drawing
+  const MC_RUN_END = 78;
+
+  const startTime = Date.now();
+
+  const mcProgressCallback = async (completed, total) => {
+    const runPct = Math.round((completed / total) * MC_RUN_END);
+
+    if (completed === 0) {
+      // First tick: switch to determinate mode showing the actual run count
+      await setProgress(1, 'Running…', `0 / ${total.toLocaleString()} runs`);
+      return;
+    }
+
+    if (completed === total) {
+      // All runs done — move to analysis phase label before the bar jumps
+      if (progressBarEl) {
+        if (!progressBarEl.classList.contains('is-determinate')) progressBarEl.classList.add('is-determinate');
+        progressBarEl.style.width = MC_RUN_END + '%';
+      }
+      if (progressLabelEl) { progressLabelEl.textContent = 'Analysing…'; progressLabelEl.className = 'adv2-loading-label phase-analyse'; }
+      if (progressSubEl) progressSubEl.textContent = `All ${total.toLocaleString()} runs complete — computing statistics…`;
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return;
+    }
+
+    // Mid-run: update bar width + ETA
+    if (progressBarEl) {
+      if (!progressBarEl.classList.contains('is-determinate')) progressBarEl.classList.add('is-determinate');
+      progressBarEl.style.width = runPct + '%';
+    }
+    if (progressSubEl) {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const rate = completed / Math.max(elapsed, 0.001);
+      const remaining = total - completed;
+      const secsLeft = rate > 0 ? Math.ceil(remaining / rate) : null;
+      const eta = secsLeft != null && secsLeft > 1
+        ? ` — ~${secsLeft < 60 ? `${secsLeft}s` : `${Math.ceil(secsLeft / 60)}m`} left`
+        : '';
+      progressSubEl.textContent = `${completed.toLocaleString()} / ${total.toLocaleString()} runs${eta}`;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  };
+
+  if (progressLabelEl) progressLabelEl.textContent = 'Running…';
+  if (progressSubEl) progressSubEl.textContent = `Preparing ${runsToUse.toLocaleString()} Monte Carlo simulations…`;
 
   APP_STATE.monteCarloResults = await simulator.runMonteCarloSimulation(
     baseState.engineInputs,
@@ -2947,14 +3011,32 @@ async function runMonteCarloAnalysis() {
     mcProgressCallback
   );
 
-  if (progressBarEl) progressBarEl.style.width = '100%';
+  // Phase: statistical analysis
+  await setProgress(82, 'Analysing…',
+    'Computing percentiles, success rate and sequence-of-returns risk…', 'phase-analyse');
+
   APP_STATE.riskProfile = normaliseRiskProfile(
     riskProfiler.generateRiskProfileSummary(baseState.engineInputs, APP_STATE.monteCarloResults)
   );
   APP_STATE.allocationStrategy = deriveAllocationStrategy(APP_STATE.riskProfile);
+
+  // Phase: build panel HTML (heaviest synchronous step)
+  await setProgress(89, 'Building…',
+    'Assembling risk profile, allocation strategy and summary panels…', 'phase-build');
+
   renderAnalysisPanels();
-  // Render fan chart + histogram into the Risk tab after panel HTML is written
+
+  // Phase: chart drawing
+  await setProgress(95, 'Rendering charts…',
+    'Drawing fan chart, histogram and allocation breakdown…', 'phase-render');
+
   renderMonteCarloCharts(APP_STATE.monteCarloResults, APP_STATE.input);
+
+  // Briefly show "Done" before the overlay dismisses
+  await setProgress(100, 'Done',
+    `${runsToUse.toLocaleString()} runs complete.`, 'phase-done');
+  await new Promise((resolve) => setTimeout(resolve, 350));
+
   return APP_STATE.monteCarloResults;
 }
 
@@ -3155,9 +3237,15 @@ function showLoadingOverlay(label = 'Running…') {
   const overlay = document.getElementById('adv2-loading-overlay');
   const labelEl = document.getElementById('adv2-loading-label');
   const subEl   = document.getElementById('adv2-loading-sub');
+  const barEl   = document.getElementById('adv2-progress-bar');
   if (!overlay) return;
-  if (labelEl) labelEl.textContent = label;
+  if (labelEl) { labelEl.textContent = label; labelEl.className = 'adv2-loading-label'; }
   if (subEl)   subEl.textContent = OVERLAY_SUBTITLES[label] || 'This may take a moment…';
+  // Reset bar to indeterminate shimmer for non-MC operations
+  if (barEl) {
+    barEl.classList.remove('is-determinate', 'is-complete');
+    barEl.style.width = '';
+  }
   overlay.classList.add('visible');
 }
 
