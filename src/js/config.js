@@ -249,8 +249,25 @@ export const ENHANCED_CONFIG = {
         ASFA_COUPLE_ANNUAL: 73337,
 
         // One-time destination defaults for overseas retirement inputs.
-        // Values represent median annual AUD change vs local currency over a 10-year window.
-        // Negative = AUD weakens vs local currency (local costs become more expensive in AUD terms).
+        // These are conservative placeholder assumptions, not live FX data and not
+        // independently researched medians. They exist so calculators do not treat
+        // exchange-rate levels (for example AUD/INR ~= 62) as annual FX drift.
+        // TODO: Replace with verified 10-year median annual AUD/local currency moves.
+        DESTINATION_AUD_FX_ASSUMPTIONS: {
+            portugal: { pair: 'AUD/EUR', medianAnnualChangePct: -0.5, period: 'TODO 10-year window', source: 'Placeholder pending verified historical FX research', lastChecked: '2026-06-02' },
+            spain: { pair: 'AUD/EUR', medianAnnualChangePct: -0.5, period: 'TODO 10-year window', source: 'Placeholder pending verified historical FX research', lastChecked: '2026-06-02' },
+            italy: { pair: 'AUD/EUR', medianAnnualChangePct: -0.5, period: 'TODO 10-year window', source: 'Placeholder pending verified historical FX research', lastChecked: '2026-06-02' },
+            canada: { pair: 'AUD/CAD', medianAnnualChangePct: -0.5, period: 'TODO 10-year window', source: 'Placeholder pending verified historical FX research', lastChecked: '2026-06-02' },
+            newzealand: { pair: 'AUD/NZD', medianAnnualChangePct: 0.2, period: 'TODO 10-year window', source: 'Placeholder pending verified historical FX research', lastChecked: '2026-06-02' },
+            japan: { pair: 'AUD/JPY', medianAnnualChangePct: -1.5, period: 'TODO 10-year window', source: 'Placeholder pending verified historical FX research', lastChecked: '2026-06-02' },
+            india: { pair: 'AUD/INR', medianAnnualChangePct: -2.0, period: 'TODO 10-year window', source: 'Placeholder pending verified historical FX research', lastChecked: '2026-06-02' },
+            usa: { pair: 'AUD/USD', medianAnnualChangePct: -0.5, period: 'TODO 10-year window', source: 'Placeholder pending verified historical FX research', lastChecked: '2026-06-02' },
+            thailand: { pair: 'AUD/THB', medianAnnualChangePct: -1.5, period: 'TODO 10-year window', source: 'Placeholder pending verified historical FX research', lastChecked: '2026-06-02' },
+            vietnam: { pair: 'AUD/VND', medianAnnualChangePct: -2.5, period: 'TODO 10-year window', source: 'Placeholder pending verified historical FX research', lastChecked: '2026-06-02' },
+            malaysia: { pair: 'AUD/MYR', medianAnnualChangePct: -1.0, period: 'TODO 10-year window', source: 'Placeholder pending verified historical FX research', lastChecked: '2026-06-02' },
+            bali: { pair: 'AUD/IDR', medianAnnualChangePct: -1.5, period: 'TODO 10-year window', source: 'Placeholder pending verified historical FX research', lastChecked: '2026-06-02' },
+            philippines: { pair: 'AUD/PHP', medianAnnualChangePct: -2.0, period: 'TODO 10-year window', source: 'Placeholder pending verified historical FX research', lastChecked: '2026-06-02' }
+        },
         DESTINATION_CURRENCY_MAP: {
             portugal: 'EUR',
             spain: 'EUR',

@@ -475,14 +475,17 @@ describe('advanced-v2 engine adapter', () => {
         });
     });
 
-    test('normalises imported overseas FX change display values into a sane percentage range', () => {
+    test('normalises imported overseas FX exchange-rate-like values to the destination default', () => {
         const normalized = normalizeImportedUserData({
-            yourCurrentAge: 46,
-            retirementAge: 67,
+            household: 'couple',
+            age: 46,
+            retireAge: 67,
+            destination: 'india',
             overseasAudFxChange: 62,
         });
 
-        expect(normalized.overseasAudFxChange).toBeCloseTo(6.2);
+        expect(normalized.overseasAudFxChange).toBeCloseTo(-2.0);
+        expect(buildEngineInputs(normalized).overseasAudFxChange).toBeCloseTo(-0.02);
     });
 
     test('updates accordion aria and hidden state when sections open and close', () => {

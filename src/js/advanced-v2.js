@@ -76,6 +76,7 @@ const COUNTRY_CODE_MAP = {
   philippines: 'PHILIPPINES',
 };
 const OVERSEAS_DEST_CURRENCY_MAP = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.DESTINATION_CURRENCY_MAP || {};
+const OVERSEAS_DEST_FX_ASSUMPTIONS = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.DESTINATION_AUD_FX_ASSUMPTIONS || {};
 const OVERSEAS_DEST_FX_MEDIAN_MAP = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.DESTINATION_AUD_FX_MEDIAN_10Y_CHANGE_PCT || {};
 
 const APP_STATE = {
@@ -107,6 +108,40 @@ function pct(value, fallbackPercent = 0) {
   }
   if (numeric > 0 && numeric <= 1) return numeric;
   return numeric / 100;
+}
+
+function getDefaultFxChangeDisplayPercent(destination, fallback = -1) {
+  const key = String(destination || "").toLowerCase();
+  const assumption = OVERSEAS_DEST_FX_ASSUMPTIONS[key];
+  if (assumption && Number.isFinite(Number(assumption.medianAnnualChangePct))) {
+    return Number(assumption.medianAnnualChangePct);
+  }
+  if (Number.isFinite(Number(OVERSEAS_DEST_FX_MEDIAN_MAP[key]))) {
+    return Number(OVERSEAS_DEST_FX_MEDIAN_MAP[key]);
+  }
+  return fallback;
+}
+
+function normalizeFxChangeDisplayPercent(value, destination = "", fallback = -1) {
+  const destinationDefault = getDefaultFxChangeDisplayPercent(destination, fallback);
+  if (value === null || value === undefined || value === "") return destinationDefault;
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return destinationDefault;
+
+  if (Math.abs(numeric) <= 0.1) {
+    return parseFloat((numeric * 100).toFixed(2));
+  }
+
+  if (Math.abs(numeric) <= 10) {
+    return parseFloat(numeric.toFixed(2));
+  }
+
+  return destinationDefault;
+}
+
+function normalizeFxChangeRate(value, destination = "", fallback = -1) {
+  return pct(normalizeFxChangeDisplayPercent(value, destination, fallback), fallback);
 }
 
 function deriveMortgagePayment(balance, annualRate) {
@@ -405,7 +440,7 @@ function buildEngineInputs(inp) {
     overseasFallbackAge: inp.overseasFallbackAge || 0,
     overseasFallbackTrigger: inp.overseasFallbackTrigger || 'none',
     overseasSpendingCurrency: inp.overseasSpendingCurrency || 'AUD',
-    overseasAudFxChange: pct(inp.overseasAudFxChange !== undefined ? inp.overseasAudFxChange : -1, -1),
+    overseasAudFxChange: normalizeFxChangeRate(inp.overseasAudFxChange, inp.destination, -1),
     overseasHousingType: inp.overseasHousingType || 'rent',
     overseasAnnualRent: inp.overseasAnnualRent || 0,
     overseasDestination: inp.destination || '',
@@ -1186,15 +1221,8 @@ function toDisplayPercent(value) {
   return parseFloat((numeric * 100).toFixed(4));
 }
 
-function normalizeImportedFxDisplayPercent(value, fallback = -1) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return fallback;
-  if (numeric > 1 && Math.abs(numeric) <= 10) return numeric;
-  if (Math.abs(numeric) <= 1) return parseFloat((numeric * 100).toFixed(2));
-
-  let normalized = numeric;
-  while (Math.abs(normalized) > 10) normalized /= 10;
-  return parseFloat(normalized.toFixed(2));
+function normalizeImportedFxDisplayPercent(value, fallback = -1, destination = "") {
+  return normalizeFxChangeDisplayPercent(value, destination, fallback);
 }
 
 function mapCanonicalEmergencyFund(value) {
@@ -1224,11 +1252,18 @@ function normalizeImportedUserData(userData = {}) {
   const base = getBaselineImportState();
 
   if (isRedesignUserData(userData)) {
+    const destination = userData.destination || userData.overseasCountry || base.destination;
     return {
       ...base,
       ...userData,
       household: userData.household || base.household,
       downsizePlan: userData.downsizePlan || base.downsizePlan,
+      destination,
+      overseasAudFxChange: normalizeImportedFxDisplayPercent(
+        userData.overseasAudFxChange,
+        base.overseasAudFxChange,
+        destination
+      ),
     };
   }
 
@@ -1366,7 +1401,7 @@ function normalizeImportedUserData(userData = {}) {
     superAccess: userData.superAccess ?? base.superAccess,
     overseasSpendingCurrency: userData.overseasSpendingCurrency ?? base.overseasSpendingCurrency,
     overseasAudFxChange: userData.overseasAudFxChange !== undefined
-      ? normalizeImportedFxDisplayPercent(userData.overseasAudFxChange, base.overseasAudFxChange)
+      ? normalizeImportedFxDisplayPercent(userData.overseasAudFxChange, base.overseasAudFxChange, userData.destination ?? userData.overseasCountry ?? base.destination)
       : base.overseasAudFxChange,
     overseasHousingType: userData.overseasHousingType ?? base.overseasHousingType,
     overseasAnnualRent: userData.overseasAnnualRent ?? base.overseasAnnualRent,

@@ -4,6 +4,38 @@ import { ENHANCED_CONFIG } from './config.js';
 import { ensureAdvancedFieldTooltips } from './field-tooltips.js';
 
 const debugLog = process.env.NODE_ENV !== 'production' ? console.log.bind(console) : () => {};
+const OVERSEAS_DEST_FX_ASSUMPTIONS = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.DESTINATION_AUD_FX_ASSUMPTIONS || {};
+const OVERSEAS_DEST_FX_MEDIAN_MAP = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.DESTINATION_AUD_FX_MEDIAN_10Y_CHANGE_PCT || {};
+
+function getDefaultFxChangeDisplayPercent(destination, fallback = -1) {
+    const key = String(destination || "").toLowerCase();
+    const assumption = OVERSEAS_DEST_FX_ASSUMPTIONS[key];
+    if (assumption && Number.isFinite(Number(assumption.medianAnnualChangePct))) {
+        return Number(assumption.medianAnnualChangePct);
+    }
+    if (Number.isFinite(Number(OVERSEAS_DEST_FX_MEDIAN_MAP[key]))) {
+        return Number(OVERSEAS_DEST_FX_MEDIAN_MAP[key]);
+    }
+    return fallback;
+}
+
+function normalizeFxChangeDisplayPercent(value, destination = "", fallback = -1) {
+    if (value === null || value === undefined || value === "") {
+        return getDefaultFxChangeDisplayPercent(destination, fallback);
+    }
+
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+        return getDefaultFxChangeDisplayPercent(destination, fallback);
+    }
+    if (Math.abs(numeric) <= 0.1) {
+        return parseFloat((numeric * 100).toFixed(2));
+    }
+    if (Math.abs(numeric) <= 10) {
+        return parseFloat(numeric.toFixed(2));
+    }
+    return getDefaultFxChangeDisplayPercent(destination, fallback);
+}
 
 // DOM manipulation utilities
 export const $ = (id) => document.getElementById(id);
@@ -2499,6 +2531,10 @@ export const populateFormFromData = (userData, version = '2.0') => {
 
                 // Translate advanced-v2 string values to what classic HTML selects expect
                 let translatedValue = value;
+                if (targetKey === 'overseasAudFxChange') {
+                    const importedDestination = userData.destination || userData.overseasCountry || document.getElementById('overseasCountry')?.value || '';
+                    translatedValue = normalizeFxChangeDisplayPercent(value, importedDestination, -1);
+                }
                 if (key === 'downsizePlan') {
                     translatedValue = value === 'yes' ? 'true' : 'false';
                     targetKey = 'planToDownsize';
@@ -2524,7 +2560,9 @@ export const populateFormFromData = (userData, version = '2.0') => {
                             }
                         }
                     } else {
-                        if (percentageFields.includes(key) && typeof value === 'number') {
+                        if (targetKey === 'overseasAudFxChange') {
+                            element.value = Number(translatedValue).toFixed(2);
+                        } else if (percentageFields.includes(key) && typeof value === 'number') {
                             // Versions 3.0+ store percentages as decimals (e.g., 0.09 for 9%)
                             // Versions 1.0/2.0 stored as whole numbers (e.g., 9 for 9%)
                             const storedAsDecimal = storesPercentagesAsDecimals(version);

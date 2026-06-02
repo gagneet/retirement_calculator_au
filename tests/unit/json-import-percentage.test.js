@@ -361,6 +361,27 @@ describe('Round-trip: import decimal → form display → collectInputs ÷100 = 
     });
 });
 
+describe('populateFormFromData: overseas FX import normalization', () => {
+    beforeEach(() => {
+        document.body.innerHTML = `
+            <select id="overseasCountry"><option value="india">India</option></select>
+            <input id="overseasAudFxChange" type="number" />
+        `;
+    });
+
+    test('exchange-rate-like v2 values use the destination FX default', async () => {
+        const { populateFormFromData } = await import('../../src/js/utils.js');
+
+        populateFormFromData({
+            destination: 'india',
+            overseasAudFxChange: 62,
+        }, '4.0');
+
+        expect(document.getElementById('overseasCountry').value).toBe('india');
+        expect(document.getElementById('overseasAudFxChange').value).toBe('-2.00');
+    });
+});
+
 // ── app.js: version must be passed to populateFormFromData ────────────────────
 
 describe('app.js: populateFormFromData is called with data.version', () => {

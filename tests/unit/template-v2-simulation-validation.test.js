@@ -65,6 +65,7 @@ describe('retirement_template.json Advanced v2 simulation validation', () => {
     expect(engineInputs.shockProbability).toBeCloseTo(0.032, 6);
     expect(engineInputs.shockMagnitude).toBeCloseTo(-0.125, 6);
     expect(engineInputs.agedCareProbability).toBeCloseTo(0.10, 6);
+    expect(engineInputs.overseasAudFxChange).toBeCloseTo(-0.02, 6);
     expect(engineInputs.trustTaxRate).toBeCloseTo(0.30, 6);
     expect(engineInputs.beneficiaryAllocation).toBeCloseTo(1.0, 6);
 
