@@ -1,6 +1,9 @@
 import {
     adaptEngineOutput,
+    applyHouseholdVisibility,
     buildEngineInputs,
+    calculateRichTargetAmount,
+    calculateTargetBuilderTotal,
     getHouseholdPensionDefaults,
     mapDestinationCode,
     normalizeImportedUserData,
@@ -186,6 +189,122 @@ describe('advanced-v2 engine adapter', () => {
         expect(engineInputs.partnerSalary).toBe(0);
         expect(engineInputs.partnerCurrentSuper).toBe(0);
         expect(engineInputs.spouseContribution).toBe(0);
+    });
+
+    test('single mode excludes all partner contribution and reduced-income values', () => {
+        const engineInputs = buildEngineInputs(buildRedesignInputs({
+            household: 'single',
+            partnerAge: 42,
+            partnerRetireAge: 64,
+            partnerLifespan: 94,
+            partnerSalary: 85000,
+            partnerSuperBal: 160000,
+            partnerSalarySacrifice: 12000,
+            partnerNCC: 15000,
+            spouseContribution: 3000,
+            reducedIncomeEnabled: true,
+            partnerReducedIncomeAge: 58,
+            partnerReducedIncomeSalary: 45000,
+        }));
+
+        expect(engineInputs.partnerCurrentAge).toBe(0);
+        expect(engineInputs.partnerRetirementAge).toBe(0);
+        expect(engineInputs.partnerLifespan).toBe(0);
+        expect(engineInputs.partnerSalary).toBe(0);
+        expect(engineInputs.partnerCurrentSuper).toBe(0);
+        expect(engineInputs.partnerAdditionalSuperContribution).toBe(0);
+        expect(engineInputs.partnerAnnualNCC).toBe(0);
+        expect(engineInputs.spouseContribution).toBe(0);
+        expect(engineInputs.partnerReducedIncomeAge).toBe(0);
+        expect(engineInputs.partnerReducedIncomeSalary).toBe(0);
+    });
+
+    test('household visibility hides and restores all couple-only blocks', () => {
+        document.body.innerHTML = '<div class="segmented" data-bind="household" data-value="single"></div>'
+            + '<div id="partnerSalaryRow" data-household="couple"></div>'
+            + '<div id="partnerAssumptionRow" data-visible-when="couple"></div>'
+            + '<input id="healthcareCost" value="4800" data-auto-default="true" />';
+
+        applyHouseholdVisibility();
+        expect(document.getElementById('partnerSalaryRow').hidden).toBe(true);
+        expect(document.getElementById('partnerAssumptionRow').hidden).toBe(true);
+        expect(document.getElementById('healthcareCost').value).toBe('2200');
+
+        document.querySelector('[data-bind="household"]').dataset.value = 'couple';
+        applyHouseholdVisibility();
+        expect(document.getElementById('partnerSalaryRow').hidden).toBe(false);
+        expect(document.getElementById('partnerAssumptionRow').hidden).toBe(false);
+        expect(document.getElementById('healthcareCost').value).toBe('4800');
+    });
+
+    test('manual healthcare values survive household default changes', () => {
+        document.body.innerHTML = '<div class="segmented" data-bind="household" data-value="single"></div>'
+            + '<input id="healthcareCost" value="3500" data-auto-default="false" data-user-edited="true" />';
+
+        applyHouseholdVisibility();
+        expect(document.getElementById('healthcareCost').value).toBe('3500');
+
+        document.querySelector('[data-bind="household"]').dataset.value = 'couple';
+        applyHouseholdVisibility();
+        expect(document.getElementById('healthcareCost').value).toBe('3500');
+    });
+
+    test('non-owner primary residence states do not create home equity or mortgage debt', () => {
+        ['renting', 'living_with_family', 'other'].forEach((primaryResidenceType) => {
+            const engineInputs = buildEngineInputs(buildRedesignInputs({
+                household: 'single',
+                primaryResidenceType,
+                homeValue: 900000,
+                mortgage: 350000,
+                mortgageRate: 6.2,
+                primaryRentMonthly: 1000,
+            }));
+
+            expect(engineInputs.homeowner).toBe(false);
+            expect(engineInputs.ownsHome).toBe(false);
+            expect(engineInputs.homeValue).toBe(0);
+            expect(engineInputs.mortgageBalance).toBe(0);
+            expect(engineInputs.mortgageRate).toBe(0);
+            expect(engineInputs.monthlyMortgagePayment).toBe(0);
+            expect(engineInputs.primaryRentAnnual).toBe(12000);
+            expect(engineInputs.pensionAssetThreshold).toBe(579500);
+        });
+    });
+
+    test('owner primary residence states preserve correct mortgage treatment', () => {
+        const outright = buildEngineInputs(buildRedesignInputs({
+            primaryResidenceType: 'own_outright',
+            homeValue: 900000,
+            mortgage: 350000,
+        }));
+        expect(outright.homeowner).toBe(true);
+        expect(outright.homeValue).toBe(900000);
+        expect(outright.mortgageBalance).toBe(0);
+
+        const mortgaged = buildEngineInputs(buildRedesignInputs({
+            primaryResidenceType: 'own_with_mortgage',
+            homeValue: 900000,
+            mortgage: 350000,
+        }));
+        expect(mortgaged.homeowner).toBe(true);
+        expect(mortgaged.primaryResidenceType).toBe('own_mortgage');
+        expect(mortgaged.homeValue).toBe(900000);
+        expect(mortgaged.mortgageBalance).toBe(350000);
+    });
+
+    test('target builder and rich target helpers calculate expected desired-income values', () => {
+        expect(calculateTargetBuilderTotal({
+            currentMonthlyIncome: 8000,
+            monthlyHousingOffset: 2000,
+            monthlyCostsEnding: 1000,
+            annualHealthcare: 2200,
+            annualHousingCost: 12000,
+            bufferPct: 10,
+        })).toBe(81620);
+
+        expect(calculateRichTargetAmount({ household: 'single', richTarget: '1.5' })).toBe(78128);
+        expect(calculateRichTargetAmount({ household: 'couple', richTarget: '2.0', bufferPct: 10 })).toBe(161341);
+        expect(calculateRichTargetAmount({ household: 'couple', richTarget: 'custom', customAmount: 125000 })).toBe(125000);
     });
 
     test('maps debt, investment property, reduced income and carer fields into simulator inputs', () => {

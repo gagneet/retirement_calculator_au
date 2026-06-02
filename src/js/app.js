@@ -5,7 +5,7 @@ import '../css/outcome-styles.css';
 
 // Debug logging — stripped automatically in production by Terser (drop_console: true)
 // eslint-disable-next-line no-console
-const debugLog = process.env.NODE_ENV !== 'production' ? console.log.bind(console) : () => {};
+const debugLog = process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test' ? console.log.bind(console) : () => {};
 
 import versionManager from './version-manager.js';
 import { ENHANCED_FINANCIAL_CONFIG } from './enhanced-config.js';
@@ -568,8 +568,11 @@ class RetirementCalculatorApp {
         }
         // If partner age is blank, keep this as a single-person calculation.
 
-        const primaryResidenceType = safeGetSelectValue('primaryResidenceType', 'own_mortgage');
-        const isNonHomeowner = primaryResidenceType === 'renting' || primaryResidenceType === 'family';
+        const primaryResidenceTypeRaw = safeGetSelectValue('primaryResidenceType', 'own_mortgage');
+        const primaryResidenceType = primaryResidenceTypeRaw === 'own_with_mortgage'
+            ? 'own_mortgage'
+            : (primaryResidenceTypeRaw === 'living_with_family' ? 'family' : primaryResidenceTypeRaw);
+        const isNonHomeowner = primaryResidenceType === 'renting' || primaryResidenceType === 'family' || primaryResidenceType === 'other';
 
         const inputs = {
             // Personal details
@@ -1603,7 +1606,7 @@ class RetirementCalculatorApp {
     refreshPensionFieldDefaults({ force = false } = {}) {
         const isPartnered = this.hasPartnerDataInForm();
         const residenceType = safeGetSelectValue('primaryResidenceType', 'own_mortgage');
-        const homeowner = (residenceType === 'own_mortgage' || residenceType === 'own_outright')
+        const homeowner = (residenceType === 'own_mortgage' || residenceType === 'own_with_mortgage' || residenceType === 'own_outright')
             && safeGetValue('homeValue', 0) > 0;
         const householdLabel = `${isPartnered ? 'couple' : 'single'} ${homeowner ? 'homeowner' : 'non-homeowner'}`;
 
@@ -8722,7 +8725,7 @@ class RetirementCalculatorApp {
         const residence = safeGetSelectValue('primaryResidenceType', 'own_mortgage');
         const monthlyMortgage = parseFormattedNumber(getRawValue('monthlyMortgagePayment', '0'));
         const monthlyRent = parseFormattedNumber(getRawValue('primaryRentMonthly', '0'));
-        const housing = residence === 'own_mortgage' ? monthlyMortgage : monthlyRent;
+        const housing = (residence === 'own_mortgage' || residence === 'own_with_mortgage') ? monthlyMortgage : monthlyRent;
         safeSetValue('builderMortgage', Math.max(0, housing));
     }
 
@@ -8798,8 +8801,8 @@ class RetirementCalculatorApp {
 
             const syncResidence = () => {
                 const val = residenceSel.value || 'own_mortgage';
-                const isOwner = val === 'own_mortgage' || val === 'own_outright';
-                const hasMortgage = val === 'own_mortgage';
+                const isOwner = val === 'own_mortgage' || val === 'own_with_mortgage' || val === 'own_outright';
+                const hasMortgage = val === 'own_mortgage' || val === 'own_with_mortgage';
                 if (homeDetails) homeDetails.style.display = isOwner ? '' : 'none';
                 if (rentDetails) rentDetails.classList.toggle('hidden', isOwner);
 

@@ -3,7 +3,7 @@
 import { ENHANCED_CONFIG } from './config.js';
 import { ensureAdvancedFieldTooltips } from './field-tooltips.js';
 
-const debugLog = process.env.NODE_ENV !== 'production' ? console.log.bind(console) : () => {};
+const debugLog = process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test' ? console.log.bind(console) : () => {};
 const OVERSEAS_DEST_FX_ASSUMPTIONS = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.DESTINATION_AUD_FX_ASSUMPTIONS || {};
 const OVERSEAS_DEST_FX_MEDIAN_MAP = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.DESTINATION_AUD_FX_MEDIAN_10Y_CHANGE_PCT || {};
 
@@ -35,6 +35,19 @@ function normalizeFxChangeDisplayPercent(value, destination = "", fallback = -1)
         return parseFloat(numeric.toFixed(2));
     }
     return getDefaultFxChangeDisplayPercent(destination, fallback);
+}
+
+function deriveMonthlyMortgagePayment(balance, annualRatePercent) {
+    const principal = Number(balance) || 0;
+    if (principal <= 0) return 0;
+
+    const annualRate = Math.abs(Number(annualRatePercent) || 0) > 1
+        ? Number(annualRatePercent) / 100
+        : Number(annualRatePercent) || 0;
+    if (annualRate <= 0) return principal / 360;
+
+    const monthlyRate = annualRate / 12;
+    return (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -360));
 }
 
 // DOM manipulation utilities
@@ -2393,6 +2406,7 @@ export const populateFormFromData = (userData, version = '2.0') => {
         'savingsReturn': 'savingsReturn',
         'employerRate': 'employerSuperContributionRate',
         'desiredIncome': 'asfaComfortable',
+        'pensionAssetCutoff': 'pensionAssetLimit',
         'mortgage': 'mortgageBalance',
         'ipValue': 'investmentPropertyValue',
         'ipLoan': 'investmentPropertyLoan',
@@ -2595,6 +2609,15 @@ export const populateFormFromData = (userData, version = '2.0') => {
         }
     });
 
+    if (userData.monthlyMortgagePayment === undefined && userData.mortgage !== undefined) {
+        const monthlyMortgageEl = document.getElementById('monthlyMortgagePayment');
+        if (monthlyMortgageEl) {
+            const mortgageRateValue = userData.mortgageRate ?? userData.mortgageRatePercent ?? document.getElementById('mortgageRate')?.value ?? 0;
+            monthlyMortgageEl.value = String(Math.round(deriveMonthlyMortgagePayment(userData.mortgage, mortgageRateValue)));
+            fieldsPopulated++;
+            debugLog('Derived monthly mortgage payment: ' + monthlyMortgageEl.value);
+        }
+    }
     if (skippedFields.length > 0) {
         debugLog('Skipped fields:', skippedFields);
     }

@@ -155,10 +155,80 @@ function deriveMortgagePayment(balance, annualRate) {
 }
 
 function deriveAgedCareDuration(inp) {
+  if (inp.agedCareDuration !== undefined && inp.agedCareDuration !== null && inp.agedCareDuration !== "") {
+    const explicit = Number(inp.agedCareDuration);
+    if (Number.isFinite(explicit)) return Math.max(0, explicit);
+  }
+
   const yearsRemaining = (inp.lifespan || 0) - (inp.agedCareStartAge || 0);
-  return yearsRemaining > 0
-    ? Math.max(1, Math.min(DEFAULTS.healthcare.agedCareDuration, Math.round(yearsRemaining)))
-    : DEFAULTS.healthcare.agedCareDuration;
+  return yearsRemaining > 0 ? Math.round(yearsRemaining) : DEFAULTS.healthcare.agedCareDuration;
+}
+
+function normalizeResidenceType(inp = {}) {
+  const raw = inp.primaryResidenceType || inp.housingStatus || inp.residenceType;
+  if (raw === "own_with_mortgage") return "own_mortgage";
+  if (raw === "living_with_family") return "family";
+  if (raw === "other") return "other";
+  if (raw === "own_mortgage" || raw === "own_outright" || raw === "renting" || raw === "family") return raw;
+  if ((Number(inp.mortgage) || 0) > 0) return "own_mortgage";
+  if ((Number(inp.homeValue) || 0) > 0) return "own_outright";
+  return "own_mortgage";
+}
+
+function isHomeownerResidence(residenceType) {
+  return residenceType === "own_mortgage" || residenceType === "own_outright";
+}
+
+function isMortgageResidence(residenceType) {
+  return residenceType === "own_mortgage";
+}
+
+function isNonHomeownerResidence(residenceType) {
+  return !isHomeownerResidence(residenceType);
+}
+
+function getAsfaComfortableAmount(household = 'couple') {
+  return household === 'single' ? 52085 : 73337;
+}
+
+function calculateRichTargetAmount({
+  household = 'couple',
+  richTarget = '1.0',
+  customAmount = 0,
+  bufferPct = 0,
+} = {}) {
+  const base = getAsfaComfortableAmount(household);
+  const multiplier = richTarget === 'custom' ? null : (parseFloat(richTarget) || 1);
+  const target = multiplier === null
+    ? Math.max(0, parseFloat(customAmount) || base)
+    : base * multiplier;
+  return Math.round(target * (1 + Math.max(0, parseFloat(bufferPct) || 0) / 100));
+}
+
+function calculateTargetBuilderTotal({
+  currentMonthlyIncome = 0,
+  monthlyHousingOffset = 0,
+  monthlyCostsEnding = 0,
+  annualHealthcare = 0,
+  annualHousingCost = 0,
+  bufferPct = 0,
+} = {}) {
+  const baseMonthly = Math.max(
+    0,
+    Number(currentMonthlyIncome || 0)
+      - Number(monthlyHousingOffset || 0)
+      - Number(monthlyCostsEnding || 0)
+  );
+  const baseAnnual = (baseMonthly * 12)
+    + Math.max(0, Number(annualHealthcare || 0))
+    + Math.max(0, Number(annualHousingCost || 0));
+  return Math.round(baseAnnual * (1 + Math.max(0, Number(bufferPct || 0)) / 100));
+}
+
+function resolveResidenceAwarePensionDefault(value, currentDefault, staleOppositeDefault) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return currentDefault;
+  return numeric === staleOppositeDefault ? currentDefault : numeric;
 }
 
 function deriveLandTax(inp) {
@@ -207,18 +277,35 @@ function initPensionFieldDefaults() {
 
 function buildEngineInputs(inp) {
   const isCouple = inp.household === 'couple';
-  const desiredIncome = inp.desiredIncome || DEFAULTS.pension.asfaComfortable;
+  const desiredIncome = inp.desiredIncome ?? DEFAULTS.pension.asfaComfortable;
   const employerContributionRate = pct(inp.employerRate || DEFAULTS.economic.employerSuperContributionRate || 12, 12);
   const mortgageRate = pct(inp.mortgageRate || DEFAULTS.property.mortgageRate, DEFAULTS.property.mortgageRate);
   const investmentPropertyRate = pct(inp.ipRate || DEFAULTS.property.investmentPropertyRate, DEFAULTS.property.investmentPropertyRate);
-  const isNonHomeowner = inp.primaryResidenceType === 'renting' || inp.primaryResidenceType === 'family';
-  const pensionAssetThreshold = inp.pensionAssetThreshold || (isCouple
+  const primaryResidenceType = normalizeResidenceType(inp);
+  const isNonHomeowner = isNonHomeownerResidence(primaryResidenceType);
+  const ownsPrimaryHome = isHomeownerResidence(primaryResidenceType);
+  const hasPrimaryMortgage = isMortgageResidence(primaryResidenceType);
+  const pensionAssetThresholdDefault = isCouple
     ? (isNonHomeowner ? ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER : ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD)
-    : (isNonHomeowner ? ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER : ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD)
-  );
-  const pensionAssetLimit = inp.pensionAssetCutoff || (isCouple
+    : (isNonHomeowner ? ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER : ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD);
+  const pensionAssetLimitDefault = isCouple
     ? (isNonHomeowner ? ENHANCED_CONFIG.COUPLE_ASSET_LIMIT_NON_HOMEOWNER : ENHANCED_CONFIG.COUPLE_ASSET_LIMIT)
-    : (isNonHomeowner ? ENHANCED_CONFIG.SINGLE_ASSET_LIMIT_NON_HOMEOWNER : ENHANCED_CONFIG.SINGLE_ASSET_LIMIT)
+    : (isNonHomeowner ? ENHANCED_CONFIG.SINGLE_ASSET_LIMIT_NON_HOMEOWNER : ENHANCED_CONFIG.SINGLE_ASSET_LIMIT);
+  const staleThresholdDefault = isCouple
+    ? (isNonHomeowner ? ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD : ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER)
+    : (isNonHomeowner ? ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD : ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER);
+  const staleLimitDefault = isCouple
+    ? (isNonHomeowner ? ENHANCED_CONFIG.COUPLE_ASSET_LIMIT : ENHANCED_CONFIG.COUPLE_ASSET_LIMIT_NON_HOMEOWNER)
+    : (isNonHomeowner ? ENHANCED_CONFIG.SINGLE_ASSET_LIMIT : ENHANCED_CONFIG.SINGLE_ASSET_LIMIT_NON_HOMEOWNER);
+  const pensionAssetThreshold = resolveResidenceAwarePensionDefault(
+    inp.pensionAssetThreshold,
+    pensionAssetThresholdDefault,
+    staleThresholdDefault
+  );
+  const pensionAssetLimit = resolveResidenceAwarePensionDefault(
+    inp.pensionAssetCutoff,
+    pensionAssetLimitDefault,
+    staleLimitDefault
   );
   const agePensionMax = isCouple
     ? (inp.pensionAnnualCouple || ENHANCED_CONFIG.COUPLE_PENSION_MAX)
@@ -242,8 +329,9 @@ function buildEngineInputs(inp) {
     hasPartner: isCouple,
     isSingleCalculation: !isCouple,
     isCouple,
-    homeowner: inp.primaryResidenceType === 'own_mortgage' || inp.primaryResidenceType === 'own_outright',
-    ownsHome: inp.primaryResidenceType === 'own_mortgage' || inp.primaryResidenceType === 'own_outright',
+    homeowner: ownsPrimaryHome,
+    ownsHome: ownsPrimaryHome,
+    primaryResidenceType,
 
     riskTolerance: inp.riskTolerance || DEFAULTS.risk.riskTolerance,
     hasEmergencyFund: EMERGENCY_FUND_MAP[inp.emergencyFund] || DEFAULTS.risk.hasEmergencyFund,
@@ -274,11 +362,13 @@ function buildEngineInputs(inp) {
     currentMonthlyHousingCosts: 0,
     currentMonthlyLivingCosts: 0,
 
-    homeValue: isNonHomeowner ? 0 : inp.homeValue,
-    mortgageBalance: isNonHomeowner ? 0 : inp.mortgage,
-    mortgageRate: isNonHomeowner ? 0 : mortgageRate,
-    monthlyMortgagePayment: isNonHomeowner ? 0 : deriveMortgagePayment(inp.mortgage, mortgageRate),
-    mortgageTermLeft: isNonHomeowner ? 0 : (inp.mortgage > 0 ? 30 : 0),
+    homeValue: ownsPrimaryHome ? inp.homeValue : 0,
+    mortgageBalance: hasPrimaryMortgage ? inp.mortgage : 0,
+    mortgageRate: hasPrimaryMortgage ? mortgageRate : 0,
+    monthlyMortgagePayment: hasPrimaryMortgage ? (inp.monthlyMortgagePayment || deriveMortgagePayment(inp.mortgage, mortgageRate)) : 0,
+    mortgageTermLeft: hasPrimaryMortgage ? (inp.mortgage > 0 ? 30 : 0) : 0,
+    primaryRentMonthly: isNonHomeowner ? (inp.primaryRentMonthly || 0) : 0,
+    primaryRentAnnual: isNonHomeowner ? (inp.primaryRentMonthly || 0) * 12 : 0,
     planToDownsize: inp.downsizePlan === 'yes',
     downsizeAge: inp.downsizeAge,
     downsizeTargetHomeValue: inp.downsizeTargetHomeValue,
@@ -691,11 +781,15 @@ function applyHouseholdVisibility() {
   document.querySelectorAll('[data-household]').forEach((el) => {
     el.hidden = el.dataset.household !== value;
   });
+  document.querySelectorAll('[data-visible-when]').forEach((el) => {
+    el.hidden = el.dataset.visibleWhen !== value;
+  });
 
   // A.5: Adjust healthcare cost default for single vs couple
   const hcField = document.getElementById('healthcareCost');
-  if (hcField && !hcField.dataset.userEdited) {
+  if (hcField && hcField.dataset.autoDefault !== 'false' && !hcField.dataset.userEdited) {
     hcField.value = value === 'single' ? 2200 : 4800;
+    hcField.dataset.autoDefault = 'true';
   }
 
   // A.3: Update lifestyle preset ASFA values for single vs couple
@@ -948,6 +1042,9 @@ function readInputs() {
 
     // Goal
     desiredIncome: num('desiredIncome', 73000),
+    desiredIncomeMode: (document.querySelector('[data-bind="desiredIncomeMode"]') || {}).dataset?.value || 'manual',
+    richTarget: val('richTarget', '1.0'),
+    richTargetCustom: num('richTargetCustom', 0),
     builderCurrentIncome: num('builderCurrentIncome', 8500),
     builderMortgage: num('builderMortgage', 3200),
     builderChildren: num('builderChildren', 1200),
@@ -3713,8 +3810,12 @@ function initTopbar() {
 
 export {
   adaptEngineOutput,
+  applyHouseholdVisibility,
   applyImportedUserData,
   buildEngineInputs,
+  calculateRichTargetAmount,
+  calculateTargetBuilderTotal,
+  getAsfaComfortableAmount,
   getHouseholdPensionDefaults,
   mapDestinationCode,
   normalizeImportedUserData,
@@ -3742,45 +3843,111 @@ function boot() {
     initializeTooltips();
     initPensionFieldDefaults();
 
-    const computeComfortableBase = () => {
-      const household = document.querySelector('[data-bind="household"]')?.dataset?.value || 'couple';
-      return household === 'single' ? 52085 : 73337;
+    const getDesiredIncomeMode = () => document.querySelector('[data-bind="desiredIncomeMode"]')?.dataset?.value || 'manual';
+    const setDesiredIncomeMode = (mode) => {
+      const modeSeg = document.querySelector('[data-bind="desiredIncomeMode"]');
+      if (!modeSeg) return;
+      modeSeg.dataset.value = mode;
+      modeSeg.querySelectorAll('button').forEach((button) => {
+        button.classList.toggle('on', button.dataset.value === mode);
+      });
     };
-
+    const setDesiredIncome = (amount, sourceLabel) => {
+      const desiredIncomeEl = document.getElementById('desiredIncome');
+      if (!desiredIncomeEl) return;
+      desiredIncomeEl.value = String(Math.round(amount));
+      desiredIncomeEl.dataset.autoDefault = 'true';
+      desiredIncomeEl.dataset.source = sourceLabel || '';
+      desiredIncomeEl.dataset.suppressManual = 'true';
+      desiredIncomeEl.dispatchEvent(new Event('input', { bubbles: true }));
+      delete desiredIncomeEl.dataset.suppressManual;
+      const sourceEl = document.getElementById('desiredIncomeSource');
+      if (sourceEl) sourceEl.textContent = sourceLabel || 'Manual desired income';
+    };
+    const computeBuilderTargetFromInputs = () => {
+      const i = readInputs();
+      const residenceType = normalizeResidenceType(i);
+      const continuingHousing = isNonHomeownerResidence(residenceType) ? i.primaryRentMonthly * 12 : 0;
+      return calculateTargetBuilderTotal({
+        currentMonthlyIncome: i.builderCurrentIncome,
+        monthlyHousingOffset: i.builderMortgage,
+        monthlyCostsEnding: i.builderChildren,
+        annualHealthcare: i.healthcareCost,
+        annualHousingCost: continuingHousing,
+        bufferPct: i.builderBuffer,
+      });
+    };
+    const syncBuilderEstimate = () => {
+      const i = readInputs();
+      const residenceType = normalizeResidenceType(i);
+      const healthcareEl = document.getElementById('builderHealthcare');
+      const housingEl = document.getElementById('builderHousingCost');
+      const estimateEl = document.getElementById('builderTotalEstimate');
+      const continuingHousing = isNonHomeownerResidence(residenceType) ? i.primaryRentMonthly * 12 : 0;
+      if (healthcareEl) healthcareEl.value = String(Math.round(i.healthcareCost || 0));
+      if (housingEl) housingEl.value = String(Math.round(continuingHousing));
+      if (estimateEl) estimateEl.textContent = formatCurrency(computeBuilderTargetFromInputs());
+    };
+    const recomputeDesiredIncomeFromBuilder = () => {
+      syncBuilderEstimate();
+      if (getDesiredIncomeMode() !== 'builder') return;
+      setDesiredIncome(computeBuilderTargetFromInputs(), 'Using builder total');
+    };
     const recomputeDesiredIncomeFromGoalControls = () => {
       const desiredIncomeEl = document.getElementById('desiredIncome');
+      if (desiredIncomeEl?.dataset?.autoDefault === 'false') return;
       const richSel = document.getElementById('richTarget');
       const customEl = document.getElementById('richTargetCustom');
       const bufferEl = document.getElementById('builderBuffer');
-      if (!desiredIncomeEl || !richSel || !bufferEl) return;
-
-      const base = computeComfortableBase();
-      const richValue = richSel.value || '1.0';
-      let target = base;
-      if (richValue === 'custom') {
-        target = Math.max(0, parseFloat(customEl?.value) || base);
-      } else {
-        target = base * (parseFloat(richValue) || 1.0);
-      }
-      const upliftPct = Math.max(0, parseFloat(bufferEl.value) || 0);
-      const withUplift = target * (1 + upliftPct / 100);
-      desiredIncomeEl.value = Math.round(withUplift);
-      desiredIncomeEl.dispatchEvent(new Event('input', { bubbles: true }));
+      if (!richSel || !bufferEl) return;
+      const target = calculateRichTargetAmount({
+        household: document.querySelector('[data-bind="household"]')?.dataset?.value || 'couple',
+        richTarget: richSel.value || '1.0',
+        customAmount: customEl?.value || 0,
+        bufferPct: bufferEl.value || 0,
+      });
+      setDesiredIncome(target, `Using Rich target: ${richSel.options[richSel.selectedIndex]?.text || 'ASFA Comfortable'}`);
+      syncBuilderEstimate();
     };
-    document.addEventListener('adv2:household-changed', recomputeDesiredIncomeFromGoalControls);
+    document.addEventListener('adv2:household-changed', () => {
+      recomputeDesiredIncomeFromBuilder();
+      recomputeDesiredIncomeFromGoalControls();
+    });
+
+    const desiredIncomeEl = document.getElementById('desiredIncome');
+    if (desiredIncomeEl) {
+      desiredIncomeEl.dataset.autoDefault = desiredIncomeEl.dataset.autoDefault || 'true';
+      desiredIncomeEl.addEventListener('input', () => {
+        if (desiredIncomeEl.dataset.suppressManual === 'true') return;
+        if (getDesiredIncomeMode() === 'manual') {
+          desiredIncomeEl.dataset.autoDefault = 'false';
+          desiredIncomeEl.dataset.source = 'manual';
+          const sourceEl = document.getElementById('desiredIncomeSource');
+          if (sourceEl) sourceEl.textContent = 'Manual desired income';
+        }
+      });
+    }
+
+    const desiredIncomeModeSeg = document.querySelector('[data-bind="desiredIncomeMode"]');
+    if (desiredIncomeModeSeg) {
+      desiredIncomeModeSeg.querySelectorAll('button').forEach((button) => {
+        button.addEventListener('click', () => {
+          if (button.dataset.value === 'builder') {
+            recomputeDesiredIncomeFromBuilder();
+          } else {
+            const sourceEl = document.getElementById('desiredIncomeSource');
+            if (sourceEl) sourceEl.textContent = 'Manual desired income';
+          }
+        });
+      });
+    }
 
     const btnApplyBuilder = document.getElementById('btn-apply-builder');
     if (btnApplyBuilder) {
       btnApplyBuilder.addEventListener('click', () => {
-        const i = readInputs();
-        const derived = Math.max(0, (i.builderCurrentIncome - i.builderMortgage - i.builderChildren) * 12);
-        const uplifted = derived * (1 + (Math.max(0, i.builderBuffer) / 100));
-        const goalInp = document.getElementById('desiredIncome');
-        if (goalInp) {
-          goalInp.value = Math.round(uplifted);
-          goalInp.dispatchEvent(new Event('input', { bubbles: true }));
-          showNotification(`Applied derived target: ${formatCurrency(uplifted)}`, 'success');
-        }
+        setDesiredIncomeMode('builder');
+        recomputeDesiredIncomeFromBuilder();
+        showNotification(`Using builder target: ${formatCurrency(computeBuilderTargetFromInputs())}`, 'success');
       });
     }
 
@@ -3991,8 +4158,13 @@ function boot() {
     (function markHealthcareEdited() {
       const hcField = document.getElementById('healthcareCost');
       if (hcField) {
-        hcField.addEventListener('input', () => { hcField.dataset.userEdited = 'true'; });
-        hcField.addEventListener('change', () => { hcField.dataset.userEdited = 'true'; });
+        hcField.dataset.autoDefault = hcField.dataset.autoDefault || 'true';
+        const markManual = () => {
+          hcField.dataset.userEdited = 'true';
+          hcField.dataset.autoDefault = 'false';
+        };
+        hcField.addEventListener('input', markManual);
+        hcField.addEventListener('change', markManual);
       }
     })();
 
@@ -4080,14 +4252,14 @@ function boot() {
       const mortgageRateField = document.getElementById('mortgage-rate-field');
       if (!typeEl) return;
       function updateResidenceFields() {
-        const val = typeEl.value;
-        const isOwner = val === 'own_mortgage' || val === 'own_outright';
-        const isRenting = val === 'renting' || val === 'family';
-        const hasMortgage = val === 'own_mortgage';
+        const val = normalizeResidenceType({ primaryResidenceType: typeEl.value });
+        const isOwner = isHomeownerResidence(val);
+        const isRenting = isNonHomeownerResidence(val);
+        const hasMortgage = isMortgageResidence(val);
         const homeValueEl = document.getElementById('homeValue');
         const mortgageEl = document.getElementById('mortgage');
         const mortgageRateEl = document.getElementById('mortgageRate');
-        if (homeDetails) homeDetails.hidden = isRenting;
+        if (homeDetails) homeDetails.hidden = !isOwner;
         if (rentingFields) rentingFields.hidden = !isRenting;
         if (mortgageField) mortgageField.hidden = !hasMortgage;
         if (mortgageRateField) mortgageRateField.hidden = !hasMortgage;
@@ -4120,7 +4292,7 @@ function boot() {
           syncPensionMeansTestFields();
         }
       }
-      typeEl.addEventListener('change', () => { updateResidenceFields(); recalc(); });
+      typeEl.addEventListener('change', () => { updateResidenceFields(); recomputeDesiredIncomeFromBuilder(); recalc(); });
       [document.getElementById('homeValue'), document.getElementById('mortgage'), document.getElementById('mortgageRate')]
         .forEach((el) => {
           if (el) el.addEventListener('input', () => { el.dataset.userEdited = 'true'; });
@@ -4162,8 +4334,8 @@ function boot() {
           // Rough after-tax estimate: 70% of gross for planning purposes
           incomeField.value = Math.round((salary + partnerSalary) * 0.70 / 12);
         }
-        const residenceType = residenceTypeEl?.value || 'own_mortgage';
-        if (residenceType === 'own_mortgage' && mortgageEl && mortgageRateEl) {
+        const residenceType = normalizeResidenceType({ primaryResidenceType: residenceTypeEl?.value });
+        if (isMortgageResidence(residenceType) && mortgageEl && mortgageRateEl) {
           const bal = parseFloat(mortgageEl.value) || 0;
           const rate = parseFloat(mortgageRateEl.value) / 100 || 0.06;
           if (bal > 0) {
@@ -4173,11 +4345,13 @@ function boot() {
             mortField.value = 0;
           }
         } else {
-          mortField.value = Math.round(parseFloat(primaryRentEl?.value) || 0);
+          mortField.value = 0;
         }
+        syncBuilderEstimate();
+        recomputeDesiredIncomeFromBuilder();
         };
         if (builderSummary) builderSummary.addEventListener('click', syncBuilderFields);
-        ['salary', 'partnerSalary', 'mortgage', 'mortgageRate', 'primaryRentMonthly', 'primaryResidenceType']
+        ['salary', 'partnerSalary', 'mortgage', 'mortgageRate', 'primaryRentMonthly', 'primaryResidenceType', 'healthcareCost', 'builderBuffer']
           .forEach((id) => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -4187,7 +4361,7 @@ function boot() {
         document.addEventListener('adv2:household-changed', syncBuilderFields);
         syncBuilderFields();
         const childrenEl = document.getElementById('builderChildren');
-        if (childrenEl) childrenEl.addEventListener('input', () => { childrenEl.dataset.userEdited = 'true'; });
+        if (childrenEl) childrenEl.addEventListener('input', () => { childrenEl.dataset.userEdited = 'true'; syncBuilderFields(); });
     })();
 
     // Link Overseas Move Type, Return Frequency and Tax Residency

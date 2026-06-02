@@ -568,10 +568,11 @@
               <label class="field-label" for="primaryResidenceType"><span>Home ownership status</span></label>
               <div class="field-input">
                 <select id="primaryResidenceType">
-                  <option value="own_mortgage" selected>Paying a mortgage</option>
+                  <option value="own_with_mortgage" selected>Own home with mortgage</option>
                   <option value="own_outright">Own outright (no mortgage)</option>
                   <option value="renting">Renting</option>
-                  <option value="family">Living with family / partner's home</option>
+                  <option value="living_with_family">Living with family</option>
+                  <option value="other">Other / no fixed residence</option>
                 </select>
               </div>
               <div class="field-help">Your living arrangement affects the Age Pension assets test. Homeowners have a lower asset threshold for the full pension.</div>
@@ -828,40 +829,64 @@
           </div>
           <div class="notice"><span class="ic">⛵</span><div><b>Translation:</b> <span id="goal-week">$1,410</span>/week · <span id="goal-month">$6,111</span>/month. Inflated to future dollars automatically.</div></div>
 
-          <!-- A.4: Expense-based Target Builder — with context and synced values -->
+          <div class="fields">
+            <div class="field">
+              <label class="field-label"><span>Desired income mode</span></label>
+              <div class="segmented" data-bind="desiredIncomeMode" data-value="manual">
+                <button type="button" class="on" data-value="manual">Manual Desired annual income</button>
+                <button type="button" data-value="builder">Use builder total as Desired annual income</button>
+              </div>
+              <div class="field-help" id="desiredIncomeSource">Manual desired income</div>
+            </div>
+          </div>
+
           <details style="margin-top:12px">
-            <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-2);padding:8px 0;user-select:none">📐 Expense-based Target Builder <span style="font-weight:400;color:var(--ink-3)">(optional — derive your target from current spending)</span></summary>
+            <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-2);padding:8px 0;user-select:none">Build my retirement income target <span style="font-weight:400;color:var(--ink-3)">(optional)</span></summary>
             <div style="margin-top:8px;padding:12px;background:var(--surface-2,#f8f9fa);border:1px solid var(--border);border-radius:8px">
-              <p style="font-size:12px;color:var(--ink-3);margin:0 0 10px">This builder estimates your retirement income need by using your existing calculator data: current net income minus housing/work costs that may stop in retirement. These values are synced from the inputs above so you don't need to duplicate data.</p>
+              <p style="font-size:12px;color:var(--ink-3);margin:0 0 10px">This optional builder estimates your desired annual retirement income from housing, healthcare, travel, lifestyle and other spending. Where possible, values already entered elsewhere are reused. You can either use this total as your Desired annual income or keep entering Desired annual income manually.</p>
+              <div class="subhead">Derived from existing inputs</div>
               <div class="fields three">
                 <div class="field">
-                  <label class="field-label" for="builderCurrentIncome"><span>Current net income</span><span class="hint">$/mo</span></label>
+                  <label class="field-label" for="builderCurrentIncome"><span>Current net income estimate</span><span class="hint">$/mo</span></label>
                   <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderCurrentIncome" type="number" value="8500" readonly /></div>
-                  <div class="field-help">Auto-synced from your salary and household type (rough after-tax estimate).</div>
+                  <div class="field-help">Synced from salary and household type.</div>
                 </div>
                 <div class="field">
-                  <label class="field-label" for="builderMortgage"><span>Mortgage/rent to stop</span><span class="hint">$/mo</span></label>
+                  <label class="field-label" for="builderMortgage"><span>Mortgage cost expected to stop</span><span class="hint">$/mo</span></label>
                   <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderMortgage" type="number" value="3200" readonly /></div>
-                  <div class="field-help">Auto-synced from your housing setup (mortgage repayment or current rent).</div>
+                  <div class="field-help">Synced from the primary residence mortgage when applicable.</div>
                 </div>
                 <div class="field">
-                  <label class="field-label" for="builderChildren"><span>Work/children costs to stop</span><span class="hint">$/mo</span></label>
-                  <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderChildren" type="number" value="1200" /></div>
-                  <div class="field-help">Editable estimate of monthly costs likely to stop at retirement (commuting, childcare, work spend).</div>
+                  <label class="field-label" for="builderHealthcare"><span>Healthcare reused</span><span class="hint">$/yr</span></label>
+                  <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderHealthcare" type="number" value="4800" readonly /></div>
+                  <div class="field-help">Synced from Annual healthcare cost.</div>
                 </div>
-                <div class="field" style="grid-column: span 2; display: flex; align-items: flex-end;">
-                  <button type="button" class="iconbtn primary" id="btn-apply-builder" style="width:100%">▶ Apply derived target to goal</button>
+                <div class="field">
+                  <label class="field-label" for="builderHousingCost"><span>Ongoing rent / housing cost</span><span class="hint">$/yr</span></label>
+                  <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderHousingCost" type="number" value="0" readonly /></div>
+                  <div class="field-help">Synced from rent, family board, or other housing cost when you do not own a home.</div>
+                </div>
+              </div>
+              <div class="subhead">Editable retirement lifestyle assumptions</div>
+              <div class="fields three">
+                <div class="field">
+                  <label class="field-label" for="builderChildren"><span>Work / children costs ending</span><span class="hint">$/mo</span></label>
+                  <div class="field-input has-prefix"><span class="prefix">$</span><input id="builderChildren" type="number" value="1200" /></div>
+                  <div class="field-help">Editable estimate of monthly costs likely to stop at retirement.</div>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="builderBuffer"><span>Lifestyle / travel buffer</span><span class="hint">%</span></label>
+                  <div class="field-input"><input id="builderBuffer" type="number" value="10" min="0" max="50" /><span class="suffix">%</span></div>
+                  <div class="field-help">Optional buffer added to the builder total.</div>
+                </div>
+                <div class="field">
+                  <label class="field-label"><span>Builder total</span><span class="hint">today's $/yr</span></label>
+                  <div class="field-help" id="builderTotalEstimate" style="font-size:18px;font-weight:700;color:var(--ink)">$0</div>
+                  <button type="button" class="iconbtn primary" id="btn-apply-builder" style="width:100%;margin-top:8px">Use builder total</button>
                 </div>
               </div>
             </div>
           </details>
-          <div class="fields" style="margin-top:10px">
-            <div class="field">
-              <label class="field-label" for="builderBuffer"><span>Lifestyle / travel uplift</span><span class="hint">%</span></label>
-              <div class="field-input"><input id="builderBuffer" type="number" value="10" min="0" max="50" /><span class="suffix">%</span></div>
-              <div class="field-help">Separate uplift added to Desired annual income for discretionary lifestyle spend. This applies to the final goal.</div>
-            </div>
-          </div>
 
           <!-- Legacy & Inheritance Planning -->
           <div style="margin-top:16px;padding:14px;background:var(--purple-soft,#f5f3ff);border:1px solid var(--purple-mid,#c4b5fd);border-radius:10px">
@@ -889,10 +914,10 @@
             <div class="field">
               <label class="field-label" for="richTarget"><span>Rich / Aspirational income target</span></label>
               <div class="field-input"><select id="richTarget">
-                <option value="1.0">Comfortable (ASFA benchmark)</option>
-                <option value="1.25">Comfortable × 1.25</option>
-                <option value="1.5" selected>Comfortable × 1.5 (default)</option>
-                <option value="2.0">Comfortable × 2.0</option>
+                <option value="1.0" selected>ASFA Comfortable</option>
+                <option value="1.25">ASFA Comfortable x 1.25</option>
+                <option value="1.5">ASFA Comfortable x 1.5</option>
+                <option value="2.0">ASFA Comfortable x 2.0</option>
                 <option value="custom">Custom annual income…</option>
               </select></div>
               <div class="field-help">Sets your target lifestyle tier. This updates Desired annual income (plus lifestyle/travel uplift above) and is also used in Suggestions.</div>
@@ -925,7 +950,7 @@
             </div>
             <div class="field">
               <label class="field-label" for="healthcareCost"><span>Annual healthcare cost</span><span class="hint">$</span></label>
-              <div class="field-input has-prefix"><span class="prefix">$</span><input id="healthcareCost" type="number" value="4800" /></div>
+              <div class="field-input has-prefix"><span class="prefix">$</span><input id="healthcareCost" type="number" value="4800" data-auto-default="true" /></div>
             </div>
             <div class="field">
               <label class="field-label" for="ageFirstHadCover"><span>Age first had cover</span><span class="hint">LHC loading</span></label>
