@@ -248,6 +248,40 @@ export const ENHANCED_CONFIG = {
         ASFA_SINGLE_ANNUAL: 52085,
         ASFA_COUPLE_ANNUAL: 73337,
 
+        // One-time destination defaults for overseas retirement inputs.
+        // Values represent median annual AUD change vs local currency over a 10-year window.
+        // Negative = AUD weakens vs local currency (local costs become more expensive in AUD terms).
+        DESTINATION_CURRENCY_MAP: {
+            portugal: 'EUR',
+            spain: 'EUR',
+            italy: 'EUR',
+            canada: 'CAD',
+            newzealand: 'NZD',
+            japan: 'JPY',
+            india: 'INR',
+            usa: 'USD',
+            thailand: 'THB',
+            vietnam: 'VND',
+            malaysia: 'MYR',
+            bali: 'IDR',
+            philippines: 'PHP'
+        },
+        DESTINATION_AUD_FX_MEDIAN_10Y_CHANGE_PCT: {
+            portugal: -0.5,
+            spain: -0.5,
+            italy: -0.5,
+            canada: -0.5,
+            newzealand: 0.2,
+            japan: -1.5,
+            india: -2.0,
+            usa: -0.5,
+            thailand: -1.5,
+            vietnam: -2.5,
+            malaysia: -1.0,
+            bali: -1.5,
+            philippines: -2.0
+        },
+
         // Countries with Australian Social Security Agreements (as of 2025)
         // Source: Department of Social Services - dss.gov.au/international-social-security-agreements
         AGREEMENT_COUNTRIES: [

@@ -172,6 +172,22 @@ describe('advanced-v2 engine adapter', () => {
         expect(engineInputs.investmentPropertyRate).toBeCloseTo(0.0635);
     });
 
+    test('keeps single calculations single even when hidden partner fields still contain values', () => {
+        const engineInputs = buildEngineInputs(buildRedesignInputs({
+            household: 'single',
+            partnerAge: 42,
+            partnerSalary: 85000,
+            partnerSuperBal: 160000,
+            spouseContribution: 3000,
+        }));
+
+        expect(engineInputs.isCouple).toBe(false);
+        expect(engineInputs.partnerCurrentAge).toBe(0);
+        expect(engineInputs.partnerSalary).toBe(0);
+        expect(engineInputs.partnerCurrentSuper).toBe(0);
+        expect(engineInputs.spouseContribution).toBe(0);
+    });
+
     test('maps debt, investment property, reduced income and carer fields into simulator inputs', () => {
         const engineInputs = buildEngineInputs(buildRedesignInputs({
             household: 'couple',
@@ -457,6 +473,16 @@ describe('advanced-v2 engine adapter', () => {
             ageMovingOverseas: 67,
             annualLivingCostOverseas: 52000,
         });
+    });
+
+    test('normalises imported overseas FX change display values into a sane percentage range', () => {
+        const normalized = normalizeImportedUserData({
+            yourCurrentAge: 46,
+            retirementAge: 67,
+            overseasAudFxChange: 62,
+        });
+
+        expect(normalized.overseasAudFxChange).toBeCloseTo(6.2);
     });
 
     test('updates accordion aria and hidden state when sections open and close', () => {

@@ -75,6 +75,8 @@ const COUNTRY_CODE_MAP = {
   bali: 'BALI',
   philippines: 'PHILIPPINES',
 };
+const OVERSEAS_DEST_CURRENCY_MAP = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.DESTINATION_CURRENCY_MAP || {};
+const OVERSEAS_DEST_FX_MEDIAN_MAP = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.DESTINATION_AUD_FX_MEDIAN_10Y_CHANGE_PCT || {};
 
 const APP_STATE = {
   input: null,
@@ -169,11 +171,7 @@ function initPensionFieldDefaults() {
 }
 
 function buildEngineInputs(inp) {
-  const isCouple = inp.household === 'couple' && (
-    inp.partnerAge > 0 ||
-    inp.partnerSalary > 0 ||
-    inp.partnerSuperBal > 0
-  );
+  const isCouple = inp.household === 'couple';
   const desiredIncome = inp.desiredIncome || DEFAULTS.pension.asfaComfortable;
   const employerContributionRate = pct(inp.employerRate || DEFAULTS.economic.employerSuperContributionRate || 12, 12);
   const mortgageRate = pct(inp.mortgageRate || DEFAULTS.property.mortgageRate, DEFAULTS.property.mortgageRate);
@@ -209,8 +207,8 @@ function buildEngineInputs(inp) {
     hasPartner: isCouple,
     isSingleCalculation: !isCouple,
     isCouple,
-    homeowner: inp.homeValue > 0,
-    ownsHome: inp.homeValue > 0,
+    homeowner: inp.primaryResidenceType === 'own_mortgage' || inp.primaryResidenceType === 'own_outright',
+    ownsHome: inp.primaryResidenceType === 'own_mortgage' || inp.primaryResidenceType === 'own_outright',
 
     riskTolerance: inp.riskTolerance || DEFAULTS.risk.riskTolerance,
     hasEmergencyFund: EMERGENCY_FUND_MAP[inp.emergencyFund] || DEFAULTS.risk.hasEmergencyFund,
@@ -241,11 +239,11 @@ function buildEngineInputs(inp) {
     currentMonthlyHousingCosts: 0,
     currentMonthlyLivingCosts: 0,
 
-    homeValue: inp.homeValue,
-    mortgageBalance: inp.mortgage,
-    mortgageRate,
-    monthlyMortgagePayment: deriveMortgagePayment(inp.mortgage, mortgageRate),
-    mortgageTermLeft: inp.mortgage > 0 ? 30 : 0,
+    homeValue: isNonHomeowner ? 0 : inp.homeValue,
+    mortgageBalance: isNonHomeowner ? 0 : inp.mortgage,
+    mortgageRate: isNonHomeowner ? 0 : mortgageRate,
+    monthlyMortgagePayment: isNonHomeowner ? 0 : deriveMortgagePayment(inp.mortgage, mortgageRate),
+    mortgageTermLeft: isNonHomeowner ? 0 : (inp.mortgage > 0 ? 30 : 0),
     planToDownsize: inp.downsizePlan === 'yes',
     downsizeAge: inp.downsizeAge,
     downsizeTargetHomeValue: inp.downsizeTargetHomeValue,
@@ -378,7 +376,7 @@ function buildEngineInputs(inp) {
     yourAnnualNCC: inp.ncc,
     partnerAnnualNCC: isCouple ? inp.partnerNCC : 0,
     concessionalCapUsed: inp.concessionalUsedThisYear,
-    spouseContribution: inp.spouseContribution,
+    spouseContribution: isCouple ? inp.spouseContribution : 0,
     downsizeContribution: inp.useDownsizer,
     hasSMSF: inp.hasSmsf,
     smsfAdminCosts: inp.smsfAdminCosts ?? 3500,
@@ -662,7 +660,7 @@ function applyHouseholdVisibility() {
   // A.5: Adjust healthcare cost default for single vs couple
   const hcField = document.getElementById('healthcareCost');
   if (hcField && !hcField.dataset.userEdited) {
-    hcField.value = value === 'single' ? 3600 : 4800;
+    hcField.value = value === 'single' ? 2200 : 4800;
   }
 
   // A.3: Update lifestyle preset ASFA values for single vs couple
@@ -709,6 +707,8 @@ function applyHouseholdVisibility() {
         : 'ASFA Dec 2025 quarter. <b>Couple:</b> Modest $47,383 · Comfortable $73,337. Use presets above or enter your own target.';
     }
   }
+
+  document.dispatchEvent(new CustomEvent('adv2:household-changed', { detail: { household: value } }));
 }
 
 // ============================================================
@@ -1007,7 +1007,7 @@ function readInputs() {
     overseasSpendingCurrency: val('overseasSpendingCurrency', 'AUD'),
     overseasAudFxChange: num('overseasAudFxChange', -1),
     overseasHousingType: val('overseasHousingType', 'rent'),
-    overseasAnnualRent: num('overseasAnnualRent', 18000),
+    overseasAnnualRent: num('overseasAnnualRent', 12000),
     overseasFallbackAge: num('overseasFallbackAge'),
     overseasFallbackTrigger: val('overseasFallbackTrigger', 'none'),
   };
@@ -1186,6 +1186,17 @@ function toDisplayPercent(value) {
   return parseFloat((numeric * 100).toFixed(4));
 }
 
+function normalizeImportedFxDisplayPercent(value, fallback = -1) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  if (numeric > 1 && Math.abs(numeric) <= 10) return numeric;
+  if (Math.abs(numeric) <= 1) return parseFloat((numeric * 100).toFixed(2));
+
+  let normalized = numeric;
+  while (Math.abs(normalized) > 10) normalized /= 10;
+  return parseFloat(normalized.toFixed(2));
+}
+
 function mapCanonicalEmergencyFund(value) {
   if (value === 'full') return '6plus';
   if (value === 'partial') return '3_6';
@@ -1354,7 +1365,9 @@ function normalizeImportedUserData(userData = {}) {
     trustBeneficiaries: userData.trustBeneficiaries ?? base.trustBeneficiaries,
     superAccess: userData.superAccess ?? base.superAccess,
     overseasSpendingCurrency: userData.overseasSpendingCurrency ?? base.overseasSpendingCurrency,
-    overseasAudFxChange: userData.overseasAudFxChange ?? base.overseasAudFxChange,
+    overseasAudFxChange: userData.overseasAudFxChange !== undefined
+      ? normalizeImportedFxDisplayPercent(userData.overseasAudFxChange, base.overseasAudFxChange)
+      : base.overseasAudFxChange,
     overseasHousingType: userData.overseasHousingType ?? base.overseasHousingType,
     overseasAnnualRent: userData.overseasAnnualRent ?? base.overseasAnnualRent,
     overseasFallbackAge: userData.overseasFallbackAge ?? base.overseasFallbackAge,
@@ -3694,16 +3707,44 @@ function boot() {
     initializeTooltips();
     initPensionFieldDefaults();
 
+    const computeComfortableBase = () => {
+      const household = document.querySelector('[data-bind="household"]')?.dataset?.value || 'couple';
+      return household === 'single' ? 52085 : 73337;
+    };
+
+    const recomputeDesiredIncomeFromGoalControls = () => {
+      const desiredIncomeEl = document.getElementById('desiredIncome');
+      const richSel = document.getElementById('richTarget');
+      const customEl = document.getElementById('richTargetCustom');
+      const bufferEl = document.getElementById('builderBuffer');
+      if (!desiredIncomeEl || !richSel || !bufferEl) return;
+
+      const base = computeComfortableBase();
+      const richValue = richSel.value || '1.0';
+      let target = base;
+      if (richValue === 'custom') {
+        target = Math.max(0, parseFloat(customEl?.value) || base);
+      } else {
+        target = base * (parseFloat(richValue) || 1.0);
+      }
+      const upliftPct = Math.max(0, parseFloat(bufferEl.value) || 0);
+      const withUplift = target * (1 + upliftPct / 100);
+      desiredIncomeEl.value = Math.round(withUplift);
+      desiredIncomeEl.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    document.addEventListener('adv2:household-changed', recomputeDesiredIncomeFromGoalControls);
+
     const btnApplyBuilder = document.getElementById('btn-apply-builder');
     if (btnApplyBuilder) {
       btnApplyBuilder.addEventListener('click', () => {
         const i = readInputs();
-        const derived = Math.max(0, (i.builderCurrentIncome - i.builderMortgage - i.builderChildren) * 12 * (1 + i.builderBuffer / 100));
+        const derived = Math.max(0, (i.builderCurrentIncome - i.builderMortgage - i.builderChildren) * 12);
+        const uplifted = derived * (1 + (Math.max(0, i.builderBuffer) / 100));
         const goalInp = document.getElementById('desiredIncome');
         if (goalInp) {
-          goalInp.value = Math.round(derived);
-          goalInp.dispatchEvent(new Event('input'));
-          showNotification(`Applied derived target: ${formatCurrency(derived)}`, 'success');
+          goalInp.value = Math.round(uplifted);
+          goalInp.dispatchEvent(new Event('input', { bubbles: true }));
+          showNotification(`Applied derived target: ${formatCurrency(uplifted)}`, 'success');
         }
       });
     }
@@ -3721,14 +3762,27 @@ function boot() {
       syncTab();
     }());
 
-    // Show/hide custom rich target input when "Custom" is selected
+    // Show/hide custom rich target input and sync desired income target.
     (function () {
       const richSel  = document.getElementById('richTarget');
       const richWrap = document.getElementById('richTargetCustomWrap');
+      const richCustom = document.getElementById('richTargetCustom');
+      const bufferEl = document.getElementById('builderBuffer');
       if (!richSel || !richWrap) return;
-      const syncRich = () => { richWrap.style.display = richSel.value === 'custom' ? '' : 'none'; };
-      richSel.addEventListener('change', syncRich);
-      syncRich();
+      const syncRich = (apply = true) => {
+        richWrap.style.display = richSel.value === 'custom' ? '' : 'none';
+        if (apply) recomputeDesiredIncomeFromGoalControls();
+      };
+      richSel.addEventListener('change', () => syncRich(true));
+      if (richCustom) {
+        richCustom.addEventListener('input', recomputeDesiredIncomeFromGoalControls);
+        richCustom.addEventListener('change', recomputeDesiredIncomeFromGoalControls);
+      }
+      if (bufferEl) {
+        bufferEl.addEventListener('input', recomputeDesiredIncomeFromGoalControls);
+        bufferEl.addEventListener('change', recomputeDesiredIncomeFromGoalControls);
+      }
+      syncRich(false);
     }());
 
     // Investment property type → auto-fill strata levy default and update growth rate hint
@@ -3939,44 +3993,23 @@ function boot() {
       const currEl = document.getElementById('overseasSpendingCurrency');
       const fxEl = document.getElementById('overseasAudFxChange');
       if (!destEl || !currEl) return;
-      const DEST_CURRENCY_MAP = {
-        portugal: 'EUR', spain: 'EUR', italy: 'EUR',
-        canada: 'CAD', newzealand: 'NZD', japan: 'JPY',
-        india: 'INR', usa: 'USD', thailand: 'THB',
-        vietnam: 'VND', malaysia: 'MYR', bali: 'IDR',
-        philippines: 'PHP',
-      };
-      // One-time AUD FX annual change vs local currency (based on 10-yr rolling average, Jun 2026)
-      // Negative = AUD has tended to depreciate vs that currency (costs rise for Australians)
-      // Positive = AUD has tended to appreciate vs that currency (costs fall for Australians)
-      const DEST_FX_CHANGE_MAP = {
-        portugal: -0.5,   // EUR: AUD/EUR relatively stable, slight AUD weakness
-        spain:    -0.5,
-        italy:    -0.5,
-        canada:   -0.5,   // CAD: similar commodity exposure
-        newzealand: 0.2,  // NZD: AUD usually slightly stronger
-        japan:    -1.5,   // JPY: AUD has strengthened vs JPY over 10yr
-        india:    -2.0,   // INR: AUD has appreciated vs INR historically
-        usa:      -0.5,   // USD: slight AUD weakness
-        thailand: -1.5,   // THB: AUD has appreciated vs THB
-        vietnam:  -2.5,   // VND: AUD has appreciated strongly
-        malaysia: -1.0,   // MYR: moderate AUD appreciation
-        bali:     -1.5,   // IDR: AUD has appreciated
-        philippines: -2.0, // PHP: AUD has appreciated
-      };
       destEl.addEventListener('change', () => {
-        const currency = DEST_CURRENCY_MAP[destEl.value];
+        const destination = destEl.value;
+        const currency = OVERSEAS_DEST_CURRENCY_MAP[destination];
         if (currency) currEl.value = currency;
-        if (fxEl && !fxEl.dataset.userEdited && DEST_FX_CHANGE_MAP[destEl.value] !== undefined) {
-          fxEl.value = DEST_FX_CHANGE_MAP[destEl.value].toFixed(2);
+        if (fxEl && !fxEl.dataset.userEdited && OVERSEAS_DEST_FX_MEDIAN_MAP[destination] !== undefined) {
+          fxEl.value = Number(OVERSEAS_DEST_FX_MEDIAN_MAP[destination]).toFixed(2);
         }
       });
       if (fxEl) {
         fxEl.addEventListener('input', () => { fxEl.dataset.userEdited = 'true'; });
       }
+      if (destEl.value) {
+        destEl.dispatchEvent(new Event('change'));
+      }
     })();
 
-    // A.9: Housing arrangement → rent field — show $0 when not renting/nomadic
+    // A.9: Housing arrangement → rent defaults
     (function bindOverseasHousingType() {
       const housingEl = document.getElementById('overseasHousingType');
       const rentEl = document.getElementById('overseasAnnualRent');
@@ -3985,18 +4018,21 @@ function boot() {
         const isRenting = housingEl.value === 'rent' || housingEl.value === 'nomadic';
         const label = rentEl.closest('.field')?.querySelector('.field-label');
         if (!isRenting) {
-          if (!rentEl.dataset.userSetForNonRent) {
+          if (!rentEl.dataset.userEdited) {
             rentEl.value = '0';
           }
           if (label) label.querySelector('span:first-child').textContent = 'Annual accommodation cost (AUD equivalent)';
           rentEl.closest('.field').querySelector('.field-help').textContent = 'Not renting — enter $0 or an annual accommodation fee if applicable (e.g., village fees).';
         } else {
+          if (!rentEl.dataset.userEdited) {
+            rentEl.value = '12000';
+          }
           if (label) label.querySelector('span:first-child').textContent = 'Annual rent (AUD equivalent)';
           rentEl.closest('.field').querySelector('.field-help').textContent = 'Annual rent converted to AUD at current rates. Subject to FX drift.';
         }
       }
       housingEl.addEventListener('change', updateRentField);
-      rentEl.addEventListener('input', () => { rentEl.dataset.userSetForNonRent = 'true'; });
+      rentEl.addEventListener('input', () => { rentEl.dataset.userEdited = 'true'; });
       updateRentField();
     })();
 
@@ -4013,10 +4049,18 @@ function boot() {
         const isOwner = val === 'own_mortgage' || val === 'own_outright';
         const isRenting = val === 'renting' || val === 'family';
         const hasMortgage = val === 'own_mortgage';
+        const homeValueEl = document.getElementById('homeValue');
+        const mortgageEl = document.getElementById('mortgage');
+        const mortgageRateEl = document.getElementById('mortgageRate');
         if (homeDetails) homeDetails.hidden = isRenting;
         if (rentingFields) rentingFields.hidden = !isRenting;
         if (mortgageField) mortgageField.hidden = !hasMortgage;
         if (mortgageRateField) mortgageRateField.hidden = !hasMortgage;
+        if (!isOwner) {
+          if (homeValueEl && !homeValueEl.dataset.userEdited) homeValueEl.value = '0';
+          if (mortgageEl && !mortgageEl.dataset.userEdited) mortgageEl.value = '0';
+          if (mortgageRateEl && !mortgageRateEl.dataset.userEdited) mortgageRateEl.value = String(DEFAULTS.property.mortgageRate);
+        }
         // Non-homeowner flag for pension means test (inform the hidden field or annotation)
         const isNonHomeowner = isRenting;
         // Update pension threshold if still at auto-default
@@ -4042,6 +4086,10 @@ function boot() {
         }
       }
       typeEl.addEventListener('change', () => { updateResidenceFields(); recalc(); });
+      [document.getElementById('homeValue'), document.getElementById('mortgage'), document.getElementById('mortgageRate')]
+        .forEach((el) => {
+          if (el) el.addEventListener('input', () => { el.dataset.userEdited = 'true'; });
+        });
       updateResidenceFields();
     })();
 
@@ -4059,36 +4107,52 @@ function boot() {
 
     // Pre-fill expense builder from current form data on section open
     (function bindBuilderPrefill() {
-      const builderSummary = document.querySelector('details summary');
-      if (!builderSummary) return;
-      builderSummary.addEventListener('click', () => {
-        const salaryEl = document.getElementById('salary');
-        const partnerSalaryEl = document.getElementById('partnerSalary');
-        const mortgageEl = document.getElementById('mortgage');
-        const mortgageRateEl = document.getElementById('mortgageRate');
-        const incomeField = document.getElementById('builderCurrentIncome');
-        const mortField = document.getElementById('builderMortgage');
-        if (!incomeField || !mortField) return;
-        // Only pre-fill if user hasn't changed them
-        if (!incomeField.dataset.userEdited && salaryEl) {
+      const builderSummary = document.getElementById('btn-apply-builder')?.closest('details')?.querySelector('summary');
+        const syncBuilderFields = () => {
+          const salaryEl = document.getElementById('salary');
+          const partnerSalaryEl = document.getElementById('partnerSalary');
+          const mortgageEl = document.getElementById('mortgage');
+          const mortgageRateEl = document.getElementById('mortgageRate');
+          const primaryRentEl = document.getElementById('primaryRentMonthly');
+          const residenceTypeEl = document.getElementById('primaryResidenceType');
+          const incomeField = document.getElementById('builderCurrentIncome');
+          const mortField = document.getElementById('builderMortgage');
+          if (!incomeField || !mortField) return;
+        const household = document.querySelector('[data-bind="household"]')?.dataset?.value || 'couple';
+        const includePartner = household === 'couple';
+        // Always sync from current inputs so users don't have to duplicate values.
+        if (salaryEl) {
           const salary = parseFloat(salaryEl.value) || 0;
-          const partnerSalary = parseFloat(partnerSalaryEl?.value) || 0;
+          const partnerSalary = includePartner ? (parseFloat(partnerSalaryEl?.value) || 0) : 0;
           // Rough after-tax estimate: 70% of gross for planning purposes
           incomeField.value = Math.round((salary + partnerSalary) * 0.70 / 12);
         }
-        if (!mortField.dataset.userEdited && mortgageEl && mortgageRateEl) {
+        const residenceType = residenceTypeEl?.value || 'own_mortgage';
+        if (residenceType === 'own_mortgage' && mortgageEl && mortgageRateEl) {
           const bal = parseFloat(mortgageEl.value) || 0;
           const rate = parseFloat(mortgageRateEl.value) / 100 || 0.06;
           if (bal > 0) {
             const monthly = (bal * (rate / 12)) / (1 - Math.pow(1 + rate / 12, -360));
             mortField.value = Math.round(monthly);
+          } else {
+            mortField.value = 0;
           }
+        } else {
+          mortField.value = Math.round(parseFloat(primaryRentEl?.value) || 0);
         }
-      });
-      ['builderCurrentIncome', 'builderMortgage', 'builderChildren', 'builderBuffer'].forEach((id) => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('input', () => { el.dataset.userEdited = 'true'; });
-      });
+        };
+        if (builderSummary) builderSummary.addEventListener('click', syncBuilderFields);
+        ['salary', 'partnerSalary', 'mortgage', 'mortgageRate', 'primaryRentMonthly', 'primaryResidenceType']
+          .forEach((id) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('input', syncBuilderFields);
+            el.addEventListener('change', syncBuilderFields);
+          });
+        document.addEventListener('adv2:household-changed', syncBuilderFields);
+        syncBuilderFields();
+        const childrenEl = document.getElementById('builderChildren');
+        if (childrenEl) childrenEl.addEventListener('input', () => { childrenEl.dataset.userEdited = 'true'; });
     })();
 
     // Link Overseas Move Type, Return Frequency and Tax Residency

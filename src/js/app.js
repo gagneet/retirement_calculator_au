@@ -32,6 +32,9 @@ import { RetirementCostAnalyzer } from './retirement-cost-analyzer.js';
 import PersonalizedQuestionEngine from './personalized-qa-engine.js';
 // js/app.js - Main Application Controller
 
+const OVERSEAS_DEST_CURRENCY_MAP = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.DESTINATION_CURRENCY_MAP || {};
+const OVERSEAS_DEST_FX_MEDIAN_MAP = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.DESTINATION_AUD_FX_MEDIAN_10Y_CHANGE_PCT || {};
+
 // Import new engines with error handling
 // Import new engines with error handling
 let RiskProfilingEngine, DynamicAllocationEngine;
@@ -565,6 +568,9 @@ class RetirementCalculatorApp {
         }
         // If partner age is blank, keep this as a single-person calculation.
 
+        const primaryResidenceType = safeGetSelectValue('primaryResidenceType', 'own_mortgage');
+        const isNonHomeowner = primaryResidenceType === 'renting' || primaryResidenceType === 'family';
+
         const inputs = {
             // Personal details
             yourCurrentAge: userAge,
@@ -626,10 +632,12 @@ class RetirementCalculatorApp {
             percentIncomeSaved: safeGetValue('percentIncomeSaved', config.financial.percentIncomeSaved) / 100,
 
             // Property details
-            homeValue: safeGetValue('homeValue', config.property.homeValue),
-            mortgageBalance: safeGetValue('mortgageBalance', config.property.mortgageBalance),
-            mortgageRate: safeGetValue('mortgageRate', config.property.mortgageRate) / 100,
-            monthlyMortgagePayment: safeGetValue('monthlyMortgagePayment', config.property.monthlyMortgagePayment),
+            primaryResidenceType,
+            primaryRentMonthly: parseFormattedNumber(getRawValue('primaryRentMonthly', '0')),
+            homeValue: isNonHomeowner ? 0 : safeGetValue('homeValue', config.property.homeValue),
+            mortgageBalance: isNonHomeowner ? 0 : safeGetValue('mortgageBalance', config.property.mortgageBalance),
+            mortgageRate: isNonHomeowner ? 0 : safeGetValue('mortgageRate', config.property.mortgageRate) / 100,
+            monthlyMortgagePayment: isNonHomeowner ? 0 : safeGetValue('monthlyMortgagePayment', config.property.monthlyMortgagePayment),
             planToDownsize: safeGetSelectValue('planToDownsize', 'false') === 'true',
             downsizeAge: safeGetValue('downsizeAge', 75),
             downsizeTransactionCost: safeGetValue('downsizeTransactionCost', 6.6) / 100,
@@ -806,7 +814,7 @@ class RetirementCalculatorApp {
             isCouple: finalPartnerAge > 0,
 
             // Homeowner flag used by pension asset test (owns a home = exempt from assets test)
-            homeowner: safeGetValue('homeValue', 0) > 0,
+            homeowner: !isNonHomeowner && safeGetValue('homeValue', 0) > 0,
 
             // Life expectancy alias used by RetirementCostAnalyzer and some sub-engines
             // (collectInputs returns yourLifespan; this alias keeps all engines in sync)
@@ -873,7 +881,7 @@ class RetirementCalculatorApp {
             overseasSpendingCurrency: safeGetSelectValue('overseasSpendingCurrency', 'AUD'),
             overseasAudFxChange: safeGetValue('overseasAudFxChange', -1) / 100,
             overseasHousingType: safeGetSelectValue('overseasHousingType', 'rent'),
-            overseasAnnualRent: parseFormattedNumber(getRawValue('overseasAnnualRent', '18000')),
+            overseasAnnualRent: parseFormattedNumber(getRawValue('overseasAnnualRent', '12000')),
             overseasFallbackAge: parseInt(safeGetValue('overseasFallbackAge', 0)) || 0,
             overseasFallbackTrigger: safeGetSelectValue('overseasFallbackTrigger', 'none'),
             returnFrequency: safeGetSelectValue('returnFrequency', 'annually'),
@@ -1594,7 +1602,9 @@ class RetirementCalculatorApp {
 
     refreshPensionFieldDefaults({ force = false } = {}) {
         const isPartnered = this.hasPartnerDataInForm();
-        const homeowner = safeGetValue('homeValue', 0) > 0;
+        const residenceType = safeGetSelectValue('primaryResidenceType', 'own_mortgage');
+        const homeowner = (residenceType === 'own_mortgage' || residenceType === 'own_outright')
+            && safeGetValue('homeValue', 0) > 0;
         const householdLabel = `${isPartnered ? 'couple' : 'single'} ${homeowner ? 'homeowner' : 'non-homeowner'}`;
 
         const defaultValues = {
@@ -1643,11 +1653,25 @@ class RetirementCalculatorApp {
         });
     }
 
+    refreshHealthcareCostDefault({ force = false } = {}) {
+        const isPartnered = this.hasPartnerDataInForm();
+        const annualDefault = isPartnered ? 4800 : 2200;
+        const householdLabel = isPartnered ? 'couple' : 'single';
+
+        this.applyAutoManagedFieldValue('currentHealthcareCosts', annualDefault, {
+            message: `Using the default annual healthcare baseline for a ${householdLabel} household: ${formatCurrency(annualDefault)}.`,
+            badgeText: 'Estimated',
+            force,
+            recognizedDefaults: [2200, 3600, 4800, 5200]
+        });
+    }
+
     refreshAllDerivedDefaults({ force = false, depletionAge = null } = {}) {
         this.refreshPartnerFieldDefaults({ force });
         this.refreshResidencyFieldDefaults({ force });
         this.refreshSuperStrategyGuidance(force);
         this.refreshRetirementIncomeDefault({ force });
+        this.refreshHealthcareCostDefault({ force });
         this.refreshPensionFieldDefaults({ force });
         this.refreshCapitalGainsTaxDefault({ force });
         this.syncAgedCareProjectionFields({ force, depletionAge });
@@ -6681,7 +6705,7 @@ class RetirementCalculatorApp {
             audFxChangePerYear: safeGetValue('overseasAudFxChange', -1) / 100,
             // Local housing
             housingType: safeGetSelectValue('overseasHousingType', 'rent'),
-            annualRentAUD: safeGetValue('overseasAnnualRent', 18000),
+            annualRentAUD: safeGetValue('overseasAnnualRent', 12000),
             // Return-to-Australia fallback
             fallbackAge: parseInt(safeGetValue('overseasFallbackAge', 0)) || 0,
             fallbackTrigger: safeGetSelectValue('overseasFallbackTrigger', 'none')
@@ -8665,6 +8689,43 @@ class RetirementCalculatorApp {
         showNotification(`Applied derived target: ${formatCurrency(derivedAnnualTarget)}`, 'success');
     }
 
+    applyRichTargetToDesiredIncome() {
+        const richSel = $('richTarget');
+        const customEl = $('richTargetCustom');
+        const targetInput = $('asfaComfortable');
+        const bufferPct = parseFormattedNumber(getRawValue('builderBuffer', '10'));
+        if (!richSel || !targetInput) return;
+
+        const comfortableBase = this.hasPartnerDataInForm()
+            ? ENHANCED_CONFIG.OVERSEAS_RETIREMENT.ASFA_COUPLE_ANNUAL
+            : ENHANCED_CONFIG.OVERSEAS_RETIREMENT.ASFA_SINGLE_ANNUAL;
+
+        let desired = comfortableBase;
+        if (richSel.value === 'custom') {
+            desired = Math.max(0, parseFormattedNumber(customEl?.value || String(comfortableBase)));
+        } else {
+            const multiplier = parseFloat(richSel.value) || 1;
+            desired = comfortableBase * multiplier;
+        }
+
+        desired *= (1 + Math.max(0, bufferPct) / 100);
+        safeSetValue('asfaComfortable', Math.round(desired));
+        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    syncTargetBuilderFromInputs() {
+        const salary = parseFormattedNumber(getRawValue('yourSalary', '0'));
+        const partnerSalary = this.hasPartnerDataInForm() ? parseFormattedNumber(getRawValue('partnerSalary', '0')) : 0;
+        const monthlyNet = Math.round((salary + partnerSalary) * 0.70 / 12);
+        safeSetValue('builderCurrentIncome', monthlyNet);
+
+        const residence = safeGetSelectValue('primaryResidenceType', 'own_mortgage');
+        const monthlyMortgage = parseFormattedNumber(getRawValue('monthlyMortgagePayment', '0'));
+        const monthlyRent = parseFormattedNumber(getRawValue('primaryRentMonthly', '0'));
+        const housing = residence === 'own_mortgage' ? monthlyMortgage : monthlyRent;
+        safeSetValue('builderMortgage', Math.max(0, housing));
+    }
+
     setupEventListeners() {
         debugLog('setupEventListeners called!');
         // Prevent duplicate event listener setup
@@ -8705,14 +8766,109 @@ class RetirementCalculatorApp {
             this.setupExportDropdowns();
         }, 500); // Increased delay to ensure DOM is ready
 
-        // Show/hide custom rich target input in advanced.html
+        // Show/hide custom rich target input and apply rich target to desired income.
         (function () {
             const richSel  = $('richTarget');
             const richWrap = $('richTargetCustomWrap');
+            const richCustom = $('richTargetCustom');
+            const bufferInput = $('builderBuffer');
             if (!richSel || !richWrap) return;
-            const syncRich = () => { richWrap.style.display = richSel.value === 'custom' ? '' : 'none'; };
-            richSel.addEventListener('change', syncRich);
-            syncRich();
+            const syncRich = (apply = true) => {
+                richWrap.style.display = richSel.value === 'custom' ? '' : 'none';
+                if (apply) this.applyRichTargetToDesiredIncome();
+            };
+            richSel.addEventListener('change', () => syncRich(true));
+            if (richCustom) {
+                richCustom.addEventListener('input', () => this.applyRichTargetToDesiredIncome());
+                richCustom.addEventListener('change', () => this.applyRichTargetToDesiredIncome());
+            }
+            if (bufferInput) {
+                bufferInput.addEventListener('input', () => this.applyRichTargetToDesiredIncome());
+                bufferInput.addEventListener('change', () => this.applyRichTargetToDesiredIncome());
+            }
+            syncRich(false);
+        }.bind(this)());
+
+        // Primary residence type controls homeowner/renter fields.
+        (function () {
+            const residenceSel = $('primaryResidenceType');
+            const homeDetails = $('primary-home-details');
+            const rentDetails = $('primary-rent-details');
+            if (!residenceSel) return;
+
+            const syncResidence = () => {
+                const val = residenceSel.value || 'own_mortgage';
+                const isOwner = val === 'own_mortgage' || val === 'own_outright';
+                const hasMortgage = val === 'own_mortgage';
+                if (homeDetails) homeDetails.style.display = isOwner ? '' : 'none';
+                if (rentDetails) rentDetails.classList.toggle('hidden', isOwner);
+
+                if (!isOwner) {
+                    safeSetValue('homeValue', 0);
+                    safeSetValue('mortgageBalance', 0);
+                    safeSetValue('monthlyMortgagePayment', 0);
+                }
+                if (!hasMortgage) {
+                    safeSetValue('mortgageBalance', 0);
+                    safeSetValue('monthlyMortgagePayment', 0);
+                }
+
+                this.refreshAllDerivedDefaults({ force: false });
+                this.syncTargetBuilderFromInputs();
+            };
+
+            residenceSel.addEventListener('change', syncResidence);
+            syncResidence();
+        }.bind(this)());
+
+        // Keep target builder guide fields in sync with existing inputs.
+        ['yourSalary', 'partnerSalary', 'monthlyMortgagePayment', 'primaryRentMonthly', 'partnerCurrentAge']
+            .forEach((id) => {
+                const el = $(id);
+                if (!el) return;
+                el.addEventListener('input', () => this.syncTargetBuilderFromInputs());
+                el.addEventListener('change', () => this.syncTargetBuilderFromInputs());
+            });
+        ['partnerCurrentAge', 'yourSalary', 'partnerSalary'].forEach((id) => {
+            const el = $(id);
+            if (!el) return;
+            el.addEventListener('input', () => this.applyRichTargetToDesiredIncome());
+            el.addEventListener('change', () => this.applyRichTargetToDesiredIncome());
+        });
+        this.syncTargetBuilderFromInputs();
+
+        // Overseas destination defaults: currency + one-time median FX and rent defaults.
+        (function () {
+            const countryEl = $('overseasCountry');
+            const currencyEl = $('overseasSpendingCurrency');
+            const fxEl = $('overseasAudFxChange');
+            const housingEl = $('overseasHousingType');
+            const rentEl = $('overseasAnnualRent');
+            if (!countryEl || !currencyEl || !fxEl || !housingEl || !rentEl) return;
+
+            const syncDestinationDefaults = () => {
+                const destination = countryEl.value;
+                const currency = OVERSEAS_DEST_CURRENCY_MAP[destination];
+                if (currency) currencyEl.value = currency;
+                if (OVERSEAS_DEST_FX_MEDIAN_MAP[destination] !== undefined && fxEl.dataset.userEdited !== 'true') {
+                    fxEl.value = Number(OVERSEAS_DEST_FX_MEDIAN_MAP[destination]).toFixed(2);
+                }
+            };
+
+            const syncHousingRentDefaults = () => {
+                const renting = housingEl.value === 'rent' || housingEl.value === 'nomadic';
+                const rentRow = $('overseasRentRow');
+                if (rentRow) rentRow.style.display = renting ? '' : 'none';
+                if (rentEl.dataset.userEdited === 'true') return;
+                safeSetValue('overseasAnnualRent', renting ? 12000 : 0);
+            };
+
+            countryEl.addEventListener('change', syncDestinationDefaults);
+            fxEl.addEventListener('input', () => { fxEl.dataset.userEdited = 'true'; });
+            housingEl.addEventListener('change', syncHousingRentDefaults);
+            rentEl.addEventListener('input', () => { rentEl.dataset.userEdited = 'true'; });
+            syncDestinationDefaults();
+            syncHousingRentDefaults();
         }());
     }
 
@@ -9217,6 +9373,7 @@ class RetirementCalculatorApp {
                 'currentMonthlyHousingCosts', 'currentMonthlyLivingCosts', 'percentIncomeSaved'
             ],
             property: [
+                'primaryResidenceType', 'primaryRentMonthly',
                 'homeValue', 'mortgageBalance', 'mortgageRate', 'monthlyMortgagePayment',
                 'planToDownsize', 'hasInvestmentProperty', 'investmentPropertyValue',
                 'investmentPropertyLoan', 'investmentPropertyRate', 'investmentPropertyLoanType',
@@ -9248,7 +9405,9 @@ class RetirementCalculatorApp {
             ],
             pensionSystem: [
                 'asfaComfortable', 'agePensionMax', 'pensionAssetThreshold',
-                'pensionAssetLimit', 'pensionIncomeThreshold'
+                'pensionAssetLimit', 'pensionIncomeThreshold',
+                'builderCurrentIncome', 'builderMortgage', 'builderChildren', 'builderBuffer',
+                'richTarget', 'richTargetCustom'
             ],
             simulation: [
                 'numRuns', 'returnVolatility', 'enableShocks', 'shockProbability', 'shockMagnitude',
