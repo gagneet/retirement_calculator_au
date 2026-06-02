@@ -1583,10 +1583,7 @@ export class OnboardingWizard {
         const TRAVEL_ADJUST = { minimal: -5000, moderate: 0, extensive: 10000 };
         const HOBBY_ADJUST  = { minimal: -3000, some: 0, active: 5000 };
 
-        const getHousehold = () => {
-            const marital = document.querySelector('#household-marital')?.value || 'married';
-            return marital === 'single' ? 'single' : 'couple';
-        };
+        const getHousehold = () => (this.data.household.maritalStatus === 'single' ? 'single' : 'couple');
 
         const updateIncomeFromLifestyle = () => {
             const household = getHousehold();
@@ -1630,6 +1627,12 @@ export class OnboardingWizard {
 
         if (travelEl) travelEl.addEventListener('change', updateIncomeFromLifestyle);
         if (hobbiesEl) hobbiesEl.addEventListener('change', updateIncomeFromLifestyle);
+        document.addEventListener('change', (event) => {
+            if (event.target?.id === 'household-marital') {
+                this.data.household.maritalStatus = event.target.value;
+                updateIncomeFromLifestyle();
+            }
+        });
         // Run once to set correct initial state based on marital status
         updateIncomeFromLifestyle();
     }
@@ -1799,12 +1802,21 @@ export class OnboardingWizard {
     }
 
     updateDataFromForms() {
+        const readOptionalNumber = (id) => {
+            const el = document.getElementById(id);
+            if (!el) return null;
+            const raw = String(el.value ?? '').replace(/[$,%\s,]/g, '').trim();
+            if (raw === '') return null;
+            const n = parseFloat(raw);
+            return Number.isFinite(n) ? n : null;
+        };
+
         // Update household data
-        this.data.household.age = safeGetValue('household-age') || this.data.household.age;
+        this.data.household.age = readOptionalNumber('household-age') ?? this.data.household.age;
         this.data.household.location = document.querySelector('#household-location')?.value || this.data.household.location;
         this.data.household.maritalStatus = document.querySelector('#household-marital')?.value || this.data.household.maritalStatus;
-        this.data.household.partnerAge = safeGetValue('household-partner-age') || this.data.household.partnerAge;
-        this.data.household.retirementAge = safeGetValue('household-retirement-age') || this.data.household.retirementAge;
+        this.data.household.partnerAge = readOptionalNumber('household-partner-age') ?? this.data.household.partnerAge;
+        this.data.household.retirementAge = readOptionalNumber('household-retirement-age') ?? this.data.household.retirementAge;
 
         // Update living arrangements and sync property status
         const householdOwnershipSelect = document.querySelector('#household-home-ownership');
@@ -1820,7 +1832,7 @@ export class OnboardingWizard {
             this.data.property.homeStatus = householdOwnershipSelect.value;
         }
 
-        this.data.household.livingArrangements.monthlyExpenses = safeGetValue('household-expenses') || this.data.household.livingArrangements.monthlyExpenses;
+        this.data.household.livingArrangements.monthlyExpenses = readOptionalNumber('household-expenses') ?? this.data.household.livingArrangements.monthlyExpenses;
 
         // Update finances data
         const readNum = (id, fallback) => {
@@ -1844,10 +1856,10 @@ export class OnboardingWizard {
         this.data.finances.debt.personalLoans = readNum('finances-personal-loans', this.data.finances.debt.personalLoans);
 
         // Update property data
-        this.data.property.homeDetails.purchasePrice = safeGetValue('property-purchase-price') || this.data.property.homeDetails.purchasePrice;
-        this.data.property.homeDetails.currentValue = safeGetValue('property-current-value') || this.data.property.homeDetails.currentValue;
-        this.data.property.homeDetails.loanRemaining = safeGetValue('property-loan-remaining') || this.data.property.homeDetails.loanRemaining;
-        this.data.property.homeDetails.loanRate = safeGetValue('property-loan-rate') || this.data.property.homeDetails.loanRate;
+        this.data.property.homeDetails.purchasePrice = readOptionalNumber('property-purchase-price') ?? this.data.property.homeDetails.purchasePrice;
+        this.data.property.homeDetails.currentValue = readOptionalNumber('property-current-value') ?? this.data.property.homeDetails.currentValue;
+        this.data.property.homeDetails.loanRemaining = readOptionalNumber('property-loan-remaining') ?? this.data.property.homeDetails.loanRemaining;
+        this.data.property.homeDetails.loanRate = readOptionalNumber('property-loan-rate') ?? this.data.property.homeDetails.loanRate;
 
         // Investment property fields
         const hasInvestmentCheckbox = document.querySelector('#has-investment-property');
@@ -1855,12 +1867,12 @@ export class OnboardingWizard {
             this.data.property.investmentProperty.hasInvestment = hasInvestmentCheckbox.checked;
         }
 
-        this.data.property.investmentProperty.details.purchasePrice = safeGetValue('investment-purchase-price') || this.data.property.investmentProperty.details.purchasePrice;
-        this.data.property.investmentProperty.details.currentValue = safeGetValue('investment-current-value') || this.data.property.investmentProperty.details.currentValue;
-        this.data.property.investmentProperty.details.loanRemaining = safeGetValue('investment-loan-remaining') || this.data.property.investmentProperty.details.loanRemaining;
-        this.data.property.investmentProperty.details.loanRate = safeGetValue('investment-loan-rate') || this.data.property.investmentProperty.details.loanRate;
-        this.data.property.investmentProperty.details.weeklyRent = safeGetValue('investment-weekly-rent') || this.data.property.investmentProperty.details.weeklyRent;
-        this.data.property.investmentProperty.details.expenses = safeGetValue('investment-expenses') || this.data.property.investmentProperty.details.expenses;
+        this.data.property.investmentProperty.details.purchasePrice = readOptionalNumber('investment-purchase-price') ?? this.data.property.investmentProperty.details.purchasePrice;
+        this.data.property.investmentProperty.details.currentValue = readOptionalNumber('investment-current-value') ?? this.data.property.investmentProperty.details.currentValue;
+        this.data.property.investmentProperty.details.loanRemaining = readOptionalNumber('investment-loan-remaining') ?? this.data.property.investmentProperty.details.loanRemaining;
+        this.data.property.investmentProperty.details.loanRate = readOptionalNumber('investment-loan-rate') ?? this.data.property.investmentProperty.details.loanRate;
+        this.data.property.investmentProperty.details.weeklyRent = readOptionalNumber('investment-weekly-rent') ?? this.data.property.investmentProperty.details.weeklyRent;
+        this.data.property.investmentProperty.details.expenses = readOptionalNumber('investment-expenses') ?? this.data.property.investmentProperty.details.expenses;
 
         // Update goals data
         this.data.goals.retirementAge = readNum('goals-retirement-age', this.data.goals.retirementAge);
@@ -2049,19 +2061,19 @@ export class OnboardingWizard {
                         <div class="space-y-1 text-xs text-gray-700">
                             <div class="flex justify-between">
                                 <span>Inflation Rate:</span>
-                                <span class="font-medium">${Number(this.config.DEFAULTS.economic.inflation).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${(Number(this.config.DEFAULTS.economic.inflation) * 100).toFixed(2)}% p.a.</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Super Growth Rate:</span>
-                                <span class="font-medium">${Number(this.config.DEFAULTS.economic.superReturn).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${(Number(this.config.DEFAULTS.economic.superReturn) * 100).toFixed(2)}% p.a.</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Investment Return:</span>
-                                <span class="font-medium">${Number(this.config.DEFAULTS.economic.investmentReturn).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${(Number(this.config.DEFAULTS.economic.investmentReturn) * 100).toFixed(2)}% p.a.</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Savings Return:</span>
-                                <span class="font-medium">${Number(this.config.DEFAULTS.economic.savingsReturn).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${(Number(this.config.DEFAULTS.economic.savingsReturn) * 100).toFixed(2)}% p.a.</span>
                             </div>
                         </div>
                     </div>
@@ -2073,7 +2085,7 @@ export class OnboardingWizard {
                             ${this.data.property.homeStatus !== 'rent' ? `
                             <div class="flex justify-between">
                                 <span>Home Value Growth:</span>
-                                <span class="font-medium">${Number(this.config.DEFAULTS.property.propertyGrowthRate).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${(Number(this.config.DEFAULTS.property.propertyGrowthRate) * 100).toFixed(2)}% p.a.</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Current Mortgage:</span>
@@ -2398,7 +2410,8 @@ export class OnboardingWizard {
         if (data.property.homeStatus === 'mortgage' && data.property.homeDetails.loanRemaining > 0) {
             // Calculate approximate monthly mortgage payment
             const loanAmount = data.property.homeDetails.loanRemaining;
-            const annualRate = data.property.homeDetails.loanRate || 0.0576; // Default 5.76%
+            const annualRateRaw = data.property.homeDetails.loanRate || 0.0576; // Default 5.76%
+            const annualRate = annualRateRaw > 1 ? annualRateRaw / 100 : annualRateRaw;
             const monthlyRate = annualRate / 12;
             const loanTermMonths = 300; // Assume 25 years remaining
             const monthlyMortgage = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, loanTermMonths)) / (Math.pow(1 + monthlyRate, loanTermMonths) - 1);
@@ -2465,7 +2478,7 @@ export class OnboardingWizard {
         const superReturn = defaults.economic.superReturn;
         const investmentReturn = defaults.economic.investmentReturn;
         const inflation = defaults.economic.inflation;
-        const propertyGrowth = defaults.property.propertyGrowthRate / 100;
+        const propertyGrowth = defaults.property.propertyGrowthRate;
 
         // Calculate future super balance
         const totalAnnualContributions = data.finances.superannuation.employerContributions + data.finances.superannuation.voluntaryContributions;
@@ -2624,13 +2637,13 @@ export class OnboardingWizard {
 
         // Input styling with gaming elements
         // Currency: wider field, left padding for $; Percentage: right padding for %
-        const leftPadding = type === 'currency' ? 'pl-8' : 'pl-3';
-        const rightPadding = type === 'percentage' ? 'pr-8' : 'pr-3';
+        const leftPadding = type === 'currency' ? 'pl-10' : 'pl-3';
+        const rightPadding = type === 'percentage' ? 'pr-10' : 'pr-3';
         // B.2: currency inputs need more width for formatted numbers like "$300,000"
-        const maxWidth = type === 'currency' ? 'max-w-[190px]' : 'max-w-[140px]';
+        const maxWidth = type === 'currency' ? 'max-w-[240px]' : 'max-w-[170px]';
 
         const baseClasses = `
-            w-full ${maxWidth} ${leftPadding} ${rightPadding} py-2 text-sm font-mono text-left
+            w-full ${maxWidth} ${leftPadding} ${rightPadding} py-2 text-sm font-mono text-right
             bg-gradient-to-r from-gray-50 to-white
             border-2 border-gray-300 rounded-lg
             focus:border-blue-500 focus:bg-white focus:outline-none
