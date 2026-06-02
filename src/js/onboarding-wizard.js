@@ -1197,40 +1197,46 @@ export class OnboardingWizard {
                         <h3 class="text-lg font-semibold text-gray-800 mb-4">Desired Retirement Lifestyle</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">💰 Desired Annual Income (current, not inflation adjusted for retirement)</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">💰 Desired Annual Income (current dollars, not inflation-adjusted)</label>
                                 ${this.createEnhancedInput('goals-income-needed', goals.lifestyleGoals.incomeNeeded, 'currency', {
             min: 0,
-            tooltip: 'How much income do you want per year in retirement? Consider ASFA standards: Modest ~$48k, Comfortable ~$74k',
+            tooltip: 'How much income do you want per year in retirement? Travel Plans and Hobbies below adjust this automatically.',
             placeholder: '74000',
             gamingLevel: 2
         })}
-                                <div class="mt-2 text-xs text-gray-600">
+                                <div class="mt-2 text-xs text-gray-600 space-y-1" id="asfa-reference">
+                                    <div class="font-medium text-gray-700 mb-1">ASFA Dec 2025 quarter:</div>
                                     <div class="flex justify-between">
-                                        <span>ASFA Modest:</span>
-                                        <span>~$48,000</span>
+                                        <span id="asfa-modest-label">Modest (couple):</span>
+                                        <span id="asfa-modest-val">$47,383</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span>ASFA Comfortable:</span>
-                                        <span>~$74,000</span>
+                                        <span id="asfa-comfortable-label">Comfortable (couple):</span>
+                                        <span id="asfa-comfortable-val">$73,337</span>
                                     </div>
+                                    <div class="flex justify-between text-gray-500">
+                                        <span>Premium (planning estimate):</span>
+                                        <span id="asfa-premium-val">~$110,000</span>
+                                    </div>
+                                    <div class="mt-1 text-blue-600 text-xs" id="asfa-adjustment-note" style="display:none"></div>
                                 </div>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Travel Plans</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">✈️ Travel Plans <span class="text-xs font-normal text-gray-500">(adjusts income target)</span></label>
                                 <select id="goals-travel-plans" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    <option value="minimal" ${goals.lifestyleGoals.travelPlans === 'minimal' ? 'selected' : ''}>Minimal travel</option>
-                                    <option value="moderate" ${goals.lifestyleGoals.travelPlans === 'moderate' ? 'selected' : ''}>Moderate travel</option>
-                                    <option value="extensive" ${goals.lifestyleGoals.travelPlans === 'extensive' ? 'selected' : ''}>Extensive travel</option>
+                                    <option value="minimal" ${goals.lifestyleGoals.travelPlans === 'minimal' ? 'selected' : ''}>Minimal travel (−$5,000/yr)</option>
+                                    <option value="moderate" ${goals.lifestyleGoals.travelPlans === 'moderate' ? 'selected' : ''}>Moderate travel (no adjustment)</option>
+                                    <option value="extensive" ${goals.lifestyleGoals.travelPlans === 'extensive' ? 'selected' : ''}>Extensive travel (+$10,000/yr)</option>
                                 </select>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Hobbies & Activities</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">🎯 Hobbies & Activities <span class="text-xs font-normal text-gray-500">(adjusts income target)</span></label>
                                 <select id="goals-hobbies" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    <option value="minimal" ${goals.lifestyleGoals.hobbies === 'minimal' ? 'selected' : ''}>Minimal activities</option>
-                                    <option value="some" ${goals.lifestyleGoals.hobbies === 'some' ? 'selected' : ''}>Some hobbies</option>
-                                    <option value="active" ${goals.lifestyleGoals.hobbies === 'active' ? 'selected' : ''}>Very active lifestyle</option>
+                                    <option value="minimal" ${goals.lifestyleGoals.hobbies === 'minimal' ? 'selected' : ''}>Minimal activities (−$3,000/yr)</option>
+                                    <option value="some" ${goals.lifestyleGoals.hobbies === 'some' ? 'selected' : ''}>Some hobbies (no adjustment)</option>
+                                    <option value="active" ${goals.lifestyleGoals.hobbies === 'active' ? 'selected' : ''}>Very active lifestyle (+$5,000/yr)</option>
                                 </select>
                             </div>
                         </div>
@@ -1545,13 +1551,11 @@ export class OnboardingWizard {
     }
 
     setupGoalsListeners() {
-        // Risk tolerance radio buttons
-        const riskRadios = document.querySelectorAll('input[name="risk-tolerance"]');
-        riskRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                this.data.goals.riskTolerance = e.target.value;
-            });
-        });
+        // Risk tolerance slider
+        const riskSlider = $('goals-risk-tolerance');
+        if (riskSlider) {
+            riskSlider.addEventListener('input', () => this.updateRiskToleranceDisplay());
+        }
 
         // Inheritance selection
         const inheritanceSelect = $('goals-leave-inheritance');
@@ -1565,6 +1569,69 @@ export class OnboardingWizard {
                 }
             });
         }
+
+        // B.4 + B.5 + B.6: Travel/Hobbies → income adjustment; Single/Married → ASFA baseline
+        const incomeEl = $('goals-income-needed');
+        const travelEl = $('goals-travel-plans');
+        const hobbiesEl = $('goals-hobbies');
+
+        // ASFA Dec 2025 quarter baselines
+        const ASFA = {
+            couple: { modest: 47383, comfortable: 73337, premium: 110000 },
+            single: { modest: 32915, comfortable: 52085, premium: 78000 },
+        };
+        const TRAVEL_ADJUST = { minimal: -5000, moderate: 0, extensive: 10000 };
+        const HOBBY_ADJUST  = { minimal: -3000, some: 0, active: 5000 };
+
+        const getHousehold = () => {
+            const marital = document.querySelector('#household-marital')?.value || 'married';
+            return marital === 'single' ? 'single' : 'couple';
+        };
+
+        const updateIncomeFromLifestyle = () => {
+            const household = getHousehold();
+            const base = ASFA[household].comfortable;
+            const travel = TRAVEL_ADJUST[travelEl?.value] ?? 0;
+            const hobby  = HOBBY_ADJUST[hobbiesEl?.value] ?? 0;
+            const adjusted = base + travel + hobby;
+
+            if (incomeEl) {
+                incomeEl.value = adjusted.toLocaleString();
+                incomeEl.dataset.rawValue = adjusted;
+            }
+
+            // Update ASFA reference display
+            const asfaRef = $('asfa-reference');
+            if (asfaRef) {
+                const asfa = ASFA[household];
+                const modestLabel = $('asfa-modest-label');
+                const modestVal = $('asfa-modest-val');
+                const comfortableLabel = $('asfa-comfortable-label');
+                const comfortableVal = $('asfa-comfortable-val');
+                const premiumVal = $('asfa-premium-val');
+                const adjNote = $('asfa-adjustment-note');
+                const suffix = household === 'single' ? '(single)' : '(couple)';
+                if (modestLabel) modestLabel.textContent = `Modest ${suffix}:`;
+                if (modestVal) modestVal.textContent = `$${asfa.modest.toLocaleString()}`;
+                if (comfortableLabel) comfortableLabel.textContent = `Comfortable ${suffix}:`;
+                if (comfortableVal) comfortableVal.textContent = `$${asfa.comfortable.toLocaleString()}`;
+                if (premiumVal) premiumVal.textContent = `~$${asfa.premium.toLocaleString()}`;
+                const totalAdj = travel + hobby;
+                if (adjNote) {
+                    if (totalAdj !== 0) {
+                        adjNote.textContent = `Travel ${travel >= 0 ? '+' : ''}$${travel.toLocaleString()} + Hobbies ${hobby >= 0 ? '+' : ''}$${hobby.toLocaleString()} = adjusted target`;
+                        adjNote.style.display = 'block';
+                    } else {
+                        adjNote.style.display = 'none';
+                    }
+                }
+            }
+        };
+
+        if (travelEl) travelEl.addEventListener('change', updateIncomeFromLifestyle);
+        if (hobbiesEl) hobbiesEl.addEventListener('change', updateIncomeFromLifestyle);
+        // Run once to set correct initial state based on marital status
+        updateIncomeFromLifestyle();
     }
 
     setupReviewListeners() {
@@ -1756,18 +1823,25 @@ export class OnboardingWizard {
         this.data.household.livingArrangements.monthlyExpenses = safeGetValue('household-expenses') || this.data.household.livingArrangements.monthlyExpenses;
 
         // Update finances data
-        this.data.finances.income.salary = safeGetValue('finances-salary') || this.data.finances.income.salary;
-        this.data.finances.income.partnerSalary = safeGetValue('finances-partner-salary') || this.data.finances.income.partnerSalary;
-        this.data.finances.superannuation.currentBalance = safeGetValue('finances-super-balance') || this.data.finances.superannuation.currentBalance;
-        this.data.finances.superannuation.partnerCurrentBalance = safeGetValue('finances-partner-super') || this.data.finances.superannuation.partnerCurrentBalance;
-        this.data.finances.superannuation.employerContributions = safeGetValue('finances-employer-contrib') || this.data.finances.superannuation.employerContributions;
-        this.data.finances.superannuation.voluntaryContributions = safeGetValue('finances-voluntary-contrib') || this.data.finances.superannuation.voluntaryContributions;
-        this.data.finances.emergencyFund = safeGetValue('finances-emergency-fund') || this.data.finances.emergencyFund;
-        this.data.finances.savingsRate = safeGetValue('finances-savings-rate') || this.data.finances.savingsRate;
-        this.data.finances.otherInvestments.shares = safeGetValue('finances-shares') || this.data.finances.otherInvestments.shares;
-        this.data.finances.otherInvestments.monthlyContribution = safeGetValue('finances-monthly-investment') || this.data.finances.otherInvestments.monthlyContribution;
-        this.data.finances.debt.creditCards = safeGetValue('finances-credit-cards') || this.data.finances.debt.creditCards;
-        this.data.finances.debt.personalLoans = safeGetValue('finances-personal-loans') || this.data.finances.debt.personalLoans;
+        const readNum = (id, fallback) => {
+            const el = document.getElementById(id);
+            if (!el) return fallback;
+            const raw = el.value.replace(/[$,]/g, '').trim();
+            const n = parseFloat(raw);
+            return isNaN(n) ? fallback : n;
+        };
+        this.data.finances.income.salary = readNum('finances-salary', this.data.finances.income.salary);
+        this.data.finances.income.partnerSalary = readNum('finances-partner-salary', this.data.finances.income.partnerSalary);
+        this.data.finances.superannuation.currentBalance = readNum('finances-super-balance', this.data.finances.superannuation.currentBalance);
+        this.data.finances.superannuation.partnerCurrentBalance = readNum('finances-partner-super', this.data.finances.superannuation.partnerCurrentBalance);
+        this.data.finances.superannuation.employerContributions = readNum('finances-employer-contrib', this.data.finances.superannuation.employerContributions);
+        this.data.finances.superannuation.voluntaryContributions = readNum('finances-voluntary-contrib', this.data.finances.superannuation.voluntaryContributions);
+        this.data.finances.emergencyFund = readNum('finances-emergency-fund', this.data.finances.emergencyFund);
+        this.data.finances.savingsRate = readNum('finances-savings-rate', this.data.finances.savingsRate);
+        this.data.finances.otherInvestments.shares = readNum('finances-shares', this.data.finances.otherInvestments.shares);
+        this.data.finances.otherInvestments.monthlyContribution = readNum('finances-monthly-investment', this.data.finances.otherInvestments.monthlyContribution);
+        this.data.finances.debt.creditCards = readNum('finances-credit-cards', this.data.finances.debt.creditCards);
+        this.data.finances.debt.personalLoans = readNum('finances-personal-loans', this.data.finances.debt.personalLoans);
 
         // Update property data
         this.data.property.homeDetails.purchasePrice = safeGetValue('property-purchase-price') || this.data.property.homeDetails.purchasePrice;
@@ -1789,13 +1863,13 @@ export class OnboardingWizard {
         this.data.property.investmentProperty.details.expenses = safeGetValue('investment-expenses') || this.data.property.investmentProperty.details.expenses;
 
         // Update goals data
-        this.data.goals.retirementAge = safeGetValue('goals-retirement-age') || this.data.goals.retirementAge;
-        this.data.goals.riskTolerance = safeGetValue('goals-risk-tolerance') || this.data.goals.riskTolerance;
-        this.data.goals.lifestyleGoals.incomeNeeded = safeGetValue('goals-income-needed') || this.data.goals.lifestyleGoals.incomeNeeded;
+        this.data.goals.retirementAge = readNum('goals-retirement-age', this.data.goals.retirementAge);
+        this.data.goals.riskTolerance = readNum('goals-risk-tolerance', this.data.goals.riskTolerance);
+        this.data.goals.lifestyleGoals.incomeNeeded = readNum('goals-income-needed', this.data.goals.lifestyleGoals.incomeNeeded);
         this.data.goals.lifestyleGoals.travelPlans = document.querySelector('#goals-travel-plans')?.value || this.data.goals.lifestyleGoals.travelPlans;
         this.data.goals.lifestyleGoals.hobbies = document.querySelector('#goals-hobbies')?.value || this.data.goals.lifestyleGoals.hobbies;
         this.data.goals.legacyPlanning.leaveInheritance = document.querySelector('#goals-leave-inheritance')?.value || this.data.goals.legacyPlanning.leaveInheritance;
-        this.data.goals.legacyPlanning.inheritanceAmount = safeGetValue('goals-inheritance-amount') || this.data.goals.legacyPlanning.inheritanceAmount;
+        this.data.goals.legacyPlanning.inheritanceAmount = readNum('goals-inheritance-amount', this.data.goals.legacyPlanning.inheritanceAmount);
     }
 
     runDataValidation() {
@@ -1975,19 +2049,19 @@ export class OnboardingWizard {
                         <div class="space-y-1 text-xs text-gray-700">
                             <div class="flex justify-between">
                                 <span>Inflation Rate:</span>
-                                <span class="font-medium">${(this.config.DEFAULTS.economic.inflation * 100).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${Number(this.config.DEFAULTS.economic.inflation).toFixed(2)}% p.a.</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Super Growth Rate:</span>
-                                <span class="font-medium">${(this.config.DEFAULTS.economic.superReturn * 100).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${Number(this.config.DEFAULTS.economic.superReturn).toFixed(2)}% p.a.</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Investment Return:</span>
-                                <span class="font-medium">${(this.config.DEFAULTS.economic.investmentReturn * 100).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${Number(this.config.DEFAULTS.economic.investmentReturn).toFixed(2)}% p.a.</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Savings Return:</span>
-                                <span class="font-medium">${(this.config.DEFAULTS.economic.savingsReturn * 100).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${Number(this.config.DEFAULTS.economic.savingsReturn).toFixed(2)}% p.a.</span>
                             </div>
                         </div>
                     </div>
@@ -1999,7 +2073,7 @@ export class OnboardingWizard {
                             ${this.data.property.homeStatus !== 'rent' ? `
                             <div class="flex justify-between">
                                 <span>Home Value Growth:</span>
-                                <span class="font-medium">${(this.config.DEFAULTS.property.propertyGrowthRate * 100).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${Number(this.config.DEFAULTS.property.propertyGrowthRate).toFixed(2)}% p.a.</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Current Mortgage:</span>
@@ -2072,11 +2146,11 @@ export class OnboardingWizard {
                         <div class="space-y-1 text-xs text-gray-700">
                             <div class="flex justify-between">
                                 <span>Healthcare Inflation:</span>
-                                <span class="font-medium">${(this.config.DEFAULTS.healthcare.healthcareInflation * 100).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${Number(this.config.DEFAULTS.healthcare.healthcareInflation).toFixed(2)}% p.a.</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Aged Care Probability:</span>
-                                <span class="font-medium">${(this.config.DEFAULTS.healthcare.agedCareProbability * 100).toFixed(0)}%</span>
+                                <span class="font-medium">${Number(this.config.DEFAULTS.healthcare.agedCareProbability).toFixed(0)}%</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Aged Care Duration:</span>
@@ -2549,12 +2623,14 @@ export class OnboardingWizard {
             'transition-all duration-150 hover:shadow-md focus:shadow-lg';
 
         // Input styling with gaming elements
-        // Use pl-7 for currency inputs to make room for $ symbol, pl-3 for others
-        const leftPadding = type === 'currency' ? 'pl-7' : 'pl-3';
-        const rightPadding = type === 'percentage' ? 'pr-7' : 'pr-3';
+        // Currency: wider field, left padding for $; Percentage: right padding for %
+        const leftPadding = type === 'currency' ? 'pl-8' : 'pl-3';
+        const rightPadding = type === 'percentage' ? 'pr-8' : 'pr-3';
+        // B.2: currency inputs need more width for formatted numbers like "$300,000"
+        const maxWidth = type === 'currency' ? 'max-w-[190px]' : 'max-w-[140px]';
 
         const baseClasses = `
-            w-full max-w-[140px] ${leftPadding} ${rightPadding} py-2 text-sm font-mono text-right
+            w-full ${maxWidth} ${leftPadding} ${rightPadding} py-2 text-sm font-mono text-left
             bg-gradient-to-r from-gray-50 to-white
             border-2 border-gray-300 rounded-lg
             focus:border-blue-500 focus:bg-white focus:outline-none
@@ -2563,13 +2639,18 @@ export class OnboardingWizard {
         `.trim();
 
         // Format display value based on type
-        let displayValue = value || '';
-        if (value && type === 'currency') {
-            displayValue = formatNumber(parseFloat(value), 2);
-        } else if (value && type === 'percentage') {
-            displayValue = parseFloat(value).toFixed(4);
-        } else if (value && type === 'number') {
-            displayValue = parseFloat(value).toString();
+        // B.2: For currency, show the raw number (no commas) so user can easily edit
+        // B.1: For percentage, show as display-percent (e.g., 15 not 0.15)
+        let displayValue = value != null ? value : '';
+        const numVal = parseFloat(String(value).replace(/[$,%,]/g, ''));
+        if (!isNaN(numVal)) {
+            if (type === 'currency') {
+                displayValue = Math.round(numVal);  // plain integer, no commas in input value
+            } else if (type === 'percentage') {
+                displayValue = numVal.toFixed(2);
+            } else if (type === 'number') {
+                displayValue = numVal.toString();
+            }
         }
 
         // Create input with gaming enhancements
@@ -2579,7 +2660,7 @@ export class OnboardingWizard {
                     type="text"
                     id="${id}"
                     value="${displayValue}"
-                    maxlength="14"
+                    maxlength="16"
                     placeholder="${placeholder}"
                     class="${baseClasses}"
                     data-format-type="${type}"
@@ -2590,10 +2671,10 @@ export class OnboardingWizard {
                     ${required ? 'required' : ''}
                 />
                 ${type === 'currency' ?
-            `<div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm font-bold pointer-events-none">$</div>` : ''
+            `<span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold pointer-events-none select-none">$</span>` : ''
         }
                 ${type === 'percentage' ?
-            `<div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm font-bold pointer-events-none">%</div>` : ''
+            `<span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold pointer-events-none select-none">%</span>` : ''
         }
                 ${gamingLevel >= 2 ?
             `<div class="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 animate-pulse"></div>` : ''
