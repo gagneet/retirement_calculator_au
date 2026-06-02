@@ -184,6 +184,21 @@ export const ENHANCED_CONFIG = {
         DEFAULT_MONTHLY_LIVING_COST: 2500    // Food, transport, utilities estimate
     },
 
+    // Simple/gamified calculator target-income assumptions. ASFA publishes Modest
+    // and Comfortable standards; Premium/Aspirational is app-defined as a multiple
+    // of ASFA Comfortable so it is not presented as an official ASFA tier.
+    SIMPLE_RETIREMENT_TARGETS: {
+        effectiveDate: '2025-12-31',
+        source: 'ASFA Retirement Standard, Dec 2025 quarter; Premium/Aspirational app-defined',
+        asfa: {
+            single: { modest: 32915, comfortable: 52085 },
+            couple: { modest: 47383, comfortable: 73337 }
+        },
+        premiumAspirationalMultiplier: 1.5,
+        travelAdjustments: { minimal: -5000, moderate: 0, extensive: 10000 },
+        hobbyAdjustments: { minimal: -3000, some: 0, active: 5000 }
+    },
+
     // ===== OVERSEAS RETIREMENT CONSTANTS (March 2026) =====
     // Sources: Services Australia, Department of Social Services, ATO
     // Effective: 20 March 2026

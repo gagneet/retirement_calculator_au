@@ -4,6 +4,78 @@ import { trackOnboardingChoice } from './analytics.js';
 
 import { $, safeSetValue, safeGetValue, formatCurrency, formatNumber, formatPercent, saveToLocalStorage, loadFromLocalStorage } from './utils.js';
 
+const DEFAULT_SIMPLE_TARGETS = {
+    effectiveDate: '2025-12-31',
+    source: 'ASFA Retirement Standard, Dec 2025 quarter; Premium/Aspirational app-defined',
+    asfa: {
+        single: { modest: 32915, comfortable: 52085 },
+        couple: { modest: 47383, comfortable: 73337 }
+    },
+    premiumAspirationalMultiplier: 1.5,
+    travelAdjustments: { minimal: -5000, moderate: 0, extensive: 10000 },
+    hobbyAdjustments: { minimal: -3000, some: 0, active: 5000 }
+};
+
+export function parsePercentInput(value) {
+    const raw = String(value ?? '').replace(/[%\s,]/g, '').trim();
+    if (raw === '') return null;
+    const n = parseFloat(raw);
+    return Number.isFinite(n) ? n : null;
+}
+
+export function formatPercentInput(value, decimals = 2) {
+    const n = parsePercentInput(value);
+    if (n === null) return '';
+    const humanPercent = Math.abs(n) > 0 && Math.abs(n) < 1 ? n * 100 : n;
+    return humanPercent.toFixed(decimals).replace(/\.?0+$/, '');
+}
+
+export function normalizePercentForEngine(value) {
+    const n = parsePercentInput(value);
+    if (n === null) return 0;
+    return Math.abs(n) >= 1 ? n / 100 : n;
+}
+
+export function getSimpleTargetConfig(config = {}) {
+    return config.SIMPLE_RETIREMENT_TARGETS || DEFAULT_SIMPLE_TARGETS;
+}
+
+export function getSimpleRetirementTargetBreakdown({
+    config = {},
+    maritalStatus = 'single',
+    lifestyleTier = 'comfortable',
+    travelPlans = 'moderate',
+    hobbies = 'some',
+} = {}) {
+    const targetConfig = getSimpleTargetConfig(config);
+    const household = maritalStatus === 'single' ? 'single' : 'couple';
+    const asfa = targetConfig.asfa?.[household] || DEFAULT_SIMPLE_TARGETS.asfa[household];
+    const premium = Math.round(asfa.comfortable * (targetConfig.premiumAspirationalMultiplier ?? 1.5));
+    const benchmark = {
+        modest: asfa.modest,
+        comfortable: asfa.comfortable,
+        premium: premium,
+    }[lifestyleTier] ?? asfa.comfortable;
+    const travelAdjustment = targetConfig.travelAdjustments?.[travelPlans] ?? 0;
+    const hobbyAdjustment = targetConfig.hobbyAdjustments?.[hobbies] ?? 0;
+    const finalIncome = Math.max(0, benchmark + travelAdjustment + hobbyAdjustment);
+
+    return {
+        household,
+        lifestyleTier,
+        modest: asfa.modest,
+        comfortable: asfa.comfortable,
+        premium,
+        premiumMultiplier: targetConfig.premiumAspirationalMultiplier ?? 1.5,
+        benchmark,
+        travelAdjustment,
+        hobbyAdjustment,
+        finalIncome,
+        source: targetConfig.source,
+        effectiveDate: targetConfig.effectiveDate,
+    };
+}
+
 export class OnboardingWizard {
     constructor(config) {
         this.config = config;
@@ -124,7 +196,9 @@ export class OnboardingWizard {
                 retirementAge: 67,
                 riskTolerance: 6, // 1-10 scale, 6 = moderate
                 lifestyleGoals: {
-                    incomeNeeded: defaults.pension.asfaComfortable,
+                    incomeNeeded: getSimpleRetirementTargetBreakdown({ config: this.config, maritalStatus: 'single' }).finalIncome,
+                    incomeMode: 'auto',
+                    lifestyleTier: 'comfortable',
                     travelPlans: 'moderate',
                     hobbies: 'some'
                 },
@@ -843,7 +917,7 @@ export class OnboardingWizard {
                         ${household.maritalStatus !== 'single' ? `
                         <div>
                              <label class="block text-sm font-medium text-gray-700 mb-2">👫 Partner's Annual Base Salary (excl. super)</label>
-                             ${this.createEnhancedInput('finances-partner-salary', finances.income.partnerSalary || 0, 'currency', {
+                             ${this.createEnhancedInput('finances-partner-salary', finances.income.partnerSalary ?? 0, 'currency', {
             min: 0,
             tooltip: 'Partner\'s gross base salary before tax, excluding super. Employer super (12% SG) is calculated on top — do not include it here.',
             placeholder: '65,000',
@@ -855,7 +929,7 @@ export class OnboardingWizard {
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">💰 Monthly Savings Rate</label>
-                            ${this.createEnhancedInput('finances-savings-rate', finances.savingsRate || 15, 'percentage', {
+                            ${this.createEnhancedInput('finances-savings-rate', finances.savingsRate ?? 15, 'percentage', {
             min: 0,
             max: 100,
             tooltip: 'Percentage of after-tax income saved monthly',
@@ -912,7 +986,7 @@ export class OnboardingWizard {
                         ${household.maritalStatus !== 'single' ? `
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">👫 Partner's Super Balance</label>
-                            ${this.createEnhancedInput('finances-partner-super', finances.superannuation.partnerCurrentBalance || 0, 'currency', {
+                            ${this.createEnhancedInput('finances-partner-super', finances.superannuation.partnerCurrentBalance ?? 0, 'currency', {
             min: 0,
             tooltip: 'Partner\'s total superannuation balance across all funds',
             placeholder: '120,000',
@@ -1073,7 +1147,7 @@ export class OnboardingWizard {
                             </div>
                             <div id="home-loan-rate-field" class="${property.homeStatus !== 'mortgage' ? 'hidden' : ''}">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">📈 Home Loan Interest Rate</label>
-                                ${this.createEnhancedInput('property-loan-rate', property.homeDetails.loanRate || 6.5, 'percentage', {
+                                ${this.createEnhancedInput('property-loan-rate', property.homeDetails.loanRate ?? 6.5, 'percentage', {
             min: 0,
             max: 15,
             tooltip: 'Current interest rate on your home loan - affects repayments and equity growth',
@@ -1130,7 +1204,7 @@ export class OnboardingWizard {
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">📈 Investment Loan Interest Rate</label>
-                                    ${this.createEnhancedInput('investment-loan-rate', property.investmentProperty.details.loanRate || 7.5, 'percentage', {
+                                    ${this.createEnhancedInput('investment-loan-rate', property.investmentProperty.details.loanRate ?? 7.5, 'percentage', {
             min: 0,
             max: 15,
             tooltip: 'Interest rate on investment property loan - usually higher than home loans',
@@ -1169,6 +1243,13 @@ export class OnboardingWizard {
 
     generateGoalsStep() {
         const goals = this.data.goals;
+        const breakdown = getSimpleRetirementTargetBreakdown({
+            config: this.config,
+            maritalStatus: this.data.household.maritalStatus,
+            lifestyleTier: goals.lifestyleGoals.lifestyleTier,
+            travelPlans: goals.lifestyleGoals.travelPlans,
+            hobbies: goals.lifestyleGoals.hobbies,
+        });
 
         return `
             <div class="step-content">
@@ -1197,28 +1278,51 @@ export class OnboardingWizard {
                         <h3 class="text-lg font-semibold text-gray-800 mb-4">Desired Retirement Lifestyle</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Lifestyle benchmark</label>
+                                <select id="goals-lifestyle-tier" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="modest" ${goals.lifestyleGoals.lifestyleTier === 'modest' ? 'selected' : ''}>ASFA Modest</option>
+                                    <option value="comfortable" ${goals.lifestyleGoals.lifestyleTier !== 'modest' && goals.lifestyleGoals.lifestyleTier !== 'premium' ? 'selected' : ''}>ASFA Comfortable</option>
+                                    <option value="premium" ${goals.lifestyleGoals.lifestyleTier === 'premium' ? 'selected' : ''}>Premium / Aspirational (app-defined)</option>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Premium / Aspirational is app-defined at ${breakdown.premiumMultiplier}x ASFA Comfortable.</p>
+                            </div>
+
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">💰 Desired Annual Income (current dollars, not inflation-adjusted)</label>
                                 ${this.createEnhancedInput('goals-income-needed', goals.lifestyleGoals.incomeNeeded, 'currency', {
             min: 0,
-            tooltip: 'How much income do you want per year in retirement? Travel Plans and Hobbies below adjust this automatically.',
+            tooltip: 'How much income do you want per year in retirement? Travel Plans and Hobbies below adjust this automatically until you edit manually.',
             placeholder: '74000',
             gamingLevel: 2
         })}
-                                <div class="mt-2 text-xs text-gray-600 space-y-1" id="asfa-reference">
-                                    <div class="font-medium text-gray-700 mb-1">ASFA Dec 2025 quarter:</div>
+                                <div class="mt-2 flex gap-2">
+                                    <button type="button" id="goals-use-suggested-income" class="px-3 py-1.5 text-xs rounded-md bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">Use suggested target</button>
+                                    <span id="goals-income-mode" class="text-xs text-gray-500 self-center">${goals.lifestyleGoals.incomeMode === 'manual' ? 'Manual target' : 'Auto target'}</span>
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <div class="mt-2 text-xs text-gray-600 space-y-1 rounded-md border border-gray-200 bg-gray-50 p-3" id="asfa-reference">
+                                    <div class="font-medium text-gray-700 mb-1">Target income build-up (${breakdown.household}, ${breakdown.effectiveDate}):</div>
                                     <div class="flex justify-between">
-                                        <span id="asfa-modest-label">Modest (couple):</span>
-                                        <span id="asfa-modest-val">$47,383</span>
+                                        <span id="asfa-modest-label">ASFA Modest:</span>
+                                        <span id="asfa-modest-val">${formatCurrency(breakdown.modest)}</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span id="asfa-comfortable-label">Comfortable (couple):</span>
-                                        <span id="asfa-comfortable-val">$73,337</span>
+                                        <span id="asfa-comfortable-label">ASFA Comfortable:</span>
+                                        <span id="asfa-comfortable-val">${formatCurrency(breakdown.comfortable)}</span>
                                     </div>
                                     <div class="flex justify-between text-gray-500">
-                                        <span>Premium (planning estimate):</span>
-                                        <span id="asfa-premium-val">~$110,000</span>
+                                        <span>Premium / Aspirational (app-defined):</span>
+                                        <span id="asfa-premium-val">${formatCurrency(breakdown.premium)}</span>
                                     </div>
-                                    <div class="mt-1 text-blue-600 text-xs" id="asfa-adjustment-note" style="display:none"></div>
+                                    <div class="border-t border-gray-200 pt-1 mt-1 space-y-1">
+                                        <div class="flex justify-between"><span>Selected benchmark:</span><span id="target-base-val">${formatCurrency(breakdown.benchmark)}</span></div>
+                                        <div class="flex justify-between"><span>Travel adjustment:</span><span id="target-travel-val">${formatCurrency(breakdown.travelAdjustment)}</span></div>
+                                        <div class="flex justify-between"><span>Hobbies adjustment:</span><span id="target-hobby-val">${formatCurrency(breakdown.hobbyAdjustment)}</span></div>
+                                        <div class="flex justify-between font-semibold text-blue-700"><span>Suggested desired income:</span><span id="target-final-val">${formatCurrency(breakdown.finalIncome)}</span></div>
+                                    </div>
+                                    <div class="mt-1 text-gray-500 text-xs" id="asfa-adjustment-note">${breakdown.source}</div>
                                 </div>
                             </div>
 
@@ -1570,70 +1674,80 @@ export class OnboardingWizard {
             });
         }
 
-        // B.4 + B.5 + B.6: Travel/Hobbies → income adjustment; Single/Married → ASFA baseline
+        // Travel/Hobbies/Lifestyle -> suggested income. Only auto-updates while
+        // incomeMode is auto; typing in Desired Income switches to manual mode.
         const incomeEl = $('goals-income-needed');
+        const lifestyleEl = $('goals-lifestyle-tier');
         const travelEl = $('goals-travel-plans');
         const hobbiesEl = $('goals-hobbies');
-
-        // ASFA Dec 2025 quarter baselines
-        const ASFA = {
-            couple: { modest: 47383, comfortable: 73337, premium: 110000 },
-            single: { modest: 32915, comfortable: 52085, premium: 78000 },
-        };
-        const TRAVEL_ADJUST = { minimal: -5000, moderate: 0, extensive: 10000 };
-        const HOBBY_ADJUST  = { minimal: -3000, some: 0, active: 5000 };
+        const resetSuggestedBtn = $('goals-use-suggested-income');
+        let suppressIncomeManualFlag = false;
 
         const getHousehold = () => (this.data.household.maritalStatus === 'single' ? 'single' : 'couple');
+        const getBreakdown = () => getSimpleRetirementTargetBreakdown({
+            config: this.config,
+            maritalStatus: this.data.household.maritalStatus,
+            lifestyleTier: lifestyleEl?.value || this.data.goals.lifestyleGoals.lifestyleTier || 'comfortable',
+            travelPlans: travelEl?.value || this.data.goals.lifestyleGoals.travelPlans || 'moderate',
+            hobbies: hobbiesEl?.value || this.data.goals.lifestyleGoals.hobbies || 'some',
+        });
+        const setText = (id, text) => { const el = $(id); if (el) el.textContent = text; };
+        const setIncomeMode = (mode) => {
+            this.data.goals.lifestyleGoals.incomeMode = mode;
+            const modeEl = $('goals-income-mode');
+            if (modeEl) modeEl.textContent = mode === 'manual' ? 'Manual target' : 'Auto target';
+            if (incomeEl) incomeEl.dataset.incomeMode = mode;
+        };
+        const applyIncomeValue = (amount) => {
+            if (!incomeEl) return;
+            suppressIncomeManualFlag = true;
+            incomeEl.value = Math.round(amount).toString();
+            incomeEl.dataset.rawValue = Math.round(amount).toString();
+            suppressIncomeManualFlag = false;
+        };
+        const updateIncomeFromLifestyle = ({ force = false } = {}) => {
+            const breakdown = getBreakdown();
+            this.data.goals.lifestyleGoals.lifestyleTier = breakdown.lifestyleTier;
+            this.data.goals.lifestyleGoals.travelPlans = travelEl?.value || this.data.goals.lifestyleGoals.travelPlans;
+            this.data.goals.lifestyleGoals.hobbies = hobbiesEl?.value || this.data.goals.lifestyleGoals.hobbies;
 
-        const updateIncomeFromLifestyle = () => {
-            const household = getHousehold();
-            const base = ASFA[household].comfortable;
-            const travel = TRAVEL_ADJUST[travelEl?.value] ?? 0;
-            const hobby  = HOBBY_ADJUST[hobbiesEl?.value] ?? 0;
-            const adjusted = base + travel + hobby;
+            setText('asfa-modest-label', `ASFA Modest (${breakdown.household}):`);
+            setText('asfa-modest-val', formatCurrency(breakdown.modest));
+            setText('asfa-comfortable-label', `ASFA Comfortable (${breakdown.household}):`);
+            setText('asfa-comfortable-val', formatCurrency(breakdown.comfortable));
+            setText('asfa-premium-val', formatCurrency(breakdown.premium));
+            setText('target-base-val', formatCurrency(breakdown.benchmark));
+            setText('target-travel-val', formatCurrency(breakdown.travelAdjustment));
+            setText('target-hobby-val', formatCurrency(breakdown.hobbyAdjustment));
+            setText('target-final-val', formatCurrency(breakdown.finalIncome));
+            setText('asfa-adjustment-note', breakdown.source);
 
-            if (incomeEl) {
-                incomeEl.value = adjusted.toLocaleString();
-                incomeEl.dataset.rawValue = adjusted;
-            }
-
-            // Update ASFA reference display
-            const asfaRef = $('asfa-reference');
-            if (asfaRef) {
-                const asfa = ASFA[household];
-                const modestLabel = $('asfa-modest-label');
-                const modestVal = $('asfa-modest-val');
-                const comfortableLabel = $('asfa-comfortable-label');
-                const comfortableVal = $('asfa-comfortable-val');
-                const premiumVal = $('asfa-premium-val');
-                const adjNote = $('asfa-adjustment-note');
-                const suffix = household === 'single' ? '(single)' : '(couple)';
-                if (modestLabel) modestLabel.textContent = `Modest ${suffix}:`;
-                if (modestVal) modestVal.textContent = `$${asfa.modest.toLocaleString()}`;
-                if (comfortableLabel) comfortableLabel.textContent = `Comfortable ${suffix}:`;
-                if (comfortableVal) comfortableVal.textContent = `$${asfa.comfortable.toLocaleString()}`;
-                if (premiumVal) premiumVal.textContent = `~$${asfa.premium.toLocaleString()}`;
-                const totalAdj = travel + hobby;
-                if (adjNote) {
-                    if (totalAdj !== 0) {
-                        adjNote.textContent = `Travel ${travel >= 0 ? '+' : ''}$${travel.toLocaleString()} + Hobbies ${hobby >= 0 ? '+' : ''}$${hobby.toLocaleString()} = adjusted target`;
-                        adjNote.style.display = 'block';
-                    } else {
-                        adjNote.style.display = 'none';
-                    }
-                }
+            if (force || this.data.goals.lifestyleGoals.incomeMode !== 'manual') {
+                setIncomeMode('auto');
+                applyIncomeValue(breakdown.finalIncome);
+                this.data.goals.lifestyleGoals.incomeNeeded = breakdown.finalIncome;
             }
         };
 
-        if (travelEl) travelEl.addEventListener('change', updateIncomeFromLifestyle);
-        if (hobbiesEl) hobbiesEl.addEventListener('change', updateIncomeFromLifestyle);
+        if (incomeEl) {
+            incomeEl.dataset.incomeMode = this.data.goals.lifestyleGoals.incomeMode || 'auto';
+            incomeEl.addEventListener('input', () => {
+                if (suppressIncomeManualFlag) return;
+                setIncomeMode('manual');
+            });
+        }
+        [lifestyleEl, travelEl, hobbiesEl].forEach((el) => {
+            if (el) el.addEventListener('change', () => updateIncomeFromLifestyle());
+        });
+        if (resetSuggestedBtn) {
+            resetSuggestedBtn.addEventListener('click', () => updateIncomeFromLifestyle({ force: true }));
+        }
         document.addEventListener('change', (event) => {
             if (event.target?.id === 'household-marital') {
                 this.data.household.maritalStatus = event.target.value;
                 updateIncomeFromLifestyle();
             }
         });
-        // Run once to set correct initial state based on marital status
         updateIncomeFromLifestyle();
     }
 
@@ -1878,6 +1992,8 @@ export class OnboardingWizard {
         this.data.goals.retirementAge = readNum('goals-retirement-age', this.data.goals.retirementAge);
         this.data.goals.riskTolerance = readNum('goals-risk-tolerance', this.data.goals.riskTolerance);
         this.data.goals.lifestyleGoals.incomeNeeded = readNum('goals-income-needed', this.data.goals.lifestyleGoals.incomeNeeded);
+        this.data.goals.lifestyleGoals.incomeMode = document.querySelector('#goals-income-needed')?.dataset?.incomeMode || this.data.goals.lifestyleGoals.incomeMode || 'auto';
+        this.data.goals.lifestyleGoals.lifestyleTier = document.querySelector('#goals-lifestyle-tier')?.value || this.data.goals.lifestyleGoals.lifestyleTier || 'comfortable';
         this.data.goals.lifestyleGoals.travelPlans = document.querySelector('#goals-travel-plans')?.value || this.data.goals.lifestyleGoals.travelPlans;
         this.data.goals.lifestyleGoals.hobbies = document.querySelector('#goals-hobbies')?.value || this.data.goals.lifestyleGoals.hobbies;
         this.data.goals.legacyPlanning.leaveInheritance = document.querySelector('#goals-leave-inheritance')?.value || this.data.goals.legacyPlanning.leaveInheritance;
@@ -2404,13 +2520,13 @@ export class OnboardingWizard {
 
         // Priority 2: Calculate from detailed user inputs (housing + other expenses)
         let calculatedExpenses = 0;
-        const annualIncome = data.finances.income.salary + (data.finances.income.partnerSalary || 0);
+        const annualIncome = data.finances.income.salary + (data.finances.income.partnerSalary ?? 0);
 
         // Add housing costs
         if (data.property.homeStatus === 'mortgage' && data.property.homeDetails.loanRemaining > 0) {
             // Calculate approximate monthly mortgage payment
             const loanAmount = data.property.homeDetails.loanRemaining;
-            const annualRateRaw = data.property.homeDetails.loanRate || 0.0576; // Default 5.76%
+            const annualRateRaw = data.property.homeDetails.loanRate ?? 0.0576; // Default 5.76%
             const annualRate = annualRateRaw > 1 ? annualRateRaw / 100 : annualRateRaw;
             const monthlyRate = annualRate / 12;
             const loanTermMonths = 300; // Assume 25 years remaining
@@ -2447,7 +2563,7 @@ export class OnboardingWizard {
         // Priority 3: Use income-based calculation if available
         if (annualIncome > 0) {
             const monthlySalary = annualIncome / 12;
-            const savingsRate = data.finances.savingsRate ? (data.finances.savingsRate / 100) : 0.15; // Convert percentage or default 15%
+            const savingsRate = data.finances.savingsRate !== undefined && data.finances.savingsRate !== null ? (data.finances.savingsRate / 100) : 0.15; // Convert percentage or default 15%
             return Math.round(monthlySalary * (1 - savingsRate));
         }
 
@@ -2525,7 +2641,7 @@ export class OnboardingWizard {
         const totalAssets = futureSuper + futureSavings + futureInvestments + accessibleHomeEquity + propertyEquity;
 
         // Calculate monthly living expenses using comprehensive approach
-        const annualIncome = data.finances.income.salary + (data.finances.income.partnerSalary || 0);
+        const annualIncome = data.finances.income.salary + (data.finances.income.partnerSalary ?? 0);
         let monthlyLivingExpenses = this.calculateLivingExpenses(data);
         const annualLivingExpenses = monthlyLivingExpenses * 12;
 
@@ -2635,20 +2751,19 @@ export class OnboardingWizard {
             'transform transition-all duration-200 hover:scale-105 hover:shadow-lg focus:scale-105 focus:shadow-xl focus:ring-4 focus:ring-blue-300' :
             'transition-all duration-150 hover:shadow-md focus:shadow-lg';
 
-        // Input styling with gaming elements
-        // Currency: wider field, left padding for $; Percentage: right padding for %
-        const leftPadding = type === 'currency' ? 'pl-10' : 'pl-3';
-        const rightPadding = type === 'percentage' ? 'pr-10' : 'pr-3';
-        // B.2: currency inputs need more width for formatted numbers like "$300,000"
-        const maxWidth = type === 'currency' ? 'max-w-[240px]' : 'max-w-[170px]';
-
-        const baseClasses = `
-            w-full ${maxWidth} ${leftPadding} ${rightPadding} py-2 text-sm font-mono text-right
-            bg-gradient-to-r from-gray-50 to-white
-            border-2 border-gray-300 rounded-lg
-            focus:border-blue-500 focus:bg-white focus:outline-none
+        // Input styling with gaming elements. Affixes are outside the editable
+        // text area, so symbols never overlap typed values on desktop or mobile.
+        const maxWidth = type === 'currency' ? 'max-w-[260px]' : 'max-w-[190px]';
+        const wrapperClasses = `
+            input-with-affix inline-flex w-full ${maxWidth} items-center overflow-hidden
+            bg-gradient-to-r from-gray-50 to-white border-2 border-gray-300 rounded-lg
+            focus-within:border-blue-500 focus-within:bg-white
             ${gamingClasses}
             ${gamingLevel >= 3 ? 'border-gradient hover:border-gradient-intense' : ''}
+        `.trim();
+        const baseClasses = `
+            min-w-0 flex-1 px-3 py-2 text-sm font-mono text-right bg-transparent
+            focus:outline-none
         `.trim();
 
         // Format display value based on type
@@ -2660,7 +2775,7 @@ export class OnboardingWizard {
             if (type === 'currency') {
                 displayValue = Math.round(numVal);  // plain integer, no commas in input value
             } else if (type === 'percentage') {
-                displayValue = numVal.toFixed(2);
+                displayValue = formatPercentInput(numVal);
             } else if (type === 'number') {
                 displayValue = numVal.toString();
             }
@@ -2669,26 +2784,28 @@ export class OnboardingWizard {
         // Create input with gaming enhancements
         const inputHtml = `
             <div class="relative group">
-                <input
-                    type="text"
-                    id="${id}"
-                    value="${displayValue}"
-                    maxlength="16"
-                    placeholder="${placeholder}"
-                    class="${baseClasses}"
-                    data-format-type="${type}"
-                    data-raw-value="${value || 0}"
-                    ${min !== null ? `data-min="${min}"` : ''}
-                    ${max !== null ? `data-max="${max}"` : ''}
-                    ${step !== null ? `data-step="${step}"` : ''}
-                    ${required ? 'required' : ''}
-                />
-                ${type === 'currency' ?
-            `<span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold pointer-events-none select-none">$</span>` : ''
+                <div class="${wrapperClasses}">
+                    ${type === 'currency' ?
+            `<span class="prefix flex-none px-3 text-gray-500 text-sm font-semibold pointer-events-none select-none border-r border-gray-200">$</span>` : ''
         }
-                ${type === 'percentage' ?
-            `<span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold pointer-events-none select-none">%</span>` : ''
+                    <input
+                        type="text"
+                        id="${id}"
+                        value="${displayValue}"
+                        maxlength="16"
+                        placeholder="${placeholder}"
+                        class="${baseClasses}"
+                        data-format-type="${type}"
+                        data-raw-value="${value ?? 0}"
+                        ${min !== null ? `data-min="${min}"` : ''}
+                        ${max !== null ? `data-max="${max}"` : ''}
+                        ${step !== null ? `data-step="${step}"` : ''}
+                        ${required ? 'required' : ''}
+                    />
+                    ${type === 'percentage' ?
+            `<span class="suffix flex-none px-3 text-gray-500 text-sm font-semibold pointer-events-none select-none border-l border-gray-200">%</span>` : ''
         }
+                </div>
                 ${gamingLevel >= 2 ?
             `<div class="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 animate-pulse"></div>` : ''
         }
@@ -2778,7 +2895,7 @@ export class OnboardingWizard {
                     if (formatType === 'currency') {
                         e.target.value = formatNumber(numValue);
                     } else if (formatType === 'percentage') {
-                        e.target.value = numValue.toFixed(1);
+                        e.target.value = formatPercentInput(numValue);
                     } else if (formatType === 'number') {
                         e.target.value = numValue.toString();
                     }
@@ -2791,8 +2908,8 @@ export class OnboardingWizard {
             // Clear formatting on focus for easier editing
             input.addEventListener('focus', (e) => {
                 const rawValue = e.target.getAttribute('data-raw-value');
-                if (rawValue && rawValue !== '0') {
-                    e.target.value = rawValue;
+                if (rawValue !== null && rawValue !== '') {
+                    e.target.value = formatType === 'percentage' ? formatPercentInput(rawValue) : rawValue;
                 }
                 e.target.select(); // Select all text for easy replacement
             });
@@ -2800,7 +2917,8 @@ export class OnboardingWizard {
             // Real-time validation and gaming effects
             input.addEventListener('input', (e) => {
                 const value = e.target.value.replace(/[^\d.-]/g, '');
-                const numValue = parseFloat(value) || 0;
+                const parsedValue = formatType === 'percentage' ? parsePercentInput(value) : parseFloat(value);
+                const numValue = Number.isFinite(parsedValue) ? parsedValue : 0;
 
                 // Update raw value
                 e.target.setAttribute('data-raw-value', numValue);
@@ -3027,8 +3145,8 @@ export class OnboardingWizard {
                 ? (this.data.goals.legacyPlanning.inheritanceAmount || 0) : 0,
 
             // Other debts from onboarding
-            'creditCardBalance': this.data.finances.debt.creditCards || 0,
-            'personalLoanBalance': this.data.finances.debt.personalLoans || 0,
+            'creditCardBalance': this.data.finances.debt.creditCards ?? 0,
+            'personalLoanBalance': this.data.finances.debt.personalLoans ?? 0,
 
             // Health from onboarding
             'healthCondition': this.data.household.health?.currentHealth || 'good',
@@ -3045,11 +3163,11 @@ export class OnboardingWizard {
 
             // Investment property loan rate from onboarding
             'investmentPropertyRate': this.data.property.investmentProperty.hasInvestment
-                ? (this.data.property.investmentProperty.details.loanRate || 7.5) : '',
+                ? (this.data.property.investmentProperty.details.loanRate ?? 7.5) : '',
 
             // Mortgage rate from onboarding
             'mortgageRate': this.data.property.homeStatus === 'mortgage'
-                ? (this.data.property.homeDetails.loanRate || 6.5) : '',
+                ? (this.data.property.homeDetails.loanRate ?? 6.5) : '',
 
             // Managed funds + term deposits → add to starting savings
             'currentSavings': (this.data.finances.emergencyFund || 0)
@@ -3063,13 +3181,13 @@ export class OnboardingWizard {
             })(),
 
             // Business and investment income from onboarding (if tracked)
-            'businessIncome': this.data.finances.income?.businessIncome || 0,
-            'investmentIncome': this.data.finances.income?.investmentIncome || 0,
+            'businessIncome': this.data.finances.income?.businessIncome ?? 0,
+            'investmentIncome': this.data.finances.income?.investmentIncome ?? 0,
 
             // Percentage fields - need special handling for display
-            'initialInvestmentReturn': this.data.goals.expectedReturns?.initialReturn || 8, // Default 8%
-            'superAnnualGrowth': this.data.goals.expectedReturns?.superGrowth || 7, // Default 7%
-            'annualRealSalaryGrowth': this.data.goals.expectedReturns?.salaryGrowth || 3 // Default 3%
+            'initialInvestmentReturn': this.data.goals.expectedReturns?.initialReturn ?? 8, // Default 8%
+            'superAnnualGrowth': this.data.goals.expectedReturns?.superGrowth ?? 7, // Default 7%
+            'annualRealSalaryGrowth': this.data.goals.expectedReturns?.salaryGrowth ?? 3 // Default 3%
         };
 
         // Populate the form fields
