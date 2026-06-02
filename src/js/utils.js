@@ -2414,7 +2414,24 @@ export const populateFormFromData = (userData, version = '2.0') => {
         'annuityAnnualIncome': 'annuityAnnualIncome',
         'annuityPurchaseAge': 'annuityPurchaseAge',
         'homeModificationsCost': 'homeModificationsCost',
-        'homeModificationsAge': 'homeModificationsAge'
+        'homeModificationsAge': 'homeModificationsAge',
+        // Advanced-v2 checkbox field names → classic advanced HTML element IDs
+        'investmentProperty': 'hasInvestmentProperty',
+        'hasSmsf': 'hasSMSF',
+        'ipType': 'investmentPropertyType',
+        'ipStrataLevy': 'strataLevy',
+        'monthlyStockContrib': 'monthlyStockContribution',
+        'annualParentSupport': 'annualParentSupport',
+        'legacyGoal': 'inheritanceGoal',
+        'legacyGoalType': 'inheritanceGoalType',
+        'agedCareStartAge': 'agedCareStartAge',
+        'agedCareAnnualCost': 'agedCareAnnualCost',
+        'agedCareProbability': 'agedCareProbability',
+        'homeModBudget': 'homeModificationBudget',
+        'homeModAge': 'homeModificationAge',
+        'partnerSalary': 'partnerSalary',
+        'gender': 'yourGender',
+        'partnerGender': 'partnerGender'
     };
 
     Object.entries(userData).forEach(([key, value]) => {
@@ -2480,13 +2497,20 @@ export const populateFormFromData = (userData, version = '2.0') => {
                     return;
                 }
 
+                // Translate advanced-v2 string values to what classic HTML selects expect
+                let translatedValue = value;
+                if (key === 'downsizePlan') {
+                    translatedValue = value === 'yes' ? 'true' : 'false';
+                    targetKey = 'planToDownsize';
+                }
+
                 const element = $(targetKey);
                 if (element) {
                     debugLog(`✅ Found element for: ${targetKey}`);  // Debug: found element
                     if (element.type === 'checkbox' || element.type === 'radio') {
-                        element.checked = value === true || value === 'true' || value === 'yes';
+                        element.checked = translatedValue === true || translatedValue === 'true' || translatedValue === 'yes';
                     } else if (element.type === 'select-one') {
-                        element.value = value;
+                        element.value = translatedValue;
                         // Fallback: numeric float comparison for selects with decimal option values
                         // (e.g. stored 0.2 won't match option value "0.20")
                         if (typeof value === 'number' && value !== 0 &&
@@ -2515,7 +2539,7 @@ export const populateFormFromData = (userData, version = '2.0') => {
                             element.value = (value == null || value === 0) ? '' : value;
                         } else {
                             // For numeric currency values, keep full precision — the input formatter applies 2dp
-                            element.value = value == null ? '' : value;
+                            element.value = translatedValue == null ? '' : translatedValue;
                         }
                     }
                     fieldsPopulated++;
