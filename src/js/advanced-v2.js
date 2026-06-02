@@ -2693,10 +2693,23 @@ function renderOverseasPanel() {
   `);
 }
 
-function renderAiPanel() {
+async function renderAiPanel() {
   const recommendations = APP_STATE.recommendations || [];
   const inp = APP_STATE.input || {};
   const engineInputs = APP_STATE.engineInputs || {};
+
+  let SuggestionsUI;
+  let computeOutcomeBand;
+  try {
+    // Dynamically import suggestions-ui to avoid bloating the initial bundle
+    ([SuggestionsUI, { computeOutcomeBand }] = await Promise.all([
+      import('./suggestions-ui.js'),
+      import('./outcome-bands.js'),
+    ]));
+  } catch (error) {
+    console.error('Unable to load suggestions panel modules:', error);
+    return;
+  }
 
   // Inject property sell-timing insight if applicable
   const sellTimingRec = generatePropertySellTimingInsight(inp, engineInputs);
@@ -2704,37 +2717,128 @@ function renderAiPanel() {
       ? [sellTimingRec, ...recommendations]
       : recommendations;
 
-  if (!allRecs.length) {
-    setPanelHtml('ai', '<p style="color:var(--ink-3)">Run AI suggestions or the full simulation to generate prioritised recommendations from the existing recommendation engine.</p>');
+  if (!allRecs.length && !APP_STATE.simulation && !APP_STATE.adaptedResult) {
+    const sgContent = document.getElementById('sg-content');
+    if (sgContent) return; // Keep the empty state HTML from the template
+    setPanelHtml('ai', SuggestionsUI.buildEmptyState());
     return;
   }
 
-  setPanelHtml('ai', `
-    <div style="display:grid;gap:12px">
-      ${allRecs.slice(0, 7).map((rec) => `
-        <div style="padding:16px;border:1px solid var(--border);border-radius:18px;background:var(--surface)">
-          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
-            <div>
-              <div style="font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.04em">${escapeHtml(rec.category || 'General')}</div>
-              <div style="font-weight:700;margin-top:3px">${escapeHtml(rec.title || 'Recommendation')}</div>
-            </div>
-            <span class="chip">${escapeHtml(rec.impact || 'neutral')}</span>
-          </div>
-          <p style="margin:10px 0 0;color:var(--ink-2)">${escapeHtml(rec.description || '')}</p>
-          ${rec.isSellTimingCard && rec.details?.length ? `
-            <ul style="margin:8px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px;display:grid;gap:6px">
-              ${rec.details.map(d => `<li>${escapeHtml(d)}</li>`).join('')}
-            </ul>
-          ` : ''}
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-            ${rec.successRateDiff != null ? `<span class="chip">Success delta ${formatPercent(rec.successRateDiff, 1)}</span>` : ''}
-            ${rec.medianBalanceDiff != null ? `<span class="chip">Balance delta ${escapeHtml(formatCurrency(rec.medianBalanceDiff || 0))}</span>` : ''}
-            <span class="chip">${escapeHtml(rec.feasibility || 'Standard strategy')}</span>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `);
+  // Compute outcome band from available data
+  const richTargetEl  = document.getElementById('richTarget');
+  const richTargetVal = richTargetEl?.value || '1.5';
+  const customRichEl  = document.getElementById('richTargetCustom');
+  const richMultiplier = richTargetVal === 'custom' ? null : parseFloat(richTargetVal) || 1.5;
+  const customRich     = richTargetVal === 'custom' && customRichEl
+      ? parseFloat(customRichEl.value) || null
+      : null;
+
+  const band = computeOutcomeBand({
+    monteCarloResults: APP_STATE.monteCarloResults,
+    simulation: APP_STATE.simulation,
+    adaptedResult: APP_STATE.adaptedResult,
+    inputs: inp,
+    engineInputs,
+    richMultiplier,
+    customRichTarget: customRich,
+  });
+
+  // Sort recommendations: HIGH priority first, then by successRateDiff desc
+  const sortedRecs = [...allRecs].sort((a, b) => {
+    const pOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+    const pa = pOrder[a.priority] || 2;
+    const pb = pOrder[b.priority] || 2;
+    if (pa !== pb) return pb - pa;
+    return (b.successRateDiff || 0) - (a.successRateDiff || 0);
+  });
+
+  // Overseas panel data
+  const overseasOpts = APP_STATE.overseasAnalysis ? buildOverseasGuideOpts(inp, engineInputs, APP_STATE.overseasAnalysis) : null;
+
+  // Whether to show annuity card (shown if any annuity rec exists or band is below comfortable)
+  const showAnnuity = allRecs.some(r => (r.category || '').toLowerCase().includes('annuity'))
+      || band.band === 'critical'
+      || band.band === 'at_risk';
+
+  const isCouple = !!(engineInputs.hasPartner || inp.hasPartner);
+  const salary = engineInputs.yourSalary || inp.yourSalary || 0;
+  const yearsToRetire = (engineInputs.retirementAge || inp.retirementAge || 67)
+      - (engineInputs.yourCurrentAge || inp.yourCurrentAge || 50);
+
+  const panelHtml = SuggestionsUI.buildFullSuggestionsPanel({
+    band,
+    recommendations: sortedRecs,
+    overseasOpts,
+    showAnnuity,
+    selectable: true,
+    yearsToRetirement: Math.max(1, yearsToRetire),
+    annualSalary: salary,
+    isCouple,
+    richMultiplier: richMultiplier || 1.5,
+  });
+
+  setPanelHtml('ai', panelHtml);
+
+  // Wire interactivity (filter tabs, checkboxes, try-scenario)
+  const panelEl = document.querySelector('[data-tab-panel="ai"]');
+  if (panelEl) {
+    SuggestionsUI.wireSuggestionsInteractivity(panelEl, {
+      recommendations: sortedRecs,
+      selectable: true,
+      onTryScenario: (rec) => applyRecommendationScenario(rec),
+      onRunDeeper: () => runRecommendationAnalysis(),
+      onExportPlan: (selected) => exportSuggestionsAsPdf(selected, band),
+    });
+  }
+}
+
+/** Build options for the Age Pension overseas guidance panel from existing overseas analysis. */
+function buildOverseasGuideOpts(inp, engineInputs, overseasAnalysis) {
+  if (!overseasAnalysis) return null;
+  const currentAge = engineInputs.yourCurrentAge || inp.yourCurrentAge || 50;
+  const pensionAge = 67;
+  return {
+    nearPensionAge: (pensionAge - currentAge) <= 7,
+    isCouple: !!(engineInputs.hasPartner || inp.hasPartner),
+    likelyEligible: overseasAnalysis.agePensionPortability?.eligible !== false,
+    awlrYears: overseasAnalysis.agePensionPortability?.awlrYears ?? Math.max(10, currentAge - 15),
+    selectedCountry: overseasAnalysis.country?.name || null,
+    hasAgreement: overseasAnalysis.agePensionPortability?.hasAgreement || false,
+    destination: inp.destination || null,
+  };
+}
+
+/** Apply a recommendation's modifications to the form and re-run the simulation. */
+async function applyRecommendationScenario(rec) {
+  if (!rec?.modifications || rec.isTryThisDisabled) return;
+  // Store originals so user can undo (best-effort key matching)
+  const originals = {};
+  for (const [key, val] of Object.entries(rec.modifications)) {
+    const el = document.getElementById(key);
+    if (el) { originals[key] = el.type === 'checkbox' ? el.checked : el.value; }
+    setInputValue(key, val, { checkbox: typeof val === 'boolean' });
+  }
+  APP_STATE._scenarioOriginals = originals;
+  showNotification(`Scenario applied: ${rec.title}. Re-running simulation…`, 'info');
+  // Re-run the full simulation with modified inputs
+  const calc = document.getElementById('btn-calc-full') || document.getElementById('btn-calculate');
+  if (calc) calc.click();
+}
+
+/** Export selected action plan items and readiness summary to PDF. */
+async function exportSuggestionsAsPdf(selectedRecs, band) {
+  showNotification('Preparing PDF…', 'info');
+  const baseState = syncAppState();
+  await exportToPDF(baseState.input, APP_STATE.simulation, {
+    monteCarloResults: APP_STATE.monteCarloResults,
+    recommendations: selectedRecs.length ? selectedRecs : (APP_STATE.recommendations || []),
+    outcomeBand: band,
+    stressTestResults: APP_STATE.stressTestResults,
+    riskProfile: APP_STATE.riskProfile,
+    allocationStrategy: APP_STATE.allocationStrategy,
+    overseasAnalysis: APP_STATE.overseasAnalysis,
+    overseasExportData: APP_STATE.overseasExportData,
+  });
 }
 
 function renderAnalysisPanels() {
@@ -3465,6 +3569,16 @@ function boot() {
       const syncTab = () => { overseasTabBtn.hidden = !overseasCb.checked; };
       overseasCb.addEventListener('change', syncTab);
       syncTab();
+    }());
+
+    // Show/hide custom rich target input when "Custom" is selected
+    (function () {
+      const richSel  = document.getElementById('richTarget');
+      const richWrap = document.getElementById('richTargetCustomWrap');
+      if (!richSel || !richWrap) return;
+      const syncRich = () => { richWrap.style.display = richSel.value === 'custom' ? '' : 'none'; };
+      richSel.addEventListener('change', syncRich);
+      syncRich();
     }());
 
     // Investment property type → auto-fill strata levy default and update growth rate hint
