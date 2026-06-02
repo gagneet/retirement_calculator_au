@@ -555,7 +555,9 @@ class RetirementCalculatorApp {
         // Get raw partner values
         const partnerAgeInput = $('partnerCurrentAge');
         const partnerAgeValue = partnerAgeInput ? partnerAgeInput.value.trim() : '';
-        const isPartnerAgeEmpty = partnerAgeValue === '' || partnerAgeValue === '0';
+        const householdStatus = $('householdStatus')?.value || '';
+        const isHouseholdSingle = householdStatus === 'single';
+        const isPartnerAgeEmpty = isHouseholdSingle || partnerAgeValue === '' || partnerAgeValue === '0';
 
         // Get user age for partner calculations
         const userAge = safeGetValue('yourCurrentAge', config.personal.yourCurrentAge);
@@ -680,10 +682,10 @@ class RetirementCalculatorApp {
             agedCareAnnualCost: safeGetValue('agedCareAnnualCost', config.healthcare.agedCareAnnualCost),
 
             // Age-related optional costs (mirrors advanced-v2.html Section 13)
-            enableHomeModifications: safeGetChecked('enableHomeModifications', false),
-            homeModificationCost: safeGetValue('homeModificationCost', 25000),
-            homeModificationAge: safeGetValue('homeModificationAge', 75),
-            homeModificationRecurring: safeGetValue('homeModificationRecurring', 2000),
+            enableHomeModifications: !isNonHomeowner && safeGetChecked('enableHomeModifications', false),
+            homeModificationCost: !isNonHomeowner ? safeGetValue('homeModificationCost', 25000) : 0,
+            homeModificationAge: !isNonHomeowner ? safeGetValue('homeModificationAge', 75) : 0,
+            homeModificationRecurring: !isNonHomeowner ? safeGetValue('homeModificationRecurring', 2000) : 0,
             enableAnnuity: safeGetChecked('enableAnnuity', false),
             annuityPurchaseAge: safeGetValue('annuityPurchaseAge', 67),
             annuityLumpSum: safeGetValue('annuityLumpSum', 200000),
@@ -754,15 +756,15 @@ class RetirementCalculatorApp {
             // Australian residency history (Item 7)
             ageCameToAustralia: safeGetValue('ageCameToAustralia', 0),
             ageStartedEarningAustralia: safeGetValue('ageStartedEarningAustralia', 0),
-            partnerAgeCameToAustralia: safeGetValue('partnerAgeCameToAustralia', 0),
-            partnerAgeStartedEarningAustralia: safeGetValue('partnerAgeStartedEarningAustralia', 0),
+            partnerAgeCameToAustralia: finalPartnerAge > 0 ? safeGetValue('partnerAgeCameToAustralia', 0) : 0,
+            partnerAgeStartedEarningAustralia: finalPartnerAge > 0 ? safeGetValue('partnerAgeStartedEarningAustralia', 0) : 0,
 
             // Reduced income scenario (Item 10)
             enableReducedIncome: safeGetChecked('enableReducedIncome', false),
             reducedIncomeAge: safeGetValue('reducedIncomeAge', 0),
             reducedIncomeSalary: parseFormattedNumber(getRawValue('reducedIncomeSalary', '0')),
-            partnerReducedIncomeAge: safeGetValue('partnerReducedIncomeAge', 0),
-            partnerReducedIncomeSalary: parseFormattedNumber(getRawValue('partnerReducedIncomeSalary', '0')),
+            partnerReducedIncomeAge: finalPartnerAge > 0 ? safeGetValue('partnerReducedIncomeAge', 0) : 0,
+            partnerReducedIncomeSalary: finalPartnerAge > 0 ? parseFormattedNumber(getRawValue('partnerReducedIncomeSalary', '0')) : 0,
 
             // Carer / aged parents (Item 9)
             isCarerForParents: safeGetChecked('isCarerForParents', false),
@@ -795,11 +797,11 @@ class RetirementCalculatorApp {
 
             // Super strategy (PART 2)
             yourAdditionalSuperContribution: parseFormattedNumber(getRawValue('yourAdditionalSuperContribution', '0')),
-            partnerAdditionalSuperContribution: parseFormattedNumber(getRawValue('partnerAdditionalSuperContribution', '0')),
+            partnerAdditionalSuperContribution: finalPartnerAge > 0 ? parseFormattedNumber(getRawValue('partnerAdditionalSuperContribution', '0')) : 0,
             yourAnnualNCC: parseFormattedNumber(getRawValue('yourAnnualNCC', '0')),
             partnerAnnualNCC: finalPartnerAge > 0 ? parseFormattedNumber(getRawValue('partnerAnnualNCC', '0')) : 0,
             concessionalCapUsed: parseFormattedNumber(getRawValue('concessionalCapUsed', '0')),
-            spouseContribution: parseFormattedNumber(getRawValue('spouseContribution', '0')),
+            spouseContribution: finalPartnerAge > 0 ? parseFormattedNumber(getRawValue('spouseContribution', '0')) : 0,
             downsizeContribution: safeGetChecked('downsizeContribution', false),
 
             // Scenario mode (PART 1)
@@ -857,6 +859,31 @@ class RetirementCalculatorApp {
             // Legacy / inheritance planning
             legacyGoal: parseFormattedNumber(getRawValue('legacyGoal', '0')),
             legacyGoalType: safeGetSelectValue('legacyGoalType', 'none'),
+
+            // Optional future-asset scenarios. These are captured for scenario
+            // analysis only and do not alter the base projection unless explicitly opted in.
+            futurePropertyScenario: {
+                enabled: safeGetChecked('futurePropertyEnabled', false),
+                includeInBasePlan: safeGetChecked('futurePropertyIncludeInBase', false),
+                eventType: safeGetSelectValue('futurePropertyEventType', 'buy_primary_home'),
+                age: safeGetValue('futurePropertyAge', 0),
+                propertyValue: parseFormattedNumber(getRawValue('futurePropertyValue', '0')),
+                mortgage: parseFormattedNumber(getRawValue('futurePropertyMortgage', '0')),
+                ownershipShare: safeGetValue('futurePropertyOwnershipShare', 100) / 100,
+                roleAfterEvent: safeGetSelectValue('futurePropertyRole', 'primary_residence'),
+                scenarioOnly: !safeGetChecked('futurePropertyIncludeInBase', false)
+            },
+            inheritanceScenario: {
+                enabled: safeGetChecked('inheritanceScenarioEnabled', false),
+                includeInBasePlan: safeGetChecked('inheritanceIncludeInBase', false),
+                age: safeGetValue('inheritanceScenarioAge', 0),
+                certainty: safeGetSelectValue('inheritanceCertainty', 'speculative'),
+                type: safeGetSelectValue('inheritanceType', 'cash'),
+                grossValue: parseFormattedNumber(getRawValue('inheritanceGrossValue', '0')),
+                estimatedCosts: parseFormattedNumber(getRawValue('inheritanceEstimatedCosts', '0')),
+                use: safeGetSelectValue('inheritanceUse', 'invest'),
+                scenarioOnly: !safeGetChecked('inheritanceIncludeInBase', false)
+            },
 
             // Proposed Budget 2026-27 measures toggle
             // Default FALSE — only apply current legislated law.
@@ -1483,8 +1510,11 @@ class RetirementCalculatorApp {
     }
 
     hasPartnerDataInForm() {
+        const householdStatus = $('householdStatus')?.value;
+        if (householdStatus === 'single') return false;
+
         const partnerAgeField = $('partnerCurrentAge');
-        if (!partnerAgeField) return false;
+        if (!partnerAgeField) return householdStatus === 'couple';
 
         const numericValue = parseFormattedNumber(partnerAgeField.value);
         return partnerAgeField.value.trim() !== '' && numericValue > 0;
@@ -8816,6 +8846,11 @@ class RetirementCalculatorApp {
                     safeSetValue('monthlyMortgagePayment', 0);
                 }
 
+                const homeModSection = $('homeModificationsSection');
+                const enableHomeMods = $('enableHomeModifications');
+                if (homeModSection) homeModSection.classList.toggle('hidden', !isOwner);
+                if (!isOwner && enableHomeMods) enableHomeMods.checked = false;
+
                 this.refreshAllDerivedDefaults({ force: false });
                 this.syncTargetBuilderFromInputs();
             };
@@ -8832,7 +8867,7 @@ class RetirementCalculatorApp {
                 el.addEventListener('input', () => this.syncTargetBuilderFromInputs());
                 el.addEventListener('change', () => this.syncTargetBuilderFromInputs());
             });
-        ['partnerCurrentAge', 'yourSalary', 'partnerSalary'].forEach((id) => {
+        ['householdStatus', 'partnerCurrentAge', 'yourSalary', 'partnerSalary'].forEach((id) => {
             const el = $(id);
             if (!el) return;
             el.addEventListener('input', () => this.applyRichTargetToDesiredIncome());
@@ -9184,6 +9219,16 @@ class RetirementCalculatorApp {
             }
         });
 
+        const householdStatus = $('householdStatus');
+        if (householdStatus) {
+            householdStatus.addEventListener('change', () => {
+                this.updateClassicHouseholdVisibility();
+                this.refreshAllDerivedDefaults({ force: false });
+                this.syncTargetBuilderFromInputs();
+                this.applyRichTargetToDesiredIncome();
+            });
+        }
+
         // Partner field dependency logic
         this.setupPartnerFieldDependencies();
 
@@ -9208,6 +9253,46 @@ class RetirementCalculatorApp {
         });
     }
 
+    getClassicPartnerControlledFieldIds() {
+        return [
+            'partnerRetirementAge',
+            'partnerLifespan',
+            'partnerGender',
+            'partnerAgeCameToAustralia',
+            'partnerAgeStartedEarningAustralia',
+            'partnerSalary',
+            'partnerReducedIncomeAge',
+            'partnerReducedIncomeSalary',
+            'partnerCurrentSuper',
+            'partnerAdditionalSuperContribution',
+            'partnerAnnualNCC',
+            'spouseContribution'
+        ];
+    }
+
+    ensureClassicHouseholdVisibilityMarkers() {
+        const partnerSection = document.querySelector('.partner-subsection');
+        if (partnerSection) partnerSection.dataset.household = 'couple';
+
+        this.getClassicPartnerControlledFieldIds().forEach((fieldId) => {
+            const field = $(fieldId);
+            const wrapper = field?.closest('.super-strategy-field, .field-required, .col-span-2, div');
+            if (wrapper && !wrapper.dataset.household && wrapper !== document.body) {
+                wrapper.dataset.household = 'couple';
+            }
+        });
+    }
+
+    updateClassicHouseholdVisibility() {
+        this.ensureClassicHouseholdVisibilityMarkers();
+        const isCouple = this.hasPartnerDataInForm();
+        document.querySelectorAll('[data-household="couple"], [data-visible-when="couple"]').forEach((el) => {
+            el.hidden = !isCouple;
+            el.classList.toggle('hidden', !isCouple);
+            el.setAttribute('aria-hidden', String(!isCouple));
+        });
+    }
+
     // Setup partner field dependencies
     setupPartnerFieldDependencies() {
         const partnerAgeField = $('partnerCurrentAge');
@@ -9220,56 +9305,47 @@ class RetirementCalculatorApp {
 
         if (!partnerAgeField) return;
 
-        // Function to handle partner field clearing
         const handlePartnerDependencies = () => {
-            const partnerAge = partnerAgeField.value.trim();
-            const isPartnerAgeEmpty = partnerAge === '' || partnerAge === '0';
+            const isPartnerAgeEmpty = !this.hasPartnerDataInForm();
 
             partnerFields.forEach(fieldId => {
                 const field = $(fieldId);
-                if (field) {
-                    if (isPartnerAgeEmpty) {
-                        // Clear field values but keep them enabled
-                        field.value = '';
-                        // Add subtle styling to indicate dependency
-                        field.style.backgroundColor = '#fafafa';
-                        field.style.borderColor = '#d1d5db';
-                    } else {
-                        // Restore normal styling when partner age is provided
-                        field.style.backgroundColor = '';
-                        field.style.borderColor = '';
+                if (!field) return;
 
-                        // If field is empty after age is entered, set reasonable defaults
-                        if (field.value.trim() === '') {
-                            switch (fieldId) {
-                                case 'partnerRetirementAge':
-                                    field.value = '60';
-                                    break;
-                                case 'partnerLifespan':
-                                    field.value = '99';
-                                    break;
-                                case 'partnerSalary':
-                                    field.value = '0';
-                                    break;
-                                case 'partnerCurrentSuper':
-                                    field.value = '0';
-                                    break;
-                            }
-                        }
+                if (isPartnerAgeEmpty) {
+                    field.style.backgroundColor = '#fafafa';
+                    field.style.borderColor = '#d1d5db';
+                    return;
+                }
+
+                field.style.backgroundColor = '';
+                field.style.borderColor = '';
+
+                if (field.value.trim() === '') {
+                    switch (fieldId) {
+                        case 'partnerRetirementAge':
+                            field.value = '60';
+                            break;
+                        case 'partnerLifespan':
+                            field.value = '99';
+                            break;
+                        case 'partnerSalary':
+                        case 'partnerCurrentSuper':
+                            field.value = '0';
+                            break;
                     }
                 }
             });
+
+            this.updateClassicHouseholdVisibility();
         };
 
-        // Set up event listener on partner age field
         partnerAgeField.addEventListener('input', handlePartnerDependencies);
         partnerAgeField.addEventListener('blur', handlePartnerDependencies);
 
-        // Run immediately if elements exist, otherwise wait for DOM ready
         if (partnerAgeField && partnerFields.every(id => $(id))) {
             handlePartnerDependencies();
         } else {
-            // Fallback for cases where DOM isn't fully ready
             document.addEventListener('DOMContentLoaded', handlePartnerDependencies);
         }
     }

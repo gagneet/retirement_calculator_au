@@ -238,4 +238,59 @@ describe('Advanced page structure (advanced.html)', () => {
         const cgtContext = html.substring(Math.max(0, cgtFieldStart - 200), cgtFieldStart + 200);
         expect(cgtContext).toContain('auto-indicator-field');
     });
+
+    test('advanced classic has explicit household status and couple-gated partner sections', () => {
+        expect(html).toContain('id="householdStatus"');
+        expect(html).toContain('value="single"');
+        expect(html).toContain('value="couple" selected');
+        expect(html).toContain('class="partner-subsection" data-household="couple"');
+        expect(html).toContain('for="partnerAdditionalSuperContribution"');
+        expect(html).toContain('data-household="couple"');
+    });
+
+    test('home modification section appears once and is the homeowner-gated optional section', () => {
+        expect(html).not.toContain('Home Modifications (Aging-in-place)');
+        expect(html).toContain('id="homeModificationsSection"');
+        expect((html.match(/Home Modifications &amp; Accessibility/g) || [])).toHaveLength(1);
+        expect(html).not.toContain('id="homeModificationsCost"');
+    });
+
+    test('age-related optional cost grids wrap labels on smaller screens', () => {
+        expect(html).toContain('id="annuityFields" style="display:none" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2"');
+        expect(html).toContain('id="tieredSpendingFields" style="display:none" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2"');
+        expect(html).toContain('id="homeModsFields" style="display:none" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2"');
+    });
+
+    test('future property and inheritance scenario scaffolds are opt-in for base inclusion', () => {
+        expect(html).toContain('id="futurePropertyEventsSection"');
+        expect(html).toContain('id="futurePropertyIncludeInBase"');
+        expect(html).toContain('id="inheritanceScenarioSection"');
+        expect(html).toContain('id="inheritanceIncludeInBase"');
+        expect(html).toContain('do not improve the base projection unless you explicitly include them in the base plan');
+        expect(html).toContain('Australia does not currently have a general inheritance tax');
+        expect(html).not.toContain('id="futurePropertyIncludeInBase" checked');
+        expect(html).not.toContain('id="inheritanceIncludeInBase" checked');
+    });
+});
+
+
+describe('Advanced v2 future scenario scaffolds', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const files = [
+        '../../src/advanced-v2.html',
+        '../../src/v2/src/advanced-v2.html',
+    ];
+
+    test.each(files)('%s includes scenario-only future property and inheritance sections', (relativePath) => {
+        const v2Html = fs.readFileSync(path.join(__dirname, relativePath), 'utf-8');
+        expect(v2Html).toContain('Future Property Events');
+        expect(v2Html).toContain('id="futurePropertyIncludeInBase"');
+        expect(v2Html).toContain('Expected Inheritance / Windfall');
+        expect(v2Html).toContain('id="inheritanceIncludeInBase"');
+        expect(v2Html).toContain('data-scenario-only="true"');
+        expect(v2Html).toContain('Australia does not currently have a general inheritance tax');
+        expect(v2Html).not.toContain('id="futurePropertyIncludeInBase" type="checkbox" checked');
+        expect(v2Html).not.toContain('id="inheritanceIncludeInBase" type="checkbox" checked');
+    });
 });

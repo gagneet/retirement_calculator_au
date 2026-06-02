@@ -632,3 +632,53 @@ describe('advanced-v2 engine adapter', () => {
         expect(body.getAttribute('aria-hidden')).toBe('false');
     });
 });
+
+
+describe('advanced-v2 optional future asset scenario scaffold', () => {
+    test('future property and inheritance metadata default to scenario-only and do not alter base assets', () => {
+        const base = buildEngineInputs(buildRedesignInputs({
+            household: 'single',
+            homeValue: 0,
+            mortgage: 0,
+            residenceType: 'renting',
+            cash: 50000,
+            stocks: 40000,
+        }));
+        const withSpeculativeInheritance = buildEngineInputs(buildRedesignInputs({
+            household: 'single',
+            homeValue: 0,
+            mortgage: 0,
+            residenceType: 'renting',
+            cash: 50000,
+            stocks: 40000,
+            inheritanceScenario: {
+                enabled: true,
+                includeInBasePlan: false,
+                scenarioOnly: true,
+                certainty: 'speculative',
+                type: 'cash',
+                grossValue: 500000,
+                estimatedCosts: 0,
+                use: 'invest',
+            },
+            futurePropertyScenario: {
+                enabled: true,
+                includeInBasePlan: false,
+                scenarioOnly: true,
+                eventType: 'inherit_primary_home',
+                propertyValue: 900000,
+                mortgage: 0,
+                roleAfterEvent: 'primary_residence',
+            },
+        }));
+
+        expect(withSpeculativeInheritance.inheritanceScenario.includeInBasePlan).toBe(false);
+        expect(withSpeculativeInheritance.inheritanceScenario.scenarioOnly).toBe(true);
+        expect(withSpeculativeInheritance.futurePropertyScenario.includeInBasePlan).toBe(false);
+        expect(withSpeculativeInheritance.futurePropertyScenario.scenarioOnly).toBe(true);
+        expect(withSpeculativeInheritance.currentSavings).toBe(base.currentSavings);
+        expect(withSpeculativeInheritance.currentStocks).toBe(base.currentStocks);
+        expect(withSpeculativeInheritance.homeowner).toBe(base.homeowner);
+        expect(withSpeculativeInheritance.homeValue).toBe(base.homeValue);
+    });
+});

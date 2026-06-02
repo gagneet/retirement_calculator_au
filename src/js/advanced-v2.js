@@ -510,6 +510,8 @@ function buildEngineInputs(inp) {
     annualHobbyBudget: 0,
     legacyGoal: inp.legacyGoal || 0,
     legacyGoalType: inp.legacyGoalType || 'none',
+    futurePropertyScenario: inp.futurePropertyScenario || { enabled: false, includeInBasePlan: false, scenarioOnly: true },
+    inheritanceScenario: inp.inheritanceScenario || { enabled: false, includeInBasePlan: false, scenarioOnly: true },
     enableProposedBudget2026: inp.budget2627,
 
     homeModificationsCost: inp.homeModBudget,
@@ -1051,6 +1053,28 @@ function readInputs() {
     builderBuffer: num('builderBuffer', 10),
     legacyGoal: num('legacyGoal', 0),
     legacyGoalType: val('legacyGoalType', 'none'),
+    futurePropertyScenario: {
+      enabled: chk('futurePropertyEnabled'),
+      includeInBasePlan: chk('futurePropertyIncludeInBase'),
+      eventType: val('futurePropertyEventType', 'buy_primary_home'),
+      age: num('futurePropertyAge', 0),
+      propertyValue: num('futurePropertyValue', 0),
+      mortgage: num('futurePropertyMortgage', 0),
+      ownershipShare: num('futurePropertyOwnershipShare', 100) / 100,
+      roleAfterEvent: val('futurePropertyRole', 'primary_residence'),
+      scenarioOnly: !chk('futurePropertyIncludeInBase'),
+    },
+    inheritanceScenario: {
+      enabled: chk('inheritanceScenarioEnabled'),
+      includeInBasePlan: chk('inheritanceIncludeInBase'),
+      age: num('inheritanceScenarioAge', 0),
+      certainty: val('inheritanceCertainty', 'speculative'),
+      type: val('inheritanceType', 'cash'),
+      grossValue: num('inheritanceGrossValue', 0),
+      estimatedCosts: num('inheritanceEstimatedCosts', 0),
+      use: val('inheritanceUse', 'invest'),
+      scenarioOnly: !chk('inheritanceIncludeInBase'),
+    },
 
     // Healthcare
     hasPrivateHospital: chk('hasPrivateHospital'),

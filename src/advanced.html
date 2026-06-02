@@ -2021,9 +2021,17 @@
                     </select>
                     <p class="mt-1 text-xs text-gray-500">Used only when Monte Carlo longevity distribution mode is enabled. Female life tables → mean ~87; Male → mean ~84 (ABS 2020-22).</p>
                 </div>
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium text-gray-700" for="householdStatus">Household Status</label>
+                    <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="householdStatus">
+                        <option value="single">Single</option>
+                        <option value="couple" selected>Couple</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Selecting Single hides partner/spouse fields and excludes partner values from calculations. Switching back to Couple restores the existing field values.</p>
+                </div>
 
                 <!-- PARTNER details subsection -->
-                <div class="partner-subsection">
+                <div class="partner-subsection" data-household="couple">
                     <div class="partner-subsection-label">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -2690,7 +2698,7 @@
                         Your current super balance is the starting point for compound growth. At 7.5% p.a., $100k today becomes ~$200k in 10 years without any new contributions. Super is taxed at 15% in accumulation and is tax-free from age 60 in pension phase — the tax advantages make it your most efficient retirement vehicle. It also affects the Age Pension income test through deeming (1.25% on first $64,200, 3.25% above).
                     </div>
                 </div>
-                <div>
+                <div data-household="couple">
                     <label class="block text-sm font-medium text-gray-700" for="partnerCurrentSuper">Partner's Current
                         Superannuation ($)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerCurrentSuper" type="text"
@@ -2718,7 +2726,7 @@
                                value="0" min="0" max="30000">
                         <p class="mt-1 text-xs text-gray-500" id="yourAdditionalSuperContributionHint">Pre-tax salary sacrifice on top of employer SG. Total concessional capped at $30,000/year. Reduces your taxable income.</p>
                     </div>
-                    <div class="super-strategy-field auto-indicator-field">
+                    <div class="super-strategy-field auto-indicator-field" data-household="couple">
                         <div class="label-with-tooltip">
                             <label class="block text-sm font-medium text-gray-700" for="partnerAdditionalSuperContribution">Partner Annual Salary Sacrifice / Voluntary Super ($)</label>
                             <div class="tooltip">
@@ -2752,7 +2760,7 @@
                                value="0" min="0" placeholder="e.g. 30000">
                         <p class="mt-1 text-xs text-gray-500">After-tax contributions. Capped at $120k/year; bring-forward allows up to $360k in a single year if TSB &lt; $1.66M.</p>
                     </div>
-                    <div class="super-strategy-field">
+                    <div class="super-strategy-field" data-household="couple">
                         <div class="label-with-tooltip">
                             <label class="block text-sm font-medium text-gray-700" for="partnerAnnualNCC">Partner Annual After-Tax Super Contribution / NCC ($)</label>
                             <div class="tooltip">
@@ -3745,23 +3753,6 @@
                                value="75000" min="0">
                     </div>
 
-                    <!-- Age-related adjustments (Home Mods) -->
-                    <div class="mt-6 pt-4 border-t border-gray-200">
-                        <h4 class="text-sm font-semibold text-gray-800 mb-3">Home Modifications (Aging-in-place)</h4>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700" for="homeModificationsCost">One-off Cost ($)</label>
-                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="homeModificationsCost" type="text" value="30000" min="0">
-                                <p class="text-xs text-gray-500 mt-1">Default $30k for ramps, rails, etc.</p>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700" for="homeModificationsAge">Age Occurring</label>
-                                <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="homeModificationsAge" type="number" value="75" min="50">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Age-Related Optional Costs (mirrors advanced-v2.html Section 13) -->
                 <div class="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
                     <h4 class="text-sm font-semibold text-orange-800 mb-3">Age-Related Optional Costs
@@ -3770,12 +3761,12 @@
                     <p class="text-xs text-orange-700 mb-3">Toggle the scenarios you want to model. Costs are applied in the simulation when the trigger age is reached. If downsizing to a newer/strata property is planned, maintenance costs may drop but body-corporate fees may apply.</p>
 
                     <!-- Home Modifications -->
-                    <div class="mb-3 p-3 bg-white border border-orange-100 rounded">
+                    <div class="mb-3 p-3 bg-white border border-orange-100 rounded" id="homeModificationsSection">
                         <label class="flex items-center gap-2 font-medium text-sm text-gray-700 mb-2">
                             <input type="checkbox" id="enableHomeModifications" class="rounded border-gray-300 text-orange-500">
                             🏠 Home Modifications &amp; Accessibility
                         </label>
-                        <div id="homeModsFields" style="display:none" class="grid grid-cols-2 gap-2 mt-2">
+                        <div id="homeModsFields" style="display:none" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                             <div>
                                 <label class="block text-xs font-medium text-gray-700" for="homeModificationCost">One-off Modification Cost ($)</label>
                                 <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="homeModificationCost" type="text" value="25000" min="0" placeholder="e.g. 25000">
@@ -3800,7 +3791,7 @@
                             <input type="checkbox" id="enableAnnuity" class="rounded border-gray-300 text-orange-500">
                             🛡️ Longevity Insurance / Annuity
                         </label>
-                        <div id="annuityFields" style="display:none" class="grid grid-cols-2 gap-2 mt-2">
+                        <div id="annuityFields" style="display:none" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                             <div>
                                 <label class="block text-xs font-medium text-gray-700" for="annuityPurchaseAge">Purchase Age</label>
                                 <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="annuityPurchaseAge" type="text" value="67" min="55" max="80" placeholder="e.g. 67">
@@ -3826,7 +3817,7 @@
                             📉 Tiered Spending Stages
                         </label>
                         <p class="text-xs text-gray-500 mb-2">Research shows retirement spending typically follows an Active → Stable → Frail pattern, falling in the middle years before rising for late-life care.</p>
-                        <div id="tieredSpendingFields" style="display:none" class="grid grid-cols-2 gap-2 mt-2">
+                        <div id="tieredSpendingFields" style="display:none" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                             <div>
                                 <label class="block text-xs font-medium text-gray-700" for="tieredSpendingActiveAge">Active Phase End Age</label>
                                 <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="tieredSpendingActiveAge" type="text" value="75" min="60" max="85" placeholder="e.g. 75">
@@ -3904,6 +3895,47 @@
                     <label class="block text-xs font-medium text-gray-700" for="builderBuffer">Lifestyle / Travel Uplift (%)</label>
                     <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="builderBuffer" type="number" value="10" min="0" max="50">
                     <p class="mt-1 text-xs text-gray-500">Separate uplift added to your desired annual income target.</p>
+                </div>
+
+
+                <div class="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-lg" id="futurePropertyEventsSection">
+                    <h3 class="text-sm font-semibold text-slate-900 mb-2">Future Property Events <span class="section-badge badge-optional ml-2">Scenario only</span></h3>
+                    <p class="text-xs text-slate-600 mb-3">Optional scenario modelling for buying, inheriting, selling, or paying off property later. These events do not improve the base projection unless you explicitly include them in the base plan.</p>
+                    <label class="flex items-center gap-2 text-sm text-gray-700 mb-3">
+                        <input type="checkbox" id="futurePropertyEnabled" class="rounded border-gray-300 text-indigo-600"> Enable future property event
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-gray-700 mb-3">
+                        <input type="checkbox" id="futurePropertyIncludeInBase" class="rounded border-gray-300 text-indigo-600"> Include this event in base projection
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div><label class="block text-xs font-medium text-gray-700" for="futurePropertyEventType">Event type</label><select id="futurePropertyEventType" class="mt-1 block w-full rounded-md border-gray-300 text-sm"><option value="buy_primary_home">Buy primary home</option><option value="inherit_primary_home">Inherit primary home</option><option value="buy_investment_property">Buy investment property</option><option value="inherit_investment_property">Inherit investment property</option><option value="sell_property">Sell property</option><option value="pay_off_mortgage">Pay off mortgage</option></select></div>
+                        <div><label class="block text-xs font-medium text-gray-700" for="futurePropertyAge">Expected age</label><input id="futurePropertyAge" class="mt-1 block w-full rounded-md border-gray-300 text-sm" type="number" min="18" max="120" value="0"></div>
+                        <div><label class="block text-xs font-medium text-gray-700" for="futurePropertyValue">Property value at event ($)</label><input id="futurePropertyValue" class="mt-1 block w-full rounded-md border-gray-300 text-sm" type="text" value="0"></div>
+                        <div><label class="block text-xs font-medium text-gray-700" for="futurePropertyMortgage">Mortgage at event ($)</label><input id="futurePropertyMortgage" class="mt-1 block w-full rounded-md border-gray-300 text-sm" type="text" value="0"></div>
+                        <div><label class="block text-xs font-medium text-gray-700" for="futurePropertyOwnershipShare">Ownership share (%)</label><input id="futurePropertyOwnershipShare" class="mt-1 block w-full rounded-md border-gray-300 text-sm" type="number" min="0" max="100" value="100"></div>
+                        <div><label class="block text-xs font-medium text-gray-700" for="futurePropertyRole">Role after event</label><select id="futurePropertyRole" class="mt-1 block w-full rounded-md border-gray-300 text-sm"><option value="primary_residence">Primary residence</option><option value="investment_property">Investment property</option><option value="sell_immediately">Sell immediately</option><option value="hold_then_sell">Hold then sell</option></select></div>
+                    </div>
+                    <p class="mt-3 text-xs text-amber-700">Inherited property and sale events can affect Age Pension means tests, CGT and cashflow. This scaffold does not provide tax advice or alter the base plan by default.</p>
+                </div>
+
+                <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg" id="inheritanceScenarioSection">
+                    <h3 class="text-sm font-semibold text-yellow-900 mb-2">Expected Inheritance / Windfall <span class="section-badge badge-optional ml-2">Scenario only</span></h3>
+                    <p class="text-xs text-yellow-800 mb-3">This is optional scenario modelling only. Australia does not currently have a general inheritance tax, but inherited assets may affect Age Pension means testing, CGT if sold later, tax on some income, and super death-benefit treatment. Seek tax, estate-planning, and financial advice.</p>
+                    <label class="flex items-center gap-2 text-sm text-gray-700 mb-3">
+                        <input type="checkbox" id="inheritanceScenarioEnabled" class="rounded border-gray-300 text-yellow-600"> Enable inheritance scenario
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-gray-700 mb-3">
+                        <input type="checkbox" id="inheritanceIncludeInBase" class="rounded border-gray-300 text-yellow-600"> Include this inheritance in base projection
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div><label class="block text-xs font-medium text-gray-700" for="inheritanceScenarioAge">Expected age</label><input id="inheritanceScenarioAge" class="mt-1 block w-full rounded-md border-gray-300 text-sm" type="number" min="18" max="120" value="0"></div>
+                        <div><label class="block text-xs font-medium text-gray-700" for="inheritanceCertainty">Certainty</label><select id="inheritanceCertainty" class="mt-1 block w-full rounded-md border-gray-300 text-sm"><option value="speculative" selected>Speculative</option><option value="likely">Likely</option><option value="confirmed">Confirmed</option></select></div>
+                        <div><label class="block text-xs font-medium text-gray-700" for="inheritanceType">Type</label><select id="inheritanceType" class="mt-1 block w-full rounded-md border-gray-300 text-sm"><option value="cash">Cash</option><option value="bank_deposit">Bank deposit</option><option value="shares_etfs">Shares / ETFs</option><option value="managed_funds">Managed funds</option><option value="primary_home">Primary home</option><option value="investment_property">Investment property</option><option value="super_death_benefit">Super death benefit</option><option value="mixed">Mixed estate</option></select></div>
+                        <div><label class="block text-xs font-medium text-gray-700" for="inheritanceGrossValue">Gross estimated value ($)</label><input id="inheritanceGrossValue" class="mt-1 block w-full rounded-md border-gray-300 text-sm" type="text" value="0"></div>
+                        <div><label class="block text-xs font-medium text-gray-700" for="inheritanceEstimatedCosts">Estimated tax/transaction cost placeholder ($)</label><input id="inheritanceEstimatedCosts" class="mt-1 block w-full rounded-md border-gray-300 text-sm" type="text" value="0"></div>
+                        <div><label class="block text-xs font-medium text-gray-700" for="inheritanceUse">Use of inheritance</label><select id="inheritanceUse" class="mt-1 block w-full rounded-md border-gray-300 text-sm"><option value="invest">Invest</option><option value="pay_down_mortgage">Pay down mortgage</option><option value="buy_home">Buy home</option><option value="supplement_retirement_income">Supplement retirement income</option><option value="hold_cash">Hold cash</option><option value="sell_property">Sell property</option></select></div>
+                    </div>
+                    <p class="mt-3 text-xs text-yellow-800">TODO: add official ATO deceased estate / inherited property CGT source mapping before tax treatment is modelled.</p>
                 </div>
 
                 <!-- Longevity Insurance (Annuity) -->

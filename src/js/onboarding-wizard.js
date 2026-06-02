@@ -36,6 +36,31 @@ export function normalizePercentForEngine(value) {
     return Math.abs(n) >= 1 ? n / 100 : n;
 }
 
+export function normalizeSimpleAnnualRate(value, {
+    fallback = 0,
+    min = -0.2,
+    max = 0.2,
+    label = 'annual rate',
+} = {}) {
+    const parsed = parsePercentInput(value);
+    if (parsed === null) return fallback;
+    const normalized = normalizePercentForEngine(parsed);
+    if (!Number.isFinite(normalized)) return fallback;
+
+    if (normalized < min || normalized > max) {
+        console.warn(`[onboarding] ${label} ${normalized} outside expected range; clamped to ${min}..${max}`);
+        return Math.min(max, Math.max(min, normalized));
+    }
+
+    return normalized;
+}
+
+function formatSimpleRate(value, decimals = 2) {
+    const rate = normalizePercentForEngine(value);
+    if (!Number.isFinite(rate)) return `${(0).toFixed(decimals)}%`;
+    return `${(rate * 100).toFixed(decimals)}%`;
+}
+
 export function getSimpleTargetConfig(config = {}) {
     return config.SIMPLE_RETIREMENT_TARGETS || DEFAULT_SIMPLE_TARGETS;
 }
@@ -173,7 +198,9 @@ export class OnboardingWizard {
                 emergencyFund: defaults.financial.currentSavings
             },
             property: {
-                homeStatus: 'own', // 'own', 'rent', 'none'
+                homeStatus: 'own', // 'own', 'mortgage', 'rent', 'family'
+                monthlyRent: 0,
+                monthlyBoard: 0,
                 homeDetails: {
                     purchasePrice: defaults.property.homeValue - 200000, // Estimated purchase price
                     currentValue: defaults.property.homeValue,
@@ -928,15 +955,15 @@ export class OnboardingWizard {
                         ` : ''}
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">💰 Monthly Savings Rate</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">💰 Monthly Savings Rate (%) - general saving habit</label>
                             ${this.createEnhancedInput('finances-savings-rate', finances.savingsRate ?? 15, 'percentage', {
             min: 0,
             max: 100,
-            tooltip: 'Percentage of after-tax income saved monthly',
+            tooltip: 'Percentage of income saved monthly. Used for spare cash behaviour, not share portfolio growth when an explicit investment contribution is entered.',
             placeholder: '15.0',
             gamingLevel: 2
         })}
-                            <p class="text-xs text-gray-500 mt-1">📊 Typical range: 10-20% for retirement planning</p>
+                            <p class="text-xs text-gray-500 mt-1">Savings rate estimates spare cash/savings behaviour. It is not double-counted as investment growth when you enter an explicit investment contribution.</p>
                         </div>
                     </div>
 
@@ -957,17 +984,17 @@ export class OnboardingWizard {
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">🏢 Annual Employer Contributions</label>
-                            <div class="relative group">
+                            <div class="input-with-affix inline-flex w-full max-w-[260px] items-center overflow-hidden bg-gray-100 border-2 border-gray-300 rounded-lg">
+                                <span class="prefix flex-none px-3 text-gray-500 text-sm font-semibold pointer-events-none select-none border-r border-gray-200">$</span>
                                 <input
                                     type="text"
                                     id="finances-employer-contrib"
                                     value="${formatNumber(finances.superannuation.employerContributions)}"
                                     maxlength="14"
-                                    class="w-full max-w-[140px] pl-7 pr-3 py-2 text-sm font-mono text-right bg-gray-100 border-2 border-gray-300 rounded-lg cursor-not-allowed"
+                                    class="min-w-0 flex-1 px-3 py-2 text-sm font-mono text-right bg-transparent cursor-not-allowed focus:outline-none"
                                     readonly
                                     title="Automatically calculated as 12% of your salary (Super Guarantee)"
                                 />
-                                <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm font-bold pointer-events-none">$</div>
                             </div>
                             <p class="text-xs text-gray-500 mt-1">⚡ Automatically calculated as 12% of salary</p>
                         </div>
@@ -1002,6 +1029,11 @@ export class OnboardingWizard {
                 <div class="mt-10">
                     <h3 class="text-lg font-semibold text-gray-800 mb-6">Savings & Other Investments</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        ${(Number(finances.savingsRate ?? 0) > 0 && Number(finances.otherInvestments.monthlyContribution ?? 0) > 0) ? `
+                        <div class="md:col-span-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                            We will use the explicit investment contribution for investment growth and treat the savings rate as general cash surplus only.
+                        </div>
+                        ` : ''}
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">🛡️ Emergency Fund (Cash Savings)</label>
                             ${this.createEnhancedInput('finances-emergency-fund', finances.emergencyFund, 'currency', {
@@ -1025,14 +1057,14 @@ export class OnboardingWizard {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">📅 Monthly Investment Contribution</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">📅 Monthly Investment Contribution ($) - amount invested outside super</label>
                             ${this.createEnhancedInput('finances-monthly-investment', finances.otherInvestments.monthlyContribution, 'currency', {
             min: 0,
-            tooltip: 'How much you invest monthly outside of superannuation in shares, ETFs, etc.',
+            tooltip: 'Explicit monthly amount invested outside superannuation in shares, ETFs, managed funds or similar assets.',
             placeholder: '1,000',
             gamingLevel: 2
         })}
-                            <p class="text-xs text-gray-500 mt-1">📊 Regular monthly investments outside superannuation</p>
+                            <p class="text-xs text-gray-500 mt-1">Investment contribution feeds non-super investment growth. If both fields are entered, this explicit amount drives investment growth and savings rate remains a general cash-surplus habit.</p>
                         </div>
                     </div>
                 </div>
@@ -1083,7 +1115,7 @@ export class OnboardingWizard {
                     <!-- Home Status -->
                     <div>
                         <h3 class="text-lg font-semibold text-gray-800 mb-4">Primary Residence</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <label class="radio-card">
                                 <input type="radio" name="home-status" value="own" ${property.homeStatus === 'own' ? 'checked' : ''}>
                                 <div class="radio-content">
@@ -1105,14 +1137,22 @@ export class OnboardingWizard {
                                 <div class="radio-content">
                                     <div class="text-2xl">🏢</div>
                                     <div class="text-sm font-medium">Renting</div>
-                                    <div class="text-xs text-gray-500">Don't own property</div>
+                                    <div class="text-xs text-gray-500">Monthly rent</div>
+                                </div>
+                            </label>
+                            <label class="radio-card">
+                                <input type="radio" name="home-status" value="family" ${property.homeStatus === 'family' ? 'checked' : ''}>
+                                <div class="radio-content">
+                                    <div class="text-2xl">🏡</div>
+                                    <div class="text-sm font-medium">Living with family</div>
+                                    <div class="text-xs text-gray-500">Board or contribution</div>
                                 </div>
                             </label>
                         </div>
                     </div>
 
                     <!-- Home Details (shown if own/mortgage) -->
-                    <div id="home-details" class="${property.homeStatus === 'rent' ? 'hidden' : ''}">
+                    <div id="home-details" class="${['rent', 'family'].includes(property.homeStatus) ? 'hidden' : ''}">
                         <h4 class="text-md font-semibold text-gray-700 mb-4">Home Details</h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
@@ -1155,6 +1195,33 @@ export class OnboardingWizard {
             gamingLevel: 2
         })}
                                 <p class="text-xs text-gray-500 mt-1">📊 Current interest rate on your home loan</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Renting / family housing costs -->
+                    <div id="rent-details" class="${['rent', 'family'].includes(property.homeStatus) ? '' : 'hidden'}">
+                        <h4 class="text-md font-semibold text-gray-700 mb-4">Housing Costs</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div id="monthly-rent-field" class="${property.homeStatus === 'rent' ? '' : 'hidden'}">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">🏢 Monthly Rent</label>
+                                ${this.createEnhancedInput('property-monthly-rent', property.monthlyRent ?? 0, 'currency', {
+            min: 0,
+            tooltip: 'Current monthly rent for your primary residence. Used for expenses and retirement target estimates.',
+            placeholder: '2,400',
+            gamingLevel: 2
+        })}
+                                <p class="text-xs text-gray-500 mt-1">Renting sets homeowner=false for pension modelling and excludes home equity.</p>
+                            </div>
+                            <div id="monthly-board-field" class="${property.homeStatus === 'family' ? '' : 'hidden'}">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">🏡 Monthly Board / Family Contribution</label>
+                                ${this.createEnhancedInput('property-monthly-board', property.monthlyBoard ?? 0, 'currency', {
+            min: 0,
+            tooltip: 'Optional monthly contribution paid while living with family.',
+            placeholder: '800',
+            gamingLevel: 2
+        })}
+                                <p class="text-xs text-gray-500 mt-1">Living with family sets homeowner=false and excludes home equity.</p>
                             </div>
                         </div>
                     </div>
@@ -1469,9 +1536,9 @@ export class OnboardingWizard {
                             <div class="space-y-2 text-sm">
                                 <div class="flex justify-between">
                                     <span>Home Status:</span>
-                                    <span class="font-medium capitalize">${data.property.homeStatus === 'own' ? 'Own Home' : data.property.homeStatus === 'mortgage' ? 'Paying Mortgage' : 'Renting'}</span>
+                                    <span class="font-medium capitalize">${data.property.homeStatus === 'own' ? 'Own Home' : data.property.homeStatus === 'mortgage' ? 'Paying Mortgage' : data.property.homeStatus === 'family' ? 'Living with family' : 'Renting'}</span>
                                 </div>
-                                ${data.property.homeStatus !== 'rent' ? `
+                                ${!['rent', 'family'].includes(data.property.homeStatus) ? `
                                     <div class="flex justify-between">
                                         <span>Home Value:</span>
                                         <span class="font-medium">${formatCurrency(data.property.homeDetails.currentValue)}</span>
@@ -1621,21 +1688,30 @@ export class OnboardingWizard {
         homeStatusRadios.forEach(radio => {
             radio.addEventListener('change', (e) => {
                 const homeDetails = $('home-details');
+                const rentDetails = $('rent-details');
+                const rentField = $('monthly-rent-field');
+                const boardField = $('monthly-board-field');
                 const loanField = $('loan-remaining-field');
                 const rateField = $('home-loan-rate-field');
+                const status = e.target.value;
+                const isNonOwner = status === 'rent' || status === 'family';
 
-                if (e.target.value === 'rent') {
-                    homeDetails.classList.add('hidden');
+                if (homeDetails) homeDetails.classList.toggle('hidden', isNonOwner);
+                if (rentDetails) rentDetails.classList.toggle('hidden', !isNonOwner);
+                if (rentField) rentField.classList.toggle('hidden', status !== 'rent');
+                if (boardField) boardField.classList.toggle('hidden', status !== 'family');
+
+                if (status === 'own') {
+                    if (loanField) loanField.classList.add('hidden');
+                    if (rateField) rateField.classList.add('hidden');
+                    safeSetValue('property-loan-remaining', 0);
+                } else if (status === 'mortgage') {
+                    if (loanField) loanField.classList.remove('hidden');
+                    if (rateField) rateField.classList.remove('hidden');
                 } else {
-                    homeDetails.classList.remove('hidden');
-                    if (e.target.value === 'own') {
-                        loanField.classList.add('hidden');
-                        if (rateField) rateField.classList.add('hidden');
-                        safeSetValue('property-loan-remaining', 0);
-                    } else { // mortgage
-                        loanField.classList.remove('hidden');
-                        if (rateField) rateField.classList.remove('hidden');
-                    }
+                    if (loanField) loanField.classList.add('hidden');
+                    if (rateField) rateField.classList.add('hidden');
+                    safeSetValue('property-loan-remaining', 0);
                 }
             });
         });
@@ -1974,6 +2050,8 @@ export class OnboardingWizard {
         this.data.property.homeDetails.currentValue = readOptionalNumber('property-current-value') ?? this.data.property.homeDetails.currentValue;
         this.data.property.homeDetails.loanRemaining = readOptionalNumber('property-loan-remaining') ?? this.data.property.homeDetails.loanRemaining;
         this.data.property.homeDetails.loanRate = readOptionalNumber('property-loan-rate') ?? this.data.property.homeDetails.loanRate;
+        this.data.property.monthlyRent = readOptionalNumber('property-monthly-rent') ?? this.data.property.monthlyRent ?? 0;
+        this.data.property.monthlyBoard = readOptionalNumber('property-monthly-board') ?? this.data.property.monthlyBoard ?? 0;
 
         // Investment property fields
         const hasInvestmentCheckbox = document.querySelector('#has-investment-property');
@@ -2177,31 +2255,31 @@ export class OnboardingWizard {
                         <div class="space-y-1 text-xs text-gray-700">
                             <div class="flex justify-between">
                                 <span>Inflation Rate:</span>
-                                <span class="font-medium">${(Number(this.config.DEFAULTS.economic.inflation) * 100).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${formatSimpleRate(this.config.DEFAULTS.economic.inflation)} p.a.</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Super Growth Rate:</span>
-                                <span class="font-medium">${(Number(this.config.DEFAULTS.economic.superReturn) * 100).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${formatSimpleRate(this.config.DEFAULTS.economic.superReturn)} p.a.</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Investment Return:</span>
-                                <span class="font-medium">${(Number(this.config.DEFAULTS.economic.investmentReturn) * 100).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${formatSimpleRate(this.config.DEFAULTS.economic.investmentReturn)} p.a.</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Savings Return:</span>
-                                <span class="font-medium">${(Number(this.config.DEFAULTS.economic.savingsReturn) * 100).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${formatSimpleRate(this.config.DEFAULTS.economic.savingsReturn)} p.a.</span>
                             </div>
                         </div>
                     </div>
 
-                    ${this.data.property.homeStatus !== 'rent' || this.data.property.investmentProperty.hasInvestment ? `
+                    ${!['rent', 'family'].includes(this.data.property.homeStatus) || this.data.property.investmentProperty.hasInvestment ? `
                     <div class="bg-white/70 p-4 rounded-lg">
                         <h4 class="font-semibold text-purple-800 mb-2">Property Parameters</h4>
                         <div class="space-y-1 text-xs text-gray-700">
-                            ${this.data.property.homeStatus !== 'rent' ? `
+                            ${!['rent', 'family'].includes(this.data.property.homeStatus) ? `
                             <div class="flex justify-between">
                                 <span>Home Value Growth:</span>
-                                <span class="font-medium">${(Number(this.config.DEFAULTS.property.propertyGrowthRate) * 100).toFixed(2)}% p.a.</span>
+                                <span class="font-medium">${formatSimpleRate(this.config.DEFAULTS.property.propertyGrowthRate)} p.a.</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Current Mortgage:</span>
@@ -2294,7 +2372,7 @@ export class OnboardingWizard {
 
                 <div class="mt-4 p-3 bg-white/50 rounded border border-purple-300">
                     <p class="text-xs text-gray-700 leading-relaxed">
-                        <strong>Methodology:</strong> Using inflation of ${(this.config.DEFAULTS.economic.inflation * 100).toFixed(2)}%, with ${this.data.property.homeStatus !== 'rent' ? `a mortgage rate of ${this.data.property.homeDetails.loanRate.toFixed(2)}% and remaining mortgage of $${this.data.property.homeDetails.loanRemaining.toLocaleString()}` : 'no mortgage'}, ${this.data.property.investmentProperty.hasInvestment ? `investment property held for ${basicResults.yearsToRetirement} years growing at ${(this.config.DEFAULTS.property.propertyGrowthRate * 100).toFixed(2)}%` : 'no investment property'}, superannuation growing at ${(this.config.DEFAULTS.economic.superReturn * 100).toFixed(2)}% with $${(this.data.finances.superannuation.employerContributions + this.data.finances.superannuation.voluntaryContributions).toLocaleString()} annual contributions over ${basicResults.yearsToRetirement} years, investments growing at ${(this.config.DEFAULTS.economic.investmentReturn * 100).toFixed(2)}%, and healthcare inflation at ${(this.config.DEFAULTS.healthcare.healthcareInflation * 100).toFixed(2)}%. Age Pension eligibility based on ${basicResults.maritalStatus !== 'single' ? 'couple' : 'single'} asset test thresholds and income deeming rates from Services Australia (Sept 2025). Aged care costs projected with ${(this.config.DEFAULTS.healthcare.agedCareProbability * 100).toFixed(0)}% probability starting around age ${this.config.DEFAULTS.healthcare.agedCareStartAge}.
+                        <strong>Methodology:</strong> Using inflation of ${formatSimpleRate(this.config.DEFAULTS.economic.inflation)}, with ${!['rent', 'family'].includes(this.data.property.homeStatus) ? `a mortgage rate of ${formatSimpleRate(this.data.property.homeDetails.loanRate)} and remaining mortgage of $${this.data.property.homeDetails.loanRemaining.toLocaleString()}` : 'no mortgage'}, ${this.data.property.investmentProperty.hasInvestment ? `investment property held for ${basicResults.yearsToRetirement} years growing at ${formatSimpleRate(this.config.DEFAULTS.property.propertyGrowthRate)}` : 'no investment property'}, superannuation growing at ${formatSimpleRate(this.config.DEFAULTS.economic.superReturn)} with $${(this.data.finances.superannuation.employerContributions + this.data.finances.superannuation.voluntaryContributions).toLocaleString()} annual contributions over ${basicResults.yearsToRetirement} years, investments growing at ${formatSimpleRate(this.config.DEFAULTS.economic.investmentReturn)}, and healthcare inflation at ${formatSimpleRate(this.config.DEFAULTS.healthcare.healthcareInflation)}. Age Pension eligibility based on ${basicResults.maritalStatus !== 'single' ? 'couple' : 'single'} asset test thresholds and income deeming rates from Services Australia (Sept 2025). Aged care costs projected with ${formatSimpleRate(this.config.DEFAULTS.healthcare.agedCareProbability, 0)} probability starting around age ${this.config.DEFAULTS.healthcare.agedCareStartAge}.
                     </p>
                 </div>
             </div>
@@ -2533,10 +2611,16 @@ export class OnboardingWizard {
             const monthlyMortgage = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, loanTermMonths)) / (Math.pow(1 + monthlyRate, loanTermMonths) - 1);
             calculatedExpenses += monthlyMortgage;
         } else if (data.property.homeStatus === 'rent') {
-            // Estimate rent based on location
-            const avgMortgage = this.config.financials.cashFlowAnalysis.AVERAGE_HOUSING_COSTS.MORTGAGE_MONTHLY.value;
-            const rentMultiplier = this.config.financials.cashFlowAnalysis.AVERAGE_HOUSING_COSTS.RENT_ESTIMATION.value;
-            calculatedExpenses += avgMortgage * rentMultiplier;
+            const explicitRent = Number(data.property.monthlyRent ?? 0);
+            if (explicitRent > 0) {
+                calculatedExpenses += explicitRent;
+            } else {
+                const avgMortgage = this.config.financials.cashFlowAnalysis.AVERAGE_HOUSING_COSTS.MORTGAGE_MONTHLY.value;
+                const rentMultiplier = this.config.financials.cashFlowAnalysis.AVERAGE_HOUSING_COSTS.RENT_ESTIMATION.value;
+                calculatedExpenses += avgMortgage * rentMultiplier;
+            }
+        } else if (data.property.homeStatus === 'family') {
+            calculatedExpenses += Math.max(0, Number(data.property.monthlyBoard ?? 0));
         }
 
         // If we have housing costs but no other expenses, estimate the rest
@@ -2563,7 +2647,9 @@ export class OnboardingWizard {
         // Priority 3: Use income-based calculation if available
         if (annualIncome > 0) {
             const monthlySalary = annualIncome / 12;
-            const savingsRate = data.finances.savingsRate !== undefined && data.finances.savingsRate !== null ? (data.finances.savingsRate / 100) : 0.15; // Convert percentage or default 15%
+            const savingsRate = data.finances.savingsRate !== undefined && data.finances.savingsRate !== null
+                ? normalizePercentForEngine(data.finances.savingsRate)
+                : 0.15;
             return Math.round(monthlySalary * (1 - savingsRate));
         }
 
@@ -2589,12 +2675,14 @@ export class OnboardingWizard {
         const lifeExpectancy = 90; // Default assumption
         const yearsInRetirement = lifeExpectancy - data.goals.retirementAge;
 
-        // Use config defaults for growth rates
+        // Use simple-specific normalization because onboarding config may store
+        // rates as either decimals (0.08) or human percentages (8).
         const defaults = this.config.DEFAULTS;
-        const superReturn = defaults.economic.superReturn;
-        const investmentReturn = defaults.economic.investmentReturn;
-        const inflation = defaults.economic.inflation;
-        const propertyGrowth = defaults.property.propertyGrowthRate;
+        const superReturn = normalizeSimpleAnnualRate(defaults.economic.superReturn, { fallback: 0.08, min: -0.2, max: 0.2, label: 'super growth' });
+        const investmentReturn = normalizeSimpleAnnualRate(defaults.economic.investmentReturn, { fallback: 0.075, min: -0.2, max: 0.2, label: 'investment return' });
+        const savingsReturn = normalizeSimpleAnnualRate(defaults.economic.savingsReturn, { fallback: 0.045, min: 0, max: 0.15, label: 'savings return' });
+        const inflation = normalizeSimpleAnnualRate(defaults.economic.inflation, { fallback: 0.025, min: -0.05, max: 0.15, label: 'inflation' });
+        const propertyGrowth = normalizeSimpleAnnualRate(defaults.property.propertyGrowthRate, { fallback: 0.03, min: -0.2, max: 0.2, label: 'property growth' });
 
         // Calculate future super balance
         const totalAnnualContributions = data.finances.superannuation.employerContributions + data.finances.superannuation.voluntaryContributions;
@@ -2605,25 +2693,33 @@ export class OnboardingWizard {
             yearsToRetirement
         );
 
-        // Calculate future savings
+        const annualIncome = data.finances.income.salary + (data.finances.income.partnerSalary ?? 0);
+        const explicitAnnualInvestmentContribution = Math.max(0, Number(data.finances.otherInvestments.monthlyContribution ?? 0)) * 12;
+        const savingsRate = data.finances.savingsRate !== undefined && data.finances.savingsRate !== null
+            ? normalizePercentForEngine(data.finances.savingsRate)
+            : 0;
+        const annualCashSavings = explicitAnnualInvestmentContribution > 0 ? 0 : Math.max(0, annualIncome * savingsRate);
+
+        // Calculate future savings. Savings rate is only used as a cash surplus
+        // fallback when there is no explicit outside-super investment amount.
         const futureSavings = this.calculateCompoundGrowth(
             data.finances.emergencyFund,
-            0, // Assuming no additional savings contributions for basic calc
-            defaults.economic.savingsReturn,
+            annualCashSavings,
+            savingsReturn,
             yearsToRetirement
         );
 
-        // Calculate future investments
+        // Calculate future investments from explicit outside-super contributions.
         const futureInvestments = this.calculateCompoundGrowth(
             data.finances.otherInvestments.shares,
-            0,
+            explicitAnnualInvestmentContribution,
             investmentReturn,
             yearsToRetirement
         );
 
         // Calculate home equity (accessible portion)
         let accessibleHomeEquity = 0;
-        if (data.property.homeStatus !== 'rent') {
+        if (!['rent', 'family'].includes(data.property.homeStatus)) {
             const futureHomeValue = data.property.homeDetails.currentValue * Math.pow(1 + propertyGrowth, yearsToRetirement);
             const futureLoanBalance = Math.max(0, data.property.homeDetails.loanRemaining - (yearsToRetirement * 10000)); // Simplified loan reduction
             accessibleHomeEquity = (futureHomeValue - futureLoanBalance) * this.config.HOME_EQUITY_ACCESS_RATE;
@@ -2641,7 +2737,6 @@ export class OnboardingWizard {
         const totalAssets = futureSuper + futureSavings + futureInvestments + accessibleHomeEquity + propertyEquity;
 
         // Calculate monthly living expenses using comprehensive approach
-        const annualIncome = data.finances.income.salary + (data.finances.income.partnerSalary ?? 0);
         let monthlyLivingExpenses = this.calculateLivingExpenses(data);
         const annualLivingExpenses = monthlyLivingExpenses * 12;
 
@@ -2694,9 +2789,17 @@ export class OnboardingWizard {
     }
 
     calculateCompoundGrowth(principal, annualContribution, rate, years) {
-        // Compound growth formula with regular contributions
-        const futureValue = principal * Math.pow(1 + rate, years);
-        const contributionValue = annualContribution * ((Math.pow(1 + rate, years) - 1) / rate);
+        const safePrincipal = Number.isFinite(Number(principal)) ? Number(principal) : 0;
+        const safeContribution = Number.isFinite(Number(annualContribution)) ? Number(annualContribution) : 0;
+        const safeYears = Math.max(0, Number.isFinite(Number(years)) ? Number(years) : 0);
+        const safeRate = Number.isFinite(Number(rate)) ? Number(rate) : 0;
+
+        if (Math.abs(safeRate) < 1e-9) {
+            return safePrincipal + (safeContribution * safeYears);
+        }
+
+        const futureValue = safePrincipal * Math.pow(1 + safeRate, safeYears);
+        const contributionValue = safeContribution * ((Math.pow(1 + safeRate, safeYears) - 1) / safeRate);
         return futureValue + contributionValue;
     }
 
@@ -3015,47 +3118,47 @@ export class OnboardingWizard {
     }
 
     calculateMoneyLongevity(totalAssets, annualIncomeNeeded, userAge, partnerAge, retirementAge, maritalStatus) {
-        // Constants
         const MAX_AGE = 120;
-        const currentYear = new Date().getFullYear();
+        const safeAssets = Number.isFinite(Number(totalAssets)) ? Math.max(0, Number(totalAssets)) : 0;
+        const safeIncomeNeeded = Number.isFinite(Number(annualIncomeNeeded)) ? Math.max(0, Number(annualIncomeNeeded)) : 0;
+        const safeRetirementAge = Number.isFinite(Number(retirementAge)) ? Number(retirementAge) : 67;
 
-        // Determine the younger person's age (for couples)
-        let youngerAge = userAge;
-        if (partnerAge && maritalStatus !== 'single') {
-            youngerAge = Math.min(userAge, partnerAge);
+        if (safeIncomeNeeded <= 0) {
+            return {
+                type: 'surplus',
+                moneyLeftAtAge120: Math.round(safeAssets),
+                message: `Projected to last beyond age 120 with ${formatCurrency(Math.round(safeAssets))} remaining`
+            };
         }
 
-        // Calculate years from retirement to age 120 for the younger person
-        const yearsFromRetirementToMax = MAX_AGE - retirementAge;
-        const totalYearsOfRetirement = Math.max(0, yearsFromRetirementToMax);
-
-        // Simple calculation: Total assets / Annual income needed = Years money will last
-        const yearsMoneyWillLast = totalAssets / annualIncomeNeeded;
-
-        // Calculate when money runs out
-        const moneyRunsOutAge = retirementAge + yearsMoneyWillLast;
+        const yearsMoneyWillLast = safeAssets / safeIncomeNeeded;
+        const moneyRunsOutAge = safeRetirementAge + yearsMoneyWillLast;
 
         if (moneyRunsOutAge >= MAX_AGE) {
-            // Money lasts beyond age 120
-            const yearsToAge120 = MAX_AGE - retirementAge;
-            const totalSpentByAge120 = annualIncomeNeeded * yearsToAge120;
-            const moneyLeftAtAge120 = totalAssets - totalSpentByAge120;
+            const yearsToAge120 = Math.max(0, MAX_AGE - safeRetirementAge);
+            const totalSpentByAge120 = safeIncomeNeeded * yearsToAge120;
+            const moneyLeftAtAge120 = Math.max(0, safeAssets - totalSpentByAge120);
+            const roundedRemaining = Math.round(moneyLeftAtAge120);
+            const appearsUnusuallyHigh = roundedRemaining > 1_000_000_000;
+            const displayRemaining = appearsUnusuallyHigh
+                ? new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', notation: 'compact', maximumFractionDigits: 2 }).format(roundedRemaining)
+                : formatCurrency(roundedRemaining);
 
             return {
                 type: 'surplus',
-                moneyLeftAtAge120: Math.round(moneyLeftAtAge120),
-                message: `Money left over at age 120 will be: $${Math.round(moneyLeftAtAge120).toLocaleString()}`
-            };
-        } else {
-            // Money runs out before age 120
-            const runOutAge = Math.round(moneyRunsOutAge);
-
-            return {
-                type: 'deficit',
-                moneyRunsOutAge: runOutAge,
-                message: `Money will be zero at age: ${runOutAge}`
+                moneyLeftAtAge120: roundedRemaining,
+                unusuallyHigh: appearsUnusuallyHigh,
+                message: `Projected to last beyond age 120 with ${displayRemaining} remaining${appearsUnusuallyHigh ? '. Projection appears unusually high; check assumptions.' : ''}`
             };
         }
+
+        const runOutAge = Math.round(moneyRunsOutAge);
+
+        return {
+            type: 'deficit',
+            moneyRunsOutAge: runOutAge,
+            message: `Money will be zero at age: ${runOutAge}`
+        };
     }
 
     generateAdvancedCalculatorContent() {
@@ -3127,7 +3230,7 @@ export class OnboardingWizard {
             'percentIncomeSaved': this.data.finances.savingsRate,
 
             // Property details
-            'homeValue': this.data.property.homeStatus !== 'rent' ? this.data.property.homeDetails.currentValue : '',
+            'homeValue': !['rent', 'family'].includes(this.data.property.homeStatus) ? this.data.property.homeDetails.currentValue : '',
             'mortgageBalance': this.data.property.homeStatus === 'mortgage' ? this.data.property.homeDetails.loanRemaining : '',
             'monthlyMortgagePayment': this.data.property.homeStatus === 'mortgage' ? (this.data.property.homeDetails.monthlyPayment || 0) : '',
 

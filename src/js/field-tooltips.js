@@ -740,6 +740,71 @@ const FIELD_TOOLTIP_DEFINITIONS = {
         title: 'Frail stage spending multiplier',
         body: 'Spending in the high-care final years as a proportion of target income. Often 1.10–1.30 when healthcare and aged-care costs escalate.',
     },
+
+    futurePropertyEnabled: {
+        title: 'Enable future property event',
+        body: 'Turns on optional scenario capture for a future property event. It does not change the base projection by itself.',
+    },
+    futurePropertyIncludeInBase: {
+        title: 'Include future property in base projection',
+        body: 'Leave this off for speculative events. Only turn it on when you explicitly want the future property event included in the base plan.',
+    },
+    futurePropertyEventType: {
+        title: 'Future property event type',
+        body: 'Choose whether the scenario is buying, inheriting, selling, or paying off a property later.',
+    },
+    futurePropertyAge: {
+        title: 'Future property event age',
+        body: 'Expected age when the property event occurs. Until that age, the base housing status still applies.',
+    },
+    futurePropertyValue: {
+        title: 'Future property value',
+        body: 'Estimated property value at the event age. This is scenario metadata until explicitly included in base modelling.',
+    },
+    futurePropertyMortgage: {
+        title: 'Future property mortgage',
+        body: 'Estimated loan balance attached to the future property event.',
+    },
+    futurePropertyOwnershipShare: {
+        title: 'Future property ownership share',
+        body: 'Your percentage ownership of the future property. Use less than 100% for shared ownership or partial inheritance.',
+    },
+    futurePropertyRole: {
+        title: 'Future property role',
+        body: 'Describes whether the property becomes your home, an investment, or is sold. Tax and pension treatment depends on this role.',
+    },
+    inheritanceScenarioEnabled: {
+        title: 'Enable inheritance scenario',
+        body: 'Turns on optional windfall scenario capture. Speculative inheritance is excluded from the base plan unless explicitly included.',
+    },
+    inheritanceIncludeInBase: {
+        title: 'Include inheritance in base projection',
+        body: 'Leave this off unless you deliberately want the inheritance or windfall to improve the base retirement projection.',
+    },
+    inheritanceScenarioAge: {
+        title: 'Expected inheritance age',
+        body: 'Age when the inheritance or windfall is expected to be received.',
+    },
+    inheritanceCertainty: {
+        title: 'Inheritance certainty',
+        body: 'Marks whether the inheritance is speculative, likely, or confirmed. Speculative events should remain scenario-only.',
+    },
+    inheritanceType: {
+        title: 'Inheritance type',
+        body: 'Different asset types can affect Age Pension means testing, income, CGT, and super death-benefit treatment differently.',
+    },
+    inheritanceGrossValue: {
+        title: 'Gross inheritance value',
+        body: 'Estimated value before any transaction costs, tax placeholders, sale costs, or other adjustments.',
+    },
+    inheritanceEstimatedCosts: {
+        title: 'Inheritance cost placeholder',
+        body: 'Placeholder for estimated tax, transaction, sale, or advice costs. This is not legal or tax advice.',
+    },
+    inheritanceUse: {
+        title: 'Use of inheritance',
+        body: 'Choose the planned use, such as investing, paying down debt, buying a home, or holding cash.',
+    },
     // ── Legal / Financial Obligations ────────────────────────────────────────
     hasSpousalMaintenance: {
         title: 'Spousal/partner maintenance',

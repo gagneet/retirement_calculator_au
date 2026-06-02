@@ -188,3 +188,122 @@ describe('advanced calculator derived defaults', () => {
         expect(document.getElementById('capitalGainsTaxRate').value).toBe('18');
     });
 });
+
+
+describe('advanced classic single household and late-life defaults', () => {
+    const createApp = () => {
+        const app = Object.create(RetirementCalculatorApp.prototype);
+        app.config = ENHANCED_CONFIG;
+        app.simulator = {
+            calculateDynamicAllocation: () => ({
+                equities: 0.6,
+                bonds: 0.3,
+                cash: 0.1,
+                australianEquities: 0.3,
+                internationalEquities: 0.3,
+            }),
+        };
+        return app;
+    };
+
+    test('single household hides couple-only fields and restores them when couple is selected', () => {
+        document.body.innerHTML = `
+            <select id="householdStatus"><option value="single" selected>Single</option><option value="couple">Couple</option></select>
+            <div id="partnerSection" data-household="couple"><input id="partnerCurrentAge" value="42"></div>
+            <div id="spouseRow" data-visible-when="couple"><input id="spouseContribution" value="3000"></div>
+            ${buildField('partnerSalary', 'Partner Salary', '85000')}
+            ${buildField('partnerCurrentSuper', 'Partner Super', '120000')}
+        `;
+
+        const app = createApp();
+        app.updateClassicHouseholdVisibility();
+        expect(document.getElementById('partnerSection').hidden).toBe(true);
+        expect(document.getElementById('spouseRow').hidden).toBe(true);
+
+        document.getElementById('householdStatus').value = 'couple';
+        app.updateClassicHouseholdVisibility();
+        expect(document.getElementById('partnerSection').hidden).toBe(false);
+        expect(document.getElementById('spouseRow').hidden).toBe(false);
+    });
+
+    test('single household excludes loaded partner and spouse values from collected inputs', () => {
+        document.body.innerHTML = `
+            <select id="householdStatus"><option value="single" selected>Single</option><option value="couple">Couple</option></select>
+            ${buildField('yourCurrentAge', 'Age', '50')}
+            ${buildField('retirementAge', 'Retirement Age', '67')}
+            ${buildField('yourLifespan', 'Lifespan', '92')}
+            ${buildField('partnerCurrentAge', 'Partner Age', '45')}
+            ${buildField('partnerRetirementAge', 'Partner Retirement', '65')}
+            ${buildField('partnerLifespan', 'Partner Lifespan', '95')}
+            ${buildField('partnerAgeCameToAustralia', 'Partner Arrival', '30')}
+            ${buildField('partnerAgeStartedEarningAustralia', 'Partner Earning', '31')}
+            ${buildField('yourSalary', 'Salary', '100000')}
+            ${buildField('partnerSalary', 'Partner Salary', '85000')}
+            ${buildField('yourCurrentSuper', 'Super', '150000')}
+            ${buildField('partnerCurrentSuper', 'Partner Super', '120000')}
+            ${buildField('partnerAdditionalSuperContribution', 'Partner Sacrifice', '12000')}
+            ${buildField('partnerAnnualNCC', 'Partner NCC', '15000')}
+            ${buildField('spouseContribution', 'Spouse', '3000')}
+            ${buildField('partnerReducedIncomeAge', 'Partner Reduced Age', '58')}
+            ${buildField('partnerReducedIncomeSalary', 'Partner Reduced Salary', '45000')}
+            <select id="primaryResidenceType"><option value="renting" selected>Renting</option></select>
+        `;
+
+        const app = createApp();
+        const inputs = app.collectInputs();
+        expect(inputs.partnerCurrentAge).toBe(0);
+        expect(inputs.partnerRetirementAge).toBe(0);
+        expect(inputs.partnerLifespan).toBe(0);
+        expect(inputs.partnerSalary).toBe(0);
+        expect(inputs.partnerCurrentSuper).toBe(0);
+        expect(inputs.partnerAdditionalSuperContribution).toBe(0);
+        expect(inputs.partnerAnnualNCC).toBe(0);
+        expect(inputs.spouseContribution).toBe(0);
+        expect(inputs.partnerAgeCameToAustralia).toBe(0);
+        expect(inputs.partnerAgeStartedEarningAustralia).toBe(0);
+        expect(inputs.partnerReducedIncomeAge).toBe(0);
+        expect(inputs.partnerReducedIncomeSalary).toBe(0);
+    });
+
+    test('aged care duration derives from lifespan minus start age and preserves manual override', () => {
+        document.body.innerHTML = `
+            ${buildField('yourCurrentAge', 'Age', '50')}
+            ${buildField('yourLifespan', 'Lifespan', '92')}
+            ${buildField('agedCareStartAge', 'Start', '85')}
+            ${buildField('agedCareDuration', 'Duration', '')}
+            <p id="agedCareDurationHint"></p>
+            <p id="agedCareStartAgeHint"></p>
+        `;
+        const app = createApp();
+        app.syncAgedCareProjectionFields({ force: true });
+        expect(document.getElementById('agedCareDuration').value).toBe('7');
+
+        document.getElementById('agedCareDuration').value = '4';
+        document.getElementById('agedCareDuration').dataset.userModified = 'true';
+        document.getElementById('agedCareDuration').dataset.autoCalculated = 'false';
+        document.getElementById('yourLifespan').value = '96';
+        app.syncAgedCareProjectionFields();
+        expect(document.getElementById('agedCareDuration').value).toBe('4');
+
+        document.getElementById('agedCareDuration').value = '';
+        app.syncAgedCareProjectionFields();
+        expect(document.getElementById('agedCareDuration').value).toBe('11');
+    });
+
+    test('home modifications are excluded for non-homeowners', () => {
+        document.body.innerHTML = `
+            <select id="primaryResidenceType"><option value="renting" selected>Renting</option></select>
+            <input id="enableHomeModifications" type="checkbox" checked>
+            ${buildField('homeModificationCost', 'Home Mod Cost', '25000')}
+            ${buildField('homeModificationAge', 'Home Mod Age', '75')}
+            ${buildField('homeModificationRecurring', 'Home Mod Recurring', '2000')}
+        `;
+        const app = createApp();
+        const inputs = app.collectInputs();
+        expect(inputs.homeowner).toBe(false);
+        expect(inputs.enableHomeModifications).toBe(false);
+        expect(inputs.homeModificationCost).toBe(0);
+        expect(inputs.homeModificationAge).toBe(0);
+        expect(inputs.homeModificationRecurring).toBe(0);
+    });
+});
