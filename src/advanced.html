@@ -3941,6 +3941,23 @@
                                 <option value="important">Important — target this as minimum final balance</option>
                             </select>
                         </div>
+                        <!-- Rich / Aspirational target for Suggestions panel -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700" for="richTarget">Rich / Aspirational income target</label>
+                            <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="richTarget">
+                                <option value="1.0">Comfortable (ASFA benchmark)</option>
+                                <option value="1.25">Comfortable × 1.25</option>
+                                <option value="1.5" selected>Comfortable × 1.5 (default)</option>
+                                <option value="2.0">Comfortable × 2.0</option>
+                                <option value="custom">Custom annual income…</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-0.5">Used in the Suggestions panel to show how far you are from a higher lifestyle tier.</p>
+                        </div>
+                        <div id="richTargetCustomWrap" style="display:none">
+                            <label class="block text-xs font-medium text-gray-700" for="richTargetCustom">Custom aspirational income ($/yr)</label>
+                            <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" id="richTargetCustom" type="number" min="0" step="1000" placeholder="e.g. 120000">
+                            <p class="text-xs text-gray-500 mt-0.5">Your own aspirational annual retirement income in today's dollars.</p>
+                        </div>
                     </div>
                 </div>
 
@@ -4745,7 +4762,13 @@
 
         <!-- Suggestions Tab Content -->
         <div class="tab-content p-6" id="suggestions-tab">
-            <h2 class="text-2xl font-semibold mb-4">💡 Actionable Suggestions & What-If Analysis</h2>
+            <h2 class="text-2xl font-semibold mb-4">💡 Suggestions &amp; Action Plan</h2>
+
+            <!-- New: Readiness summary + Comfortable/Rich comparison (populated by app.js) -->
+            <div id="sg-advanced-panel" class="mb-6">
+              <!-- Populated by displaySuggestionsPanel() in app.js after calculation -->
+            </div>
+
             <p class="text-gray-600 mb-6">
                 Based on your financial situation, here are options to explore based on your modelled situation.
                 Each suggestion shows the potential impact and includes a "Try This" button to see exactly how it

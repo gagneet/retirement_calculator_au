@@ -259,6 +259,46 @@ export const ENHANCED_CONFIG = {
         ]
     },
 
+    // ── Outcome bands ────────────────────────────────────────────────────────
+    // Thresholds for classifying a plan's readiness. All based on Monte Carlo
+    // success rate (0–1). When MC is unavailable, deterministic surplus/gap is
+    // used as a fallback. Adjust here — do not hard-code in UI components.
+    // Source rationale: industry convention; 85%+ considered "on track" by
+    // most Australian financial planning bodies.
+    OUTCOME_BANDS: {
+        CRITICAL_MAX:          0.60,   // success < 60%  → Critical
+        AT_RISK_MAX:           0.74,   // 60–74%         → At Risk
+        NEEDS_IMPROVEMENT_MAX: 0.84,   // 75–84%         → Needs Improvement
+        COMFORTABLE_MAX:       0.94,   // 85–94%         → Comfortable
+        // ≥ 95% with surplus buffer   → Strong / Aspirational
+        STRONG_MIN:            0.95,
+
+        // Minimum surplus buffer (today's $) needed to be labelled "Strong"
+        // rather than just "Comfortable" at 95%+ success rate.
+        STRONG_SURPLUS_MIN:    5000,   // $5k/year surplus minimum
+    },
+
+    // ── Rich / Aspirational retirement targets ───────────────────────────
+    // Used in the Suggestions panel to show how far a user is from a higher
+    // lifestyle tier. Multipliers are applied to the ASFA Comfortable figure
+    // (single or couple as applicable).
+    RICH_TARGETS: {
+        COMFORTABLE_MULTIPLIER:   1.0,
+        UPPER_COMFORTABLE:        1.25,
+        RICH:                     1.5,
+        ASPIRATIONAL:             2.0,
+        // Default selection shown in the dropdown
+        DEFAULT_MULTIPLIER:       1.5,
+        // Labels for dropdown options
+        OPTIONS: [
+            { multiplier: 1.0,  label: 'Comfortable (ASFA benchmark)' },
+            { multiplier: 1.25, label: 'Comfortable × 1.25' },
+            { multiplier: 1.5,  label: 'Comfortable × 1.5  (default)' },
+            { multiplier: 2.0,  label: 'Comfortable × 2.0' },
+            { multiplier: 0,    label: 'Custom annual income…' },
+        ],
+    },
+
     // Risk profiling thresholds
     RISK_THRESHOLDS: {
         capacity: {

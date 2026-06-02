@@ -3,6 +3,29 @@
 import { formatCurrency, formatPercent, updateProgress } from './utils.js';
 import RetirementSimulator from './simulator.js';
 
+// ─── Source references used in recommendations ────────────────────────────────
+const SOURCE_MAP = {
+  'Investment Property': ['ato-cgt'],
+  'Home Ownership':      ['ato-downsizer', 'ato-cgt'],
+  'Contributions':       ['ato-super-contributions', 'ato-salary-sacrifice'],
+  'Investment Strategy': ['ato-account-based-pension', 'moneysmart-account-based-pension'],
+  'Retirement Age':      ['services-australia-age-pension'],
+  'Annuity':             ['moneysmart-annuities', 'moneysmart-account-based-pension'],
+  'Overseas':            ['services-australia-overseas', 'services-australia-agreements'],
+};
+
+// ─── Advisory text by category ────────────────────────────────────────────────
+const ADVICE_MAP = {
+  'Investment Property': 'Speak with a tax adviser about capital gains, negative gearing, and depreciation before selling or holding an investment property.',
+  'Home Ownership':      'Consult a financial adviser about the downsizer contribution rules and how equity release affects your Age Pension means test.',
+  'Contributions':       'Confirm concessional contribution caps and salary sacrifice arrangements with your payroll department and super fund.',
+  'Investment Strategy': 'Consider your risk profile before changing your investment allocation. Speak with a licensed financial adviser about asset allocation suitable for your circumstances.',
+  'Retirement Age':      'Review Age Pension eligibility rules with Services Australia and consider how working longer interacts with your super preservation age.',
+  'Annuity':             'Consider speaking with a licensed financial adviser before purchasing any annuity or lifetime income product. Terms generally cannot be changed after purchase.',
+  'Overseas':            'Confirm Age Pension portability with Services Australia before relocating. Seek tax residency advice from an Australian tax adviser and the destination country.',
+  'General':             'Consider speaking with a licensed financial adviser or your super fund for personal advice tailored to your circumstances.',
+};
+
 /**
  * Cap a raw recommendation balance delta to a plausible display range.
  *
@@ -56,21 +79,69 @@ class RecommendationEngine {
             return [];
         }
 
-        // Step 2: Dynamically generate a list of relevant scenarios to test
-        const scenariosToTest = this.generateScenarios(baselineResults);
-        if (scenariosToTest.length === 0) {
-            console.log("No relevant scenarios to test. The current plan looks optimal.");
-            // Or, provide some default recommendations
-        }
+        // Step 2: Generate all relevant scenarios (both simulated and educational)
+        const allScenarios = this.generateScenarios(baselineResults);
 
-        // Step 3: Run all generated scenarios against the baseline
-        const comparisonResults = await this.runScenarioComparisons(scenariosToTest);
+        // Separate educational-only scenarios (no modifications = no MC run needed)
+        const educationalScenarios = allScenarios.filter(s => !s.modifications);
+        const simulatedScenarios   = allScenarios.filter(s => s.modifications);
 
-        // Step 4: Analyze the comparison results and format them into human-readable advice
+        // Step 3: Run MC comparisons only for scenarios that have input modifications
+        const comparisonResults = simulatedScenarios.length > 0
+            ? await this.runScenarioComparisons(simulatedScenarios)
+            : [];
+
+        // Step 4: Format simulated recommendations
         this.recommendations = this.formatRecommendations(comparisonResults, baselineResults);
+
+        // Step 5: Append educational recommendations (use baseResult as synthetic comparison)
+        for (const scenario of educationalScenarios) {
+            const synthetic = this._createEducationalRecommendation(scenario, baselineResults);
+            if (synthetic) this.recommendations.push(synthetic);
+        }
 
         console.log("Recommendation engine finished.");
         return this.recommendations;
+    }
+
+    /**
+     * Create a recommendation for a purely educational scenario (no MC simulation).
+     * @private
+     */
+    _createEducationalRecommendation(scenario, baselineResults) {
+        const id = (scenario.name || 'rec').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const category = scenario.category || 'General';
+        return {
+            id,
+            title: scenario.name,
+            category,
+            priority: 'MEDIUM',
+            impactLevel: 'neutral',
+            confidence: 'low',
+            feasibility: scenario.feasibility || 'adviser-recommended',
+            timeframe: scenario.timeframe || '3–6 months',
+            summary: scenario.description,
+            description: scenario.description,
+            whyItMatters: scenario.description,
+            modelledOutcome: null,
+            estimatedImpact: null,
+            assumptionsUsed: null,
+            actions: (scenario.factorsChanged || []).map((f, i) => ({ action: `Step ${i + 1}`, detail: f })),
+            risksAndTradeoffs: scenario.risksAndTradeoffs || null,
+            whenToSeekAdvice: scenario.whenToSeekAdvice || ADVICE_MAP[category] || ADVICE_MAP['General'],
+            sourceRefs: scenario.sourceRefs || SOURCE_MAP[category] || [],
+            relatedInputFields: [],
+            relatedScenarioId: null,
+            // Legacy fields
+            modifications: null,
+            isTryThisDisabled: true,
+            impact: 'neutral',
+            factorsChanged: scenario.factorsChanged || [],
+            successRate: baselineResults.successRate,
+            medianBalance: baselineResults.medianBalance,
+            successRateDiff: 0,
+            medianBalanceDiff: 0,
+        };
     }
 
     /**
@@ -120,6 +191,8 @@ class RecommendationEngine {
         scenarios = scenarios.concat(this._analyzeRetirementAge(baselineResults));
         scenarios = scenarios.concat(this._analyzeWidowWidowerScenarios(baselineResults));
         scenarios = scenarios.concat(this._analyzeInsuranceStrategies(baselineResults));
+        // Limit to top-priority scenarios by default; annuity is educational (no MC run needed)
+        scenarios = scenarios.concat(this._analyzeAnnuityGuidance(baselineResults));
 
         // Remove duplicate scenarios if any
         const uniqueScenarios = Array.from(new Map(scenarios.map(s => [s.name, s])).values());
@@ -2044,19 +2117,71 @@ class RecommendationEngine {
             description += ` Feasibility: ${feasibility}.`;
         }
 
+        // ── New richer fields (additive — existing consumers still work) ──────
+        const id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const priority = (impact === 'high-positive')
+            ? 'HIGH'
+            : (impact === 'high-negative' || impact === 'negative')
+            ? 'LOW'
+            : 'MEDIUM';
+
+        const timeframeMap = {
+            'Investment Property': '6–18 months',
+            'Home Ownership':      '6–18 months',
+            'Contributions':       '1–4 weeks',
+            'Investment Strategy': '2–8 weeks',
+            'Retirement Age':      'Ongoing',
+            'Annuity':             '3–6 months (advice-dependent)',
+        };
+
+        const actions = (factorsChanged && factorsChanged.length > 0)
+            ? factorsChanged.map((f, i) => ({ action: `Step ${i + 1}`, detail: f }))
+            : [];
+
+        const risksMap = {
+            'Investment Property': 'Property market risk; capital gains tax on sale; illiquidity. Negative gearing rules may change.',
+            'Home Ownership':      'Lifestyle and location change; transaction costs; family proximity. Downsizer contribution is a once-only option.',
+            'Contributions':       'Locking money in super until preservation age; concessional cap limits. Division 293 tax applies if income exceeds $250,000.',
+            'Investment Strategy': 'Higher growth exposure increases short-term volatility and sequence-of-returns risk in early retirement.',
+            'Retirement Age':      'Health, employer willingness, and personal circumstances may constrain this choice.',
+            'Annuity':             'Gives up flexibility and liquidity. Terms are generally fixed at purchase. May reduce estate value.',
+            'General':             'All financial decisions carry risk. Consider your personal circumstances and seek qualified advice.',
+        };
+
         return {
+            id,
             title,
             category,
+            priority,
+            impactLevel: impact,
+            confidence: Math.abs(successDiff) > 0.05 ? 'high' : 'moderate',
+            feasibility,
+            timeframe: scenario.timeframe || timeframeMap[category] || '1–6 months',
+            summary: scenario.description || description,
             description: scenario.description || description,
+            whyItMatters: description,
+            modelledOutcome: successDiff !== 0
+                ? `Success rate change: ${successDiff > 0 ? '+' : ''}${formatPercent(successDiff, 1)}`
+                : null,
+            estimatedImpact: balanceDiff !== 0
+                ? `Estimated balance difference at retirement: ${balanceDiff > 0 ? '+' : ''}${formatCurrency(balanceDiff)}`
+                : null,
+            assumptionsUsed: scenario.factorsChanged?.join('; ') || null,
+            actions,
+            risksAndTradeoffs: scenario.risksAndTradeoffs || risksMap[category] || risksMap['General'],
+            whenToSeekAdvice: scenario.whenToSeekAdvice || ADVICE_MAP[category] || ADVICE_MAP['General'],
+            sourceRefs: scenario.sourceRefs || SOURCE_MAP[category] || [],
+            relatedInputFields: scenario.relatedInputFields || [],
+            relatedScenarioId: null,
+            // Legacy fields preserved for backward compatibility
             modifications: scenario.modifications,
             isTryThisDisabled: scenario.isTryThisDisabled || false,
             impact,
-            feasibility,
             factorsChanged,
             successRate: scenario.successRate,
             medianBalance: scenario.medianBalance,
             successRateDiff: successDiff,
-            medianBalanceDiff: balanceDiff
+            medianBalanceDiff: balanceDiff,
         };
     }
 
@@ -2137,6 +2262,40 @@ class RecommendationEngine {
         } else {
             return `Working additional years increases your success rate from ${formatPercent(baseResult.successRate)} to ${formatPercent(scenario.successRate)}. This is one of the most powerful levers for improving your retirement outlook.`;
         }
+    }
+
+    /**
+     * Generate an educational annuity / lifetime income recommendation.
+     * This is a static suggestion that doesn't require a Monte Carlo run.
+     * It appears when the user's success rate is below 90% or they are
+     * within 10 years of retirement (longevity risk is most relevant).
+     *
+     * @param {Object} baselineResults
+     * @returns {Array<Object>} 0 or 1 scenario objects
+     */
+    _analyzeAnnuityGuidance(baselineResults) {
+        const successRate  = baselineResults?.successRate ?? 1;
+        const yearsToRetire = (this.baseInputs.retirementAge || 67) - (this.baseInputs.yourCurrentAge || 50);
+        const show = successRate < 0.90 || yearsToRetire <= 10;
+        if (!show) return [];
+
+        return [{
+            name: 'Consider Guaranteed Income / Annuity Products',
+            description: 'Account-based pensions are flexible but not guaranteed for life. If you are concerned about outliving your money, consider comparing them with annuity products that provide guaranteed income.',
+            category: 'Annuity',
+            modifications: null,
+            isTryThisDisabled: true,
+            feasibility: 'adviser-recommended',
+            factorsChanged: [
+                'Account-based pension: flexible but subject to longevity and investment risk',
+                'Lifetime annuity: guaranteed for life but illiquid; terms fixed at purchase',
+                'Fixed-term annuity: certainty for a set period; no longevity protection beyond term',
+            ],
+            risksAndTradeoffs: 'Annuities give up flexibility and liquidity. Terms generally cannot be changed after purchase. Some products affect Age Pension means testing — check ATO and Services Australia rules.',
+            whenToSeekAdvice: 'Speak to a licensed financial adviser before purchasing any annuity. This calculator does not endorse or recommend any specific product or provider.',
+            sourceRefs: SOURCE_MAP['Annuity'],
+            timeframe: '3–6 months (advice-dependent)',
+        }];
     }
 }
 

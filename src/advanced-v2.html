@@ -844,6 +844,26 @@
               </div>
             </div>
           </div>
+
+          <!-- Rich / Aspirational target ─────────────────────────────── -->
+          <div class="fields two" style="margin-top:10px">
+            <div class="field">
+              <label class="field-label" for="richTarget"><span>Rich / Aspirational income target</span></label>
+              <div class="field-input"><select id="richTarget">
+                <option value="1.0">Comfortable (ASFA benchmark)</option>
+                <option value="1.25">Comfortable × 1.25</option>
+                <option value="1.5" selected>Comfortable × 1.5 (default)</option>
+                <option value="2.0">Comfortable × 2.0</option>
+                <option value="custom">Custom annual income…</option>
+              </select></div>
+              <div class="field-help">Used in the Suggestions panel to show how far you are from a higher lifestyle tier. Compared against the ASFA Comfortable benchmark for single or couple.</div>
+            </div>
+            <div class="field" id="richTargetCustomWrap" style="display:none">
+              <label class="field-label" for="richTargetCustom"><span>Custom annual income</span><span class="hint">$/yr</span></label>
+              <div class="field-input has-prefix"><span class="prefix">$</span><input id="richTargetCustom" type="number" min="0" step="1000" placeholder="e.g. 120000" /></div>
+              <div class="field-help">Enter your own aspirational annual retirement income in today's dollars.</div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1388,7 +1408,7 @@
           <button data-tab="whatif">🎚 What-If</button>
           <button data-tab="year">📅 Year-by-Year</button>
           <button data-tab="risk">⛑️ Risk &amp; Resilience</button>
-          <button data-tab="ai">🤖 AI Recommendations</button>
+          <button data-tab="ai">💡 Suggestions</button>
           <button data-tab="overseas" id="overseas-tab-btn" hidden>✈️ Overseas Plan</button>
         </div>
         <div class="analysis-body">
@@ -1447,8 +1467,18 @@
           <div data-tab-panel="risk" hidden>
             <p style="color:var(--ink-3)">Run the Monte Carlo or Stress Test tool to see your risk profile and scenario results here.</p>
           </div>
-          <div data-tab-panel="ai" hidden>
-            <p style="color:var(--ink-3)">Run AI suggestions or the full simulation to generate personalised recommendations.</p>
+          <div data-tab-panel="ai" hidden id="sg-tab-panel">
+            <!-- Populated by renderAiPanel() in advanced-v2.js after calculation -->
+            <div id="sg-content">
+              <div style="padding:40px 20px;text-align:center;color:var(--ink-3)">
+                <div style="font-size:3rem;margin-bottom:12px">🎯</div>
+                <h4 style="margin:0 0 8px;font-size:1.1rem;color:var(--ink-2)">Run the calculator to receive personalised suggestions</h4>
+                <p style="margin:0;max-width:400px;margin-inline:auto;font-size:13px;line-height:1.6">
+                  Enter your details and click <b>Run simulation</b> or use the
+                  <b>💡 AI suggestions</b> tool to see prioritised suggestions and scenario comparisons.
+                </p>
+              </div>
+            </div>
           </div>
           <div data-tab-panel="overseas" hidden>
             <p style="color:var(--ink-3)">Enable an overseas destination above, then click the Overseas Plan tool to see destination-specific pension portability, cost of living, tax and risk analysis.</p>

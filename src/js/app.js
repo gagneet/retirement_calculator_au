@@ -5611,8 +5611,11 @@ class RetirementCalculatorApp {
             // Categorize scenarios for the suggestions UI
             const categorizedSuggestions = this.categorizeSuggestionsForUI(scenarios);
 
-            updateProgress(95, 'Displaying suggestions...');
+            updateProgress(90, 'Displaying suggestions...');
             this.displayCategorizedSuggestions(categorizedSuggestions);
+
+            // Render the new readiness summary + Comfortable/Rich panel at the top
+            await this.displaySuggestionsPanel(inputs, scenarios, baselineResults);
 
             updateProgress(100, 'Suggestions generated successfully!');
             showNotification(`Generated ${scenarios.length} personalized suggestions across ${Object.keys(categorizedSuggestions).length} categories.`, 'success');
@@ -5629,6 +5632,71 @@ class RetirementCalculatorApp {
             const buttonDiv = $('generateSuggestionsBtn');
             if (loadingDiv) loadingDiv.classList.add('hidden');
             if (buttonDiv) buttonDiv.style.opacity = '1';
+        }
+    }
+
+    /**
+     * Render the new readiness summary + Comfortable/Rich comparison panel
+     * into the #sg-advanced-panel container in advanced.html.
+     */
+    async displaySuggestionsPanel(inputs, recommendations, baselineResults) {
+        const panelEl = $('sg-advanced-panel');
+        if (!panelEl) return;
+
+        try {
+            const [SuggestionsUI, OutcomeBands] = await Promise.all([
+                import(/* webpackChunkName: "suggestions-ui" */ './suggestions-ui.js'),
+                import(/* webpackChunkName: "outcome-bands" */ './outcome-bands.js'),
+            ]);
+
+            const richTargetEl  = $('richTarget');
+            const richTargetVal = richTargetEl?.value || '1.5';
+            const customRichEl  = $('richTargetCustom');
+            const richMultiplier = richTargetVal === 'custom' ? null : parseFloat(richTargetVal) || 1.5;
+            const customRich     = richTargetVal === 'custom' && customRichEl
+                ? parseFloat(customRichEl.value) || null : null;
+
+            // Get Monte Carlo results if available
+            const mcResults = this.currentMonteCarloResults || null;
+            const simResult = this.lastResults || this.currentSimulationResults || null;
+
+            const band = OutcomeBands.computeOutcomeBand({
+                monteCarloResults: mcResults,
+                simulation: simResult,
+                adaptedResult: null,
+                inputs,
+                engineInputs: inputs,
+                richMultiplier,
+                customRichTarget: customRich,
+            });
+
+            const isCouple = !!(inputs.hasPartner || inputs.partnerSalary > 0);
+            const salary   = inputs.yourSalary || inputs.annualSalary || 0;
+            const retireAge = inputs.retirementAge || inputs.yourRetirementAge || 67;
+            const currentAge = inputs.yourCurrentAge || inputs.currentAge || 50;
+            const yearsToRetire = Math.max(1, retireAge - currentAge);
+
+            // Sort recommendations: HIGH first
+            const sorted = [...(recommendations || [])].sort((a, b) => {
+                const pOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+                const pa = pOrder[a.priority] || 2;
+                const pb = pOrder[b.priority] || 2;
+                if (pa !== pb) return pb - pa;
+                return (b.successRateDiff || 0) - (a.successRateDiff || 0);
+            });
+
+            const nextAction = sorted.length
+                ? (sorted[0].title || sorted[0].shortTitle || null)
+                : null;
+
+            panelEl.innerHTML =
+                SuggestionsUI.DISCLAIMER_HTML +
+                SuggestionsUI.buildReadinessSummaryCard(band, { nextAction }) +
+                SuggestionsUI.buildComfortableRichPanel(band, { yearsToRetirement: yearsToRetire, annualSalary: salary, isCouple, richMultiplier: richMultiplier || 1.5 });
+
+        } catch (err) {
+            console.warn('[displaySuggestionsPanel] failed:', err);
+            panelEl.innerHTML = '';
         }
     }
 
@@ -8636,6 +8704,16 @@ class RetirementCalculatorApp {
         setTimeout(() => {
             this.setupExportDropdowns();
         }, 500); // Increased delay to ensure DOM is ready
+
+        // Show/hide custom rich target input in advanced.html
+        (function () {
+            const richSel  = $('richTarget');
+            const richWrap = $('richTargetCustomWrap');
+            if (!richSel || !richWrap) return;
+            const syncRich = () => { richWrap.style.display = richSel.value === 'custom' ? '' : 'none'; };
+            richSel.addEventListener('change', syncRich);
+            syncRich();
+        }());
     }
 
     setupExportDropdowns() {
