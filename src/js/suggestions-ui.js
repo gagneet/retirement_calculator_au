@@ -119,7 +119,12 @@ export function buildComfortableRichPanel(band, opts = {}) {
     ? estimateYearsDelay({ gapAnnual: gapR, annualSalary })
     : 0;
 
-  const richLabel = RICH_CFG.OPTIONS.find(o => Math.abs(o.multiplier - (opts.richMultiplier || 1.5)) < 0.01)?.label || 'Rich / Aspirational';
+  const richOptions = Array.isArray(RICH_CFG.OPTIONS) ? RICH_CFG.OPTIONS : [];
+  const richLabel = richOptions.find(o => Math.abs(o.multiplier - (opts.richMultiplier || 1.5)) < 0.01)?.label || 'Rich / Aspirational';
+  const asfaSource = getSource('asfa-retirement-standard');
+  const asfaSourceLink = asfaSource
+    ? `<a href="${asfaSource.url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">${escHtml(asfaSource.label)}</a>`
+    : '';
 
   function rowClass(gap) {
     if (gap > 0) return 'sg-table-row--warn';
@@ -137,7 +142,7 @@ export function buildComfortableRichPanel(band, opts = {}) {
     <h4 style="margin:0;font-size:1rem;font-weight:700;color:var(--ink-1,#1e293b)">Retirement income targets</h4>
     <p style="margin:4px 0 0;font-size:12px;color:var(--ink-3,#64748b)">
       ASFA ${isCouple ? 'couple' : 'single'} Comfortable benchmark — Dec 2025 quarter.
-      <a href="https://www.superannuation.asn.au/resources/retirement-standard" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Source</a>
+      ${asfaSourceLink}
     </p>
   </div>
   <div style="overflow-x:auto">
@@ -454,13 +459,23 @@ export function buildAgePensionOverseasPanel(opts = {}) {
     ? `<li>✅ Based on your modelled assets, you <em>may</em> be eligible for a full or partial Age Pension. Services Australia will apply the actual means test at the time of claim.</li>`
     : `<li>⚠️ Based on your modelled assets, you may not be eligible for Age Pension under the current means test. Circumstances can change — check with Services Australia.</li>`;
 
+  const overseasSource = getSource('services-australia-overseas');
+  const agreementsSource = getSource('services-australia-agreements');
+  const overseasSourceLink = overseasSource
+    ? `<a href="${overseasSource.url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">${escHtml(overseasSource.label)}</a>`
+    : 'Services Australia';
+  const sourceLinks = [overseasSource, agreementsSource]
+    .filter(Boolean)
+    .map(src => `<a href="${src.url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">${escHtml(src.label)}</a>`)
+    .join(' · ');
+
   return `
 <div class="sg-panel sg-panel--info" style="border-radius:16px;border:1px solid var(--border,#e2e8f0);overflow:hidden;margin-bottom:20px">
   <div style="padding:14px 18px;background:var(--surface-2,#f8fafc);border-bottom:1px solid var(--border,#e2e8f0)">
     <h4 style="margin:0;font-size:1rem;font-weight:700;color:var(--ink-1,#1e293b)">🏛️ Taking Age Pension overseas</h4>
     <p style="margin:4px 0 0;font-size:12px;color:var(--ink-3,#64748b)">
       General education only. Always confirm with
-      <a href="https://www.servicesaustralia.gov.au/payments-while-outside-australia" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Services Australia</a>
+      ${overseasSourceLink}
       before making any relocation decision.
     </p>
   </div>
@@ -509,8 +524,7 @@ export function buildAgePensionOverseasPanel(opts = {}) {
 
     <div style="margin-top:14px;padding:10px 12px;background:var(--surface-2,#f8fafc);border-radius:8px;font-size:11px;color:var(--ink-3,#64748b)">
       Sources:
-      <a href="https://www.servicesaustralia.gov.au/payments-while-outside-australia" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Services Australia – Payments outside Australia</a> ·
-      <a href="https://www.servicesaustralia.gov.au/international-social-security-agreements" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Services Australia – International agreements</a>
+      ${sourceLinks}
     </div>
   </div>
 </div>`;
@@ -708,12 +722,17 @@ export function escHtml(str) {
 /** Wire interactive filter tabs and checkbox action plan after innerHTML is set. */
 export function wireSuggestionsInteractivity(containerEl, opts = {}) {
   if (!containerEl) return;
+  containerEl._sgInteractivityOpts = opts;
+  if (containerEl.dataset.sgInteractivityBound === 'true') return;
+  containerEl.dataset.sgInteractivityBound = 'true';
 
-  // Filter tab clicks
-  containerEl.querySelectorAll('.sg-filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const filter = btn.dataset.filter;
-      // Update active state visually
+  containerEl.addEventListener('click', event => {
+    const currentOpts = containerEl._sgInteractivityOpts || {};
+    const button = event.target.closest('button');
+    if (!button || !containerEl.contains(button)) return;
+
+    if (button.classList.contains('sg-filter-btn')) {
+      const filter = button.dataset.filter;
       containerEl.querySelectorAll('.sg-filter-btn').forEach(b => {
         const on = b.dataset.filter === filter;
         b.classList.toggle('sg-filter-btn--on', on);
@@ -721,74 +740,60 @@ export function wireSuggestionsInteractivity(containerEl, opts = {}) {
         b.style.color = on ? '#fff' : 'var(--ink-2,#475569)';
         b.setAttribute('aria-selected', on);
       });
-      // Re-render recommendations section for this filter
       const recsContainer = containerEl.querySelector('#sg-recs-container');
-      if (recsContainer && opts.recommendations) {
-        recsContainer.innerHTML = buildRecommendationsSection(opts.recommendations, {
-          selectable: opts.selectable,
+      if (recsContainer && currentOpts.recommendations) {
+        recsContainer.innerHTML = buildRecommendationsSection(currentOpts.recommendations, {
+          selectable: currentOpts.selectable,
           showDeeper: true,
           activeFilter: filter,
         });
-        // Re-wire try-scenario and checkboxes on new cards
-        wireSuggestionsInteractivity(containerEl, opts);
       }
-    });
+      return;
+    }
+
+    if (button.classList.contains('sg-try-btn')) {
+      const id = button.dataset.recId;
+      const rec = currentOpts.recommendations?.find(r => (r.id || r.title) === id);
+      if (rec && currentOpts.onTryScenario) currentOpts.onTryScenario(rec);
+      return;
+    }
+
+    if (button.id === 'sg-run-deeper' && currentOpts.onRunDeeper) {
+      currentOpts.onRunDeeper();
+      return;
+    }
+
+    if (button.id === 'sg-export-plan' && currentOpts.onExportPlan) {
+      currentOpts.onExportPlan(getSelectedRecommendations(containerEl, currentOpts.recommendations));
+      return;
+    }
+
+    if (button.id === 'sg-clear-plan') {
+      containerEl.querySelectorAll('.sg-action-check').forEach(cb => { cb.checked = false; });
+      const planEl = containerEl.querySelector('#sg-action-plan');
+      if (planEl) planEl.innerHTML = buildActionPlanSection([]);
+    }
   });
 
-  // Checkbox → action plan builder
-  if (opts.selectable) {
-    containerEl.querySelectorAll('.sg-action-check').forEach(cb => {
-      cb.addEventListener('change', () => {
-        const selected = [];
-        containerEl.querySelectorAll('.sg-action-check:checked').forEach(c => {
-          const id = c.dataset.recId;
-          const rec = opts.recommendations?.find(r => (r.id || r.title) === id);
-          if (rec) selected.push(rec);
-        });
-        const planEl = containerEl.querySelector('#sg-action-plan');
-        if (planEl) {
-          planEl.innerHTML = buildActionPlanSection(selected);
-          // Re-wire export/clear
-          const exportBtn = planEl.querySelector('#sg-export-plan');
-          const clearBtn  = planEl.querySelector('#sg-clear-plan');
-          if (exportBtn && opts.onExportPlan) exportBtn.addEventListener('click', () => opts.onExportPlan(selected));
-          if (clearBtn) clearBtn.addEventListener('click', () => {
-            containerEl.querySelectorAll('.sg-action-check').forEach(c => { c.checked = false; });
-            planEl.innerHTML = buildActionPlanSection([]);
-          });
-        }
-      });
-    });
-  }
-
-  // "Try this scenario" buttons
-  containerEl.querySelectorAll('.sg-try-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.recId;
-      const rec = opts.recommendations?.find(r => (r.id || r.title) === id);
-      if (rec && opts.onTryScenario) opts.onTryScenario(rec);
-    });
+  containerEl.addEventListener('change', event => {
+    const currentOpts = containerEl._sgInteractivityOpts || {};
+    const checkbox = event.target.closest('.sg-action-check');
+    if (!checkbox || !currentOpts.selectable) return;
+    const planEl = containerEl.querySelector('#sg-action-plan');
+    if (planEl) {
+      planEl.innerHTML = buildActionPlanSection(getSelectedRecommendations(containerEl, currentOpts.recommendations));
+    }
   });
+}
 
-  // "Run deeper analysis" button
-  const deeperBtn = containerEl.querySelector('#sg-run-deeper');
-  if (deeperBtn && opts.onRunDeeper) {
-    deeperBtn.addEventListener('click', opts.onRunDeeper);
-  }
-
-  // Export plan
-  const exportBtn = containerEl.querySelector('#sg-export-plan');
-  if (exportBtn && opts.onExportPlan) {
-    exportBtn.addEventListener('click', () => {
-      const selected = [];
-      containerEl.querySelectorAll('.sg-action-check:checked').forEach(c => {
-        const id = c.dataset.recId;
-        const rec = opts.recommendations?.find(r => (r.id || r.title) === id);
-        if (rec) selected.push(rec);
-      });
-      opts.onExportPlan(selected);
-    });
-  }
+function getSelectedRecommendations(containerEl, recommendations = []) {
+  const selected = [];
+  containerEl.querySelectorAll('.sg-action-check:checked').forEach(checkbox => {
+    const id = checkbox.dataset.recId;
+    const rec = recommendations.find(r => (r.id || r.title) === id);
+    if (rec) selected.push(rec);
+  });
+  return selected;
 }
 
 export default {

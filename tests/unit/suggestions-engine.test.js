@@ -74,7 +74,15 @@ describe('POLICY_SOURCES registry', () => {
 
 // ── suggestions-ui escaping ──────────────────────────────────────────────────
 
-const { escHtml, getFilterTags, SUGGESTION_FILTERS } = require('../../src/js/suggestions-ui.js');
+const {
+  escHtml,
+  getFilterTags,
+  SUGGESTION_FILTERS,
+  buildComfortableRichPanel,
+  buildAgePensionOverseasPanel,
+  buildFullSuggestionsPanel,
+  wireSuggestionsInteractivity,
+} = require('../../src/js/suggestions-ui.js');
 
 describe('escHtml', () => {
   test('escapes <, >, &, ", \'', () => {
@@ -147,6 +155,86 @@ describe('SUGGESTION_FILTERS', () => {
     SUGGESTION_FILTERS.forEach(f => {
       expect(f.id).toBeTruthy();
       expect(f.label).toBeTruthy();
+    });
+  });
+
+  describe('suggestions-ui panels', () => {
+    const mockBand = {
+      projectedAnnualIncome: 50000,
+      asfaComfortableTarget: 52085,
+      richTarget: 78128,
+      successRate: 0.82,
+      depletionAge: null,
+      annualGapToComfortable: 2085,
+      colour: '#0ea5e9',
+      icon: '🎯',
+      label: 'Needs improvement',
+      headline: 'Close to comfortable, but there is still a gap.',
+    };
+
+    test('comfortable/rich panel falls back when rich options are missing', () => {
+      const html = buildComfortableRichPanel(mockBand, { richMultiplier: 1.8 });
+      expect(html).toContain('Rich / Aspirational');
+    });
+
+    test('comfortable/rich and overseas panels use policy source registry links', () => {
+      const asfa = getSource('asfa-retirement-standard');
+      const overseas = getSource('services-australia-overseas');
+      const agreements = getSource('services-australia-agreements');
+
+      expect(buildComfortableRichPanel(mockBand)).toContain(asfa.url);
+
+      const overseasHtml = buildAgePensionOverseasPanel();
+      expect(overseasHtml).toContain(overseas.url);
+      expect(overseasHtml).toContain(agreements.url);
+    });
+  });
+
+  describe('wireSuggestionsInteractivity', () => {
+    const mockBand = {
+      projectedAnnualIncome: 50000,
+      asfaComfortableTarget: 52085,
+      richTarget: 78128,
+      successRate: 0.82,
+      depletionAge: null,
+      annualGapToComfortable: 2085,
+      colour: '#0ea5e9',
+      icon: '🎯',
+      label: 'Needs improvement',
+      headline: 'Close to comfortable, but there is still a gap.',
+    };
+    const mockRecommendations = [
+      { id: 'rec-1', title: 'Boost super contributions', category: 'Contributions', priority: 'HIGH', impact: 'high-positive', feasibility: 'easy' },
+      { id: 'rec-2', title: 'Delay retirement by one year', category: 'Retirement Age', priority: 'MEDIUM', impact: 'positive', feasibility: 'moderate' },
+    ];
+
+    test('binds delegated handlers only once per container', () => {
+      document.body.innerHTML = '<div id="suggestions-host"></div>';
+      const container = document.getElementById('suggestions-host');
+      const onExportPlan = jest.fn();
+      const onRunDeeper = jest.fn();
+
+      container.innerHTML = buildFullSuggestionsPanel({
+        band: mockBand,
+        recommendations: mockRecommendations,
+        selectable: true,
+        yearsToRetirement: 10,
+        annualSalary: 100000,
+      });
+
+      wireSuggestionsInteractivity(container, { recommendations: mockRecommendations, selectable: true, onExportPlan, onRunDeeper });
+      wireSuggestionsInteractivity(container, { recommendations: mockRecommendations, selectable: true, onExportPlan, onRunDeeper });
+
+      const checkbox = container.querySelector('.sg-action-check');
+      checkbox.checked = true;
+      checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+
+      container.querySelector('#sg-export-plan').click();
+      container.querySelector('#sg-run-deeper').click();
+
+      expect(onExportPlan).toHaveBeenCalledTimes(1);
+      expect(onExportPlan).toHaveBeenCalledWith([mockRecommendations[0]]);
+      expect(onRunDeeper).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -2698,9 +2698,18 @@ async function renderAiPanel() {
   const inp = APP_STATE.input || {};
   const engineInputs = APP_STATE.engineInputs || {};
 
-  // Dynamically import suggestions-ui to avoid bloating the initial bundle
-  const SuggestionsUI = await import('./suggestions-ui.js');
-  const { computeOutcomeBand } = await import('./outcome-bands.js');
+  let SuggestionsUI;
+  let computeOutcomeBand;
+  try {
+    // Dynamically import suggestions-ui to avoid bloating the initial bundle
+    ([SuggestionsUI, { computeOutcomeBand }] = await Promise.all([
+      import('./suggestions-ui.js'),
+      import('./outcome-bands.js'),
+    ]));
+  } catch (error) {
+    console.error('Unable to load suggestions panel modules:', error);
+    return;
+  }
 
   // Inject property sell-timing insight if applicable
   const sellTimingRec = generatePropertySellTimingInsight(inp, engineInputs);
