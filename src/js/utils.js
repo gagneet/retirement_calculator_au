@@ -1564,6 +1564,29 @@ export const exportToXLSX = (inputs, results, chartManager, app = null) => {
         ['Investment Property', 'Has Investment Property', inputs.hasInvestmentProperty],
     ];
 
+    if (inputs.windfallScenario?.enabled || inputs.inheritanceScenario?.enabled) {
+        const windfall = inputs.windfallScenario || inputs.inheritanceScenario;
+        summaryData.push(
+            ["Future Windfall", "Enabled", true],
+            ["Future Windfall", "Included in Base Projection", Boolean(windfall.includeInBasePlan)],
+            ["Future Windfall", "Expected Age", windfall.age || windfall.expectedAge || ""],
+            ["Future Windfall", "Estimated Amount", formatCurrency(windfall.amount || windfall.grossValue || 0)],
+            ["Future Windfall", "Confidence", windfall.confidence || windfall.certainty || "speculative"],
+            ["Future Windfall", "Treatment", windfall.treatment || windfall.use || "invest_outside_super"]
+        );
+    }
+
+    if (inputs.futurePropertyScenario?.enabled) {
+        const propertyPlan = inputs.futurePropertyScenario;
+        summaryData.push(
+            ["Future Property", "Plan", propertyPlan.planType || propertyPlan.eventType || ""],
+            ["Future Property", "Included in Base Projection", Boolean(propertyPlan.includeInBasePlan)],
+            ["Future Property", "Expected Age", propertyPlan.age || propertyPlan.expectedAge || ""],
+            ["Future Property", "Property Value", formatCurrency(propertyPlan.propertyValue || 0)],
+            ["Future Property", "Mortgage", formatCurrency(propertyPlan.mortgage || 0)]
+        );
+    }
+
     if (inputs.hasInvestmentProperty) {
         summaryData.push(
             ['Investment Property', 'Current Value', formatCurrency(inputs.investmentPropertyValue)],
@@ -2031,6 +2054,22 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
         ['Australian Equity Allocation', formatPercent(inputs.australianEquityAllocation, 2)],
         ['Return Volatility', formatPercent(inputs.returnVolatility, 2)]
     ];
+
+    const windfallAssumption = inputs.windfallScenario || inputs.inheritanceScenario;
+    if (windfallAssumption && windfallAssumption.enabled) {
+        assumptionsBody.push(
+            ['Future Windfall', (windfallAssumption.includeInBasePlan ? 'Included in base projection' : 'Scenario-only') + '; ' + formatCurrency(windfallAssumption.amount || windfallAssumption.grossValue || 0) + ' at age ' + (windfallAssumption.age || windfallAssumption.expectedAge || 'n/a')],
+            ['Windfall Confidence/Treatment', (windfallAssumption.confidence || windfallAssumption.certainty || 'speculative') + '; ' + (windfallAssumption.treatment || windfallAssumption.use || 'invest_outside_super')]
+        );
+    }
+
+    if (inputs.futurePropertyScenario && inputs.futurePropertyScenario.enabled) {
+        const propertyPlan = inputs.futurePropertyScenario;
+        assumptionsBody.push(
+            ['Future Property Plan', (propertyPlan.includeInBasePlan ? 'Included in base projection' : 'Scenario-only') + '; ' + (propertyPlan.planType || propertyPlan.eventType || 'plan') + ' at age ' + (propertyPlan.age || propertyPlan.expectedAge || 'n/a')],
+            ['Future Property Value', formatCurrency(propertyPlan.propertyValue || 0)]
+        );
+    }
 
     doc.autoTable({
         startY: yPos,

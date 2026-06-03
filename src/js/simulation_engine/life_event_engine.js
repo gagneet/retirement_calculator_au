@@ -23,6 +23,44 @@ export const EVENT_TYPES = {
     DOWNSIZING:          'DownsizingEvent',
 };
 
+const normaliseWindfallScenario = (inputs) => {
+    const scenario = inputs.windfallScenario || inputs.inheritanceScenario;
+    if (scenario && scenario.enabled && scenario.includeInBasePlan) {
+        return {
+            amount: Math.max(0, Number(scenario.amount ?? scenario.grossValue ?? 0)),
+            age: Number(scenario.age ?? scenario.expectedAge ?? inputs.inheritanceAge),
+            confidence: scenario.confidence || scenario.certainty || "speculative",
+            treatment: scenario.treatment || scenario.use || "invest_outside_super",
+        };
+    }
+
+    if (Number(inputs.expectedInheritance) > 0 && inputs.inheritanceAge !== null && inputs.inheritanceAge !== undefined) {
+        return {
+            amount: Math.max(0, Number(inputs.expectedInheritance)),
+            age: Number(inputs.inheritanceAge),
+            confidence: "likely",
+            treatment: "invest_outside_super",
+        };
+    }
+
+    return null;
+};
+
+const normaliseFuturePropertyScenario = (inputs) => {
+    const scenario = inputs.futurePropertyScenario;
+    if (!scenario || !scenario.enabled || !scenario.includeInBasePlan) return null;
+    return {
+        planType: scenario.planType || scenario.eventType || "none",
+        age: Number(scenario.age ?? scenario.expectedAge ?? 0),
+        propertyValue: Math.max(0, Number(scenario.propertyValue ?? scenario.value ?? 0)),
+        mortgage: Math.max(0, Number(scenario.mortgage ?? scenario.mortgageAmount ?? 0)),
+        rentIncome: Math.max(0, Number(scenario.rentIncome ?? scenario.weeklyRentalIncome ?? 0)),
+        annualExpenses: Math.max(0, Number(scenario.annualExpenses ?? scenario.annualPropertyExpenses ?? 0)),
+        transactionCostPct: Math.max(0, Number(scenario.transactionCostPct ?? 0)),
+        newHomeCost: Math.max(0, Number(scenario.newHomeCost ?? 0)),
+    };
+};
+
 // ── Event builder ─────────────────────────────────────────────────────────────
 
 /**
@@ -93,13 +131,25 @@ export const buildLifeEvents = (inputs) => {
         });
     }
 
-    // Inheritance
-    if (expectedInheritance > 0 && inheritanceAge !== null) {
+    // Simple future windfall / inheritance. Scenario-only entries remain metadata.
+    const windfall = normaliseWindfallScenario(inputs);
+    if (windfall && windfall.amount > 0 && windfall.age > 0) {
         events.push({
             type:       EVENT_TYPES.INHERITANCE,
-            triggerAge: inheritanceAge,
+            triggerAge: windfall.age,
             duration:   1,
-            data:       { amount: expectedInheritance },
+            data:       windfall,
+        });
+    }
+
+    const futureProperty = normaliseFuturePropertyScenario(inputs);
+    if (futureProperty && futureProperty.age > 0) {
+        const isSale = futureProperty.planType === "sell_downsize" || futureProperty.planType === "sell_property";
+        events.push({
+            type:       isSale ? EVENT_TYPES.PROPERTY_SALE : EVENT_TYPES.PROPERTY_PURCHASE,
+            triggerAge: futureProperty.age,
+            duration:   1,
+            data:       futureProperty,
         });
     }
 
@@ -163,11 +213,23 @@ export const applyLifeEvents = (state, events, age) => {
 
     active.forEach((event) => {
         switch (event.type) {
-            case EVENT_TYPES.INHERITANCE:
-                // Lump-sum windfall: add to investment assets
-                state.investmentAssets += event.data.amount || 0;
+            case EVENT_TYPES.INHERITANCE: {
+                const amount = Math.max(0, Number(event.data.amount || 0));
+                const treatment = event.data.treatment || "invest_outside_super";
+                if (treatment === "pay_down_mortgage") {
+                    const reduction = Math.min(state.mortgageBalance || 0, amount);
+                    state.mortgageBalance = Math.max(0, (state.mortgageBalance || 0) - reduction);
+                    state.investmentAssets += amount - reduction;
+                } else if (treatment === "buy_home") {
+                    state.homeValue = (state.homeValue || 0) + amount;
+                    state.homeowner = true;
+                } else {
+                    state.investmentAssets += amount;
+                    if (treatment === "keep_cash") state.cashAssets = (state.cashAssets || 0) + amount;
+                }
                 applied.push(event.type);
                 break;
+            }
 
             case EVENT_TYPES.EDUCATION_EXPENSE:
                 // Additional annual education cost
@@ -184,11 +246,40 @@ export const applyLifeEvents = (state, events, age) => {
             case EVENT_TYPES.RETIREMENT:
             case EVENT_TYPES.SEMI_RETIREMENT:
             case EVENT_TYPES.INCOME_DROP:
-            case EVENT_TYPES.PROPERTY_PURCHASE:
-            case EVENT_TYPES.DOWNSIZING:
-                // These are handled by the respective engines; just flag them
+            case EVENT_TYPES.PROPERTY_PURCHASE: {
+                const planType = event.data.planType || "buy_primary_home";
+                const value = Math.max(0, Number(event.data.propertyValue || 0));
+                const mortgage = Math.max(0, Number(event.data.mortgage || 0));
+                if (planType.includes("investment_property")) {
+                    state.propertyAssets = Math.max(state.propertyAssets || 0, value);
+                    state.investmentPropertyLoan = mortgage;
+                    state.futureRentalIncome = Math.max(0, Number(event.data.rentIncome || 0));
+                    state.futurePropertyExpenses = Math.max(0, Number(event.data.annualExpenses || 0));
+                } else {
+                    state.homeValue = value;
+                    state.mortgageBalance = mortgage;
+                    state.homeowner = true;
+                }
                 applied.push(event.type);
                 break;
+            }
+
+            case EVENT_TYPES.PROPERTY_SALE:
+            case EVENT_TYPES.DOWNSIZING: {
+                const saleValue = Math.max(0, Number(event.data.propertyValue || state.homeValue || state.propertyAssets || 0));
+                const remainingMortgage = Math.max(0, Number(event.data.mortgage || state.mortgageBalance || 0));
+                const transactionCost = saleValue * Math.max(0, Number(event.data.transactionCostPct || 0));
+                const newHomeCost = Math.max(0, Number(event.data.newHomeCost || 0));
+                const released = Math.max(0, saleValue - remainingMortgage - transactionCost - newHomeCost);
+                state.investmentAssets += released;
+                if (newHomeCost > 0) {
+                    state.homeValue = newHomeCost;
+                    state.mortgageBalance = 0;
+                    state.homeowner = true;
+                }
+                applied.push(event.type);
+                break;
+            }
 
             default:
                 break;

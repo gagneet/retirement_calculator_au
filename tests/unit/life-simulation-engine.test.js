@@ -78,6 +78,7 @@ import {
     EVENT_TYPES,
     buildLifeEvents,
     getActiveEvents,
+    applyLifeEvents,
 } from '../../src/js/simulation_engine/life_event_engine.js';
 
 import { runLifeSimulation } from '../../src/js/simulation_engine/life_simulation_engine.js';
@@ -515,6 +516,88 @@ describe('LifeEventEngine – buildLifeEvents', () => {
         const inherEvent = events.find(e => e.type === EVENT_TYPES.INHERITANCE);
         expect(inherEvent).toBeDefined();
         expect(inherEvent.data.amount).toBe(200000);
+    });
+
+    test('windfall defaults to scenario-only unless explicitly included', () => {
+        const events = buildLifeEvents({
+            yourCurrentAge: 49,
+            retirementAge: 65,
+            inheritanceScenario: {
+                enabled: true,
+                includeInBasePlan: false,
+                age: 70,
+                grossValue: 500000,
+                certainty: 'speculative',
+                use: 'invest_outside_super',
+            },
+        });
+
+        expect(events.find(e => e.type === EVENT_TYPES.INHERITANCE)).toBeUndefined();
+    });
+
+    test('includeInBase windfall adds treatment-aware event', () => {
+        const events = buildLifeEvents({
+            yourCurrentAge: 49,
+            retirementAge: 65,
+            inheritanceScenario: {
+                enabled: true,
+                includeInBasePlan: true,
+                age: 70,
+                grossValue: 500000,
+                certainty: 'confirmed',
+                use: 'pay_down_mortgage',
+            },
+        });
+        const event = events.find(e => e.type === EVENT_TYPES.INHERITANCE);
+
+        expect(event).toBeDefined();
+        expect(event.data.amount).toBe(500000);
+        expect(event.data.treatment).toBe('pay_down_mortgage');
+    });
+
+    test('windfall pay down mortgage reduces mortgage and invests the remainder', () => {
+        const state = new FinancialState(70, { investmentAssets: 10000, mortgageBalance: 120000 });
+        applyLifeEvents(state, [{ type: EVENT_TYPES.INHERITANCE, triggerAge: 70, duration: 1, data: { amount: 200000, treatment: 'pay_down_mortgage' } }], 70);
+
+        expect(state.mortgageBalance).toBe(0);
+        expect(state.investmentAssets).toBe(90000);
+    });
+
+    test('windfall keep cash and invest outside super add to financial assets', () => {
+        const cashState = new FinancialState(70, { investmentAssets: 10000 });
+        const investState = new FinancialState(70, { investmentAssets: 10000 });
+
+        applyLifeEvents(cashState, [{ type: EVENT_TYPES.INHERITANCE, triggerAge: 70, duration: 1, data: { amount: 50000, treatment: 'keep_cash' } }], 70);
+        applyLifeEvents(investState, [{ type: EVENT_TYPES.INHERITANCE, triggerAge: 70, duration: 1, data: { amount: 50000, treatment: 'invest_outside_super' } }], 70);
+
+        expect(cashState.investmentAssets).toBe(60000);
+        expect(cashState.cashAssets).toBe(50000);
+        expect(investState.investmentAssets).toBe(60000);
+    });
+
+    test('future property scenario creates base-included property event only when included', () => {
+        const scenarioOnly = buildLifeEvents({
+            yourCurrentAge: 49,
+            retirementAge: 65,
+            futurePropertyScenario: { enabled: true, includeInBasePlan: false, age: 58, eventType: 'buy_primary_home', propertyValue: 800000 },
+        });
+        const included = buildLifeEvents({
+            yourCurrentAge: 49,
+            retirementAge: 65,
+            futurePropertyScenario: { enabled: true, includeInBasePlan: true, age: 58, eventType: 'buy_primary_home', propertyValue: 800000, mortgage: 500000 },
+        });
+
+        expect(scenarioOnly.find(e => e.type === EVENT_TYPES.PROPERTY_PURCHASE)).toBeUndefined();
+        expect(included.find(e => e.type === EVENT_TYPES.PROPERTY_PURCHASE)).toBeDefined();
+    });
+
+    test('future primary home event updates homeowner state', () => {
+        const state = new FinancialState(58, { propertyAssets: 0, mortgageBalance: 0 });
+        applyLifeEvents(state, [{ type: EVENT_TYPES.PROPERTY_PURCHASE, triggerAge: 58, duration: 1, data: { planType: 'buy_primary_home', propertyValue: 800000, mortgage: 500000 } }], 58);
+
+        expect(state.homeValue).toBe(800000);
+        expect(state.mortgageBalance).toBe(500000);
+        expect(state.homeowner).toBe(true);
     });
 
     test('includes AgedCareEvent by default', () => {

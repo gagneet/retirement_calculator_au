@@ -128,6 +128,8 @@ export const runLifeSimulation = (userInputs) => {
     let propertyValue   = inputs.hasInvestmentProperty ? (inputs.investmentPropertyValue || 0) : 0;
     let propertyLoan    = inputs.investmentPropertyLoan || 0;
     let mortgageBalance = inputs.mortgageBalance || 0;
+    let futurePropertyRentIncome = 0;
+    let futurePropertyAnnualExpenses = 0;
     let currentInflation = inflation;
 
     // Retirement spending initialisation
@@ -175,10 +177,19 @@ export const runLifeSimulation = (userInputs) => {
             propertyAssets:    propertyValue,
             mortgageBalance,
             investmentPropertyLoan: propertyLoan,
+            futureRentalIncome: futurePropertyRentIncome,
+            futurePropertyExpenses: futurePropertyAnnualExpenses,
         });
 
         // ── Apply life events (inheritance, aged care, education) ─────────────
         applyLifeEvents(state, lifeEvents, age);
+
+        investmentAssets = state.investmentAssets;
+        propertyValue = state.propertyAssets;
+        propertyLoan = state.investmentPropertyLoan;
+        mortgageBalance = state.mortgageBalance;
+        futurePropertyRentIncome = state.futureRentalIncome || futurePropertyRentIncome;
+        futurePropertyAnnualExpenses = state.futurePropertyExpenses || futurePropertyAnnualExpenses;
 
         // ── Income ────────────────────────────────────────────────────────────
         salary        = projectSalary(salary, age, inputs);
@@ -203,6 +214,10 @@ export const runLifeSimulation = (userInputs) => {
             );
             rentalNetCashFlow = netCashFlow;
             state.rentalIncome = Math.max(0, netCashFlow);
+        } else if (futurePropertyRentIncome > 0 && propertyValue > 0) {
+            const interest = propertyLoan * (inputs.investmentPropertyRate || inputs.mortgageRate || 0.06);
+            rentalNetCashFlow = futurePropertyRentIncome - futurePropertyAnnualExpenses - interest;
+            state.rentalIncome = Math.max(0, rentalNetCashFlow);
         }
 
         // ── Property sale ─────────────────────────────────────────────────────
