@@ -4,6 +4,13 @@ A comprehensive, AI-powered retirement planning calculator specifically designed
 
 ## Recent Updates (2026)
 
+### Super Guarantee Salary Package Handling (June 2026)
+- **Salary input modes**: Added explicit handling for salaries entered as base salary excluding super versus total remuneration packages including super.
+- **Maximum contribution base**: Employer Super Guarantee calculations now apply the 2025-26 maximum super contribution base by default ($62,500 per quarter, $250,000 annualised), capping compulsory SG at $30,000 when the 12% rate applies.
+- **Concessional cap visibility**: Salary sacrifice guidance now includes employer SG, prior concessional contributions, and remaining room under the $30,000 concessional cap.
+- **High-income warnings**: Added first-pass Division 293 warnings for high-income cases where concessional contributions may attract the additional 15% tax.
+- **Shared policy helper**: Advanced, advanced-v2, and the simplified calculator now use the same employer SG/package calculation path to avoid divergent results.
+
 ### Advanced Calculator UX Fixes (March 2026)
 - **4-column grid responsive layout**: Added `md:grid-cols-2` breakpoint so all four calculator sections (Personal & Risk Profile, Property Portfolio, Economic & Asset Allocation, Australian Pension System) display as 2 columns on tablets and 4 columns on desktop with `items-start` alignment.
 - **Action buttons always visible**: The "🚀 Advanced Analysis Tools" section is now visible by default when browsing to the Advanced Calculator page, without requiring JSON import or onboarding completion.
@@ -76,7 +83,7 @@ Column structure verified and working correctly with the 4-column grid (`lg:grid
 - **Catch-Up Strategies**: Optimal timing for additional contributions
 
 ### **Australian-Specific Features**
-- **Super Guarantee**: 12% contribution rate modeling
+- **Super Guarantee**: 12% contribution rate modeling with salary package mode and maximum contribution base support
 - **Age Pension Integration**: Complete asset/income test calculations with optimization strategies
 - **Tax System**: Full Australian tax bracket integration (2024–25) with franking credit benefits
 - **Property Market**: Australian property growth, CGT modeling, and negative gearing
@@ -312,10 +319,13 @@ For returning users or those who skip the onboarding, the advanced calculator pr
 ## 🏛️ **Australian Financial System Integration**
 
 ### **Superannuation (2025 Updated)**
-- **12% Super Guarantee**: Accurate modeling of employer contributions
+- **12% Super Guarantee**: Accurate modeling of employer contributions, including base salary excluding super and total package including super inputs
+- **Maximum Contribution Base**: Optional cap applying the 2025-26 maximum super contribution base ($62,500 per quarter), limiting compulsory SG to $30,000 at a 12% SG rate
 - **Contribution Caps**:
   - Concessional: $30,000 annually
   - Non-concessional: $120,000 annually (if balance < $2M)
+- **Concessional Cap Guidance**: Employer SG, salary sacrifice, and prior concessional contributions are counted when estimating remaining salary sacrifice room
+- **Division 293 Awareness**: High-income warning where income plus low-tax concessional contributions may exceed the $250,000 threshold
 - **$3M Tax**: New 15% tax on earnings above $3M threshold
 - **Carry-Forward Rules**: Use unused caps from previous 5 years
 - **Transfer Balance Cap**: $2M from July 2025
