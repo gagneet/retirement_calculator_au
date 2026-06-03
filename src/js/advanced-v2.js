@@ -94,6 +94,10 @@ const APP_STATE = {
   overseasAnalysis: null,
   overseasExportData: null,
   chartManager: { charts: {} },
+  monteCarloChartRender: {
+    lastKey: null,
+    scheduled: false,
+  },
 };
 let initialFormState = null;
 let bootStarted = false;
@@ -1203,6 +1207,8 @@ function resetDerivedAnalysis() {
   APP_STATE.allocationStrategy = null;
   APP_STATE.overseasAnalysis = null;
   APP_STATE.overseasExportData = null;
+  APP_STATE.monteCarloChartRender.lastKey = null;
+  APP_STATE.monteCarloChartRender.scheduled = false;
 }
 
 function escapeHtml(value) {
@@ -1222,6 +1228,11 @@ function setPanelHtml(tabName, html) {
 function openTab(tabName) {
   const button = document.querySelector(`.analysis-tabs button[data-tab="${tabName}"]`);
   if (button) button.click();
+}
+
+function getActiveAnalysisTab() {
+  const active = document.querySelector('.analysis-tabs button.on');
+  return active?.dataset?.tab || 'summary';
 }
 
 function getDisplayUnits() {
@@ -1828,6 +1839,7 @@ function renderMonteCarloCharts(mc, inp) {
         ],
       },
       options: {
+        animation: false,
         responsive: true,
         maintainAspectRatio: true,
         aspectRatio: 2.5,
@@ -1906,6 +1918,7 @@ function renderMonteCarloCharts(mc, inp) {
         ],
       },
       options: {
+        animation: false,
         responsive: true,
         maintainAspectRatio: true,
         aspectRatio: 2.5,
@@ -3075,16 +3088,61 @@ async function exportSuggestionsAsPdf(selectedRecs, band) {
 }
 
 function renderAnalysisPanels() {
-  profiler.measure('advanced-v2.post.render.summaryPanel', () => renderSummaryPanel());
-  profiler.measure('advanced-v2.post.render.whatIfPanel', () => renderWhatIfPanel());
-  profiler.measure('advanced-v2.post.render.riskPanel', () => renderRiskPanel());
-  profiler.measure('advanced-v2.suggestions.render.aiPanel', () => renderAiPanel());
-  profiler.measure('advanced-v2.post.render.overseasPanel', () => renderOverseasPanel());
-  // Re-render charts after panels rebuild their DOM (canvases are re-created by renderRiskPanel)
-  if (APP_STATE.monteCarloResults) {
-    // Use a microtask to ensure the DOM is updated before drawing
-    Promise.resolve().then(() => profiler.measure('advanced-v2.post.chart.microtaskRenderMonteCarloCharts', () => renderMonteCarloCharts(APP_STATE.monteCarloResults, APP_STATE.input)));
+  const activeTab = getActiveAnalysisTab();
+  if (activeTab === 'summary') {
+    profiler.measure('advanced-v2.post.render.summaryPanel', () => renderSummaryPanel());
+  } else if (activeTab === 'whatif') {
+    profiler.measure('advanced-v2.post.render.whatIfPanel', () => renderWhatIfPanel());
+  } else if (activeTab === 'risk') {
+    profiler.measure('advanced-v2.post.render.riskPanel', () => renderRiskPanel());
+    scheduleVisibleRiskChartRender();
+  } else if (activeTab === 'ai') {
+    profiler.measure('advanced-v2.suggestions.render.aiPanel', () => renderAiPanel());
+  } else if (activeTab === 'overseas') {
+    profiler.measure('advanced-v2.post.render.overseasPanel', () => renderOverseasPanel());
   }
+}
+
+function getMonteCarloChartRenderKey(mc, inp) {
+  if (!mc) return null;
+  const outcomesLen = Array.isArray(mc.outcomes)
+    ? mc.outcomes.length
+    : Array.isArray(mc.statistics?.outcomes)
+      ? mc.statistics.outcomes.length
+      : 0;
+  return [
+    mc.totalRuns ?? mc.numRuns ?? 0,
+    mc.successRate ?? 0,
+    mc.median ?? 0,
+    mc.percentile10 ?? 0,
+    mc.percentile90 ?? 0,
+    outcomesLen,
+    inp?.retireAge ?? 0,
+    inp?.lifespan ?? 0,
+  ].join('|');
+}
+
+function scheduleVisibleRiskChartRender(force = false) {
+  if (!APP_STATE.monteCarloResults) return;
+  if (getActiveAnalysisTab() !== 'risk') return;
+
+  const renderState = APP_STATE.monteCarloChartRender;
+  const nextKey = getMonteCarloChartRenderKey(APP_STATE.monteCarloResults, APP_STATE.input);
+
+  if (!force && renderState.lastKey === nextKey) return;
+  if (renderState.scheduled) return;
+
+  renderState.scheduled = true;
+  Promise.resolve().then(() => {
+    renderState.scheduled = false;
+    if (getActiveAnalysisTab() !== 'risk' || !APP_STATE.monteCarloResults) return;
+    const keyAtRender = getMonteCarloChartRenderKey(APP_STATE.monteCarloResults, APP_STATE.input);
+    if (!force && renderState.lastKey === keyAtRender) return;
+    profiler.measure('advanced-v2.post.chart.microtaskRenderMonteCarloCharts', () => {
+      renderMonteCarloCharts(APP_STATE.monteCarloResults, APP_STATE.input);
+    });
+    renderState.lastKey = keyAtRender;
+  });
 }
 
 async function runMonteCarloAnalysis() {
@@ -3197,11 +3255,9 @@ async function runMonteCarloAnalysis() {
 
   profiler.measure('advanced-v2.post.render.analysisPanels', () => renderAnalysisPanels());
 
-  // Phase: chart drawing
+  // Phase: chart drawing is now deferred until the Risk tab is visible.
   await setProgress(95, 'Rendering charts…',
-    'Drawing fan chart, histogram and allocation breakdown…', 'phase-render');
-
-  profiler.measure('advanced-v2.post.chart.renderMonteCarloCharts', () => renderMonteCarloCharts(APP_STATE.monteCarloResults, APP_STATE.input));
+    'Risk charts render when the Risk & Resilience tab is visible.', 'phase-render');
 
   // Briefly show "Done" before the overlay dismisses
   await setProgress(100, 'Done',
@@ -3278,16 +3334,15 @@ function runOverseasAnalysis() {
 }
 
 async function runFullAnalysis() {
+  // Full run now focuses on core Monte Carlo + risk profile.
+  // Secondary analyses remain available on-demand from tool buttons.
+  APP_STATE.retirementAgeResult = null;
+  APP_STATE.stressTestResults = [];
+  APP_STATE.recommendations = [];
+  APP_STATE.overseasAnalysis = null;
+  APP_STATE.overseasExportData = null;
+
   await runMonteCarloAnalysis();
-  await runRecommendationAnalysis();
-  runStressAnalysis();
-  if (APP_STATE.input?.goingOverseas && APP_STATE.input?.destination) {
-    runOverseasAnalysis();
-  }
-  await runRetirementAgeAnalysis();
-  profiler.measure('advanced-v2.post.render.analysisPanels', () => renderAnalysisPanels());
-  // Charts may have been cleared by renderAnalysisPanels — re-render them
-  profiler.measure('advanced-v2.post.chart.renderMonteCarloCharts', () => renderMonteCarloCharts(APP_STATE.monteCarloResults, APP_STATE.input));
   profiler.report('advanced-v2 full analysis profile');
 }
 
@@ -3782,6 +3837,7 @@ function initTabs() {
       document.querySelectorAll('[data-tab-panel]').forEach((p) => {
         p.hidden = p.dataset.tabPanel !== tab;
       });
+      renderAnalysisPanels();
     });
   });
   // Jump buttons inside the sticky panel and action strip

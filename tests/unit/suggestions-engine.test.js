@@ -333,6 +333,35 @@ describe('RecommendationEngine — enriched recommendation structure', () => {
     expect(mockSim.runScenarioComparison).toHaveBeenCalled();
   });
 
+  test('runScenarioComparisons avoids sending duplicate baseline scenario when baseline is provided', async () => {
+    const mockSim = makeMockSimulator({
+      runScenarioComparison: jest.fn().mockResolvedValue({
+        scenarios: [
+          { name: 'Increase Super by $500/month', successRate: 0.88, medianBalance: 750000, description: 'extra super', factorsChanged: ['Extra $500/month to super'], feasibility: 'easy' },
+        ],
+      }),
+    });
+    const baselineResults = {
+      monteCarlo: { successRate: 0.80, median: 600000 },
+      deterministic: { finalBalance: 500000, totalFinancialAssets: 520000 },
+    };
+    const engine = new RecommendationEngine(mockSim, MOCK_INPUTS, MOCK_CONFIG, {
+      baselineMonteCarlo: baselineResults.monteCarlo,
+      baselineDeterministic: baselineResults.deterministic,
+    });
+
+    const scenarios = [{ name: 'Increase Super by $500/month', modifications: { monthlyStockContribution: 500 } }];
+    const results = await engine.runScenarioComparisons(scenarios, baselineResults);
+
+    expect(mockSim.runScenarioComparison).toHaveBeenCalledWith(
+      MOCK_INPUTS,
+      scenarios
+    );
+    expect(results[0].name).toBe('Current Plan');
+    expect(results[0].successRate).toBe(0.80);
+    expect(results[1].name).toBe('Increase Super by $500/month');
+  });
+
   test('generateRecommendations returns array', async () => {
     const engine = new RecommendationEngine(makeMockSimulator(), MOCK_INPUTS, MOCK_CONFIG);
     const recs = await engine.generateRecommendations();

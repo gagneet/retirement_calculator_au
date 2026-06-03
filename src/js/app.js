@@ -9289,7 +9289,8 @@ class RetirementCalculatorApp {
 
         this.getClassicPartnerControlledFieldIds().forEach((fieldId) => {
             const field = $(fieldId);
-            const wrapper = field?.closest('.super-strategy-field, .field-required, .col-span-2, div');
+            const wrapper = field?.closest('.super-strategy-field, .field-required, .col-span-2')
+                ?? field?.parentElement;
             if (wrapper && !wrapper.dataset.household && wrapper !== document.body) {
                 wrapper.dataset.household = 'couple';
             }

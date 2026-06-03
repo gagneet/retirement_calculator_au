@@ -100,7 +100,7 @@ class RecommendationEngine {
 
         // Step 3: Run MC comparisons only for scenarios that have input modifications
         const comparisonResults = simulatedScenarios.length > 0
-            ? await this._asyncMeasure('scenarioComparisons', () => this.runScenarioComparisons(simulatedScenarios))
+            ? await this._asyncMeasure('scenarioComparisons', () => this.runScenarioComparisons(simulatedScenarios, baselineResults))
             : [];
 
         // Step 4: Format simulated recommendations
@@ -1992,18 +1992,43 @@ class RecommendationEngine {
      * @param {Array<Object>} scenarios - The list of scenarios to test.
      * @returns {Promise<Object>} The results from the scenario comparison.
      */
-    async runScenarioComparisons(scenarios) {
+    async runScenarioComparisons(scenarios, baselineResults = null) {
         if (scenarios.length === 0) {
             return [];
         }
-        // The first scenario is always the baseline
-        const allScenarios = [
-            { name: "Current Plan", description: "Your current strategy", modifications: {} },
-            ...scenarios
-        ];
+        const hasReusableBaseline = Boolean(
+            baselineResults?.monteCarlo
+            && baselineResults?.deterministic
+        );
 
-        const results = await this.simulator.runScenarioComparison(this.baseInputs, allScenarios);
-        return results.scenarios;
+        const comparisonInput = hasReusableBaseline
+            ? scenarios
+            : [{ name: "Current Plan", description: "Your current strategy", modifications: {} }, ...scenarios];
+
+        const results = await this.simulator.runScenarioComparison(this.baseInputs, comparisonInput);
+        const scenarioResults = Array.isArray(results?.scenarios) ? results.scenarios : [];
+
+        if (!hasReusableBaseline) {
+            return scenarioResults;
+        }
+
+        const alreadyIncludesBaseline = scenarioResults[0]?.name === 'Current Plan';
+        if (alreadyIncludesBaseline) {
+            return scenarioResults;
+        }
+
+        const baselineScenario = {
+            name: "Current Plan",
+            description: "Your current strategy",
+            modifications: {},
+            monteCarloResult: baselineResults.monteCarlo,
+            deterministicResult: baselineResults.deterministic,
+            successRate: baselineResults.monteCarlo.successRate,
+            medianBalance: baselineResults.monteCarlo.median,
+            finalBalance: baselineResults.deterministic.finalBalance,
+            totalAssets: baselineResults.deterministic.totalFinancialAssets
+        };
+        return [baselineScenario, ...scenarioResults];
     }
 
     /**
