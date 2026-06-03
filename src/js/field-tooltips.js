@@ -126,6 +126,18 @@ const FIELD_TOOLTIP_DEFINITIONS = {
         title: 'Employer SG rate',
         body: 'This is the super guarantee rate applied to salary. It affects how much compulsory super is added each year.',
     },
+    applyMaxContributionBase: {
+        title: 'Apply maximum super contribution base',
+        body: 'Employer SG is capped by the maximum super contribution base when this is enabled. Turn it off only for edge-case employer override modelling.',
+    },
+    maxContributionBasePerQuarter: {
+        title: 'Maximum super contribution base',
+        body: 'The quarterly earnings base used to cap compulsory employer SG. For 2025-26 the default is $62,500 per quarter.',
+    },
+    sgSummary: {
+        title: 'Calculated cash salary and employer SG',
+        body: 'Shows calculated cash salary, employer SG, concessional cap remaining, and any Division 293 warning from the employment income settings.',
+    },
     ncc: {
         title: 'Your after-tax contribution',
         body: 'Non-concessional contributions are made from after-tax money and count toward the annual non-concessional cap.',
@@ -785,9 +797,25 @@ const FIELD_TOOLTIP_DEFINITIONS = {
         title: 'Expected inheritance age',
         body: 'Age when the inheritance or windfall is expected to be received.',
     },
+    employerSuperOverrideAmount: {
+        title: 'Employer SG override',
+        body: 'Use this when your actual employer contributions differ from the standard SG calculation. For package-inclusive income, the override reduces cash salary within the fixed package.',
+    },
+    partnerEmployerSuperOverrideEnabled: {
+        title: 'Partner employer SG override',
+        body: 'Allows partner employer super to be modelled independently when household mode is couple.',
+    },
+    partnerEmployerSuperOverrideAmount: {
+        title: 'Partner annual employer contributions',
+        body: 'The partner annual employer super amount to use when partner SG override is enabled.',
+    },
     inheritanceCertainty: {
-        title: 'Inheritance certainty',
-        body: 'Marks whether the inheritance is speculative, likely, or confirmed. Speculative events should remain scenario-only.',
+        title: 'Windfall confidence',
+        body: 'Marks whether the windfall is speculative, likely, or confirmed. Speculative events should remain scenario-only.',
+    },
+    inheritanceConfidence: {
+        title: 'Windfall confidence',
+        body: 'Marks whether the windfall is speculative, likely, or confirmed. Speculative events should remain scenario-only.',
     },
     inheritanceType: {
         title: 'Inheritance type',

@@ -34,8 +34,11 @@ import PersonalizedQuestionEngine from './personalized-qa-engine.js';
 import {
     calculateConcessionalCapStatus,
     calculateEmployerSuper,
+    EMPLOYER_SUPER_MODES,
     DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER,
     SALARY_INCOME_MODES,
+    resolveEmployerSuper,
+    shouldWarnDivision293,
 } from './super-policy.js';
 // js/app.js - Main Application Controller
 
@@ -590,19 +593,23 @@ class RetirementCalculatorApp {
         const partnerSalaryIncomeMode = safeGetSelectValue('partnerSalaryIncomeMode', salaryIncomeMode);
         const yourEmploymentIncome = safeGetValue('yourSalary', config.financial.yourSalary);
         const partnerEmploymentIncome = finalPartnerAge > 0 ? safeGetValue('partnerSalary', 0) : 0;
-        const yourSalarySuper = calculateEmployerSuper({
+        const yourSalarySuper = resolveEmployerSuper({
             employmentIncome: yourEmploymentIncome,
             incomeMode: salaryIncomeMode,
             sgRate: employerRate,
             maxContributionBasePerQuarter,
             applyMaxContributionBase,
+            employerSuperMode: safeGetChecked('employerSuperOverrideEnabled', false) ? EMPLOYER_SUPER_MODES.MANUAL_OVERRIDE : EMPLOYER_SUPER_MODES.CALCULATED,
+            employerSuperOverrideAmount: parseFormattedNumber(getRawValue('employerSuperOverrideAmount', '0')),
         });
-        const partnerSalarySuper = calculateEmployerSuper({
+        const partnerSalarySuper = resolveEmployerSuper({
             employmentIncome: partnerEmploymentIncome,
             incomeMode: partnerSalaryIncomeMode,
             sgRate: employerRate,
             maxContributionBasePerQuarter,
             applyMaxContributionBase,
+            employerSuperMode: finalPartnerAge > 0 && safeGetChecked('partnerEmployerSuperOverrideEnabled', false) ? EMPLOYER_SUPER_MODES.MANUAL_OVERRIDE : EMPLOYER_SUPER_MODES.CALCULATED,
+            employerSuperOverrideAmount: finalPartnerAge > 0 ? parseFormattedNumber(getRawValue('partnerEmployerSuperOverrideAmount', '0')) : 0,
         });
 
         const inputs = {
@@ -661,8 +668,16 @@ class RetirementCalculatorApp {
             partnerSalaryIncomeMode,
             applyMaxContributionBase,
             maxContributionBasePerQuarter,
-            calculatedEmployerSG: yourSalarySuper.employerSG,
-            partnerCalculatedEmployerSG: partnerSalarySuper.employerSG,
+            calculatedEmployerSG: yourSalarySuper.calculatedEmployerSG,
+            employerSG: yourSalarySuper.employerSG,
+            employerSuperMode: yourSalarySuper.employerSuperMode,
+            employerSuperOverrideAmount: yourSalarySuper.employerSuperOverrideAmount,
+            employerSuperOverridden: yourSalarySuper.employerSuperOverridden,
+            partnerCalculatedEmployerSG: partnerSalarySuper.calculatedEmployerSG,
+            partnerEmployerSG: finalPartnerAge > 0 ? partnerSalarySuper.employerSG : 0,
+            partnerEmployerSuperMode: finalPartnerAge > 0 ? partnerSalarySuper.employerSuperMode : EMPLOYER_SUPER_MODES.CALCULATED,
+            partnerEmployerSuperOverrideAmount: finalPartnerAge > 0 ? partnerSalarySuper.employerSuperOverrideAmount : 0,
+            partnerEmployerSuperOverridden: finalPartnerAge > 0 ? partnerSalarySuper.employerSuperOverridden : false,
             yourCurrentSuper: safeGetValue('yourCurrentSuper', config.financial.yourCurrentSuper),
             partnerCurrentSuper: finalPartnerAge > 0 ? safeGetValue('partnerCurrentSuper', 0) : 0,
             currentSavings: safeGetValue('currentSavings', config.financial.currentSavings),
@@ -1741,12 +1756,62 @@ class RetirementCalculatorApp {
     refreshAllDerivedDefaults({ force = false, depletionAge = null } = {}) {
         this.refreshPartnerFieldDefaults({ force });
         this.refreshResidencyFieldDefaults({ force });
+        this.refreshEmploymentIncomeSummary();
         this.refreshSuperStrategyGuidance(force);
         this.refreshRetirementIncomeDefault({ force });
         this.refreshHealthcareCostDefault({ force });
         this.refreshPensionFieldDefaults({ force });
         this.refreshCapitalGainsTaxDefault({ force });
         this.syncAgedCareProjectionFields({ force, depletionAge });
+    }
+
+    refreshEmploymentIncomeSummary() {
+        const summary = document.getElementById("employmentIncomeSummary");
+        if (!summary) return;
+
+        const concessionalCap = this.getConcessionalCap();
+        const employerRate = this.getEffectiveEmployerSuperRate();
+        const div293Threshold = this.config?.DIVISION_293_THRESHOLD || ENHANCED_CONFIG.DIVISION_293_THRESHOLD || 250000;
+        const concessionalInput = document.getElementById("concessionalCapUsed");
+        const sacrificeInput = document.getElementById("yourAdditionalSuperContribution");
+        const concessionalAlreadyUsed = parseFormattedNumber(concessionalInput?.value || "0");
+        const salarySacrifice = parseFormattedNumber(sacrificeInput?.value || "0");
+        const applyMaxContributionBase = safeGetChecked("applyMaxContributionBase", true);
+        const maxContributionBasePerQuarter = safeGetValue("maxContributionBasePerQuarter", DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER);
+        const superCalc = resolveEmployerSuper({
+            employmentIncome: safeGetValue("yourSalary", 0),
+            incomeMode: safeGetSelectValue("salaryIncomeMode", SALARY_INCOME_MODES.EXCLUDING_SUPER),
+            sgRate: employerRate,
+            maxContributionBasePerQuarter,
+            applyMaxContributionBase,
+            employerSuperMode: safeGetChecked("employerSuperOverrideEnabled", false) ? EMPLOYER_SUPER_MODES.MANUAL_OVERRIDE : EMPLOYER_SUPER_MODES.CALCULATED,
+            employerSuperOverrideAmount: parseFormattedNumber(getRawValue("employerSuperOverrideAmount", "0")),
+        });
+        const capStatus = calculateConcessionalCapStatus({
+            employerSG: superCalc.employerSG,
+            salarySacrifice,
+            concessionalAlreadyUsed,
+            concessionalCap,
+        });
+        const warnings = [];
+        if (superCalc.sgCapApplied) warnings.push("Employer SG is normally capped by the maximum super contribution base. The calculated standard SG is " + formatCurrency(superCalc.calculatedEmployerSG) + ". Override only if your actual employer contributions differ.");
+        if (superCalc.employerSuperOverridden) warnings.push("Employer SG manually overridden. Package-inclusive override recalculates cash salary within the package.");
+        if (capStatus.hasExcessConcessionalContribution) warnings.push("Salary sacrifice exceeds remaining concessional cap unless carry-forward cap applies.");
+        if (shouldWarnDivision293({
+            cashSalary: superCalc.cashSalary,
+            totalPackage: superCalc.totalPackage,
+            lowTaxContributions: capStatus.totalConcessional,
+            threshold: div293Threshold,
+        })) {
+            warnings.push("Division 293 tax may apply to high-income earners.");
+        }
+
+        summary.textContent = [
+            "Salary excluding super / calculated cash salary: " + formatCurrency(superCalc.cashSalary),
+            "Employer SG: " + formatCurrency(superCalc.employerSG) + (superCalc.employerSuperOverridden ? " manually overridden" : " calculated"),
+            "Concessional cap remaining: " + formatCurrency(Math.max(0, capStatus.remainingConcessionalCap)),
+            ...warnings,
+        ].join(" ");
     }
 
     refreshSuperStrategyGuidance(forceApply = false) {
@@ -1762,6 +1827,8 @@ class RetirementCalculatorApp {
                 incomeModeId: 'salaryIncomeMode',
                 contributionId: 'yourAdditionalSuperContribution',
                 noteId: 'yourAdditionalSuperContributionHint',
+                overrideCheckboxId: 'employerSuperOverrideEnabled',
+                overrideAmountId: 'employerSuperOverrideAmount',
                 emptyMessage: 'Enter your salary to calculate the remaining concessional contribution room available for salary sacrifice.'
             },
             {
@@ -1769,19 +1836,23 @@ class RetirementCalculatorApp {
                 incomeModeId: 'partnerSalaryIncomeMode',
                 contributionId: 'partnerAdditionalSuperContribution',
                 noteId: 'partnerAdditionalSuperContributionHint',
+                overrideCheckboxId: 'partnerEmployerSuperOverrideEnabled',
+                overrideAmountId: 'partnerEmployerSuperOverrideAmount',
                 emptyMessage: 'Enter your partner salary to calculate their remaining concessional contribution room.'
             }
         ];
 
-        fields.forEach(({ salaryId, incomeModeId, contributionId, noteId, emptyMessage }) => {
+        fields.forEach(({ salaryId, incomeModeId, contributionId, noteId, overrideCheckboxId, overrideAmountId, emptyMessage }) => {
             const employmentIncome = safeGetValue(salaryId, 0);
             const incomeMode = safeGetSelectValue(incomeModeId, SALARY_INCOME_MODES.EXCLUDING_SUPER);
-            const superCalc = calculateEmployerSuper({
+            const superCalc = resolveEmployerSuper({
                 employmentIncome,
                 incomeMode,
                 sgRate: employerRate,
                 maxContributionBasePerQuarter,
                 applyMaxContributionBase,
+                employerSuperMode: safeGetChecked(overrideCheckboxId, false) ? EMPLOYER_SUPER_MODES.MANUAL_OVERRIDE : EMPLOYER_SUPER_MODES.CALCULATED,
+                employerSuperOverrideAmount: parseFormattedNumber(getRawValue(overrideAmountId, '0')),
             });
             const salary = superCalc.cashSalary;
             const contributionInput = $(contributionId);
@@ -1816,7 +1887,7 @@ class RetirementCalculatorApp {
             const remainingRoom = Math.max(0, preSacrificeStatus.remainingConcessionalCap);
 
             const modeLabel = incomeMode === SALARY_INCOME_MODES.PACKAGE_INCLUDING_SUPER ? "total package incl. super" : "salary excl. super";
-            const capLabel = superCalc.sgCapApplied ? " SG is capped by the maximum contribution base." : "";
+            const capLabel = superCalc.sgCapApplied ? " SG is normally capped by the maximum contribution base. The calculated standard SG is " + formatCurrency(superCalc.calculatedEmployerSG) + "." : "";
             const baseNote = `Based on ${formatCurrency(employmentIncome)} (${modeLabel}), calculated cash salary is ${formatCurrency(superCalc.cashSalary)} and employer SG is about ${formatCurrency(employerContribution)}, leaving about ${formatCurrency(remainingRoom)} of concessional room under the ${formatCurrency(concessionalCap)} cap.${capLabel}`;
             note.textContent = baseNote;
 
@@ -1840,10 +1911,8 @@ class RetirementCalculatorApp {
                 this.setFieldAutoIndicator(contributionId, { active: false });
             }
 
-            // Concessional cap & Division 293 awareness — mirrors simulator.js:932-948.
-            // Simulator caps sacrifice at remaining room and applies Div 293 to the
-            // excess of (taxableSalary + totalConcessional) over $250k, which after
-            // cancellation equals salary + employerSG.
+            // Concessional cap & Division 293 awareness. This is a warning-only
+            // display and does not attempt the full Division 293 income formula.
             const userEntered = parseFormattedNumber(contributionInput.value);
             const effectiveSacrifice = Math.min(userEntered, remainingRoom);
             const totalConcessional = employerContribution + effectiveSacrifice;
@@ -1866,9 +1935,7 @@ class RetirementCalculatorApp {
             const div293Income = salary + totalConcessional; // simplified first-pass Division 293 estimate
             const div293Excess = Math.max(0, div293Income - div293Threshold);
             if (div293Excess > 0) {
-                const taxedConcessional = Math.min(totalConcessional, div293Excess);
-                const div293Tax = Math.round(taxedConcessional * 0.15);
-                messages.push(`⚠ Division 293: your income plus concessional contributions (~${formatCurrency(div293Income)}) exceeds the ${formatCurrency(div293Threshold)} threshold by ${formatCurrency(div293Excess)}. An extra 15% tax (~${formatCurrency(div293Tax)}) applies to the excess concessional contributions — this is already modelled in the projection.`);
+                messages.push("⚠ Division 293 tax may apply to high-income earners. This can add an extra 15% tax to some or all concessional super contributions. Confirm with ATO or a tax adviser.");
             }
 
             // sanitise interpolations: every value above came from formatCurrency() over
@@ -2037,7 +2104,9 @@ class RetirementCalculatorApp {
 
     setupProjectionDrivenFields() {
         const autofillDependencyFields = [
-            'yourSalary', 'partnerSalary', 'employerSuperContributionRate',
+            'yourSalary', 'partnerSalary', 'salaryIncomeMode', 'partnerSalaryIncomeMode',
+            'employerSuperContributionRate', 'applyMaxContributionBase', 'maxContributionBasePerQuarter',
+            'concessionalCapUsed', 'yourAdditionalSuperContribution', 'partnerAdditionalSuperContribution',
             'yourCurrentAge', 'retirementAge', 'yourLifespan',
             'partnerCurrentAge', 'partnerCurrentSuper', 'partnerRetirementAge', 'partnerLifespan',
             'ageCameToAustralia', 'partnerAgeCameToAustralia', 'homeValue'
@@ -2048,6 +2117,7 @@ class RetirementCalculatorApp {
             if (!field) return;
             field.addEventListener('input', () => this.refreshAllDerivedDefaults());
             field.addEventListener('blur', () => this.refreshAllDerivedDefaults());
+            field.addEventListener('change', () => this.refreshAllDerivedDefaults());
         });
 
         [
@@ -8864,6 +8934,22 @@ class RetirementCalculatorApp {
         this.instrumentClick('btnClearAll', 'Clear All Fields', this.clearAllFields);
         this.instrumentClick('btnFillDefaults', 'Fill Default Values', this.fillDefaultValues);
         this.instrumentClick('clearCacheBtn', 'Clear Cache', this.clearCache);
+
+        const resetEmployerSuperOverride = document.getElementById("resetEmployerSuperOverride");
+        if (resetEmployerSuperOverride) {
+            resetEmployerSuperOverride.addEventListener('click', () => {
+                const calc = calculateEmployerSuper({
+                    employmentIncome: safeGetValue('yourSalary', 0),
+                    incomeMode: safeGetSelectValue('salaryIncomeMode', SALARY_INCOME_MODES.EXCLUDING_SUPER),
+                    sgRate: this.getEffectiveEmployerSuperRate(),
+                    maxContributionBasePerQuarter: safeGetValue('maxContributionBasePerQuarter', DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER),
+                    applyMaxContributionBase: safeGetChecked('applyMaxContributionBase', true),
+                });
+                safeSetValue('employerSuperOverrideAmount', String(Math.round(calc.employerSG)));
+                this.refreshEmploymentIncomeSummary();
+                this.refreshSuperStrategyGuidance(false);
+            });
+        }
 
         // Scenario comparison controls
         this.instrumentClick('btnSelectAllScenarios', 'Select All Scenarios', () => this.toggleAllScenarios(true));

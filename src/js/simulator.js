@@ -7,7 +7,7 @@ import { ENHANCED_CONFIG } from './config.js';
 import { EnhancedMonteCarloEngine } from './enhanced-monte-carlo.js';
 import { calculateSpending, SPENDING_STRATEGIES } from './simulation_engine/spending_engine.js';
 import { getSGRate }                               from './simulation_engine/super_engine.js';
-import { calculateEmployerSuper, DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER } from './super-policy.js';
+import { calculateEmployerSuper, DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER, EMPLOYER_SUPER_MODES, resolveEmployerSuper } from './super-policy.js';
 // TASK-002: import the canonical super tax function so Pipeline A and Pipeline B
 // use identical contributions tax logic (15% base + Division 293 surcharge).
 import { calcSuperTax }                            from './simulation_engine/tax_engine.js';
@@ -1255,6 +1255,10 @@ export class RetirementSimulator {
             agedCareDuration: num(inputs.agedCareDuration, 3),
             agedCareAnnualCost: num(inputs.agedCareAnnualCost),
             employerSuperContributionRate: pct(inputs.employerRate, 0.12),
+            employerSuperMode: inputs.employerSuperMode || EMPLOYER_SUPER_MODES.CALCULATED,
+            employerSuperOverrideAmount: num(inputs.employerSuperOverrideAmount),
+            partnerEmployerSuperMode: isCouple ? (inputs.partnerEmployerSuperMode || EMPLOYER_SUPER_MODES.CALCULATED) : EMPLOYER_SUPER_MODES.CALCULATED,
+            partnerEmployerSuperOverrideAmount: isCouple ? num(inputs.partnerEmployerSuperOverrideAmount) : 0,
             yourAdditionalSuperContribution: num(inputs.salarySacrifice),
             partnerAdditionalSuperContribution: isCouple ? num(inputs.partnerSalarySacrifice) : 0,
             yourAnnualNCC: num(inputs.ncc),
@@ -1711,12 +1715,14 @@ export class RetirementSimulator {
                 // Salary sacrifice: voluntary pre-tax super, capped so total concessional ≤ $30,000.
                 // Blocked entirely when TSB ≥ Transfer Balance Cap.
                 const effectiveEmployerRate = inputs.employerSuperContributionRate ?? inputs.superContributionRate ?? getSGRate(projectionYear);
-                const yourEmployerSG = calculateEmployerSuper({
+                const yourEmployerSG = resolveEmployerSuper({
                     employmentIncome: yourGrossSalary,
                     incomeMode: 'excluding_super',
                     sgRate: effectiveEmployerRate,
                     maxContributionBasePerQuarter: inputs.maxContributionBasePerQuarter ?? DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER,
                     applyMaxContributionBase: inputs.applyMaxContributionBase !== false,
+                    employerSuperMode: inputs.employerSuperMode || EMPLOYER_SUPER_MODES.CALCULATED,
+                    employerSuperOverrideAmount: inputs.employerSuperOverrideAmount,
                 }).employerSG;
                 const yourSacrifice = superIsCapped ? 0 : Math.min(
                     inputs.yourAdditionalSuperContribution || 0,
@@ -1743,12 +1749,14 @@ export class RetirementSimulator {
                     useRandomReturns ? runInflationRate : null,
                     useRandomReturns ? runSalaryGrowthRate : null);
                 const effectiveEmployerRate = inputs.employerSuperContributionRate ?? inputs.superContributionRate ?? getSGRate(projectionYear);
-                const partnerEmployerSG = calculateEmployerSuper({
+                const partnerEmployerSG = resolveEmployerSuper({
                     employmentIncome: partnerGrossSalary,
                     incomeMode: 'excluding_super',
                     sgRate: effectiveEmployerRate,
                     maxContributionBasePerQuarter: inputs.maxContributionBasePerQuarter ?? DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER,
                     applyMaxContributionBase: inputs.applyMaxContributionBase !== false,
+                    employerSuperMode: inputs.partnerEmployerSuperMode || EMPLOYER_SUPER_MODES.CALCULATED,
+                    employerSuperOverrideAmount: inputs.partnerEmployerSuperOverrideAmount,
                 }).employerSG;
                 const partnerSacrifice = superIsCapped ? 0 : Math.min(
                     inputs.partnerAdditionalSuperContribution || 0,

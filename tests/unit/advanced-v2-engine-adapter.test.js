@@ -209,7 +209,39 @@ describe('advanced-v2 engine adapter', () => {
         expect(engineInputs.yourSalary).toBe(200000);
         expect(engineInputs.calculatedEmployerSG).toBe(24000);
         expect(engineInputs.partnerSalary).toBe(300000);
-        expect(engineInputs.partnerCalculatedEmployerSG).toBe(30000);
+        expect(engineInputs.partnerCalculatedEmployerSG).toBeCloseTo(30000, 2);
+    });
+
+
+    test('supports partner package mode differing from primary income mode', () => {
+        const engineInputs = buildEngineInputs(buildRedesignInputs({
+            household: 'couple',
+            partnerAge: 43,
+            salary: 200000,
+            salaryIncomeMode: 'excluding_super',
+            partnerSalary: 250000,
+            partnerSalaryIncomeMode: 'package_including_super',
+            employerRate: 12,
+            maxContributionBasePerQuarter: 62500,
+        }));
+
+        expect(engineInputs.yourSalary).toBe(200000);
+        expect(engineInputs.calculatedEmployerSG).toBe(24000);
+        expect(engineInputs.partnerSalary).toBeCloseTo(223214.29, 2);
+        expect(engineInputs.partnerCalculatedEmployerSG).toBeCloseTo(26785.71, 2);
+    });
+
+    test('passes through uncapped employer SG when maximum contribution base is disabled', () => {
+        const engineInputs = buildEngineInputs(buildRedesignInputs({
+            salary: 300000,
+            employerRate: 12,
+            applyMaxContributionBase: false,
+            maxContributionBasePerQuarter: 62500,
+        }));
+
+        expect(engineInputs.yourSalary).toBe(300000);
+        expect(engineInputs.calculatedEmployerSG).toBe(36000);
+        expect(engineInputs.applyMaxContributionBase).toBe(false);
     });
 
     test('keeps single calculations single even when hidden partner fields still contain values', () => {
@@ -786,5 +818,58 @@ describe('advanced-v2 secondary analysis stale handling', () => {
         expect(fullRunSource).not.toContain('runStressAnalysis(');
         expect(fullRunSource).not.toContain('runOverseasAnalysis(');
         expect(fullRunSource).not.toContain('runRetirementAgeAnalysis(');
+    });
+});
+
+describe('advanced-v2 employer SG override normalization', () => {
+    test('uses capped calculated SG when no override is active', () => {
+        const engineInputs = buildEngineInputs(buildRedesignInputs({
+            salary: 300000,
+            employerRate: 12,
+            maxContributionBasePerQuarter: 62500,
+        }));
+
+        expect(engineInputs.employerSG).toBeCloseTo(30000, 2);
+        expect(engineInputs.calculatedEmployerSG).toBeCloseTo(30000, 2);
+        expect(engineInputs.employerSuperOverridden).toBe(false);
+    });
+
+    test('uses manual primary override and recalculates package cash salary', () => {
+        const engineInputs = buildEngineInputs(buildRedesignInputs({
+            salary: 280000,
+            salaryIncomeMode: 'package_including_super',
+            employerRate: 12,
+            employerSuperMode: 'manual_override',
+            employerSuperOverrideAmount: 35000,
+            maxContributionBasePerQuarter: 62500,
+        }));
+
+        expect(engineInputs.employerSG).toBe(35000);
+        expect(engineInputs.calculatedEmployerSG).toBeCloseTo(30000, 2);
+        expect(engineInputs.yourSalary).toBe(245000);
+        expect(engineInputs.employerSuperOverridden).toBe(true);
+    });
+
+    test('partner override works independently and is ignored for singles', () => {
+        const couple = buildEngineInputs(buildRedesignInputs({
+            household: 'couple',
+            partnerAge: 43,
+            salary: 200000,
+            partnerSalary: 300000,
+            partnerEmployerSuperMode: 'manual_override',
+            partnerEmployerSuperOverrideAmount: 22000,
+        }));
+        const single = buildEngineInputs(buildRedesignInputs({
+            household: 'single',
+            partnerAge: 43,
+            partnerSalary: 300000,
+            partnerEmployerSuperMode: 'manual_override',
+            partnerEmployerSuperOverrideAmount: 22000,
+        }));
+
+        expect(couple.partnerEmployerSG).toBe(22000);
+        expect(couple.partnerEmployerSuperOverridden).toBe(true);
+        expect(single.partnerEmployerSG).toBe(0);
+        expect(single.partnerEmployerSuperOverridden).toBe(false);
     });
 });

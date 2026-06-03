@@ -267,7 +267,7 @@ describe('Advanced page structure (advanced.html)', () => {
         expect(html).toContain('id="inheritanceScenarioSection"');
         expect(html).toContain('id="inheritanceIncludeInBase"');
         expect(html).toContain('do not improve the base projection unless you explicitly include them in the base plan');
-        expect(html).toContain('Australia does not currently have a general inheritance tax');
+        expect(html).toContain('This is a simple scenario input only');
         expect(html).not.toContain('id="futurePropertyIncludeInBase" checked');
         expect(html).not.toContain('id="inheritanceIncludeInBase" checked');
     });
@@ -284,12 +284,12 @@ describe('Advanced v2 future scenario scaffolds', () => {
 
     test.each(files)('%s includes scenario-only future property and inheritance sections', (relativePath) => {
         const v2Html = fs.readFileSync(path.join(__dirname, relativePath), 'utf-8');
-        expect(v2Html).toContain('Future Property Events');
+        expect(v2Html).toContain('Future Home or Property Plan');
         expect(v2Html).toContain('id="futurePropertyIncludeInBase"');
-        expect(v2Html).toContain('Expected Inheritance / Windfall');
+        expect(v2Html).toContain('Expected Future Windfall / Inheritance');
         expect(v2Html).toContain('id="inheritanceIncludeInBase"');
         expect(v2Html).toContain('data-scenario-only="true"');
-        expect(v2Html).toContain('Australia does not currently have a general inheritance tax');
+        expect(v2Html).toContain('This is a simple scenario input only');
         expect(v2Html).not.toContain('id="futurePropertyIncludeInBase" type="checkbox" checked');
         expect(v2Html).not.toContain('id="inheritanceIncludeInBase" type="checkbox" checked');
     });

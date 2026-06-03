@@ -3,6 +3,14 @@ export const SALARY_INCOME_MODES = {
     PACKAGE_INCLUDING_SUPER: 'package_including_super',
 };
 
+export const EMPLOYER_SUPER_MODES = {
+    CALCULATED: 'calculated',
+    MANUAL_OVERRIDE: 'manual_override',
+};
+
+// Policy sources: ATO policy source id 'ato-super-guarantee' for SG rate and maximum super contribution base.
+// ATO policy source id 'ato-contribution-caps' for concessional cap.
+// ATO policy source id 'ato-division-293' for high-income Division 293 warning threshold.
 export const DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER = 62500;
 export const DEFAULT_CONCESSIONAL_CAP = 30000;
 export const DEFAULT_DIVISION_293_THRESHOLD = 250000;
@@ -73,6 +81,57 @@ export function calculateEmployerSuper({
         maxContributionBaseAnnual: annualBase,
         maxEmployerSG: Number.isFinite(maxEmployerSG) ? maxEmployerSG : null,
         sgCapApplied: applyMaxContributionBase && income > annualBase,
+    };
+}
+
+export function resolveEmployerSuper({
+    employmentIncome = 0,
+    incomeMode = SALARY_INCOME_MODES.EXCLUDING_SUPER,
+    sgRate = 0.12,
+    maxContributionBasePerQuarter = DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER,
+    payPeriodsPerYear = 4,
+    applyMaxContributionBase = true,
+    employerSuperMode = EMPLOYER_SUPER_MODES.CALCULATED,
+    employerSuperOverrideAmount = 0,
+} = {}) {
+    const calculated = calculateEmployerSuper({
+        employmentIncome,
+        incomeMode,
+        sgRate,
+        maxContributionBasePerQuarter,
+        payPeriodsPerYear,
+        applyMaxContributionBase,
+    });
+    const override = Math.max(0, toNumber(employerSuperOverrideAmount));
+    const isManualOverride = employerSuperMode === EMPLOYER_SUPER_MODES.MANUAL_OVERRIDE;
+
+    if (!isManualOverride) {
+        return {
+            ...calculated,
+            calculatedEmployerSG: calculated.employerSG,
+            employerSuperMode: EMPLOYER_SUPER_MODES.CALCULATED,
+            employerSuperOverrideAmount: 0,
+            employerSuperOverridden: false,
+        };
+    }
+
+    const income = Math.max(0, toNumber(employmentIncome));
+    const cashSalary = incomeMode === SALARY_INCOME_MODES.PACKAGE_INCLUDING_SUPER
+        ? Math.max(0, income - override)
+        : calculated.cashSalary;
+
+    return {
+        ...calculated,
+        cashSalary,
+        employerSG: override,
+        totalPackage: incomeMode === SALARY_INCOME_MODES.PACKAGE_INCLUDING_SUPER
+            ? income
+            : cashSalary + override,
+        annualOTEForSG: calculated.annualOTEForSG,
+        calculatedEmployerSG: calculated.employerSG,
+        employerSuperMode: EMPLOYER_SUPER_MODES.MANUAL_OVERRIDE,
+        employerSuperOverrideAmount: override,
+        employerSuperOverridden: true,
     };
 }
 

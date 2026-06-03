@@ -16,8 +16,10 @@ import { buildStressedInputs, normaliseStressScenarioForTest } from './policy/st
 import {
   calculateConcessionalCapStatus,
   calculateEmployerSuper,
+  EMPLOYER_SUPER_MODES,
   DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER,
   SALARY_INCOME_MODES,
+  resolveEmployerSuper,
   shouldWarnDivision293,
 } from './super-policy.js';
 import {
@@ -332,19 +334,23 @@ function buildEngineInputs(inp) {
     : (inp.pensionAnnualSingle || ENHANCED_CONFIG.SINGLE_PENSION_MAX);
   const applyMaxContributionBase = inp.applyMaxContributionBase !== false;
   const maxContributionBasePerQuarter = inp.maxContributionBasePerQuarter || DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER;
-  const salarySuper = calculateEmployerSuper({
+  const salarySuper = resolveEmployerSuper({
     employmentIncome: inp.salary,
     incomeMode: inp.salaryIncomeMode || SALARY_INCOME_MODES.EXCLUDING_SUPER,
     sgRate: employerContributionRate,
     maxContributionBasePerQuarter,
     applyMaxContributionBase,
+    employerSuperMode: inp.employerSuperMode || EMPLOYER_SUPER_MODES.CALCULATED,
+    employerSuperOverrideAmount: inp.employerSuperOverrideAmount,
   });
-  const partnerSalarySuper = calculateEmployerSuper({
+  const partnerSalarySuper = resolveEmployerSuper({
     employmentIncome: isCouple ? inp.partnerSalary : 0,
     incomeMode: inp.partnerSalaryIncomeMode || inp.salaryIncomeMode || SALARY_INCOME_MODES.EXCLUDING_SUPER,
     sgRate: employerContributionRate,
     maxContributionBasePerQuarter,
     applyMaxContributionBase,
+    employerSuperMode: isCouple ? (inp.partnerEmployerSuperMode || EMPLOYER_SUPER_MODES.CALCULATED) : EMPLOYER_SUPER_MODES.CALCULATED,
+    employerSuperOverrideAmount: isCouple ? inp.partnerEmployerSuperOverrideAmount : 0,
   });
 
   return {
@@ -388,8 +394,16 @@ function buildEngineInputs(inp) {
     partnerSalaryIncomeMode: inp.partnerSalaryIncomeMode || inp.salaryIncomeMode || SALARY_INCOME_MODES.EXCLUDING_SUPER,
     applyMaxContributionBase,
     maxContributionBasePerQuarter,
-    calculatedEmployerSG: salarySuper.employerSG,
-    partnerCalculatedEmployerSG: partnerSalarySuper.employerSG,
+    calculatedEmployerSG: salarySuper.calculatedEmployerSG,
+    employerSG: salarySuper.employerSG,
+    employerSuperMode: salarySuper.employerSuperMode,
+    employerSuperOverrideAmount: salarySuper.employerSuperOverrideAmount,
+    employerSuperOverridden: salarySuper.employerSuperOverridden,
+    partnerCalculatedEmployerSG: partnerSalarySuper.calculatedEmployerSG,
+    partnerEmployerSG: isCouple ? partnerSalarySuper.employerSG : 0,
+    partnerEmployerSuperMode: isCouple ? partnerSalarySuper.employerSuperMode : EMPLOYER_SUPER_MODES.CALCULATED,
+    partnerEmployerSuperOverrideAmount: isCouple ? partnerSalarySuper.employerSuperOverrideAmount : 0,
+    partnerEmployerSuperOverridden: isCouple ? partnerSalarySuper.employerSuperOverridden : false,
     superBalance: inp.superBal,
     partnerSuperBalance: isCouple ? inp.partnerSuperBal : 0,
     yourCurrentSuper: inp.superBal,
@@ -1015,6 +1029,10 @@ function readInputs() {
     salarySacrifice: num('salarySacrifice'),
     partnerSalarySacrifice: num('partnerSalarySacrifice'),
     employerRate: num('employerRate', 12),
+    employerSuperMode: chk('employerSuperOverrideEnabled') ? EMPLOYER_SUPER_MODES.MANUAL_OVERRIDE : EMPLOYER_SUPER_MODES.CALCULATED,
+    employerSuperOverrideAmount: num('employerSuperOverrideAmount'),
+    partnerEmployerSuperMode: chk('partnerEmployerSuperOverrideEnabled') ? EMPLOYER_SUPER_MODES.MANUAL_OVERRIDE : EMPLOYER_SUPER_MODES.CALCULATED,
+    partnerEmployerSuperOverrideAmount: num('partnerEmployerSuperOverrideAmount'),
     applyMaxContributionBase: chk('applyMaxContributionBase'),
     maxContributionBasePerQuarter: num('maxContributionBasePerQuarter', DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER),
     ncc: num('ncc'),
@@ -1553,6 +1571,10 @@ function normalizeImportedUserData(userData = {}) {
     salarySacrifice: userData.yourAdditionalSuperContribution ?? base.salarySacrifice,
     partnerSalarySacrifice: userData.partnerAdditionalSuperContribution ?? base.partnerSalarySacrifice,
     employerRate: userData.employerSuperContributionRate !== undefined ? toDisplayPercent(userData.employerSuperContributionRate) : base.employerRate,
+    employerSuperMode: userData.employerSuperMode ?? base.employerSuperMode,
+    employerSuperOverrideAmount: userData.employerSuperOverrideAmount ?? base.employerSuperOverrideAmount,
+    partnerEmployerSuperMode: userData.partnerEmployerSuperMode ?? base.partnerEmployerSuperMode,
+    partnerEmployerSuperOverrideAmount: userData.partnerEmployerSuperOverrideAmount ?? base.partnerEmployerSuperOverrideAmount,
     ncc: userData.yourAnnualNCC ?? base.ncc,
     partnerNCC: userData.partnerAnnualNCC ?? base.partnerNCC,
     concessionalUsedThisYear: userData.concessionalCapUsed ?? base.concessionalUsedThisYear,
@@ -4118,12 +4140,14 @@ function updateIncomeSuperSummary() {
 
   const inp = readInputs();
   const rate = pct(inp.employerRate || DEFAULTS.economic.employerSuperContributionRate || 12, 12);
-  const your = calculateEmployerSuper({
+  const your = resolveEmployerSuper({
     employmentIncome: inp.salary,
     incomeMode: inp.salaryIncomeMode,
     sgRate: rate,
     maxContributionBasePerQuarter: inp.maxContributionBasePerQuarter,
     applyMaxContributionBase: inp.applyMaxContributionBase !== false,
+    employerSuperMode: inp.employerSuperMode,
+    employerSuperOverrideAmount: inp.employerSuperOverrideAmount,
   });
   const status = calculateConcessionalCapStatus({
     employerSG: your.employerSG,
@@ -4132,7 +4156,8 @@ function updateIncomeSuperSummary() {
     concessionalCap: ENHANCED_CONFIG.CONCESSIONAL_CAP || 30000,
   });
   const warnings = [];
-  if (your.sgCapApplied) warnings.push("SG cap applied.");
+  if (your.sgCapApplied) warnings.push('Employer SG is normally capped by the maximum super contribution base. The calculated standard SG is ' + formatCurrency(your.calculatedEmployerSG) + '.');
+  if (your.employerSuperOverridden) warnings.push('Employer SG manually overridden. Package-inclusive override recalculates cash salary within the package.');
   if (status.employerSGFillsCap) warnings.push("Employer SG alone reaches the concessional cap.");
   if (status.hasExcessConcessionalContribution) warnings.push("Salary sacrifice exceeds remaining concessional cap.");
   if (shouldWarnDivision293({
@@ -4141,12 +4166,12 @@ function updateIncomeSuperSummary() {
     lowTaxContributions: status.totalConcessional,
     threshold: ENHANCED_CONFIG.DIVISION_293_THRESHOLD || 250000,
   })) {
-    warnings.push("High-income warning: Division 293 tax may apply. This can add an extra 15% tax to some or all concessional super contributions. Confirm with ATO or a tax adviser.");
+    warnings.push("Division 293 tax may apply to high-income earners. This can add an extra 15% tax to some or all concessional super contributions. Confirm with ATO or a tax adviser.");
   }
 
   summary.textContent = [
     "Cash salary " + formatCurrency(your.cashSalary),
-    "employer SG " + formatCurrency(your.employerSG),
+    "employer SG " + formatCurrency(your.employerSG) + (your.employerSuperOverridden ? " manually overridden" : ""),
     "total package " + formatCurrency(your.totalPackage),
     "remaining concessional cap " + formatCurrency(Math.max(0, status.remainingConcessionalCap)),
     ...warnings,
@@ -4180,6 +4205,10 @@ function boot() {
       "employerRate",
       "applyMaxContributionBase",
       "maxContributionBasePerQuarter",
+      "employerSuperOverrideEnabled",
+      "employerSuperOverrideAmount",
+      "partnerEmployerSuperOverrideEnabled",
+      "partnerEmployerSuperOverrideAmount",
     ].forEach((id) => {
       const el = document.getElementById(id);
       if (el) {
@@ -4187,6 +4216,22 @@ function boot() {
         el.addEventListener("change", updateIncomeSuperSummary);
       }
     });
+    const resetEmployerSuperOverride = document.getElementById('resetEmployerSuperOverride');
+    if (resetEmployerSuperOverride) {
+      resetEmployerSuperOverride.addEventListener('click', () => {
+        const current = readInputs();
+        const calc = calculateEmployerSuper({
+          employmentIncome: current.salary,
+          incomeMode: current.salaryIncomeMode,
+          sgRate: pct(current.employerRate || DEFAULTS.economic.employerSuperContributionRate || 12, 12),
+          maxContributionBasePerQuarter: current.maxContributionBasePerQuarter,
+          applyMaxContributionBase: current.applyMaxContributionBase !== false,
+        });
+        const field = document.getElementById('employerSuperOverrideAmount');
+        if (field) field.value = String(Math.round(calc.employerSG));
+        updateIncomeSuperSummary();
+      });
+    }
     updateIncomeSuperSummary();
 
     const getDesiredIncomeMode = () => document.querySelector('[data-bind="desiredIncomeMode"]')?.dataset?.value || 'manual';
