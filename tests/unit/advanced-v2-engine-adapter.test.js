@@ -183,6 +183,35 @@ describe('advanced-v2 engine adapter', () => {
         expect(engineInputs.investmentPropertyRate).toBeCloseTo(0.0635);
     });
 
+    test('converts total package including super to cash salary and calculated SG', () => {
+        const engineInputs = buildEngineInputs(buildRedesignInputs({
+            salary: 250000,
+            salaryIncomeMode: 'package_including_super',
+            employerRate: 12,
+            maxContributionBasePerQuarter: 62500,
+        }));
+
+        expect(engineInputs.yourSalary).toBeCloseTo(223214.29, 2);
+        expect(engineInputs.calculatedEmployerSG).toBeCloseTo(26785.71, 2);
+        expect(engineInputs.applyMaxContributionBase).toBe(true);
+    });
+
+    test('applies capped SG independently for partner salary', () => {
+        const engineInputs = buildEngineInputs(buildRedesignInputs({
+            household: 'couple',
+            partnerAge: 43,
+            salary: 200000,
+            partnerSalary: 300000,
+            employerRate: 12,
+            maxContributionBasePerQuarter: 62500,
+        }));
+
+        expect(engineInputs.yourSalary).toBe(200000);
+        expect(engineInputs.calculatedEmployerSG).toBe(24000);
+        expect(engineInputs.partnerSalary).toBe(300000);
+        expect(engineInputs.partnerCalculatedEmployerSG).toBe(30000);
+    });
+
     test('keeps single calculations single even when hidden partner fields still contain values', () => {
         const engineInputs = buildEngineInputs(buildRedesignInputs({
             household: 'single',

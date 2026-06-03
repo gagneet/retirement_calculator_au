@@ -14,6 +14,13 @@ import OverseasRetirementAnalyzer from './overseas-retirement.js';
 import { RiskProfilingEngine } from './risk-profiling-engine.js';
 import { buildStressedInputs, normaliseStressScenarioForTest } from './policy/stress-helpers.js';
 import {
+  calculateConcessionalCapStatus,
+  calculateEmployerSuper,
+  DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER,
+  SALARY_INCOME_MODES,
+  shouldWarnDivision293,
+} from './super-policy.js';
+import {
   exportToPDF,
   formatCurrency,
   formatPercent,
@@ -323,6 +330,22 @@ function buildEngineInputs(inp) {
   const agePensionMax = isCouple
     ? (inp.pensionAnnualCouple || ENHANCED_CONFIG.COUPLE_PENSION_MAX)
     : (inp.pensionAnnualSingle || ENHANCED_CONFIG.SINGLE_PENSION_MAX);
+  const applyMaxContributionBase = inp.applyMaxContributionBase !== false;
+  const maxContributionBasePerQuarter = inp.maxContributionBasePerQuarter || DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER;
+  const salarySuper = calculateEmployerSuper({
+    employmentIncome: inp.salary,
+    incomeMode: inp.salaryIncomeMode || SALARY_INCOME_MODES.EXCLUDING_SUPER,
+    sgRate: employerContributionRate,
+    maxContributionBasePerQuarter,
+    applyMaxContributionBase,
+  });
+  const partnerSalarySuper = calculateEmployerSuper({
+    employmentIncome: isCouple ? inp.partnerSalary : 0,
+    incomeMode: inp.partnerSalaryIncomeMode || inp.salaryIncomeMode || SALARY_INCOME_MODES.EXCLUDING_SUPER,
+    sgRate: employerContributionRate,
+    maxContributionBasePerQuarter,
+    applyMaxContributionBase,
+  });
 
   return {
     currentAge: inp.age,
@@ -355,10 +378,18 @@ function buildEngineInputs(inp) {
     marketUnderstanding: inp.marketKnowledge || 'moderate',
     volatilityComfort: pct(inp.volatilityComfort || 15, 15),
 
-    annualSalary: inp.salary,
-    partnerAnnualSalary: isCouple ? inp.partnerSalary : 0,
-    yourSalary: inp.salary,
-    partnerSalary: isCouple ? inp.partnerSalary : 0,
+    annualSalary: salarySuper.cashSalary,
+    partnerAnnualSalary: isCouple ? partnerSalarySuper.cashSalary : 0,
+    yourSalary: salarySuper.cashSalary,
+    partnerSalary: isCouple ? partnerSalarySuper.cashSalary : 0,
+    yourEmploymentIncome: inp.salary,
+    partnerEmploymentIncome: isCouple ? inp.partnerSalary : 0,
+    salaryIncomeMode: inp.salaryIncomeMode || SALARY_INCOME_MODES.EXCLUDING_SUPER,
+    partnerSalaryIncomeMode: inp.partnerSalaryIncomeMode || inp.salaryIncomeMode || SALARY_INCOME_MODES.EXCLUDING_SUPER,
+    applyMaxContributionBase,
+    maxContributionBasePerQuarter,
+    calculatedEmployerSG: salarySuper.employerSG,
+    partnerCalculatedEmployerSG: partnerSalarySuper.employerSG,
     superBalance: inp.superBal,
     partnerSuperBalance: isCouple ? inp.partnerSuperBal : 0,
     yourCurrentSuper: inp.superBal,
@@ -368,8 +399,8 @@ function buildEngineInputs(inp) {
     currentSavings: inp.cash,
     currentStocks: inp.stocks,
     monthlyStockContribution: inp.monthlyStockContrib,
-    percentIncomeSaved: (inp.salary + (isCouple ? inp.partnerSalary : 0)) > 0
-      ? clamp((inp.monthlyStockContrib * 12) / (inp.salary + (isCouple ? inp.partnerSalary : 0)), 0, 1)
+    percentIncomeSaved: (salarySuper.cashSalary + (isCouple ? partnerSalarySuper.cashSalary : 0)) > 0
+      ? clamp((inp.monthlyStockContrib * 12) / (salarySuper.cashSalary + (isCouple ? partnerSalarySuper.cashSalary : 0)), 0, 1)
       : 0,
     useDetailedExpenseInputs: false,
     currentMonthlyHousingCosts: 0,
@@ -973,7 +1004,9 @@ function readInputs() {
 
     // Income & savings
     salary: num('salary'),
+    salaryIncomeMode: val('salaryIncomeMode', SALARY_INCOME_MODES.EXCLUDING_SUPER),
     partnerSalary: num('partnerSalary'),
+    partnerSalaryIncomeMode: val('partnerSalaryIncomeMode', val('salaryIncomeMode', SALARY_INCOME_MODES.EXCLUDING_SUPER)),
     superBal: num('superBal'),
     partnerSuperBal: num('partnerSuperBal'),
     cash: num('cash'),
@@ -982,6 +1015,8 @@ function readInputs() {
     salarySacrifice: num('salarySacrifice'),
     partnerSalarySacrifice: num('partnerSalarySacrifice'),
     employerRate: num('employerRate', 12),
+    applyMaxContributionBase: chk('applyMaxContributionBase'),
+    maxContributionBasePerQuarter: num('maxContributionBasePerQuarter', DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER),
     ncc: num('ncc'),
     partnerNCC: num('partnerNCC'),
     concessionalUsedThisYear: num('concessionalUsedThisYear'),
@@ -4077,6 +4112,47 @@ export {
   syncPensionMeansTestFields,
 };
 
+function updateIncomeSuperSummary() {
+  const summary = document.getElementById("sgSummary");
+  if (!summary) return;
+
+  const inp = readInputs();
+  const rate = pct(inp.employerRate || DEFAULTS.economic.employerSuperContributionRate || 12, 12);
+  const your = calculateEmployerSuper({
+    employmentIncome: inp.salary,
+    incomeMode: inp.salaryIncomeMode,
+    sgRate: rate,
+    maxContributionBasePerQuarter: inp.maxContributionBasePerQuarter,
+    applyMaxContributionBase: inp.applyMaxContributionBase !== false,
+  });
+  const status = calculateConcessionalCapStatus({
+    employerSG: your.employerSG,
+    salarySacrifice: inp.salarySacrifice,
+    concessionalAlreadyUsed: inp.concessionalUsedThisYear,
+    concessionalCap: ENHANCED_CONFIG.CONCESSIONAL_CAP || 30000,
+  });
+  const warnings = [];
+  if (your.sgCapApplied) warnings.push("SG cap applied.");
+  if (status.employerSGFillsCap) warnings.push("Employer SG alone reaches the concessional cap.");
+  if (status.hasExcessConcessionalContribution) warnings.push("Salary sacrifice exceeds remaining concessional cap.");
+  if (shouldWarnDivision293({
+    cashSalary: your.cashSalary,
+    totalPackage: your.totalPackage,
+    lowTaxContributions: status.totalConcessional,
+    threshold: ENHANCED_CONFIG.DIVISION_293_THRESHOLD || 250000,
+  })) {
+    warnings.push("High-income warning: Division 293 tax may apply. This can add an extra 15% tax to some or all concessional super contributions. Confirm with ATO or a tax adviser.");
+  }
+
+  summary.textContent = [
+    "Cash salary " + formatCurrency(your.cashSalary),
+    "employer SG " + formatCurrency(your.employerSG),
+    "total package " + formatCurrency(your.totalPackage),
+    "remaining concessional cap " + formatCurrency(Math.max(0, status.remainingConcessionalCap)),
+    ...warnings,
+  ].join(". ");
+}
+
 // ============================================================
 // BOOT
 // ============================================================
@@ -4094,6 +4170,24 @@ function boot() {
     // lightweight label markup instead of the classic page's inline tooltip HTML.
     initializeTooltips();
     initPensionFieldDefaults();
+    [
+      "salary",
+      "salaryIncomeMode",
+      "partnerSalary",
+      "partnerSalaryIncomeMode",
+      "salarySacrifice",
+      "concessionalUsedThisYear",
+      "employerRate",
+      "applyMaxContributionBase",
+      "maxContributionBasePerQuarter",
+    ].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("input", updateIncomeSuperSummary);
+        el.addEventListener("change", updateIncomeSuperSummary);
+      }
+    });
+    updateIncomeSuperSummary();
 
     const getDesiredIncomeMode = () => document.querySelector('[data-bind="desiredIncomeMode"]')?.dataset?.value || 'manual';
     const setDesiredIncomeMode = (mode) => {
