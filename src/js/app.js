@@ -31,6 +31,12 @@ import { runFullSimulation } from './simulation_engine/index.js';
 import { buildStressedInputs, normaliseStressScenarioForTest } from './policy/stress-helpers.js';
 import { RetirementCostAnalyzer } from './retirement-cost-analyzer.js';
 import PersonalizedQuestionEngine from './personalized-qa-engine.js';
+import {
+    calculateConcessionalCapStatus,
+    calculateEmployerSuper,
+    DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER,
+    SALARY_INCOME_MODES,
+} from './super-policy.js';
 // js/app.js - Main Application Controller
 
 const OVERSEAS_DEST_CURRENCY_MAP = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.DESTINATION_CURRENCY_MAP || {};
@@ -576,6 +582,28 @@ class RetirementCalculatorApp {
             ? 'own_mortgage'
             : (primaryResidenceTypeRaw === 'living_with_family' ? 'family' : primaryResidenceTypeRaw);
         const isNonHomeowner = primaryResidenceType === 'renting' || primaryResidenceType === 'family' || primaryResidenceType === 'other';
+        const employerRateInput = safeGetValue('employerSuperContributionRate', 0);
+        const employerRate = employerRateInput > 0 ? employerRateInput / 100 : ENHANCED_CONFIG.SUPER_GUARANTEE_RATE;
+        const applyMaxContributionBase = safeGetChecked('applyMaxContributionBase', true);
+        const maxContributionBasePerQuarter = safeGetValue('maxContributionBasePerQuarter', DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER);
+        const salaryIncomeMode = safeGetSelectValue('salaryIncomeMode', SALARY_INCOME_MODES.EXCLUDING_SUPER);
+        const partnerSalaryIncomeMode = safeGetSelectValue('partnerSalaryIncomeMode', salaryIncomeMode);
+        const yourEmploymentIncome = safeGetValue('yourSalary', config.financial.yourSalary);
+        const partnerEmploymentIncome = finalPartnerAge > 0 ? safeGetValue('partnerSalary', 0) : 0;
+        const yourSalarySuper = calculateEmployerSuper({
+            employmentIncome: yourEmploymentIncome,
+            incomeMode: salaryIncomeMode,
+            sgRate: employerRate,
+            maxContributionBasePerQuarter,
+            applyMaxContributionBase,
+        });
+        const partnerSalarySuper = calculateEmployerSuper({
+            employmentIncome: partnerEmploymentIncome,
+            incomeMode: partnerSalaryIncomeMode,
+            sgRate: employerRate,
+            maxContributionBasePerQuarter,
+            applyMaxContributionBase,
+        });
 
         const inputs = {
             // Personal details
@@ -625,8 +653,16 @@ class RetirementCalculatorApp {
             },
 
             // Financial details
-            yourSalary: safeGetValue('yourSalary', config.financial.yourSalary),
-            partnerSalary: finalPartnerAge > 0 ? safeGetValue('partnerSalary', 0) : 0,
+            yourSalary: yourSalarySuper.cashSalary,
+            partnerSalary: finalPartnerAge > 0 ? partnerSalarySuper.cashSalary : 0,
+            yourEmploymentIncome,
+            partnerEmploymentIncome,
+            salaryIncomeMode,
+            partnerSalaryIncomeMode,
+            applyMaxContributionBase,
+            maxContributionBasePerQuarter,
+            calculatedEmployerSG: yourSalarySuper.employerSG,
+            partnerCalculatedEmployerSG: partnerSalarySuper.employerSG,
             yourCurrentSuper: safeGetValue('yourCurrentSuper', config.financial.yourCurrentSuper),
             partnerCurrentSuper: finalPartnerAge > 0 ? safeGetValue('partnerCurrentSuper', 0) : 0,
             currentSavings: safeGetValue('currentSavings', config.financial.currentSavings),
@@ -1718,23 +1754,36 @@ class RetirementCalculatorApp {
         const employerRate = this.getEffectiveEmployerSuperRate();
         const div293Threshold = this.config?.DIVISION_293_THRESHOLD || ENHANCED_CONFIG.DIVISION_293_THRESHOLD || 250000;
         const concessionalAlreadyUsed = parseFormattedNumber($('concessionalCapUsed')?.value || '0');
+        const applyMaxContributionBase = safeGetChecked('applyMaxContributionBase', true);
+        const maxContributionBasePerQuarter = safeGetValue('maxContributionBasePerQuarter', DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER);
         const fields = [
             {
                 salaryId: 'yourSalary',
+                incomeModeId: 'salaryIncomeMode',
                 contributionId: 'yourAdditionalSuperContribution',
                 noteId: 'yourAdditionalSuperContributionHint',
                 emptyMessage: 'Enter your salary to calculate the remaining concessional contribution room available for salary sacrifice.'
             },
             {
                 salaryId: 'partnerSalary',
+                incomeModeId: 'partnerSalaryIncomeMode',
                 contributionId: 'partnerAdditionalSuperContribution',
                 noteId: 'partnerAdditionalSuperContributionHint',
                 emptyMessage: 'Enter your partner salary to calculate their remaining concessional contribution room.'
             }
         ];
 
-        fields.forEach(({ salaryId, contributionId, noteId, emptyMessage }) => {
-            const salary = safeGetValue(salaryId, 0);
+        fields.forEach(({ salaryId, incomeModeId, contributionId, noteId, emptyMessage }) => {
+            const employmentIncome = safeGetValue(salaryId, 0);
+            const incomeMode = safeGetSelectValue(incomeModeId, SALARY_INCOME_MODES.EXCLUDING_SUPER);
+            const superCalc = calculateEmployerSuper({
+                employmentIncome,
+                incomeMode,
+                sgRate: employerRate,
+                maxContributionBasePerQuarter,
+                applyMaxContributionBase,
+            });
+            const salary = superCalc.cashSalary;
             const contributionInput = $(contributionId);
             const note = $(noteId);
 
@@ -1758,13 +1807,17 @@ class RetirementCalculatorApp {
                 return;
             }
 
-            const employerContribution = Math.round(salary * employerRate);
-            // remainingRoom accounts for prior concessional contributions already made this FY,
-            // matching the simulator's cap logic (simulator.js — line ~934).
-            const remainingRoom = Math.max(0, concessionalCap - employerContribution - concessionalAlreadyUsed);
-            const employerRateLabel = (employerRate * 100).toFixed(2).replace(/\.00$/, '');
+            const employerContribution = Math.round(superCalc.employerSG);
+            const preSacrificeStatus = calculateConcessionalCapStatus({
+                employerSG: employerContribution,
+                concessionalAlreadyUsed,
+                concessionalCap,
+            });
+            const remainingRoom = Math.max(0, preSacrificeStatus.remainingConcessionalCap);
 
-            const baseNote = `Based on salary ${formatCurrency(salary)} and employer super at ${employerRateLabel}%, around ${formatCurrency(employerContribution)} is already contributed, leaving about ${formatCurrency(remainingRoom)} of concessional room under the ${formatCurrency(concessionalCap)} cap.`;
+            const modeLabel = incomeMode === SALARY_INCOME_MODES.PACKAGE_INCLUDING_SUPER ? "total package incl. super" : "salary excl. super";
+            const capLabel = superCalc.sgCapApplied ? " SG is capped by the maximum contribution base." : "";
+            const baseNote = `Based on ${formatCurrency(employmentIncome)} (${modeLabel}), calculated cash salary is ${formatCurrency(superCalc.cashSalary)} and employer SG is about ${formatCurrency(employerContribution)}, leaving about ${formatCurrency(remainingRoom)} of concessional room under the ${formatCurrency(concessionalCap)} cap.${capLabel}`;
             note.textContent = baseNote;
 
             const currentValue = parseFormattedNumber(contributionInput.value);
@@ -1794,13 +1847,23 @@ class RetirementCalculatorApp {
             const userEntered = parseFormattedNumber(contributionInput.value);
             const effectiveSacrifice = Math.min(userEntered, remainingRoom);
             const totalConcessional = employerContribution + effectiveSacrifice;
+            const contributionStatus = calculateConcessionalCapStatus({
+                employerSG: employerContribution,
+                salarySacrifice: userEntered,
+                concessionalAlreadyUsed,
+                concessionalCap,
+            });
             const messages = [baseNote];
+
+            if (contributionStatus.employerSGFillsCap) {
+                messages.push('⚠ Employer SG alone reaches the concessional cap. Salary sacrifice may exceed the cap unless carry-forward cap applies.');
+            }
 
             if (userEntered > remainingRoom + 1) {
                 messages.push(`⚠ Your entry of ${formatCurrency(userEntered)} exceeds the remaining ${formatCurrency(remainingRoom)} of concessional room. The simulator will only sacrifice ${formatCurrency(effectiveSacrifice)}; any excess stays in your take-home pay (taxed at your marginal rate).`);
             }
 
-            const div293Income = salary + employerContribution; // simplification of taxableSalary + totalConcessional
+            const div293Income = salary + totalConcessional; // simplified first-pass Division 293 estimate
             const div293Excess = Math.max(0, div293Income - div293Threshold);
             if (div293Excess > 0) {
                 const taxedConcessional = Math.min(totalConcessional, div293Excess);

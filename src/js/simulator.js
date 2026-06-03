@@ -7,6 +7,7 @@ import { ENHANCED_CONFIG } from './config.js';
 import { EnhancedMonteCarloEngine } from './enhanced-monte-carlo.js';
 import { calculateSpending, SPENDING_STRATEGIES } from './simulation_engine/spending_engine.js';
 import { getSGRate }                               from './simulation_engine/super_engine.js';
+import { calculateEmployerSuper, DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER } from './super-policy.js';
 // TASK-002: import the canonical super tax function so Pipeline A and Pipeline B
 // use identical contributions tax logic (15% base + Division 293 surcharge).
 import { calcSuperTax }                            from './simulation_engine/tax_engine.js';
@@ -1710,7 +1711,13 @@ export class RetirementSimulator {
                 // Salary sacrifice: voluntary pre-tax super, capped so total concessional ≤ $30,000.
                 // Blocked entirely when TSB ≥ Transfer Balance Cap.
                 const effectiveEmployerRate = inputs.employerSuperContributionRate ?? inputs.superContributionRate ?? getSGRate(projectionYear);
-                const yourEmployerSG = yourGrossSalary * effectiveEmployerRate;
+                const yourEmployerSG = calculateEmployerSuper({
+                    employmentIncome: yourGrossSalary,
+                    incomeMode: 'excluding_super',
+                    sgRate: effectiveEmployerRate,
+                    maxContributionBasePerQuarter: inputs.maxContributionBasePerQuarter ?? DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER,
+                    applyMaxContributionBase: inputs.applyMaxContributionBase !== false,
+                }).employerSG;
                 const yourSacrifice = superIsCapped ? 0 : Math.min(
                     inputs.yourAdditionalSuperContribution || 0,
                     Math.max(0, 30000 - yourEmployerSG - concessionalAlreadyUsed)
@@ -1736,7 +1743,13 @@ export class RetirementSimulator {
                     useRandomReturns ? runInflationRate : null,
                     useRandomReturns ? runSalaryGrowthRate : null);
                 const effectiveEmployerRate = inputs.employerSuperContributionRate ?? inputs.superContributionRate ?? getSGRate(projectionYear);
-                const partnerEmployerSG = partnerGrossSalary * effectiveEmployerRate;
+                const partnerEmployerSG = calculateEmployerSuper({
+                    employmentIncome: partnerGrossSalary,
+                    incomeMode: 'excluding_super',
+                    sgRate: effectiveEmployerRate,
+                    maxContributionBasePerQuarter: inputs.maxContributionBasePerQuarter ?? DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER,
+                    applyMaxContributionBase: inputs.applyMaxContributionBase !== false,
+                }).employerSG;
                 const partnerSacrifice = superIsCapped ? 0 : Math.min(
                     inputs.partnerAdditionalSuperContribution || 0,
                     Math.max(0, 30000 - partnerEmployerSG - concessionalAlreadyUsed)
