@@ -15,6 +15,7 @@ import MarketDataEngine from './market-data.js';
 import { initializeTrustUI } from './trust-ui.js';
 import ThemeManager from './theme.js';
 import OnboardingWizard from './onboarding-wizard.js';
+import profiler from './performance-profiler.js';
 import { ScenarioComparisonMatrix } from './scenario-matrix.js';
 import { PersonaIntelligenceEngine } from './persona-intelligence.js';
 import { HealthcareModelingEngine } from './healthcare-modeling.js';
@@ -1180,7 +1181,7 @@ class RetirementCalculatorApp {
         this.isCalculating = true;
 
         try {
-            const inputs = this.collectInputs();
+            const inputs = profiler.measure('advanced-classic.input.collectInputs', () => this.collectInputs());
 
             // Validate inputs before running simulation
             const validationErrors = this.validateInputs(inputs);
@@ -1196,7 +1197,7 @@ class RetirementCalculatorApp {
 
             let result;
             try {
-                result = this.simulator.simulateRetirement(inputs, false);
+                result = profiler.measure('advanced-classic.core.deterministicSimulation', () => this.simulator.simulateRetirement(inputs, false));
                 this.currentResults = result;
                 this.refreshAllDerivedDefaults({ depletionAge: result.depletionAge });
             } catch (simError) {
@@ -1206,7 +1207,7 @@ class RetirementCalculatorApp {
 
             // Run outcome-based calculation
             try {
-                this.runOutcomeCalculation(inputs);
+                profiler.measure('advanced-classic.post.outcomeCalculation', () => this.runOutcomeCalculation(inputs));
             } catch (outcomeError) {
                 console.error('Outcome calculation error:', outcomeError);
                 console.error('Error details:', outcomeError.message, outcomeError.stack);
@@ -1218,10 +1219,10 @@ class RetirementCalculatorApp {
 
             // Update UI components with individual error handling
             try {
-                this.updateRiskProfile(inputs);
-                this.updateRecommendedAllocation(inputs);
-                this.displaySummaryResults(result, inputs);
-                this.displayYearByYearProjection(result);
+                profiler.measure('advanced-classic.post.riskProfile', () => this.updateRiskProfile(inputs));
+                profiler.measure('advanced-classic.post.allocationStrategy', () => this.updateRecommendedAllocation(inputs));
+                profiler.measure('advanced-classic.post.render.summaryResults', () => this.displaySummaryResults(result, inputs));
+                profiler.measure('advanced-classic.post.render.yearByYearProjection', () => this.displayYearByYearProjection(result));
             } catch (summaryError) {
                 console.error('Summary display error:', summaryError);
                 // Allow continuing even if summary fails
@@ -1229,21 +1230,21 @@ class RetirementCalculatorApp {
             }
 
             try {
-                this.displayPropertyAnalysis(result, inputs);
+                profiler.measure('advanced-classic.post.render.propertyAnalysis', () => this.displayPropertyAnalysis(result, inputs));
             } catch (propertyError) {
                 console.error('Property analysis display error:', propertyError);
                 showNotification('Could not display property analysis. Check property inputs.', 'warning');
             }
 
             try {
-                this.displayRiskAnalysis(result, inputs);
+                profiler.measure('advanced-classic.post.render.riskAnalysis', () => this.displayRiskAnalysis(result, inputs));
             } catch (riskError) {
                 console.error('Risk analysis display error:', riskError);
                 showNotification('Could not display risk analysis.', 'warning');
             }
 
             try {
-                this.displayOptimizationStrategies(result, inputs);
+                profiler.measure('advanced-classic.post.render.optimizationStrategies', () => this.displayOptimizationStrategies(result, inputs));
             } catch (optError) {
                 console.error('Optimization display error:', optError);
                 showNotification('Could not display optimization strategies.', 'warning');
@@ -1252,8 +1253,8 @@ class RetirementCalculatorApp {
 
             // Render charts
             try {
-                const chartManager = await this.getChartManager();
-                chartManager.renderCompleteAnalysis(result, inputs);
+                const chartManager = await profiler.asyncMeasure('advanced-classic.post.chart.loadChartManager', () => this.getChartManager());
+                profiler.measure('advanced-classic.post.chart.renderCompleteAnalysis', () => chartManager.renderCompleteAnalysis(result, inputs));
             } catch (chartError) {
                 console.error('Chart rendering error:', chartError);
                 showNotification('Could not render charts, but results are still valid.', 'warning');
@@ -1262,11 +1263,13 @@ class RetirementCalculatorApp {
 
             // Show enhanced summary tab and conditionally scroll to results
             if (shouldScrollToResults) {
-                showTab('summary', true);
+                profiler.measure('advanced-classic.post.render.showSummaryTab', () => showTab('summary', true));
                 showNotification('Calculation completed successfully', 'success');
+                profiler.report('advanced classic calculation profile');
             } else {
                 // For initial load, just switch tabs without scrolling or notification
-                showTab('summary', false);
+                profiler.measure('advanced-classic.post.render.showSummaryTab', () => showTab('summary', false));
+                profiler.report('advanced classic calculation profile');
             }
 
         } catch (error) {
@@ -5620,7 +5623,7 @@ class RetirementCalculatorApp {
         this.isCalculating = true;
 
         try {
-            const inputs = this.collectInputs();
+            const inputs = profiler.measure('advanced-classic.suggestions.input.collectInputs', () => this.collectInputs());
 
             // Store original inputs for undo functionality
             this.originalInputs = { ...inputs };
@@ -5636,20 +5639,24 @@ class RetirementCalculatorApp {
 
             // Use the RecommendationEngine with our enhanced scenarios
             const { default: RecommendationEngine } = await import(/* webpackChunkName: "recommendation" */ './recommendation.js');
-            const recommendationEngine = new RecommendationEngine(this.simulator, inputs, this.config);
+            const recommendationEngine = new RecommendationEngine(this.simulator, inputs, this.config, {
+                profiler,
+                profilePrefix: 'advanced-classic.suggestions'
+            });
 
             updateProgress(30, 'Running baseline calculation...');
-            const baselineResults = await this.simulator.runMonteCarloSimulation(inputs, 1000);
+            const baselineResults = await profiler.asyncMeasure('advanced-classic.suggestions.explicitBaselineMonteCarlo', () => this.simulator.runMonteCarloSimulation(inputs, 1000));
+            recommendationEngine.baselineMonteCarlo = baselineResults;
 
             updateProgress(50, 'Generating actionable suggestions...');
-            const scenarios = await recommendationEngine.generateRecommendations();
+            const scenarios = await profiler.asyncMeasure('advanced-classic.suggestions.totalGenerateRecommendations', () => recommendationEngine.generateRecommendations());
 
             // Store scenarios for Try This functionality and export
             this.lastGeneratedSuggestions = scenarios;
             this.currentSuggestions = scenarios;
 
             // Tag each suggestion with its display category so export shows proper grouping
-            const taggedCats = this.categorizeSuggestionsForUI(scenarios);
+            const taggedCats = profiler.measure('advanced-classic.suggestions.categorizeForUi', () => this.categorizeSuggestionsForUI(scenarios));
             Object.entries(taggedCats).forEach(([cat, items]) => {
                 items.forEach(s => { if (!s.exportCategory) s.exportCategory = cat; });
             });
@@ -5669,13 +5676,14 @@ class RetirementCalculatorApp {
             const categorizedSuggestions = this.categorizeSuggestionsForUI(scenarios);
 
             updateProgress(90, 'Displaying suggestions...');
-            this.displayCategorizedSuggestions(categorizedSuggestions);
+            profiler.measure('advanced-classic.suggestions.render.categorizedSuggestions', () => this.displayCategorizedSuggestions(categorizedSuggestions));
 
             // Render the new readiness summary + Comfortable/Rich panel at the top
             await this.displaySuggestionsPanel(inputs, scenarios, baselineResults);
 
             updateProgress(100, 'Suggestions generated successfully!');
             showNotification(`Generated ${scenarios.length} personalized suggestions across ${Object.keys(categorizedSuggestions).length} categories.`, 'success');
+            profiler.report('advanced classic Suggestions profile');
 
         } catch (error) {
             console.error('Generate Suggestions error:', error);
@@ -7520,7 +7528,7 @@ class RetirementCalculatorApp {
         this.isCalculating = true;
 
         try {
-            const inputs = this.collectInputs();
+            const inputs = profiler.measure('advanced-classic.input.collectInputs.monteCarlo', () => this.collectInputs());
             const runs = inputs.numRuns;
 
             const progressCallback = async (completed, total) => {
@@ -7532,8 +7540,8 @@ class RetirementCalculatorApp {
             // Use enhanced Monte Carlo simulation for better accuracy (if enabled)
             const useEnhancedMonteCarlo = inputs.useEnhancedMonteCarlo !== false; // Default to true
             const results = useEnhancedMonteCarlo ?
-                await this.simulator.runEnhancedMonteCarloSimulation(inputs, runs, progressCallback) :
-                await this.simulator.runMonteCarloSimulation(inputs, runs, progressCallback);
+                await profiler.asyncMeasure('advanced-classic.core.enhancedMonteCarloSimulation', () => this.simulator.runEnhancedMonteCarloSimulation(inputs, runs, progressCallback), { runs }) :
+                await profiler.asyncMeasure('advanced-classic.core.monteCarloSimulation', () => this.simulator.runMonteCarloSimulation(inputs, runs, progressCallback), { runs });
 
             // Store results for Risk Analysis tab
             this.currentMonteCarloResults = results;
@@ -7541,6 +7549,7 @@ class RetirementCalculatorApp {
             // Update Monte Carlo results display
             const mcResults = $('monteCarloResults');
             if (mcResults) {
+                profiler.measure('advanced-classic.post.render.monteCarloStats', () => {
                 mcResults.classList.remove('hidden');
                 safeSetText('mcRuns', runs.toLocaleString());
                 safeSetText('mcSuccessRate', formatPercent(results.successRate));
@@ -7556,13 +7565,16 @@ class RetirementCalculatorApp {
                 if (results.regimeAnalysis) {
                     this.displayEnhancedMonteCarloResults(results);
                 }
+                });
             }
 
             // Add narrative explanation
             const narrativeContainer = $('monteCarloNarrative');
             if (narrativeContainer) {
+                profiler.measure('advanced-classic.post.render.monteCarloNarrative', () => {
                 narrativeContainer.innerHTML = this.generateMonteCarloNarrative(results, inputs);
                 narrativeContainer.classList.remove('hidden');
+                });
             }
 
             // Add chart explanations
@@ -7593,15 +7605,16 @@ class RetirementCalculatorApp {
             }
 
             // Render Monte Carlo charts
-            const chartManager = await this.getChartManager();
-            chartManager.renderMonteCarloFanChart(inputs, results.paths, results.scenarios || null);
-            chartManager.renderHistogram(results.outcomes);
+            const chartManager = await profiler.asyncMeasure('advanced-classic.post.chart.loadChartManager.monteCarlo', () => this.getChartManager());
+            profiler.measure('advanced-classic.post.chart.renderMonteCarloFanChart', () => chartManager.renderMonteCarloFanChart(inputs, results.paths, results.scenarios || null));
+            profiler.measure('advanced-classic.post.chart.renderHistogram', () => chartManager.renderHistogram(results.outcomes));
 
             // Switch to the 'charts' tab
             showTab('charts', true);
 
             updateProgress(0);
             showNotification('Monte Carlo simulation completed', 'success');
+            profiler.report('advanced classic Monte Carlo profile');
 
         } catch (error) {
             console.error('Monte Carlo simulation error:', error);

@@ -53,7 +53,7 @@ const resolveMonteCarloRuns = (inputs = {}) =>
     Math.max(100, Math.min(20000, Math.round(Number(inputs.numRuns) || 1000)));
 
 class RecommendationEngine {
-    constructor(simulator, inputs, config) {
+    constructor(simulator, inputs, config, options = {}) {
         if (!simulator || !inputs || !config) {
             throw new Error("RecommendationEngine requires a simulator, user inputs, and a config object.");
         }
@@ -61,6 +61,18 @@ class RecommendationEngine {
         this.baseInputs = inputs;
         this.config = config;
         this.recommendations = [];
+        this.baselineMonteCarlo = options.baselineMonteCarlo || null;
+        this.baselineDeterministic = options.baselineDeterministic || null;
+        this.profiler = options.profiler || null;
+        this.profilePrefix = options.profilePrefix || 'suggestions';
+    }
+
+    _measure(label, fn) {
+        return this.profiler?.measure ? this.profiler.measure(`${this.profilePrefix}.${label}`, fn) : fn();
+    }
+
+    async _asyncMeasure(label, fn) {
+        return this.profiler?.asyncMeasure ? this.profiler.asyncMeasure(`${this.profilePrefix}.${label}`, fn) : fn();
     }
 
     /**
@@ -73,14 +85,14 @@ class RecommendationEngine {
         console.log("Starting recommendation engine...");
 
         // Step 1: Run baseline simulation to understand the current situation
-        const baselineResults = await this.runBaselineSimulation();
+        const baselineResults = await this._asyncMeasure('baseline', () => this.runBaselineSimulation());
         if (!baselineResults) {
             console.error("Baseline simulation failed. Cannot generate recommendations.");
             return [];
         }
 
         // Step 2: Generate all relevant scenarios (both simulated and educational)
-        const allScenarios = this.generateScenarios(baselineResults);
+        const allScenarios = this._measure('scenarioGeneration', () => this.generateScenarios(baselineResults));
 
         // Separate educational-only scenarios (no modifications = no MC run needed)
         const educationalScenarios = allScenarios.filter(s => !s.modifications);
@@ -88,11 +100,11 @@ class RecommendationEngine {
 
         // Step 3: Run MC comparisons only for scenarios that have input modifications
         const comparisonResults = simulatedScenarios.length > 0
-            ? await this.runScenarioComparisons(simulatedScenarios)
+            ? await this._asyncMeasure('scenarioComparisons', () => this.runScenarioComparisons(simulatedScenarios))
             : [];
 
         // Step 4: Format simulated recommendations
-        this.recommendations = this.formatRecommendations(comparisonResults, baselineResults);
+        this.recommendations = this._measure('recommendationFormatting', () => this.formatRecommendations(comparisonResults, baselineResults));
 
         // Step 5: Append educational recommendations (use baseResult as synthetic comparison)
         for (const scenario of educationalScenarios) {
@@ -150,12 +162,12 @@ class RecommendationEngine {
      */
     async runBaselineSimulation() {
         try {
-            const baselineMC = await this.simulator.runMonteCarloSimulation(
+            const baselineMC = this.baselineMonteCarlo || await this._asyncMeasure('baselineMonteCarloRun', () => this.simulator.runMonteCarloSimulation(
                 this.baseInputs,
                 resolveMonteCarloRuns(this.baseInputs),
                 null
-            );
-            const baselineDeterministic = this.simulator.simulateRetirement(this.baseInputs, false);
+            ));
+            const baselineDeterministic = this.baselineDeterministic || this._measure('baselineDeterministicRun', () => this.simulator.simulateRetirement(this.baseInputs, false));
 
             return {
                 name: "Current Plan",

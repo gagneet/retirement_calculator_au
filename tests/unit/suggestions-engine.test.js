@@ -299,6 +299,40 @@ const MOCK_INPUTS = {
 };
 
 describe('RecommendationEngine — enriched recommendation structure', () => {
+  test('runBaselineSimulation reuses provided baseline results without rerunning simulations', async () => {
+    const mockSim = makeMockSimulator();
+    const baselineMonteCarlo = { successRate: 0.91, median: 820000 };
+    const baselineDeterministic = { finalBalance: 750000, yearlyData: [{ age: 65, balance: 750000 }] };
+    const engine = new RecommendationEngine(mockSim, MOCK_INPUTS, MOCK_CONFIG, {
+      baselineMonteCarlo,
+      baselineDeterministic,
+    });
+
+    const baseline = await engine.runBaselineSimulation();
+
+    expect(mockSim.runMonteCarloSimulation).not.toHaveBeenCalled();
+    expect(mockSim.simulateRetirement).not.toHaveBeenCalled();
+    expect(baseline.monteCarlo).toBe(baselineMonteCarlo);
+    expect(baseline.deterministic).toBe(baselineDeterministic);
+    expect(baseline.successRate).toBe(0.91);
+    expect(baseline.medianBalance).toBe(820000);
+  });
+
+  test('generateRecommendations does not run a duplicate baseline Monte Carlo when baseline is provided', async () => {
+    const mockSim = makeMockSimulator();
+    const engine = new RecommendationEngine(mockSim, MOCK_INPUTS, MOCK_CONFIG, {
+      baselineMonteCarlo: { successRate: 0.80, median: 600000 },
+      baselineDeterministic: { finalBalance: 500000 },
+    });
+
+    const recs = await engine.generateRecommendations();
+
+    expect(Array.isArray(recs)).toBe(true);
+    expect(mockSim.runMonteCarloSimulation).not.toHaveBeenCalled();
+    expect(mockSim.simulateRetirement).not.toHaveBeenCalled();
+    expect(mockSim.runScenarioComparison).toHaveBeenCalled();
+  });
+
   test('generateRecommendations returns array', async () => {
     const engine = new RecommendationEngine(makeMockSimulator(), MOCK_INPUTS, MOCK_CONFIG);
     const recs = await engine.generateRecommendations();

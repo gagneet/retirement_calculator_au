@@ -9,6 +9,7 @@ import '../css/redesign.css';
 import ENHANCED_CONFIG from './config.js';
 import RetirementSimulator from './simulator.js';
 import RecommendationEngine from './recommendation.js';
+import profiler from './performance-profiler.js';
 import OverseasRetirementAnalyzer from './overseas-retirement.js';
 import { RiskProfilingEngine } from './risk-profiling-engine.js';
 import { buildStressedInputs, normaliseStressScenarioForTest } from './policy/stress-helpers.js';
@@ -1170,18 +1171,19 @@ function readInputs() {
 }
 
 function runEngine(inp) {
-  const engineInputs = buildEngineInputs(inp);
-  const simulation = simulator.simulateRetirement(engineInputs, false);
+  const engineInputs = profiler.measure('advanced-v2.input.buildEngineInputs', () => buildEngineInputs(inp));
+  const simulation = profiler.measure('advanced-v2.core.deterministicSimulation', () => simulator.simulateRetirement(engineInputs, false));
 
-  return adaptEngineOutput(inp, engineInputs, simulation);
+  return profiler.measure('advanced-v2.post.adaptEngineOutput', () => adaptEngineOutput(inp, engineInputs, simulation));
 }
 
-function computeBaseState(inp = readInputs()) {
-  const engineInputs = buildEngineInputs(inp);
-  const simulation = simulator.simulateRetirement(engineInputs, false);
-  const adaptedResult = adaptEngineOutput(inp, engineInputs, simulation);
+function computeBaseState(inp = null) {
+  const input = inp || profiler.measure('advanced-v2.input.readInputs', () => readInputs());
+  const engineInputs = profiler.measure('advanced-v2.input.buildEngineInputs', () => buildEngineInputs(input));
+  const simulation = profiler.measure('advanced-v2.core.deterministicSimulation', () => simulator.simulateRetirement(engineInputs, false));
+  const adaptedResult = profiler.measure('advanced-v2.post.adaptEngineOutput', () => adaptEngineOutput(input, engineInputs, simulation));
 
-  return { input: inp, engineInputs, simulation, adaptedResult };
+  return { input, engineInputs, simulation, adaptedResult };
 }
 
 function syncAppState(baseState = computeBaseState()) {
@@ -3073,15 +3075,15 @@ async function exportSuggestionsAsPdf(selectedRecs, band) {
 }
 
 function renderAnalysisPanels() {
-  renderSummaryPanel();
-  renderWhatIfPanel();
-  renderRiskPanel();
-  renderAiPanel();
-  renderOverseasPanel();
+  profiler.measure('advanced-v2.post.render.summaryPanel', () => renderSummaryPanel());
+  profiler.measure('advanced-v2.post.render.whatIfPanel', () => renderWhatIfPanel());
+  profiler.measure('advanced-v2.post.render.riskPanel', () => renderRiskPanel());
+  profiler.measure('advanced-v2.suggestions.render.aiPanel', () => renderAiPanel());
+  profiler.measure('advanced-v2.post.render.overseasPanel', () => renderOverseasPanel());
   // Re-render charts after panels rebuild their DOM (canvases are re-created by renderRiskPanel)
   if (APP_STATE.monteCarloResults) {
     // Use a microtask to ensure the DOM is updated before drawing
-    Promise.resolve().then(() => renderMonteCarloCharts(APP_STATE.monteCarloResults, APP_STATE.input));
+    Promise.resolve().then(() => profiler.measure('advanced-v2.post.chart.microtaskRenderMonteCarloCharts', () => renderMonteCarloCharts(APP_STATE.monteCarloResults, APP_STATE.input)));
   }
 }
 
@@ -3174,60 +3176,67 @@ async function runMonteCarloAnalysis() {
   if (progressLabelEl) progressLabelEl.textContent = 'Running…';
   if (progressSubEl) progressSubEl.textContent = `Preparing ${runsToUse.toLocaleString()} Monte Carlo simulations…`;
 
-  APP_STATE.monteCarloResults = await simulator.runMonteCarloSimulation(
+  APP_STATE.monteCarloResults = await profiler.asyncMeasure('advanced-v2.core.monteCarloSimulation', () => simulator.runMonteCarloSimulation(
     baseState.engineInputs,
     runsToUse,
     mcProgressCallback
-  );
+  ), { runs: runsToUse });
 
   // Phase: statistical analysis
   await setProgress(82, 'Analysing…',
     'Computing percentiles, success rate and sequence-of-returns risk…', 'phase-analyse');
 
-  APP_STATE.riskProfile = normaliseRiskProfile(
+  APP_STATE.riskProfile = profiler.measure('advanced-v2.post.riskProfile', () => normaliseRiskProfile(
     riskProfiler.generateRiskProfileSummary(baseState.engineInputs, APP_STATE.monteCarloResults)
-  );
-  APP_STATE.allocationStrategy = deriveAllocationStrategy(APP_STATE.riskProfile);
+  ));
+  APP_STATE.allocationStrategy = profiler.measure('advanced-v2.post.allocationStrategy', () => deriveAllocationStrategy(APP_STATE.riskProfile));
 
   // Phase: build panel HTML (heaviest synchronous step)
   await setProgress(89, 'Building…',
     'Assembling risk profile, allocation strategy and summary panels…', 'phase-build');
 
-  renderAnalysisPanels();
+  profiler.measure('advanced-v2.post.render.analysisPanels', () => renderAnalysisPanels());
 
   // Phase: chart drawing
   await setProgress(95, 'Rendering charts…',
     'Drawing fan chart, histogram and allocation breakdown…', 'phase-render');
 
-  renderMonteCarloCharts(APP_STATE.monteCarloResults, APP_STATE.input);
+  profiler.measure('advanced-v2.post.chart.renderMonteCarloCharts', () => renderMonteCarloCharts(APP_STATE.monteCarloResults, APP_STATE.input));
 
   // Briefly show "Done" before the overlay dismisses
   await setProgress(100, 'Done',
     `${runsToUse.toLocaleString()} runs complete.`, 'phase-done');
   await new Promise((resolve) => setTimeout(resolve, 350));
 
+  profiler.report('advanced-v2 Monte Carlo profile');
   return APP_STATE.monteCarloResults;
 }
 
 async function runRetirementAgeAnalysis() {
   const baseState = syncAppState();
-  APP_STATE.retirementAgeResult = await simulator.solveRetirementAge(baseState.engineInputs, 0.7);
-  renderAnalysisPanels();
+  APP_STATE.retirementAgeResult = await profiler.asyncMeasure('advanced-v2.core.retirementAgeSolve', () => simulator.solveRetirementAge(baseState.engineInputs, 0.7));
+  profiler.measure('advanced-v2.post.render.analysisPanels', () => renderAnalysisPanels());
   return APP_STATE.retirementAgeResult;
 }
 
 function runStressAnalysis() {
   const baseState = syncAppState();
-  APP_STATE.stressTestResults = buildStressScenarioResults(baseState);
-  renderAnalysisPanels();
+  APP_STATE.stressTestResults = profiler.measure('advanced-v2.post.stressTests', () => buildStressScenarioResults(baseState));
+  profiler.measure('advanced-v2.post.render.analysisPanels', () => renderAnalysisPanels());
   return APP_STATE.stressTestResults;
 }
 
 async function runRecommendationAnalysis() {
-  const baseState = syncAppState();
-  const engine = new RecommendationEngine(simulator, baseState.engineInputs, ENHANCED_CONFIG);
-  APP_STATE.recommendations = await engine.generateRecommendations();
-  renderAnalysisPanels();
+  const baseState = profiler.measure('advanced-v2.suggestions.input.syncBaseState', () => syncAppState());
+  const engine = new RecommendationEngine(simulator, baseState.engineInputs, ENHANCED_CONFIG, {
+    baselineMonteCarlo: APP_STATE.monteCarloResults,
+    baselineDeterministic: APP_STATE.simulation,
+    profiler,
+    profilePrefix: 'advanced-v2.suggestions',
+  });
+  APP_STATE.recommendations = await profiler.asyncMeasure('advanced-v2.suggestions.totalGenerateRecommendations', () => engine.generateRecommendations());
+  profiler.measure('advanced-v2.suggestions.render.analysisPanels', () => renderAnalysisPanels());
+  profiler.report('advanced-v2 Suggestions profile');
   return APP_STATE.recommendations;
 }
 
@@ -3246,7 +3255,7 @@ function runOverseasAnalysis() {
   };
 
   const analyzer = buildOverseasAnalyzer(baseState);
-  APP_STATE.overseasAnalysis = analyzer.analyzeCountry(countryCode, fxOptions);
+  APP_STATE.overseasAnalysis = profiler.measure('advanced-v2.post.overseasAnalysis', () => analyzer.analyzeCountry(countryCode, fxOptions));
 
   // Attach fallback scenario if a return age is configured
   const fallbackAge = baseState.input.overseasFallbackAge || 0;
@@ -3259,12 +3268,12 @@ function runOverseasAnalysis() {
     );
   }
 
-  APP_STATE.overseasExportData = buildOverseasExportData(
+  APP_STATE.overseasExportData = profiler.measure('advanced-v2.post.overseasExportData', () => buildOverseasExportData(
     APP_STATE.overseasAnalysis,
     baseState.input.annualLivingCostOverseas,
     getFinalBalanceValue(baseState.simulation, baseState.adaptedResult)
-  );
-  renderAnalysisPanels();
+  ));
+  profiler.measure('advanced-v2.post.render.analysisPanels', () => renderAnalysisPanels());
   return APP_STATE.overseasAnalysis;
 }
 
@@ -3276,9 +3285,10 @@ async function runFullAnalysis() {
     runOverseasAnalysis();
   }
   await runRetirementAgeAnalysis();
-  renderAnalysisPanels();
+  profiler.measure('advanced-v2.post.render.analysisPanels', () => renderAnalysisPanels());
   // Charts may have been cleared by renderAnalysisPanels — re-render them
-  renderMonteCarloCharts(APP_STATE.monteCarloResults, APP_STATE.input);
+  profiler.measure('advanced-v2.post.chart.renderMonteCarloCharts', () => renderMonteCarloCharts(APP_STATE.monteCarloResults, APP_STATE.input));
+  profiler.report('advanced-v2 full analysis profile');
 }
 
 function setSegmentedValue(bind, value) {
@@ -3442,7 +3452,7 @@ async function runAction(button, handler, {
   await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
 
   try {
-    const result = await handler();
+    const result = await profiler.asyncMeasure(`advanced-v2.action.${successMessage || runningLabel || 'handler'}`, () => handler());
     if (targetTab) openTab(targetTab);
     if (successMessage) showNotification(successMessage, 'success');
     return result;
