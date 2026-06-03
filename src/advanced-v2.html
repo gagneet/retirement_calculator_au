@@ -1494,7 +1494,7 @@
           <span style="width:1px;height:24px;background:var(--border);margin:0 4px"></span>
           <button class="iconbtn" id="btn-advanced">+ Show advanced fields</button>
         </div>
-        <button class="iconbtn primary" id="btn-calculate" style="height:38px;padding:0 18px;font-weight:600">↻ Run simulation</button>
+        <button class="iconbtn primary" id="btn-calculate" style="height:38px;padding:0 18px;font-weight:600">↻ Run Core Projection</button>
       </div>
 
       <!-- ──────────── ANALYSIS TABS ──────────── -->
@@ -1657,8 +1657,9 @@
         </div>
 
         <button class="calc-btn" id="btn-calc-full">
-          ↻ Run full simulation <span class="kbd">⌘ ↵</span>
+          ↻ Run Core Projection <span class="kbd">⌘ ↵</span>
         </button>
+        <p style="margin:8px 0 0;font-size:12px;color:var(--ink-3)">Core Projection updates deterministic results + Monte Carlo. Suggestions, stress tests, overseas analysis, and retirement-age solve run on demand below.</p>
 
         <div class="jump-row">
           <button data-jump="summary"><span>Summary</span><b>What it means</b></button>
@@ -1669,12 +1670,13 @@
 
       <div class="tools-card">
         <h4>Tools</h4>
+        <p style="margin:0 0 10px;font-size:12px;color:var(--ink-3)">Secondary analyses are on-demand. Run or refresh any tool after changing inputs.</p>
         <div class="tools-list">
           <button id="tool-mc"><span class="ic">📊</span> Monte Carlo<span class="sm"><span id="tool-mc-label">500 runs</span> · risk</span></button>
-          <button id="tool-when"><span class="ic">🎯</span> When can I retire?<span class="sm">Earliest age</span></button>
-          <button id="tool-stress"><span class="ic">⛑️</span> Stress test<span class="sm">Market crash</span></button>
-          <button id="tool-ai"><span class="ic">🤖</span> AI suggestions<span class="sm">Personalised</span></button>
-          <button id="tool-overseas"><span class="ic">🌍</span> Overseas plan<span class="sm">Pension portability</span></button>
+          <button id="tool-when"><span class="ic">🎯</span> Retirement Age Solver<span class="sm">Earliest viable age</span></button>
+          <button id="tool-stress"><span class="ic">⛑️</span> Stress Test<span class="sm">Shock scenarios</span></button>
+          <button id="tool-ai"><span class="ic">🤖</span> Suggestions &amp; Action Plan<span class="sm">Prioritised actions</span></button>
+          <button id="tool-overseas"><span class="ic">🌍</span> Overseas Analysis<span class="sm">Portability, tax, FX</span></button>
           <button id="tool-pdf"><span class="ic">📄</span> Export PDF<span class="sm">Save your plan</span></button>
         </div>
       </div>

@@ -1,16 +1,24 @@
 import {
+    APP_STATE,
     adaptEngineOutput,
     applyHouseholdVisibility,
     buildEngineInputs,
+    buildInputSignature,
     calculateRichTargetAmount,
     calculateTargetBuilderTotal,
     getHouseholdPensionDefaults,
+    getSecondaryAnalysisState,
+    markSecondaryAnalysisFresh,
     mapDestinationCode,
     normalizeImportedUserData,
     normaliseRiskProfile,
+    resetCoreDerivedAnalysis,
+    resetDerivedAnalysis,
+    runFullAnalysis,
     runEngine,
     setSectionOpenState,
     syncPensionMeansTestFields,
+    updateSecondaryAnalysisStaleStates,
 } from '../../src/js/advanced-v2.js';
 
 const buildRedesignInputs = (overrides = {}) => ({
@@ -680,5 +688,74 @@ describe('advanced-v2 optional future asset scenario scaffold', () => {
         expect(withSpeculativeInheritance.currentStocks).toBe(base.currentStocks);
         expect(withSpeculativeInheritance.homeowner).toBe(base.homeowner);
         expect(withSpeculativeInheritance.homeValue).toBe(base.homeValue);
+    });
+});
+
+describe('advanced-v2 secondary analysis stale handling', () => {
+    beforeEach(() => {
+        resetDerivedAnalysis();
+    });
+
+    test('marks manual secondary analyses as stale when input signature changes', () => {
+        APP_STATE.currentInputSignature = buildInputSignature({ age: 50, salary: 120000 });
+        APP_STATE.recommendations = [{ title: 'Boost super' }];
+        APP_STATE.stressTestResults = [{ scenario: 'Market crash' }];
+        APP_STATE.overseasAnalysis = { country: 'Portugal' };
+        APP_STATE.retirementAgeResult = { success: true, earliestRetirementAge: 63 };
+
+        markSecondaryAnalysisFresh('recommendations', APP_STATE.currentInputSignature);
+        markSecondaryAnalysisFresh('stress', APP_STATE.currentInputSignature);
+        markSecondaryAnalysisFresh('overseas', APP_STATE.currentInputSignature);
+        markSecondaryAnalysisFresh('retirementAge', APP_STATE.currentInputSignature);
+
+        APP_STATE.currentInputSignature = buildInputSignature({ age: 50, salary: 125000 });
+        updateSecondaryAnalysisStaleStates();
+
+        expect(getSecondaryAnalysisState('recommendations').stale).toBe(true);
+        expect(getSecondaryAnalysisState('stress').stale).toBe(true);
+        expect(getSecondaryAnalysisState('overseas').stale).toBe(true);
+        expect(getSecondaryAnalysisState('retirementAge').stale).toBe(true);
+    });
+
+    test('uses run signature to prevent async freshness races', () => {
+        const oldSig = buildInputSignature({ age: 52, desiredIncome: 70000 });
+        const newSig = buildInputSignature({ age: 52, desiredIncome: 76000 });
+
+        APP_STATE.recommendations = [{ title: 'Cut spending' }];
+        APP_STATE.currentInputSignature = newSig;
+
+        markSecondaryAnalysisFresh('recommendations', oldSig);
+        expect(getSecondaryAnalysisState('recommendations').stale).toBe(true);
+
+        markSecondaryAnalysisFresh('recommendations', newSig);
+        expect(getSecondaryAnalysisState('recommendations').stale).toBe(false);
+    });
+
+    test('core reset keeps manual secondary outputs for refresh UX', () => {
+        APP_STATE.monteCarloResults = { successRate: 0.6 };
+        APP_STATE.riskProfile = { overallRiskProfile: 'Balanced' };
+        APP_STATE.allocationStrategy = { growth: 60 };
+        APP_STATE.recommendations = [{ title: 'Top up super' }];
+        APP_STATE.stressTestResults = [{ scenario: 'Inflation spike' }];
+        APP_STATE.overseasAnalysis = { country: 'Japan' };
+        APP_STATE.retirementAgeResult = { success: true, earliestRetirementAge: 64 };
+
+        resetCoreDerivedAnalysis();
+
+        expect(APP_STATE.monteCarloResults).toBeNull();
+        expect(APP_STATE.riskProfile).toBeNull();
+        expect(APP_STATE.allocationStrategy).toBeNull();
+        expect(APP_STATE.recommendations).toHaveLength(1);
+        expect(APP_STATE.stressTestResults).toHaveLength(1);
+        expect(APP_STATE.overseasAnalysis).toBeTruthy();
+        expect(APP_STATE.retirementAgeResult).toBeTruthy();
+    });
+
+    test('core projection does not call secondary analyses eagerly', () => {
+        const fullRunSource = runFullAnalysis.toString();
+        expect(fullRunSource).not.toContain('runRecommendationAnalysis(');
+        expect(fullRunSource).not.toContain('runStressAnalysis(');
+        expect(fullRunSource).not.toContain('runOverseasAnalysis(');
+        expect(fullRunSource).not.toContain('runRetirementAgeAnalysis(');
     });
 });

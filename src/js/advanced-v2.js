@@ -98,9 +98,17 @@ const APP_STATE = {
     lastKey: null,
     scheduled: false,
   },
+  currentInputSignature: null,
+  secondaryAnalysis: {
+    recommendations: { lastInputSignature: null, stale: false },
+    stress: { lastInputSignature: null, stale: false },
+    overseas: { lastInputSignature: null, stale: false },
+    retirementAge: { lastInputSignature: null, stale: false },
+  },
 };
 let initialFormState = null;
 let bootStarted = false;
+const SECONDARY_ANALYSIS_KEYS = ['recommendations', 'stress', 'overseas', 'retirementAge'];
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -1190,11 +1198,68 @@ function computeBaseState(inp = null) {
   return { input, engineInputs, simulation, adaptedResult };
 }
 
+function buildInputSignature(input = {}) {
+  const stable = {};
+  Object.keys(input).sort().forEach((key) => {
+    stable[key] = input[key];
+  });
+  return JSON.stringify(stable);
+}
+
+function hasSecondaryResult(key) {
+  if (key === 'recommendations') return (APP_STATE.recommendations || []).length > 0;
+  if (key === 'stress') return (APP_STATE.stressTestResults || []).length > 0;
+  if (key === 'overseas') return Boolean(APP_STATE.overseasAnalysis);
+  if (key === 'retirementAge') return Boolean(APP_STATE.retirementAgeResult);
+  return false;
+}
+
+function markSecondaryAnalysisFresh(key, runSignature = APP_STATE.currentInputSignature) {
+  const state = APP_STATE.secondaryAnalysis[key];
+  if (!state) return;
+  state.lastInputSignature = runSignature || null;
+  state.stale = Boolean(runSignature) && runSignature !== APP_STATE.currentInputSignature;
+}
+
+function updateSecondaryAnalysisStaleStates() {
+  const current = APP_STATE.currentInputSignature;
+  SECONDARY_ANALYSIS_KEYS.forEach((key) => {
+    const state = APP_STATE.secondaryAnalysis[key];
+    if (!state) return;
+    if (!hasSecondaryResult(key)) {
+      state.stale = false;
+      return;
+    }
+    state.stale = Boolean(state.lastInputSignature) && state.lastInputSignature !== current;
+  });
+}
+
+function getSecondaryAnalysisState(key) {
+  return APP_STATE.secondaryAnalysis[key] || { stale: false, lastInputSignature: null };
+}
+
+function secondaryStaleNotice({
+  title,
+  message,
+  buttonLabel,
+  toolId,
+}) {
+  return `
+    <div style="padding:14px;border:1px solid var(--gold,#f59e0b);border-radius:12px;background:var(--gold-soft,#fffbeb)">
+      <div style="font-weight:700;color:var(--gold,#b45309)">Needs refresh</div>
+      <p style="margin:6px 0 10px;color:var(--ink-2)"><b>${escapeHtml(title)}</b> ${escapeHtml(message)}</p>
+      <button type="button" class="iconbtn primary" data-refresh-tool="${escapeHtml(toolId)}">${escapeHtml(buttonLabel)}</button>
+    </div>
+  `;
+}
+
 function syncAppState(baseState = computeBaseState()) {
   APP_STATE.input = baseState.input;
   APP_STATE.engineInputs = baseState.engineInputs;
   APP_STATE.simulation = baseState.simulation;
   APP_STATE.adaptedResult = baseState.adaptedResult;
+  APP_STATE.currentInputSignature = buildInputSignature(baseState.input);
+  updateSecondaryAnalysisStaleStates();
   return baseState;
 }
 
@@ -1207,6 +1272,18 @@ function resetDerivedAnalysis() {
   APP_STATE.allocationStrategy = null;
   APP_STATE.overseasAnalysis = null;
   APP_STATE.overseasExportData = null;
+  APP_STATE.monteCarloChartRender.lastKey = null;
+  APP_STATE.monteCarloChartRender.scheduled = false;
+  SECONDARY_ANALYSIS_KEYS.forEach((key) => {
+    APP_STATE.secondaryAnalysis[key].lastInputSignature = null;
+    APP_STATE.secondaryAnalysis[key].stale = false;
+  });
+}
+
+function resetCoreDerivedAnalysis() {
+  APP_STATE.monteCarloResults = null;
+  APP_STATE.riskProfile = null;
+  APP_STATE.allocationStrategy = null;
   APP_STATE.monteCarloChartRender.lastKey = null;
   APP_STATE.monteCarloChartRender.scheduled = false;
 }
@@ -1757,7 +1834,7 @@ function buildMonteCarloDashboard(mc, inp) {
       <p style="margin:12px 0 0;font-size:12.5px;color:var(--ink-3);line-height:1.6">${escapeHtml(narrative)}</p>
 
       <div style="margin-top:10px;font-size:11.5px;color:var(--ink-4)">
-        ⚑ Run the full simulation (↻ button) or individual Monte Carlo tool to update these results.
+        ⚑ Run Core Projection (↻ button) or the Monte Carlo tool to update these results.
         Charts available in the <strong>Risk &amp; Resilience</strong> tab.
       </div>
     </div>`;
@@ -2283,15 +2360,27 @@ function renderSummaryPanel() {
     ? buildMonteCarloDashboard(state.monteCarloResults, state.input)
     : `
       <div class="summary-chart">
-        <h5>Full analysis</h5>
-        <div class="desc">Run the full simulation to bring Monte Carlo, risk, and recommendations into this view.</div>
+        <h5>Core projection</h5>
+        <div class="desc">Run Core Projection to refresh Monte Carlo and risk metrics. Suggestions, stress tests, overseas analysis, and retirement-age solve run on demand from Tools.</div>
         <div class="metric">
           <div class="k">Current live confidence</div>
           <div class="v">${Math.round((state.adaptedResult?.confidence || 0) * 100)}%</div>
         </div>
       </div>`;
 
-  const recommendationLead = state.recommendations?.[0]
+  const recommendationState = getSecondaryAnalysisState('recommendations');
+  const recommendationLead = recommendationState.stale
+    ? `<div class="summary-chart">
+        <h5>Top recommendation</h5>
+        <div class="desc">Suggestions are from older inputs.</div>
+        ${secondaryStaleNotice({
+    title: 'Suggestions need refresh.',
+    message: 'Run Suggestions again so this summary reflects your latest inputs.',
+    buttonLabel: 'Refresh Suggestions',
+    toolId: 'tool-ai',
+  })}
+      </div>`
+    : state.recommendations?.[0]
     ? `<div class="summary-chart">
         <h5>Top recommendation</h5>
         <div class="desc">${escapeHtml(state.recommendations[0].category || 'Strategy')}</div>
@@ -2373,9 +2462,12 @@ function renderSummaryPanel() {
 
 function renderWhatIfPanel() {
   const state = APP_STATE;
-  const earliest = state.retirementAgeResult;
-  const stressLead = state.stressTestResults?.[0];
-  const overseas = state.overseasAnalysis;
+  const retirementAgeStale = getSecondaryAnalysisState('retirementAge').stale;
+  const stressStale = getSecondaryAnalysisState('stress').stale;
+  const overseasStale = getSecondaryAnalysisState('overseas').stale;
+  const earliest = retirementAgeStale ? null : state.retirementAgeResult;
+  const stressLead = stressStale ? null : state.stressTestResults?.[0];
+  const overseas = overseasStale ? null : state.overseasAnalysis;
   const overseasBudget = state.overseasExportData?.scenarios?.[0]?.annualCost;
 
   setPanelHtml('whatif', `
@@ -2383,6 +2475,12 @@ function renderWhatIfPanel() {
       <div class="whatif-card">
         <h5>When can I retire?</h5>
         <div class="desc">Earliest age that reaches a 70% Monte Carlo success rate.</div>
+        ${retirementAgeStale ? secondaryStaleNotice({
+    title: 'Retirement age solve is out of date.',
+    message: 'Inputs changed since the last solve.',
+    buttonLabel: 'Re-run Retirement Age Solver',
+    toolId: 'tool-when',
+  }) : ''}
         ${earliest?.success ? `
           <div class="whatif-impact">
             <span class="pill good"><b>Age ${earliest.earliestRetirementAge}</b></span>
@@ -2391,12 +2489,18 @@ function renderWhatIfPanel() {
           </div>
           <p style="margin:10px 0 0;color:var(--ink-3)">Median balance at that age: ${escapeHtml(formatCurrency(earliest.medianBalance || 0))}</p>
         ` : `
-          <p style="margin:0;color:var(--ink-3)">${escapeHtml(earliest?.message || 'Use the "When can I retire?" tool to solve for an earlier viable retirement age.')}</p>
+          <p style="margin:0;color:var(--ink-3)">${escapeHtml(earliest?.message || 'Use the Retirement Age Solver tool to solve for an earlier viable retirement age.')}</p>
         `}
       </div>
       <div class="whatif-card">
         <h5>Stress test</h5>
         <div class="desc">Snapshot of prebuilt stress scenarios from the existing simulator.</div>
+        ${stressStale ? secondaryStaleNotice({
+    title: 'Stress test results are out of date.',
+    message: 'Inputs changed since the last stress run.',
+    buttonLabel: 'Re-run Stress Test',
+    toolId: 'tool-stress',
+  }) : ''}
         ${stressLead ? `
           <div class="whatif-impact">
             <span class="pill"><b>${escapeHtml(stressLead.scenario)}</b></span>
@@ -2404,7 +2508,7 @@ function renderWhatIfPanel() {
           </div>
           <p style="margin:10px 0 0;color:var(--ink-3)">Final balance under this scenario: ${escapeHtml(formatCurrency(stressLead.finalBalance || 0))}</p>
         ` : `
-          <p style="margin:0;color:var(--ink-3)">Use the Stress test tool to compare your base plan against market shocks.</p>
+          <p style="margin:0;color:var(--ink-3)">Use the Stress Test tool to compare your base plan against market shocks.</p>
         `}
       </div>
       <div class="whatif-card">
@@ -2423,6 +2527,12 @@ function renderWhatIfPanel() {
       <div class="whatif-card">
         <h5>Overseas plan</h5>
         <div class="desc">Destination-specific pension portability, cost and risk view.</div>
+        ${overseasStale ? secondaryStaleNotice({
+    title: 'Overseas analysis is out of date.',
+    message: 'Inputs changed since the last overseas run.',
+    buttonLabel: 'Refresh Overseas Analysis',
+    toolId: 'tool-overseas',
+  }) : ''}
         ${overseas ? `
           <div class="whatif-impact">
             <span class="pill"><b>${escapeHtml(overseas.country)}</b></span>
@@ -2431,7 +2541,7 @@ function renderWhatIfPanel() {
           <p style="margin:8px 0 0;color:var(--ink-3)">Annual cost: ${escapeHtml(formatCurrency(overseasBudget || 0))} · Pension overseas: ${escapeHtml(formatCurrency(overseas.agePensionPortability?.pensionCalculation?.overseas || 0))}/yr</p>
           <p style="margin:6px 0 0;font-size:12px;color:var(--ink-3)">See the <b>✈️ Overseas Plan</b> tab for full pension portability, tax, and risk details.</p>
         ` : `
-          <p style="margin:0;color:var(--ink-3)">Enable an overseas destination above and click the Overseas Plan tool to see full analysis.</p>
+          <p style="margin:0;color:var(--ink-3)">Enable an overseas destination above and click the Overseas Analysis tool to see full analysis.</p>
         `}
       </div>
     </div>
@@ -2440,7 +2550,8 @@ function renderWhatIfPanel() {
 
 function renderRiskPanel() {
   const risk = APP_STATE.riskProfile;
-  const stressRows = APP_STATE.stressTestResults || [];
+  const stressStale = getSecondaryAnalysisState('stress').stale;
+  const stressRows = stressStale ? [] : (APP_STATE.stressTestResults || []);
 
   // If neither risk profile nor stress results are available, show a prompt.
   if (!risk && stressRows.length === 0) {
@@ -2493,7 +2604,7 @@ function renderRiskPanel() {
       </div>` : `
       <div class="summary-chart">
         <h5>Risk profile</h5>
-        <div class="desc">Run Monte Carlo or the full simulation to generate your three-dimensional risk assessment.</div>
+        <div class="desc">Run Monte Carlo or Core Projection to generate your three-dimensional risk assessment.</div>
         <p style="margin:8px 0 0;color:var(--ink-3)">Use the 📊 Monte Carlo tool in the sidebar to assess capacity, tolerance, and requirement scores.</p>
       </div>`;
 
@@ -2503,6 +2614,12 @@ function renderRiskPanel() {
       <div class="summary-chart">
         <h5>Stress scenarios</h5>
         <div class="desc">Deterministic shock outcomes — how your plan holds up under each scenario.</div>
+        ${stressStale ? secondaryStaleNotice({
+    title: 'Stress scenarios need refresh.',
+    message: 'Inputs changed since your last stress test.',
+    buttonLabel: 'Re-run Stress Test',
+    toolId: 'tool-stress',
+  }) : ''}
         ${stressRows.length ? `
           <div style="display:grid;gap:10px">
             ${stressRows.map((row) => `
@@ -2620,11 +2737,21 @@ function generatePropertySellTimingInsight(inp, engineInputs) {
 }
 
 function renderOverseasPanel() {
+  if (getSecondaryAnalysisState('overseas').stale) {
+    setPanelHtml('overseas', secondaryStaleNotice({
+      title: 'Overseas analysis needs refresh.',
+      message: 'Inputs changed since your last overseas run.',
+      buttonLabel: 'Refresh Overseas Analysis',
+      toolId: 'tool-overseas',
+    }));
+    return;
+  }
+
   const analysis = APP_STATE.overseasAnalysis;
   const exportData = APP_STATE.overseasExportData;
 
   if (!analysis || analysis.error) {
-    setPanelHtml('overseas', '<p style="color:var(--ink-3)">Enable an overseas destination in the Overseas section, then click the Overseas Plan tool.</p>');
+    setPanelHtml('overseas', '<p style="color:var(--ink-3)">Enable an overseas destination in the Overseas section, then click the Overseas Analysis tool.</p>');
     return;
   }
 
@@ -2940,6 +3067,16 @@ function renderOverseasPanel() {
 }
 
 async function renderAiPanel() {
+  if (getSecondaryAnalysisState('recommendations').stale) {
+    setPanelHtml('ai', secondaryStaleNotice({
+      title: 'Suggestions need refresh.',
+      message: 'Inputs changed since the last suggestions run. Old suggestions are hidden until refreshed.',
+      buttonLabel: 'Refresh Suggestions',
+      toolId: 'tool-ai',
+    }));
+    return;
+  }
+
   const recommendations = APP_STATE.recommendations || [];
   const inp = APP_STATE.input || {};
   const engineInputs = APP_STATE.engineInputs || {};
@@ -3270,20 +3407,25 @@ async function runMonteCarloAnalysis() {
 
 async function runRetirementAgeAnalysis() {
   const baseState = syncAppState();
+  const runSignature = buildInputSignature(baseState.input);
   APP_STATE.retirementAgeResult = await profiler.asyncMeasure('advanced-v2.core.retirementAgeSolve', () => simulator.solveRetirementAge(baseState.engineInputs, 0.7));
+  markSecondaryAnalysisFresh('retirementAge', runSignature);
   profiler.measure('advanced-v2.post.render.analysisPanels', () => renderAnalysisPanels());
   return APP_STATE.retirementAgeResult;
 }
 
 function runStressAnalysis() {
   const baseState = syncAppState();
+  const runSignature = buildInputSignature(baseState.input);
   APP_STATE.stressTestResults = profiler.measure('advanced-v2.post.stressTests', () => buildStressScenarioResults(baseState));
+  markSecondaryAnalysisFresh('stress', runSignature);
   profiler.measure('advanced-v2.post.render.analysisPanels', () => renderAnalysisPanels());
   return APP_STATE.stressTestResults;
 }
 
 async function runRecommendationAnalysis() {
   const baseState = profiler.measure('advanced-v2.suggestions.input.syncBaseState', () => syncAppState());
+  const runSignature = buildInputSignature(baseState.input);
   const engine = new RecommendationEngine(simulator, baseState.engineInputs, ENHANCED_CONFIG, {
     baselineMonteCarlo: APP_STATE.monteCarloResults,
     baselineDeterministic: APP_STATE.simulation,
@@ -3291,6 +3433,7 @@ async function runRecommendationAnalysis() {
     profilePrefix: 'advanced-v2.suggestions',
   });
   APP_STATE.recommendations = await profiler.asyncMeasure('advanced-v2.suggestions.totalGenerateRecommendations', () => engine.generateRecommendations());
+  markSecondaryAnalysisFresh('recommendations', runSignature);
   profiler.measure('advanced-v2.suggestions.render.analysisPanels', () => renderAnalysisPanels());
   profiler.report('advanced-v2 Suggestions profile');
   return APP_STATE.recommendations;
@@ -3298,6 +3441,7 @@ async function runRecommendationAnalysis() {
 
 function runOverseasAnalysis() {
   const baseState = syncAppState();
+  const runSignature = buildInputSignature(baseState.input);
   const countryCode = mapDestinationCode(baseState.input.destination);
   if (!countryCode) {
     throw new Error('Choose a supported destination in the Overseas section first.');
@@ -3329,19 +3473,15 @@ function runOverseasAnalysis() {
     baseState.input.annualLivingCostOverseas,
     getFinalBalanceValue(baseState.simulation, baseState.adaptedResult)
   ));
+  markSecondaryAnalysisFresh('overseas', runSignature);
   profiler.measure('advanced-v2.post.render.analysisPanels', () => renderAnalysisPanels());
   return APP_STATE.overseasAnalysis;
 }
 
 async function runFullAnalysis() {
-  // Full run now focuses on core Monte Carlo + risk profile.
-  // Secondary analyses remain available on-demand from tool buttons.
-  APP_STATE.retirementAgeResult = null;
-  APP_STATE.stressTestResults = [];
-  APP_STATE.recommendations = [];
-  APP_STATE.overseasAnalysis = null;
-  APP_STATE.overseasExportData = null;
-
+  // Core run focuses on deterministic projection + Monte Carlo/risk only.
+  // Secondary analyses remain on-demand and are stale-marked if inputs changed.
+  syncAppState();
   await runMonteCarloAnalysis();
   profiler.report('advanced-v2 full analysis profile');
 }
@@ -3814,7 +3954,7 @@ function recalc() {
   clearTimeout(debounce);
   debounce = setTimeout(() => {
     try {
-      resetDerivedAnalysis();
+      resetCoreDerivedAnalysis();
       const baseState = syncAppState();
       paint(baseState.adaptedResult, baseState.input);
       renderAnalysisPanels();
@@ -3869,7 +4009,7 @@ function initTopbar() {
   const calcBar = document.getElementById('btn-calculate');
   [calc, calcBar].forEach((b) => b && b.addEventListener('click', () => {
     runAction(b, runFullAnalysis, {
-      successMessage: 'Full simulation completed.',
+      successMessage: 'Core projection updated.',
       targetTab: 'summary',
       runningLabel: 'Running…',
     });
@@ -3882,9 +4022,9 @@ function initTopbar() {
 
   const tools = [
     ['tool-mc', runMonteCarloAnalysis, 'Monte Carlo analysis updated.', 'risk', 'Running…'],
-    ['tool-when', runRetirementAgeAnalysis, 'Retirement-age solver updated.', 'whatif', 'Solving…'],
-    ['tool-stress', runStressAnalysis, 'Stress scenarios updated.', 'risk', 'Testing…'],
-    ['tool-ai', runRecommendationAnalysis, 'AI recommendations updated.', 'ai', 'Thinking…'],
+    ['tool-when', runRetirementAgeAnalysis, 'Retirement Age Solver updated.', 'whatif', 'Solving…'],
+    ['tool-stress', runStressAnalysis, 'Stress test updated.', 'risk', 'Testing…'],
+    ['tool-ai', runRecommendationAnalysis, 'Suggestions and action plan updated.', 'ai', 'Thinking…'],
     ['tool-overseas', runOverseasAnalysis, 'Overseas analysis updated.', 'overseas', 'Analysing…'],
     ['tool-pdf', handlePdfExport, null, null, 'Exporting…'],
   ];
@@ -3896,9 +4036,20 @@ function initTopbar() {
       runAction(button, handler, { successMessage, targetTab, runningLabel });
     });
   });
+
+  const analysis = document.getElementById('analysis');
+  if (analysis) {
+    analysis.addEventListener('click', (event) => {
+      const target = event.target.closest('[data-refresh-tool]');
+      if (!target) return;
+      const toolButton = document.getElementById(target.dataset.refreshTool);
+      if (toolButton) toolButton.click();
+    });
+  }
 }
 
 export {
+  APP_STATE,
   adaptEngineOutput,
   applyHouseholdVisibility,
   applyImportedUserData,
@@ -3910,7 +4061,18 @@ export {
   mapDestinationCode,
   normalizeImportedUserData,
   normaliseRiskProfile,
+  runFullAnalysis,
+  runOverseasAnalysis,
+  runRecommendationAnalysis,
+  runRetirementAgeAnalysis,
+  runStressAnalysis,
   runEngine,
+  resetDerivedAnalysis,
+  resetCoreDerivedAnalysis,
+  buildInputSignature,
+  getSecondaryAnalysisState,
+  markSecondaryAnalysisFresh,
+  updateSecondaryAnalysisStaleStates,
   setSectionOpenState,
   syncPensionMeansTestFields,
 };
