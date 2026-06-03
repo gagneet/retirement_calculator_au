@@ -65,6 +65,16 @@ describe('POLICY_SOURCES registry', () => {
     expect(src.appliesTo).toContain('comfortable');
   });
 
+
+  test('contains official ATO super policy sources', () => {
+    ['ato-super-guarantee', 'ato-contribution-caps', 'ato-division-293'].forEach((id) => {
+      const src = getSource(id);
+      expect(src).not.toBeNull();
+      expect(src.publisher).toBe('Australian Taxation Office');
+      expect(src.url).toContain('ato.gov.au');
+    });
+  });
+
   test('contains MoneySmart annuities source', () => {
     const src = getSource('moneysmart-annuities');
     expect(src).not.toBeNull();

@@ -87,7 +87,10 @@ export const ENHANCED_CONFIG = {
     AVERAGE_WEEKS_PER_MONTH: 52 / 12,    // ≈4.333 - used to convert weekly amounts to monthly
 
     sources: {
-        SUPER_GUARANTEE_RATE: { source: 'ATO', lastUpdated: '2025-10-01', url: 'https://www.ato.gov.au/business/super-for-employers/paying-super-contributions/how-much-super-to-pay' },
+        SUPER_GUARANTEE_RATE: { source: 'ATO', lastUpdated: '2026-06-03', url: 'https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/super-guarantee', policySourceId: 'ato-super-guarantee' },
+        MAX_SUPER_CONTRIBUTION_BASE: { source: 'ATO', lastUpdated: '2026-06-03', url: 'https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/super-guarantee', policySourceId: 'ato-super-guarantee', note: '2025-26 maximum super contribution base is $62,500 per quarter.' },
+        CONCESSIONAL_CAP: { source: 'ATO', lastUpdated: '2026-06-03', url: 'https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/contributions-caps', policySourceId: 'ato-contribution-caps' },
+        DIVISION_293_THRESHOLD: { source: 'ATO', lastUpdated: '2026-06-03', url: 'https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/division-293-tax-on-concessional-contributions-by-high-income-earners', policySourceId: 'ato-division-293' },
         DEMING_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2026-03-20', note: 'VERIFIED 14 May 2026: Thresholds unchanged at $64,200 (single) / $106,200 (couple). Rates increased to 1.25% / 3.25% from 20 March 2026. Source: servicesaustralia.gov.au/deeming?context=22526 and DVA updates.', url: 'https://www.servicesaustralia.gov.au/deeming?context=22526', previousValues: { lower: 0.0075, upper: 0.0275, asOf: '2025-09-20' }, verified: true },
         PENSION_MAXIMUMS: { source: 'Services Australia', lastUpdated: '2026-03-20', note: 'Verified 14 May 2026: single $1,200.90/fn total, couple combined $1,810.40/fn total', url: 'https://www.servicesaustralia.gov.au/how-much-age-pension-you-can-get', previousValues: { single: 30646, couple: 46202, asOf: '2025-09-20' }, verified: true },
         ASSET_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2026-03-20', note: 'Verified 14 May 2026 from assets-test-for-age-pension page. Full-pension limits unchanged from Sept 2025; cut-offs updated.', url: 'https://www.servicesaustralia.gov.au/assets-test-for-age-pension', verified: true },
@@ -427,7 +430,8 @@ export const ENHANCED_CONFIG = {
     INSTANT_DEDUCTION_AMOUNT: 1000,
     INSTANT_DEDUCTION_START_FY: 2027,   // FY ending year (FY 2026-27 = 2027)
 
-    // Division 293 threshold: extra 15% contributions tax when income + concessional > $250,000
+    // Division 293 threshold: Division 293 tax may apply to high-income earners.
+    // Source: ATO policy source id 'ato-division-293'.
     DIVISION_293_THRESHOLD: 250000,
 
     // Division 296 Tax — effective 1 July 2026 (already law, legislated 13 March 2026)
@@ -437,7 +441,8 @@ export const ENHANCED_CONFIG = {
     DIVISION_296_THRESHOLD: 3000000,
     DIVISION_296_RATE: 0.15,
 
-    // Concessional and non-concessional contribution caps (ATO 2024-25 onwards)
+    // Concessional and non-concessional contribution caps (ATO 2024-25 onwards).
+    // Source: ATO policy source id 'ato-contribution-caps'.
     CONCESSIONAL_CAP: 30000,
     NON_CONCESSIONAL_CAP: 120000,
     // NCC cap drops to $0 when total super balance (TSB) reaches this amount
