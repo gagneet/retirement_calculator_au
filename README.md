@@ -4,6 +4,14 @@ A comprehensive, AI-powered retirement planning calculator specifically designed
 
 ## Recent Updates (2026)
 
+### Version 2.1.0 - Final QA, Policy and Export Hardening (June 2026)
+- **Manual journey hardening**: Rechecked single renter, single homeowner, couple homeowner, zero-income partner, salary package, SG cap, SG override, future property, windfall, and export flows.
+- **Terminology alignment**: Standardised customer-facing terms around Core Projection, Suggestions & Action Plan, Future Home or Property Plan, Expected Future Windfall / Inheritance, Salary excluding super, Total package including super, Calculated cash salary, Employer SG override, Concessional cap remaining, and Division 293 warning.
+- **Export assumption coverage**: PDF and XLSX exports include package mode, calculated cash salary, employer SG, SG override status, concessional cap status, Division 293 warning, future property assumptions, windfall assumptions, and scenario-only versus included-in-base status.
+- **Future scenario clarity**: Future property and windfall inputs are scenario-only unless explicitly included in the base projection. Windfall/inheritance remains simplified planning input, not tax or legal modelling.
+- **Advanced-v2 performance behaviour**: Core Projection does not eagerly run Suggestions & Action Plan, stress, overseas, or retirement-age tools; those analyses remain on-demand and are marked stale after input changes.
+- **Validation**: Full Jest suite passes at 41 suites / 934 tests.
+
 ### Super Guarantee Salary Package Handling (June 2026)
 - **Salary input modes**: Added explicit handling for salaries entered as base salary excluding super versus total remuneration packages including super.
 - **Maximum contribution base**: Employer Super Guarantee calculations now apply the 2025-26 maximum super contribution base by default ($62,500 per quarter, $250,000 annualised), capping compulsory SG at $30,000 when the 12% rate applies.

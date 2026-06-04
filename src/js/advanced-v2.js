@@ -1134,7 +1134,7 @@ function readInputs() {
       enabled: chk('inheritanceScenarioEnabled'),
       includeInBasePlan: chk('inheritanceIncludeInBase'),
       age: num('inheritanceScenarioAge', 0),
-      certainty: val('inheritanceCertainty', 'speculative'),
+      certainty: val('inheritanceConfidence', val('inheritanceCertainty', 'speculative')),
       type: val('inheritanceType', 'cash'),
       grossValue: num('inheritanceGrossValue', 0),
       estimatedCosts: num('inheritanceEstimatedCosts', 0),
@@ -4131,6 +4131,7 @@ export {
   markSecondaryAnalysisFresh,
   updateSecondaryAnalysisStaleStates,
   setSectionOpenState,
+  syncAppState,
   syncPensionMeansTestFields,
 };
 

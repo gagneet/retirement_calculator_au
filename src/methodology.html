@@ -64,6 +64,12 @@
             </ul>
         </section>
         <section class="mb-10">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Salary Package and Employer SG Method</h2>
+            <p class="text-gray-600 leading-relaxed mb-3">Income can be entered as <strong>Salary excluding super</strong> or <strong>Total package including super</strong>. Salary excluding super treats the entered amount as cash salary and adds calculated employer SG. Total package including super keeps the package fixed, then calculates the cash salary left after employer SG.</p>
+            <pre class="bg-gray-100 rounded p-4 text-sm overflow-x-auto mb-4"><code>Calculated cash salary = Total package including super - Employer SG</code></pre>
+            <p class="text-gray-600 leading-relaxed mb-3">The standard SG calculation applies the configured SG rate and, by default, the maximum super contribution base. <strong>Employer SG override</strong> is only for modelling actual employer contributions when they differ from the calculated amount. Exports show calculated cash salary, employer SG, override status, concessional cap remaining, concessional cap warning, and Division 293 warning status.</p>
+        </section>
+        <section class="mb-10">
             <h2 class="text-2xl font-bold text-gray-900 mb-4">Age Pension Calculation</h2>
             <p class="text-gray-600 leading-relaxed mb-3">The Age Pension eligibility is determined by two tests: the Assets Test and the Income Test. You will receive the lower pension amount calculated from these two tests.</p>
             <h3 class="text-lg font-semibold text-gray-800 mb-2 mt-4">Assets Test</h3>
@@ -83,6 +89,15 @@
             <h2 class="text-2xl font-bold text-gray-900 mb-4">Healthcare &amp; Aged Care Costs</h2>
             <p class="text-gray-600 leading-relaxed mb-3">Future healthcare costs are projected by inflating your current annual costs by the specified "Healthcare Inflation Rate". Aged care costs are factored in as a potential future liability, based on the probability, start age, duration, and annual cost you provide.</p>
             <pre class="bg-gray-100 rounded p-4 text-sm overflow-x-auto mb-4"><code>Expected Aged Care Cost = (Annual Cost * Duration) * Probability</code></pre>
+        </section>
+        <section class="mb-10">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Future Property, Windfall and Inheritance Assumptions</h2>
+            <p class="text-gray-600 leading-relaxed mb-3"><strong>Future Home or Property Plan</strong> and <strong>Expected Future Windfall / Inheritance</strong> inputs are scenario-only by default. They do not improve the Core Projection unless you explicitly select Include in base projection.</p>
+            <p class="text-gray-600 leading-relaxed mb-3">Windfall and inheritance modelling is simplified. It is intended for rough planning only and does not model tax, legal, CGT, deceased-estate, trust, or super death-benefit rules.</p>
+        </section>
+        <section class="mb-10">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">On-Demand Analysis Tools</h2>
+            <p class="text-gray-600 leading-relaxed mb-3"><strong>Core Projection</strong> runs the main projection and risk work. <strong>Suggestions &amp; Action Plan</strong>, stress testing, overseas retirement, and retirement-age tools are run on demand. If inputs change after one of those tools has run, the tool output is marked for refresh rather than silently reused as current.</p>
         </section>
         <section class="mb-10">
             <h2 class="text-2xl font-bold text-gray-900 mb-4">Monte Carlo Simulation</h2>

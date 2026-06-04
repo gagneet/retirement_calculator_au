@@ -2,6 +2,14 @@
 
 import { ENHANCED_CONFIG } from './config.js';
 import { ensureAdvancedFieldTooltips } from './field-tooltips.js';
+import {
+    DEFAULT_CONCESSIONAL_CAP,
+    DEFAULT_DIVISION_293_THRESHOLD,
+    EMPLOYER_SUPER_MODES,
+    SALARY_INCOME_MODES,
+    calculateConcessionalCapStatus,
+    shouldWarnDivision293,
+} from './super-policy.js';
 
 const debugLog = process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test' ? console.log.bind(console) : () => {};
 const OVERSEAS_DEST_FX_ASSUMPTIONS = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.DESTINATION_AUD_FX_ASSUMPTIONS || {};
@@ -168,6 +176,88 @@ export const formatNumber = (num, decimals = 0) => {
     return num.toLocaleString('en-AU', {
         maximumFractionDigits: decimals
     });
+};
+
+export const describeSalaryIncomeMode = (mode) => {
+    if (mode === SALARY_INCOME_MODES.PACKAGE_INCLUDING_SUPER) return 'Total package including super';
+    return 'Salary excluding super';
+};
+
+export const describeScenarioBaseStatus = (includeInBasePlan) =>
+    includeInBasePlan ? 'Included in base projection' : 'Scenario-only';
+
+const firstFiniteNumber = (...values) => {
+    for (const value of values) {
+        const numeric = Number(value);
+        if (Number.isFinite(numeric)) return numeric;
+    }
+    return 0;
+};
+
+export const buildSuperAssumptionRows = (inputs = {}) => {
+    const salaryMode = inputs.salaryIncomeMode || inputs.incomeMode || SALARY_INCOME_MODES.EXCLUDING_SUPER;
+    const calculatedCashSalary = firstFiniteNumber(inputs.yourSalary, inputs.cashSalary, inputs.annualSalary);
+    const employerSG = firstFiniteNumber(inputs.employerSG, inputs.calculatedEmployerSG);
+    const calculatedEmployerSG = firstFiniteNumber(inputs.calculatedEmployerSG, employerSG);
+    const salarySacrifice = firstFiniteNumber(inputs.yourAdditionalSuperContribution, inputs.salarySacrifice);
+    const concessionalAlreadyUsed = firstFiniteNumber(inputs.concessionalUsedThisYear, inputs.concessionalCapUsed);
+    const concessionalCap = firstFiniteNumber(inputs.concessionalCap, ENHANCED_CONFIG.CONCESSIONAL_CAP, DEFAULT_CONCESSIONAL_CAP);
+    const capStatus = calculateConcessionalCapStatus({
+        employerSG,
+        salarySacrifice,
+        concessionalAlreadyUsed,
+        concessionalCap,
+    });
+    const division293Warning = shouldWarnDivision293({
+        cashSalary: calculatedCashSalary,
+        totalPackage: firstFiniteNumber(inputs.totalPackage, calculatedCashSalary + employerSG),
+        lowTaxContributions: capStatus.totalConcessional,
+        threshold: firstFiniteNumber(ENHANCED_CONFIG.DIVISION_293_THRESHOLD, DEFAULT_DIVISION_293_THRESHOLD),
+    });
+    const overrideActive = Boolean(inputs.employerSuperOverridden)
+        || inputs.employerSuperMode === EMPLOYER_SUPER_MODES.MANUAL_OVERRIDE
+        || firstFiniteNumber(inputs.employerSuperOverrideAmount) > 0;
+
+    return [
+        ['Super', 'Package mode', describeSalaryIncomeMode(salaryMode)],
+        ['Super', 'Calculated cash salary', formatCurrency(calculatedCashSalary)],
+        ['Super', 'Employer SG', formatCurrency(employerSG)],
+        ['Super', 'Employer SG override', overrideActive ? 'Enabled - modelling actual employer contributions' : 'Not enabled'],
+        ['Super', 'Calculated standard employer SG', formatCurrency(calculatedEmployerSG)],
+        ['Super', 'Concessional cap remaining', formatCurrency(Math.max(0, capStatus.remainingConcessionalCap))],
+        ['Super', 'Concessional cap warning', capStatus.hasExcessConcessionalContribution || capStatus.employerSGFillsCap ? 'Warning' : 'No warning'],
+        ['Super', 'Division 293 warning', division293Warning ? 'Warning - may apply' : 'No warning'],
+    ];
+};
+
+export const buildFutureScenarioAssumptionRows = (inputs = {}) => {
+    const rows = [];
+    const windfall = inputs.windfallScenario || inputs.inheritanceScenario;
+    if (windfall?.enabled) {
+        rows.push(
+            ['Expected Future Windfall / Inheritance', 'Enabled', true],
+            ['Expected Future Windfall / Inheritance', 'Status', describeScenarioBaseStatus(Boolean(windfall.includeInBasePlan))],
+            ['Expected Future Windfall / Inheritance', 'Expected age', windfall.age || windfall.expectedAge || ''],
+            ['Expected Future Windfall / Inheritance', 'Estimated amount', formatCurrency(windfall.amount || windfall.grossValue || 0)],
+            ['Expected Future Windfall / Inheritance', 'Confidence', windfall.confidence || windfall.certainty || 'speculative'],
+            ['Expected Future Windfall / Inheritance', 'Treatment', windfall.treatment || windfall.use || 'invest_outside_super'],
+            ['Expected Future Windfall / Inheritance', 'Modelling note', 'Simplified planning assumption only; not tax, legal, CGT, estate, trust or super death-benefit modelling']
+        );
+    }
+
+    const propertyPlan = inputs.futurePropertyScenario;
+    if (propertyPlan?.enabled) {
+        rows.push(
+            ['Future Home or Property Plan', 'Enabled', true],
+            ['Future Home or Property Plan', 'Status', describeScenarioBaseStatus(Boolean(propertyPlan.includeInBasePlan))],
+            ['Future Home or Property Plan', 'Plan', propertyPlan.planType || propertyPlan.eventType || ''],
+            ['Future Home or Property Plan', 'Expected age', propertyPlan.age || propertyPlan.expectedAge || ''],
+            ['Future Home or Property Plan', 'Property value', formatCurrency(propertyPlan.propertyValue || 0)],
+            ['Future Home or Property Plan', 'Mortgage', formatCurrency(propertyPlan.mortgage || 0)]
+        );
+    }
+
+    return rows;
 };
 
 export const formatCompact = (num) => {
@@ -1564,28 +1654,8 @@ export const exportToXLSX = (inputs, results, chartManager, app = null) => {
         ['Investment Property', 'Has Investment Property', inputs.hasInvestmentProperty],
     ];
 
-    if (inputs.windfallScenario?.enabled || inputs.inheritanceScenario?.enabled) {
-        const windfall = inputs.windfallScenario || inputs.inheritanceScenario;
-        summaryData.push(
-            ["Future Windfall", "Enabled", true],
-            ["Future Windfall", "Included in Base Projection", Boolean(windfall.includeInBasePlan)],
-            ["Future Windfall", "Expected Age", windfall.age || windfall.expectedAge || ""],
-            ["Future Windfall", "Estimated Amount", formatCurrency(windfall.amount || windfall.grossValue || 0)],
-            ["Future Windfall", "Confidence", windfall.confidence || windfall.certainty || "speculative"],
-            ["Future Windfall", "Treatment", windfall.treatment || windfall.use || "invest_outside_super"]
-        );
-    }
-
-    if (inputs.futurePropertyScenario?.enabled) {
-        const propertyPlan = inputs.futurePropertyScenario;
-        summaryData.push(
-            ["Future Property", "Plan", propertyPlan.planType || propertyPlan.eventType || ""],
-            ["Future Property", "Included in Base Projection", Boolean(propertyPlan.includeInBasePlan)],
-            ["Future Property", "Expected Age", propertyPlan.age || propertyPlan.expectedAge || ""],
-            ["Future Property", "Property Value", formatCurrency(propertyPlan.propertyValue || 0)],
-            ["Future Property", "Mortgage", formatCurrency(propertyPlan.mortgage || 0)]
-        );
-    }
+    summaryData.push(...buildSuperAssumptionRows(inputs));
+    summaryData.push(...buildFutureScenarioAssumptionRows(inputs));
 
     if (inputs.hasInvestmentProperty) {
         summaryData.push(
@@ -2055,21 +2125,9 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
         ['Return Volatility', formatPercent(inputs.returnVolatility, 2)]
     ];
 
-    const windfallAssumption = inputs.windfallScenario || inputs.inheritanceScenario;
-    if (windfallAssumption && windfallAssumption.enabled) {
-        assumptionsBody.push(
-            ['Future Windfall', (windfallAssumption.includeInBasePlan ? 'Included in base projection' : 'Scenario-only') + '; ' + formatCurrency(windfallAssumption.amount || windfallAssumption.grossValue || 0) + ' at age ' + (windfallAssumption.age || windfallAssumption.expectedAge || 'n/a')],
-            ['Windfall Confidence/Treatment', (windfallAssumption.confidence || windfallAssumption.certainty || 'speculative') + '; ' + (windfallAssumption.treatment || windfallAssumption.use || 'invest_outside_super')]
-        );
-    }
-
-    if (inputs.futurePropertyScenario && inputs.futurePropertyScenario.enabled) {
-        const propertyPlan = inputs.futurePropertyScenario;
-        assumptionsBody.push(
-            ['Future Property Plan', (propertyPlan.includeInBasePlan ? 'Included in base projection' : 'Scenario-only') + '; ' + (propertyPlan.planType || propertyPlan.eventType || 'plan') + ' at age ' + (propertyPlan.age || propertyPlan.expectedAge || 'n/a')],
-            ['Future Property Value', formatCurrency(propertyPlan.propertyValue || 0)]
-        );
-    }
+    [...buildSuperAssumptionRows(inputs), ...buildFutureScenarioAssumptionRows(inputs)].forEach(([category, parameter, value]) => {
+        assumptionsBody.push([category + ' - ' + parameter, value]);
+    });
 
     doc.autoTable({
         startY: yPos,

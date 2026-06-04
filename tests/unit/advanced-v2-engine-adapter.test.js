@@ -17,6 +17,7 @@ import {
     runFullAnalysis,
     runEngine,
     setSectionOpenState,
+    syncAppState,
     syncPensionMeansTestFields,
     updateSecondaryAnalysisStaleStates,
 } from '../../src/js/advanced-v2.js';
@@ -749,6 +750,16 @@ describe('advanced-v2 optional future asset scenario scaffold', () => {
         expect(withSpeculativeInheritance.currentStocks).toBe(base.currentStocks);
         expect(withSpeculativeInheritance.homeowner).toBe(base.homeowner);
         expect(withSpeculativeInheritance.homeValue).toBe(base.homeValue);
+    });
+
+    test("reads windfall confidence from the rendered confidence selector", () => {
+        document.body.innerHTML = "<input id=\"inheritanceScenarioEnabled\" type=\"checkbox\" checked />"
+            + "<select id=\"inheritanceConfidence\"><option value=\"speculative\">Speculative</option><option value=\"likely\" selected>Likely</option></select>";
+
+        const baseState = syncAppState();
+
+        expect(baseState.input.inheritanceScenario.enabled).toBe(true);
+        expect(baseState.input.inheritanceScenario.certainty).toBe("likely");
     });
 });
 

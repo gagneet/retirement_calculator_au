@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-06-03 - Policy, Export and QA Hardening
+
+### Added
+- Salary input modes are explicit across simple, advanced, and advanced-v2 calculators: Salary excluding super and Total package including super. Package-inclusive salary keeps the package fixed and recalculates calculated cash salary and employer SG.
+- Employer SG override supports modelling actual employer contributions above or below the calculated SG amount, including maximum contribution base edge cases.
+- Future Home or Property Plan and Expected Future Windfall / Inheritance assumptions can remain scenario-only or be explicitly included in the base projection.
+- PDF and XLSX exports now include package mode, calculated cash salary, employer SG, Employer SG override status, concessional cap remaining, concessional cap warning, Division 293 warning, future property assumptions, windfall assumptions, and scenario-only versus included-in-base status.
+
+### Changed
+- Core Projection remains focused on deterministic projection plus Monte Carlo/risk work; Suggestions & Action Plan, stress, overseas, and retirement-age tools remain on-demand and are stale-marked after input changes.
+- Windfall and inheritance wording now makes clear that the input is a simplified planning assumption, not tax, legal, CGT, estate, trust, or super death-benefit modelling.
+
+### Fixed
+- Fixed the advanced-v2 windfall confidence bridge so the rendered Confidence selector is exported and simulated correctly instead of defaulting to speculative.
+- Hardened export assumption rows and tests for SG override, concessional cap, Division 293, future property, and windfall scenarios.
+
 ## [2.0.0] - 2025-09-23 - Major Transformation: Decision Support Engine
 
 ### 🎯 **MAJOR NEW FEATURE: Comprehensive Decision Support Engine**
@@ -277,13 +293,13 @@ New files added:
 
 ## Upcoming Features (Roadmap)
 
-### Version 2.1.0 (Planned)
+### Version 2.2.0 (Planned)
 - Real-time market data integration
 - Multi-property portfolio analysis
 - International investment considerations
 - Enhanced mobile experience
 
-### Version 2.2.0 (Planned)
+### Version 2.3.0 (Planned)
 - Machine learning recommendation improvements
 - Advanced tax optimization strategies
 - Cryptocurrency and alternative investment integration
@@ -299,10 +315,10 @@ New files added:
 
 ## Support and Updates
 
-- **Current Version**: 2.0.0
+- **Current Version**: 2.1.0
 - **Compatibility**: Australian financial regulations 2025-26
 - **Browser Support**: Chrome 80+, Firefox 75+, Safari 13+, Edge 80+
-- **Last Updated**: September 2025
+- **Last Updated**: June 2026
 
 For technical support, feature requests, or bug reports, please refer to the project documentation or consult with qualified financial professionals for implementation guidance.
 

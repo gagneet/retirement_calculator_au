@@ -929,7 +929,7 @@ class RetirementCalculatorApp {
                 enabled: safeGetChecked('inheritanceScenarioEnabled', false),
                 includeInBasePlan: safeGetChecked('inheritanceIncludeInBase', false),
                 age: safeGetValue('inheritanceScenarioAge', 0),
-                certainty: safeGetSelectValue('inheritanceCertainty', 'speculative'),
+                certainty: safeGetSelectValue('inheritanceConfidence', safeGetSelectValue('inheritanceCertainty', 'speculative')),
                 type: safeGetSelectValue('inheritanceType', 'cash'),
                 grossValue: parseFormattedNumber(getRawValue('inheritanceGrossValue', '0')),
                 estimatedCosts: parseFormattedNumber(getRawValue('inheritanceEstimatedCosts', '0')),

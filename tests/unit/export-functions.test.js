@@ -7,6 +7,8 @@
  * the export logic is inlined here to match the production implementation exactly.
  */
 
+import { buildFutureScenarioAssumptionRows, buildSuperAssumptionRows } from '../../src/js/utils.js';
+
 // ---------------------------------------------------------------------------
 // Helpers to create minimal test fixtures
 // ---------------------------------------------------------------------------
@@ -231,6 +233,56 @@ beforeEach(() => {
 });
 
 // ---------------------------------------------------------------------------
+describe("export assumption rows", () => {
+    test("super assumptions include package mode, override, cap and Division 293 status", () => {
+        const rows = buildSuperAssumptionRows({
+            salaryIncomeMode: "package_including_super",
+            yourSalary: 245000,
+            totalPackage: 280000,
+            employerSG: 35000,
+            calculatedEmployerSG: 30000,
+            employerSuperMode: "manual_override",
+            employerSuperOverrideAmount: 35000,
+            salarySacrifice: 0,
+            concessionalUsedThisYear: 0,
+        });
+
+        expect(rows).toContainEqual(["Super", "Package mode", "Total package including super"]);
+        expect(rows).toContainEqual(["Super", "Calculated cash salary", "$245,000.00"]);
+        expect(rows).toContainEqual(["Super", "Employer SG", "$35,000.00"]);
+        expect(rows).toContainEqual(["Super", "Employer SG override", "Enabled - modelling actual employer contributions"]);
+        expect(rows).toContainEqual(["Super", "Concessional cap remaining", "$0.00"]);
+        expect(rows).toContainEqual(["Super", "Concessional cap warning", "Warning"]);
+        expect(rows).toContainEqual(["Super", "Division 293 warning", "Warning - may apply"]);
+    });
+
+    test("future scenarios include scenario-only versus base-included status and modelling note", () => {
+        const rows = buildFutureScenarioAssumptionRows({
+            inheritanceScenario: {
+                enabled: true,
+                includeInBasePlan: false,
+                age: 72,
+                grossValue: 500000,
+                certainty: "likely",
+                use: "invest_outside_super",
+            },
+            futurePropertyScenario: {
+                enabled: true,
+                includeInBasePlan: true,
+                eventType: "buy_primary_home",
+                age: 58,
+                propertyValue: 900000,
+                mortgage: 500000,
+            },
+        });
+
+        expect(rows).toContainEqual(["Expected Future Windfall / Inheritance", "Status", "Scenario-only"]);
+        expect(rows).toContainEqual(["Expected Future Windfall / Inheritance", "Confidence", "likely"]);
+        expect(rows).toContainEqual(["Future Home or Property Plan", "Status", "Included in base projection"]);
+        expect(rows).toContainEqual(["Expected Future Windfall / Inheritance", "Modelling note", expect.stringContaining("not tax, legal")]);
+    });
+});
+
 // exportToCSV tests
 // ---------------------------------------------------------------------------
 

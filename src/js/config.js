@@ -2,8 +2,8 @@
 // All Australian-specific constants, rules, and default values
 
 export const ENHANCED_CONFIG = {
-    version: '1.2.0',
-    lastUpdated: '2026-03-20',
+    version: '2.1.0',
+    lastUpdated: '2026-06-03',
 
     // ===== POLICY ENGINE: Single source of truth for all legislative constants =====
     // Each section carries effective-date metadata so result screens can display
