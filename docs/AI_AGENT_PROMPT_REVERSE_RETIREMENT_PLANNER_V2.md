@@ -1111,4 +1111,3 @@ This calculator provides general scenario modelling only. It is not personal fin
 ## Final instruction to the AI coding agent
 
 Build the Reverse Retirement Planner as a goal-seeking wrapper around the existing Australian retirement simulator. Start with robust bisection-based single-lever solving and analytical capital-target seeding. Reuse `RetirementSimulator`, config/policy modules, tax/super/Age Pension utilities and the decision-support engine. Add `/reverse.html`, a reverse solver module, scenario adapters, assumption tables, localStorage integration with the forward calculator, ranked trade-off outputs, household scenario support, mortgage/property levers, overseas retirement overlays, estate/inheritance constraints, Web Worker execution for Monte Carlo solves, and tests proving solved values fed back into the forward simulator meet the target. Keep the output useful, plain-English, transparent and honest about uncertainty.
-
