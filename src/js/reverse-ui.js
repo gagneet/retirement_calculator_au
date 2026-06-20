@@ -136,6 +136,12 @@ export class ReverseUI {
             refreshBaseline.addEventListener('click', () => this.refreshBaseline());
         }
 
+        // PDF export button
+        const pdfBtn = el('rp-export-pdf');
+        if (pdfBtn) {
+            pdfBtn.addEventListener('click', () => this.handlePdfExport());
+        }
+
         // Disclaimer
         safeHtml('rp-disclaimer', DISCLAIMER_TEXT);
 
@@ -515,6 +521,181 @@ export class ReverseUI {
     }
 
     /**
+     * Export all results as a formatted PDF using jsPDF.
+     */
+    handlePdfExport() {
+        if (!this.lastResult) {
+            showNotification('Run the comparison first before exporting.', 'error');
+            return;
+        }
+
+        if (typeof window.jspdf === 'undefined') {
+            showNotification('jsPDF library not loaded. Please refresh the page and try again.', 'error');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const { target, currentPath, top3Actions, rankedLevers, inputs } = this.lastResult;
+        const ytr = currentPath.yearsToRetirement;
+        const retireYear = new Date().getFullYear() + ytr;
+        const PAGE_W = 210;
+        const MARGIN = 14;
+        const CONTENT_W = PAGE_W - MARGIN * 2;
+        let y = 20;
+
+        function t(text, size = 11, style = 'normal', color = '#1e293b') {
+            doc.setFont('Helvetica', style);
+            doc.setFontSize(size);
+            doc.setTextColor(color);
+            return text;
+        }
+
+        function addLine() {
+            y += 4;
+            doc.setDrawColor(226, 232, 240);
+            doc.line(MARGIN, y, PAGE_W - MARGIN, y);
+            y += 6;
+        }
+
+        // Title
+        t('Reverse Retirement Planner — Gap Analysis', 18, 'bold', '#0f172a');
+        y += 8;
+        t(`Generated ${new Date().toLocaleDateString('en-AU')}`, 9, 'normal', '#64748b');
+        y += 14;
+
+        // Headline
+        const meetsGoal = currentPath.meetsGoal;
+        const headline = meetsGoal
+            ? `Your current plan meets your $${Math.round(target.targetAnnualIncomeToday).toLocaleString('en-AU')}/yr goal.`
+            : `Your current plan leaves a gap of $${Math.round(currentPath.incomeGap).toLocaleString('en-AU')}/yr.`;
+        t(headline, 12, 'bold', meetsGoal ? '#059669' : '#e11d48');
+        y += 10;
+        addLine();
+
+        // Goal summary
+        t('Your retirement goal', 13, 'bold', '#0f172a');
+        y += 7;
+        const goalItems = [
+            `Target income: $${Math.round(target.targetAnnualIncomeToday).toLocaleString('en-AU')}/yr (today's $)`,
+            `≈ $${Math.round(target.targetAnnualIncomeToday * Math.pow(1 + currentPath.inflationRate, ytr)).toLocaleString('en-AU')}/yr in ${retireYear} dollars`,
+            `Retire at age ${target.retirementAge} · Plan to age ${target.lifespan}`,
+        ];
+        goalItems.forEach(item => {
+            t(`• ${item}`, 10, 'normal', '#334155');
+            y += 6;
+        });
+        y += 4;
+
+        // Current path
+        t('Your current projected path', 13, 'bold', '#0f172a');
+        y += 7;
+        const nominalIncome = currentPath.sustainableIncomeToday * Math.pow(1 + currentPath.inflationRate, ytr);
+        const pathItems = [
+            `Sustainable income: $${Math.round(currentPath.sustainableIncomeToday).toLocaleString('en-AU')}/yr (today's $)`,
+            `≈ $${Math.round(nominalIncome).toLocaleString('en-AU')}/yr in ${retireYear} dollars`,
+            `Total assets at retirement: $${Math.round(currentPath.totalAssetsNominal).toLocaleString('en-AU')} (nominal)`,
+            meetsGoal ? 'Status: On track' : `Status: Shortfall of $${Math.round(currentPath.incomeGap).toLocaleString('en-AU')}/yr`,
+        ];
+        pathItems.forEach(item => {
+            t(`• ${item}`, 10, 'normal', '#334155');
+            y += 6;
+        });
+        y += 4;
+
+        // Comparison table
+        if (typeof doc.autoTable === 'function') {
+            const gap = compareCurrentToTarget(currentPath, target);
+            const rows = buildComparisonTable(gap, currentPath, target);
+            const tableBody = rows.map(row => [
+                row.label,
+                row.current,
+                row.required,
+                row.gap,
+            ]);
+            doc.autoTable({
+                startY: y + 2,
+                margin: { left: MARGIN, right: MARGIN },
+                tableWidth: CONTENT_W,
+                headStyles: { fillColor: [15, 23, 42], fontSize: 9, fontStyle: 'bold' },
+                bodyStyles: { fontSize: 9 },
+                columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
+                head: [['Metric', 'Current', 'Required', 'Gap']],
+                body: tableBody,
+            });
+            y = doc.lastAutoTable.finalY + 8;
+        } else {
+            t('(Comparison table omitted — jsPDF-autotable plugin not loaded)', 9, 'italic', '#94a3b8');
+            y += 8;
+        }
+        addLine();
+
+        // Action plan
+        t('Ranked action plan', 13, 'bold', '#0f172a');
+        y += 8;
+        if (top3Actions.length > 0) {
+            top3Actions.forEach((lever, i) => {
+                if (y > 260) { doc.addPage(); y = 20; }
+                t(`${i + 1}. ${lever.label}`, 11, 'bold', '#0f172a');
+                y += 5;
+                t(`   ${lever.description}`, 10, 'normal', '#475569');
+                y += 7;
+            });
+        } else {
+            t('No single lever can bridge the gap — a combination of changes or professional advice is recommended.', 10, 'italic', '#64748b');
+            y += 7;
+        }
+        y += 4;
+
+        // Assumptions
+        if (y > 240) { doc.addPage(); y = 20; }
+        t('Assumptions used', 13, 'bold', '#0f172a');
+        y += 7;
+        const assumptions = [
+            `Inflation rate: ${(currentPath.inflationRate * 100).toFixed(1)}%`,
+            `Years to retirement: ${ytr}`,
+            `Safe withdrawal rate: ${((currentPath.swr || 0.04) * 100).toFixed(1)}%`,
+            `Household: ${target.householdType === 'couple' ? 'Couple' : 'Single'}`,
+        ];
+        assumptions.forEach(item => {
+            t(`• ${item}`, 10, 'normal', '#334155');
+            y += 5;
+        });
+        y += 4;
+
+        // All levers
+        if (rankedLevers?.length > 0) {
+            if (y > 230) { doc.addPage(); y = 20; }
+            t('All levers analysed', 13, 'bold', '#0f172a');
+            y += 7;
+            rankedLevers.forEach(lever => {
+                if (y > 260) { doc.addPage(); y = 20; }
+                const icon = lever.feasible ? '✓' : '✗';
+                t(`${icon} ${lever.label}: ${lever.description || ''}`, 9, lever.feasible ? 'bold' : 'normal', lever.feasible ? '#059669' : '#94a3b8');
+                y += 5;
+            });
+        }
+
+        // Disclaimer
+        if (y > 240) { doc.addPage(); y = 20; }
+        addLine();
+        t('General Information Disclaimer', 9, 'bold', '#64748b');
+        y += 4;
+        const disclaimer = 'This calculator provides general scenario modelling only. It is not personal financial, tax, legal, migration or estate-planning advice. The projections shown are illustrative estimates based on the assumptions you enter, and actual outcomes will differ due to changes in markets, legislation, personal circumstances, and other factors. Always consult a licensed financial adviser.';
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor('#94a3b8');
+        const splitDisclaimer = doc.splitTextToSize(disclaimer, CONTENT_W);
+        splitDisclaimer.forEach(line => {
+            if (y > 280) { doc.addPage(); y = 20; }
+            doc.text(line, MARGIN, y);
+            y += 4;
+        });
+
+        doc.save('retirement-reverse-planner-report.pdf');
+    }
+
+    /**
      * Render the main results — headline, goal summary, current path, action intro, assumptions.
      */
     renderResults(result) {
@@ -532,9 +713,16 @@ export class ReverseUI {
         safeText('rp-goal-retire-age', `Age ${target.retirementAge}`);
         safeText('rp-goal-lifespan', `Age ${target.lifespan}`);
 
-        // Current path
+        // Current path — show both today's dollars and nominal at retirement
+        const nominalIncome = currentPath.sustainableIncomeToday *
+            Math.pow(1 + currentPath.inflationRate, ytr);
+        const nominalAssets = currentPath.totalAssetsNominal;
+        const todayAssets = nominalAssets > 0
+            ? nominalAssets / Math.pow(1 + currentPath.inflationRate, ytr)
+            : 0;
         safeText('rp-current-income', fmt(currentPath.sustainableIncomeToday) + '/year');
-        safeText('rp-current-assets', fmt(currentPath.totalAssetsNominal));
+        safeText('rp-current-nominal', `≈ ${fmt(nominalIncome)}/year in ${new Date().getFullYear() + ytr} dollars`);
+        safeText('rp-current-assets', `${fmt(nominalAssets)} nominal (${fmt(todayAssets)} today's $)`);
         const statusEl = el('rp-goal-status');
         if (statusEl) {
             const meetsGoal = currentPath.meetsGoal;
