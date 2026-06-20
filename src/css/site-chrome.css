@@ -1,0 +1,52 @@
+/* Shared site header and footer. Scoped to avoid calculator UI collisions. */
+.site-chrome {
+  --sc-bg: #111827;
+  --sc-surface: #1f2937;
+  --sc-border: #374151;
+  --sc-text: #f9fafb;
+  --sc-muted: #9ca3af;
+  box-sizing: border-box;
+  width: 100%;
+  color: var(--sc-text);
+  background: var(--sc-bg);
+  font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.site-chrome *, .site-chrome *::before, .site-chrome *::after { box-sizing: border-box; }
+.site-chrome a { color: inherit; text-decoration: none; }
+.site-chrome__inner { width: min(100% - 32px, 1280px); margin-inline: auto; }
+.site-chrome--header { position: relative; z-index: 100; border-bottom: 1px solid var(--sc-border); }
+.site-chrome__header-row { min-height: 64px; display: flex; align-items: center; gap: 28px; }
+.site-chrome__brand { display: inline-flex; align-items: center; gap: 10px; flex: 0 0 auto; font-weight: 700; letter-spacing: -.01em; }
+.site-chrome__brand img { width: 36px; height: 36px; object-fit: contain; }
+.site-chrome__brand span { white-space: nowrap; }
+.site-chrome__nav { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.site-chrome__nav a { padding: 9px 11px; border-radius: 7px; color: #d1d5db; font-weight: 600; transition: background-color .15s ease, color .15s ease; }
+.site-chrome__nav a:hover, .site-chrome__nav a:focus-visible, .site-chrome__nav a[aria-current="page"] { color: #fff; background: var(--sc-surface); outline: none; }
+.site-chrome__menu-button { display: none; margin-left: auto; padding: 8px 10px; border: 1px solid var(--sc-border); border-radius: 7px; color: #fff; background: var(--sc-surface); font: inherit; font-weight: 600; cursor: pointer; }
+.site-chrome--footer { margin-top: 48px; border-top: 1px solid var(--sc-border); }
+.site-chrome__footer-grid { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 36px; padding-block: 40px 32px; }
+.site-chrome__footer-title { margin: 0 0 12px; color: #fff; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.site-chrome__footer-copy { max-width: 42ch; margin: 12px 0 0; color: var(--sc-muted); font-size: 13px; }
+.site-chrome__footer-links { display: grid; gap: 8px; }
+.site-chrome__footer-links a { color: #d1d5db; }
+.site-chrome__footer-links a:hover, .site-chrome__footer-links a:focus-visible { color: #fff; text-decoration: underline; }
+.site-chrome__footer-bottom { display: flex; justify-content: space-between; gap: 24px; padding-block: 20px; border-top: 1px solid var(--sc-border); color: var(--sc-muted); font-size: 12px; }
+.site-chrome__footer-bottom p { margin: 0; }
+@media (max-width: 760px) {
+  .site-chrome__inner { width: min(100% - 24px, 1280px); }
+  .site-chrome__header-row { min-height: 58px; }
+  .site-chrome__brand span { font-size: 13px; }
+  .site-chrome__menu-button { display: inline-flex; }
+  .site-chrome__nav { display: none; position: absolute; inset: 58px 0 auto; padding: 10px 12px 14px; flex-direction: column; align-items: stretch; background: var(--sc-bg); border-bottom: 1px solid var(--sc-border); box-shadow: 0 12px 24px rgba(0,0,0,.2); }
+  .site-chrome__nav.is-open { display: flex; }
+  .site-chrome__footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
+  .site-chrome__footer-about { grid-column: 1 / -1; }
+  .site-chrome__footer-bottom { flex-direction: column; gap: 8px; }
+}
+@media (max-width: 480px) {
+  .site-chrome__brand span { display: none; }
+  .site-chrome__footer-grid { grid-template-columns: 1fr; }
+  .site-chrome__footer-about { grid-column: auto; }
+}
