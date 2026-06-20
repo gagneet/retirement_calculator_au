@@ -1246,6 +1246,13 @@ class RetirementCalculatorApp {
                 return;
             }
 
+            // Persist inputs to localStorage so the Reverse Planner can import them
+            try {
+                localStorage.setItem('rc_forward_scenario', JSON.stringify(inputs));
+            } catch {
+                // localStorage may be unavailable (private browsing, storage full) — silently skip
+            }
+
             let result;
             try {
                 result = profiler.measure('advanced-classic.core.deterministicSimulation', () => this.simulator.simulateRetirement(inputs, false));

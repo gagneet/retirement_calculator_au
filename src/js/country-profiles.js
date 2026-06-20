@@ -968,6 +968,156 @@ export const COUNTRY_PROFILES = {
     },
 
     // ============================================================
+    // UNITED KINGDOM - No bilateral Social Security Agreement
+    // Australia-UK Double Tax Agreement in force.
+    // Reciprocal Health Care Agreement (RHCA) covers medically
+    // necessary treatment only.
+    // Age Pension portable under Australian Working Life Residence (AWLR).
+    // ============================================================
+    UNITED_KINGDOM: {
+        name: 'United Kingdom',
+        region: 'Europe',
+        currency: 'GBP',
+        distanceFromAustralia: 17000,
+        flightTime: '21-24 hours (via Asia or Middle East)',
+        overview: 'Familiar culture, English language, excellent healthcare — one of the more expensive European options for Australians',
+
+        socialSecurityAgreement: false,
+        agreementDetails: null,
+
+        agePension: {
+            portability: 'AWLR_BASED',
+            formerResidentRule: true,
+            note: 'Australian Age Pension is portable to the UK subject to Australian Working Life Residence (AWLR) rules. No bilateral Social Security Agreement exists, so the pension may be reduced if you have fewer than 35 years of Australian Working Life Residence. UK State Pension (if accrued while working in the UK) may supplement. Verify with Services Australia before departing.'
+        },
+
+        visa: {
+            type: 'Ancestry Visa, Skilled Worker Visa, or British National (Overseas) — retirement-specific visa not available',
+            duration: 'Ancestry visa: 5 years (renewable); Indefinite Leave to Remain after 5 years',
+            requirements: [
+                'Ancestry visa: Commonwealth citizen with a grandparent born in the UK (no age restriction)',
+                'Skilled Worker: job offer from UK employer required — not suitable for retirees',
+                'British citizenship holders may return freely',
+                'No dedicated retirement visa — ancestry or family routes most accessible'
+            ],
+            easeOfAccess: 'MEDIUM (ancestry) / HARD (other routes)',
+            cost: 'GBP £531 (Ancestry visa) + Immigration Health Surcharge (GBP £1,035/year)',
+            note: 'Ancestry visa is the most practical path for Australian-born retirees with UK grandparent heritage'
+        },
+
+        costOfLiving: {
+            index: 1.05,
+            breakdown: {
+                accommodation: 'AUD $2,000-5,000/month (London); AUD $1,200-2,500 (regional)',
+                food: 'AUD $700-1,200/month',
+                transport: 'AUD $200-500/month (public transport — no car needed in cities)',
+                utilities: 'AUD $300-600/month (heating costs significant)',
+                council_tax: 'AUD $200-400/month'
+            },
+            note: 'London and South East significantly more expensive. Scotland, Wales, and Northern England more affordable. Sterling/AUD exchange rate adds FX risk.',
+            healthcareNote: 'NHS free for residents (Indefinite Leave to Remain or settled status). Immigration Health Surcharge applies during visa period: GBP £1,035/year per person.'
+        },
+
+        healthcare: {
+            system: 'NHS (National Health Service) — universal for residents; RHCA for medically necessary treatment on Australian passport',
+            quality: 'Excellent — world-class hospitals and specialists',
+            rating: 8.5,
+            reciprocalAgreement: true,
+            reciprocalScope: 'Reciprocal Health Care Agreement (RHCA) covers medically necessary treatment only. Not equivalent to Medicare — excludes elective, dental, optical.',
+            costs: 'NHS free once you have Indefinite Leave to Remain or settled status. Immigration Health Surcharge (IHS) of GBP £1,035/year applies during visa period.',
+            insurance: 'Private health insurance for faster access: AUD $150-400/month for comprehensive cover.',
+            considerations: [
+                'RHCA covers emergency and medically necessary care on short/tourist stays',
+                'For permanent residence: IHS must be paid annually during visa period',
+                'Dental and optical not covered by NHS for most adults',
+                'NHS waiting times for elective procedures can be significant',
+                'Private health insurance recommended for quicker specialist access'
+            ]
+        },
+
+        tax: {
+            doubleTaxAgreement: true,
+            dtaDetails: 'Australia-United Kingdom Double Taxation Agreement (1967, as amended). Prevents double taxation on pensions, dividends, interest, and royalties.',
+            superTaxation: 'Australian super pension payments are generally taxable in the UK once you become a UK tax resident. The DTA may provide relief — seek specialist advice.',
+            agreementSummary: 'Comprehensive DTA covers Australian pensions, Age Pension, investment income. UK income tax rates: 20% (basic), 40% (higher), 45% (additional). Personal allowance: GBP £12,570.',
+            residencyThreshold: '183+ days in the UK typically establishes UK tax residency under Statutory Residence Test (SRT)',
+            inheritanceTax: 'UK Inheritance Tax (40%) may apply to UK-situated assets above GBP £325,000 threshold. Australian assets generally outside scope once you become a non-UK domicile.'
+        },
+
+        climate: 'Temperate oceanic — mild, overcast, wet. Warm summers (15-22°C), cold winters (2-8°C). Scotland significantly colder and wetter.',
+
+        popularLocations: [
+            {
+                name: 'Edinburgh, Scotland',
+                description: 'Historic, cultural, relatively affordable vs London — growing expat community',
+                cost: 'MEDIUM',
+                pros: ['Beautiful city', 'Rich culture and history', 'Affordable vs London', 'Great arts scene'],
+                cons: ['Cold and wet winters', 'Far from Australia', 'Limited sun']
+            },
+            {
+                name: 'Cotswolds, England',
+                description: 'Quintessential English countryside — picturesque villages, slower pace',
+                cost: 'MEDIUM-HIGH',
+                pros: ['Beautiful scenery', 'Safe', 'Village lifestyle', 'Near London'],
+                cons: ['Car essential', 'Limited services in some villages', 'Expensive property']
+            },
+            {
+                name: 'Brighton & Hove, England',
+                description: 'Coastal city, diverse, arts, 1 hour from London',
+                cost: 'MEDIUM-HIGH',
+                pros: ['Coastal lifestyle', 'Diverse community', 'Good rail links to London', 'Vibrant culture'],
+                cons: ['Expensive', 'Can be crowded in summer', 'Variable weather']
+            },
+            {
+                name: 'Bath, England',
+                description: 'UNESCO World Heritage city, Roman baths, Georgian architecture',
+                cost: 'HIGH',
+                pros: ['Beautiful architecture', 'Cultural richness', 'Good healthcare', 'Safe'],
+                cons: ['Very expensive property', 'Tourist crowds', 'Limited public transport outside centre']
+            }
+        ],
+
+        languageBarrier: 'NONE',
+        languageNote: 'English is the first language. Regional accents and dialects may take adjustment but no language barrier.',
+
+        risks: {
+            overall: 'LOW',
+            currency: 'MEDIUM',
+            healthcare: 'LOW',
+            political: 'LOW',
+            currencyNote: 'AUD/GBP exchange rate can fluctuate 15-25% over multi-year periods — significant FX risk for AUD-denominated retirement income',
+            politicalNote: 'Stable democracy, though post-Brexit immigration rules are more complex for non-EU/non-Commonwealth routes'
+        },
+
+        bestFor: [
+            'Australians with UK ancestry (grandparent born in UK) for Ancestry visa',
+            'Australian citizens who hold British citizenship',
+            'Those with family connections in the UK',
+            'Fans of European travel accessibility (easy flights to Europe from UK)',
+            'Those who prefer familiar English-speaking culture, NHS healthcare, and the BBC'
+        ],
+
+        challenges: [
+            'No dedicated retirement visa — ancestry or citizenship route required for most',
+            'High cost of living, especially in England\'s South East',
+            'Cold, grey weather — a significant lifestyle adjustment for most Australians',
+            'UK inheritance tax and complex DTA interactions with Australian super',
+            'Very far from Australia (21+ hours) — family visits expensive',
+            'Currency risk: AUD/GBP volatility can significantly impact purchasing power',
+            'NHS waiting times for elective procedures',
+            'Immigration Health Surcharge (approx AUD $2,000+/year per person during visa period)'
+        ],
+
+        additionalNotes: [
+            'No bilateral Social Security Agreement — Australian Age Pension may be reduced if fewer than 35 years AWLR',
+            'Australia-UK DTA prevents double taxation but professional tax advice essential',
+            'RHCA covers only medically necessary treatment — not a full healthcare substitute',
+            'Ancestry visa is renewable indefinitely and leads to Indefinite Leave to Remain after 5 years',
+            'UK State Pension may be accessible if you worked in the UK previously (10-35 years NI contributions required)'
+        ]
+    },
+
+    // ============================================================
     // JAPAN - Social Security Agreement country
     // ============================================================
     JAPAN: {
