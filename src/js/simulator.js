@@ -40,11 +40,11 @@ const resolveScenarioMonteCarloRuns = (inputs = {}) =>
 
 /**
  * Generate a stochastic annual rate by applying a bounded symmetric variation
- * to the user-supplied central estimate.  The user's input is treated as the
- * central value (mean = median for a symmetric distribution); each MC draw
- * applies a uniform perturbation from [-0.04, +0.04] (±4 pp), so the
- * expected perturbation is exactly 0 and the distribution is centred on the
- * user's input.
+ * to the user-supplied central (median) estimate.  Each call draws a uniform
+ * perturbation from [-0.04, +0.04] (±4 pp), so the distribution is centred on
+ * the user's input.  This means every year experiences a different rate drawn
+ * from a distribution whose median equals the user's input — the value is never
+ * applied as a fixed linear compound across all years.
  *
  * Why ±4 pp?  AU macro data (RBA/ABS 2002-2024):
  *   CPI std dev ≈ 1.8 pp  →  ±4 pp covers roughly ±2.2 σ  (≈97% of history)
@@ -53,16 +53,14 @@ const resolveScenarioMonteCarloRuns = (inputs = {}) =>
  * prevents rates from going below a caller-specified minimum.
  *
  * Note: an asymmetric range such as [-0.045, +0.035] shifts the median of
- * the distribution by -0.5 pp relative to the user input, biasing all MC
- * runs downward — which is why this implementation uses a symmetric range.
+ * the distribution by -0.5 pp relative to the user input, biasing all
+ * projections downward — which is why this implementation uses a symmetric range.
  *
- * @param {number}  centralRate  - Central (mean/median) rate as decimal (e.g. 0.026 for 2.6%)
- * @param {boolean} useRandom    - When false returns centralRate unchanged (deterministic mode)
+ * @param {number}  centralRate  - Median rate as decimal (e.g. 0.026 for 2.6%)
  * @param {number}  [floor=0]    - Hard floor for result (e.g. 0.001 = 0.1% minimum)
  * @returns {number} Perturbed rate in decimal form, ≥ floor
  */
-export function stochasticRate(centralRate, useRandom, floor = 0) {
-    if (!useRandom) return centralRate;
+export function stochasticRate(centralRate, floor = 0) {
     // Symmetric uniform draw: perturbation ∈ [-0.04, +0.04], E[perturbation] = 0
     const perturbation = (Math.random() - 0.5) * 0.08; // 0.08 = 2 × 0.04
     return Math.max(floor, centralRate + perturbation);
@@ -271,12 +269,10 @@ export class RetirementSimulator {
         overrideInflationFactor,
         yearInflationRate,
     }) {
-        const inflationFactor = overrideInflationFactor ?? Math.pow(1 + inputs.inflation, retirementYear);
+        const inflationFactor = overrideInflationFactor;
         // Per-year inflation rate for use by spending strategies that need it (e.g. Guyton-Klinger).
-        // In stochastic mode this is the drawn rate for the current year; deterministic uses median.
-        const effectiveYearInflation = (useRandomReturns && yearInflationRate != null)
-            ? yearInflationRate
-            : inputs.inflation;
+        // Every year draws a fresh rate from stochasticRate() — never the fixed median.
+        const effectiveYearInflation = yearInflationRate ?? inputs.inflation;
 
         // Overseas phase: substitute overseas living budget + return travel cost
         if (inputs.goingOverseas && inputs.overseasStartAge > 0 && currentAge >= inputs.overseasStartAge) {
@@ -1337,9 +1333,9 @@ export class RetirementSimulator {
         // etc.).  Quantities that are re-calculated each year inside the loop (savings
         // return, super return, retirement inflation) already use per-year draws via
         // stochasticRate() and are unaffected by these run-level draws.
-        const runInflationRate      = stochasticRate(inputs.inflation,            useRandomReturns, 0.001);
-        const runHealthcareInflRate = stochasticRate(inputs.healthcareInflation || 0.065, useRandomReturns, 0.01);
-        const runSalaryGrowthRate   = stochasticRate(inputs.salaryGrowthRate || 0.02,     useRandomReturns, 0);
+        const runInflationRate      = stochasticRate(inputs.inflation,            0.001);
+        const runHealthcareInflRate = stochasticRate(inputs.healthcareInflation || 0.065, 0.01);
+        const runSalaryGrowthRate   = stochasticRate(inputs.salaryGrowthRate || 0.02,     0);
         // NOTE: property growth is NOT drawn as a single per-run rate here.
         // Instead, calculateEnhancedPropertyReturn() is called each year inside the
         // accumulation and retirement loops so each year can experience a different
@@ -1505,6 +1501,12 @@ export class RetirementSimulator {
 
         pushAccumulationSnapshot(0, inputs.yourCurrentAge);
 
+        // Per-year cumulative inflation factor for the accumulation phase.
+        // Each year draws a fresh inflation rate from stochasticRate() centred on the
+        // user's input (median); the factor accumulates the year-by-year product so
+        // every cost that depends on inflation varies year-to-year.
+        let accumCumulativeInflationFactor = 1;
+
         // Pre-retirement simulation
         const simulationEndYear = inputs.isSingleCalculation ?
             Math.max(yearsToRetirement, effectiveYourLifespan - inputs.yourCurrentAge) :
@@ -1527,6 +1529,13 @@ export class RetirementSimulator {
                     break;
                 }
             }
+
+            // Per-year inflation draw: each accumulation year draws a fresh rate from
+            // stochasticRate() centred on the user's input (median).  The cumulative
+            // factor replaces Math.pow(1 + runInflationRate, year) throughout, giving
+            // year-to-year variation for all inflation-dependent costs.
+            const accumYearInflationRate = stochasticRate(inputs.inflation, 0.001);
+            accumCumulativeInflationFactor *= (1 + accumYearInflationRate);
 
             // Dynamic allocation
             let allocation;
@@ -1632,10 +1641,10 @@ export class RetirementSimulator {
                 }
             }
 
-            // Apply returns — super and savings use stochastic rates in Monte Carlo mode
-            // (user-entered rate treated as median; each year perturbed uniformly by ±4pp)
-            const yearSuperReturn = stochasticRate(inputs.superReturn, useRandomReturns, 0);
-            const yearSavingsReturn = stochasticRate(inputs.savingsReturn, useRandomReturns, 0);
+            // Apply returns — super and savings use stochastic rates (user-entered rate
+            // treated as median; each year perturbed uniformly by ±4pp)
+            const yearSuperReturn = stochasticRate(inputs.superReturn, 0);
+            const yearSavingsReturn = stochasticRate(inputs.savingsReturn, 0);
             const yourSuperEarningsThisYear = yourSuperBalance * yearSuperReturn;
             const partnerSuperEarningsThisYear = partnerSuperBalance * yearSuperReturn;
             const superEarningsThisYear = yourSuperEarningsThisYear + partnerSuperEarningsThisYear;
@@ -1712,8 +1721,8 @@ export class RetirementSimulator {
 
             if (year <= yourYearsToWork) {
                 const yourGrossSalary = this.getSalaryForYear(inputs.yourSalary, year, inputs, false,
-                    useRandomReturns ? runInflationRate : null,
-                    useRandomReturns ? runSalaryGrowthRate : null);
+                    runInflationRate,
+                    runSalaryGrowthRate);
                 // Salary sacrifice: voluntary pre-tax super, capped so total concessional ≤ $30,000.
                 // Blocked entirely when TSB ≥ Transfer Balance Cap.
                 const effectiveEmployerRate = inputs.employerSuperContributionRate ?? inputs.superContributionRate ?? getSGRate(projectionYear);
@@ -1748,8 +1757,8 @@ export class RetirementSimulator {
             }
             if (year <= partnerYearsToWork) {
                 const partnerGrossSalary = this.getSalaryForYear(inputs.partnerSalary, year, inputs, true,
-                    useRandomReturns ? runInflationRate : null,
-                    useRandomReturns ? runSalaryGrowthRate : null);
+                    runInflationRate,
+                    runSalaryGrowthRate);
                 const effectiveEmployerRate = inputs.employerSuperContributionRate ?? inputs.superContributionRate ?? getSGRate(projectionYear);
                 const partnerEmployerSG = resolveEmployerSuper({
                     employmentIncome: partnerGrossSalary,
@@ -1831,7 +1840,7 @@ export class RetirementSimulator {
             // Carer expense: direct annual financial support to aged parents/family (inflated)
             if (inputs.isCarerForParents && inputs.carerAnnualExpense > 0
                 && year <= inputs.carerYearsExpected) {
-                const inflatedCarerExpense = inputs.carerAnnualExpense * Math.pow(1 + runInflationRate, year);
+                const inflatedCarerExpense = inputs.carerAnnualExpense * accumCumulativeInflationFactor;
                 accumulatedSavingsBalance = Math.max(0, accumulatedSavingsBalance - inflatedCarerExpense);
             }
 
@@ -1850,7 +1859,8 @@ export class RetirementSimulator {
                     const basePremium = inputs.isSingleCalculation
                         ? (this.config.LHC_BASE_PREMIUMS?.single || 2800)
                         : (this.config.LHC_BASE_PREMIUMS?.couple || 5200);
-                    const lhcAnnualCost = basePremium * loadingPct * Math.pow(1 + runInflationRate, year - 1);
+                    const prevCumulativeFactor = accumCumulativeInflationFactor / (1 + accumYearInflationRate);
+                    const lhcAnnualCost = basePremium * loadingPct * prevCumulativeFactor;
                     accumulatedSavingsBalance = Math.max(0, accumulatedSavingsBalance - lhcAnnualCost);
                 }
             }
@@ -1867,13 +1877,13 @@ export class RetirementSimulator {
                 if (inputs.universitySupport) {
                     annualEdCost += 15000 * childCount; // university support ~$15k/child
                 }
-                annualEdCost *= Math.pow(1 + runInflationRate, year); // inflate over time
+                annualEdCost *= accumCumulativeInflationFactor; // inflate over time
                 accumulatedSavingsBalance = Math.max(0, accumulatedSavingsBalance - annualEdCost);
             }
 
             // Property calculations
             if (inputs.hasInvestmentProperty && yourCurrentAge <= inputs.retirementAge) {
-                const propertyCashFlow = this.calculatePropertyCashFlow(inputs, year, useRandomReturns ? runInflationRate : null);
+                const propertyCashFlow = this.calculatePropertyCashFlow(inputs, year, runInflationRate);
                 if (propertyCashFlow) {
                     propertyHistory.push(propertyCashFlow);
 
@@ -1981,7 +1991,7 @@ export class RetirementSimulator {
         let accessibleHomeEquity = 0;
         if (inputs.planToDownsize && inputs.downsizeAge <= inputs.retirementAge) {
             const inflationAdjustedTargetHomeValue = (inputs.downsizeTargetHomeValue || 800000)
-                * Math.pow(1 + runInflationRate, yearsToRetirement);
+                * accumCumulativeInflationFactor;
             const rawTransactionCostRate = Number.isFinite(inputs.downsizeTransactionCost)
                 ? Math.max(0, inputs.downsizeTransactionCost)
                 : 0.06;
@@ -2035,12 +2045,11 @@ export class RetirementSimulator {
         // through to the user's lifespan in deterministic mode (Age Pension–only rows).
         let hasDepleted = false;
 
-        // Per-year inflation scatter: each Monte Carlo run experiences a different inflation path
-        // centred on the user's input, giving realistic variability in spending targets.
-        // Seed with the per-run inflation rate so each MC run begins retirement with a
-        // differently inflated spending baseline (not the same fixed value every run).
-        // Deterministic runs use inputs.inflation unchanged.
-        let cumulativeInflationFactor = Math.pow(1 + runInflationRate, yearsToRetirement);
+        // Per-year inflation scatter: each year draws a fresh rate from stochasticRate() centred
+        // on the user's input (median), giving realistic variability in spending targets.
+        // Seed from the accumulation-phase cumulative factor so the retirement phase continues
+        // the same per-year inflation path rather than starting from a fixed compound.
+        let cumulativeInflationFactor = accumCumulativeInflationFactor;
 
         // Separate cumulative factor for healthcare costs in MC mode.
         // Healthcare inflation = general inflation + a structural uplift (historically ~3-4 pp above CPI).
@@ -2088,14 +2097,12 @@ export class RetirementSimulator {
             // covers the full simulation horizon, not just the pre-retirement phase.
             allocationHistory.push(allocation);
 
-            // ── Step A: draw this year's stochastic rates ────────────────────────
+            // ── Step A: draw this year's stochastic rate ─────────────────────────
             // yearInflationRate MUST be declared before any calculation that uses it.
             // It drives healthcare costs, spending targets, and the cumulative factor.
-            // MC mode: uniform draw in [median − 4pp, median + 4pp], floored at 0.5%.
-            // Deterministic mode: the user-entered median, unchanged.
-            const yearInflationRate = useRandomReturns
-                ? stochasticRate(inputs.inflation, true, 0.005)
-                : inputs.inflation;
+            // Uniform draw in [median − 4pp, median + 4pp], floored at 0.5%.
+            // Every year draws a fresh rate — never a fixed linear compound of the median.
+            const yearInflationRate = stochasticRate(inputs.inflation, 0.005);
 
             // ── Step B: healthcare costs ─────────────────────────────────────────
             // MC mode: healthcare cost = baseCost × cumulativeInflationFactor
@@ -2113,19 +2120,11 @@ export class RetirementSimulator {
             //
             // Deterministic mode: fixed compound formula via projectHealthcareCosts().
             let healthcareCost;
-            if (useRandomReturns) {
-                healthcareCost = inputs.currentHealthcareCosts
-                    * cumulativeInflationFactor
-                    * cumulativeHcUpliftFactor;
-                // Advance the uplift factor for next year.
-                cumulativeHcUpliftFactor *= (1 + hcUplift);
-            } else {
-                healthcareCost = this.projectHealthcareCosts(
-                    inputs.currentHealthcareCosts,
-                    retirementYear,
-                    inputs.healthcareInflation
-                );
-            }
+            healthcareCost = inputs.currentHealthcareCosts
+                * cumulativeInflationFactor
+                * cumulativeHcUpliftFactor;
+            // Advance the uplift factor for next year.
+            cumulativeHcUpliftFactor *= (1 + hcUplift);
 
             // ── Step C: aged care ────────────────────────────────────────────────
             // Deterministic runs use an expected-value care cost; MC runs sample an
@@ -2136,7 +2135,7 @@ export class RetirementSimulator {
                 inputs,
                 agedCareProfile,
                 effectiveYourLifespan,
-                useRandomReturns ? runHealthcareInflRate : null
+                runHealthcareInflRate
             );
 
             // ── Step D: investment property income and equity ─────────────────────
@@ -2148,7 +2147,7 @@ export class RetirementSimulator {
             let propertyIncome = 0;
             if (inputs.hasInvestmentProperty && !propertyWasSold) {
                 const propertyCashFlow = this.calculatePropertyCashFlow(
-                    inputs, retirementYear, useRandomReturns ? runInflationRate : null
+                    inputs, retirementYear, runInflationRate
                 );
                 if (propertyCashFlow) {
                     propertyIncome = propertyCashFlow.netCashFlow; // may be negative (neg. gearing)
@@ -2203,16 +2202,16 @@ export class RetirementSimulator {
                 previousSpendingTarget,
                 agedCareActive: agedCareCost > 0,
                 useRandomReturns,
-                overrideInflationFactor: useRandomReturns ? cumulativeInflationFactor : undefined,
+                overrideInflationFactor: cumulativeInflationFactor,
                 yearInflationRate,
             });
             const baseIncomeNeeded = spendingPlan.targetSpending;
             previousSpendingTarget = baseIncomeNeeded;
 
-            // Advance the cumulative inflation factor using the rate already drawn above.
-            if (useRandomReturns) {
-                cumulativeInflationFactor *= (1 + yearInflationRate);
-            }
+            // Save pre-advance factor for downstream cost calculations that need
+            // inflation from today to the START of this retirement year, then advance.
+            const inflationFactorBeforeAdvance = cumulativeInflationFactor;
+            cumulativeInflationFactor *= (1 + yearInflationRate);
 
             // LHC loading cost during retirement (mirrors accumulation loop logic)
             let lhcRetirementCost = 0;
@@ -2229,9 +2228,7 @@ export class RetirementSimulator {
                     const basePremium = inputs.isSingleCalculation
                         ? (this.config.LHC_BASE_PREMIUMS?.single || 2800)
                         : (this.config.LHC_BASE_PREMIUMS?.couple || 5200);
-                    // retirementYear = yearsToRetirement + i — always years from today,
-                    // never a calendar year — so Math.pow is safe and correct here.
-                    lhcRetirementCost = basePremium * loadingPct * Math.pow(1 + runInflationRate, retirementYear);
+                    lhcRetirementCost = basePremium * loadingPct * inflationFactorBeforeAdvance;
                 }
             }
 
@@ -2256,7 +2253,7 @@ export class RetirementSimulator {
             let downsizeEquityInjection = 0;
             if (inputs.planToDownsize && !downsizeOccurred && yourCurrentAge >= inputs.downsizeAge) {
                 const currentHomeValueAtDownsize = runningHomeValue;
-                const targetHomeValue = inputs.downsizeTargetHomeValue * Math.pow(1 + runInflationRate, retirementYear);
+                const targetHomeValue = inputs.downsizeTargetHomeValue * inflationFactorBeforeAdvance;
                 const rawTransactionCostRate = Number.isFinite(inputs.downsizeTransactionCost)
                     ? Math.max(0, inputs.downsizeTransactionCost)
                     : 0.06;
@@ -2285,12 +2282,15 @@ export class RetirementSimulator {
 
             let downsizeFees = 0;
             if (downsizeOccurred) {
-                downsizeFees = (inputs.downsizeOngoingFees || 0) * Math.pow(1 + runInflationRate, retirementYear);
+                downsizeFees = (inputs.downsizeOngoingFees || 0) * inflationFactorBeforeAdvance;
             }
 
-            const optionalCostInflationRate = useRandomReturns
-                ? runInflationRate
-                : (inputs.inflation || 0.026);
+            // Optional costs (home modifications, annuity) compound from today to the
+            // target year, so a fixed per-run rate is needed (not a per-year variable rate).
+            // runInflationRate is a per-run stochastic draw centred on the user's median;
+            // deterministic mode also used it (now always stochastic since the useRandom
+            // guard was removed from stochasticRate).
+            const optionalCostInflationRate = runInflationRate;
 
             let homeModCost = 0;
             const DISCRETIONARY_THRESHOLD = 50000;
