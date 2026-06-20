@@ -182,7 +182,7 @@ export class ReversePlanner {
             meetsGoal: score.passesGoal,
             agePensionNominal,
             mortgageBalance,
-            estateAtLifespan: simResult.finalBalance || 0,
+            estateAtLifespan: score.estateToday || 0,
             superAtRetirement: combinedSuper,
             score: {
                 ...score,

@@ -393,7 +393,7 @@ export class ReverseUI {
     }
 
     /**
-     * Render the main results — headline, gap summary, action intro, assumptions.
+     * Render the main results — headline, goal summary, current path, action intro, assumptions.
      */
     renderResults(result) {
         const { target, currentPath, top3Actions, summary } = result;
@@ -401,11 +401,32 @@ export class ReverseUI {
 
         safeText('rp-headline', plainEnglish.headline);
 
-        const meetsGoal = currentPath.meetsGoal;
+        // Goal summary (today's dollars + nominal at retirement)
+        const ytr = currentPath.yearsToRetirement;
+        const nominalTarget = target.targetAnnualIncomeToday *
+            Math.pow(1 + currentPath.inflationRate, ytr);
+        safeText('rp-goal-today', fmt(target.targetAnnualIncomeToday) + '/year');
+        safeText('rp-goal-nominal', `≈ ${fmt(nominalTarget)}/year in ${new Date().getFullYear() + ytr} dollars`);
+        safeText('rp-goal-retire-age', `Age ${target.retirementAge}`);
+        safeText('rp-goal-lifespan', `Age ${target.lifespan}`);
+
+        // Current path
+        safeText('rp-current-income', fmt(currentPath.sustainableIncomeToday) + '/year');
+        safeText('rp-current-assets', fmt(currentPath.totalAssetsNominal));
+        const statusEl = el('rp-goal-status');
+        if (statusEl) {
+            const meetsGoal = currentPath.meetsGoal;
+            statusEl.textContent = meetsGoal ? 'On track' : 'Shortfall';
+            statusEl.className = 'rp-status-badge ' + (meetsGoal ? 'rp-status-ok' : 'rp-status-gap');
+        }
+
+        show('rp-summary-section');
+
+        // Action intro
         const actionIntro = el('rp-action-intro');
         if (actionIntro) {
             if (top3Actions.length > 0) {
-                const gapLabel = meetsGoal
+                const gapLabel = currentPath.meetsGoal
                     ? `Your current plan meets your ${fmt(target.targetAnnualIncomeToday)}/year goal.`
                     : `You need to close a ${fmt(currentPath.incomeGap)}/year gap.`;
                 actionIntro.textContent = gapLabel + ' Ranked actions from most feasible:';
@@ -414,12 +435,14 @@ export class ReverseUI {
             }
         }
 
+        // Assumptions
         const assumptions = generateAssumptionsText(target, result.inputs);
         const assumEl = el('rp-assumptions-list');
         if (assumEl) {
             assumEl.innerHTML = assumptions.map(a => `<li>${a}</li>`).join('');
         }
 
+        // Pattern caution
         if (plainEnglish.cautionText) {
             safeText('rp-pattern-note', plainEnglish.cautionText);
             show('rp-pattern-note-section');
