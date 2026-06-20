@@ -35,7 +35,7 @@ export function compareCurrentToTarget(currentPath, target, assumptions = {}) {
     const sustainableIncome = currentPath.sustainableIncomeToday || 0;
     const incomeGapToday = Math.max(0, targetIncome - sustainableIncome);
 
-    const agePensionAnnual = currentPath.agePensionAtRetirement || (target.includeAgePension
+    const agePensionAnnual = currentPath.agePensionAtRetirement ?? (target.includeAgePension
         ? (target.householdType === 'couple' ? COUPLE_PENSION_MAX : SINGLE_PENSION_MAX)
         : 0);
 
