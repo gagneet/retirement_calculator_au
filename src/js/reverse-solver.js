@@ -13,11 +13,12 @@
 
 import { ENHANCED_CONFIG } from './config.js';
 import { RetirementSimulator } from './simulator.js';
+import { evaluateEngineGoal, applyTargetToEngineInputs } from './reverse-success-predicate.js';
 
 // ---------------------------------------------------------------------------
 // Constants (sourced from ENHANCED_CONFIG or sensible defaults)
 // ---------------------------------------------------------------------------
-const DEFAULT_SWR = 0.04;        // Safe withdrawal rate
+const DEFAULT_SWR = 0.04;        // Safe withdrawal rate (educational reference only)
 const DEFAULT_INFLATION = ENHANCED_CONFIG.INFLATION_RATE || 0.026;
 const CONCESSIONAL_CAP = ENHANCED_CONFIG.CONCESSIONAL_CAP || 30000;
 
@@ -28,6 +29,9 @@ const CONCESSIONAL_CAP = ENHANCED_CONFIG.CONCESSIONAL_CAP || 30000;
 /**
  * Estimate capital needed at retirement (nominal dollars) to sustain a
  * given real income in today's dollars.
+ *
+ * NOTE: This is an APPROXIMATE bracket seed for bisection solvers.
+ * It must NEVER be used as a pass/fail success test — use evaluateEngineGoal() instead.
  *
  * @param {number} targetIncomeToday    Target annual income in today's dollars
  * @param {number} yearsToRetirement    Years from now until retirement
@@ -98,11 +102,14 @@ export async function bisectionSolve({ lo, hi, tol, maxIter = 60, passes }) {
 /**
  * Score a deterministic simulation result against a retirement target.
  *
+ * Uses the engine-based evaluateEngineGoal() instead of SWR proxy.
+ * SWR is only used for the bracket/seed capital estimate, NOT for pass/fail.
+ *
  * @param {object} simResult          Return value of simulateRetirement(inputs, false)
  * @param {object} target             Target object (see ReversePlanner target schema)
- * @param {number} inflationRate      Annual inflation (decimal)
+ * @param {number} inflationRate      Annual inflation (decimal) — used for deflation only
  * @param {number} yearsToRetirement  Years until retirement age
- * @param {number} swr                Safe withdrawal rate
+ * @param {number} swr                Safe withdrawal rate (educational reference only)
  * @returns {object} { passesGoal, passesIncome, sustainableIncomeToday, totalAssetsNominal, incomeGap, capitalGap }
  */
 export function scoreScenario(
@@ -112,56 +119,58 @@ export function scoreScenario(
     yearsToRetirement = 0,
     swr = DEFAULT_SWR
 ) {
-    const finalBalance = simResult.finalBalance || 0;
-    const totalAssetsNominal = simResult.totalFinancialAssets || 0;
-
-    // Deflate nominal retirement assets back to today's dollars
     const deflator = yearsToRetirement > 0
         ? Math.pow(1 + inflationRate, yearsToRetirement)
         : 1;
 
-    // Age pension (nominal at retirement) if opted-in
-    const agePensionNominal = target.includeAgePension
-        ? (simResult.yearlyData?.[0]?.pensionIncome || 0)
+    const totalAssetsNominal = simResult.totalFinancialAssets || 0;
+
+    // Age pension from engine's yearlyData retirement row (means-tested)
+    const retirementAge = target?.retirementAge || simResult.retirementAge || 65;
+    const yearlyData = simResult.yearlyData || [];
+    const retirementRowIndex = yearlyData.findIndex(row => row.age >= retirementAge);
+    const retirementRow = retirementRowIndex >= 0 ? yearlyData[retirementRowIndex] : null;
+    const agePensionNominal = target?.includeAgePension !== false
+        ? (retirementRow?.pensionIncome || 0)
         : 0;
 
+    // Use engine predicate for truth
+    const engineResult = evaluateEngineGoal(simResult, target, { yourLifespan: target?.lifespan }, { yearsToRetirement, swr });
+
+    // SWR estimate for reference only — NOT used for pass/fail
     const sustainableIncomeNominal = totalAssetsNominal * swr + agePensionNominal;
     const sustainableIncomeToday = sustainableIncomeNominal / deflator;
 
     const targetIncomeToday = target.targetAnnualIncomeToday || 0;
-    const passesIncome = sustainableIncomeToday >= targetIncomeToday;
-
     const incomeGap = Math.max(0, targetIncomeToday - sustainableIncomeToday);
     const capitalGap = Math.max(0, estimateRequiredCapital(
         targetIncomeToday, yearsToRetirement, inflationRate, agePensionNominal, swr
     ) - totalAssetsNominal);
 
-    // Estate check (deflate final balance to today's dollars)
+    const finalBalance = simResult.finalBalance || 0;
     const estateDeflator = Math.pow(1 + inflationRate, yearsToRetirement);
     const estateToday = (finalBalance || 0) / estateDeflator;
     const minEstate = target.minimumEstateToday || 0;
-    const passesEstate = estateToday >= minEstate;
-
-    // Confidence check (deterministic = binary 1/0)
-    const successProbability = passesIncome ? 1 : 0;
-    const confidenceTarget = target.successProbabilityTarget || 0;
-    const passesConfidence = successProbability >= confidenceTarget;
+    const estateGap = Math.max(0, minEstate - estateToday);
 
     return {
-        passesGoal: passesIncome && passesEstate && passesConfidence,
-        passesIncome,
-        passesEstate,
-        passesConfidence,
+        passesGoal: engineResult.passesGoal,
+        passesIncome: engineResult.passesIncome,
+        passesEstate: engineResult.passesEstate,
+        passesConfidence: engineResult.passesConfidence,
         sustainableIncomeToday,
         totalAssetsNominal,
-        finalBalance,
-        estateToday,
-        estateGap: Math.max(0, minEstate - estateToday),
+        finalBalance: engineResult.finalBalance,
+        estateToday: engineResult.estateToday,
+        estateGap,
         incomeGap,
         capitalGap,
-        confidenceGap: Math.max(0, confidenceTarget - successProbability),
+        confidenceGap: Math.max(0, (target.successProbabilityTarget || 0) - 1),
         deflator,
-        successProbability,
+        successProbability: engineResult.passesGoal ? 1 : 0,
+        depletionAge: engineResult.depletionAge,
+        lastsToTargetAge: engineResult.lastsToTargetAge,
+        engineResult,
     };
 }
 
@@ -182,15 +191,16 @@ export function yearsToRetirement(baseInputs) {
 function makePasses(simulator, baseInputs, target, overrideKey, inflationRate, swr) {
     const ytr = yearsToRetirement(baseInputs);
     return async (value) => {
-        const inputs = { ...baseInputs, [overrideKey]: value };
+        const inputs = applyTargetToEngineInputs(baseInputs, target, {});
+        inputs[overrideKey] = value;
         let result;
         try {
             result = simulator.simulateRetirement(inputs, false);
         } catch {
             return false;
         }
-        const score = scoreScenario(result, target, inflationRate, ytr, swr);
-        return score.passesGoal;
+        const evalResult = evaluateEngineGoal(result, target, inputs, { yearsToRetirement: ytr, swr });
+        return evalResult.passesGoal;
     };
 }
 
@@ -282,15 +292,9 @@ export async function solveForRetirementAge(simulator, baseInputs, target, optio
     const currentRetireAge = baseInputs.retirementAge || 65;
     const minRetireAge = Math.max(currentAge + 1, 55);
 
-    // For retirement age: higher age is more conservative → passes at higher ages
-    // We want MINIMUM age at which goal is met
-    // passes(x) = true means retiring at age x achieves goal
     const passes = async (retAge) => {
-        const inputs = {
-            ...baseInputs,
-            retirementAge: Math.round(retAge),
-            // Recalculate years to retirement for scoring
-        };
+        const inputs = applyTargetToEngineInputs(baseInputs, { ...target, retirementAge: Math.round(retAge) }, {});
+        inputs.retirementAge = Math.round(retAge);
         let result;
         try {
             result = simulator.simulateRetirement(inputs, false);
@@ -298,8 +302,8 @@ export async function solveForRetirementAge(simulator, baseInputs, target, optio
             return false;
         }
         const ytr = Math.max(1, Math.round(retAge) - currentAge);
-        const score = scoreScenario(result, target, inflationRate, ytr, swr);
-        return score.passesGoal;
+        const evalResult = evaluateEngineGoal(result, target, inputs, { yearsToRetirement: ytr, swr });
+        return evalResult.passesGoal;
     };
 
     const solved = await bisectionSolve({

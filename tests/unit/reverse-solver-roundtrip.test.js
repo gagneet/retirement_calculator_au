@@ -16,10 +16,21 @@ import {
     scoreScenario,
     bisectionSolve,
 } from '../../src/js/reverse-solver.js';
+import { applyTargetToEngineInputs, evaluateEngineGoal } from '../../src/js/reverse-success-predicate.js';
 
 // ---------------------------------------------------------------------------
 // Shared test fixtures
 // ---------------------------------------------------------------------------
+
+// The simulator uses stochasticRate() (Math.random) even in deterministic mode,
+// which makes bisection unreliable. Pin random to the median so rates equal their
+// central values and results are reproducible across test runs.
+beforeAll(() => {
+    jest.spyOn(Math, 'random').mockReturnValue(0.5);
+});
+afterAll(() => {
+    jest.restoreAllMocks();
+});
 
 const simulator = new RetirementSimulator(ENHANCED_CONFIG);
 
@@ -77,9 +88,10 @@ const BASE_INPUTS = {
 // Helper: check if a set of inputs meets the target via simulateRetirement
 function checkPassesTarget(inputs, target) {
     const SWR = 0.04;
-    const inflationRate = inputs.inflation || 0.026;
-    const ytr = Math.max(1, (inputs.retirementAge || 67) - (inputs.yourCurrentAge || 45));
-    const result = simulator.simulateRetirement(inputs, false);
+    const engineInputs = applyTargetToEngineInputs(inputs, target, {});
+    const inflationRate = engineInputs.inflation || 0.026;
+    const ytr = Math.max(1, (engineInputs.retirementAge || 67) - (engineInputs.yourCurrentAge || 45));
+    const result = simulator.simulateRetirement(engineInputs, false);
     const score = scoreScenario(result, target, inflationRate, ytr, SWR);
     return { passes: score.passesGoal, score, result };
 }
@@ -100,26 +112,21 @@ describe('Round-trip: solveForExtraAnnualSuper', () => {
         expect(typeof passes).toBe('boolean');
     });
 
-    test('applying solved extra super makes the simulation pass target within 10%', async () => {
+    test('applying solved extra super makes engine predicate pass', async () => {
         const result = await solveForExtraAnnualSuper(simulator, BASE_INPUTS, TARGET);
 
         expect(result.feasible).toBe(true);
 
-        const solvedInputs = {
+        const solvedInputs = applyTargetToEngineInputs({
             ...BASE_INPUTS,
             yourAdditionalSuperContribution: result.solved,
-        };
+        }, TARGET, {});
 
-        const SWR = 0.04;
-        const inflationRate = BASE_INPUTS.inflation;
-        const ytr = Math.max(1, BASE_INPUTS.retirementAge - BASE_INPUTS.yourCurrentAge);
         const simResult = simulator.simulateRetirement(solvedInputs, false);
-        const score = scoreScenario(simResult, TARGET, inflationRate, ytr, SWR);
-
-        const tolerance = TARGET.targetAnnualIncomeToday * 0.10;
-        expect(score.sustainableIncomeToday).toBeGreaterThanOrEqual(
-            TARGET.targetAnnualIncomeToday - tolerance
-        );
+        const evalResult = evaluateEngineGoal(simResult, TARGET, solvedInputs, {
+            yearsToRetirement: Math.max(1, solvedInputs.retirementAge - solvedInputs.yourCurrentAge),
+        });
+        expect(evalResult.passesGoal).toBe(true);
     });
 });
 
@@ -134,27 +141,22 @@ describe('Round-trip: solveForRetirementAge', () => {
         targetAnnualIncomeToday: 60000,
     };
 
-    test('solved retirement age produces outcome >= target within 10%', async () => {
+    test('solved retirement age makes engine predicate pass', async () => {
         const result = await solveForRetirementAge(simulator, BASE_INPUTS, TARGET_HIGH);
 
         expect(result.feasible).toBe(true);
 
         const solvedAge = Math.round(result.solved);
-        const solvedInputs = {
+        const solvedInputs = applyTargetToEngineInputs({
             ...BASE_INPUTS,
             retirementAge: solvedAge,
-        };
+        }, TARGET_HIGH, {});
 
-        const SWR = 0.04;
-        const inflationRate = BASE_INPUTS.inflation;
-        const ytr = Math.max(1, solvedAge - BASE_INPUTS.yourCurrentAge);
         const simResult = simulator.simulateRetirement(solvedInputs, false);
-        const score = scoreScenario(simResult, TARGET_HIGH, inflationRate, ytr, SWR);
-
-        const tolerance = TARGET_HIGH.targetAnnualIncomeToday * 0.10;
-        expect(score.sustainableIncomeToday).toBeGreaterThanOrEqual(
-            TARGET_HIGH.targetAnnualIncomeToday - tolerance
-        );
+        const evalResult = evaluateEngineGoal(simResult, TARGET_HIGH, solvedInputs, {
+            yearsToRetirement: Math.max(1, solvedAge - BASE_INPUTS.yourCurrentAge),
+        });
+        expect(evalResult.passesGoal).toBe(true);
     });
 
     test('solved retirement age is between 55 and 75 when feasible', async () => {
@@ -175,26 +177,21 @@ describe('Round-trip: solveForExtraSavings', () => {
         targetAnnualIncomeToday: 55000,
     };
 
-    test('applying solved monthly savings makes outcome pass target', async () => {
+    test('applying solved monthly savings makes engine predicate pass', async () => {
         const result = await solveForExtraSavings(simulator, BASE_INPUTS, TARGET);
 
         expect(result.feasible).toBe(true);
 
-        const solvedInputs = {
+        const solvedInputs = applyTargetToEngineInputs({
             ...BASE_INPUTS,
             monthlyStockContribution: result.solved,
-        };
+        }, TARGET, {});
 
-        const SWR = 0.04;
-        const inflationRate = BASE_INPUTS.inflation;
-        const ytr = Math.max(1, BASE_INPUTS.retirementAge - BASE_INPUTS.yourCurrentAge);
         const simResult = simulator.simulateRetirement(solvedInputs, false);
-        const score = scoreScenario(simResult, TARGET, inflationRate, ytr, SWR);
-
-        const tolerance = TARGET.targetAnnualIncomeToday * 0.10;
-        expect(score.sustainableIncomeToday).toBeGreaterThanOrEqual(
-            TARGET.targetAnnualIncomeToday - tolerance
-        );
+        const evalResult = evaluateEngineGoal(simResult, TARGET, solvedInputs, {
+            yearsToRetirement: Math.max(1, solvedInputs.retirementAge - solvedInputs.yourCurrentAge),
+        });
+        expect(evalResult.passesGoal).toBe(true);
     });
 });
 
@@ -228,21 +225,23 @@ describe('bisectionSolve with real simulator', () => {
         const ytr = Math.max(1, BASE_INPUTS.retirementAge - BASE_INPUTS.yourCurrentAge);
 
         const passes = async (extraSuper) => {
-            const inputs = { ...BASE_INPUTS, yourAdditionalSuperContribution: extraSuper };
+            const inputs = applyTargetToEngineInputs({
+                ...BASE_INPUTS,
+                yourAdditionalSuperContribution: extraSuper,
+            }, { targetAnnualIncomeToday: TARGET_INCOME }, {});
             let result;
             try {
                 result = simulator.simulateRetirement(inputs, false);
             } catch {
                 return false;
             }
-            const score = scoreScenario(
+            const evalResult = evaluateEngineGoal(
                 result,
                 { targetAnnualIncomeToday: TARGET_INCOME },
-                inflationRate,
-                ytr,
-                SWR
+                inputs,
+                { yearsToRetirement: ytr }
             );
-            return score.passesGoal;
+            return evalResult.passesGoal;
         };
 
         const solved = await bisectionSolve({

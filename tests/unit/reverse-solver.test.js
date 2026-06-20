@@ -36,11 +36,38 @@ jest.mock('../../src/js/simulator.js', () => {
             const totalFinancialAssets =
                 ((inputs.yourCurrentSuper || 0) + (inputs.currentSavings || 0)) * growthFactor +
                 annualSaving * ((growthFactor - 1) / 0.06);
-            return {
-                finalBalance: totalFinancialAssets * 0.5,
+
+            // Compute a simple depletion age: does the plan last given target spending?
+            const retirementAge = inputs.retirementAge || 67;
+            const currentAge = inputs.yourCurrentAge || 50;
+            const desIncome = inputs.desiredIncome || inputs.asfaComfortable || 73000;
+            const inflation = inputs.inflation || 0.026;
+            const nominalSpend = desIncome * Math.pow(1 + inflation, yearsToRetire);
+            const depletionAge = nominalSpend > 0 && totalFinancialAssets > 0
+                ? retirementAge + Math.floor(totalFinancialAssets / nominalSpend)
+                : retirementAge + 30;
+            const lifespan = inputs.yourLifespan || 90;
+            const lasts = depletionAge >= lifespan || totalFinancialAssets > nominalSpend * 30;
+
+            const finalBalance = lasts
+                ? totalFinancialAssets * 0.3
+                : 0;
+            const yearlyData = [{
+                age: retirementAge,
+                pensionIncome: 0,
+                pension: 0,
+                totalAssets: totalFinancialAssets,
                 totalFinancialAssets,
-                yearlyData: [],
+            }];
+
+            return {
+                finalBalance,
+                totalFinancialAssets,
+                depletionAge: lasts ? null : depletionAge,
+                accumulatedSuperBalance: totalFinancialAssets * 0.7,
+                yearlyData,
                 balances: [],
+                effectiveYourLifespan: lifespan,
             };
         }
     }
@@ -133,27 +160,29 @@ describe('scoreScenario', () => {
     const mockSimResult = {
         finalBalance: 500_000,
         totalFinancialAssets: 1_500_000,
-        yearlyData: [],
+        depletionAge: 85,
+        accumulatedSuperBalance: 1_000_000,
+        effectiveYourLifespan: 90,
+        yearlyData: [{ age: 67, pensionIncome: 0 }],
     };
 
-    test('returns passesGoal:true when sustainable income meets target', () => {
-        // $1.5M * 4% SWR = $60k/year
-        // Deflated 20 years at 2.6%: $60k / (1.026^20) ≈ $36.4k today's dollars
-        const target = { targetAnnualIncomeToday: 30000 };
+    test('returns passesGoal:true when plan lasts to lifespan', () => {
+        // depletionAge (85) >= default lifespan (90) is false, but finalBalance > 0
+        // and target income doesn't drive depletion in engine predicate
+        const target = { targetAnnualIncomeToday: 30000, lifespan: 85 };
         const score = scoreScenario(mockSimResult, target, 0.026, 20, 0.04);
         expect(score.passesGoal).toBe(true);
-        expect(score.passesIncome).toBe(true);
     });
 
-    test('returns passesGoal:false when income is insufficient', () => {
-        const target = { targetAnnualIncomeToday: 500000 };
-        const score = scoreScenario(mockSimResult, target, 0.026, 20, 0.04);
+    test('returns passesGoal:false when plan depletes early', () => {
+        const target = { targetAnnualIncomeToday: 500000, lifespan: 90 };
+        const score = scoreScenario({ ...mockSimResult, depletionAge: 68, finalBalance: 0 }, target, 0.026, 20, 0.04);
         expect(score.passesGoal).toBe(false);
     });
 
-    test('returns correct sustainable income today', () => {
+    test('returns sustainableIncomeToday as SWR reference', () => {
         // $2M assets, 4% SWR, no inflation adjustment (0 years)
-        const simResult = { finalBalance: 1_000_000, totalFinancialAssets: 2_000_000 };
+        const simResult = { finalBalance: 1_000_000, totalFinancialAssets: 2_000_000, yearlyData: [{ age: 65, pensionIncome: 0 }] };
         const target = { targetAnnualIncomeToday: 80000 };
         const score = scoreScenario(simResult, target, 0.026, 0, 0.04);
         expect(score.sustainableIncomeToday).toBeCloseTo(80000, -2);

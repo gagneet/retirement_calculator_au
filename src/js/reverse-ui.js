@@ -9,6 +9,8 @@
  */
 
 import '../css/redesign.css';
+import '../css/site-chrome.css';
+import './site-chrome.js';
 import { ReversePlanner } from './reverse-planner.js';
 import {
     importForwardScenario,
@@ -546,7 +548,16 @@ export class ReverseUI {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const { target, currentPath, top3Actions, rankedLevers, inputs } = this.lastResult;
-        const ytr = currentPath.yearsToRetirement;
+        // Defensive guards matching renderResults() — prevents "NaN dollars" / "Age undefined"
+        // in the PDF if currentPath arrives partially-filled (root cause fixed in reverse-planner.js
+        // but guard here for defence-in-depth).
+        const ytr = Number.isFinite(currentPath.yearsToRetirement) && currentPath.yearsToRetirement >= 1
+            ? Math.round(currentPath.yearsToRetirement)
+            : Math.max(1, (target.retirementAge || 67) - (currentPath.currentAge || target.currentAge || 50));
+        const pdfInflationRate = currentPath.inflationRate || 0.026;
+        const pdfRetirementAge = target.retirementAge ?? currentPath.retirementAge ?? 67;
+        const pdfLifespan = target.lifespan ?? currentPath.lifespan ?? 90;
+        const pdfTotalAssetsNominal = currentPath.totalAssetsNominal || 0;
         const retireYear = new Date().getFullYear() + ytr;
         const PAGE_W = 210;
         const MARGIN = 14;
@@ -587,8 +598,8 @@ export class ReverseUI {
         y += 7;
         const goalItems = [
             `Target income: $${Math.round(target.targetAnnualIncomeToday).toLocaleString('en-AU')}/yr (today's $)`,
-            `≈ $${Math.round(target.targetAnnualIncomeToday * Math.pow(1 + currentPath.inflationRate, ytr)).toLocaleString('en-AU')}/yr in ${retireYear} dollars`,
-            `Retire at age ${target.retirementAge} · Plan to age ${target.lifespan}`,
+            `≈ $${Math.round(target.targetAnnualIncomeToday * Math.pow(1 + pdfInflationRate, ytr)).toLocaleString('en-AU')}/yr in ${retireYear} dollars`,
+            `Retire at age ${pdfRetirementAge} · Plan to age ${pdfLifespan}`,
         ];
         goalItems.forEach(item => {
             t(`• ${item}`, 10, 'normal', '#334155');
@@ -599,11 +610,11 @@ export class ReverseUI {
         // Current path
         t('Your current projected path', 13, 'bold', '#0f172a');
         y += 7;
-        const nominalIncome = currentPath.sustainableIncomeToday * Math.pow(1 + currentPath.inflationRate, ytr);
+        const nominalIncome = currentPath.sustainableIncomeToday * Math.pow(1 + pdfInflationRate, ytr);
         const pathItems = [
             `Sustainable income: $${Math.round(currentPath.sustainableIncomeToday).toLocaleString('en-AU')}/yr (today's $)`,
             `≈ $${Math.round(nominalIncome).toLocaleString('en-AU')}/yr in ${retireYear} dollars`,
-            `Total assets at retirement: $${Math.round(currentPath.totalAssetsNominal).toLocaleString('en-AU')} (nominal)`,
+            `Total assets at retirement: $${Math.round(pdfTotalAssetsNominal).toLocaleString('en-AU')} (nominal)`,
             meetsGoal ? 'Status: On track' : `Status: Shortfall of $${Math.round(currentPath.incomeGap).toLocaleString('en-AU')}/yr`,
         ];
         pathItems.forEach(item => {
@@ -661,7 +672,7 @@ export class ReverseUI {
         t('Assumptions used', 13, 'bold', '#0f172a');
         y += 7;
         const assumptions = [
-            `Inflation rate: ${(currentPath.inflationRate * 100).toFixed(1)}%`,
+            `Inflation rate: ${(pdfInflationRate * 100).toFixed(1)}%`,
             `Years to retirement: ${ytr}`,
             `Safe withdrawal rate: ${((currentPath.swr || 0.04) * 100).toFixed(1)}%`,
             `Household: ${target.householdType === 'couple' ? 'Couple' : 'Single'}`,
@@ -714,23 +725,32 @@ export class ReverseUI {
         safeText('rp-headline', plainEnglish.headline);
 
         // Goal summary (today's dollars + nominal at retirement)
-        const ytr = currentPath.yearsToRetirement;
-        const nominalTarget = target.targetAnnualIncomeToday *
-            Math.pow(1 + currentPath.inflationRate, ytr);
-        safeText('rp-goal-today', fmt(target.targetAnnualIncomeToday) + '/year');
-        safeText('rp-goal-nominal', `≈ ${fmt(nominalTarget)}/year in ${new Date().getFullYear() + ytr} dollars`);
-        safeText('rp-goal-retire-age', `Age ${target.retirementAge}`);
-        safeText('rp-goal-lifespan', `Age ${target.lifespan}`);
+        const ytr = Number.isFinite(currentPath.yearsToRetirement) && currentPath.yearsToRetirement >= 1
+            ? Math.round(currentPath.yearsToRetirement)
+            : Math.max(1, (target.retirementAge || 67) - (currentPath.currentAge || target.currentAge || 50));
+        const inflationRate = currentPath.inflationRate || 0.026;
+        const retirementAge = target.retirementAge ?? currentPath.retirementAge ?? 67;
+        const lifespan = target.lifespan ?? currentPath.lifespan ?? 90;
+        const retirementYear = new Date().getFullYear() + ytr;
 
-        // Current path — show both today's dollars and nominal at retirement
+        const nominalTarget = target.targetAnnualIncomeToday *
+            Math.pow(1 + inflationRate, ytr);
+        safeText('rp-goal-today', fmt(target.targetAnnualIncomeToday) + '/year');
+        safeText('rp-goal-nominal', `≈ ${fmt(nominalTarget)}/year in ${retirementYear} dollars`);
+        safeText('rp-goal-retire-age', `Age ${retirementAge}`);
+        safeText('rp-goal-lifespan', `Age ${lifespan}`);
+
+        // Current path — both income values are in today's dollars (same base year),
+        // making the goal vs current comparison directly meaningful.
+        // Nominal figures shown as context ("what that means in retirement-year $").
         const nominalIncome = currentPath.sustainableIncomeToday *
-            Math.pow(1 + currentPath.inflationRate, ytr);
-        const nominalAssets = currentPath.totalAssetsNominal;
+            Math.pow(1 + inflationRate, ytr);
+        const nominalAssets = currentPath.totalAssetsNominal || 0;
         const todayAssets = nominalAssets > 0
-            ? nominalAssets / Math.pow(1 + currentPath.inflationRate, ytr)
+            ? nominalAssets / Math.pow(1 + inflationRate, ytr)
             : 0;
         safeText('rp-current-income', fmt(currentPath.sustainableIncomeToday) + '/year');
-        safeText('rp-current-nominal', `≈ ${fmt(nominalIncome)}/year in ${new Date().getFullYear() + ytr} dollars`);
+        safeText('rp-current-nominal', `≈ ${fmt(nominalIncome)}/year in ${retirementYear} dollars`);
         safeText('rp-current-assets', `${fmt(nominalAssets)} nominal (${fmt(todayAssets)} today's $)`);
         const statusEl = el('rp-goal-status');
         if (statusEl) {
