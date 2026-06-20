@@ -4,6 +4,33 @@ A comprehensive, AI-powered retirement planning calculator specifically designed
 
 ## Recent Updates (2026)
 
+### Version 2.2.0 - Reverse Planner Deep Analysis & Review Hardening (June 2026)
+- **Reverse Retirement Planner**: New goal-seeking planner at `reverse.html` that answers "what needs to change today?". Uses bisection-based solvers to find the minimum adjustment required across 11 levers (salary, super contributions, retirement age, super balance, savings, mortgage, rent, spending, estate, home value, investment balance).
+- **Deep Analysis Panels**: Four "what-if?" analysis cards shown after the main calculation:
+  - *When can I retire*: Required salary at each retirement age (55–75)
+  - *What you need today*: Required home value and investment balance
+  - *Salary reduction tolerance*: How much salary can drop while still meeting the goal
+  - *Optimal overseas move age*: Earliest age at which overseas retirement works
+- **Forward Projection Bridge**: `forward-projection-bridge.js` reads `rc_forward_projection_v1` from localStorage, enabling seamless data flow from the Advanced Calculator into the Reverse Planner.
+- **PDF Export**: jsPDF-based report generation with autoTable comparison table, ranked action plan, and full disclaimer.
+- **Simulator Fixes**: Stochastic inflation now uses per-year per-run rates instead of fixed compounding; franking credits have NaN protection for missing inputs.
+- **Suggestions Button**: Disabled while results are fresh, re-enabled on input change; pink background with long-calculation warning.
+- **Validation**: Jest test suite expanded to 9 test files covering solvers (359 tests), round-trips (263), gap analysis (295), baseline adapter (382), scenarios (324), projection bridge (183), parity (119), integration (284), and bridge integration (330).
+
+### Version 2.1.1 - Reverse Retirement Planner & Deep Analysis (June 2026)
+
+- **Reverse Retirement Planner**: New goal-seeking planner at `reverse.html` that answers "what needs to change today?". Uses bisection-based solvers to find the minimum adjustment required across 11 levers (salary, super contributions, retirement age, super balance, savings, mortgage, rent, spending, estate, home value, investment balance).
+- **Deep Analysis Panels**: Four "what-if?" analysis cards shown after the main calculation:
+  - *When can I retire*: Required salary at each retirement age (55–75)
+  - *What you need today*: Required home value and investment balance
+  - *Salary reduction tolerance*: How much salary can drop while still meeting the goal
+  - *Optimal overseas move age*: Earliest age at which overseas retirement works
+- **Forward Projection Bridge**: `forward-projection-bridge.js` reads `rc_forward_projection_v1` from localStorage, enabling seamless data flow from the Advanced Calculator into the Reverse Planner.
+- **PDF Export**: jsPDF-based report generation with autoTable comparison table, ranked action plan, and full disclaimer.
+- **Simulator Fixes**: Stochastic inflation now uses per-year per-run rates instead of fixed compounding; franking credits have NaN protection for missing inputs.
+- **Suggestions Button**: Disabled while results are fresh, re-enabled on input change; pink background with long-calculation warning.
+- **Validation**: Jest test suite expanded to 9 test files covering solvers (359 tests), round-trips (263), gap analysis (295), baseline adapter (382), scenarios (324), projection bridge (183), parity (119), integration (284), and bridge integration (330).
+
 ### Version 2.1.0 - Final QA, Policy and Export Hardening (June 2026)
 - **Manual journey hardening**: Rechecked single renter, single homeowner, couple homeowner, zero-income partner, salary package, SG cap, SG override, future property, windfall, and export flows.
 - **Terminology alignment**: Standardised customer-facing terms around Core Projection, Suggestions & Action Plan, Future Home or Property Plan, Expected Future Windfall / Inheritance, Salary excluding super, Total package including super, Calculated cash salary, Employer SG override, Concessional cap remaining, and Division 293 warning.
@@ -113,15 +140,26 @@ retirement-calculator/
 │   │   ├── app.js                      # Main application logic
 │   │   ├── simulator.js                # Core financial simulation engine
 │   │   ├── decision-support-engine.js  # AI decision support system
+│   │   ├── reverse-planner.js          # Reverse planner orchestration
+│   │   ├── reverse-solver.js           # Bisection goal-seeking solvers
+│   │   ├── reverse-ui.js               # Reverse planner UI (webpack entrypoint)
+│   │   ├── reverse-gap-analysis.js     # Gap comparison tables
+│   │   ├── reverse-baseline-adapter.js # Forward calculator data import
+│   │   ├── reverse-scenarios.js        # Scenario comparison cards
+│   │   ├── reverse-report.js           # PDF/plain-English report generators
+│   │   ├── forward-projection-bridge.js# Forward projection data bridge
+│   │   ├── reverse-deep-analysis.js    # "What-if?" deep-dive analysis
 │   │   └── ...                         # Other feature modules
 │   ├── css/
 │   │   └── styles.css                  # Main stylesheet
 │   ├── assets/                         # Images, fonts, and other static assets
 │   ├── advanced.html                   # Main calculator HTML template
+│   ├── reverse.html                    # Reverse planner page
 │   ├── index.html                      # Landing page HTML template
 │   └── ...                             # Other HTML page templates
 ├── dist/                               # Build output directory (generated)
 │   ├── advanced.html                   # Processed calculator page
+│   ├── reverse.html                    # Processed reverse planner page
 │   ├── index.html                      # Processed landing page
 │   ├── main.[contenthash].js           # Bundled JavaScript
 │   └── ...                             # Other generated assets
@@ -637,6 +675,31 @@ To contribute to this project:
 - Simple scenario comparison
 - Property timing analysis
 - Asset allocation suggestions
+
+### **🆕 `reverse-planner.js` & `reverse-solver.js`** (Reverse Retirement Planner)
+- Goal-seeking bisection solvers answering "what needs to change today?"
+- 11 single-lever solvers: extra super, salary, retirement age, super balance, savings, mortgage, rent, spending, estate, home value, investment balance
+- `scoreScenario()` evaluates deterministic simulation results against retirement targets
+- `yearsToRetirement()` computes working years remaining
+- Integrated with forward calculator via localStorage bridge
+
+### **🆕 `forward-projection-bridge.js`**
+- Reads `rc_forward_projection_v1` from localStorage (saved by advanced-v2.js or app.js)
+- Extracts current path summary for the reverse planner
+- Guards against empty/malformed projection data
+
+### **🆕 `reverse-deep-analysis.js`**
+- Four "what-if?" analysis functions powered by bisection:
+  - `calculateRetirementAgeSalaryCurve`: Required salary for each retirement age (55–75)
+  - `calculateRequiredCurrentValues`: Required home value and investment balance
+  - `calculateSalaryReductionTolerance`: Max salary reduction while meeting goal
+  - `calculateOptimalOverseasAge`: Earliest age for overseas retirement
+
+### **`reverse-ui.js`** (Webpack entrypoint `reverseV1`)
+- Manages reverse planner page lifecycle and data import
+- Renders comparison tables, problem flags, action plan, scenario cards
+- Error isolation via `_renderSafe()` — single panel failure never blanks results
+- Coordinates PDF export and deep analysis rendering
 
 ## 📜 **License**
 

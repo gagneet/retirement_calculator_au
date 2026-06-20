@@ -173,7 +173,7 @@ function getSimulator() {
     return new RetirementSimulator(ENHANCED_CONFIG);
 }
 
-function yearsToRetirement(baseInputs) {
+export function yearsToRetirement(baseInputs) {
     const currentAge = baseInputs.yourCurrentAge || 0;
     const retAge = baseInputs.retirementAge || 65;
     return Math.max(1, retAge - currentAge);
@@ -503,6 +503,76 @@ export async function solveForNetRent(simulator, baseInputs, target, options = {
         description: feasible
             ? `Increase net weekly rent to $${Math.round(solved).toLocaleString()}/week (extra $${Math.round(extraRent).toLocaleString()}/week)`
             : 'Goal cannot be achieved by rent optimisation alone within modelled range',
+    };
+}
+
+/**
+ * Solve for required current home value.
+ * Key varied: homeValue
+ */
+export async function solveForCurrentHomeValue(simulator, baseInputs, target, options = {}) {
+    const inflationRate = baseInputs.inflation ?? DEFAULT_INFLATION;
+    const swr = options.swr ?? DEFAULT_SWR;
+    const currentValue = baseInputs.homeValue || 0;
+
+    const passes = makePasses(simulator, baseInputs, target, 'homeValue', inflationRate, swr);
+
+    const solved = await bisectionSolve({
+        lo: currentValue,
+        hi: Math.max(currentValue + 1, 5000000),
+        tol: 10000,
+        passes
+    });
+
+    const feasible = solved !== null;
+    const extraNeeded = feasible ? Math.max(0, solved - currentValue) : null;
+
+    return {
+        lever: 'homeValue',
+        label: 'Increase home value',
+        feasible,
+        solved,
+        extraNeeded,
+        unit: 'AUD',
+        value: extraNeeded,
+        description: feasible
+            ? `Home needs to be worth $${Math.round(solved).toLocaleString()} (increase of $${Math.round(extraNeeded).toLocaleString()})`
+            : 'Goal cannot be achieved by home value increase within modelled range ($5M cap)',
+    };
+}
+
+/**
+ * Solve for required current investment (savings) balance.
+ * Key varied: currentSavings
+ */
+export async function solveForCurrentInvestmentBalance(simulator, baseInputs, target, options = {}) {
+    const inflationRate = baseInputs.inflation ?? DEFAULT_INFLATION;
+    const swr = options.swr ?? DEFAULT_SWR;
+    const currentSavings = baseInputs.currentSavings || 0;
+
+    const passes = makePasses(simulator, baseInputs, target, 'currentSavings', inflationRate, swr);
+
+    const solved = await bisectionSolve({
+        lo: currentSavings,
+        hi: Math.max(currentSavings + 1, 5000000),
+        tol: 10000,
+        passes
+    });
+
+    const feasible = solved !== null;
+    const extraNeeded = feasible ? Math.max(0, solved - currentSavings) : null;
+
+    return {
+        lever: 'investmentBalance',
+        label: 'Increase investment (savings) balance',
+        feasible,
+        solved,
+        extraNeeded,
+        unit: 'AUD',
+        value: extraNeeded,
+        description: feasible
+            ? `Investment balance needs to be $${Math.round(solved).toLocaleString()} (increase of $${Math.round(extraNeeded).toLocaleString()})`
+            : 'Goal cannot be achieved by investment balance increase within modelled range ($5M cap)',
     };
 }
 
