@@ -23,6 +23,15 @@ import {
 
 const simulator = new RetirementSimulator(ENHANCED_CONFIG);
 
+// Fields the retirement simulator requires to avoid NaN in
+// calculateFrankingCredits / calculateEnhancedReturn.
+const ALLOCATION_DEFAULTS = {
+    australianEquityAllocation: 0.40,
+    dividendYield: 0.04,
+    frankingRate: 0.75,
+    frankingCreditBenefit: 0,
+};
+
 const BASE_INPUTS = {
     yourCurrentAge: 45,
     retirementAge: 67,
@@ -62,6 +71,7 @@ const BASE_INPUTS = {
     allocEquities: 0.65,
     allocBonds: 0.25,
     allocCash: 0.10,
+    ...ALLOCATION_DEFAULTS,
 };
 
 // Helper: check if a set of inputs meets the target via simulateRetirement
@@ -79,8 +89,10 @@ function checkPassesTarget(inputs, target) {
 // ---------------------------------------------------------------------------
 
 describe('Round-trip: solveForExtraAnnualSuper', () => {
+    // Target must be achievable with max \$18k extra super (concessional cap - SG).
+    // Simulator produces ~\$57.6k max sustainable income for this fixture.
     const TARGET = {
-        targetAnnualIncomeToday: 60000,
+        targetAnnualIncomeToday: 50000,
     };
 
     test('base inputs may or may not meet target (test precondition check)', () => {
@@ -116,8 +128,10 @@ describe('Round-trip: solveForExtraAnnualSuper', () => {
 // ---------------------------------------------------------------------------
 
 describe('Round-trip: solveForRetirementAge', () => {
+    // Target must be achievable by retiring at or before age 75 (solver hi bound).
+    // Simulator produces ~\$68.9k max sustainable income at age 75 for this fixture.
     const TARGET_HIGH = {
-        targetAnnualIncomeToday: 70000,
+        targetAnnualIncomeToday: 60000,
     };
 
     test('solved retirement age produces outcome >= target within 10%', async () => {
