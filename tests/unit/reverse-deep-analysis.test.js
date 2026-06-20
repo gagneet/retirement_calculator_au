@@ -209,18 +209,18 @@ describe('calculateOptimalOverseasAge', () => {
         });
     });
 
-    test('starts from max(55, currentAge + 1)', async () => {
-        const target = { targetAnnualIncomeToday: 50000 };
+    test('starts from max(currentAge + 1, retirementAge - 20)', async () => {
+        const target = { targetAnnualIncomeToday: 50000, retirementAge: 65 };
         const result = await calculateOptimalOverseasAge(simulator, baseInputs, target);
-        const expectedStart = Math.max(55, baseInputs.yourCurrentAge + 1);
+        const expectedStart = Math.max(baseInputs.yourCurrentAge + 1, 65 - 20);
         expect(result.analysis[0].moveAge).toBe(expectedStart);
     });
 
-    test('analysis ends at age 75', async () => {
-        const target = { targetAnnualIncomeToday: 50000 };
+    test('analysis ends at max(lifespan, retirementAge + 20)', async () => {
+        const target = { targetAnnualIncomeToday: 50000, retirementAge: 65, lifespan: 90 };
         const result = await calculateOptimalOverseasAge(simulator, baseInputs, target);
         const last = result.analysis[result.analysis.length - 1];
-        expect(last.moveAge).toBe(75);
+        expect(last.moveAge).toBe(90);
     });
 
     test('applies costFactor to target income', async () => {

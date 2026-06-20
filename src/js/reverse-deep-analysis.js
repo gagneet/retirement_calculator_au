@@ -7,39 +7,34 @@
  *  3. How much can I reduce my salary and still meet my goal?
  *  4. What is the earliest age at which I could move overseas?
  *
- * Dependencies: bisectionSolve, scoreScenario, yearsToRetirement
- * from reverse-solver.js
+ * Dependencies: bisectionSolve from reverse-solver.js
+ * and evaluateEngineGoal from reverse-success-predicate.js
  */
 
 import {
     bisectionSolve,
-    scoreScenario,
     yearsToRetirement,
     solveForCurrentHomeValue,
     solveForCurrentInvestmentBalance,
 } from './reverse-solver.js';
+import { evaluateEngineGoal, applyTargetToEngineInputs } from './reverse-success-predicate.js';
 
 const DEFAULT_INFLATION = 0.026;
 const DEFAULT_SWR = 0.04;
 
 /**
  * Helper: build a passes() function for bisection over a single input key.
- * Replicates the private makePasses() from reverse-solver.js so that
- * callers in THIS module do not need to reach into solver internals.
- *
- * yearsToRetirement is evaluated once at closure-creation time because
- * the override key does not affect retirementAge.  Functions that DO
- * vary retirementAge (age-salary curve, overseas age) define their own
- * passes() with an inline ytr computed per iteration.
+ * Uses applyTargetToEngineInputs() and evaluateEngineGoal() instead of SWR.
  */
 function _makePasses(simulator, baseInputs, target, overrideKey, inflationRate, swr) {
     const ytr = yearsToRetirement(baseInputs);
     return async (value) => {
-        const inputs = { ...baseInputs, [overrideKey]: value };
+        const inputs = applyTargetToEngineInputs(baseInputs, target, {});
+        inputs[overrideKey] = value;
         try {
             const result = simulator.simulateRetirement(inputs, false);
-            const score = scoreScenario(result, target, inflationRate, ytr, swr);
-            return score.passesGoal;
+            const evalResult = evaluateEngineGoal(result, target, inputs, { yearsToRetirement: ytr, swr });
+            return evalResult.passesGoal;
         } catch {
             return false;
         }
@@ -71,16 +66,14 @@ export async function calculateRetirementAgeSalaryCurve(simulator, baseInputs, t
 
     for (let age = startAge; age <= 75; age += 1) {
         const passes = async (salary) => {
-            const inputs = {
-                ...baseInputs,
-                retirementAge: Math.round(age),
-                yourSalary: salary,
-            };
+            const inputs = applyTargetToEngineInputs(baseInputs, target, {});
+            inputs.retirementAge = Math.round(age);
+            inputs.yourSalary = salary;
             try {
                 const result = simulator.simulateRetirement(inputs, false);
                 const ytr = Math.max(1, Math.round(age) - currentAge);
-                const score = scoreScenario(result, target, inflationRate, ytr, swr);
-                return score.passesGoal;
+                const evalResult = evaluateEngineGoal(result, target, inputs, { yearsToRetirement: ytr, swr });
+                return evalResult.passesGoal;
             } catch {
                 return false;
             }
@@ -166,6 +159,20 @@ export async function calculateSalaryReductionTolerance(simulator, baseInputs, t
         };
     }
 
+    // Check if already failing at current salary
+    const currentPasses = _makePasses(simulator, baseInputs, target, 'yourSalary', inflationRate, swr);
+    if (!(await currentPasses(currentSalary))) {
+        return {
+            currentSalary,
+            minRequiredSalary: null,
+            feasible: false,
+            maxReduction: null,
+            reductionPercent: null,
+            status: 'not_applicable',
+            explanation: 'Salary reduction tolerance cannot be calculated because the current salary does not meet the target.',
+        };
+    }
+
     const passes = _makePasses(simulator, baseInputs, target, 'yourSalary', inflationRate, swr);
 
     const minSalary = await bisectionSolve({
@@ -193,50 +200,59 @@ export async function calculateSalaryReductionTolerance(simulator, baseInputs, t
 
 /**
  * Find the earliest age at which moving overseas (with a lower cost of
- * living) makes the retirement goal achievable at the current salary.
+ * living) makes the retirement goal achievable at the current salary,
+ * WITHOUT changing the retirement age (they remain separate).
  *
- * Uses a cost-of-living factor (default 0.70 = 70 % of Australian costs).
- * This is a simplified model — a production version would read per-country
- * indices from country-profiles.js.
+ * Uses country profiles from country-profiles.js for cost-of-living data.
+ * Falls back to a simplified cost factor when no profile is available.
  *
- * NOTE: yearsToRetirement cannot be used here because moveAge (which
- * becomes retirementAge) changes per iteration; ytr is inline.
+ * IMPORTANT: retirementAge is fixed at the user's chosen value.
+ * Only overseasStartAge varies per iteration.  The two are never conflated.
  *
  * @param {RetirementSimulator} simulator
  * @param {object} baseInputs
  * @param {object} target
  * @param {number} [costFactor=0.70]  Overseas cost multiplier (1 = same as AU)
+ * @param {object} [countryProfile=null]  Country profile from country-profiles.js
  * @returns {Promise<{optimalAge: number|null, analysis: Array, feasible: boolean}>}
  */
-export async function calculateOptimalOverseasAge(simulator, baseInputs, target, costFactor = 0.70) {
+export async function calculateOptimalOverseasAge(simulator, baseInputs, target, costFactor = 0.70, countryProfile = null) {
     const inflationRate = baseInputs.inflation ?? DEFAULT_INFLATION;
     const swr = target.swr ?? DEFAULT_SWR;
     const currentAge = baseInputs.yourCurrentAge || 50;
     const currentSalary = baseInputs.yourSalary || 0;
+    const retirementAge = target.retirementAge || baseInputs.retirementAge || 65;
     const targetIncome = target.targetAnnualIncomeToday || 80000;
-    const overseasTargetIncome = targetIncome * costFactor;
+
+    // Use country profile cost factor if available, else the passed factor
+    const effectiveCostFactor = countryProfile?.costFactor ?? costFactor;
+    const overseasTargetIncome = targetIncome * effectiveCostFactor;
 
     const overseasTarget = {
         ...target,
         targetAnnualIncomeToday: overseasTargetIncome,
+        retirementAge,
     };
 
-    const startAge = Math.max(55, currentAge + 1);
+    // Iterate over overseas move ages, NOT retirement ages.
+    // Start from currentAge + 1, go up to max(lifespan, retirementAge)
+    const maxAge = Math.max(target.lifespan || 90, retirementAge + 20);
+    const startAge = Math.max(currentAge + 1, retirementAge - 20);
     const results = [];
 
-    for (let age = startAge; age <= 75; age += 1) {
-        const ytr = Math.max(1, age - currentAge);
+    for (let age = startAge; age <= maxAge; age += 1) {
+        const ytr = Math.max(1, retirementAge - currentAge);
 
         const passes = async (salary) => {
-            const inputs = {
-                ...baseInputs,
-                retirementAge: Math.round(age),
-                yourSalary: salary,
-            };
+            const inputs = applyTargetToEngineInputs(baseInputs, { ...overseasTarget, targetAnnualIncomeToday: overseasTargetIncome }, {});
+            inputs.yourSalary = salary;
+            inputs.goingOverseas = true;
+            inputs.overseasStartAge = age;
+            inputs.retirementAge = retirementAge;
             try {
                 const result = simulator.simulateRetirement(inputs, false);
-                const score = scoreScenario(result, overseasTarget, inflationRate, ytr, swr);
-                return score.passesGoal;
+                const evalResult = evaluateEngineGoal(result, overseasTarget, inputs, { yearsToRetirement: ytr, swr });
+                return evalResult.passesGoal;
             } catch {
                 return false;
             }
@@ -255,6 +271,7 @@ export async function calculateOptimalOverseasAge(simulator, baseInputs, target,
 
         results.push({
             moveAge: age,
+            retirementAge,
             requiredSalary: solved,
             feasible: solved !== null,
             worksWithCurrentSalary,
@@ -268,6 +285,7 @@ export async function calculateOptimalOverseasAge(simulator, baseInputs, target,
 
     return {
         optimalAge: optimal ? optimal.moveAge : null,
+        optimalRetirementAge: retirementAge,
         feasible: results.some(r => r.feasible),
         worksWithCurrentSalary: results.some(r => r.worksWithCurrentSalary),
         analysis: results,

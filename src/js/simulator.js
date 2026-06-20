@@ -1343,11 +1343,14 @@ export class RetirementSimulator {
         // is used to re-centre those per-year draws — see COP-4 fix in
         // calculateEnhancedPropertyReturn().
 
-        // Calculate total simulation years based on the maximum lifespan from current age
-        const maxYearsFromNow = Math.max(
-            effectiveYourLifespan - inputs.yourCurrentAge,
-            effectivePartnerLifespan - inputs.partnerCurrentAge
-        );
+        // Calculate total simulation years based on the maximum lifespan from current age.
+        // Guard against undefined partnerCurrentAge in single-calculation mode.
+        const maxYearsFromNow = inputs.isSingleCalculation
+            ? effectiveYourLifespan - inputs.yourCurrentAge
+            : Math.max(
+                effectiveYourLifespan - inputs.yourCurrentAge,
+                effectivePartnerLifespan - (inputs.partnerCurrentAge || 0)
+            );
         const yearsInRetirement = Math.max(0, maxYearsFromNow - yearsToRetirement + 1);
 
         // Use scenario-adjusted inputs for all financial calculations
@@ -2120,7 +2123,7 @@ export class RetirementSimulator {
             //
             // Deterministic mode: fixed compound formula via projectHealthcareCosts().
             let healthcareCost;
-            healthcareCost = inputs.currentHealthcareCosts
+            healthcareCost = (inputs.currentHealthcareCosts || 0)
                 * cumulativeInflationFactor
                 * cumulativeHcUpliftFactor;
             // Advance the uplift factor for next year.
@@ -2379,7 +2382,9 @@ export class RetirementSimulator {
             let pensionIncome = 0;
             let pensionDetails = null;
 
-            if (!pensionEligibleByResidency) {
+            if (inputs.suppressAgePension) {
+                pensionIncome = 0;
+            } else if (!pensionEligibleByResidency) {
                 // Not enough Australian residence years — no Age Pension
                 pensionIncome = 0;
             } else if (isCouple) {

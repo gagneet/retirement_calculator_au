@@ -14,6 +14,7 @@ import {
     scoreScenario,
     estimateRequiredCapital,
 } from './reverse-solver.js';
+import { evaluateEngineGoal, applyTargetToEngineInputs } from './reverse-success-predicate.js';
 import {
     buildHouseholdLevers,
     buildOverseasComparison,
@@ -140,11 +141,12 @@ export class ReversePlanner {
 
         const score = scoreScenario(simResult, target, inflationRate, ytr, swr);
 
-        // Estimate age pension using ENHANCED_CONFIG rates
-        const agePensionNominal = target.includeAgePension
-            ? (baseInputs.isCouple
-                ? (ENHANCED_CONFIG.COUPLE_PENSION_MAX || 47070)
-                : (ENHANCED_CONFIG.SINGLE_PENSION_MAX || 31223))
+        // Age pension from engine's retirement row (means-tested, not max constant)
+        const yearlyData = simResult?.yearlyData || [];
+        const retirementRowIndex = yearlyData.findIndex(row => row.age >= baseInputs.retirementAge);
+        const retirementRow = retirementRowIndex >= 0 ? yearlyData[retirementRowIndex] : null;
+        const agePensionNominal = target.includeAgePension !== false
+            ? (retirementRow?.pensionIncome || 0)
             : 0;
 
         const requiredCapital = estimateRequiredCapital(
@@ -265,14 +267,15 @@ export class ReversePlanner {
             currentPath = this.buildCurrentPath(baseInputs, resolvedTarget);
         }
 
-        // 2. Run all lever solvers
+        // 2. Run all lever solvers with engine predicate
         // Use projection.engineInputs as base when available (per spec Phase 9).
-        // Guard: engineInputs must have at minimum the identity fields the solver needs.
         const hasEngineInputs = projection?.engineInputs
             && typeof projection.engineInputs === 'object'
             && Object.keys(projection.engineInputs).length > 0
             && (Number.isFinite(projection.engineInputs.yourCurrentAge) || Number.isFinite(projection.engineInputs.age));
-        const solverBaseInputs = hasEngineInputs ? projection.engineInputs : baseInputs;
+        let solverBaseInputs = hasEngineInputs ? { ...projection.engineInputs } : { ...baseInputs };
+        // Ensure target income flows through via applyTargetToEngineInputs
+        solverBaseInputs = applyTargetToEngineInputs(solverBaseInputs, resolvedTarget, {});
         const solverOptions = { swr: resolvedTarget.swr || DEFAULT_SWR };
         const { rankedLevers } = await this.solver.solveAllLevers(
             solverBaseInputs,
@@ -287,15 +290,18 @@ export class ReversePlanner {
             resolvedTarget.householdType
         );
 
-        // 4. Overseas comparison (optional)
+        // 4. Overseas comparison (optional) — uses engine's means-tested pension
         let overseasComparison = null;
         if (options.includeOverseas !== false) {
-            overseasComparison = buildOverseasComparison(
-                resolvedTarget.targetAnnualIncomeToday,
-                currentPath.agePensionNominal / Math.pow(
+            const pensionToday = currentPath.agePensionNominal > 0
+                ? currentPath.agePensionNominal / Math.pow(
                     1 + currentPath.inflationRate,
                     currentPath.yearsToRetirement
-                ) // deflate pension back to today's dollars
+                )
+                : 0;
+            overseasComparison = buildOverseasComparison(
+                resolvedTarget.targetAnnualIncomeToday,
+                pensionToday
             );
         }
 
