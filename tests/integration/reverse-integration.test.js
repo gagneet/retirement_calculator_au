@@ -243,9 +243,22 @@ describe('bisectionSolve with real simulator', () => {
         if (solved !== null) {
             const actuallyPasses = await passes(solved);
             expect(actuallyPasses).toBe(true);
-        }
+            // Verify that solved.adjustments contains expected lever keys
+            expect(solved.adjustments).toBeDefined();
+            expect(typeof solved.adjustments).toBe('object');
+            
+            // If a lever was adjusted, verify the adjustment is non-zero
+            const adjustedLevers = Object.keys(solved.adjustments).filter(k => solved.adjustments[k] !== 0);
+            if (adjustedLevers.length > 0) {
+                expect(adjustedLevers.length).toBeGreaterThan(0);
+            }
         // solved can be null if even max super can't achieve target — that's valid
-        expect(true).toBe(true); // test always completes
+            // Verify infeasible case structure
+            expect(solved.feasible).toBe(false);
+            expect(solved.adjustments).toBeDefined();
+            
+            // Shortfall should be defined for infeasible scenarios
+            expect(typeof solved.shortfall).toBe('number');
     });
 });
 

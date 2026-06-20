@@ -344,7 +344,7 @@ export class ReverseUI {
         const plainEnglish = generatePlainEnglishSummary(result);
 
         // Headline
-        safeHtml('rp-headline', plainEnglish.headline);
+            if (headline) headline.textContent = data.headline || '';
 
         // Goal summary
         safeText('rp-goal-today', fmt(target.targetAnnualIncomeToday) + '/year');

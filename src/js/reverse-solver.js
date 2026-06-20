@@ -126,9 +126,35 @@ export function scoreScenario(
     const targetIncomeToday = target.targetAnnualIncomeToday || 0;
     const passesIncome = sustainableIncomeToday >= targetIncomeToday;
 
-    const incomeGap = Math.max(0, targetIncomeToday - sustainableIncomeToday);
-    const capitalGap = Math.max(0, estimateRequiredCapital(
-        targetIncomeToday, yearsToRetirement, inflationRate, 0, swr
+        // Age Pension: compute actual amount when user has opted in (includeAgePension=true).
+        // If excluded, use 0 so it doesn't offset the shortfall.
+        let agePensionNominal = 0;
+        if (target.includeAgePension) {
+            // Run the full retirement simulation to get the realistic Age Pension amount
+            // for this scenario (asset-tested + income-tested, couple vs single, etc.)
+            const pensionCheckInputs = {
+                ...inputs,
+                ...candidateAdjustments,
+                retirementAge: target.retirementAge || inputs.retirementAge || 67,
+                yourLifespan: target.retirementAge + 1 // simulate one year at retirement to get pension
+            };
+            
+            try {
+                const fullSim = RetirementSimulator.prototype.simulateRetirement.call(
+                    this.simulator,
+                    pensionCheckInputs,
+                    false
+                );
+                
+                // Extract pension from first retirement year
+                if (fullSim.yearlyData && fullSim.yearlyData.length > 0) {
+                    agePensionNominal = fullSim.yearlyData[0].pensionIncome || 0;
+                }
+            } catch (error) {
+                console.warn('Failed to compute Age Pension in scoreScenario:', error);
+                agePensionNominal = 0;
+            }
+        }
     ) - totalAssetsNominal);
 
     return {
