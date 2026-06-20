@@ -8,6 +8,7 @@
  *  4. Scenario comparison cards and overseas comparison
  */
 
+import '../css/redesign.css';
 import { ReversePlanner } from './reverse-planner.js';
 import {
     importForwardScenario,
@@ -118,6 +119,38 @@ export class ReverseUI {
 
         // Disclaimer
         safeHtml('rp-disclaimer', DISCLAIMER_TEXT);
+
+        // Accordion sections — single-open behaviour
+        this._initAccordion();
+    }
+
+    /**
+     * Initialise accordion sections (single-open).
+     */
+    _initAccordion() {
+        document.querySelectorAll('.section').forEach((section) => {
+            const isOpen = section.classList.contains('open');
+            section.classList.toggle('open', isOpen);
+            const body = section.querySelector('.section-body');
+            if (body) body.hidden = !isOpen;
+        });
+
+        document.querySelectorAll('.section-head').forEach((head) => {
+            head.addEventListener('click', () => {
+                const section = head.closest('.section');
+                const wasOpen = section.classList.contains('open');
+                document.querySelectorAll('.section').forEach((s) => {
+                    s.classList.remove('open');
+                    const b = s.querySelector('.section-body');
+                    if (b) b.hidden = true;
+                });
+                if (!wasOpen) {
+                    section.classList.add('open');
+                    const body = section.querySelector('.section-body');
+                    if (body) body.hidden = false;
+                }
+            });
+        });
     }
 
     /**
@@ -356,7 +389,7 @@ export class ReverseUI {
             calcBtn.textContent = 'Calculating…';
         }
 
-        show('rp-loading');
+        show('rp-loading-overlay');
         hide('rp-results-section');
         hide('rp-error-section');
 
@@ -383,7 +416,7 @@ export class ReverseUI {
             safeText('rp-error-message', err.message || 'An unexpected error occurred. Please check your inputs.');
             show('rp-error-section');
         } finally {
-            hide('rp-loading');
+            hide('rp-loading-overlay');
             this.isCalculating = false;
             if (calcBtn) {
                 calcBtn.disabled = false;
@@ -417,7 +450,10 @@ export class ReverseUI {
         if (statusEl) {
             const meetsGoal = currentPath.meetsGoal;
             statusEl.textContent = meetsGoal ? 'On track' : 'Shortfall';
-            statusEl.className = 'rp-status-badge ' + (meetsGoal ? 'rp-status-ok' : 'rp-status-gap');
+            const bg = meetsGoal ? 'var(--accent-soft)' : 'var(--rose-soft)';
+            const fg = meetsGoal ? 'var(--accent-ink)' : 'var(--rose)';
+            statusEl.style.background = bg;
+            statusEl.style.color = fg;
         }
 
         show('rp-summary-section');
@@ -462,10 +498,10 @@ export class ReverseUI {
         tbody.innerHTML = rows.map(row => `
             <tr>
                 <td><strong>${row.label}</strong></td>
-                <td class="text-right">${row.current}</td>
-                <td class="text-right">${row.required}</td>
-                <td class="text-right ${row.hasGap ? 'rp-comp-gap' : 'rp-comp-ok'}">${row.gap}</td>
-                <td class="text-sm text-gray-600">${row.recommendedAction}</td>
+                <td style="text-align:right">${row.current}</td>
+                <td style="text-align:right">${row.required}</td>
+                <td style="text-align:right;color:${row.hasGap ? 'var(--rose)' : 'var(--accent)'};font-weight:600">${row.gap}</td>
+                <td style="font-size:12.5px;color:var(--ink-2)">${row.recommendedAction}</td>
             </tr>
         `).join('');
     }
@@ -484,15 +520,27 @@ export class ReverseUI {
         }
 
         show('rp-problems-panel');
-        list.innerHTML = gap.problemFlags.map(p => `
-            <div class="rp-problem-item rp-problem-${p.severity}">
-                <div class="rp-lever-status">${p.severity === 'high' ? '🔴' : p.severity === 'medium' ? '🟡' : '🔵'}</div>
-                <div class="rp-lever-content">
-                    <strong>${p.label}</strong>
-                    <span class="rp-lever-desc">${p.detail}</span>
+        list.innerHTML = gap.problemFlags.map(p => {
+            const sevColors = {
+                high: 'var(--rose)',
+                medium: 'var(--amber)',
+                low: 'var(--accent)',
+            };
+            const bgColors = {
+                high: 'var(--rose-soft)',
+                medium: 'var(--amber-soft)',
+                low: 'var(--accent-soft)',
+            };
+            return `
+            <div style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:${bgColors[p.severity] || 'var(--surface-2)'};border-color:${sevColors[p.severity] || 'var(--border)'}">
+                <span style="font-size:16px;flex-shrink:0">${p.severity === 'high' ? '🔴' : p.severity === 'medium' ? '🟡' : '🔵'}</span>
+                <div>
+                    <strong style="color:var(--ink)">${p.label}</strong>
+                    <div style="font-size:12.5px;color:var(--ink-2);margin-top:2px">${p.detail}</div>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     /**
@@ -525,15 +573,15 @@ export class ReverseUI {
         }
 
         container.innerHTML = scenarios.map(s => `
-            <div class="rp-scenario-card">
-                <h4>${s.label}</h4>
-                <div class="text-xs text-gray-500 mt-1">${s.description}</div>
-                <div class="mt-2 text-sm">
-                    <span class="font-semibold">${s.income}</span>
-                    <span class="text-gray-400">·</span>
-                    <span class="${s.isBest ? 'text-green-600 font-semibold' : 'text-gray-600'}">${s.status}</span>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+                <h4 style="margin:0;font-size:14px;font-weight:700;color:var(--ink)">${s.label}</h4>
+                <div style="font-size:12px;color:var(--ink-3);margin-top:4px">${s.description}</div>
+                <div style="margin-top:8px;display:flex;align-items:baseline;gap:6px">
+                    <span style="font-weight:600;color:var(--ink);font-size:14px">${s.income}</span>
+                    <span style="color:var(--ink-3)">·</span>
+                    <span style="color:${s.isBest ? 'var(--accent)' : 'var(--ink-2)'};font-weight:${s.isBest ? '600' : '400'};font-size:12px">${s.status}</span>
                 </div>
-                ${s.detail ? `<div class="text-xs text-gray-400 mt-1">${s.detail}</div>` : ''}
+                ${s.detail ? `<div style="font-size:11.5px;color:var(--ink-3);margin-top:4px">${s.detail}</div>` : ''}
             </div>
         `).join('');
     }
@@ -636,10 +684,10 @@ export class ReverseUI {
         }
 
         tbody.innerHTML = actions.map((lever, i) => `
-            <tr class="rp-action-row">
-                <td class="rp-action-rank">${i + 1}</td>
-                <td class="rp-action-label">${lever.label}</td>
-                <td class="rp-action-desc">${lever.description}</td>
+            <tr>
+                <td style="font-family:var(--font-mono);color:var(--ink-3);font-size:11px">${i + 1}</td>
+                <td style="font-weight:600;color:var(--ink);font-size:13px">${lever.label}</td>
+                <td style="color:var(--ink-2);font-size:12.5px">${lever.description}</td>
             </tr>
         `).join('');
     }
@@ -656,16 +704,20 @@ export class ReverseUI {
 
         const renderGroup = (levers, title) => {
             if (levers.length === 0) return '';
-            const rows = levers.map(lever => `
-                <div class="rp-lever-item ${lever.feasible ? 'rp-lever-feasible' : 'rp-lever-infeasible'}">
-                    <span class="rp-lever-status">${lever.feasible ? '✓' : '✗'}</span>
-                    <div class="rp-lever-content">
-                        <strong>${lever.label}</strong>
-                        <span class="rp-lever-desc">${formatLeverAsAction(lever)}</span>
+            const rows = levers.map(lever => {
+                const bg = lever.feasible ? 'var(--accent-soft)' : 'var(--surface-2)';
+                const bd = lever.feasible ? 'var(--accent)' : 'var(--border)';
+                return `
+                <div style="display:flex;gap:10px;padding:10px 12px;border-radius:8px;background:${bg};border:1px solid ${bd};margin-bottom:6px">
+                    <span style="flex-shrink:0;font-size:14px;color:${lever.feasible ? 'var(--accent-ink)' : 'var(--ink-3)'}">${lever.feasible ? '✓' : '✗'}</span>
+                    <div style="display:flex;flex-direction:column;gap:2px">
+                        <strong style="font-size:13px;color:var(--ink)">${lever.label}</strong>
+                        <span style="font-size:12px;color:var(--ink-2)">${formatLeverAsAction(lever)}</span>
                     </div>
                 </div>
-            `).join('');
-            return `<div class="rp-lever-group"><h4>${title}</h4>${rows}</div>`;
+                `;
+            }).join('');
+            return `<div style="margin-bottom:12px"><h4 style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-3);font-weight:600;margin:0 0 6px">${title}</h4>${rows}</div>`;
         };
 
         container.innerHTML =
@@ -687,32 +739,32 @@ export class ReverseUI {
 
         container.innerHTML = overseasComparison.map(country => {
             const saving = targetAUD - country.adjustedTargetAUD;
-            const savingClass = saving > 0 ? 'rp-overseas-saving' : 'rp-overseas-more-expensive';
+            const savingColor = saving > 0 ? 'var(--accent)' : 'var(--rose)';
             const savingText = saving > 0
                 ? `Save ${fmt(saving)}/year vs Australia`
                 : `${fmt(-saving)}/year more than Australia`;
 
             const agreementBadge = country.socialSecurityAgreement
-                ? '<span class="rp-badge rp-badge-green">Pension agreement</span>'
-                : '<span class="rp-badge rp-badge-grey">No pension agreement</span>';
+                ? `<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:var(--accent-soft);color:var(--accent-ink);margin-top:8px">Pension agreement</span>`
+                : `<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:var(--surface-3);color:var(--ink-3);margin-top:8px">No pension agreement</span>`;
 
             return `
-                <div class="rp-overseas-card">
-                    <div class="rp-overseas-header">
-                        <h4>${country.name}</h4>
-                        <span class="rp-overseas-region">${country.region}</span>
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+                        <h4 style="margin:0;font-size:14px;font-weight:700;color:var(--ink)">${country.name}</h4>
+                        <span style="font-size:11px;color:var(--ink-3)">${country.region}</span>
                     </div>
-                    <div class="rp-overseas-target">
+                    <div style="font-size:13px;color:var(--ink);margin-bottom:6px">
                         Target income: <strong>${fmt(country.adjustedTargetAUD)}/year AUD</strong>
                     </div>
-                    <div class="rp-overseas-breakdown">
+                    <div style="font-size:11.5px;color:var(--ink-2);display:flex;flex-direction:column;gap:2px;margin-bottom:6px">
                         <span>Cost index: ${(country.costIndex * 100).toFixed(0)}% of Australia</span>
                         ${country.healthInsuranceAnnual > 0
                             ? `<span>+ ${fmt(country.healthInsuranceAnnual)}/year health insurance</span>`
                             : ''}
                         <span>+ ${fmt(country.fxBuffer)}/year FX buffer</span>
                     </div>
-                    <div class="${savingClass}">${savingText}</div>
+                    <div style="color:${savingColor};font-weight:600;font-size:12px">${savingText}</div>
                     ${agreementBadge}
                 </div>
             `;
