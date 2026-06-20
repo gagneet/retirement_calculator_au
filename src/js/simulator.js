@@ -683,11 +683,13 @@ export class RetirementSimulator {
         // inputs.australianEquityAllocation is already a decimal fraction from collectInputs() (e.g. 0.40).
         // inputs.dividendYield and inputs.frankingRate are already decimal fractions (e.g. 0.04, 0.75).
         // Do NOT divide by 100 again — collectInputs() already normalises all three.
-        const australianEquityAllocation = (allocation.equity / 100) * inputs.australianEquityAllocation;
+        // Guard: missing fields default to 0 so they produce 0 contribution rather than NaN
+        // poisoning the entire simulation (accumulatedInvestmentPortfolio → NaN → totalFinancialAssets → NaN).
+        const safeNum = (v) => (v !== null && v !== undefined && Number.isFinite(v)) ? v : 0;
+        const australianEquityAllocation = (allocation.equity / 100) * safeNum(inputs.australianEquityAllocation);
 
-        // Use user-provided dividend yield and franking rate (already decimals)
-        const dividendYield = inputs.dividendYield;
-        const frankingRate = inputs.frankingRate;
+        const dividendYield = safeNum(inputs.dividendYield);
+        const frankingRate = safeNum(inputs.frankingRate);
         const corporateTaxRate = this.financialConfig.australianSystem.CORPORATE_TAX_RATE.value;
 
         // Calculate gross dividend income from Australian equities
@@ -701,7 +703,7 @@ export class RetirementSimulator {
 
         // Total franking credit benefit depends on investor's marginal tax rate
         // Scale by user input (benefit factor)
-        const frankingCreditBenefit = frankingCredits * (inputs.frankingCreditBenefit /
+        const frankingCreditBenefit = frankingCredits * (safeNum(inputs.frankingCreditBenefit) /
             this.financialConfig.australianSystem.FRANKING_CREDIT_ADJUSTMENT.value);
 
         return {
