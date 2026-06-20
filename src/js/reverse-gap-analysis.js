@@ -27,7 +27,7 @@ function parseConfidence(value, fallback = 0.8) {
  * @returns {object} Gap analysis result
  */
 export function compareCurrentToTarget(currentPath, target, assumptions = {}) {
-    const swr = assumptions.swr || 0.04;
+    const swr = assumptions.swr ?? 0.04;
     const inflationRate = assumptions.inflationRate || currentPath.inflationRate || 0.026;
     const ytr = currentPath.yearsToRetirement || Math.max(1, (target.retirementAge || 67) - (target.currentAge || 50));
 
@@ -39,12 +39,13 @@ export function compareCurrentToTarget(currentPath, target, assumptions = {}) {
         ? (target.householdType === 'couple' ? COUPLE_PENSION_MAX : SINGLE_PENSION_MAX)
         : 0);
 
+    const totalAssetsNominal = currentPath.totalAssetsNominal ?? currentPath.totalAssetsAtRetirement ?? 0;
+
     // Capital gap
     const nominalTargetIncome = targetIncome * Math.pow(1 + inflationRate, ytr);
     const privateIncomeNeeded = Math.max(0, nominalTargetIncome - agePensionAnnual);
     const requiredCapital = swr > 0 ? privateIncomeNeeded / swr : 0;
-    const capitalAtRetirement = currentPath.totalAssetsNominal || 0;
-    const capitalGap = Math.max(0, requiredCapital - capitalAtRetirement);
+    const capitalGap = Math.max(0, requiredCapital - totalAssetsNominal);
 
     // Super gap at retirement
     const superAtRetirement = currentPath.superAtRetirement || currentPath.score?.superAtRetirement || 0;
