@@ -128,11 +128,5 @@ export function extractCurrentPathFromProjection(payload, goalOverrides = {}) {
     lastsUntil: summary.lastsUntil ?? payload?.adaptedResult?.lastsUntil,
     yearlyData: payload?.yearlyData || payload?.simulation?.yearlyData || payload?.adaptedResult?.years || [],
     meetsGoal: annual >= targetAnnualIncomeToday && (confidence === null || confidence >= confidenceTarget),
-    assumptions: {
-      inflation: payload?.engineInputs?.inflation ?? null,
-      investmentReturn: payload?.engineInputs?.investmentReturn ?? null,
-      superReturn: payload?.engineInputs?.superReturn ?? null,
-      swr: 0.04,
-    },
   };
 }
