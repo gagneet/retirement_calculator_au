@@ -9,6 +9,7 @@
 import {
     buildReverseBaselineFromForwardScenario,
     importForwardScenario,
+    storeForwardScenario,
 } from '../../src/js/reverse-baseline-adapter.js';
 
 // ---------------------------------------------------------------------------
@@ -232,7 +233,7 @@ describe('field name normalisation', () => {
         expect(baseline.inputs.superReturn).toBe(7.5);
     });
 
-    test('warns when mortgage exists without payment', () => {
+    test('does not warn when mortgage exists without payment but can be derived', () => {
         const raw = {
             yourCurrentAge: 45,
             retirementAge: 67,
@@ -242,8 +243,23 @@ describe('field name normalisation', () => {
             monthlyMortgagePayment: 0,
         };
         const baseline = buildReverseBaselineFromForwardScenario(raw);
-        expect(baseline.warnings.length).toBeGreaterThan(0);
-        expect(baseline.warnings.some(w => w.includes('Mortgage'))).toBe(true);
+        // With derivation logic, a payment can be calculated from balance + default rate
+        expect(baseline.inputs.monthlyMortgagePayment).toBeGreaterThan(0);
+        expect(baseline.warnings.some(w => w.includes('Mortgage'))).toBe(false);
+    });
+
+    test('monthly mortgage payment derived from balance when not provided', () => {
+        const raw = {
+            yourCurrentAge: 45,
+            retirementAge: 67,
+            yourSalary: 100000,
+            yourCurrentSuper: 200000,
+            mortgageBalance: 300000,
+            mortgageRate: 6,
+        };
+        const baseline = buildReverseBaselineFromForwardScenario(raw);
+        expect(baseline.inputs.monthlyMortgagePayment).toBeGreaterThan(0);
+        expect(baseline.warnings.some(w => w.includes('Mortgage'))).toBe(false);
     });
 
     test('warns when retirement age <= current age', () => {
@@ -290,5 +306,77 @@ describe('importForwardScenario', () => {
 
     afterEach(() => {
         jest.restoreAllMocks();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// 5. Bug fix verification
+// ---------------------------------------------------------------------------
+
+describe('bug fix: salary sacrifice mapping', () => {
+    test('advanced-v2 salarySacrifice maps correctly (no duplicate override)', () => {
+        const raw = {
+            age: 49, retireAge: 71, household: 'couple',
+            salary: 200000, superBal: 500000,
+            salarySacrifice: 15000,
+            partnerSalarySacrifice: 10000,
+        };
+        const baseline = buildReverseBaselineFromForwardScenario(raw);
+        expect(baseline.inputs.salarySacrifice).toBe(15000);
+        expect(baseline.inputs.partnerSalarySacrifice).toBe(10000);
+    });
+
+    test('advanced-classic salarySacrifice maps from yourAdditionalSuperContribution', () => {
+        const raw = {
+            yourCurrentAge: 49, retirementAge: 71,
+            yourSalary: 200000, yourCurrentSuper: 500000,
+            yourAdditionalSuperContribution: 15000,
+            partnerAdditionalSuperContribution: 10000,
+            isCouple: true,
+        };
+        const baseline = buildReverseBaselineFromForwardScenario(raw);
+        expect(baseline.inputs.salarySacrifice).toBe(15000);
+        expect(baseline.inputs.partnerSalarySacrifice).toBe(10000);
+    });
+});
+
+describe('bug fix: partner super mapping', () => {
+    test('advanced-v2 partnerSuperBal maps to partnerCurrentSuper', () => {
+        const raw = {
+            age: 49, retireAge: 71, household: 'couple',
+            salary: 200000, superBal: 500000,
+            partnerSuperBal: 300000,
+        };
+        const baseline = buildReverseBaselineFromForwardScenario(raw);
+        expect(baseline.inputs.partnerCurrentSuper).toBe(300000);
+        expect(baseline.inputs.partnerSuperBalance).toBe(300000);
+    });
+
+    test('advanced-classic partnerCurrentSuper maps directly', () => {
+        const raw = {
+            yourCurrentAge: 49, retirementAge: 71,
+            yourSalary: 200000, yourCurrentSuper: 500000,
+            partnerCurrentSuper: 300000,
+            isCouple: true,
+        };
+        const baseline = buildReverseBaselineFromForwardScenario(raw);
+        expect(baseline.inputs.partnerCurrentSuper).toBe(300000);
+    });
+});
+
+describe('bug fix: mortgage payment derivation', () => {
+    test('derives monthly mortgage payment when missing', () => {
+        const balance = 500000;
+        const rate = 6; // display percent for v2
+        const raw = {
+            age: 49, retireAge: 71, household: 'couple',
+            salary: 200000, superBal: 500000,
+            mortgage: balance, mortgageRate: rate,
+        };
+        const baseline = buildReverseBaselineFromForwardScenario(raw);
+        expect(baseline.inputs.mortgageBalance).toBe(500000);
+        expect(baseline.inputs.monthlyMortgagePayment).toBeGreaterThan(0);
+        // Should not warn about missing mortgage payment
+        expect(baseline.warnings.some(w => w.includes('Mortgage'))).toBe(false);
     });
 });

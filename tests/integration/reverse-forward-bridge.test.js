@@ -7,6 +7,7 @@
  *  2. Reverse page imports it correctly
  *  3. Baseline summary is generated
  *  4. Comparison table uses imported values
+ *  5. rc_forward_projection_v1 stores and loads complete result
  *
  * Uses actual modules (not mocked) where possible.
  */
@@ -16,6 +17,13 @@ import {
     importForwardScenario,
     storeForwardScenario,
 } from '../../src/js/reverse-baseline-adapter.js';
+import {
+    buildForwardProjectionPayload,
+    loadForwardProjection,
+    storeForwardProjection,
+    extractCurrentPathFromProjection,
+    FORWARD_PROJECTION_STORAGE_KEY,
+} from '../../src/js/forward-projection-bridge.js';
 
 // ---------------------------------------------------------------------------
 // 1. Stores rc_forward_scenario
@@ -37,6 +45,102 @@ describe('storeForwardScenario', () => {
 
     afterEach(() => {
         jest.restoreAllMocks();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// 5. rc_forward_projection_v1 bridge
+// ---------------------------------------------------------------------------
+
+describe('forward-projection-bridge integration', () => {
+    beforeEach(() => {
+        const store = {};
+        jest.spyOn(Storage.prototype, 'setItem').mockImplementation((key, val) => { store[key] = String(val); });
+        jest.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => store[key] || null);
+        jest.spyOn(Storage.prototype, 'removeItem').mockImplementation((key) => { delete store[key]; });
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    test('stores and loads complete projection payload', () => {
+        const payload = buildForwardProjectionPayload({
+            source: 'advanced-v2',
+            input: { age: 49, retireAge: 71, desiredIncome: 80000, household: 'couple' },
+            engineInputs: { yourCurrentAge: 49, retirementAge: 71 },
+            simulation: {
+                yearlyData: [
+                    { age: 71, endSuperBalance: 4600000, endBalance: 5476000, pensionIncome: 0 }
+                ]
+            },
+            adaptedResult: {
+                monthlyPaycheck: 20088,
+                superAtRetire: 4600000,
+                lastsUntil: 94,
+                confidence: 0.98,
+                gapMonthly: 0,
+            },
+        });
+
+        storeForwardProjection(payload);
+        const loaded = loadForwardProjection();
+        expect(loaded).not.toBeNull();
+        expect(loaded.source).toBe('advanced-v2');
+        expect(loaded.summary.monthlyRetirementIncomeToday).toBe(20088);
+    });
+
+    test('reverse display model shows same values as source', () => {
+        const payload = buildForwardProjectionPayload({
+            source: 'advanced-v2',
+            input: { age: 49, retireAge: 71, desiredIncome: 80000, household: 'couple' },
+            engineInputs: { yourCurrentAge: 49, retirementAge: 71 },
+            simulation: {
+                yearlyData: [
+                    { age: 71, endSuperBalance: 4600000, endBalance: 5476000, pensionIncome: 0 }
+                ]
+            },
+            adaptedResult: {
+                monthlyPaycheck: 20088,
+                superAtRetire: 4600000,
+                lastsUntil: 94,
+                confidence: 0.98,
+                gapMonthly: 0,
+            },
+        });
+
+        const currentPath = extractCurrentPathFromProjection(payload);
+
+        // Reverse current path must match projection summary values, not SWR
+        expect(currentPath.currentMonthlyIncomeToday).toBe(payload.summary.monthlyRetirementIncomeToday);
+        expect(currentPath.currentAnnualIncomeToday).toBe(payload.summary.annualRetirementIncomeToday);
+        expect(currentPath.superAtRetirement).toBe(payload.summary.superAtRetirementToday);
+        expect(currentPath.confidence).toBe(payload.summary.confidence);
+    });
+
+    test('legacy storage still works alongside new bridge', () => {
+        const legacyInput = { yourCurrentAge: 50, yourSalary: 100000 };
+        storeForwardScenario(legacyInput);
+
+        const payload = buildForwardProjectionPayload({
+            source: 'advanced-v2',
+            input: { age: 49, retireAge: 71 },
+            simulation: { yearlyData: [] },
+            adaptedResult: { monthlyPaycheck: 15000 },
+        });
+        storeForwardProjection(payload);
+
+        // New payload should be stored under separate key
+        expect(localStorage.setItem).toHaveBeenCalledWith(
+            FORWARD_PROJECTION_STORAGE_KEY,
+            expect.any(String)
+        );
+        // New payload should be loadable
+        const loaded = loadForwardProjection();
+        expect(loaded.source).toBe('advanced-v2');
+        // Legacy still works
+        const legacy = importForwardScenario();
+        expect(legacy.exists).toBe(true);
     });
 });
 
