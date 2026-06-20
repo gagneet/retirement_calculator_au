@@ -161,7 +161,7 @@ export function buildReverseBaselineFromForwardScenario(raw) {
             // Super
             currentSuperBalance: num(isV2 ? raw.superBal : raw.yourCurrentSuper, 0),
             partnerCurrentSuper: num(isV2 ? raw.partnerSuperBal : raw.partnerCurrentSuper, 0),
-            partnerSuperBalance: num(isV2 ? raw.partnerSuperBal : raw.partnerSuperBalance, 0),
+            partnerSuperBalance: num(isV2 ? raw.partnerSuperBal : (raw.partnerSuperBalance ?? raw.partnerCurrentSuper), 0),
             salarySacrifice: num(isV2 ? raw.salarySacrifice : raw.yourAdditionalSuperContribution, 0),
             partnerSalarySacrifice: num(isV2 ? raw.partnerSalarySacrifice : raw.partnerAdditionalSuperContribution, 0),
 
