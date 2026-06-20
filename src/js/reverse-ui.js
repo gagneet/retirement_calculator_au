@@ -714,23 +714,32 @@ export class ReverseUI {
         safeText('rp-headline', plainEnglish.headline);
 
         // Goal summary (today's dollars + nominal at retirement)
-        const ytr = currentPath.yearsToRetirement;
-        const nominalTarget = target.targetAnnualIncomeToday *
-            Math.pow(1 + currentPath.inflationRate, ytr);
-        safeText('rp-goal-today', fmt(target.targetAnnualIncomeToday) + '/year');
-        safeText('rp-goal-nominal', `≈ ${fmt(nominalTarget)}/year in ${new Date().getFullYear() + ytr} dollars`);
-        safeText('rp-goal-retire-age', `Age ${target.retirementAge}`);
-        safeText('rp-goal-lifespan', `Age ${target.lifespan}`);
+        const ytr = Number.isFinite(currentPath.yearsToRetirement) && currentPath.yearsToRetirement >= 1
+            ? Math.round(currentPath.yearsToRetirement)
+            : Math.max(1, (target.retirementAge || 67) - (currentPath.currentAge || target.currentAge || 50));
+        const inflationRate = currentPath.inflationRate || 0.026;
+        const retirementAge = target.retirementAge ?? currentPath.retirementAge ?? 67;
+        const lifespan = target.lifespan ?? currentPath.lifespan ?? 90;
+        const retirementYear = new Date().getFullYear() + ytr;
 
-        // Current path — show both today's dollars and nominal at retirement
+        const nominalTarget = target.targetAnnualIncomeToday *
+            Math.pow(1 + inflationRate, ytr);
+        safeText('rp-goal-today', fmt(target.targetAnnualIncomeToday) + '/year');
+        safeText('rp-goal-nominal', `≈ ${fmt(nominalTarget)}/year in ${retirementYear} dollars`);
+        safeText('rp-goal-retire-age', `Age ${retirementAge}`);
+        safeText('rp-goal-lifespan', `Age ${lifespan}`);
+
+        // Current path — both income values are in today's dollars (same base year),
+        // making the goal vs current comparison directly meaningful.
+        // Nominal figures shown as context ("what that means in retirement-year $").
         const nominalIncome = currentPath.sustainableIncomeToday *
-            Math.pow(1 + currentPath.inflationRate, ytr);
-        const nominalAssets = currentPath.totalAssetsNominal;
+            Math.pow(1 + inflationRate, ytr);
+        const nominalAssets = currentPath.totalAssetsNominal || 0;
         const todayAssets = nominalAssets > 0
-            ? nominalAssets / Math.pow(1 + currentPath.inflationRate, ytr)
+            ? nominalAssets / Math.pow(1 + inflationRate, ytr)
             : 0;
         safeText('rp-current-income', fmt(currentPath.sustainableIncomeToday) + '/year');
-        safeText('rp-current-nominal', `≈ ${fmt(nominalIncome)}/year in ${new Date().getFullYear() + ytr} dollars`);
+        safeText('rp-current-nominal', `≈ ${fmt(nominalIncome)}/year in ${retirementYear} dollars`);
         safeText('rp-current-assets', `${fmt(nominalAssets)} nominal (${fmt(todayAssets)} today's $)`);
         const statusEl = el('rp-goal-status');
         if (statusEl) {
