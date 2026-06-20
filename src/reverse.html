@@ -10,6 +10,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <script crossorigin="anonymous"
+          src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js"></script>
+  <script crossorigin="anonymous"
+          src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.2/jspdf.plugin.autotable.min.js"></script>
 
   <!-- redesign.css is injected by webpack via the reverseV1 chunk -->
   <style>.hidden{display:none!important}</style>
@@ -313,6 +317,7 @@
             <div class="metric">
               <div class="k">Current projected path</div>
               <div class="v" id="rp-current-income">—<span class="sub">/year today's $</span></div>
+              <div class="v" style="font-size:14px;font-family:var(--font-sans);margin-top:0" id="rp-current-nominal">—</div>
               <div style="font-size:11.5px;color:var(--ink-3);margin-top:6px">
                 Total assets at retirement: <b id="rp-current-assets" style="color:var(--ink)">—</b>
               </div>
@@ -389,6 +394,15 @@
       <div id="rp-pattern-note-section" class="hidden notice" style="border-color:var(--amber);background:var(--amber-soft)">
         <span class="ic">💡</span>
         <div><p id="rp-pattern-note" style="margin:0;font-size:13px"></p></div>
+      </div>
+
+      <!-- Export PDF -->
+      <div class="tools-card" style="border-color:var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px">
+        <div>
+          <h4 style="margin:0;font-size:13px;font-weight:600;color:var(--ink)">Export</h4>
+          <p style="margin:2px 0 0;font-size:12px;color:var(--ink-3)">Download all results as a formatted PDF report</p>
+        </div>
+        <button id="rp-export-pdf" class="iconbtn primary" style="flex-shrink:0">📄 Export PDF</button>
       </div>
 
       <!-- Overseas comparison -->
