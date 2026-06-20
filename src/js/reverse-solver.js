@@ -136,15 +136,32 @@ export function scoreScenario(
         targetIncomeToday, yearsToRetirement, inflationRate, agePensionNominal, swr
     ) - totalAssetsNominal);
 
+    // Estate check (deflate final balance to today's dollars)
+    const estateDeflator = Math.pow(1 + inflationRate, yearsToRetirement);
+    const estateToday = (finalBalance || 0) / estateDeflator;
+    const minEstate = target.minimumEstateToday || 0;
+    const passesEstate = estateToday >= minEstate;
+
+    // Confidence check (deterministic = binary 1/0)
+    const successProbability = passesIncome ? 1 : 0;
+    const confidenceTarget = target.successProbabilityTarget || 0;
+    const passesConfidence = successProbability >= confidenceTarget;
+
     return {
-        passesGoal: passesIncome,
+        passesGoal: passesIncome && passesEstate && passesConfidence,
         passesIncome,
+        passesEstate,
+        passesConfidence,
         sustainableIncomeToday,
         totalAssetsNominal,
         finalBalance,
+        estateToday,
+        estateGap: Math.max(0, minEstate - estateToday),
         incomeGap,
         capitalGap,
-        deflator
+        confidenceGap: Math.max(0, confidenceTarget - successProbability),
+        deflator,
+        successProbability,
     };
 }
 

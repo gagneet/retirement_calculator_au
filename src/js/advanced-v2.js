@@ -1248,6 +1248,13 @@ function computeBaseState(inp = null) {
   const simulation = profiler.measure('advanced-v2.core.deterministicSimulation', () => simulator.simulateRetirement(engineInputs, false));
   const adaptedResult = profiler.measure('advanced-v2.post.adaptEngineOutput', () => adaptEngineOutput(input, engineInputs, simulation));
 
+  // Persist inputs to localStorage so the Reverse Planner can import them
+  try {
+    localStorage.setItem('rc_forward_scenario', JSON.stringify(input));
+  } catch {
+    // localStorage may be unavailable — silently skip
+  }
+
   return { input, engineInputs, simulation, adaptedResult };
 }
 
