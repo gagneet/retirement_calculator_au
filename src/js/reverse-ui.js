@@ -510,7 +510,7 @@ export class ReverseUI {
             this._renderSafe(() => this.renderRankedActionPlan(result));
             this._renderSafe(() => this.renderScenarioComparisonCards(result));
             this._renderSafe(() => this.renderOverseasComparison(result));
-            this._renderSafe(() => this.renderDeepAnalysis(result));
+            this._renderSafe(() => this._renderDeepAnalysisAsync(result));
 
             show('rp-results-section');
         } catch (err) {
@@ -965,7 +965,7 @@ export class ReverseUI {
      * Each analysis runs independently with per-task error isolation so that
      * a single failure never blanks the entire section.
      */
-    async renderDeepAnalysis(result) {
+    async _renderDeepAnalysisAsync(result) {
         const section = el('rp-deep-analysis-section');
         if (!section) return;
 
@@ -1010,7 +1010,6 @@ export class ReverseUI {
         }
 
         const currentRetireAge = target.retirementAge || 65;
-        const currentSalary = inputs.yourSalary || 0;
 
         let html = '<div style="overflow-x:auto"><table class="year-table" style="min-width:400px;font-size:12px"><thead><tr><th>Retirement age</th><th class="text-right">Required salary</th><th class="text-right">Feasible</th></tr></thead><tbody>';
 

@@ -27,9 +27,10 @@ const DEFAULT_SWR = 0.04;
  * Replicates the private makePasses() from reverse-solver.js so that
  * callers in THIS module do not need to reach into solver internals.
  *
- * NOTE: yearsToRetirement is NOT used here because callers of this
- * helper vary the override key but NOT retirementAge, so the value
- * captured at creation time is correct and avoids recomputation.
+ * yearsToRetirement is evaluated once at closure-creation time because
+ * the override key does not affect retirementAge.  Functions that DO
+ * vary retirementAge (age-salary curve, overseas age) define their own
+ * passes() with an inline ytr computed per iteration.
  */
 function _makePasses(simulator, baseInputs, target, overrideKey, inflationRate, swr) {
     const ytr = yearsToRetirement(baseInputs);
