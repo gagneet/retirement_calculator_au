@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-06-20 - Reverse Planner Deep Analysis & Review Hardening
+
+### Added
+- Deep analysis panels in the Reverse Retirement Planner: age-salary curve (required salary per retirement age), required current home value and investment balance, salary reduction tolerance, and optimal overseas move age analysis.
+- Unit tests for `solveForCurrentHomeValue` and `solveForCurrentInvestmentBalance` solvers (6 tests) and the new `reverse-deep-analysis.js` module (15 tests).
+
+### Fixed
+- `calculateRetirementAgeSalaryCurve` now starts from `currentAge + 1` instead of skipping ages below the user's target retirement age, enabling the "When can I retire" analysis to show earlier feasible ages.
+- `calculateOptimalOverseasAge` now starts from `max(55, currentAge + 1)` instead of hardcoded 55, preventing past-age evaluation for older users.
+- All deep-analysis functions now respect `target.swr` instead of hardcoding a 4% SWR.
+- Bisection solvers for home value and investment balance guard against `lo > hi` when current values exceed the $5M cap.
+- Deep analysis renderers in `reverse-ui.js` now properly await async results and use the shared `fmt()` formatter for consistent `en-AU` currency formatting.
+- Infeasible salary-curve rows no longer show `—/yr`; `/yr` only appears when salary data exists.
+- Zero-salary edge case in salary tolerance renderer shows a clear message instead of a misleading one.
+
 ## [2.1.0] - 2026-06-03 - Policy, Export and QA Hardening
 
 ### Added
@@ -315,7 +330,7 @@ New files added:
 
 ## Support and Updates
 
-- **Current Version**: 2.1.0
+- **Current Version**: 2.2.0
 - **Compatibility**: Australian financial regulations 2025-26
 - **Browser Support**: Chrome 80+, Firefox 75+, Safari 13+, Edge 80+
 - **Last Updated**: June 2026

@@ -4,6 +4,11 @@ import { ENHANCED_CONFIG as config_v1_0_0 } from './config.js';
 import { ENHANCED_CONFIG_V0_9_0 } from './config-v0.9.0.js';
 
 const versions = {
+    '2.2.0': {
+        date: '2026-06-20',
+        config: config_v1_0_0,
+        changelog: 'Reverse Retirement Planner deep analysis: age-salary curve, required current values, salary tolerance, overseas move age, bisection hi-guard fixes, and Copilot review resolution.'
+    },
     '2.1.0': {
         date: '2026-06-03',
         config: config_v1_0_0,
@@ -26,7 +31,7 @@ const versions = {
     }
 };
 
-const LATEST_VERSION = '2.1.0';
+const LATEST_VERSION = '2.2.0';
 
 /**
  * Retrieves the configuration for a specific version, merging with the latest for completeness.

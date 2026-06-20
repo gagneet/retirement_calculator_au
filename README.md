@@ -4,7 +4,21 @@ A comprehensive, AI-powered retirement planning calculator specifically designed
 
 ## Recent Updates (2026)
 
+### Version 2.2.0 - Reverse Planner Deep Analysis & Review Hardening (June 2026)
+- **Reverse Retirement Planner**: New goal-seeking planner at `reverse.html` that answers "what needs to change today?". Uses bisection-based solvers to find the minimum adjustment required across 11 levers (salary, super contributions, retirement age, super balance, savings, mortgage, rent, spending, estate, home value, investment balance).
+- **Deep Analysis Panels**: Four "what-if?" analysis cards shown after the main calculation:
+  - *When can I retire*: Required salary at each retirement age (55–75)
+  - *What you need today*: Required home value and investment balance
+  - *Salary reduction tolerance*: How much salary can drop while still meeting the goal
+  - *Optimal overseas move age*: Earliest age at which overseas retirement works
+- **Forward Projection Bridge**: `forward-projection-bridge.js` reads `rc_forward_projection_v1` from localStorage, enabling seamless data flow from the Advanced Calculator into the Reverse Planner.
+- **PDF Export**: jsPDF-based report generation with autoTable comparison table, ranked action plan, and full disclaimer.
+- **Simulator Fixes**: Stochastic inflation now uses per-year per-run rates instead of fixed compounding; franking credits have NaN protection for missing inputs.
+- **Suggestions Button**: Disabled while results are fresh, re-enabled on input change; pink background with long-calculation warning.
+- **Validation**: Jest test suite expanded to 9 test files covering solvers (359 tests), round-trips (263), gap analysis (295), baseline adapter (382), scenarios (324), projection bridge (183), parity (119), integration (284), and bridge integration (330).
+
 ### Version 2.1.1 - Reverse Retirement Planner & Deep Analysis (June 2026)
+
 - **Reverse Retirement Planner**: New goal-seeking planner at `reverse.html` that answers "what needs to change today?". Uses bisection-based solvers to find the minimum adjustment required across 11 levers (salary, super contributions, retirement age, super balance, savings, mortgage, rent, spending, estate, home value, investment balance).
 - **Deep Analysis Panels**: Four "what-if?" analysis cards shown after the main calculation:
   - *When can I retire*: Required salary at each retirement age (55–75)

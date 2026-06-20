@@ -48,7 +48,7 @@ but do **not** invent alternatives to the names below.
     `WhatIfEngine` rather than building a parallel evaluator.
 
 ### Config — already current, already canonical
-- **`src/js/config.js` exports `ENHANCED_CONFIG`** (v2.1.0, `lastUpdated: '2026-06-03'`).
+- **`src/js/config.js` exports `ENHANCED_CONFIG`** (v2.2.0, `lastUpdated: '2026-06-20'`).
   It is the single source of truth. Other config files exist
   (`enhanced-config.js`, `config-v0.9.0.js`, `config-conservative.js`,
   `config-helper.js`) — **do not** add constants to those; read from `ENHANCED_CONFIG`.
