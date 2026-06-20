@@ -309,8 +309,9 @@ export function buildComparisonTable(gap, currentPath, target) {
         '$'
     ));
 
-    const currentConf = currentPath.score?.successProbability ?? 0;
-    const currentConf = gap.currentConfidence ?? 0;
+    let currentConf = currentPath.score?.successProbability ?? 0;
+    currentConf = gap.currentConfidence ?? 0;
+    rows.push(buildGapComparisonRow(
         'Confidence',
         (currentConf * 100).toFixed(0) + '%',
         ((target.confidenceTarget || 0.8) * 100).toFixed(0) + '%',
