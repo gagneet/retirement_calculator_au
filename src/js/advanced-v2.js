@@ -6,6 +6,8 @@
 
 import '../css/styles.css';
 import '../css/redesign.css';
+import '../css/site-chrome.css';
+import './site-chrome.js';
 import ENHANCED_CONFIG from './config.js';
 import RetirementSimulator from './simulator.js';
 import RecommendationEngine from './recommendation.js';

@@ -9,6 +9,8 @@
  */
 
 import '../css/redesign.css';
+import '../css/site-chrome.css';
+import './site-chrome.js';
 import { ReversePlanner } from './reverse-planner.js';
 import {
     importForwardScenario,
