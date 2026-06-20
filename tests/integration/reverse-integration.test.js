@@ -271,12 +271,14 @@ describe('scoreScenario monotonicity', () => {
 // ---------------------------------------------------------------------------
 
 describe('deterministic simulation stability', () => {
-    test('same inputs produce similar result across two calls (±25% tolerance from stochasticRate)', () => {
+    test('same inputs produce identical result across two deterministic calls', () => {
         const result1 = simulator.simulateRetirement(BASE_INPUTS, false);
         const result2 = simulator.simulateRetirement(BASE_INPUTS, false);
-        // stochasticRate() perturbs inflation, healthcare, and salary growth even in
-        // deterministic mode, so results are NOT identical across calls.
-        // Use ±25% tolerance instead of strict equality.
+        // With useRandomReturns=false, stochasticRate() now returns the central rate
+        // unchanged (no Math.random() call), so two deterministic calls with the same
+        // inputs must produce identical totalFinancialAssets. The ratio check remains
+        // to catch any other residual non-determinism (ratio must equal 1.0 exactly
+        // when both results are the same, which is well within the 1.25 bound).
         const ratio = Math.max(result1.totalFinancialAssets, result2.totalFinancialAssets) /
             Math.min(result1.totalFinancialAssets, result2.totalFinancialAssets) || 1;
         expect(ratio).toBeLessThan(1.25);
