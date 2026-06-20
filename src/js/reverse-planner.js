@@ -25,6 +25,10 @@ import {
     importForwardScenario,
 } from './reverse-baseline-adapter.js';
 import { compareCurrentToTarget } from './reverse-gap-analysis.js';
+import {
+    loadForwardProjection,
+    extractCurrentPathFromProjection,
+} from './forward-projection-bridge.js';
 
 const DEFAULT_SWR = 0.04;
 const DEFAULT_INFLATION = ENHANCED_CONFIG.INFLATION_RATE || 0.026;
@@ -223,7 +227,24 @@ export class ReversePlanner {
         };
 
         // 1. Build current path
-        const currentPath = this.buildCurrentPath(baseInputs, resolvedTarget);
+        let currentPath;
+        const projection = loadForwardProjection();
+        if (projection?.summary) {
+            currentPath = extractCurrentPathFromProjection(projection, {
+                retirementAge: resolvedTarget.retirementAge,
+                targetAnnualIncomeToday: resolvedTarget.targetAnnualIncomeToday,
+                confidenceTarget: resolvedTarget.successProbabilityTarget,
+            });
+            currentPath.inflationRate = projection.engineInputs?.inflation ?? DEFAULT_INFLATION;
+            currentPath.yearsToRetirement = Math.max(1, resolvedTarget.retirementAge - resolvedTarget.currentAge);
+            currentPath.swr = DEFAULT_SWR;
+            currentPath.totalAssetsNominal = currentPath.totalAssetsAtRetirement;
+            currentPath.incomeGap = Math.max(0, resolvedTarget.targetAnnualIncomeToday - currentPath.currentAnnualIncomeToday);
+            currentPath.meetsGoal = currentPath.currentAnnualIncomeToday >= resolvedTarget.targetAnnualIncomeToday;
+            currentPath.agePensionNominal = currentPath.agePensionAtRetirement;
+        } else {
+            currentPath = this.buildCurrentPath(baseInputs, resolvedTarget);
+        }
 
         // 2. Run all lever solvers
         const solverOptions = { swr: resolvedTarget.swr || DEFAULT_SWR };

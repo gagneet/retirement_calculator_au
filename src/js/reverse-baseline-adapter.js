@@ -106,7 +106,7 @@ function detectWarnings(canonical) {
     }
 
     if (i.mortgageBalance > 0 && !i.monthlyMortgagePayment) {
-        warnings.push('Mortgage balance present but no monthly payment entered.');
+        warnings.push('Mortgage balance present but unable to derive monthly payment.');
     }
 
     if (i.hasInvestmentProperty && (!i.investmentPropertyValue || i.investmentPropertyValue <= 0)) {
@@ -160,14 +160,31 @@ export function buildReverseBaselineFromForwardScenario(raw) {
 
             // Super
             currentSuperBalance: num(isV2 ? raw.superBal : raw.yourCurrentSuper, 0),
+            partnerCurrentSuper: num(isV2 ? raw.partnerSuperBal : raw.partnerCurrentSuper, 0),
+            partnerSuperBalance: num(isV2 ? raw.partnerSuperBal : raw.partnerSuperBalance, 0),
             salarySacrifice: num(isV2 ? raw.salarySacrifice : raw.yourAdditionalSuperContribution, 0),
-            salarySacrifice: num(isV2 ? 0 : raw.yourAdditionalSuperContribution, 0),
+            partnerSalarySacrifice: num(isV2 ? raw.partnerSalarySacrifice : raw.partnerAdditionalSuperContribution, 0),
 
             // Home
             homeowner: raw.homeowner !== undefined ? !!raw.homeowner : true,
             homeValue: num(isV2 ? raw.homeValue : raw.homeValue, 0),
             mortgageBalance: num(isV2 ? raw.mortgage : raw.mortgageBalance, 0),
-            monthlyMortgagePayment: num(isV2 ? raw.monthlyMortgagePayment : raw.monthlyMortgagePayment, 0),
+            monthlyMortgagePayment: (() => {
+              const rawPayment = num(isV2 ? raw.monthlyMortgagePayment : raw.monthlyMortgagePayment, 0);
+              if (rawPayment > 0) return rawPayment;
+              const balance = num(isV2 ? raw.mortgage : raw.mortgageBalance, 0);
+              if (balance > 0) {
+                const rate = num(isV2 ? raw.mortgageRate : raw.mortgageRate, 0.06);
+                const annualRate = rate > 1 ? rate / 100 : rate;
+                const monthlyRate = annualRate / 12;
+                const months = 360;
+                if (monthlyRate > 0) {
+                  return (balance * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months));
+                }
+                return balance / months;
+              }
+              return 0;
+            })(),
 
             // Investments
             cashSavings: num(isV2 ? raw.cash : raw.currentSavings, 0),

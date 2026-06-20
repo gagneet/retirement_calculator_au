@@ -15,6 +15,10 @@ import {
     buildReverseBaselineFromForwardScenario,
 } from './reverse-baseline-adapter.js';
 import {
+    loadForwardProjection,
+    extractCurrentPathFromProjection,
+} from './forward-projection-bridge.js';
+import {
     compareCurrentToTarget,
     buildComparisonTable,
 } from './reverse-gap-analysis.js';
@@ -71,7 +75,7 @@ export class ReverseUI {
      * Initialise the UI: import baseline, attach event listeners.
      */
     init() {
-        this.checkLocalStorageForImport();
+        this.checkProjectionFirst();
 
         // Calculate button
         const calcBtn = el('rp-calculate-btn');
@@ -92,7 +96,9 @@ export class ReverseUI {
         // Household type toggle (manual mode)
         const householdToggle = el('rp-household-type');
         if (householdToggle) {
-            householdToggle.addEventListener('change', () => this.toggleCoupleFields());
+            householdToggle.addEventListener('click', () => {
+                setTimeout(() => this.toggleCoupleFields(), 0);
+            });
         }
 
         // Homeowner toggle (manual mode)
@@ -122,6 +128,66 @@ export class ReverseUI {
 
         // Accordion sections — single-open behaviour
         this._initAccordion();
+    }
+
+    /**
+     * Check for complete forward projection first (rc_forward_projection_v1).
+     * Fall back to legacy rc_forward_scenario adapter.
+     */
+    checkProjectionFirst() {
+        const projection = loadForwardProjection();
+        if (projection?.summary) {
+            this.forwardProjection = projection;
+            this.currentPath = extractCurrentPathFromProjection(projection);
+            this.importedScenario = projection.input || null;
+            this._renderProjectionPanel(projection);
+            this._prefillGoalControlsFromProjection(projection);
+            setTimeout(() => this.handleCalculate(), 100);
+        } else {
+            this.checkLocalStorageForImport();
+        }
+    }
+
+    /**
+     * Render the projection import panel showing the source calculator's results.
+     */
+    _renderProjectionPanel(projection) {
+        show('rp-baseline-found');
+        hide('rp-baseline-not-found');
+
+        const sourceName = projection.source === 'advanced-v2' ? 'Advanced Calculator v2' : 'Advanced Calculator';
+        const savedAt = projection.savedAt ? new Date(projection.savedAt).toLocaleString('en-AU') : 'recently';
+        safeText('rp-baseline-source-name', sourceName + ' · ' + savedAt);
+
+        const s = projection.summary;
+        const summaryParts = [
+            `Age ${s.currentAge}`,
+            `Retire at ${s.retirementAge}`,
+            `Income ${fmt(s.monthlyRetirementIncomeToday)}/month`,
+            `Super ${fmt(s.superAtRetirementToday)}`,
+            `Lasts to age ${s.lastsUntil}`,
+        ];
+        if (s.confidence) summaryParts.push(`Confidence ${(s.confidence * 100).toFixed(0)}%`);
+        safeHtml('rp-baseline-summary', summaryParts.join(' · '));
+    }
+
+    /**
+     * Pre-fill goal controls from the projection summary.
+     */
+    _prefillGoalControlsFromProjection(projection) {
+        const s = projection.summary;
+        const desiredIncome = el('rp-desired-income');
+        if (desiredIncome && !desiredIncome.value) {
+            desiredIncome.value = String(s.targetAnnualIncomeToday || Math.round(s.annualRetirementIncomeToday));
+        }
+        const retireAgeField = el('rp-retirement-age');
+        if (retireAgeField && !retireAgeField.value) {
+            retireAgeField.value = String(s.retirementAge || 67);
+        }
+        const confidenceField = el('rp-confidence');
+        if (confidenceField && !confidenceField.value) {
+            confidenceField.value = String(s.confidence ? Math.round(s.confidence * 100) : 80);
+        }
     }
 
     /**

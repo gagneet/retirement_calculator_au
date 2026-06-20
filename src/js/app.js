@@ -31,6 +31,7 @@ import { runFullSimulation } from './simulation_engine/index.js';
 import { buildStressedInputs, normaliseStressScenarioForTest } from './policy/stress-helpers.js';
 import { RetirementCostAnalyzer } from './retirement-cost-analyzer.js';
 import PersonalizedQuestionEngine from './personalized-qa-engine.js';
+import { buildForwardProjectionPayload, storeForwardProjection } from './forward-projection-bridge.js';
 import {
     calculateConcessionalCapStatus,
     calculateEmployerSuper,
@@ -1318,6 +1319,31 @@ class RetirementCalculatorApp {
                 showNotification('Could not render charts, but results are still valid.', 'warning');
             }
 
+
+            // Store complete forward projection payload for Reverse Planner
+            try {
+                const outcome = this.currentOutcome;
+                const adaptedResult = outcome ? {
+                    monthlyPaycheck: (outcome.sustainableIncomeToday || 0) / 12,
+                    superAtRetire: outcome.superAtRetirementToday || 0,
+                    confidence: null,
+                    gapMonthly: outcome.gapPerMonth || 0,
+                    lastsUntil: outcome.legacy?.runOutAge || inputs.yourLifespan || 90,
+                    years: result?.yearlyData?.map(y => ({ age: y.age, totalAssets: y.endBalance || 0 })) || [],
+                } : null;
+
+                const projectionPayload = buildForwardProjectionPayload({
+                    source: 'advanced',
+                    input: inputs,
+                    engineInputs: inputs,
+                    simulation: result,
+                    adaptedResult,
+                    recommendations: this.currentOutcomeActions || null,
+                });
+                storeForwardProjection(projectionPayload);
+            } catch {
+                // Silently skip — projection storage is non-critical
+            }
 
             // Show enhanced summary tab and conditionally scroll to results
             if (shouldScrollToResults) {

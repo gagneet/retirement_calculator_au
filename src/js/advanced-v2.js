@@ -31,6 +31,7 @@ import {
   calculateStateLandTax,
   initializeTooltips,
 } from './utils.js';
+import { buildForwardProjectionPayload, storeForwardProjection } from './forward-projection-bridge.js';
 
 const simulator = new RetirementSimulator(ENHANCED_CONFIG);
 const { DEFAULTS } = ENHANCED_CONFIG;
@@ -1254,6 +1255,19 @@ function computeBaseState(inp = null) {
   } catch {
     // localStorage may be unavailable — silently skip
   }
+
+  // Store complete forward projection payload for Reverse Planner
+  const projectionPayload = buildForwardProjectionPayload({
+    source: 'advanced-v2',
+    input,
+    engineInputs,
+    simulation,
+    adaptedResult,
+    monteCarloResults: APP_STATE?.monteCarloResults || null,
+    recommendations: APP_STATE?.recommendations || null,
+    stressTestResults: APP_STATE?.stressTestResults || null,
+  });
+  storeForwardProjection(projectionPayload);
 
   return { input, engineInputs, simulation, adaptedResult };
 }
