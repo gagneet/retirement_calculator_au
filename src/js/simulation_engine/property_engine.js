@@ -8,13 +8,35 @@
 /**
  * Grow investment property value by one year.
  *
+ * When useStochasticReturns is true, draws a per-year return from a normal
+ * distribution centred on propertyGrowthRate, giving each year a different
+ * growth rate instead of a fixed compound.  Property volatility defaults to
+ * 50% of the expected rate (e.g. 2.9% σ for a 5.8% base rate).
+ *
  * @param {number} currentValue        – current market value
  * @param {Object} inputs              – propertyGrowthRate, propertyCrashProbability (optional shock handled externally)
+ * @param {number} [yearGrowthRate]    – optional per-year override (stochastic mode)
  * @returns {number} new property value
  */
-export const growPropertyValue = (currentValue, inputs) => {
-    const { propertyGrowthRate = 0.058 } = inputs;
-    return currentValue * (1 + propertyGrowthRate);
+export const growPropertyValue = (currentValue, inputs, yearGrowthRate = null) => {
+    const { propertyGrowthRate = 0.058, useStochasticReturns = false } = inputs;
+
+    let effectiveRate;
+    if (yearGrowthRate !== null) {
+        effectiveRate = yearGrowthRate;
+    } else if (useStochasticReturns) {
+        // Per-year normal draw: σ = max(2%, rate×50%) to reflect realistic property cycles
+        const sigma = Math.max(0.02, Math.abs(propertyGrowthRate) * 0.5);
+        const u1 = Math.max(1e-10, Math.random());
+        const u2 = Math.random();
+        const z  = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        // Floor at −15% (extreme property downturns, consistent with ABS RPPI data)
+        effectiveRate = Math.max(-0.15, propertyGrowthRate + z * sigma);
+    } else {
+        effectiveRate = propertyGrowthRate;
+    }
+
+    return currentValue * (1 + effectiveRate);
 };
 
 /**

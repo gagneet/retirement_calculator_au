@@ -64,16 +64,25 @@ const resolveScenarioMonteCarloRuns = (inputs = {}) =>
  * Backward-compat: two-arg legacy call stochasticRate(rate, floor) is detected when
  * the second argument is a number, and treated as stochasticRate(rate, true, floor).
  */
-export function stochasticRate(centralRate, isStochastic = true, floor = 0) {
+export function stochasticRate(centralRate, isStochastic = true, floor = 0, sigma = null) {
     if (typeof isStochastic === 'number') {
         // Legacy two-argument call: stochasticRate(centralRate, floor)
         floor = isStochastic;
         isStochastic = true;
     }
     if (!isStochastic) return centralRate;
-    // Symmetric uniform draw: perturbation ∈ [-0.04, +0.04], E[perturbation] = 0
-    const perturbation = (Math.random() - 0.5) * 0.08; // 0.08 = 2 × 0.04
-    return Math.max(floor, centralRate + perturbation);
+    // Normal distribution via Box-Muller transform.
+    // Default sigma provides realistic year-to-year variation:
+    //   - Large rates (e.g. 7.5% super return): wider absolute swings
+    //   - Small rates (e.g. 1.4% savings): narrower swings
+    // sigma=null → use rate-proportional volatility: max(1%, |rate|×50%)
+    // This replaces the old uniform [-4%,+4%] with a fat-tailed normal that
+    // better represents real economic variability across successive years.
+    const effectiveSigma = sigma !== null ? sigma : Math.max(0.01, Math.abs(centralRate) * 0.5);
+    const u1 = Math.max(1e-10, Math.random());
+    const u2 = Math.random();
+    const z  = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    return Math.max(floor, centralRate + z * effectiveSigma);
 }
 
 export class RetirementSimulator {

@@ -95,6 +95,32 @@ const applyMeansTest = (totalAssets, annualIncome, maxPension, assetThreshold, a
     return Math.min(fromAssets, fromIncome);
 };
 
+// ── Stochastic helpers (inlined — no external imports allowed in this module) ─
+
+/**
+ * Draw one value from N(mean, sigma) using the Box-Muller transform.
+ * Each call consumes two independent uniform samples from Math.random().
+ */
+const normalDraw = (mean, sigma) => {
+    const u1 = Math.max(1e-10, Math.random());
+    const u2 = Math.random();
+    const z  = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    return mean + z * sigma;
+};
+
+/**
+ * Compute the median of an unsorted numeric array.
+ * Returns 0 for empty arrays.
+ */
+const arrayMedian = (arr) => {
+    if (!arr.length) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0
+        ? (sorted[mid - 1] + sorted[mid]) / 2
+        : sorted[mid];
+};
+
 // ── Pipeline C engine ─────────────────────────────────────────────────────────
 
 /**
@@ -125,8 +151,36 @@ export class AdvancedDesignEngine {
      *
      * All rate inputs are plain percentages (e.g. 7.5 for 7.5%).
      * Boolean inputs: realTerms, inflationAdjusted, isCouple, homeowner.
+     *
+     * Runs 500 Monte Carlo paths with per-year stochastic rates and returns
+     * the MEDIAN outcome so the result reflects realistic sequence-of-return
+     * risk rather than a single fixed-rate projection.
+     *
+     * The returned object includes the full median-run detail (yearByYear,
+     * retirementBalance, etc.) plus MC summary fields: successRate, p10Income,
+     * p90Income, and mcRuns.
      */
     calculate(inputs) {
+        const p = this._normalise(inputs);
+        const numRuns = Number(inputs.numMonteCarloRuns) || 500;
+        const mc = this._runMonteCarlo(p, numRuns);
+        return {
+            ...mc.medianResult,
+            successRate: mc.successRate,
+            p10Income:   mc.p10Income,
+            p90Income:   mc.p90Income,
+            mcRuns:      mc.runs,
+        };
+    }
+
+    /**
+     * calculateDeterministic(inputs) → single fixed-rate projection
+     *
+     * Returns a single deterministic run using the user's exact input rates
+     * for every year.  Use this for explainability / "show your workings"
+     * while the main calculate() result is MC-median.
+     */
+    calculateDeterministic(inputs) {
         const p = this._normalise(inputs);
         return this._runSimulation(p);
     }
@@ -150,9 +204,16 @@ export class AdvancedDesignEngine {
         return result;
     }
 
-    /** calculateSensitivity(inputs) → array of top-3 sensitivity drivers */
+    /**
+     * calculateSensitivity(inputs) → array of top-3 sensitivity drivers
+     *
+     * Uses deterministic projections for comparing parameter deltas so that
+     * small differences are not obscured by MC variance.  The main calculate()
+     * result (MC median) is used as the baseline income display value only.
+     */
     calculateSensitivity(inputs) {
-        const base = this.calculate(inputs);
+        // Deterministic baseline for clean delta comparisons
+        const base = this.calculateDeterministic(inputs);
         const baseIncome = base.annualRetirementIncome;
 
         const drivers = [
@@ -167,7 +228,7 @@ export class AdvancedDesignEngine {
         return drivers
             .map(d => {
                 let modIncome;
-                try { modIncome = this.calculate(Object.assign({}, inputs, { [d.key]: inputs[d.key] + d.delta })).annualRetirementIncome; }
+                try { modIncome = this.calculateDeterministic(Object.assign({}, inputs, { [d.key]: inputs[d.key] + d.delta })).annualRetirementIncome; }
                 catch { modIncome = baseIncome; }
                 const impact = modIncome - baseIncome;
                 return { driver: d.key, label: d.label, delta: d.delta, unit: d.unit, impact, direction: impact >= 0 ? 'positive' : 'negative', description: this._sensitivityDescription(d, impact, inputs) };
@@ -218,10 +279,26 @@ export class AdvancedDesignEngine {
         return n > 1 ? n / 100 : n;
     }
 
-    /** Core simulation loop. stress = null | { stressType, stressYear } */
-    _runSimulation(p, stress = null) {
+    /**
+     * Core simulation loop.
+     *
+     * @param {Object}  p          – normalised parameter object
+     * @param {Object}  [stress]   – null | { stressType, stressYear }
+     * @param {boolean} [stochastic=false] – when true, draws a fresh rate from a
+     *   normal distribution each year instead of using the fixed median rate.
+     *   Enables realistic sequence-of-return risk beyond named stress scenarios.
+     * @returns simulation result object
+     */
+    _runSimulation(p, stress = null, stochastic = false) {
         const yearsToRetirement = Math.max(0, p.retirementAge - p.currentAge);
         const yearsInRetirement = Math.max(0, p.planningHorizon - p.retirementAge);
+
+        // Volatility parameters for per-year normal draws.
+        // Super/savings: σ = max(3%, rate×60%) — balanced-fund volatility
+        // Inflation: σ = max(0.5%, rate×40%) — CPI year-to-year variation
+        const superSigma    = Math.max(0.03, Math.abs(p.superReturn)    * 0.6);
+        const savingsSigma  = Math.max(0.005, Math.abs(p.savingsReturn) * 0.3);
+        const inflationSigma = Math.max(0.005, Math.abs(p.inflation)    * 0.4);
 
         // ── Accumulation ─────────────────────────────────────────────────
         let superBal   = p.currentSuper;
@@ -230,9 +307,20 @@ export class AdvancedDesignEngine {
         let cpiFactor = 1;
 
         for (let yr = 0; yr < yearsToRetirement; yr++) {
-            superBal    = (superBal    + p.annualContribution)    * (1 + p.superReturn);
-            savingsBal  = (savingsBal  + p.annualSavingsContrib)  * (1 + p.savingsReturn);
-            cpiFactor  *= (1 + p.inflation);
+            // Per-year rate draws (stochastic) or fixed median (deterministic)
+            const yrSuperReturn   = stochastic
+                ? Math.max(-0.30, normalDraw(p.superReturn,   superSigma))
+                : p.superReturn;
+            const yrSavingsReturn = stochastic
+                ? Math.max(0,     normalDraw(p.savingsReturn, savingsSigma))
+                : p.savingsReturn;
+            const yrInflation     = stochastic
+                ? Math.max(0.001, normalDraw(p.inflation,     inflationSigma))
+                : p.inflation;
+
+            superBal    = (superBal    + p.annualContribution)    * (1 + yrSuperReturn);
+            savingsBal  = (savingsBal  + p.annualSavingsContrib)  * (1 + yrSavingsReturn);
+            cpiFactor  *= (1 + yrInflation);
             const display = p.realTerms ? 1 / cpiFactor : 1;
             yearByYear.push({
                 age:            p.currentAge + yr,
@@ -263,13 +351,27 @@ export class AdvancedDesignEngine {
         for (let yr = 0; yr < yearsInRetirement; yr++) {
             const age     = p.retirementAge + yr;
             const retirYr = yr + 1;
-            cpiFactor    *= (1 + p.inflation);
 
-            if (p.inflationAdjusted && yr > 0) withdrawal *= (1 + p.inflation);
+            // Per-year stochastic draws for decumulation phase
+            const yrSuperReturn   = stochastic
+                ? Math.max(-0.30, normalDraw(p.superReturn,   superSigma))
+                : p.superReturn;
+            const yrSavingsReturn = stochastic
+                ? Math.max(0,     normalDraw(p.savingsReturn, savingsSigma))
+                : p.savingsReturn;
+            const yrInflation     = stochastic
+                ? Math.max(0.001, normalDraw(p.inflation,     inflationSigma))
+                : p.inflation;
 
-            let superRet   = p.superReturn;
-            let savingsRet = p.savingsReturn;
+            cpiFactor *= (1 + yrInflation);
 
+            // Inflation-adjust withdrawal using per-year drawn inflation
+            if (p.inflationAdjusted && yr > 0) withdrawal *= (1 + yrInflation);
+
+            let superRet   = yrSuperReturn;
+            let savingsRet = yrSavingsReturn;
+
+            // Stress scenarios override stochastic rates
             if (stress) {
                 if (stress.stressType === 'sequence-of-returns' && retirYr <= 3) {
                     superRet = savingsRet = -0.10;
@@ -328,6 +430,53 @@ export class AdvancedDesignEngine {
             retirementAge:       p.retirementAge,
             agePensionEstimate:  Math.round(agePensionEstimate),
             yearByYear,
+        };
+    }
+
+    /**
+     * Run N Monte Carlo simulations with per-year stochastic rates and return
+     * the MEDIAN outcome across all runs.  Each run draws a fresh independent
+     * rate for every year so no two years share the same growth assumption.
+     *
+     * The median (p50) is returned as the primary result because it is more
+     * robust to outlier runs than the arithmetic mean.
+     *
+     * @param {Object} p          – normalised parameter object
+     * @param {number} [numRuns=500] – number of MC paths to simulate
+     * @returns {{ medianResult, successRate, p10Result, p90Result }}
+     */
+    _runMonteCarlo(p, numRuns = 500) {
+        const results = [];
+        for (let i = 0; i < numRuns; i++) {
+            results.push(this._runSimulation(p, null, true));
+        }
+
+        // Sort by final retirement balance to derive percentile outcomes
+        const sorted = [...results].sort((a, b) => a.retirementBalance - b.retirementBalance);
+        const mid    = Math.floor(sorted.length / 2);
+        const medianResult = sorted.length % 2 === 0
+            ? sorted[mid]          // lower-mid for even (conservative median)
+            : sorted[mid];
+
+        // Success rate: fraction of runs that never depleted the portfolio
+        const successCount = results.filter(r => r.depletionYear === null).length;
+        const successRate  = successCount / numRuns;
+
+        // Median annual income across all runs (primary output)
+        const incomes = results.map(r => r.annualRetirementIncome);
+        const medianIncome = arrayMedian(incomes);
+
+        // p10 / p90 income band for display
+        const sortedIncomes = [...incomes].sort((a, b) => a - b);
+        const p10Income = sortedIncomes[Math.floor(sortedIncomes.length * 0.10)];
+        const p90Income = sortedIncomes[Math.floor(sortedIncomes.length * 0.90)];
+
+        return {
+            medianResult:   { ...medianResult, annualRetirementIncome: Math.round(medianIncome) },
+            successRate,
+            p10Income:      Math.round(p10Income),
+            p90Income:      Math.round(p90Income),
+            runs:           numRuns,
         };
     }
 

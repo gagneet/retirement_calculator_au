@@ -160,8 +160,41 @@ export const runLifeSimulation = (userInputs) => {
             ? inputs.partnerCurrentAge + yearsElapsed
             : 0;
 
-        // Stochastic shocks
-        currentInflation = applyInflationShock(inflation, inputs);
+        // ── Per-year stochastic rate draws ────────────────────────────────────
+        // In stochastic (MC) mode each year draws its own independent rate from a
+        // normal distribution centred on the user's median input, so successive years
+        // see different inflation/return values rather than a single fixed compound.
+        // In deterministic mode these collapse to the user's exact input values.
+        let yearInflationRate = inflation;
+        let yearHcInflationRate = inputs.healthcareInflation || 0.0382;
+        let yearPropertyGrowthRate = inputs.propertyGrowthRate || 0.058;
+
+        if (useStochasticReturns) {
+            // Inflation: σ = max(0.5%, inflation×40%) — moderate year-to-year CPI variation
+            const inflSigma = Math.max(0.005, inflation * 0.4);
+            const [ui1, ui2] = [Math.max(1e-10, Math.random()), Math.random()];
+            const zi = Math.sqrt(-2 * Math.log(ui1)) * Math.cos(2 * Math.PI * ui2);
+            yearInflationRate = Math.max(0.001, inflation + zi * inflSigma);
+
+            // Healthcare inflation: σ = max(1%, hcRate×40%) — healthcare tends to
+            // escalate faster than CPI but also varies year to year
+            const hcSigma = Math.max(0.01, yearHcInflationRate * 0.4);
+            const [uh1, uh2] = [Math.max(1e-10, Math.random()), Math.random()];
+            const zh = Math.sqrt(-2 * Math.log(uh1)) * Math.cos(2 * Math.PI * uh2);
+            yearHcInflationRate = Math.max(0.001, yearHcInflationRate + zh * hcSigma);
+
+            // Property growth: σ = max(3%, rate×60%) — property cycles drive large swings
+            const propBase = inputs.propertyGrowthRate || 0.058;
+            const propSigma = Math.max(0.03, Math.abs(propBase) * 0.6);
+            const [up1, up2] = [Math.max(1e-10, Math.random()), Math.random()];
+            const zp = Math.sqrt(-2 * Math.log(up1)) * Math.cos(2 * Math.PI * up2);
+            yearPropertyGrowthRate = Math.max(-0.15, propBase + zp * propSigma);
+        }
+
+        // Stochastic shocks (applied on top of per-year rates drawn above)
+        currentInflation = useStochasticReturns
+            ? yearInflationRate // continuous variation already captured above
+            : applyInflationShock(inflation, inputs);
         const { newValue: investAfterShock, shockOccurred: investShock } =
             applyMarketShock(investmentAssets, inputs);
         if (investShock) investmentAssets = investAfterShock;
@@ -231,7 +264,9 @@ export const runLifeSimulation = (userInputs) => {
         }
 
         // ── Expenses ──────────────────────────────────────────────────────────
-        healthcareCosts = projectHealthcareCosts(healthcareCosts, age, inputs);
+        // Pass the per-year drawn healthcare inflation so each year compounds
+        // at a freshly sampled rate rather than the same fixed median value.
+        healthcareCosts = projectHealthcareCosts(healthcareCosts, age, inputs, yearHcInflationRate);
         state.healthcareCosts = healthcareCosts;
 
         const agedCare = getAgedCareCost(age, inputs) + (state.agedCareCosts || 0);
@@ -240,8 +275,9 @@ export const runLifeSimulation = (userInputs) => {
         const eduCosts = state.educationCosts || 0;
 
         if (age < retirementAge) {
-            // Pre-retirement: project living expenses from income
-            livingExpenses = projectLivingExpenses(livingExpenses, age, inputs);
+            // Pre-retirement: project living expenses using the per-year inflation draw
+            // so each year reflects a different inflation rate rather than a fixed compound.
+            livingExpenses = projectLivingExpenses(livingExpenses, age, inputs, yearInflationRate);
             state.livingExpenses = livingExpenses;
         } else {
             // ── Retirement spending ───────────────────────────────────────────
@@ -444,9 +480,10 @@ export const runLifeSimulation = (userInputs) => {
 
         investmentAssets = growInvestmentAssets(investmentAssets, annualNetContrib, yearInputs);
 
-        // Property value growth
+        // Property value growth — use the per-year stochastic draw so each year
+        // experiences a different growth rate rather than a fixed compound rate.
         if (propertyValue > 0) {
-            propertyValue = growPropertyValue(propertyValue, inputs);
+            propertyValue = growPropertyValue(propertyValue, inputs, yearPropertyGrowthRate);
         }
 
         // ── Finalise state snapshot ───────────────────────────────────────────
