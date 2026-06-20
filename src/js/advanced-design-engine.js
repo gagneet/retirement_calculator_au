@@ -451,32 +451,28 @@ export class AdvancedDesignEngine {
             results.push(this._runSimulation(p, null, true));
         }
 
-        // Sort by final retirement balance to derive percentile outcomes
-        const sorted = [...results].sort((a, b) => a.retirementBalance - b.retirementBalance);
-        const mid    = Math.floor(sorted.length / 2);
-        const medianResult = sorted.length % 2 === 0
-            ? sorted[mid]          // lower-mid for even (conservative median)
-            : sorted[mid];
+        // Sort by annualRetirementIncome to find the run whose income is the
+        // median — this ensures the returned medianResult is a self-consistent
+        // single simulation run (all fields from the same run).  Using the
+        // median-income run is preferable to mixing fields from different runs.
+        const sortedByIncome = [...results].sort((a, b) => a.annualRetirementIncome - b.annualRetirementIncome);
+        const mid            = Math.floor(sortedByIncome.length / 2);
+        const medianResult   = sortedByIncome[mid];
 
         // Success rate: fraction of runs that never depleted the portfolio
         const successCount = results.filter(r => r.depletionYear === null).length;
         const successRate  = successCount / numRuns;
 
-        // Median annual income across all runs (primary output)
-        const incomes = results.map(r => r.annualRetirementIncome);
-        const medianIncome = arrayMedian(incomes);
-
         // p10 / p90 income band for display
-        const sortedIncomes = [...incomes].sort((a, b) => a - b);
-        const p10Income = sortedIncomes[Math.floor(sortedIncomes.length * 0.10)];
-        const p90Income = sortedIncomes[Math.floor(sortedIncomes.length * 0.90)];
+        const p10Income = sortedByIncome[Math.floor(sortedByIncome.length * 0.10)].annualRetirementIncome;
+        const p90Income = sortedByIncome[Math.floor(sortedByIncome.length * 0.90)].annualRetirementIncome;
 
         return {
-            medianResult:   { ...medianResult, annualRetirementIncome: Math.round(medianIncome) },
+            medianResult,
             successRate,
-            p10Income:      Math.round(p10Income),
-            p90Income:      Math.round(p90Income),
-            runs:           numRuns,
+            p10Income:  Math.round(p10Income),
+            p90Income:  Math.round(p90Income),
+            runs:       numRuns,
         };
     }
 
