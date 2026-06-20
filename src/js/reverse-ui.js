@@ -28,6 +28,12 @@ import {
     formatLeverAsAction,
     DISCLAIMER_TEXT,
 } from './reverse-report.js';
+import {
+    calculateRetirementAgeSalaryCurve,
+    calculateRequiredCurrentValues,
+    calculateSalaryReductionTolerance,
+    calculateOptimalOverseasAge,
+} from './reverse-deep-analysis.js';
 
 const STORAGE_KEY = 'rc_forward_scenario';
 
@@ -504,6 +510,7 @@ export class ReverseUI {
             this._renderSafe(() => this.renderRankedActionPlan(result));
             this._renderSafe(() => this.renderScenarioComparisonCards(result));
             this._renderSafe(() => this.renderOverseasComparison(result));
+            this._renderSafe(() => this._renderDeepAnalysisAsync(result));
 
             show('rp-results-section');
         } catch (err) {
@@ -946,6 +953,236 @@ export class ReverseUI {
         }
 
         return scenarios;
+    }
+
+    // -----------------------------------------------------------------------
+    // Deep analysis (reverse-deep-analysis.js)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Run all four deep-analysis functions and render their results.
+     * Each runs independently and is isolated so a single failure never
+     * blanks the entire section.
+     */
+    async _renderDeepAnalysisAsync(result) {
+        const section = el('rp-deep-analysis-section');
+        if (!section) return;
+
+        try {
+            const simulator = this.planner.simulator;
+            const baseInputs = this.planner.solver?.simulator
+                ? result.inputs || {}
+                : {};
+            const target = result.target || {};
+            const inputs = result.inputs || {};
+
+            show('rp-deep-analysis-section');
+        } catch {
+            hide('rp-deep-analysis-section');
+            return;
+        }
+
+        // Run all four analyses
+        await Promise.all([
+            this._renderAgeSalaryCurve(inputs, target).catch(e => {
+                console.error('Age-salary curve render error:', e);
+                safeHtml('rp-age-salary-curve', '<p class="text-sm" style="color:var(--ink-3)">Analysis unavailable</p>');
+            }),
+            this._renderRequiredValues(inputs, target).catch(e => {
+                console.error('Required values render error:', e);
+                safeHtml('rp-required-values', '<p class="text-sm" style="color:var(--ink-3)">Analysis unavailable</p>');
+            }),
+            this._renderSalaryTolerance(inputs, target).catch(e => {
+                console.error('Salary tolerance render error:', e);
+                safeHtml('rp-salary-tolerance', '<p class="text-sm" style="color:var(--ink-3)">Analysis unavailable</p>');
+            }),
+            this._renderOverseasAgeAnalysis(inputs, target).catch(e => {
+                console.error('Overseas age analysis render error:', e);
+                safeHtml('rp-overseas-age-analysis', '<p class="text-sm" style="color:var(--ink-3)">Analysis unavailable</p>');
+            }),
+        ]);
+    }
+
+    /**
+     * Render card 1: When can I retire — retirement age vs required salary curve.
+     */
+    async _renderAgeSalaryCurve(inputs, target) {
+        const container = el('rp-age-salary-curve');
+        if (!container) return;
+
+        const simulator = this.planner.simulator;
+        const curve = await calculateRetirementAgeSalaryCurve(simulator, inputs, target);
+
+        if (!curve || curve.length === 0) {
+            container.innerHTML = '<p class="text-sm" style="color:var(--ink-3)">No data available</p>';
+            return;
+        }
+
+        const currentRetireAge = target.retirementAge || 65;
+        const currentSalary = inputs.yourSalary || 0;
+
+        let html = '<div style="overflow-x:auto"><table class="year-table" style="min-width:400px;font-size:12px"><thead><tr><th>Retirement age</th><th class="text-right">Required salary</th><th class="text-right">Feasible</th></tr></thead><tbody>';
+
+        curve.forEach(pt => {
+            const isCurrent = pt.retirementAge === currentRetireAge;
+            const bg = isCurrent ? 'var(--accent-soft)' : 'transparent';
+            const feasibleIcon = pt.feasible ? '✓' : '✗';
+            const feasibleColor = pt.feasible ? 'var(--accent)' : 'var(--ink-3)';
+            const salaryStr = pt.feasible
+                ? '$' + Math.round(pt.requiredSalary).toLocaleString()
+                : '—';
+
+            html += `<tr style="background:${bg}">
+                <td style="font-weight:${isCurrent ? '700' : '400'}">${pt.retirementAge}${isCurrent ? ' (current target)' : ''}</td>
+                <td class="text-right">${salaryStr}/yr</td>
+                <td class="text-right" style="color:${feasibleColor}">${feasibleIcon}</td>
+            </tr>`;
+        });
+
+        html += '</tbody></table></div>';
+
+        // Summary
+        const earliestFeasible = curve.find(pt => pt.feasible);
+        const summaryHtml = earliestFeasible
+            ? `<p style="font-size:12px;color:var(--ink-2);margin-top:8px">Earliest feasible retirement age: <strong>${earliestFeasible.retirementAge}</strong> (requires salary of $${Math.round(earliestFeasible.requiredSalary).toLocaleString()}/yr)</p>`
+            : '<p style="font-size:12px;color:var(--rose);margin-top:8px">Cannot achieve goal at any retirement age up to 75 within modelled salary range ($500k cap)</p>';
+
+        container.innerHTML = html + summaryHtml;
+    }
+
+    /**
+     * Render card 2: What you need today — required home value + investment balance.
+     */
+    async _renderRequiredValues(inputs, target) {
+        const container = el('rp-required-values');
+        if (!container) return;
+
+        const simulator = this.planner.simulator;
+        const values = await calculateRequiredCurrentValues(simulator, inputs, target);
+
+        const fmtCurrency = (v) => v != null ? '$' + Math.round(v).toLocaleString() : '—';
+
+        const homeRow = values.homeValue;
+        const savingsRow = values.investmentBalance;
+
+        container.innerHTML = `
+            <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border)">
+                    <div>
+                        <div style="font-weight:600;font-size:13px;color:var(--ink)">Home value</div>
+                        <div style="font-size:11px;color:var(--ink-3)">Current: ${fmtCurrency(homeRow.current)}</div>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-weight:600;font-size:13px;color:${homeRow.feasible ? 'var(--accent)' : 'var(--rose)'}">${fmtCurrency(homeRow.required)}</div>
+                        <div style="font-size:11px;color:var(--ink-3)">${homeRow.feasible ? 'Required' : 'Infeasible'}</div>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border)">
+                    <div>
+                        <div style="font-weight:600;font-size:13px;color:var(--ink)">Investment balance</div>
+                        <div style="font-size:11px;color:var(--ink-3)">Current: ${fmtCurrency(savingsRow.current)}</div>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-weight:600;font-size:13px;color:${savingsRow.feasible ? 'var(--accent)' : 'var(--rose)'}">${fmtCurrency(savingsRow.required)}</div>
+                        <div style="font-size:11px;color:var(--ink-3)">${savingsRow.feasible ? 'Required' : 'Infeasible'}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render card 3: Salary reduction tolerance.
+     */
+    async _renderSalaryTolerance(inputs, target) {
+        const container = el('rp-salary-tolerance');
+        if (!container) return;
+
+        const simulator = this.planner.simulator;
+        const tolerance = await calculateSalaryReductionTolerance(simulator, inputs, target);
+
+        if (!tolerance.feasible) {
+            container.innerHTML = '<p style="font-size:12px;color:var(--rose)">Salary cannot be reduced below current level while still meeting your retirement goal.</p>';
+            return;
+        }
+
+        const fmtCurrency = (v) => v != null ? '$' + Math.round(v).toLocaleString() : '—';
+
+        container.innerHTML = `
+            <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;background:var(--accent-soft);border:1px solid var(--accent)">
+                    <div>
+                        <div style="font-weight:600;font-size:13px;color:var(--ink)">Current salary</div>
+                    </div>
+                    <div style="font-weight:600;font-size:13px;color:var(--ink)">${fmtCurrency(tolerance.currentSalary)}/yr</div>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border)">
+                    <div>
+                        <div style="font-weight:600;font-size:13px;color:var(--ink)">Minimum required salary</div>
+                    </div>
+                    <div style="font-weight:600;font-size:13px;color:var(--accent)">${fmtCurrency(tolerance.minRequiredSalary)}/yr</div>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border)">
+                    <div>
+                        <div style="font-weight:600;font-size:13px;color:var(--ink)">Maximum reduction</div>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-weight:600;font-size:13px;color:var(--accent)">${fmtCurrency(tolerance.maxReduction)}/yr</div>
+                        <div style="font-size:11px;color:var(--ink-3)">${tolerance.reductionPercent != null ? tolerance.reductionPercent.toFixed(1) + '% of current salary' : ''}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render card 4: Optimal overseas move age analysis.
+     */
+    async _renderOverseasAgeAnalysis(inputs, target) {
+        const container = el('rp-overseas-age-analysis');
+        if (!container) return;
+
+        const simulator = this.planner.simulator;
+        const analysis = await calculateOptimalOverseasAge(simulator, inputs, target);
+
+        const fmtCurrency = (v) => v != null ? '$' + Math.round(v).toLocaleString() : '—';
+
+        if (!analysis.feasible) {
+            container.innerHTML = '<p style="font-size:12px;color:var(--ink-3)">Overseas retirement is not projected to be feasible at any age within modelled parameters.</p>';
+            return;
+        }
+
+        // Summary header
+        let summaryHtml = '';
+        if (analysis.optimalAge) {
+            if (analysis.worksWithCurrentSalary) {
+                summaryHtml = `<p style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:8px">Optimal move age: <strong>${analysis.optimalAge}</strong> (works with current salary)</p>`;
+            } else {
+                summaryHtml = `<p style="font-size:12px;color:var(--amber);font-weight:600;margin-bottom:8px">Optimal move age: <strong>${analysis.optimalAge}</strong> (may require salary adjustment)</p>`;
+            }
+        }
+
+        // Table
+        let tableHtml = '<div style="overflow-x:auto"><table class="year-table" style="min-width:400px;font-size:12px"><thead><tr><th>Move age</th><th class="text-right">Required salary</th><th class="text-right">Overseas target</th><th class="text-right">Works now?</th></tr></thead><tbody>';
+
+        analysis.analysis.forEach(pt => {
+            const isOptimal = pt.moveAge === analysis.optimalAge;
+            const bg = isOptimal ? 'var(--accent-soft)' : 'transparent';
+            const salaryStr = pt.feasible ? fmtCurrency(pt.requiredSalary) + '/yr' : '—';
+            const worksStr = pt.worksWithCurrentSalary ? '✓' : '—';
+            const worksColor = pt.worksWithCurrentSalary ? 'var(--accent)' : 'var(--ink-3)';
+
+            tableHtml += `<tr style="background:${bg}">
+                <td style="font-weight:${isOptimal ? '700' : '400'}">${pt.moveAge}${isOptimal ? ' (optimal)' : ''}</td>
+                <td class="text-right">${salaryStr}</td>
+                <td class="text-right">${fmtCurrency(pt.annualTargetOverseas)}/yr</td>
+                <td class="text-right" style="color:${worksColor}">${worksStr}</td>
+            </tr>`;
+        });
+
+        tableHtml += '</tbody></table></div>';
+
+        container.innerHTML = summaryHtml + tableHtml;
     }
 
     /**
