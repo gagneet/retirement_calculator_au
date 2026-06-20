@@ -214,7 +214,13 @@ export class ReversePlanner {
             targetAnnualIncomeToday: target.targetAnnualIncomeToday,
         });
 
-        // Merge target with defaults
+        // Merge target with defaults.
+        // Strip undefined values from target before spreading so that callers passing
+        // partially-populated objects (e.g. from forward projection where a field was
+        // not set) don't override the defaults above with undefined.
+        const cleanTarget = Object.fromEntries(
+            Object.entries(target || {}).filter(([, v]) => v !== undefined)
+        );
         const resolvedTarget = {
             targetAnnualIncomeToday: 73000,
             retirementAge: baseInputs.retirementAge || 67,
@@ -225,7 +231,7 @@ export class ReversePlanner {
             householdType: baseInputs.isCouple ? 'couple' : 'single',
             lifespan: baseInputs.yourLifespan || 90,
             swr: DEFAULT_SWR,
-            ...target,
+            ...cleanTarget,
         };
 
         // 1. Build current path
