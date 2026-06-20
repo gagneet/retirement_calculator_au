@@ -72,6 +72,19 @@ export class ReverseUI {
     }
 
     /**
+     * Execute a render function with error isolation.
+     * If the render throws, the error is logged and execution continues
+     * so a single broken panel never blanks the entire results section.
+     */
+    _renderSafe(fn) {
+        try {
+            fn();
+        } catch (err) {
+            console.error('ReverseUI render error (isolated):', err);
+        }
+    }
+
+    /**
      * Initialise the UI: import baseline, attach event listeners.
      */
     init() {
@@ -477,13 +490,14 @@ export class ReverseUI {
             // Run gap analysis
             const gap = compareCurrentToTarget(result.currentPath, result.target);
 
-            // Render all panels
-            this.renderResults(result);
-            this.renderCurrentVsRequiredComparison(result, gap);
-            this.renderProblemFlags(gap);
-            this.renderRankedActionPlan(result);
-            this.renderScenarioComparisonCards(result);
-            this.renderOverseasComparison(result);
+            // Render all panels with individual error isolation so one failure
+            // does not suppress downstream renders.
+            this._renderSafe(() => this.renderResults(result));
+            this._renderSafe(() => this.renderCurrentVsRequiredComparison(result, gap));
+            this._renderSafe(() => this.renderProblemFlags(gap));
+            this._renderSafe(() => this.renderRankedActionPlan(result));
+            this._renderSafe(() => this.renderScenarioComparisonCards(result));
+            this._renderSafe(() => this.renderOverseasComparison(result));
 
             show('rp-results-section');
         } catch (err) {
