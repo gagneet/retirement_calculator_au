@@ -237,7 +237,7 @@ export class ReversePlanner {
             });
             currentPath.inflationRate = projection.engineInputs?.inflation ?? DEFAULT_INFLATION;
             currentPath.yearsToRetirement = Math.max(1, resolvedTarget.retirementAge - resolvedTarget.currentAge);
-            currentPath.swr = DEFAULT_SWR;
+            currentPath.swr = resolvedTarget.swr ?? DEFAULT_SWR;
             currentPath.totalAssetsNominal = currentPath.totalAssetsAtRetirement;
             currentPath.incomeGap = Math.max(0, resolvedTarget.targetAnnualIncomeToday - currentPath.currentAnnualIncomeToday);
             currentPath.meetsGoal = currentPath.currentAnnualIncomeToday >= resolvedTarget.targetAnnualIncomeToday;
