@@ -312,16 +312,12 @@ export const runLifeSimulation = (userInputs) => {
                 initialPortfolio = portfolioValue;
                 retirementWealth = portfolioValue;
                 currentSpending  = baseRetirementSpending;
-                // Reset retirement-phase cumulative factor; it seeds from the
-                // pre-retirement cumulative inflation so costs are continuous.
-                cumulativeRetirementInflationFactor = cumulativeInflationFactor;
+                // Retirement-phase cumulative factor starts at 1 (base spending is
+                // already in nominal dollars at retirement).  Pre-retirement inflation
+                // is NOT carried over here — the base spending is expressed in the
+                // nominal dollars of the retirement year, not simulation-start dollars.
+                cumulativeRetirementInflationFactor = 1;
             }
-
-            // Advance the retirement-phase cumulative factor with this year's draw.
-            // This correctly represents: baseCost × (1+i₁) × (1+i₂) × ... × (1+iₙ)
-            // rather than baseCost × (1 + fixedRate)^n, avoiding the bulk-power error
-            // that arises when a single randomly-drawn year's rate is exponentiated.
-            cumulativeRetirementInflationFactor *= (1 + yearInflationRate);
 
             currentSpending = calculateSpending({
                 strategy:          spendingStrategy,
@@ -331,12 +327,23 @@ export const runLifeSimulation = (userInputs) => {
                 initialSpending:   baseRetirementSpending,
                 yearsRetired,
                 inflation:         currentInflation,
-                // Pass the running cumulative factor so the FIXED strategy can apply
-                // the correct compound product rather than (single_rate)^years.
+                // Pass the running cumulative factor so the FIXED strategy applies
+                // the correct year-by-year compound product.  The factor is updated
+                // AFTER spending is calculated so that year 0 uses a factor of 1
+                // (matching the deterministic Math.pow(inf, 0) = 1 baseline).
                 cumulativeInflationFactor: cumulativeRetirementInflationFactor,
                 portfolioDeclined,
                 inputs,
             });
+
+            // Advance the retirement-phase cumulative factor AFTER spending is
+            // recorded.  This ensures:
+            //   yearsRetired=0: factor=1 → spending = base (no inflation yet) ✓
+            //   yearsRetired=1: factor=(1+i₁) → spending = base×(1+i₁) ✓
+            //   yearsRetired=n: factor=(1+i₁)×…×(1+iₙ) ✓
+            // Accumulating before spending would inflate year-0 spending by one
+            // extra year compared to the deterministic Math.pow baseline.
+            cumulativeRetirementInflationFactor *= (1 + yearInflationRate);
 
             state.livingExpenses = currentSpending;
             previousPortfolio    = portfolioValue;
