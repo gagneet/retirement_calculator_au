@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Reverse Retirement Planner | Australian Retirement Calculator</title>
+  <meta name="description" content="Goal-seeking reverse planner: given the retirement income you want, find exactly what needs to change today. Australian super, Age Pension, and investment analysis." />
+
+  <link rel="canonical" href="https://retirement.gagneet.com/reverse.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body { font-family: 'Manrope', sans-serif; }
+    em { font-family: 'Instrument Serif', serif; font-style: italic; }
+
+    .rp-card { background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1.5rem; }
+    .rp-status-badge { display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
+    .rp-status-ok { background: #d1fae5; color: #065f46; }
+    .rp-status-gap { background: #fee2e2; color: #991b1b; }
+
+    .rp-lever-item { display: flex; gap: 0.75rem; padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem; }
+    .rp-lever-feasible { background: #f0fdf4; border: 1px solid #86efac; }
+    .rp-lever-infeasible { background: #fafafa; border: 1px solid #e5e7eb; opacity: 0.7; }
+    .rp-lever-status { font-size: 1.1rem; flex-shrink: 0; }
+    .rp-lever-content { display: flex; flex-direction: column; gap: 2px; }
+    .rp-lever-desc { color: #6b7280; font-size: 0.9rem; }
+    .rp-lever-group { margin-bottom: 1rem; }
+    .rp-lever-group h4 { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; margin-bottom: 0.5rem; }
+
+    .rp-no-actions { padding: 1rem; color: #6b7280; font-style: italic; }
+
+    .rp-overseas-card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 1rem; }
+    .rp-overseas-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem; }
+    .rp-overseas-header h4 { font-size: 1rem; font-weight: 700; margin: 0; }
+    .rp-overseas-region { font-size: 0.8rem; color: #9ca3af; }
+    .rp-overseas-target { font-size: 0.95rem; margin-bottom: 0.5rem; }
+    .rp-overseas-breakdown { font-size: 0.8rem; color: #6b7280; display: flex; flex-direction: column; gap: 2px; margin-bottom: 0.5rem; }
+    .rp-overseas-saving { color: #059669; font-weight: 600; font-size: 0.9rem; }
+    .rp-overseas-more-expensive { color: #dc2626; font-weight: 600; font-size: 0.9rem; }
+    .rp-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin-top: 0.5rem; }
+    .rp-badge-green { background: #d1fae5; color: #065f46; }
+    .rp-badge-grey { background: #f3f4f6; color: #6b7280; }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 640px) {
+      .rp-overseas-cards { grid-template-columns: 1fr !important; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- ───── TOP BAR ───── -->
+  <div class="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-4">
+    <a href="/" class="font-bold text-gray-800 hover:text-indigo-600">Retirement Planner <span class="text-gray-400 font-normal">· AU</span></a>
+    <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium">Reverse Planner</span>
+    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">2025–26 ATO rules</span>
+    <div class="ml-auto flex gap-3">
+      <a href="/advanced-v2.html" class="text-sm text-gray-500 hover:text-indigo-600">← Advanced Calculator</a>
+      <a href="/how-to-use.html" class="text-sm text-gray-500 hover:text-indigo-600">? Help</a>
+    </div>
+  </div>
+
+  <!-- ───── HERO ───── -->
+  <header class="max-w-4xl mx-auto px-4 pt-10 pb-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">
+      "What do I need to change <em>today</em> to retire the way I want?"
+    </h1>
+    <p class="text-gray-600 text-lg">
+      Tell us your goal. We'll show you the exact levers — extra super, salary, retirement age, savings — ranked by impact and practicality.
+    </p>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 pb-16">
+
+    <!-- ───── IMPORT BANNER ───── -->
+    <div id="rp-import-banner" class="hidden rp-card border-l-4 border-indigo-500 bg-indigo-50 flex items-start gap-4 mb-4">
+      <div class="text-2xl">↑</div>
+      <div class="flex-1">
+        <p class="font-semibold text-indigo-900">Use your existing Advanced Calculator inputs?</p>
+        <p class="text-sm text-indigo-700 mt-1">We found saved data: <span id="rp-import-summary"></span></p>
+      </div>
+      <div class="flex gap-2">
+        <button id="rp-import-yes" class="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 font-medium">Yes, use these</button>
+        <button id="rp-import-no" class="px-4 py-1.5 bg-white text-gray-600 text-sm rounded-lg border border-gray-200 hover:bg-gray-50">No thanks</button>
+      </div>
+    </div>
+
+    <!-- Import applied notice -->
+    <div id="rp-import-applied-notice" class="hidden text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-2 mb-4">
+      ✓ Your Advanced Calculator data has been imported. Review and adjust below.
+    </div>
+
+    <!-- ───── MAIN FORM ───── -->
+    <div class="rp-card">
+      <h2 class="text-lg font-bold text-gray-900 mb-4">Your details</h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        <!-- Household type -->
+        <div class="sm:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Household type</label>
+          <div class="flex gap-3">
+            <select id="rp-household-type" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="single">Single</option>
+              <option value="couple">Couple</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Age -->
+        <div>
+          <label for="rp-current-age" class="block text-sm font-medium text-gray-700 mb-1">Your current age</label>
+          <input type="number" id="rp-current-age" min="18" max="80" value="50"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+        </div>
+
+        <!-- Retirement age -->
+        <div>
+          <label for="rp-retirement-age" class="block text-sm font-medium text-gray-700 mb-1">Target retirement age</label>
+          <input type="number" id="rp-retirement-age" min="40" max="80" value="67"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+        </div>
+
+        <!-- Desired income -->
+        <div class="sm:col-span-2">
+          <label for="rp-desired-income" class="block text-sm font-medium text-gray-700 mb-1">
+            Desired annual income in retirement <span class="text-gray-400 font-normal">(today's dollars)</span>
+          </label>
+          <div class="relative">
+            <span class="absolute left-3 top-2.5 text-gray-400 text-sm">$</span>
+            <input type="number" id="rp-desired-income" min="0" value="80000"
+              class="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          </div>
+          <p class="text-xs text-gray-400 mt-1">ASFA "Comfortable" single: $73,337 / couple: $103,344 (2024)</p>
+        </div>
+
+        <!-- Annual salary -->
+        <div>
+          <label for="rp-annual-salary" class="block text-sm font-medium text-gray-700 mb-1">Annual salary (before tax)</label>
+          <div class="relative">
+            <span class="absolute left-3 top-2.5 text-gray-400 text-sm">$</span>
+            <input type="number" id="rp-annual-salary" min="0" value="100000"
+              class="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- Super balance -->
+        <div>
+          <label for="rp-super-balance" class="block text-sm font-medium text-gray-700 mb-1">Current super balance</label>
+          <div class="relative">
+            <span class="absolute left-3 top-2.5 text-gray-400 text-sm">$</span>
+            <input type="number" id="rp-super-balance" min="0" value="200000"
+              class="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- Homeowner -->
+        <div>
+          <label for="rp-homeowner" class="block text-sm font-medium text-gray-700 mb-1">Do you own your home?</label>
+          <select id="rp-homeowner" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+
+        <!-- Mortgage -->
+        <div id="rp-mortgage-row">
+          <label for="rp-mortgage-balance" class="block text-sm font-medium text-gray-700 mb-1">Mortgage balance (if any)</label>
+          <div class="relative">
+            <span class="absolute left-3 top-2.5 text-gray-400 text-sm">$</span>
+            <input type="number" id="rp-mortgage-balance" min="0" value="0"
+              class="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- Age Pension -->
+        <div>
+          <label for="rp-include-age-pension" class="block text-sm font-medium text-gray-700 mb-1">Include Age Pension in plan?</label>
+          <select id="rp-include-age-pension" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="yes">Yes (use current rates)</option>
+            <option value="no">No (conservative — fund myself)</option>
+          </select>
+        </div>
+
+        <!-- Confidence -->
+        <div>
+          <label for="rp-confidence" class="block text-sm font-medium text-gray-700 mb-1">Confidence target</label>
+          <select id="rp-confidence" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="70">70% — Comfortable with some risk</option>
+            <option value="80" selected>80% — Balanced (recommended)</option>
+            <option value="90">90% — Conservative, high certainty</option>
+          </select>
+        </div>
+
+        <!-- Lifespan -->
+        <div>
+          <label for="rp-lifespan" class="block text-sm font-medium text-gray-700 mb-1">Plan to age</label>
+          <input type="number" id="rp-lifespan" min="75" max="110" value="90"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+        </div>
+
+      </div><!-- /grid -->
+
+      <!-- Couple section (hidden by default) -->
+      <div id="rp-couple-section" class="hidden mt-4 pt-4 border-t border-gray-100">
+        <h3 class="text-sm font-semibold text-gray-700 mb-3">Partner details</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="rp-partner-salary" class="block text-sm font-medium text-gray-700 mb-1">Partner annual salary</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-gray-400 text-sm">$</span>
+              <input type="number" id="rp-partner-salary" min="0" value="0"
+                class="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+          </div>
+          <div>
+            <label for="rp-partner-super" class="block text-sm font-medium text-gray-700 mb-1">Partner super balance</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-gray-400 text-sm">$</span>
+              <input type="number" id="rp-partner-super" min="0" value="0"
+                class="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced toggle -->
+      <div class="mt-6">
+        <button id="rp-advanced-toggle" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+          Show advanced options ▼
+        </button>
+      </div>
+
+      <!-- Advanced section (hidden by default) -->
+      <div id="rp-advanced-section" class="hidden mt-4 pt-4 border-t border-gray-100">
+        <h3 class="text-sm font-semibold text-gray-700 mb-3">Advanced options</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+          <div>
+            <label for="rp-monthly-investment" class="block text-sm font-medium text-gray-700 mb-1">Monthly investment (outside super)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-gray-400 text-sm">$</span>
+              <input type="number" id="rp-monthly-investment" min="0" value="0"
+                class="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+          </div>
+
+          <div>
+            <label for="rp-monthly-mortgage" class="block text-sm font-medium text-gray-700 mb-1">Monthly mortgage repayment</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-gray-400 text-sm">$</span>
+              <input type="number" id="rp-monthly-mortgage" min="0" value="0"
+                class="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+          </div>
+
+          <div>
+            <label for="rp-min-estate" class="block text-sm font-medium text-gray-700 mb-1">Minimum estate goal</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-gray-400 text-sm">$</span>
+              <input type="number" id="rp-min-estate" min="0" value="0"
+                class="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              <input type="checkbox" id="rp-has-property" class="mr-1" />
+              Has investment property
+            </label>
+          </div>
+
+          <div>
+            <label for="rp-weekly-rent" class="block text-sm font-medium text-gray-700 mb-1">Weekly rent (investment property)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-gray-400 text-sm">$</span>
+              <input type="number" id="rp-weekly-rent" min="0" value="0"
+                class="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+          </div>
+
+          <div>
+            <label for="rp-swr" class="block text-sm font-medium text-gray-700 mb-1">Safe withdrawal rate (%)</label>
+            <input type="number" id="rp-swr" min="2" max="6" step="0.1" value="4"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          </div>
+
+          <div>
+            <label for="rp-investment-return" class="block text-sm font-medium text-gray-700 mb-1">Investment return (%/yr)</label>
+            <input type="number" id="rp-investment-return" min="1" max="15" step="0.1" value="7"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          </div>
+
+          <div>
+            <label for="rp-super-return" class="block text-sm font-medium text-gray-700 mb-1">Super return (%/yr)</label>
+            <input type="number" id="rp-super-return" min="1" max="15" step="0.1" value="7.5"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          </div>
+
+          <div>
+            <label for="rp-inflation" class="block text-sm font-medium text-gray-700 mb-1">Inflation (%/yr)</label>
+            <input type="number" id="rp-inflation" min="0" max="10" step="0.1" value="2.6"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Calculate button -->
+      <div class="mt-6">
+        <button id="rp-calculate-btn"
+          class="w-full sm:w-auto bg-indigo-600 text-white px-8 py-3 rounded-xl font-semibold text-base hover:bg-indigo-700 active:bg-indigo-800 transition-colors">
+          Calculate my path
+        </button>
+      </div>
+
+    </div><!-- /form card -->
+
+    <!-- ───── LOADING ───── -->
+    <div id="rp-loading" class="hidden rp-card text-center py-8">
+      <div class="inline-block w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+      <p class="text-gray-600">Running scenarios…</p>
+    </div>
+
+    <!-- ───── ERROR ───── -->
+    <div id="rp-error-section" class="hidden rp-card border-l-4 border-red-500 bg-red-50">
+      <p class="font-semibold text-red-900">Calculation error</p>
+      <p id="rp-error-message" class="text-sm text-red-700 mt-1"></p>
+    </div>
+
+    <!-- ───── RESULTS ───── -->
+    <div id="rp-results-section" class="hidden">
+
+      <!-- Headline -->
+      <div class="rp-card">
+        <p id="rp-headline" class="text-xl font-bold text-gray-900"></p>
+      </div>
+
+      <!-- Two-column: Goal + Current Path -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+
+        <!-- Goal summary -->
+        <div class="rp-card">
+          <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Your goal</h3>
+          <div class="space-y-2">
+            <div>
+              <span class="text-2xl font-bold text-gray-900" id="rp-goal-today">—</span>
+            </div>
+            <div class="text-sm text-gray-500" id="rp-goal-nominal">—</div>
+            <div class="flex gap-4 text-sm text-gray-600 mt-2">
+              <span>Retire: <strong id="rp-goal-retire-age">—</strong></span>
+              <span><strong id="rp-goal-lifespan">—</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Current path -->
+        <div class="rp-card">
+          <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Current projected path</h3>
+          <div class="space-y-2">
+            <div class="flex items-baseline gap-2">
+              <span class="text-2xl font-bold text-gray-900" id="rp-current-income">—</span>
+              <span id="rp-goal-status" class="rp-status-badge"></span>
+            </div>
+            <div class="text-sm text-gray-500">Sustainable income today's $</div>
+            <div class="text-sm text-gray-600">Projected assets at retirement: <strong id="rp-current-assets">—</strong></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Gap analysis -->
+      <div class="rp-card">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Gap analysis</h3>
+        <div class="grid grid-cols-2 gap-4 mb-3">
+          <div>
+            <div class="text-xs text-gray-400 uppercase">Income gap</div>
+            <div class="text-lg font-bold text-red-600" id="rp-income-gap">—</div>
+          </div>
+          <div>
+            <div class="text-xs text-gray-400 uppercase">Capital gap</div>
+            <div class="text-lg font-bold text-red-600" id="rp-capital-gap">—</div>
+          </div>
+        </div>
+        <p class="text-sm text-gray-600" id="rp-gap-text"></p>
+      </div>
+
+      <!-- Pattern note -->
+      <div id="rp-pattern-note-section" class="hidden rp-card bg-amber-50 border-l-4 border-amber-400">
+        <p class="text-sm text-amber-800" id="rp-pattern-note"></p>
+      </div>
+
+      <!-- Top 3 actions -->
+      <div class="rp-card">
+        <h3 class="text-lg font-bold text-gray-900 mb-3">Top recommended actions</h3>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-gray-400 uppercase border-b border-gray-100">
+              <th class="pb-2 w-8">#</th>
+              <th class="pb-2 w-40">Lever</th>
+              <th class="pb-2">What to do</th>
+            </tr>
+          </thead>
+          <tbody id="rp-actions-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- All levers -->
+      <details class="rp-card">
+        <summary class="cursor-pointer text-sm font-semibold text-gray-700 hover:text-indigo-600">View all levers analysed</summary>
+        <div id="rp-all-levers" class="mt-4"></div>
+      </details>
+
+      <!-- Overseas comparison -->
+      <div class="mt-4">
+        <button id="rp-overseas-toggle" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium mb-3">
+          Show overseas comparison ▼
+        </button>
+        <div id="rp-overseas-section" class="hidden">
+          <div class="rp-card">
+            <h3 class="text-lg font-bold text-gray-900 mb-1">Overseas retirement comparison</h3>
+            <p class="text-sm text-gray-500 mb-4">Estimated target income needed in each country (today's AUD, including FX buffer and health insurance).</p>
+            <div id="rp-overseas-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assumptions -->
+      <details class="rp-card mt-4">
+        <summary class="cursor-pointer text-sm font-semibold text-gray-700 hover:text-indigo-600">Assumptions used in this projection</summary>
+        <ul id="rp-assumptions-list" class="mt-3 text-sm text-gray-600 space-y-1 list-disc list-inside"></ul>
+      </details>
+
+      <!-- Disclaimer -->
+      <div class="rp-card mt-4 bg-gray-50 border border-gray-200">
+        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">General Information Disclaimer</h3>
+        <p id="rp-disclaimer" class="text-xs text-gray-500 leading-relaxed"></p>
+      </div>
+
+    </div><!-- /results section -->
+
+  </main>
+
+  <!-- ───── FOOTER ───── -->
+  <footer class="border-t border-gray-200 bg-white mt-8 py-6 px-4 text-center text-xs text-gray-400">
+    <div class="max-w-4xl mx-auto flex flex-wrap justify-center gap-4">
+      <a href="/" class="hover:text-gray-600">Calculator</a>
+      <a href="/advanced-v2.html" class="hover:text-gray-600">Advanced</a>
+      <a href="/reverse.html" class="text-indigo-600 font-medium">Reverse Planner</a>
+      <a href="/comparison.html" class="hover:text-gray-600">Comparison</a>
+      <a href="/methodology.html" class="hover:text-gray-600">Methodology</a>
+      <a href="/assumptions.html" class="hover:text-gray-600">Assumptions</a>
+      <a href="/privacy.html" class="hover:text-gray-600">Privacy</a>
+      <a href="/terms.html" class="hover:text-gray-600">Terms</a>
+    </div>
+    <p class="mt-3">General information only. Not financial advice. Always consult a licensed adviser.</p>
+    <p class="mt-1">© <script>document.write(new Date().getFullYear())</script> Australian Retirement Calculator</p>
+  </footer>
+
+</body>
+</html>
