@@ -140,6 +140,13 @@ export const runLifeSimulation = (userInputs) => {
     let previousPortfolio = 0;
     let propertyPurchasePrice = propertyValue; // track for CGT
 
+    // Cumulative inflation factor — built up as the product of each year's draw so
+    // that spending targets compound year-by-year rather than using a single bulk
+    // Math.pow(rate, years) formula.  In deterministic mode each year multiplies
+    // by the fixed median rate; in stochastic mode by a freshly drawn per-year rate.
+    let cumulativeInflationFactor = 1;
+    let cumulativeRetirementInflationFactor = 1; // restarted at retirement year
+
     // Healthcare costs
     let healthcareCosts = inputs.currentHealthcareCosts || 3500;
 
@@ -191,6 +198,22 @@ export const runLifeSimulation = (userInputs) => {
             yearPropertyGrowthRate = Math.max(-0.15, propBase + zp * propSigma);
         }
 
+        // Per-year salary growth draw — σ = max(0.5%, rate×40%) — wages vary year to
+        // year but not as widely as financial markets.
+        const salaryBase = inputs.salaryGrowthRate || 0.015;
+        let yearSalaryGrowthRate = salaryBase;
+        if (useStochasticReturns) {
+            const salSigma = Math.max(0.005, salaryBase * 0.4);
+            const [us1, us2] = [Math.max(1e-10, Math.random()), Math.random()];
+            const zs = Math.sqrt(-2 * Math.log(us1)) * Math.cos(2 * Math.PI * us2);
+            yearSalaryGrowthRate = Math.max(-0.05, salaryBase + zs * salSigma); // floor at -5%
+        }
+
+        // Accumulate cumulative inflation product — year-by-year multiplication so each
+        // year's drawn rate componds onto ALL prior years rather than being raised to a
+        // bulk power.  This is the correct way to handle stochastic per-year inflation.
+        cumulativeInflationFactor *= (1 + yearInflationRate);
+
         // Stochastic shocks (applied on top of per-year rates drawn above)
         currentInflation = useStochasticReturns
             ? yearInflationRate // continuous variation already captured above
@@ -225,11 +248,11 @@ export const runLifeSimulation = (userInputs) => {
         futurePropertyAnnualExpenses = state.futurePropertyExpenses || futurePropertyAnnualExpenses;
 
         // ── Income ────────────────────────────────────────────────────────────
-        salary        = projectSalary(salary, age, inputs);
+        salary        = projectSalary(salary, age, inputs, yearSalaryGrowthRate);
         partnerSalary = projectPartnerSalary(partnerSalary, partnerAge || age, {
             ...inputs,
             partnerRetirementAge: inputs.partnerRetirementAge || retirementAge,
-        });
+        }, yearSalaryGrowthRate);
 
         state.salary        = salary;
         state.partnerSalary = partnerSalary;
@@ -289,7 +312,16 @@ export const runLifeSimulation = (userInputs) => {
                 initialPortfolio = portfolioValue;
                 retirementWealth = portfolioValue;
                 currentSpending  = baseRetirementSpending;
+                // Reset retirement-phase cumulative factor; it seeds from the
+                // pre-retirement cumulative inflation so costs are continuous.
+                cumulativeRetirementInflationFactor = cumulativeInflationFactor;
             }
+
+            // Advance the retirement-phase cumulative factor with this year's draw.
+            // This correctly represents: baseCost × (1+i₁) × (1+i₂) × ... × (1+iₙ)
+            // rather than baseCost × (1 + fixedRate)^n, avoiding the bulk-power error
+            // that arises when a single randomly-drawn year's rate is exponentiated.
+            cumulativeRetirementInflationFactor *= (1 + yearInflationRate);
 
             currentSpending = calculateSpending({
                 strategy:          spendingStrategy,
@@ -299,6 +331,9 @@ export const runLifeSimulation = (userInputs) => {
                 initialSpending:   baseRetirementSpending,
                 yearsRetired,
                 inflation:         currentInflation,
+                // Pass the running cumulative factor so the FIXED strategy can apply
+                // the correct compound product rather than (single_rate)^years.
+                cumulativeInflationFactor: cumulativeRetirementInflationFactor,
                 portfolioDeclined,
                 inputs,
             });
