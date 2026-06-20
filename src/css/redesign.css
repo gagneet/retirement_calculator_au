@@ -783,6 +783,9 @@ input[type="range"]::-moz-range-track { height: 6px; }
 #tool-ai { background: #fff0f3; border-color: #fcc; }
 #tool-ai:hover { background: #ffe0e6; }
 #tool-ai .sm { color: #b33; }
+#tool-ai:disabled { opacity: .55; cursor: default; background: var(--surface-2); border-color: var(--border); }
+#tool-ai:disabled:hover { background: var(--surface-2); }
+#tool-ai:disabled .sm { color: var(--ink-4); }
 
 /* ============================================================
    Analysis tabs section
