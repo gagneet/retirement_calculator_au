@@ -546,7 +546,16 @@ export class ReverseUI {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const { target, currentPath, top3Actions, rankedLevers, inputs } = this.lastResult;
-        const ytr = currentPath.yearsToRetirement;
+        // Defensive guards matching renderResults() — prevents "NaN dollars" / "Age undefined"
+        // in the PDF if currentPath arrives partially-filled (root cause fixed in reverse-planner.js
+        // but guard here for defence-in-depth).
+        const ytr = Number.isFinite(currentPath.yearsToRetirement) && currentPath.yearsToRetirement >= 1
+            ? Math.round(currentPath.yearsToRetirement)
+            : Math.max(1, (target.retirementAge || 67) - (currentPath.currentAge || target.currentAge || 50));
+        const pdfInflationRate = currentPath.inflationRate || 0.026;
+        const pdfRetirementAge = target.retirementAge ?? currentPath.retirementAge ?? 67;
+        const pdfLifespan = target.lifespan ?? currentPath.lifespan ?? 90;
+        const pdfTotalAssetsNominal = currentPath.totalAssetsNominal || 0;
         const retireYear = new Date().getFullYear() + ytr;
         const PAGE_W = 210;
         const MARGIN = 14;
@@ -587,8 +596,8 @@ export class ReverseUI {
         y += 7;
         const goalItems = [
             `Target income: $${Math.round(target.targetAnnualIncomeToday).toLocaleString('en-AU')}/yr (today's $)`,
-            `≈ $${Math.round(target.targetAnnualIncomeToday * Math.pow(1 + currentPath.inflationRate, ytr)).toLocaleString('en-AU')}/yr in ${retireYear} dollars`,
-            `Retire at age ${target.retirementAge} · Plan to age ${target.lifespan}`,
+            `≈ $${Math.round(target.targetAnnualIncomeToday * Math.pow(1 + pdfInflationRate, ytr)).toLocaleString('en-AU')}/yr in ${retireYear} dollars`,
+            `Retire at age ${pdfRetirementAge} · Plan to age ${pdfLifespan}`,
         ];
         goalItems.forEach(item => {
             t(`• ${item}`, 10, 'normal', '#334155');
@@ -599,11 +608,11 @@ export class ReverseUI {
         // Current path
         t('Your current projected path', 13, 'bold', '#0f172a');
         y += 7;
-        const nominalIncome = currentPath.sustainableIncomeToday * Math.pow(1 + currentPath.inflationRate, ytr);
+        const nominalIncome = currentPath.sustainableIncomeToday * Math.pow(1 + pdfInflationRate, ytr);
         const pathItems = [
             `Sustainable income: $${Math.round(currentPath.sustainableIncomeToday).toLocaleString('en-AU')}/yr (today's $)`,
             `≈ $${Math.round(nominalIncome).toLocaleString('en-AU')}/yr in ${retireYear} dollars`,
-            `Total assets at retirement: $${Math.round(currentPath.totalAssetsNominal).toLocaleString('en-AU')} (nominal)`,
+            `Total assets at retirement: $${Math.round(pdfTotalAssetsNominal).toLocaleString('en-AU')} (nominal)`,
             meetsGoal ? 'Status: On track' : `Status: Shortfall of $${Math.round(currentPath.incomeGap).toLocaleString('en-AU')}/yr`,
         ];
         pathItems.forEach(item => {
@@ -661,7 +670,7 @@ export class ReverseUI {
         t('Assumptions used', 13, 'bold', '#0f172a');
         y += 7;
         const assumptions = [
-            `Inflation rate: ${(currentPath.inflationRate * 100).toFixed(1)}%`,
+            `Inflation rate: ${(pdfInflationRate * 100).toFixed(1)}%`,
             `Years to retirement: ${ytr}`,
             `Safe withdrawal rate: ${((currentPath.swr || 0.04) * 100).toFixed(1)}%`,
             `Household: ${target.householdType === 'couple' ? 'Couple' : 'Single'}`,
