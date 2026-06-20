@@ -1312,6 +1312,23 @@ function getSecondaryAnalysisState(key) {
   return APP_STATE.secondaryAnalysis[key] || { stale: false, lastInputSignature: null };
 }
 
+function syncToolButtonStates() {
+  const aiBtn = document.getElementById('tool-ai');
+  if (!aiBtn) return;
+  if (!aiBtn.dataset.originalInnerHtml) {
+    aiBtn.dataset.originalInnerHtml = aiBtn.innerHTML;
+  }
+  const state = getSecondaryAnalysisState('recommendations');
+  const hasResult = (APP_STATE.recommendations || []).length > 0;
+  if (hasResult && !state.stale) {
+    aiBtn.disabled = true;
+    aiBtn.innerHTML = '<span class="ic">✅</span> Suggestions &amp; Action Plan <span class="sm">Up to date — change inputs to refresh</span>';
+  } else {
+    aiBtn.disabled = false;
+    aiBtn.innerHTML = aiBtn.dataset.originalInnerHtml;
+  }
+}
+
 function secondaryStaleNotice({
   title,
   message,
@@ -3514,6 +3531,7 @@ async function runRecommendationAnalysis() {
   markSecondaryAnalysisFresh('recommendations', runSignature);
   profiler.measure('advanced-v2.suggestions.render.analysisPanels', () => renderAnalysisPanels());
   profiler.report('advanced-v2 Suggestions profile');
+  setTimeout(() => syncToolButtonStates(), 0);
   return APP_STATE.recommendations;
 }
 
@@ -3967,6 +3985,13 @@ function paintYearTable(years, inp) {
   const SOURCE_LABEL = { super: 'Super', savings: 'Savings', mixed: 'Mixed', depleted: 'Depleted', accumulating: '' };
   const SOURCE_CLASS = { super: 'src-super', savings: 'src-savings', mixed: 'src-mixed', depleted: 'src-depleted', accumulating: '' };
 
+  // Update column header label to match active display mode
+  const headerCell = document.querySelector('#year-tbody').closest('table')?.querySelector('th:nth-child(9)');
+  if (headerCell) {
+    headerCell.textContent = `Expenses/mo (${displayUnits === 'nominal' ? 'future $' : 'today\'s $'})`;
+    headerCell.title = `Planned monthly living expenses for each year, shown in ${displayUnits === 'nominal' ? 'nominal (future) dollars — the actual projected cash amount for that year' : "today's dollars, deflated using the inflation rate you entered"}. Pre-retirement years show — as there are no drawdown expenses.`;
+  }
+
   body.innerHTML = years.map((y, i) => {
     const calYear = y.year || (currentYear + i);
     const retireFlag = y.age === inp.retireAge;
@@ -3997,16 +4022,18 @@ function paintYearTable(years, inp) {
 
     const incomeTip = `Total retirement income for year ${calYear}: withdrawals + Age Pension + investment property income + other sources.`;
 
-    // Monthly expenses: deflate plannedSpending to today's dollars, then divide by 12.
+    // Monthly expenses: convert plannedSpending to the active display unit, then divide by 12.
     // Pre-retirement accumulation rows have plannedSpending=0, shown as em-dash.
     const expensesTip = y.retired && y.plannedSpending > 0
-      ? `Planned annual living expenses for ${calYear}: ${formatAmount(y.plannedSpending, calYear)} nominal. Shown here deflated to today's purchasing power (÷12 for monthly).`
+      ? `Planned annual living expenses for ${calYear}: ${formatAmount(y.plannedSpending, calYear)} (${displayUnits === 'nominal' ? 'nominal' : 'today\'s $'}). Shown per month.`
       : 'Pre-retirement year — no drawdown expenses modelled.';
-    const monthlyExpensesToday = (y.retired && y.plannedSpending > 0)
+    const monthlyExpenses = (y.retired && y.plannedSpending > 0)
       ? (() => {
           const yearsAhead = Math.max(0, calYear - currentYear);
-          const inToday = y.plannedSpending / Math.pow(1 + inflR, yearsAhead);
-          return '$' + Math.round(inToday / 12).toLocaleString('en-AU');
+          const adjusted = displayUnits === 'today'
+            ? y.plannedSpending / Math.pow(1 + inflR, yearsAhead)
+            : y.plannedSpending;
+          return '$' + Math.round(adjusted / 12).toLocaleString('en-AU');
         })()
       : '—';
 
@@ -4019,7 +4046,7 @@ function paintYearTable(years, inp) {
       <td title="${escapeHtml(withdrawBreakdown)}">${formatAmount(y.withdraw, calYear)}${srcLabel ? ` <span class="wy-src ${escapeHtml(srcCls)}">${escapeHtml(srcLabel)}</span>` : ''}</td>
       <td title="${escapeHtml(pensionTip)}">${formatAmount(y.pension, calYear)}</td>
       <td title="${escapeHtml(incomeTip)}">${formatAmount((y.withdraw || 0) + (y.pension || 0) + (y.otherIncome || 0), calYear)}</td>
-      <td title="${escapeHtml(expensesTip)}">${monthlyExpensesToday}</td>
+      <td title="${escapeHtml(expensesTip)}">${monthlyExpenses}</td>
     </tr>`;
   }).join('');
 }
@@ -4036,6 +4063,7 @@ function recalc() {
       const baseState = syncAppState();
       paint(baseState.adaptedResult, baseState.input);
       renderAnalysisPanels();
+      syncToolButtonStates();
       clearResultsError();
     } catch (e) {
       adv2Error('recalc failed', e);
