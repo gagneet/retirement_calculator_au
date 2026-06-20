@@ -1033,7 +1033,8 @@ export class RetirementSimulator {
     getSalaryForYear(baseSalary, year, inputs, isPartner = false, overrideInflationRate = null, overrideSalaryGrowthRate = null) {
         const yearsToRetirement = inputs.retirementAge - inputs.yourCurrentAge;
         const inflationRate = overrideInflationRate ?? inputs.inflation;
-        
+        const currentAge = (isPartner ? inputs.partnerCurrentAge : inputs.yourCurrentAge) + year;
+
         let realGrowthRate = overrideSalaryGrowthRate ?? inputs.salaryGrowthRate;
 
         // Structured Salary Growth Types
@@ -1050,6 +1051,21 @@ export class RetirementSimulator {
             }
         }
         // 'standard' keeps pace with CPI + user specified real growth
+
+        // Age-based ageism adjustment: salary growth slows in later career due to
+        // discrimination, health factors, and reduced advancement opportunities.
+        const ageismStartAge = inputs.ageismStartAge ?? 50;
+        const retirementAge = isPartner ? (inputs.partnerRetirementAge ?? 65) : (inputs.retirementAge ?? 65);
+        if (currentAge >= ageismStartAge && currentAge < retirementAge) {
+            const yearsAfterAgeism = currentAge - ageismStartAge;
+            if (yearsAfterAgeism < 3) {
+                // Static phase: near-zero growth for first 3 years after ageism onset
+                realGrowthRate = Math.min(realGrowthRate, 0.0);
+            } else {
+                // Recovery phase: modest growth resumes at max 0.5% real
+                realGrowthRate = Math.min(realGrowthRate, 0.005);
+            }
+        }
 
         let salary = baseSalary * Math.pow(1 + realGrowthRate + inflationRate, year);
 

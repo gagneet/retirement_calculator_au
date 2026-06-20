@@ -1440,6 +1440,7 @@ function buildExportAppBridge() {
     currentMonteCarloResults: APP_STATE.monteCarloResults,
     currentRecommendations: APP_STATE.recommendations,
     currentComprehensiveRecommendations: APP_STATE.recommendations,
+    currentSuggestions: APP_STATE.recommendations,
     currentStressTestResults: APP_STATE.stressTestResults,
     currentRiskProfile: APP_STATE.riskProfile,
     currentAllocationStrategy: APP_STATE.allocationStrategy,
@@ -3308,17 +3309,20 @@ async function applyRecommendationScenario(rec) {
 /** Export selected action plan items and readiness summary to PDF. */
 async function exportSuggestionsAsPdf(selectedRecs, band) {
   showNotification('Preparing PDF…', 'info');
-  const baseState = syncAppState();
-  await exportToPDF(baseState.input, APP_STATE.simulation, {
-    monteCarloResults: APP_STATE.monteCarloResults,
-    recommendations: selectedRecs.length ? selectedRecs : (APP_STATE.recommendations || []),
-    outcomeBand: band,
-    stressTestResults: APP_STATE.stressTestResults,
-    riskProfile: APP_STATE.riskProfile,
-    allocationStrategy: APP_STATE.allocationStrategy,
-    overseasAnalysis: APP_STATE.overseasAnalysis,
-    overseasExportData: APP_STATE.overseasExportData,
-  });
+  syncAppState();
+  const recs = selectedRecs.length ? selectedRecs : (APP_STATE.recommendations || []);
+  await exportToPDF(
+    APP_STATE.engineInputs,
+    buildExportResults(),
+    APP_STATE.chartManager,
+    {
+      ...buildExportAppBridge(),
+      currentSuggestions: recs,
+      currentRecommendations: recs,
+      currentComprehensiveRecommendations: recs,
+      currentOutcomeBand: band,
+    }
+  );
 }
 
 function renderAnalysisPanels() {

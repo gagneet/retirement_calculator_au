@@ -29,7 +29,22 @@ export const projectSalary = (currentSalary, age, inputs, yearSalaryGrowthRate =
 
     // Use per-year draw when provided (stochastic MC mode); otherwise fixed median.
     // Salary growth σ = max(0.5%, rate×40%) — modest year-to-year wage variation.
-    const effectiveGrowthRate = yearSalaryGrowthRate !== null ? yearSalaryGrowthRate : salaryGrowthRate;
+    let effectiveGrowthRate = yearSalaryGrowthRate !== null ? yearSalaryGrowthRate : salaryGrowthRate;
+
+    // Age-based ageism: growth slows or stalls in later career years due to
+    // discrimination, reduced advancement, and health factors.
+    const ageismStartAge = inputs.ageismStartAge ?? 50;
+    if (age >= ageismStartAge && age < retirementAge) {
+        const yearsAfterAgeism = age - ageismStartAge;
+        if (yearsAfterAgeism < 3) {
+            // Static phase for first 3 years: no real growth
+            effectiveGrowthRate = Math.min(effectiveGrowthRate, 0.0);
+        } else {
+            // Recovery phase: capped at 0.5% real growth
+            effectiveGrowthRate = Math.min(effectiveGrowthRate, 0.005);
+        }
+    }
+
     let salary = currentSalary * (1 + effectiveGrowthRate);
 
     // Optional income-drop event (e.g. reduced hours, career change)
