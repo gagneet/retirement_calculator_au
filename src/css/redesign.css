@@ -780,6 +780,9 @@ input[type="range"]::-moz-range-track { height: 6px; }
 .tools-list button:hover { background: var(--surface-2); color: var(--ink); }
 .tools-list button .ic { font-size: 14px; }
 .tools-list button .sm { font-size: 10.5px; color: var(--ink-4); font-weight: 400; }
+#tool-ai { background: #fff0f3; border-color: #fcc; }
+#tool-ai:hover { background: #ffe0e6; }
+#tool-ai .sm { color: #b33; }
 
 /* ============================================================
    Analysis tabs section
