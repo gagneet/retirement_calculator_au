@@ -7,23 +7,36 @@
  *  3. How much can I reduce my salary and still meet my goal?
  *  4. What is the earliest age at which I could move overseas?
  *
- * Dependencies: bisectionSolve, scoreScenario, yearsToRetirement from reverse-solver.js
+ * Dependencies: bisectionSolve, scoreScenario, yearsToRetirement
+ * from reverse-solver.js
  */
 
-import { bisectionSolve, scoreScenario } from './reverse-solver.js';
+import {
+    bisectionSolve,
+    scoreScenario,
+    yearsToRetirement,
+    solveForCurrentHomeValue,
+    solveForCurrentInvestmentBalance,
+} from './reverse-solver.js';
 
 const DEFAULT_INFLATION = 0.026;
 const DEFAULT_SWR = 0.04;
 
 /**
  * Helper: build a passes() function for bisection over a single input key.
+ * Replicates the private makePasses() from reverse-solver.js so that
+ * callers in THIS module do not need to reach into solver internals.
+ *
+ * NOTE: yearsToRetirement is NOT used here because callers of this
+ * helper vary the override key but NOT retirementAge, so the value
+ * captured at creation time is correct and avoids recomputation.
  */
 function _makePasses(simulator, baseInputs, target, overrideKey, inflationRate, swr) {
+    const ytr = yearsToRetirement(baseInputs);
     return async (value) => {
         const inputs = { ...baseInputs, [overrideKey]: value };
         try {
             const result = simulator.simulateRetirement(inputs, false);
-            const ytr = Math.max(1, (inputs.retirementAge || 67) - (inputs.yourCurrentAge || 50));
             const score = scoreScenario(result, target, inflationRate, ytr, swr);
             return score.passesGoal;
         } catch {
@@ -39,6 +52,9 @@ function _makePasses(simulator, baseInputs, target, overrideKey, inflationRate, 
 /**
  * For each retirement age (current → 75), find the minimum annual salary
  * that would make the goal achievable.
+ *
+ * NOTE: yearsToRetirement cannot be used here because retirementAge
+ * changes on every iteration; ytr is calculated inline instead.
  *
  * @param {RetirementSimulator} simulator
  * @param {object} baseInputs     Normalised simulator inputs
@@ -93,45 +109,31 @@ export async function calculateRetirementAgeSalaryCurve(simulator, baseInputs, t
 /**
  * Solve for the home value and liquid investment balance needed today.
  *
+ * Delegates to solveForCurrentHomeValue and
+ * solveForCurrentInvestmentBalance from reverse-solver.js so that the
+ * bisection logic lives in a single place.
+ *
  * @param {RetirementSimulator} simulator
  * @param {object} baseInputs
  * @param {object} target
  * @returns {Promise<{homeValue: object, investmentBalance: object}>}
  */
 export async function calculateRequiredCurrentValues(simulator, baseInputs, target) {
-    const inflationRate = baseInputs.inflation ?? DEFAULT_INFLATION;
-    const swr = DEFAULT_SWR;
-
-    // -- Home value --
-    const currentHomeValue = baseInputs.homeValue || 0;
-    const homePasses = _makePasses(simulator, baseInputs, target, 'homeValue', inflationRate, swr);
-    const homeSolved = await bisectionSolve({
-        lo: currentHomeValue,
-        hi: 5000000,
-        tol: 10000,
-        passes: homePasses,
-    });
-
-    // -- Liquid investment balance (cash savings) --
-    const currentSavings = baseInputs.currentSavings || 0;
-    const savingsPasses = _makePasses(simulator, baseInputs, target, 'currentSavings', inflationRate, swr);
-    const savingsSolved = await bisectionSolve({
-        lo: currentSavings,
-        hi: 5000000,
-        tol: 10000,
-        passes: savingsPasses,
-    });
+    const [homeResult, savingsResult] = await Promise.all([
+        solveForCurrentHomeValue(simulator, baseInputs, target),
+        solveForCurrentInvestmentBalance(simulator, baseInputs, target),
+    ]);
 
     return {
         homeValue: {
-            current: currentHomeValue,
-            required: homeSolved,
-            feasible: homeSolved !== null,
+            current: baseInputs.homeValue || 0,
+            required: homeResult.solved,
+            feasible: homeResult.feasible,
         },
         investmentBalance: {
-            current: currentSavings,
-            required: savingsSolved,
-            feasible: savingsSolved !== null,
+            current: baseInputs.currentSavings || 0,
+            required: savingsResult.solved,
+            feasible: savingsResult.feasible,
         },
     };
 }
@@ -193,6 +195,11 @@ export async function calculateSalaryReductionTolerance(simulator, baseInputs, t
  * living) makes the retirement goal achievable at the current salary.
  *
  * Uses a cost-of-living factor (default 0.70 = 70 % of Australian costs).
+ * This is a simplified model — a production version would read per-country
+ * indices from country-profiles.js.
+ *
+ * NOTE: yearsToRetirement cannot be used here because moveAge (which
+ * becomes retirementAge) changes per iteration; ytr is inline.
  *
  * @param {RetirementSimulator} simulator
  * @param {object} baseInputs

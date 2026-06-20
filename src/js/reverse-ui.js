@@ -510,7 +510,7 @@ export class ReverseUI {
             this._renderSafe(() => this.renderRankedActionPlan(result));
             this._renderSafe(() => this.renderScenarioComparisonCards(result));
             this._renderSafe(() => this.renderOverseasComparison(result));
-            this._renderSafe(() => this._renderDeepAnalysisAsync(result));
+            this._renderSafe(() => this.renderDeepAnalysis(result));
 
             show('rp-results-section');
         } catch (err) {
@@ -961,28 +961,19 @@ export class ReverseUI {
 
     /**
      * Run all four deep-analysis functions and render their results.
-     * Each runs independently and is isolated so a single failure never
-     * blanks the entire section.
+     *
+     * Each analysis runs independently with per-task error isolation so that
+     * a single failure never blanks the entire section.
      */
-    async _renderDeepAnalysisAsync(result) {
+    async renderDeepAnalysis(result) {
         const section = el('rp-deep-analysis-section');
         if (!section) return;
 
-        try {
-            const simulator = this.planner.simulator;
-            const baseInputs = this.planner.solver?.simulator
-                ? result.inputs || {}
-                : {};
-            const target = result.target || {};
-            const inputs = result.inputs || {};
+        const inputs = result.inputs || {};
+        const target = result.target || {};
 
-            show('rp-deep-analysis-section');
-        } catch {
-            hide('rp-deep-analysis-section');
-            return;
-        }
+        show('rp-deep-analysis-section');
 
-        // Run all four analyses
         await Promise.all([
             this._renderAgeSalaryCurve(inputs, target).catch(e => {
                 console.error('Age-salary curve render error:', e);

@@ -173,7 +173,7 @@ function getSimulator() {
     return new RetirementSimulator(ENHANCED_CONFIG);
 }
 
-function yearsToRetirement(baseInputs) {
+export function yearsToRetirement(baseInputs) {
     const currentAge = baseInputs.yourCurrentAge || 0;
     const retAge = baseInputs.retirementAge || 65;
     return Math.max(1, retAge - currentAge);
