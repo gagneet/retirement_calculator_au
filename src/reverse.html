@@ -405,6 +405,30 @@
         <button id="rp-export-pdf" class="iconbtn primary" style="flex-shrink:0">📄 Export PDF</button>
       </div>
 
+      <!-- Deep analysis -->
+      <div id="rp-deep-analysis-section" class="hidden" style="display:flex;flex-direction:column;gap:var(--section-gap)">
+        <div class="tools-card">
+          <h4>When can I retire</h4>
+          <p style="font-size:12.5px;color:var(--ink-3);margin:0 0 12px">Required annual salary at each retirement age to reach your goal.</p>
+          <div id="rp-age-salary-curve"></div>
+        </div>
+        <div class="tools-card">
+          <h4>What you need today</h4>
+          <p style="font-size:12.5px;color:var(--ink-3);margin:0 0 12px">Home value and investment balance required to meet your retirement target.</p>
+          <div id="rp-required-values"></div>
+        </div>
+        <div class="tools-card">
+          <h4>Salary reduction tolerance</h4>
+          <p style="font-size:12.5px;color:var(--ink-3);margin:0 0 12px">How much you could reduce your salary and still achieve your goal.</p>
+          <div id="rp-salary-tolerance"></div>
+        </div>
+        <div class="tools-card">
+          <h4>Optimal overseas move age</h4>
+          <p style="font-size:12.5px;color:var(--ink-3);margin:0 0 12px">Earliest age at which moving overseas (lower cost of living) makes your goal achievable.</p>
+          <div id="rp-overseas-age-analysis"></div>
+        </div>
+      </div>
+
       <!-- Overseas comparison -->
       <details class="tools-card" style="border-color:var(--border)">
         <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-2);padding:4px 0;user-select:none">Overseas retirement comparison</summary>
