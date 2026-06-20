@@ -20,6 +20,11 @@ import {
     buildAgePensionPortabilitySensitivity,
     detectHouseholdPattern,
 } from './reverse-scenarios.js';
+import {
+    buildReverseBaselineFromForwardScenario,
+    importForwardScenario,
+} from './reverse-baseline-adapter.js';
+import { compareCurrentToTarget } from './reverse-gap-analysis.js';
 
 const DEFAULT_SWR = 0.04;
 const DEFAULT_INFLATION = ENHANCED_CONFIG.INFLATION_RATE || 0.026;
@@ -293,3 +298,9 @@ export class ReversePlanner {
         };
     }
 }
+
+export {
+    buildReverseBaselineFromForwardScenario,
+    importForwardScenario,
+    compareCurrentToTarget,
+};
