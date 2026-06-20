@@ -36,6 +36,7 @@ export function buildForwardProjectionPayload({
   const confidence = adaptedResult?.confidence ?? null;
   const incomeGapMonthly = adaptedResult?.gapMonthly ?? Math.max(0, (input?.desiredIncome || 0) / 12 - monthlyPaycheck);
   const incomeGapAnnual = incomeGapMonthly * 12;
+  const estateAtLifespan = simulation?.finalBalance ?? 0;
 
   const payload = {
     version: 1,
@@ -62,6 +63,7 @@ export function buildForwardProjectionPayload({
       confidence,
       incomeGapMonthly,
       incomeGapAnnual,
+      estateAtLifespan,
       retirementAge,
       currentAge,
       lifespan,
@@ -126,5 +128,11 @@ export function extractCurrentPathFromProjection(payload, goalOverrides = {}) {
     lastsUntil: summary.lastsUntil ?? payload?.adaptedResult?.lastsUntil,
     yearlyData: payload?.yearlyData || payload?.simulation?.yearlyData || payload?.adaptedResult?.years || [],
     meetsGoal: annual >= targetAnnualIncomeToday && (confidence === null || confidence >= confidenceTarget),
+    assumptions: {
+      inflation: payload?.engineInputs?.inflation ?? null,
+      investmentReturn: payload?.engineInputs?.investmentReturn ?? null,
+      superReturn: payload?.engineInputs?.superReturn ?? null,
+      swr: 0.04,
+    },
   };
 }

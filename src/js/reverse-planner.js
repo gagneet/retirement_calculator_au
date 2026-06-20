@@ -242,14 +242,27 @@ export class ReversePlanner {
             currentPath.incomeGap = Math.max(0, resolvedTarget.targetAnnualIncomeToday - currentPath.currentAnnualIncomeToday);
             currentPath.meetsGoal = currentPath.currentAnnualIncomeToday >= resolvedTarget.targetAnnualIncomeToday;
             currentPath.agePensionNominal = currentPath.agePensionAtRetirement;
+            currentPath.capitalGap = Math.max(0, resolvedTarget.targetAnnualIncomeToday - currentPath.currentAnnualIncomeToday) * 25;
+
+            // Required for downstream consumers that access score.successProbability
+            currentPath.score = {
+                successProbability: currentPath.confidence ?? null,
+                sustainableIncomeToday: currentPath.currentAnnualIncomeToday,
+                totalAssetsNominal: currentPath.totalAssetsAtRetirement,
+                superAtRetirement: currentPath.superAtRetirement,
+                incomeGap: currentPath.incomeGap,
+                capitalGap: currentPath.capitalGap,
+            };
         } else {
             currentPath = this.buildCurrentPath(baseInputs, resolvedTarget);
         }
 
         // 2. Run all lever solvers
+        // Use projection.engineInputs as base when available (per spec Phase 9)
+        const solverBaseInputs = projection?.engineInputs || baseInputs;
         const solverOptions = { swr: resolvedTarget.swr || DEFAULT_SWR };
         const { rankedLevers } = await this.solver.solveAllLevers(
-            baseInputs,
+            solverBaseInputs,
             resolvedTarget,
             solverOptions
         );

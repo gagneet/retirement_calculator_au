@@ -142,7 +142,8 @@ export class ReverseUI {
             this.importedScenario = projection.input || null;
             this._renderProjectionPanel(projection);
             this._prefillGoalControlsFromProjection(projection);
-            setTimeout(() => this.handleCalculate(), 100);
+            // Defer to end of microtask queue so the DOM is fully settled
+            Promise.resolve().then(() => this.handleCalculate());
         } else {
             this.checkLocalStorageForImport();
         }
