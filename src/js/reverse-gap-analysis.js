@@ -69,9 +69,14 @@ export function compareCurrentToTarget(currentPath, target, assumptions = {}) {
         incomeGapToday,
         capitalGap,
         superGap,
+        superAtRetirement,
+        targetSuper,
         mortgageProblem,
+        mortgageAtRetirement,
         estateGap,
+        estateAtEnd,
         confidenceGap,
+        currentConfidence,
         agePensionReliance,
         agePensionAnnual,
         ytr,
@@ -85,10 +90,15 @@ export function compareCurrentToTarget(currentPath, target, assumptions = {}) {
         incomeGapToday,
         capitalGapAtRetirement: capitalGap,
         superGapAtRetirement: superGap,
+        superAtRetirement,
+        targetSuper,
         mortgageAtRetirement: mortgageAtRetirement,
         mortgageProblem,
         estateGapToday: estateGap,
+        estateAtEnd,
         confidenceGap,
+        currentConfidence,
+        confidenceTarget,
         agePensionReliance,
         agePensionAnnual,
         requiredCapital,
@@ -107,7 +117,7 @@ function detectProblems(currentPath, target, gaps) {
     if (gaps.incomeGapToday > 0) {
         problems.push({
             id: 'income_shortfall',
-            severity: gaps.incomeGapToday > target.targetAnnualIncomeToday * 0.3 ? 'high' : 'medium',
+            severity: gaps.incomeGapToday > (target.targetAnnualIncomeToday || 0) * 0.3 ? 'high' : 'medium',
             label: 'Income shortfall',
             detail: `Current path provides ${formatCurrency(currentPath.sustainableIncomeToday)}/year vs target of ${formatCurrency(target.targetAnnualIncomeToday)}/year`,
         });
@@ -128,7 +138,7 @@ function detectProblems(currentPath, target, gaps) {
         problems.push({
             id: 'mortgage_at_retirement',
             severity: 'high',
-            label: 'Mortgage remains at retirement',
+            detail: `${formatCurrency(gaps.mortgageAtRetirement)} debt at retirement — increases required drawdown`,
             detail: `${formatCurrency(currentPath.mortgageBalance)} debt at retirement — increases required drawdown`,
         });
     }
@@ -137,7 +147,7 @@ function detectProblems(currentPath, target, gaps) {
     if (gaps.superGap > 0) {
         problems.push({
             id: 'low_super',
-            severity: gaps.superGap > 100000 ? 'high' : 'medium',
+            detail: `Super at retirement ${formatCurrency(gaps.superAtRetirement)} vs target ${formatCurrency(gaps.targetSuper)}`,
             label: 'Super balance too low for target income',
             detail: `Super at retirement ${formatCurrency(currentPath.score?.superAtRetirement || 0)} vs target ${formatCurrency(gaps.requiredCapital * 0.6)}`,
         });
@@ -172,7 +182,7 @@ function detectProblems(currentPath, target, gaps) {
         problems.push({
             id: 'estate_shortfall',
             severity: 'low',
-            label: 'Estate/inheritance target may not be met',
+            detail: `Estate target ${formatCurrency(target.minimumEstateToday || 0)} may exceed projected ${formatCurrency(gaps.estateAtEnd)}`,
             detail: `Estate target ${formatCurrency(target.minimumEstateToday)} may exceed projected ${formatCurrency(currentPath.estateAtLifespan || 0)}`,
         });
     }
@@ -181,7 +191,7 @@ function detectProblems(currentPath, target, gaps) {
     if (gaps.confidenceGap > 0.1) {
         problems.push({
             id: 'low_confidence',
-            severity: gaps.confidenceGap > 0.25 ? 'high' : 'medium',
+            detail: `Current confidence ${(gaps.currentConfidence * 100).toFixed(0)}% vs target ${(target.confidenceTarget * 100).toFixed(0)}%`,
             label: 'Confidence below target',
             detail: `Current confidence ${((1 - gaps.confidenceGap) * 100).toFixed(0)}% vs target ${(target.confidenceTarget * 100).toFixed(0)}%`,
         });
@@ -206,6 +216,7 @@ function detectProblems(currentPath, target, gaps) {
 function calculateSeverity(problemFlags, incomeGap, targetIncome) {
     if (problemFlags.some(p => p.severity === 'high')) return 'high';
     if (problemFlags.length >= 3) return 'high';
+    if (targetIncome > 0 && incomeGap > targetIncome * 0.1) return 'medium';
     if (problemFlags.some(p => p.severity === 'medium')) return 'medium';
     if (incomeGap > targetIncome * 0.1) return 'medium';
     if (problemFlags.length === 0) return 'none';
@@ -226,7 +237,10 @@ export function buildGapComparisonRow(label, current, required, gap, recommended
         current: unit === '$' ? formatCurrency(current) : String(current),
         required: unit === '$' ? formatCurrency(required) : String(required),
         gap: gap > 0
-            ? (unit === '$' ? `-${formatCurrency(gap)}` : `-${gap}`)
+            ? (unit === '$' 
+                ? `-${formatCurrency(gap)}` 
+                : unit === '%' 
+                    ? `-${gap.toFixed(0)}%` : `-${gap}`)
             : '—',
         recommendedAction,
         hasGap: gap > 0,
@@ -257,11 +271,11 @@ export function buildComparisonTable(gap, currentPath, target) {
         '$'
     ));
 
-    const superAtRet = currentPath.score?.superAtRetirement || currentPath.superAtRetirement || 0;
+    const superAtRet = gap.superAtRetirement || 0;
     rows.push(buildGapComparisonRow(
         'Super at retirement',
         superAtRet,
-        gap.requiredCapital * 0.6,
+        gap.targetSuper || 0,
         gap.superGapAtRetirement,
         gap.superGapAtRetirement > 0 ? 'Salary sacrifice more' : 'On track',
         '$'
@@ -269,10 +283,10 @@ export function buildComparisonTable(gap, currentPath, target) {
 
     rows.push(buildGapComparisonRow(
         'Mortgage at retirement',
-        currentPath.mortgageBalance || 0,
+        gap.mortgageAtRetirement || 0,
         0,
-        currentPath.mortgageBalance || 0,
-        currentPath.mortgageBalance > 0 ? 'Pay extra monthly or refinance' : 'No mortgage concern',
+        gap.mortgageAtRetirement || 0,
+        gap.mortgageAtRetirement > 0 ? 'Pay extra monthly or refinance' : 'No mortgage concern',
         '$'
     ));
 
@@ -285,7 +299,7 @@ export function buildComparisonTable(gap, currentPath, target) {
         '$'
     ));
 
-    const estateVal = currentPath.estateAtLifespan || 0;
+    const estateVal = gap.estateAtEnd || 0;
     rows.push(buildGapComparisonRow(
         'Estate/inheritance',
         estateVal,
@@ -296,7 +310,7 @@ export function buildComparisonTable(gap, currentPath, target) {
     ));
 
     const currentConf = currentPath.score?.successProbability ?? 0;
-    rows.push(buildGapComparisonRow(
+    const currentConf = gap.currentConfidence ?? 0;
         'Confidence',
         (currentConf * 100).toFixed(0) + '%',
         ((target.confidenceTarget || 0.8) * 100).toFixed(0) + '%',

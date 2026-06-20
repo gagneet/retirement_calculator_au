@@ -283,7 +283,7 @@ describe('importForwardScenario', () => {
     });
 
     test('gracefully handles invalid JSON', () => {
-        Storage.prototype.getItem = jest.fn(() => 'not-valid-json{{{');
+        jest.spyOn(Storage.prototype, 'getItem').mockImplementationOnce(() => 'not-valid-json{{{');
         const baseline = importForwardScenario();
         expect(baseline.exists).toBe(false);
     });

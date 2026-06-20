@@ -91,9 +91,7 @@ describe('Round-trip: solveForExtraAnnualSuper', () => {
     test('applying solved extra super makes the simulation pass target within 10%', async () => {
         const result = await solveForExtraAnnualSuper(simulator, BASE_INPUTS, TARGET);
 
-        if (!result.feasible) {
-            return;
-        }
+        expect(result.feasible).toBe(true);
 
         const solvedInputs = {
             ...BASE_INPUTS,
@@ -125,9 +123,7 @@ describe('Round-trip: solveForRetirementAge', () => {
     test('solved retirement age produces outcome >= target within 10%', async () => {
         const result = await solveForRetirementAge(simulator, BASE_INPUTS, TARGET_HIGH);
 
-        if (!result.feasible) {
-            return;
-        }
+        expect(result.feasible).toBe(true);
 
         const solvedAge = Math.round(result.solved);
         const solvedInputs = {
@@ -168,9 +164,7 @@ describe('Round-trip: solveForExtraSavings', () => {
     test('applying solved monthly savings makes outcome pass target', async () => {
         const result = await solveForExtraSavings(simulator, BASE_INPUTS, TARGET);
 
-        if (!result.feasible) {
-            return;
-        }
+        expect(result.feasible).toBe(true);
 
         const solvedInputs = {
             ...BASE_INPUTS,

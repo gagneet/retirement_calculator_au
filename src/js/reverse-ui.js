@@ -264,18 +264,26 @@ export class ReverseUI {
      */
     _collectFromBaseline() {
         const i = this.importedScenario;
-        const targetIncome = numValFromId('rp-desired-income', 80000);
-        const confidenceStr = strValFromId('rp-confidence', '80');
+        const numVal = (id, fallback = 0) => {
+            const elem = el(id);
+            const n = Number(elem?.value ?? fallback);
+            return Number.isFinite(n) ? n : fallback;
+        };
+        const strVal = (id, fallback = '') => el(id)?.value ?? fallback;
+        
+        const targetIncome = numVal('rp-desired-income', 80000);
+        const confidenceStr = strVal('rp-confidence', '80');
         const confidenceTarget = Number(confidenceStr) / 100;
-        const includeAgePension = strValFromId('rp-include-age-pension', 'yes') === 'yes';
-        const lifespan = numValFromId('rp-lifespan', 90);
-        const minEstate = numValFromId('rp-min-estate', 0);
+        const includeAgePension = strVal('rp-include-age-pension', 'yes') === 'yes';
+        const lifespan = numVal('rp-lifespan', 90);
+        const minEstate = numVal('rp-min-estate', 0);
 
         const inputs = {
             currentAge: i.currentAge,
             retirementAge: i.retirementAge,
             annualSalary: i.annualSalary,
             currentSuperBalance: i.currentSuperBalance,
+            salarySacrifice: i.salarySacrifice || 0,
             homeowner: i.homeowner,
             mortgageBalance: i.mortgageBalance,
             monthlyMortgagePayment: i.monthlyMortgagePayment,

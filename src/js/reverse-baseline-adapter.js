@@ -160,7 +160,7 @@ export function buildReverseBaselineFromForwardScenario(raw) {
 
             // Super
             currentSuperBalance: num(isV2 ? raw.superBal : raw.yourCurrentSuper, 0),
-            partnerCurrentSuper: isCouple ? num(isV2 ? raw.partnerSuperBal : raw.partnerCurrentSuper, 0) : 0,
+            salarySacrifice: num(isV2 ? raw.salarySacrifice : raw.yourAdditionalSuperContribution, 0),
             salarySacrifice: num(isV2 ? 0 : raw.yourAdditionalSuperContribution, 0),
 
             // Home
@@ -185,7 +185,7 @@ export function buildReverseBaselineFromForwardScenario(raw) {
             inflation: num(isV2 ? raw.inflation : raw.inflation, 0.026),
             investmentReturn: num(isV2 ? raw.invReturn : raw.investmentReturn, 0.07),
             superReturn: num(isV2 ? raw.superGrowth : raw.superReturn, 0.075),
-            salaryGrowthRate: num(isV2 ? 0 : raw.salaryGrowthRate, 0.02),
+            salaryGrowthRate: num(isV2 ? raw.salaryGrowthRate : raw.salaryGrowthRate, 0.02),
         },
     };
 
@@ -207,7 +207,13 @@ export function importForwardScenario() {
         if (!stored) {
             return buildReverseBaselineFromForwardScenario(null);
         }
-        const raw = JSON.parse(stored);
+        let raw;
+        try {
+            raw = JSON.parse(stored);
+        } catch (e) {
+            console.warn('Failed to parse rc_forward_scenario:', e);
+            return buildReverseBaselineFromForwardScenario(null);
+        }
         return buildReverseBaselineFromForwardScenario(raw);
     } catch {
         return buildReverseBaselineFromForwardScenario(null);
@@ -221,7 +227,13 @@ export function importForwardScenario() {
  */
 export function storeForwardScenario(inputs) {
     try {
-        localStorage.setItem('rc_forward_scenario', JSON.stringify(inputs));
+        try {
+            const serialized = JSON.stringify(inputs);
+            localStorage.setItem('rc_forward_scenario', serialized);
+        } catch (e) {
+            console.error('Failed to store forward scenario:', e);
+            return false;
+        }
         return true;
     } catch {
         return false;
