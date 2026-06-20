@@ -242,7 +242,15 @@ export class ReversePlanner {
             currentPath.incomeGap = Math.max(0, resolvedTarget.targetAnnualIncomeToday - currentPath.currentAnnualIncomeToday);
             currentPath.meetsGoal = currentPath.currentAnnualIncomeToday >= resolvedTarget.targetAnnualIncomeToday;
             currentPath.agePensionNominal = currentPath.agePensionAtRetirement;
-            currentPath.capitalGap = Math.max(0, resolvedTarget.targetAnnualIncomeToday - currentPath.currentAnnualIncomeToday) * 25;
+            const requiredCapital = estimateRequiredCapital(
+                resolvedTarget.targetAnnualIncomeToday,
+                currentPath.yearsToRetirement,
+                currentPath.inflationRate,
+                currentPath.agePensionNominal,
+                currentPath.swr
+            );
+            currentPath.requiredCapital = requiredCapital;
+            currentPath.capitalGap = Math.max(0, requiredCapital - currentPath.totalAssetsNominal);
 
             // Required for downstream consumers that access score.successProbability
             currentPath.score = {
@@ -258,8 +266,13 @@ export class ReversePlanner {
         }
 
         // 2. Run all lever solvers
-        // Use projection.engineInputs as base when available (per spec Phase 9)
-        const solverBaseInputs = projection?.engineInputs || baseInputs;
+        // Use projection.engineInputs as base when available (per spec Phase 9).
+        // Guard: engineInputs must have at minimum the identity fields the solver needs.
+        const hasEngineInputs = projection?.engineInputs
+            && typeof projection.engineInputs === 'object'
+            && Object.keys(projection.engineInputs).length > 0
+            && (Number.isFinite(projection.engineInputs.yourCurrentAge) || Number.isFinite(projection.engineInputs.age));
+        const solverBaseInputs = hasEngineInputs ? projection.engineInputs : baseInputs;
         const solverOptions = { swr: resolvedTarget.swr || DEFAULT_SWR };
         const { rankedLevers } = await this.solver.solveAllLevers(
             solverBaseInputs,
