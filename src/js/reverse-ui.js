@@ -183,7 +183,13 @@ export class ReverseUI {
 
         if (scenario.homeowner !== undefined) {
             const homeEl = el('rp-homeowner');
-            if (homeEl) homeEl.value = scenario.homeowner ? 'yes' : 'no';
+            if (homeEl) {
+                homeEl.value = scenario.homeowner ? 'yes' : 'no';
+                const mortgageRow = el('rp-mortgage-row');
+                if (mortgageRow) {
+                    mortgageRow.classList.toggle('hidden', homeEl.value !== 'yes');
+                }
+            }
         }
 
         if (scenario.isCouple || scenario.household === 'couple') {
@@ -192,6 +198,8 @@ export class ReverseUI {
                 householdEl.value = 'couple';
                 this.toggleCoupleFields();
             }
+            setVal('rp-partner-salary', scenario.partnerSalary || scenario.partnerAnnualSalary);
+            setVal('rp-partner-super', scenario.partnerSuperBalance || scenario.partnerSuper);
         }
 
         hide('rp-import-banner');
@@ -344,7 +352,7 @@ export class ReverseUI {
         const plainEnglish = generatePlainEnglishSummary(result);
 
         // Headline
-            if (headline) headline.textContent = data.headline || '';
+        safeText('rp-headline', plainEnglish.headline);
 
         // Goal summary
         safeText('rp-goal-today', fmt(target.targetAnnualIncomeToday) + '/year');
