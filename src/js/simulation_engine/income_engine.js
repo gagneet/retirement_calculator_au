@@ -31,17 +31,22 @@ export const projectSalary = (currentSalary, age, inputs, yearSalaryGrowthRate =
     // Salary growth σ = max(0.5%, rate×40%) — modest year-to-year wage variation.
     let effectiveGrowthRate = yearSalaryGrowthRate !== null ? yearSalaryGrowthRate : salaryGrowthRate;
 
-    // Age-based ageism: growth slows or stalls in later career years due to
-    // discrimination, reduced advancement, and health factors.
-    const ageismStartAge = inputs.ageismStartAge ?? 50;
-    if (age >= ageismStartAge && age < retirementAge) {
-        const yearsAfterAgeism = age - ageismStartAge;
-        if (yearsAfterAgeism < 3) {
-            // Static phase for first 3 years: no real growth
-            effectiveGrowthRate = Math.min(effectiveGrowthRate, 0.0);
-        } else {
-            // Recovery phase: capped at 0.5% real growth
-            effectiveGrowthRate = Math.min(effectiveGrowthRate, 0.005);
+    // Age-based ageism (opt-in via inputs.enableAgeism).
+    // Models the real-world pattern where salary growth slows in later career
+    // due to age discrimination, reduced advancement, and health factors:
+    //   - First 3 years after ageismStartAge: no nominal growth (real salary declines)
+    //   - Thereafter: nominal growth capped at 0.5% (below CPI → continued real decline)
+    // NOTE: effectiveGrowthRate here is a NOMINAL rate applied directly to currentSalary.
+    // Capping at 0 = zero nominal growth; actual purchasing power erodes with inflation.
+    if (inputs.enableAgeism) {
+        const ageismStartAge = inputs.ageismStartAge ?? 50;
+        if (age >= ageismStartAge && age < retirementAge) {
+            const yearsAfterAgeism = age - ageismStartAge;
+            if (yearsAfterAgeism < 3) {
+                effectiveGrowthRate = Math.min(effectiveGrowthRate, 0.0);
+            } else {
+                effectiveGrowthRate = Math.min(effectiveGrowthRate, 0.005);
+            }
         }
     }
 

@@ -1052,17 +1052,21 @@ export class RetirementSimulator {
         }
         // 'standard' keeps pace with CPI + user specified real growth
 
-        // Age-based ageism adjustment: salary growth slows in later career due to
-        // discrimination, health factors, and reduced advancement opportunities.
+        // Age-based ageism (opt-in via inputs.enableAgeism).
+        // Models late-career salary stagnation from age discrimination, reduced
+        // promotions, and health factors.  realGrowthRate here is the REAL component
+        // (inflation is added separately via inflationRate), so:
+        //   - Capping at 0.0 real = salary keeps pace with CPI only (real stagnation)
+        //   - Capping at 0.5% real = slight real growth, still well below typical career
         const ageismStartAge = inputs.ageismStartAge ?? 50;
-        const retirementAge = isPartner ? (inputs.partnerRetirementAge ?? 65) : (inputs.retirementAge ?? 65);
-        if (currentAge >= ageismStartAge && currentAge < retirementAge) {
+        const retirementAge  = isPartner ? (inputs.partnerRetirementAge ?? 65) : (inputs.retirementAge ?? 65);
+        if (inputs.enableAgeism && currentAge >= ageismStartAge && currentAge < retirementAge) {
             const yearsAfterAgeism = currentAge - ageismStartAge;
             if (yearsAfterAgeism < 3) {
-                // Static phase: near-zero growth for first 3 years after ageism onset
+                // Static real phase: salary grows only with inflation (no real gain)
                 realGrowthRate = Math.min(realGrowthRate, 0.0);
             } else {
-                // Recovery phase: modest growth resumes at max 0.5% real
+                // Modest recovery: up to 0.5% real growth above inflation
                 realGrowthRate = Math.min(realGrowthRate, 0.005);
             }
         }
