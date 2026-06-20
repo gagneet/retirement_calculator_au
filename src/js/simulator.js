@@ -1355,11 +1355,13 @@ export class RetirementSimulator {
 
         // Calculate total simulation years based on the maximum lifespan from current age.
         // Guard against undefined partnerCurrentAge in single-calculation mode.
+        // Calculate total simulation years based on the maximum lifespan from current age.
+        // Guard against undefined partnerCurrentAge in single-calculation mode.
         const maxYearsFromNow = inputs.isSingleCalculation
             ? effectiveYourLifespan - inputs.yourCurrentAge
             : Math.max(
                 effectiveYourLifespan - inputs.yourCurrentAge,
-                effectivePartnerLifespan - (inputs.partnerCurrentAge || 0)
+                effectivePartnerLifespan - (inputs.partnerCurrentAge ?? inputs.yourCurrentAge)
             );
         const yearsInRetirement = Math.max(0, maxYearsFromNow - yearsToRetirement + 1);
 
