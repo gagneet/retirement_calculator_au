@@ -140,7 +140,7 @@ export function buildReverseBaselineFromForwardScenario(raw) {
     const source = detectSource(raw);
     const isV2 = source === 'advanced-v2';
 
-    const isCouple = raw.isCouple || raw.household === 'couple' || false;
+    const isCouple = raw.isCouple || raw.household === 'couple' || raw.householdStatus === 'couple' || false;
 
     const canonical = {
         source,
@@ -156,7 +156,7 @@ export function buildReverseBaselineFromForwardScenario(raw) {
 
             // Income
             annualSalary: num(isV2 ? raw.salary : raw.yourSalary, 0),
-            partnerSalary: isCouple ? num(isV2 ? raw.partnerSalary : raw.partnerSalary, 0) : 0,
+            partnerSalary: isCouple ? num(raw.partnerSalary, 0) : 0,
 
             // Super
             currentSuperBalance: num(isV2 ? raw.superBal : raw.yourCurrentSuper, 0),

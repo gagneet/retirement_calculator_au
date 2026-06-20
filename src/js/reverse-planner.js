@@ -151,6 +151,20 @@ export class ReversePlanner {
             swr
         );
 
+        // Mortgage balance at retirement: 0 if paid off by then, else current balance
+        const mortgagePaidOff = simResult.mortgagePayoffAge !== null &&
+            simResult.mortgagePayoffAge <= baseInputs.retirementAge;
+        const mortgageBalance = mortgagePaidOff ? 0 : (baseInputs.mortgageBalance || 0);
+
+        // Estimate individual super balances from combined total
+        const totalInitialSuper = (baseInputs.yourCurrentSuper || 0) + (baseInputs.partnerCurrentSuper || 0);
+        const yourSuperRatio = totalInitialSuper > 0
+            ? (baseInputs.yourCurrentSuper || 0) / totalInitialSuper
+            : (baseInputs.isCouple ? 0.5 : 1);
+        const combinedSuper = simResult.accumulatedSuperBalance || 0;
+        const yourSuperAtRetirement = combinedSuper * yourSuperRatio;
+        const partnerSuperAtRetirement = combinedSuper * (1 - yourSuperRatio);
+
         return {
             simResult,
             score,
@@ -167,6 +181,15 @@ export class ReversePlanner {
             incomeGap: score.incomeGap,
             meetsGoal: score.passesGoal,
             agePensionNominal,
+            mortgageBalance,
+            estateAtLifespan: simResult.finalBalance || 0,
+            superAtRetirement: combinedSuper,
+            score: {
+                ...score,
+                superAtRetirement: combinedSuper,
+                partnerSuperAtRetirement,
+                yourSuperAtRetirement,
+            },
         };
     }
 

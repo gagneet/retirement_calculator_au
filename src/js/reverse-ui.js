@@ -393,58 +393,33 @@ export class ReverseUI {
     }
 
     /**
-     * Render the main results — headline, goal summary, gap overview.
+     * Render the main results — headline, gap summary, action intro, assumptions.
      */
     renderResults(result) {
         const { target, currentPath, top3Actions, summary } = result;
         const plainEnglish = generatePlainEnglishSummary(result);
 
-        // Headline
         safeText('rp-headline', plainEnglish.headline);
 
-        // Goal summary
-        safeText('rp-goal-today', fmt(target.targetAnnualIncomeToday) + '/year');
-        const ytr = currentPath.yearsToRetirement;
-        const nominalTarget = target.targetAnnualIncomeToday *
-            Math.pow(1 + currentPath.inflationRate, ytr);
-        safeText('rp-goal-nominal', `≈ ${fmt(nominalTarget)}/year in ${new Date().getFullYear() + ytr} dollars`);
-        safeText('rp-goal-retire-age', `Age ${target.retirementAge}`);
-        safeText('rp-goal-lifespan', `Plan to age ${target.lifespan}`);
-
-        // Current path
-        safeText('rp-current-income', fmt(currentPath.sustainableIncomeToday) + '/year');
-        safeText('rp-current-assets', fmt(currentPath.totalAssetsNominal));
-
-        // Gap status
         const meetsGoal = currentPath.meetsGoal;
-        const statusEl = el('rp-goal-status');
-        if (statusEl) {
-            statusEl.textContent = meetsGoal ? 'On track' : 'Shortfall';
-            statusEl.className = meetsGoal
-                ? 'rp-status-badge rp-status-ok'
-                : 'rp-status-badge rp-status-gap';
-        }
-
-        safeText('rp-income-gap', meetsGoal ? '—' : fmt(currentPath.incomeGap) + '/year shortfall');
-        safeText('rp-capital-gap', meetsGoal ? '—' : fmt(currentPath.capitalGap) + ' capital shortfall');
-        safeText('rp-gap-text', plainEnglish.gapText);
-
-        // Action intro
         const actionIntro = el('rp-action-intro');
         if (actionIntro) {
-            actionIntro.textContent = top3Actions.length > 0
-                ? `You need to close a ${fmt(currentPath.incomeGap)}/year gap. Ranked actions from most feasible:`
-                : 'No single lever can close the gap — a combination is needed.';
+            if (top3Actions.length > 0) {
+                const gapLabel = meetsGoal
+                    ? `Your current plan meets your ${fmt(target.targetAnnualIncomeToday)}/year goal.`
+                    : `You need to close a ${fmt(currentPath.incomeGap)}/year gap.`;
+                actionIntro.textContent = gapLabel + ' Ranked actions from most feasible:';
+            } else {
+                actionIntro.textContent = 'No single lever can close the gap — a combination is needed.';
+            }
         }
 
-        // Assumptions
         const assumptions = generateAssumptionsText(target, result.inputs);
         const assumEl = el('rp-assumptions-list');
         if (assumEl) {
             assumEl.innerHTML = assumptions.map(a => `<li>${a}</li>`).join('');
         }
 
-        // Pattern caution
         if (plainEnglish.cautionText) {
             safeText('rp-pattern-note', plainEnglish.cautionText);
             show('rp-pattern-note-section');

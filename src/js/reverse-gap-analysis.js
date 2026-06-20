@@ -55,7 +55,7 @@ export function compareCurrentToTarget(currentPath, target, assumptions = {}) {
     const estateGap = Math.max(0, minEstate - estateAtEnd);
 
     // Confidence gap
-    const currentConfidence = currentPath.score?.successProbability ?? 1;
+    const currentConfidence = currentPath.score?.successProbability ?? 0;
     const confidenceTarget = target.confidenceTarget || 0.8;
     const confidenceGap = Math.max(0, confidenceTarget - currentConfidence);
 
@@ -295,7 +295,7 @@ export function buildComparisonTable(gap, currentPath, target) {
         '$'
     ));
 
-    const currentConf = currentPath.score?.successProbability ?? 1;
+    const currentConf = currentPath.score?.successProbability ?? 0;
     rows.push(buildGapComparisonRow(
         'Confidence',
         (currentConf * 100).toFixed(0) + '%',

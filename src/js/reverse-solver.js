@@ -144,7 +144,8 @@ export function scoreScenario(
         finalBalance,
         incomeGap,
         capitalGap,
-        deflator
+        deflator,
+        successProbability: passesIncome ? 1 : 0,
     };
 }
 
