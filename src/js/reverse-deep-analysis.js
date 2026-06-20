@@ -64,9 +64,9 @@ function _makePasses(simulator, baseInputs, target, overrideKey, inflationRate, 
  */
 export async function calculateRetirementAgeSalaryCurve(simulator, baseInputs, target) {
     const inflationRate = baseInputs.inflation ?? DEFAULT_INFLATION;
-    const swr = DEFAULT_SWR;
+    const swr = target.swr ?? DEFAULT_SWR;
     const currentAge = baseInputs.yourCurrentAge || 50;
-    const startAge = Math.max(currentAge + 1, baseInputs.retirementAge || 65);
+    const startAge = currentAge + 1;
     const curve = [];
 
     for (let age = startAge; age <= 75; age += 1) {
@@ -153,7 +153,7 @@ export async function calculateRequiredCurrentValues(simulator, baseInputs, targ
  */
 export async function calculateSalaryReductionTolerance(simulator, baseInputs, target) {
     const inflationRate = baseInputs.inflation ?? DEFAULT_INFLATION;
-    const swr = DEFAULT_SWR;
+    const swr = target.swr ?? DEFAULT_SWR;
     const currentSalary = baseInputs.yourSalary || 0;
 
     if (currentSalary <= 0) {
@@ -210,7 +210,7 @@ export async function calculateSalaryReductionTolerance(simulator, baseInputs, t
  */
 export async function calculateOptimalOverseasAge(simulator, baseInputs, target, costFactor = 0.70) {
     const inflationRate = baseInputs.inflation ?? DEFAULT_INFLATION;
-    const swr = DEFAULT_SWR;
+    const swr = target.swr ?? DEFAULT_SWR;
     const currentAge = baseInputs.yourCurrentAge || 50;
     const currentSalary = baseInputs.yourSalary || 0;
     const targetIncome = target.targetAnnualIncomeToday || 80000;
@@ -221,9 +221,10 @@ export async function calculateOptimalOverseasAge(simulator, baseInputs, target,
         targetAnnualIncomeToday: overseasTargetIncome,
     };
 
+    const startAge = Math.max(55, currentAge + 1);
     const results = [];
 
-    for (let age = 55; age <= 75; age += 1) {
+    for (let age = startAge; age <= 75; age += 1) {
         const ytr = Math.max(1, age - currentAge);
 
         const passes = async (salary) => {

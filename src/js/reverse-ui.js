@@ -510,7 +510,9 @@ export class ReverseUI {
             this._renderSafe(() => this.renderRankedActionPlan(result));
             this._renderSafe(() => this.renderScenarioComparisonCards(result));
             this._renderSafe(() => this.renderOverseasComparison(result));
-            this._renderSafe(() => this._renderDeepAnalysisAsync(result));
+            this._renderDeepAnalysisAsync(result).catch(e => {
+                console.error('Deep analysis render error:', e);
+            });
 
             show('rp-results-section');
         } catch (err) {
@@ -1019,12 +1021,12 @@ export class ReverseUI {
             const feasibleIcon = pt.feasible ? '✓' : '✗';
             const feasibleColor = pt.feasible ? 'var(--accent)' : 'var(--ink-3)';
             const salaryStr = pt.feasible
-                ? '$' + Math.round(pt.requiredSalary).toLocaleString()
+                ? fmt(pt.requiredSalary) + '/yr'
                 : '—';
 
             html += `<tr style="background:${bg}">
                 <td style="font-weight:${isCurrent ? '700' : '400'}">${pt.retirementAge}${isCurrent ? ' (current target)' : ''}</td>
-                <td class="text-right">${salaryStr}/yr</td>
+                <td class="text-right">${salaryStr}</td>
                 <td class="text-right" style="color:${feasibleColor}">${feasibleIcon}</td>
             </tr>`;
         });
@@ -1034,7 +1036,7 @@ export class ReverseUI {
         // Summary
         const earliestFeasible = curve.find(pt => pt.feasible);
         const summaryHtml = earliestFeasible
-            ? `<p style="font-size:12px;color:var(--ink-2);margin-top:8px">Earliest feasible retirement age: <strong>${earliestFeasible.retirementAge}</strong> (requires salary of $${Math.round(earliestFeasible.requiredSalary).toLocaleString()}/yr)</p>`
+            ? `<p style="font-size:12px;color:var(--ink-2);margin-top:8px">Earliest feasible retirement age: <strong>${earliestFeasible.retirementAge}</strong> (requires salary of ${fmt(earliestFeasible.requiredSalary)}/yr)</p>`
             : '<p style="font-size:12px;color:var(--rose);margin-top:8px">Cannot achieve goal at any retirement age up to 75 within modelled salary range ($500k cap)</p>';
 
         container.innerHTML = html + summaryHtml;
@@ -1050,8 +1052,6 @@ export class ReverseUI {
         const simulator = this.planner.simulator;
         const values = await calculateRequiredCurrentValues(simulator, inputs, target);
 
-        const fmtCurrency = (v) => v != null ? '$' + Math.round(v).toLocaleString() : '—';
-
         const homeRow = values.homeValue;
         const savingsRow = values.investmentBalance;
 
@@ -1060,20 +1060,20 @@ export class ReverseUI {
                 <div style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border)">
                     <div>
                         <div style="font-weight:600;font-size:13px;color:var(--ink)">Home value</div>
-                        <div style="font-size:11px;color:var(--ink-3)">Current: ${fmtCurrency(homeRow.current)}</div>
+                        <div style="font-size:11px;color:var(--ink-3)">Current: ${homeRow.current ? fmt(homeRow.current) : '—'}</div>
                     </div>
                     <div style="text-align:right">
-                        <div style="font-weight:600;font-size:13px;color:${homeRow.feasible ? 'var(--accent)' : 'var(--rose)'}">${fmtCurrency(homeRow.required)}</div>
+                        <div style="font-weight:600;font-size:13px;color:${homeRow.feasible ? 'var(--accent)' : 'var(--rose)'}">${homeRow.feasible ? fmt(homeRow.required) : '—'}</div>
                         <div style="font-size:11px;color:var(--ink-3)">${homeRow.feasible ? 'Required' : 'Infeasible'}</div>
                     </div>
                 </div>
                 <div style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border)">
                     <div>
                         <div style="font-weight:600;font-size:13px;color:var(--ink)">Investment balance</div>
-                        <div style="font-size:11px;color:var(--ink-3)">Current: ${fmtCurrency(savingsRow.current)}</div>
+                        <div style="font-size:11px;color:var(--ink-3)">Current: ${savingsRow.current ? fmt(savingsRow.current) : '—'}</div>
                     </div>
                     <div style="text-align:right">
-                        <div style="font-weight:600;font-size:13px;color:${savingsRow.feasible ? 'var(--accent)' : 'var(--rose)'}">${fmtCurrency(savingsRow.required)}</div>
+                        <div style="font-weight:600;font-size:13px;color:${savingsRow.feasible ? 'var(--accent)' : 'var(--rose)'}">${savingsRow.feasible ? fmt(savingsRow.required) : '—'}</div>
                         <div style="font-size:11px;color:var(--ink-3)">${savingsRow.feasible ? 'Required' : 'Infeasible'}</div>
                     </div>
                 </div>
@@ -1091,12 +1091,15 @@ export class ReverseUI {
         const simulator = this.planner.simulator;
         const tolerance = await calculateSalaryReductionTolerance(simulator, inputs, target);
 
+        if (tolerance.currentSalary <= 0) {
+            container.innerHTML = '<p style="font-size:12px;color:var(--ink-3)">No current salary data available for reduction analysis.</p>';
+            return;
+        }
+
         if (!tolerance.feasible) {
             container.innerHTML = '<p style="font-size:12px;color:var(--rose)">Salary cannot be reduced below current level while still meeting your retirement goal.</p>';
             return;
         }
-
-        const fmtCurrency = (v) => v != null ? '$' + Math.round(v).toLocaleString() : '—';
 
         container.innerHTML = `
             <div style="display:flex;flex-direction:column;gap:8px">
@@ -1104,20 +1107,20 @@ export class ReverseUI {
                     <div>
                         <div style="font-weight:600;font-size:13px;color:var(--ink)">Current salary</div>
                     </div>
-                    <div style="font-weight:600;font-size:13px;color:var(--ink)">${fmtCurrency(tolerance.currentSalary)}/yr</div>
+                    <div style="font-weight:600;font-size:13px;color:var(--ink)">${fmt(tolerance.currentSalary)}/yr</div>
                 </div>
                 <div style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border)">
                     <div>
                         <div style="font-weight:600;font-size:13px;color:var(--ink)">Minimum required salary</div>
                     </div>
-                    <div style="font-weight:600;font-size:13px;color:var(--accent)">${fmtCurrency(tolerance.minRequiredSalary)}/yr</div>
+                    <div style="font-weight:600;font-size:13px;color:var(--accent)">${tolerance.minRequiredSalary != null ? fmt(tolerance.minRequiredSalary) + '/yr' : '—'}</div>
                 </div>
                 <div style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border)">
                     <div>
                         <div style="font-weight:600;font-size:13px;color:var(--ink)">Maximum reduction</div>
                     </div>
                     <div style="text-align:right">
-                        <div style="font-weight:600;font-size:13px;color:var(--accent)">${fmtCurrency(tolerance.maxReduction)}/yr</div>
+                        <div style="font-weight:600;font-size:13px;color:var(--accent)">${tolerance.maxReduction != null ? fmt(tolerance.maxReduction) + '/yr' : '—'}</div>
                         <div style="font-size:11px;color:var(--ink-3)">${tolerance.reductionPercent != null ? tolerance.reductionPercent.toFixed(1) + '% of current salary' : ''}</div>
                     </div>
                 </div>
@@ -1134,8 +1137,6 @@ export class ReverseUI {
 
         const simulator = this.planner.simulator;
         const analysis = await calculateOptimalOverseasAge(simulator, inputs, target);
-
-        const fmtCurrency = (v) => v != null ? '$' + Math.round(v).toLocaleString() : '—';
 
         if (!analysis.feasible) {
             container.innerHTML = '<p style="font-size:12px;color:var(--ink-3)">Overseas retirement is not projected to be feasible at any age within modelled parameters.</p>';
@@ -1158,14 +1159,14 @@ export class ReverseUI {
         analysis.analysis.forEach(pt => {
             const isOptimal = pt.moveAge === analysis.optimalAge;
             const bg = isOptimal ? 'var(--accent-soft)' : 'transparent';
-            const salaryStr = pt.feasible ? fmtCurrency(pt.requiredSalary) + '/yr' : '—';
+            const salaryStr = pt.feasible ? fmt(pt.requiredSalary) + '/yr' : '—';
             const worksStr = pt.worksWithCurrentSalary ? '✓' : '—';
             const worksColor = pt.worksWithCurrentSalary ? 'var(--accent)' : 'var(--ink-3)';
 
             tableHtml += `<tr style="background:${bg}">
                 <td style="font-weight:${isOptimal ? '700' : '400'}">${pt.moveAge}${isOptimal ? ' (optimal)' : ''}</td>
                 <td class="text-right">${salaryStr}</td>
-                <td class="text-right">${fmtCurrency(pt.annualTargetOverseas)}/yr</td>
+                <td class="text-right">${fmt(pt.annualTargetOverseas)}/yr</td>
                 <td class="text-right" style="color:${worksColor}">${worksStr}</td>
             </tr>`;
         });

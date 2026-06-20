@@ -519,7 +519,7 @@ export async function solveForCurrentHomeValue(simulator, baseInputs, target, op
 
     const solved = await bisectionSolve({
         lo: currentValue,
-        hi: 5000000,
+        hi: Math.max(currentValue + 1, 5000000),
         tol: 10000,
         passes
     });
@@ -554,7 +554,7 @@ export async function solveForCurrentInvestmentBalance(simulator, baseInputs, ta
 
     const solved = await bisectionSolve({
         lo: currentSavings,
-        hi: 5000000,
+        hi: Math.max(currentSavings + 1, 5000000),
         tol: 10000,
         passes
     });

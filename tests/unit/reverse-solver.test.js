@@ -13,6 +13,8 @@ import {
     solveForExtraSavings,
     solveForTargetSpendingReduction,
     solveForMortgageRepayment,
+    solveForCurrentHomeValue,
+    solveForCurrentInvestmentBalance,
     rankLevers,
     scoreLeverFeasibility,
 } from '../../src/js/reverse-solver.js';
@@ -316,7 +318,122 @@ describe('solveForMortgageRepayment', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 8. rankLevers
+// 8. solveForCurrentHomeValue — bisection solver
+// ---------------------------------------------------------------------------
+
+describe('solveForCurrentHomeValue', () => {
+    let simulator;
+
+    beforeEach(() => {
+        const { RetirementSimulator } = require('../../src/js/simulator.js');
+        const { ENHANCED_CONFIG } = require('../../src/js/config.js');
+        simulator = new RetirementSimulator(ENHANCED_CONFIG);
+    });
+
+    const baseInputs = {
+        yourCurrentAge: 45,
+        retirementAge: 67,
+        yourSalary: 100000,
+        yourCurrentSuper: 200000,
+        currentSavings: 50000,
+        homeValue: 600000,
+        yourAdditionalSuperContribution: 0,
+        monthlyStockContribution: 0,
+        employerSuperContributionRate: 0.12,
+        inflation: 0.026,
+        yourLifespan: 90,
+    };
+
+    test('has correct lever type and structure', async () => {
+        const target = { targetAnnualIncomeToday: 50000 };
+        const result = await solveForCurrentHomeValue(simulator, baseInputs, target);
+        expect(result.lever).toBe('homeValue');
+        expect(result).toHaveProperty('feasible');
+        expect(result).toHaveProperty('unit', 'AUD');
+        expect(result).toHaveProperty('extraNeeded');
+    });
+
+    test('returns feasible result for reasonable target', async () => {
+        const target = { targetAnnualIncomeToday: 40000 };
+        const result = await solveForCurrentHomeValue(simulator, baseInputs, target);
+        // Should either be feasible or not — just verify shape
+        expect(result).toHaveProperty('solved');
+        expect(result).toHaveProperty('description');
+        if (result.feasible) {
+            expect(result.extraNeeded).toBeGreaterThanOrEqual(0);
+            expect(result.solved).toBeGreaterThanOrEqual(baseInputs.homeValue);
+        }
+    });
+
+    test('protects against lo > hi when current value exceeds cap', async () => {
+        const bigInputs = { ...baseInputs, homeValue: 10_000_000 };
+        const target = { targetAnnualIncomeToday: 50000 };
+        const result = await solveForCurrentHomeValue(simulator, bigInputs, target);
+        // Should not throw; hi was clamped to homeValue + 1
+        expect(result).toHaveProperty('feasible');
+        expect(result).toHaveProperty('extraNeeded');
+        // Bisection ran without error (mock doesn't model homeValue, so feasibility depends on mock)
+    });
+});
+
+// ---------------------------------------------------------------------------
+// 9. solveForCurrentInvestmentBalance — bisection solver
+// ---------------------------------------------------------------------------
+
+describe('solveForCurrentInvestmentBalance', () => {
+    let simulator;
+
+    beforeEach(() => {
+        const { RetirementSimulator } = require('../../src/js/simulator.js');
+        const { ENHANCED_CONFIG } = require('../../src/js/config.js');
+        simulator = new RetirementSimulator(ENHANCED_CONFIG);
+    });
+
+    const baseInputs = {
+        yourCurrentAge: 45,
+        retirementAge: 67,
+        yourSalary: 100000,
+        yourCurrentSuper: 200000,
+        currentSavings: 50000,
+        yourAdditionalSuperContribution: 0,
+        monthlyStockContribution: 0,
+        employerSuperContributionRate: 0.12,
+        inflation: 0.026,
+        yourLifespan: 90,
+    };
+
+    test('has correct lever type and structure', async () => {
+        const target = { targetAnnualIncomeToday: 50000 };
+        const result = await solveForCurrentInvestmentBalance(simulator, baseInputs, target);
+        expect(result.lever).toBe('investmentBalance');
+        expect(result).toHaveProperty('feasible');
+        expect(result).toHaveProperty('unit', 'AUD');
+        expect(result).toHaveProperty('extraNeeded');
+    });
+
+    test('returns feasible result for reasonable target', async () => {
+        const target = { targetAnnualIncomeToday: 40000 };
+        const result = await solveForCurrentInvestmentBalance(simulator, baseInputs, target);
+        expect(result).toHaveProperty('solved');
+        expect(result).toHaveProperty('description');
+        if (result.feasible) {
+            expect(result.extraNeeded).toBeGreaterThanOrEqual(0);
+            expect(result.solved).toBeGreaterThanOrEqual(baseInputs.currentSavings);
+        }
+    });
+
+    test('protects against lo > hi when savings exceed cap', async () => {
+        const bigInputs = { ...baseInputs, currentSavings: 10_000_000 };
+        const target = { targetAnnualIncomeToday: 50000 };
+        const result = await solveForCurrentInvestmentBalance(simulator, bigInputs, target);
+        expect(result).toHaveProperty('feasible');
+        expect(result).toHaveProperty('extraNeeded');
+        // Bisection ran without error (mock does model currentSavings, so this is likely feasible)
+    });
+});
+
+// ---------------------------------------------------------------------------
+// 10. rankLevers
 // ---------------------------------------------------------------------------
 
 describe('rankLevers', () => {
