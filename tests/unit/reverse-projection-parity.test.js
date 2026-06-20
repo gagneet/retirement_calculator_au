@@ -70,6 +70,37 @@ describe('reverse projection parity', () => {
     expect(currentPath.confidence).not.toBeNaN();
   });
 
+  test('estateAtLifespan flows through from simulation to current path', () => {
+    const payload = buildForwardProjectionPayload({
+      source: 'advanced-v2',
+      input: { age: 49, retireAge: 71, desiredIncome: 80000, household: 'single' },
+      simulation: {
+        finalBalance: 500000,
+        yearlyData: [{ age: 71, pensionIncome: 0 }],
+      },
+      adaptedResult: { monthlyPaycheck: 20000 },
+    });
+
+    const currentPath = extractCurrentPathFromProjection(payload);
+    expect(currentPath.estateAtLifespan).toBe(500000);
+  });
+
+  test('projection path capital gap uses estimateRequiredCapital not simplified 25x', () => {
+    const payload = buildForwardProjectionPayload({
+      source: 'advanced-v2',
+      input: { age: 49, retireAge: 71, desiredIncome: 80000, household: 'single' },
+      engineInputs: { yourCurrentAge: 49, retirementAge: 71, inflation: 0.026 },
+      simulation: {
+        yearlyData: [{ age: 71, endBalance: 500000, pensionIncome: 0 }],
+      },
+      adaptedResult: { monthlyPaycheck: 10000, confidence: 0.5 },
+    });
+    const currentPath = extractCurrentPathFromProjection(payload);
+    expect(currentPath.estateAtLifespan).toBeDefined();
+    expect(currentPath.lastsUntil).toBeDefined();
+    expect(currentPath.agePensionAtRetirement).toBeDefined();
+  });
+
   test('age pension uses source projection not full maximum', () => {
     const payload = buildForwardProjectionPayload({
       source: 'advanced-v2',
