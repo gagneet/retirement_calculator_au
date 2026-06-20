@@ -1345,7 +1345,7 @@ export class RetirementSimulator {
         // stochasticRate() and are unaffected by these run-level draws.
         const runInflationRate      = stochasticRate(inputs.inflation,            useRandomReturns, 0.001);
         const runHealthcareInflRate = stochasticRate(inputs.healthcareInflation ?? 0.065, useRandomReturns, 0.01);
-        const runSalaryGrowthRate   = stochasticRate(inputs.salaryGrowthRate || 0.02,     useRandomReturns, 0);
+        const runSalaryGrowthRate   = stochasticRate(inputs.salaryGrowthRate ?? 0.02,     useRandomReturns, 0);
         // NOTE: property growth is NOT drawn as a single per-run rate here.
         // Instead, calculateEnhancedPropertyReturn() is called each year inside the
         // accumulation and retirement loops so each year can experience a different
