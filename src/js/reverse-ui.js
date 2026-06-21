@@ -554,185 +554,529 @@ export class ReverseUI {
     }
 
     /**
-     * Export all results as a formatted PDF using jsPDF.
+     * Export all results as a comprehensive PDF using jsPDF.
      */
     handlePdfExport() {
         if (!this.lastResult) {
-            showNotification('Run the comparison first before exporting.', 'error');
+            const btn = el('rp-export-pdf');
+            if (btn) { btn.textContent = 'Run calculation first'; setTimeout(() => { btn.textContent = 'Export PDF Report'; }, 3000); }
             return;
         }
 
         if (typeof window.jspdf === 'undefined') {
-            showNotification('jsPDF library not loaded. Please refresh the page and try again.', 'error');
             return;
         }
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        const { target, currentPath, top3Actions, rankedLevers, inputs } = this.lastResult;
-        // Defensive guards matching renderResults() — prevents "NaN dollars" / "Age undefined"
-        // in the PDF if currentPath arrives partially-filled (root cause fixed in reverse-planner.js
-        // but guard here for defence-in-depth).
+        const { target, currentPath, top3Actions, rankedLevers, inputs, summary } = this.lastResult;
+
+        // Compute shared constants
         const ytr = Number.isFinite(currentPath.yearsToRetirement) && currentPath.yearsToRetirement >= 1
             ? Math.round(currentPath.yearsToRetirement)
             : Math.max(1, (target.retirementAge || 67) - (currentPath.currentAge || target.currentAge || 50));
-        const pdfInflationRate = currentPath.inflationRate || 0.026;
-        const pdfRetirementAge = target.retirementAge ?? currentPath.retirementAge ?? 67;
-        const pdfLifespan = target.lifespan ?? currentPath.lifespan ?? 90;
-        const pdfTotalAssetsNominal = currentPath.totalAssetsNominal || 0;
-        const retireYear = new Date().getFullYear() + ytr;
+        const INF = currentPath.inflationRate || 0.026;
+        const RET_AGE = target.retirementAge ?? 67;
+        const LIFESPAN = target.lifespan ?? 90;
+        const SWR = currentPath.swr || 0.04;
+        const RETIRE_YEAR = new Date().getFullYear() + ytr;
+        const MEETS = currentPath.meetsGoal;
+
         const PAGE_W = 210;
         const MARGIN = 14;
-        const CONTENT_W = PAGE_W - MARGIN * 2;
-        let y = 20;
+        const CW = PAGE_W - MARGIN * 2;
+        let y = 18;
 
-        function t(text, size = 11, style = 'normal', color = '#1e293b') {
+        // Helpers
+        const cur = (v) => '$' + Math.round(v || 0).toLocaleString('en-AU');
+        const pct = (v) => (((v || 0) * 100).toFixed(1)) + '%';
+        const num = (v) => Math.round(v || 0).toLocaleString('en-AU');
+
+        function newPage() { doc.addPage(); y = 18; }
+        function checkPage(need = 12) { if (y + need > 280) newPage(); }
+
+        function setFont(size, style = 'normal', color = [30, 41, 59]) {
             doc.setFont('Helvetica', style);
             doc.setFontSize(size);
-            doc.setTextColor(color);
-            return text;
+            if (Array.isArray(color)) doc.setTextColor(...color);
+            else doc.setTextColor(color);
         }
 
-        function addLine() {
-            y += 4;
-            doc.setDrawColor(226, 232, 240);
+        function text(str, x, yy, size, style, color) {
+            setFont(size || 10, style || 'normal', color || [51, 65, 85]);
+            doc.text(String(str), x, yy);
+        }
+
+        function heading(label, size = 12) {
+            checkPage(10);
+            setFont(size, 'bold', [15, 23, 42]);
+            doc.text(label, MARGIN, y);
+            y += size * 0.5 + 2;
+            doc.setDrawColor(203, 213, 225);
             doc.line(MARGIN, y, PAGE_W - MARGIN, y);
+            y += 5;
+        }
+
+        function bullet(label, value, indent = 0) {
+            checkPage(7);
+            setFont(9, 'normal', [71, 85, 105]);
+            doc.text(label, MARGIN + indent, y);
+            setFont(9, 'bold', [15, 23, 42]);
+            doc.text(value, PAGE_W - MARGIN, y, { align: 'right' });
             y += 6;
         }
 
-        // Title
-        t('Reverse Retirement Planner — Gap Analysis', 18, 'bold', '#0f172a');
-        y += 8;
-        t(`Generated ${new Date().toLocaleDateString('en-AU')}`, 9, 'normal', '#64748b');
-        y += 14;
-
-        // Headline
-        const meetsGoal = currentPath.meetsGoal;
-        const headline = meetsGoal
-            ? `Your current plan meets your $${Math.round(target.targetAnnualIncomeToday).toLocaleString('en-AU')}/yr goal.`
-            : `Your current plan leaves a gap of $${Math.round(currentPath.incomeGap).toLocaleString('en-AU')}/yr.`;
-        t(headline, 12, 'bold', meetsGoal ? '#059669' : '#e11d48');
-        y += 10;
-        addLine();
-
-        // Goal summary
-        t('Your retirement goal', 13, 'bold', '#0f172a');
-        y += 7;
-        const goalItems = [
-            `Target income: $${Math.round(target.targetAnnualIncomeToday).toLocaleString('en-AU')}/yr (today's $)`,
-            `≈ $${Math.round(target.targetAnnualIncomeToday * Math.pow(1 + pdfInflationRate, ytr)).toLocaleString('en-AU')}/yr in ${retireYear} dollars`,
-            `Retire at age ${pdfRetirementAge} · Plan to age ${pdfLifespan}`,
-        ];
-        goalItems.forEach(item => {
-            t(`• ${item}`, 10, 'normal', '#334155');
-            y += 6;
-        });
-        y += 4;
-
-        // Current path
-        t('Your current projected path', 13, 'bold', '#0f172a');
-        y += 7;
-        const nominalIncome = currentPath.sustainableIncomeToday * Math.pow(1 + pdfInflationRate, ytr);
-        const pathItems = [
-            `Sustainable income: $${Math.round(currentPath.sustainableIncomeToday).toLocaleString('en-AU')}/yr (today's $)`,
-            `≈ $${Math.round(nominalIncome).toLocaleString('en-AU')}/yr in ${retireYear} dollars`,
-            `Total assets at retirement: $${Math.round(pdfTotalAssetsNominal).toLocaleString('en-AU')} (nominal)`,
-            meetsGoal ? 'Status: On track' : `Status: Shortfall of $${Math.round(currentPath.incomeGap).toLocaleString('en-AU')}/yr`,
-        ];
-        pathItems.forEach(item => {
-            t(`• ${item}`, 10, 'normal', '#334155');
-            y += 6;
-        });
-        y += 4;
-
-        // Comparison table
-        if (typeof doc.autoTable === 'function') {
-            const gap = compareCurrentToTarget(currentPath, target);
-            const rows = buildComparisonTable(gap, currentPath, target);
-            const tableBody = rows.map(row => [
-                row.label,
-                row.current,
-                row.required,
-                row.gap,
-            ]);
+        function autoTable(head, body, opts = {}) {
+            if (typeof doc.autoTable !== 'function') return;
+            checkPage(20);
             doc.autoTable({
-                startY: y + 2,
+                startY: y,
                 margin: { left: MARGIN, right: MARGIN },
-                tableWidth: CONTENT_W,
-                headStyles: { fillColor: [15, 23, 42], fontSize: 9, fontStyle: 'bold' },
-                bodyStyles: { fontSize: 9 },
-                columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
-                head: [['Metric', 'Current', 'Required', 'Gap']],
-                body: tableBody,
+                tableWidth: CW,
+                headStyles: { fillColor: [15, 23, 42], fontSize: 8, fontStyle: 'bold', textColor: [255, 255, 255] },
+                bodyStyles: { fontSize: 8, textColor: [51, 65, 85] },
+                alternateRowStyles: { fillColor: [248, 250, 252] },
+                ...opts,
+                head: [head],
+                body,
             });
-            y = doc.lastAutoTable.finalY + 8;
+            y = doc.lastAutoTable.finalY + 6;
+        }
+
+        function infoBox(lines, bgColor = [239, 246, 255], borderColor = [59, 130, 246]) {
+            checkPage(lines.length * 6 + 8);
+            const bh = lines.length * 6 + 6;
+            doc.setFillColor(...bgColor);
+            doc.setDrawColor(...borderColor);
+            doc.roundedRect(MARGIN, y, CW, bh, 2, 2, 'FD');
+            lines.forEach((line, i) => {
+                setFont(8.5, i === 0 ? 'bold' : 'normal', [30, 64, 175]);
+                doc.text(line, MARGIN + 4, y + 7 + i * 6);
+            });
+            y += bh + 5;
+        }
+
+        // ── PAGE 1: COVER + EXECUTIVE SUMMARY ───────────────────────────────
+
+        // Header bar
+        doc.setFillColor(15, 23, 42);
+        doc.rect(0, 0, PAGE_W, 28, 'F');
+        setFont(16, 'bold', [255, 255, 255]);
+        doc.text('Reverse Retirement Planner', MARGIN, 12);
+        setFont(9, 'normal', [148, 163, 184]);
+        doc.text('Goal-Gap Analysis & Action Plan', MARGIN, 20);
+        setFont(8, 'normal', [148, 163, 184]);
+        doc.text(`Generated ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}`, PAGE_W - MARGIN, 20, { align: 'right' });
+        y = 36;
+
+        // Status banner
+        const bannerBg = MEETS ? [209, 250, 229] : [254, 226, 226];
+        const bannerFg = MEETS ? [5, 150, 105] : [220, 38, 38];
+        const bannerText = MEETS
+            ? `ON TRACK: Your current plan supports ${cur(target.targetAnnualIncomeToday)}/year in retirement`
+            : `SHORTFALL: ${cur(currentPath.incomeGap)}/year gap to your ${cur(target.targetAnnualIncomeToday)}/year retirement goal`;
+        doc.setFillColor(...bannerBg);
+        doc.rect(MARGIN, y, CW, 10, 'F');
+        setFont(9, 'bold', bannerFg);
+        doc.text(bannerText, PAGE_W / 2, y + 6.5, { align: 'center' });
+        y += 16;
+
+        // Two-column key metrics
+        heading('Executive Summary', 11);
+        const leftX = MARGIN;
+        const rightX = PAGE_W / 2 + 2;
+        const colW = CW / 2 - 4;
+
+        function kv(label, value, x, yy, valColor = [15, 23, 42]) {
+            setFont(7.5, 'normal', [100, 116, 139]);
+            doc.text(label.toUpperCase(), x, yy);
+            setFont(10, 'bold', valColor);
+            doc.text(value, x, yy + 5);
+        }
+
+        kv('Your goal', cur(target.targetAnnualIncomeToday) + '/year', leftX, y);
+        kv('Retire at', `Age ${RET_AGE} (${ytr} years away)`, rightX, y);
+        y += 14;
+        kv('Current sustainable income', cur(currentPath.sustainableIncomeToday) + '/year', leftX, y, MEETS ? [5, 150, 105] : [220, 38, 38]);
+        kv('Plan to age', String(LIFESPAN), rightX, y);
+        y += 14;
+        const nominalAssets = currentPath.totalAssetsNominal || 0;
+        const superAtRet = currentPath.superAtRetirement || currentPath.score?.superAtRetirement || 0;
+        kv('Total assets at retirement', cur(nominalAssets) + ' (nominal)', leftX, y);
+        kv('Super at retirement', cur(superAtRet), rightX, y);
+        y += 14;
+        const agePension = currentPath.agePensionNominal || 0;
+        kv('Age Pension (at retirement)', cur(agePension) + '/year', leftX, y);
+        kv('Capital required', cur(currentPath.requiredCapital), rightX, y);
+        y += 18;
+
+        // Gap callout if shortfall
+        if (!MEETS) {
+            const capGap = currentPath.capitalGap || 0;
+            infoBox([
+                `Capital shortfall: ${cur(capGap)} needs to be closed before age ${RET_AGE}`,
+                `Income shortfall: ${cur(currentPath.incomeGap)}/year in today's dollars`,
+                `Nominal target income in ${RETIRE_YEAR}: ${cur(target.targetAnnualIncomeToday * Math.pow(1 + INF, ytr))}/year`,
+            ], [255, 237, 213], [234, 88, 12]);
         } else {
-            t('(Comparison table omitted — jsPDF-autotable plugin not loaded)', 9, 'italic', '#94a3b8');
+            infoBox([
+                `Your current plan is projected to meet your retirement goal.`,
+                `Continue current savings and review annually to maintain this position.`,
+            ], [209, 250, 229], [5, 150, 105]);
+        }
+
+        // ── PAGE 1/2: CURRENT FINANCIAL SNAPSHOT ────────────────────────────
+        heading('Your Current Financial Snapshot', 11);
+
+        const inp = inputs || {};
+        autoTable(
+            ['Category', 'Detail', 'Value'],
+            [
+                ['Age & timing', 'Your current age', String(inp.yourCurrentAge || target.currentAge || '—')],
+                ['Age & timing', 'Planned retirement age', `Age ${RET_AGE}`],
+                ['Age & timing', 'Planning horizon', `Age ${LIFESPAN} (${LIFESPAN - (inp.yourCurrentAge || RET_AGE)} years in retirement)`],
+                ['Age & timing', 'Household', target.householdType === 'couple' ? 'Couple' : 'Single'],
+                ['Income', 'Your annual salary', cur(inp.yourSalary || inp.annualSalary)],
+                inp.partnerSalary > 0 ? ['Income', 'Partner annual salary', cur(inp.partnerSalary)] : null,
+                ['Income', 'Employer SG contribution', pct(inp.employerSuperContributionRate || 0.12) + ' of salary'],
+                ['Income', 'Salary sacrifice (concessional)', cur(inp.yourAdditionalSuperContribution) + '/year'],
+                ['Super', 'Your super balance today', cur(inp.yourCurrentSuper)],
+                inp.partnerCurrentSuper > 0 ? ['Super', 'Partner super balance today', cur(inp.partnerCurrentSuper)] : null,
+                ['Savings & investments', 'Cash savings', cur(inp.currentSavings)],
+                ['Savings & investments', 'Shares / ETF portfolio', cur(inp.currentStocks)],
+                ['Savings & investments', 'Monthly investment contribution', cur(inp.monthlyStockContribution) + '/month'],
+                inp.homeValue > 0 ? ['Property', 'Home value', cur(inp.homeValue)] : null,
+                inp.mortgageBalance > 0 ? ['Property', 'Mortgage balance', cur(inp.mortgageBalance)] : null,
+                inp.mortgageBalance > 0 ? ['Property', 'Monthly mortgage payment', cur(inp.monthlyMortgagePayment) + '/month'] : null,
+                inp.hasInvestmentProperty ? ['Property', 'Investment property value', cur(inp.investmentPropertyValue)] : null,
+                inp.hasInvestmentProperty ? ['Property', 'Weekly rental income', cur(inp.weeklyRentalIncome) + '/week'] : null,
+            ].filter(Boolean),
+            {
+                columnStyles: {
+                    0: { fontStyle: 'bold', cellWidth: 45 },
+                    1: { cellWidth: 80 },
+                    2: { halign: 'right', cellWidth: 47 },
+                },
+            }
+        );
+
+        // ── PAGE 2: WHAT YOU NEED TO DO TODAY ───────────────────────────────
+        checkPage(20);
+        heading('What You Need to Do Today to Reach Your Goal', 11);
+
+        setFont(8.5, 'normal', [71, 85, 105]);
+        const introText = `To achieve ${cur(target.targetAnnualIncomeToday)}/year in retirement at age ${RET_AGE}, the table below shows ` +
+            `the specific changes required TODAY. Each lever is independent — implementing any single feasible lever closes the gap.`;
+        const splitIntro = doc.splitTextToSize(introText, CW);
+        splitIntro.forEach(line => { doc.text(line, MARGIN, y); y += 5; });
+        y += 3;
+
+        const feasibleLevers = (rankedLevers || []).filter(l => l.feasible);
+        const infeasibleLevers = (rankedLevers || []).filter(l => !l.feasible);
+
+        function leverCurrentValue(lever, inp2) {
+            switch (lever.lever) {
+                case 'extraAnnualSuper': return cur(inp2.yourAdditionalSuperContribution || 0) + '/yr';
+                case 'salary': return cur(inp2.yourSalary || inp2.annualSalary || 0) + '/yr';
+                case 'retirementAge': return `Age ${inp2.retirementAge || RET_AGE}`;
+                case 'superBalance': return cur(inp2.yourCurrentSuper || 0);
+                case 'extraSavings': return cur((inp2.monthlyStockContribution || 0)) + '/mo';
+                case 'reduceExpenses': return cur(target.targetAnnualIncomeToday) + '/yr';
+                case 'partnerSuper': return cur(inp2.partnerCurrentSuper || 0);
+                default: return '—';
+            }
+        }
+
+        function leverRequiredValue(lever) {
+            if (lever.solved === null || lever.solved === undefined) return '—';
+            switch (lever.lever) {
+                case 'extraAnnualSuper': return cur(lever.solved) + '/yr total';
+                case 'salary': return cur(lever.solved) + '/yr';
+                case 'retirementAge': return `Age ${Math.round(lever.solved)}`;
+                case 'superBalance': return cur(lever.solved);
+                case 'extraSavings': return cur(lever.solved) + '/mo';
+                case 'reduceExpenses': return cur(lever.solved) + '/yr';
+                case 'partnerSuper': return cur(lever.solved);
+                default: return lever.value !== null ? cur(lever.value) : '—';
+            }
+        }
+
+        function leverChangeNeeded(lever) {
+            if (!lever.feasible) return 'Infeasible alone';
+            if (lever.value === 0 || lever.value === null) return 'No change needed';
+            switch (lever.unit) {
+                case 'AUD/year': return `Add ${cur(lever.value)}/year`;
+                case 'AUD/month': return `Add ${cur(lever.value)}/month`;
+                case 'AUD lump sum': return `Top up ${cur(lever.value)}`;
+                case 'AUD': return `Increase by ${cur(lever.value)}`;
+                case 'years': return `Delay by ${lever.value} year${lever.value !== 1 ? 's' : ''}`;
+                default: return lever.description || '—';
+            }
+        }
+
+        if (feasibleLevers.length > 0) {
+            autoTable(
+                ['Lever', 'Current Value', 'Required Value', 'Change Needed', 'Annual Impact'],
+                feasibleLevers.map(lever => [
+                    lever.label,
+                    leverCurrentValue(lever, inp),
+                    leverRequiredValue(lever),
+                    leverChangeNeeded(lever),
+                    lever.unit === 'AUD/year' ? cur(lever.value) + '/yr'
+                        : lever.unit === 'AUD/month' ? cur((lever.value || 0) * 12) + '/yr'
+                        : '—',
+                ]),
+                {
+                    headStyles: { fillColor: [5, 150, 105] },
+                    columnStyles: {
+                        0: { fontStyle: 'bold', cellWidth: 45 },
+                        1: { halign: 'right', cellWidth: 32 },
+                        2: { halign: 'right', cellWidth: 32 },
+                        3: { halign: 'right', cellWidth: 40 },
+                        4: { halign: 'right', cellWidth: 28 },
+                    },
+                }
+            );
+        } else {
+            checkPage(12);
+            setFont(9, 'italic', [100, 116, 139]);
+            doc.text('No single lever can bridge the gap alone. A combination of changes is required.', MARGIN, y);
             y += 8;
         }
-        addLine();
 
-        // Action plan
-        t('Ranked action plan', 13, 'bold', '#0f172a');
-        y += 8;
+        // Top recommended actions — numbered list with full detail
+        checkPage(20);
+        heading('Top Recommended Actions', 11);
+
         if (top3Actions.length > 0) {
             top3Actions.forEach((lever, i) => {
-                if (y > 260) { doc.addPage(); y = 20; }
-                t(`${i + 1}. ${lever.label}`, 11, 'bold', '#0f172a');
-                y += 5;
-                t(`   ${lever.description}`, 10, 'normal', '#475569');
-                y += 7;
+                checkPage(18);
+                // Action number badge
+                doc.setFillColor(15, 23, 42);
+                doc.circle(MARGIN + 4, y + 1, 4, 'F');
+                setFont(8, 'bold', [255, 255, 255]);
+                doc.text(String(i + 1), MARGIN + 4, y + 2.5, { align: 'center' });
+
+                setFont(10, 'bold', [15, 23, 42]);
+                doc.text(lever.label, MARGIN + 11, y + 2);
+                y += 9;
+                setFont(8.5, 'normal', [71, 85, 105]);
+                const descLines = doc.splitTextToSize(lever.description || '', CW - 11);
+                descLines.forEach(line => { doc.text(line, MARGIN + 11, y); y += 5; });
+                if (lever.regulatoryNote) {
+                    setFont(7.5, 'italic', [100, 116, 139]);
+                    doc.text('Note: ' + lever.regulatoryNote, MARGIN + 11, y);
+                    y += 5;
+                }
+                y += 3;
             });
         } else {
-            t('No single lever can bridge the gap — a combination of changes or professional advice is recommended.', 10, 'italic', '#64748b');
-            y += 7;
+            checkPage(10);
+            setFont(9, 'italic', [100, 116, 139]);
+            doc.text('Speak to a licensed financial adviser for a personalised combination strategy.', MARGIN, y);
+            y += 8;
         }
-        y += 4;
 
-        // Assumptions
-        if (y > 240) { doc.addPage(); y = 20; }
-        t('Assumptions used', 13, 'bold', '#0f172a');
-        y += 7;
-        const assumptions = [
-            `Inflation rate: ${(pdfInflationRate * 100).toFixed(1)}%`,
-            `Years to retirement: ${ytr}`,
-            `Safe withdrawal rate: ${((currentPath.swr || 0.04) * 100).toFixed(1)}%`,
-            `Household: ${target.householdType === 'couple' ? 'Couple' : 'Single'}`,
-        ];
-        assumptions.forEach(item => {
-            t(`• ${item}`, 10, 'normal', '#334155');
-            y += 5;
-        });
-        y += 4;
+        // ── PAGE 3: GAP ANALYSIS TABLE ───────────────────────────────────────
+        checkPage(30);
+        heading('Detailed Gap Analysis — Current vs Required', 11);
 
-        // All levers
-        if (rankedLevers?.length > 0) {
-            if (y > 230) { doc.addPage(); y = 20; }
-            t('All levers analysed', 13, 'bold', '#0f172a');
-            y += 7;
-            rankedLevers.forEach(lever => {
-                if (y > 260) { doc.addPage(); y = 20; }
-                const icon = lever.feasible ? '✓' : '✗';
-                t(`${icon} ${lever.label}: ${lever.description || ''}`, 9, lever.feasible ? 'bold' : 'normal', lever.feasible ? '#059669' : '#94a3b8');
-                y += 5;
+        const gap = compareCurrentToTarget(currentPath, target);
+        const gapRows = buildComparisonTable(gap, currentPath, target);
+
+        autoTable(
+            ['Metric', 'Your Current Position', 'Required for Goal', 'Gap', 'Action'],
+            gapRows.map(row => [row.label, row.current, row.required, row.gap, row.recommendedAction]),
+            {
+                columnStyles: {
+                    0: { fontStyle: 'bold', cellWidth: 38 },
+                    1: { halign: 'right', cellWidth: 35 },
+                    2: { halign: 'right', cellWidth: 35 },
+                    3: { halign: 'right', cellWidth: 25, fontStyle: 'bold' },
+                    4: { cellWidth: 44 },
+                },
+                didParseCell: (data) => {
+                    if (data.column.index === 3 && data.section === 'body') {
+                        const val = data.cell.text[0];
+                        if (val && val !== '—') {
+                            data.cell.styles.textColor = [220, 38, 38];
+                        } else {
+                            data.cell.styles.textColor = [5, 150, 105];
+                        }
+                    }
+                },
+            }
+        );
+
+        // Problem flags
+        if (gap.problemFlags && gap.problemFlags.length > 0) {
+            checkPage(15);
+            heading('Issues Identified', 10);
+            const sevColor = { high: [220, 38, 38], medium: [234, 88, 12], low: [59, 130, 246] };
+            gap.problemFlags.forEach(flag => {
+                checkPage(14);
+                const col = sevColor[flag.severity] || [71, 85, 105];
+                doc.setFillColor(...col);
+                doc.rect(MARGIN, y, 3, 9, 'F');
+                setFont(9, 'bold', col);
+                doc.text(flag.label, MARGIN + 6, y + 4);
+                setFont(8, 'normal', [71, 85, 105]);
+                const detailLines = doc.splitTextToSize(flag.detail || '', CW - 10);
+                detailLines.forEach((line, li) => { doc.text(line, MARGIN + 6, y + 9 + li * 4.5); });
+                y += 9 + detailLines.length * 4.5 + 4;
             });
         }
 
-        // Disclaimer
-        if (y > 240) { doc.addPage(); y = 20; }
-        addLine();
-        t('General Information Disclaimer', 9, 'bold', '#64748b');
-        y += 4;
-        const disclaimer = 'This calculator provides general scenario modelling only. It is not personal financial, tax, legal, migration or estate-planning advice. The projections shown are illustrative estimates based on the assumptions you enter, and actual outcomes will differ due to changes in markets, legislation, personal circumstances, and other factors. Always consult a licensed financial adviser.';
-        doc.setFont('Helvetica', 'normal');
-        doc.setFontSize(7.5);
-        doc.setTextColor('#94a3b8');
-        const splitDisclaimer = doc.splitTextToSize(disclaimer, CONTENT_W);
-        splitDisclaimer.forEach(line => {
-            if (y > 280) { doc.addPage(); y = 20; }
-            doc.text(line, MARGIN, y);
+        // ── PAGE 3/4: RETIREMENT PROJECTIONS ────────────────────────────────
+        checkPage(30);
+        heading('Retirement Projections', 11);
+
+        const nomInc = currentPath.sustainableIncomeToday * Math.pow(1 + INF, ytr);
+        const nomTarget = target.targetAnnualIncomeToday * Math.pow(1 + INF, ytr);
+        const yourSuperRet = currentPath.score?.yourSuperAtRetirement || superAtRet;
+        const partnerSuperRet = currentPath.score?.partnerSuperAtRetirement || 0;
+        const simResult = currentPath.simResult;
+        const depletionAge = simResult?.depletionAge || null;
+
+        autoTable(
+            ['Projection Item', 'Value', 'Notes'],
+            [
+                ['Super at retirement', cur(superAtRet), 'Combined household super balance'],
+                yourSuperRet !== superAtRet ? ['  Your super at retirement', cur(yourSuperRet), 'Your individual share'] : null,
+                partnerSuperRet > 0 ? ['  Partner super at retirement', cur(partnerSuperRet), 'Partner individual share'] : null,
+                ['Total financial assets', cur(nominalAssets), 'Super + investments + savings (nominal)'],
+                ['Capital required for goal', cur(currentPath.requiredCapital), `At ${pct(SWR)} safe withdrawal rate`],
+                ['Capital gap', MEETS ? 'None' : cur(currentPath.capitalGap), MEETS ? 'Goal achieved' : 'Additional capital needed'],
+                ['Sustainable income (today $)', cur(currentPath.sustainableIncomeToday) + '/yr', 'In today\'s purchasing power'],
+                ['Sustainable income (' + RETIRE_YEAR + ' $)', cur(nomInc) + '/yr', 'In retirement-year dollars'],
+                ['Target income (' + RETIRE_YEAR + ' $)', cur(nomTarget) + '/yr', 'Goal after inflation adjustment'],
+                ['Age Pension at retirement', cur(agePension) + '/yr', 'Means-tested estimate (nominal)'],
+                depletionAge ? ['Portfolio depletion age', `Age ${depletionAge}`, depletionAge >= LIFESPAN ? 'Lasts full planning period' : 'SHORTFALL before plan end'] : null,
+                !depletionAge ? ['Portfolio lasts to', `Age ${LIFESPAN}+`, 'No depletion within planning period'] : null,
+                (currentPath.mortgageBalance || 0) > 0 ? ['Mortgage at retirement', cur(currentPath.mortgageBalance), 'Remaining balance — must be serviced from assets'] : null,
+            ].filter(Boolean),
+            {
+                columnStyles: {
+                    0: { fontStyle: 'bold', cellWidth: 70 },
+                    1: { halign: 'right', cellWidth: 40 },
+                    2: { cellWidth: 67 },
+                },
+                didParseCell: (data) => {
+                    if (data.section === 'body' && data.column.index === 0) {
+                        if (String(data.cell.text[0]).startsWith('  ')) {
+                            data.cell.styles.fontStyle = 'normal';
+                            data.cell.styles.textColor = [100, 116, 139];
+                        }
+                    }
+                },
+            }
+        );
+
+        // ── PAGE 4: ALL LEVERS ANALYSED ──────────────────────────────────────
+        checkPage(30);
+        heading('All Levers Analysed', 11);
+
+        setFont(8, 'normal', [100, 116, 139]);
+        doc.text('Each lever is assessed independently. Combining multiple levers will close the gap faster.', MARGIN, y);
+        y += 7;
+
+        if (rankedLevers && rankedLevers.length > 0) {
+            autoTable(
+                ['Lever', 'Feasible?', 'Current', 'Solved Value', 'Change Required', 'Description'],
+                rankedLevers.map(lever => [
+                    lever.label,
+                    lever.feasible ? 'Yes' : 'No',
+                    leverCurrentValue(lever, inp),
+                    lever.feasible ? leverRequiredValue(lever) : '—',
+                    lever.feasible ? leverChangeNeeded(lever) : lever.description || 'Insufficient alone',
+                    lever.feasible ? '' : (lever.description || ''),
+                ]),
+                {
+                    headStyles: { fillColor: [30, 41, 59] },
+                    columnStyles: {
+                        0: { fontStyle: 'bold', cellWidth: 38 },
+                        1: { halign: 'center', cellWidth: 17 },
+                        2: { halign: 'right', cellWidth: 26 },
+                        3: { halign: 'right', cellWidth: 28 },
+                        4: { cellWidth: 38 },
+                        5: { cellWidth: 30 },
+                    },
+                    didParseCell: (data) => {
+                        if (data.section === 'body' && data.column.index === 1) {
+                            const val = data.cell.text[0];
+                            data.cell.styles.textColor = val === 'Yes' ? [5, 150, 105] : [220, 38, 38];
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                    },
+                }
+            );
+        }
+
+        // Infeasible levers explanation
+        if (infeasibleLevers.length > 0) {
+            checkPage(15);
+            setFont(9, 'bold', [100, 116, 139]);
+            doc.text('Levers that cannot bridge the gap alone:', MARGIN, y);
+            y += 6;
+            infeasibleLevers.forEach(lever => {
+                checkPage(8);
+                setFont(8, 'normal', [100, 116, 139]);
+                const lines = doc.splitTextToSize(`- ${lever.label}: ${lever.description || ''}`, CW);
+                lines.forEach(line => { doc.text(line, MARGIN + 3, y); y += 4.5; });
+            });
             y += 4;
-        });
+        }
+
+        // ── PAGE 5: ASSUMPTIONS ──────────────────────────────────────────────
+        checkPage(30);
+        heading('Assumptions & Methodology', 11);
+
+        autoTable(
+            ['Assumption', 'Value', 'Source / Notes'],
+            [
+                ['Inflation rate', pct(INF), 'RBA target band / ABS CPI'],
+                ['Safe withdrawal rate', pct(SWR), 'Trinity study / FI community standard'],
+                ['Super return (net)', pct(inp.superReturn || 0.075), 'APRA MySuper balanced 10-yr median'],
+                ['Investment return', pct(inp.investmentReturn || 0.07), 'ASX / diversified portfolio long-run'],
+                ['Salary growth rate', pct(inp.salaryGrowthRate || 0.02), 'ABS Wage Price Index long-run real'],
+                ['Savings return', pct(inp.savingsReturn || 0.035), 'High-interest savings account rate'],
+                ['Super Guarantee rate', pct(inp.employerSuperContributionRate || 0.12), 'ATO legislated SG rate (FY2025-26)'],
+                ['Concessional cap', '$30,000/year', 'ATO limit FY2024-25 and FY2025-26'],
+                ['Age Pension age', '67', 'Services Australia current qualifying age'],
+                ['Age Pension included', target.includeAgePension ? 'Yes (means-tested)' : 'No', 'Services Australia rates'],
+                ['Household type', target.householdType === 'couple' ? 'Couple' : 'Single', 'Affects pension thresholds'],
+                ['Years to retirement', String(ytr), `Current age to age ${RET_AGE}`],
+                ['Planning horizon', `${LIFESPAN - (inp.yourCurrentAge || RET_AGE)} years in retirement`, `Age ${RET_AGE} to ${LIFESPAN}`],
+            ],
+            {
+                columnStyles: {
+                    0: { fontStyle: 'bold', cellWidth: 55 },
+                    1: { halign: 'right', cellWidth: 30 },
+                    2: { cellWidth: 92 },
+                },
+            }
+        );
+
+        // Disclaimer
+        checkPage(30);
+        doc.setFillColor(241, 245, 249);
+        const dlY = y;
+        const disclaimerText = 'GENERAL INFORMATION ONLY — NOT FINANCIAL ADVICE. This report is produced by an automated calculator and provides general scenario modelling only. It is not personal financial, tax, legal, migration or estate-planning advice. Projections are illustrative estimates based on inputs you provided and assumptions listed above. Actual outcomes will differ due to changes in markets, legislation, personal circumstances, longevity, and other factors not modelled here. Past performance does not guarantee future results. Always seek advice from a licensed financial adviser (AFS Licence holder) before making investment or retirement planning decisions. Centrelink entitlements, taxation, and superannuation rules may change. Superannuation balances and Age Pension entitlements are subject to legislative change.';
+        const dLines = doc.splitTextToSize(disclaimerText, CW - 8);
+        doc.roundedRect(MARGIN, dlY, CW, dLines.length * 3.8 + 10, 2, 2, 'F');
+        setFont(7, 'bold', [100, 116, 139]);
+        doc.text('DISCLAIMER', MARGIN + 4, dlY + 6);
+        setFont(6.5, 'normal', [100, 116, 139]);
+        dLines.forEach((line, i) => { doc.text(line, MARGIN + 4, dlY + 11 + i * 3.8); });
+
+        // Page numbers
+        const totalPages = doc.getNumberOfPages();
+        for (let p = 1; p <= totalPages; p++) {
+            doc.setPage(p);
+            setFont(7, 'normal', [148, 163, 184]);
+            doc.text(`Page ${p} of ${totalPages}`, PAGE_W - MARGIN, 293, { align: 'right' });
+            doc.text('Retirement Calculator AU — Reverse Planner Report', MARGIN, 293);
+        }
 
         doc.save('retirement-reverse-planner-report.pdf');
     }
