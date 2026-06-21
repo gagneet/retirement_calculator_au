@@ -15,6 +15,8 @@ export function normaliseCanonicalInput(input = {}) {
         'currentMonthlyHousingCosts',
         'currentMonthlyLivingCosts',
     ].some((field) => Object.prototype.hasOwnProperty.call(cashflow, field));
+    const totalSpendProvided = cashflow.totalSpendProvided
+        ?? Object.prototype.hasOwnProperty.call(cashflow, 'currentMonthlyTotalSpend');
     return {
         schemaVersion: CANONICAL_INPUT_SCHEMA_VERSION,
         household: {
@@ -50,7 +52,7 @@ export function normaliseCanonicalInput(input = {}) {
         },
         cashflow: {
             hasDetailedExpenses: Boolean(hasDetailedExpenses),
-            totalSpendProvided: Object.prototype.hasOwnProperty.call(cashflow, 'currentMonthlyTotalSpend'),
+            totalSpendProvided: Boolean(totalSpendProvided),
             currentMonthlyIncome: number(cashflow.currentMonthlyIncome),
             currentMonthlyHousingCosts: number(cashflow.currentMonthlyHousingCosts),
             currentMonthlyLivingCosts: number(cashflow.currentMonthlyLivingCosts),
@@ -61,6 +63,7 @@ export function normaliseCanonicalInput(input = {}) {
             explicitAnnualSalarySacrifice: number(cashflow.explicitAnnualSalarySacrifice),
             partnerExplicitAnnualSalarySacrifice: number(cashflow.partnerExplicitAnnualSalarySacrifice),
             currentMonthlyMortgagePayment: number(cashflow.currentMonthlyMortgagePayment),
+            mortgageIncludedInSpending: Boolean(cashflow.mortgageIncludedInSpending),
             surplusAllocationMode: ['cash', 'invest', 'mortgage_first', 'super_first', 'custom_split'].includes(cashflow.surplusAllocationMode)
                 ? cashflow.surplusAllocationMode
                 : 'cash',

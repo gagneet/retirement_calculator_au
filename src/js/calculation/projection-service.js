@@ -45,9 +45,10 @@ export class ProjectionService {
     }
 
     computeProjection(rawInput, options = {}) {
-        const canonicalInput = normaliseCanonicalInput(
-            this.adapter ? this.adapter(rawInput) : rawInput
-        );
+        const adaptedInput = this.adapter ? this.adapter(rawInput) : rawInput;
+        const canonicalInput = adaptedInput?.schemaVersion
+            ? adaptedInput
+            : normaliseCanonicalInput(adaptedInput);
         const sourceCalculator = options.sourceCalculator || 'advanced-v2';
         // rawInput remains part of the transitional hash until CanonicalInput covers
         // every projection-relevant field from all three calculators.

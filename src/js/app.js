@@ -34,6 +34,9 @@ import { buildStressedInputs, normaliseStressScenarioForTest } from './policy/st
 import { RetirementCostAnalyzer } from './retirement-cost-analyzer.js';
 import PersonalizedQuestionEngine from './personalized-qa-engine.js';
 import { buildForwardProjectionPayload, storeForwardProjection } from './forward-projection-bridge.js';
+import { adaptAdvancedClassicInput } from './calculation/input-adapters/advanced-classic-adapter.js';
+import { applyCanonicalCashflowToEngineInputs } from './calculation/canonical-engine-adapter.js';
+import { ProjectionService } from './calculation/projection-service.js';
 import {
     calculateConcessionalCapStatus,
     calculateEmployerSuper,
@@ -138,6 +141,7 @@ class RetirementCalculatorApp {
     constructor() {
         this.config = versionManager.getLatestConfig();
         this.simulator = new RetirementSimulator(this.config);
+        this.projectionService = this.createProjectionService();
         this.chartManager = null; // Will be lazy-loaded
         this.marketData = new MarketDataEngine();
         this.themeManager = new ThemeManager();
@@ -155,6 +159,7 @@ class RetirementCalculatorApp {
         this.currentOutcome = null; // Current outcome calculation results
         this.currentResilience = null; // Current resilience analysis results
         this.currentResults = null;
+        this.currentProjection = null;
         this.isCalculating = false;
         this.isImporting = false;
         this.lastCalculationHash = null; // dirty-flag: tracks inputs at last successful calculation
@@ -167,6 +172,7 @@ class RetirementCalculatorApp {
     reinitializeApp(config) {
         this.config = config;
         this.simulator = new RetirementSimulator(this.config);
+        this.projectionService = this.createProjectionService();
         this.scenarioMatrix = new ScenarioComparisonMatrix(this.simulator, this.config);
         this.personaIntelligence = new PersonaIntelligenceEngine(this.simulator, this.config);
         this.healthcareModeling = new HealthcareModelingEngine(this.config);
@@ -174,6 +180,22 @@ class RetirementCalculatorApp {
         this.onboardingWizard = new OnboardingWizard(this.config);
 
         debugLog(`Re-initialized app with config for version ${config.version}`);
+    }
+
+    createProjectionService() {
+        return new ProjectionService({
+            simulator: this.simulator,
+            adapter: adaptAdvancedClassicInput,
+            engineInputBuilder: (rawInput, { canonicalInput, derivedCashflow }) => (
+                applyCanonicalCashflowToEngineInputs(rawInput, canonicalInput, derivedCashflow)
+            ),
+            summaryBuilder: ({ canonicalInput, simulation }) => ({
+                targetAnnualIncomeToday: canonicalInput.retirementTarget.targetAnnualIncomeToday,
+                finalBalance: simulation.finalBalance,
+                retirementAge: canonicalInput.household.retirementAge,
+            }),
+            policyVersion: this.config.version || 'unversioned',
+        });
     }
 
     handleVersionChange(newVersion) {
@@ -1188,6 +1210,14 @@ class RetirementCalculatorApp {
                 errors.push(`${label} cannot be negative.`);
             }
         }
+        if (
+            inputs.useDetailedExpenseInputs
+            && (Number(inputs.currentMonthlyHousingCosts || 0)
+                + Number(inputs.currentMonthlyLivingCosts || 0)
+                + (Number(inputs.currentHealthcareCosts || 0) / 12)) <= 0
+        ) {
+            errors.push('Enter current household expenses before enabling explicit monthly expense inputs.');
+        }
 
         // Percentage fields — must be 0–100 when expressed as decimal (0–1)
         const percentFields = [
@@ -1268,7 +1298,11 @@ class RetirementCalculatorApp {
 
             let result;
             try {
-                result = profiler.measure('advanced-classic.core.deterministicSimulation', () => this.simulator.simulateRetirement(inputs, false));
+                const projection = profiler.measure('advanced-classic.core.projectionService', () => (
+                    this.projectionService.computeProjection(inputs, { sourceCalculator: 'advanced' })
+                ));
+                result = projection.simulation;
+                this.currentProjection = projection;
                 this.currentResults = result;
                 this.refreshAllDerivedDefaults({ depletionAge: result.depletionAge });
             } catch (simError) {
@@ -1351,6 +1385,12 @@ class RetirementCalculatorApp {
                     simulation: result,
                     adaptedResult,
                     recommendations: this.currentOutcomeActions || null,
+                    canonicalInput: this.currentProjection?.canonicalInput || null,
+                    derivedCashflow: this.currentProjection?.derivedCashflow || null,
+                    inputHash: this.currentProjection?.inputHash || null,
+                    policyVersion: this.currentProjection?.policyVersion || null,
+                    diagnostics: this.currentProjection?.diagnostics || null,
+                    warnings: this.currentProjection?.warnings || [],
                 });
                 storeForwardProjection(projectionPayload);
             } catch {

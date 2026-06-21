@@ -76,6 +76,18 @@ describe('lifespan validation', () => {
 
         expect(errors).not.toContain('Asset allocation sums to 0% — must equal 100%.');
     });
+
+    test('rejects detailed cashflow mode when all current expenses are zero', () => {
+        const app = Object.create(RetirementCalculatorApp.prototype);
+        const errors = app.validateInputs(buildInputs({
+            useDetailedExpenseInputs: true,
+            currentHealthcareCosts: 0,
+        }));
+
+        expect(errors).toContain(
+            'Enter current household expenses before enabling explicit monthly expense inputs.'
+        );
+    });
 });
 
 describe('dynamic allocation collection', () => {

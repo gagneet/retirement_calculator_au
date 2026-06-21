@@ -35,9 +35,11 @@ export function deriveHouseholdCashflow(canonicalInput) {
     const currentAnnualSpending = cashflow.totalSpendProvided
         ? annualise(cashflow.currentMonthlyTotalSpend)
         : annualise(cashflow.currentMonthlyHousingCosts + cashflow.currentMonthlyLivingCosts + cashflow.currentMonthlyHealthcareCosts);
-    const baseMonthlyMortgagePayment = cashflow.currentMonthlyMortgagePayment > 0
-        ? cashflow.currentMonthlyMortgagePayment
-        : calculateMonthlyLoanPayment(currentAssets.mortgageBalance, currentAssets.mortgageRate);
+    const baseMonthlyMortgagePayment = cashflow.mortgageIncludedInSpending
+        ? 0
+        : cashflow.currentMonthlyMortgagePayment > 0
+            ? cashflow.currentMonthlyMortgagePayment
+            : calculateMonthlyLoanPayment(currentAssets.mortgageBalance, currentAssets.mortgageRate);
     const annualMortgageRepayments = annualise(baseMonthlyMortgagePayment);
     const explicitInvestmentContributions = annualise(cashflow.explicitMonthlyInvestmentContribution);
     const canAllocateSurplus = cashflow.hasDetailedExpenses && currentAnnualSpending > 0;
