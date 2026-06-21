@@ -779,6 +779,14 @@ function adaptEngineOutput(inp, engineInputs, simulation) {
     ? 1
     : clamp((lastsUntil - inp.retireAge) / Math.max(1, effectivePlanAge - inp.retireAge), 0, 1);
 
+  // Surplus: when mandatory minimum super drawdown exceeds target spending, the excess
+  // is reinvested (see simulator.js surplus reinvestment logic).  Expose it here so the
+  // UI can show users where their surplus is allocated (40% savings, 30% investment,
+  // 30% liquid emergency fund).
+  const surplusAnnualToday = (firstRetirementYear.surplusWithdrawal || 0) / inflationFactor;
+  const surplusMonthly = surplusAnnualToday / 12;
+  const surplusAllocation = firstRetirementYear.surplusAllocation || null;
+
   return {
     monthlyPaycheck,
     superAtRetire: firstRetirementYear.startBalance / inflationFactor,
@@ -792,6 +800,8 @@ function adaptEngineOutput(inp, engineInputs, simulation) {
     lastsUntil,
     isCouple: engineInputs.isCouple,
     years: buildProjectionYears(inp, simulation),
+    surplusMonthly,
+    surplusAllocation,
   };
 }
 
@@ -3937,6 +3947,9 @@ function paint(result, inp) {
     }
   }
 
+  // Surplus allocation panel
+  paintSurplusPanel(result, inp);
+
   // Mini chart
   paintMiniChart(result.years, inp);
   setText('r-mini-range', `today → age ${result.years[result.years.length - 1]?.age ?? effectiveLifespan}`);
@@ -3959,6 +3972,58 @@ function paint(result, inp) {
   const rt = $('riskTolerance');
   const rtd = $('riskTolerance-display');
   if (rt && rtd) rtd.textContent = rt.value + ' / 10';
+}
+
+// ── Surplus allocation panel ──────────────────────────────────────────────────
+// Shown when mandatory minimum super drawdown exceeds target spending.
+// The excess is reinvested in a split: 40% savings, 30% investment, 30% liquid.
+function paintSurplusPanel(result, inp) {
+  const container = $('r-surplus-panel');
+  if (!container) return;
+
+  const surplus = result.surplusMonthly || 0;
+  const targetMonthly = inp.desiredIncome / 12;
+
+  if (surplus < 1) {
+    container.hidden = true;
+    return;
+  }
+
+  const fmt = (n) => '$' + Math.round(n).toLocaleString('en-AU');
+  const savingsM   = Math.round(surplus * 0.40);
+  const investM    = Math.round(surplus * 0.30);
+  const liquidM    = Math.round(surplus * 0.30);
+
+  container.hidden = false;
+  container.innerHTML = `
+    <div class="surplus-panel-inner">
+      <div class="surplus-header">
+        <span class="surplus-icon">+</span>
+        <span>Monthly surplus reinvested: <strong>${fmt(surplus)}/mo</strong></span>
+      </div>
+      <p class="surplus-desc">
+        Your projected income (${fmt(result.monthlyPaycheck)}/mo) exceeds your target spending
+        (${fmt(targetMonthly)}/mo). The surplus is automatically reinvested, extending your
+        portfolio's longevity.
+      </p>
+      <div class="surplus-split">
+        <div class="surplus-bucket surplus-savings">
+          <div class="surplus-bucket-pct">40%</div>
+          <div class="surplus-bucket-amt">${fmt(savingsM)}/mo</div>
+          <div class="surplus-bucket-label">Savings</div>
+        </div>
+        <div class="surplus-bucket surplus-invest">
+          <div class="surplus-bucket-pct">30%</div>
+          <div class="surplus-bucket-amt">${fmt(investM)}/mo</div>
+          <div class="surplus-bucket-label">Investment</div>
+        </div>
+        <div class="surplus-bucket surplus-liquid">
+          <div class="surplus-bucket-pct">30%</div>
+          <div class="surplus-bucket-amt">${fmt(liquidM)}/mo</div>
+          <div class="surplus-bucket-label">Emergency fund</div>
+        </div>
+      </div>
+    </div>`;
 }
 
 // ── Donut ──

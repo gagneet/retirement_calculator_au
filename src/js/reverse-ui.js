@@ -11,6 +11,7 @@
 import '../css/redesign.css';
 import '../css/site-chrome.css';
 import './site-chrome.js';
+import { ENHANCED_CONFIG } from './config.js';
 import { ReversePlanner } from './reverse-planner.js';
 import {
     importForwardScenario,
@@ -1152,6 +1153,10 @@ export class ReverseUI {
 
         show('rp-summary-section');
 
+        // ASFA standard comparison — shows gap to ASFA comfortable even when the user's
+        // own target is met, and shows what levers would close the ASFA gap when below standard.
+        renderAsfaComparison(currentPath, target);
+
         // Action intro
         const actionIntro = el('rp-action-intro');
         if (actionIntro) {
@@ -1848,6 +1853,85 @@ export class ReverseUI {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// ── ASFA standard comparison panel ────────────────────────────────────────────
+// Compares the user's projected sustainable income against the ASFA Retirement
+// Standard (comfortable tier).  When below the standard, it shows what the gap is
+// and which of the already-computed levers would close it.  When above the standard,
+// it confirms the user comfortably exceeds the benchmark.
+function renderAsfaComparison(currentPath, target) {
+    const panel = el('rp-asfa-panel');
+    if (!panel) return;
+
+    const isCouple = target.householdType === 'couple';
+    const asfaStandards = ENHANCED_CONFIG?.SIMPLE_RETIREMENT_TARGETS?.asfa;
+    const asfaComfortable = isCouple
+        ? (asfaStandards?.couple?.comfortable ?? 73337)
+        : (asfaStandards?.single?.comfortable ?? 52085);
+    const asfaModest = isCouple
+        ? (asfaStandards?.couple?.modest ?? 47383)
+        : (asfaStandards?.single?.modest ?? 32915);
+
+    const sustainable = currentPath.sustainableIncomeToday || 0;
+    const meetsComfortable = sustainable >= asfaComfortable;
+    const meetsModest      = sustainable >= asfaModest;
+
+    const comfortableGap = Math.max(0, asfaComfortable - sustainable);
+    const modestGap      = Math.max(0, asfaModest - sustainable);
+
+    const householdLabel = isCouple ? 'couple' : 'single person';
+    const source = 'ASFA Retirement Standard (Dec 2025 quarter)';
+
+    if (meetsComfortable) {
+        panel.innerHTML = `
+          <div class="asfa-panel asfa-ok">
+            <div class="asfa-header">ASFA Retirement Standard — Comfortable</div>
+            <p>Your projected income of <strong>${fmt(sustainable)}/year</strong> exceeds the
+            ASFA comfortable standard of <strong>${fmt(asfaComfortable)}/year</strong> for a
+            ${householdLabel} — a surplus of <strong>${fmt(sustainable - asfaComfortable)}/year</strong>
+            above the benchmark.
+            This excess is reinvested and will further extend your portfolio's longevity.</p>
+            <p class="asfa-source">${source}</p>
+          </div>`;
+        panel.hidden = false;
+        return;
+    }
+
+    // Below comfortable — show gap and suggestions
+    const gapLabel  = meetsModest ? 'below ASFA comfortable' : 'below ASFA modest';
+    const gapAmount = meetsModest ? comfortableGap : modestGap;
+    const targetLabel = meetsModest
+        ? `ASFA comfortable (${fmt(asfaComfortable)}/year)`
+        : `ASFA modest (${fmt(asfaModest)}/year)`;
+
+    // Build lever suggestion list (condensed — full levers are in the action plan)
+    const leverSuggestions = [
+        { label: 'Increase super contributions', note: 'Salary sacrifice to the $30,000 concessional cap' },
+        { label: 'Delay retirement by 1-3 years', note: 'Each extra year compounds savings and reduces drawdown period' },
+        { label: 'Boost savings rate', note: 'Direct surplus income to ETFs or managed funds' },
+        { label: 'Consider downsizing', note: 'Releasing home equity can substantially top up super' },
+        { label: 'Reduce planned spending', note: 'Review discretionary expenses to lower the income target' },
+    ];
+
+    panel.innerHTML = `
+      <div class="asfa-panel asfa-warn">
+        <div class="asfa-header">ASFA Retirement Standard — Gap Detected</div>
+        <p>Your projected income of <strong>${fmt(sustainable)}/year</strong> is
+        <strong>${fmt(gapAmount)}/year short</strong> of the ${targetLabel}
+        for a ${householdLabel}.</p>
+        <p>To reach the ASFA comfortable standard (${fmt(asfaComfortable)}/year), consider these
+        changes — any single feasible lever may close the gap:</p>
+        <ul class="asfa-lever-list">
+          ${leverSuggestions.map(l =>
+            `<li><strong>${l.label}:</strong> ${l.note}</li>`
+          ).join('')}
+        </ul>
+        <p>See the <em>Action Plan</em> tab below for personalised lever calculations
+        based on your current financial position.</p>
+        <p class="asfa-source">${source}</p>
+      </div>`;
+    panel.hidden = false;
+}
 
 function numValFromId(id, fallback) {
     const elem = el(id);

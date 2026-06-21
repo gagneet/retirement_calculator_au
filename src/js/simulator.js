@@ -2082,6 +2082,17 @@ export class RetirementSimulator {
         const balances = [];
         const yearlyData = [];
         const initialRetirementBalance = currentBalance;
+
+        // Surplus reinvestment: when mandatory minimum super drawdown exceeds actual
+        // spending need, the excess cash is placed into the non-super liquid account.
+        // This reflects the real-world flow: excess pension payments land in a bank account
+        // and must be re-invested rather than lost.  The display breakdown shows a 40/30/30
+        // indicative split (savings / investment / liquid emergency fund) but the balance
+        // itself is folded into nonSuperLiquidBalance so it participates in the existing
+        // monthly loop and pension means test without requiring a parallel pool.
+        const SURPLUS_SAVINGS_RATIO  = 0.40;
+        const SURPLUS_INVEST_RATIO   = 0.30;
+        const SURPLUS_LIQUID_RATIO   = 0.30;
         const agedCareProfile = this.buildAgedCareProfile(inputs, useRandomReturns, effectiveYourLifespan);
         let previousSpendingTarget = null;
         let downsizeOccurred = inputs.planToDownsize && inputs.downsizeAge <= inputs.retirementAge;
@@ -2685,6 +2696,25 @@ export class RetirementSimulator {
                 displayNonSuperBalance *= scale;
             }
 
+            // When mandatory minimum drawdown exceeds actual spending need, the surplus
+            // cash is reinvested into the non-super liquid account (represents a savings /
+            // investment account outside super).  This corrects the prior model behaviour
+            // where excess mandatory payments shrank the portfolio without being captured
+            // anywhere, causing the portfolio to appear to deplete faster than it should.
+            const surplusWithdrawal = Math.max(0, annualWithdrawal - netWithdrawalNeeded);
+            if (surplusWithdrawal > 0 && currentBalance > 0) {
+                nonSuperLiquidBalance += surplusWithdrawal;
+                currentBalance = pensionPhaseBalance + accumulationPhaseBalance + nonSuperLiquidBalance;
+                // Reconcile display balances to match the corrected currentBalance.
+                if (displaySuperBalance + displayNonSuperBalance > 0) {
+                    const newTotal = displaySuperBalance + displayNonSuperBalance + surplusWithdrawal;
+                    displayNonSuperBalance += surplusWithdrawal;
+                    const newScale = currentBalance / newTotal;
+                    displaySuperBalance    *= newScale;
+                    displayNonSuperBalance *= newScale;
+                }
+            }
+
             // Calculate liquid vs non-liquid assets for this year with growth
             const liquidAssets = startBalance; // Beginning of year liquid assets
             const endLiquidAssets = currentBalance; // End of year liquid assets after transactions
@@ -2779,6 +2809,13 @@ export class RetirementSimulator {
                 homeModCost,
                 homeModStatus,
                 annuityIncome,
+                surplusWithdrawal,
+                surplusAllocation: surplusWithdrawal > 0 ? {
+                    savings:    Math.round(surplusWithdrawal * SURPLUS_SAVINGS_RATIO),
+                    investment: Math.round(surplusWithdrawal * SURPLUS_INVEST_RATIO),
+                    liquid:     Math.round(surplusWithdrawal * SURPLUS_LIQUID_RATIO),
+                } : null,
+                plannedSpending: totalCostWithHealthcare,
             };
 
             // Add pension details for first year if available
