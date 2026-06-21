@@ -774,30 +774,42 @@ export class ReverseUI {
         const feasibleLevers = (rankedLevers || []).filter(l => l.feasible);
         const infeasibleLevers = (rankedLevers || []).filter(l => !l.feasible);
 
+        // Maps solver lever key → formatted "current value" string for the PDF table.
+        // Lever keys come from reverse-solver.js: extraAnnualSuper, salary, retirementAge,
+        // superBalance, extraSavings, mortgageRepayment, netRent, homeValue,
+        // investmentBalance, spendingReduction, estateAdjustment.
         function leverCurrentValue(lever, inp2) {
             switch (lever.lever) {
-                case 'extraAnnualSuper': return cur(inp2.yourAdditionalSuperContribution || 0) + '/yr';
-                case 'salary': return cur(inp2.yourSalary || inp2.annualSalary || 0) + '/yr';
-                case 'retirementAge': return `Age ${inp2.retirementAge || RET_AGE}`;
-                case 'superBalance': return cur(inp2.yourCurrentSuper || 0);
-                case 'extraSavings': return cur((inp2.monthlyStockContribution || 0)) + '/mo';
-                case 'reduceExpenses': return cur(target.targetAnnualIncomeToday) + '/yr';
-                case 'partnerSuper': return cur(inp2.partnerCurrentSuper || 0);
-                default: return '—';
+                case 'extraAnnualSuper':   return cur(inp2.yourAdditionalSuperContribution || 0) + '/yr';
+                case 'salary':             return cur(inp2.yourSalary || inp2.annualSalary || 0) + '/yr';
+                case 'retirementAge':      return `Age ${inp2.retirementAge || RET_AGE}`;
+                case 'superBalance':       return cur(inp2.yourCurrentSuper || 0);
+                case 'extraSavings':       return cur(inp2.monthlyStockContribution || 0) + '/mo';
+                case 'mortgageRepayment':  return cur(inp2.monthlyMortgagePayment || 0) + '/mo';
+                case 'netRent':            return cur(inp2.weeklyRentalIncome || 0) + '/week';
+                case 'homeValue':          return cur(inp2.homeValue || 0);
+                case 'investmentBalance':  return cur((inp2.currentStocks || 0) + (inp2.currentSavings || 0));
+                case 'spendingReduction':  return cur(target.targetAnnualIncomeToday) + '/yr';
+                case 'estateAdjustment':   return cur(target.minimumEstateToday || 0);
+                default:                   return '—';
             }
         }
 
         function leverRequiredValue(lever) {
             if (lever.solved === null || lever.solved === undefined) return '—';
             switch (lever.lever) {
-                case 'extraAnnualSuper': return cur(lever.solved) + '/yr total';
-                case 'salary': return cur(lever.solved) + '/yr';
-                case 'retirementAge': return `Age ${Math.round(lever.solved)}`;
-                case 'superBalance': return cur(lever.solved);
-                case 'extraSavings': return cur(lever.solved) + '/mo';
-                case 'reduceExpenses': return cur(lever.solved) + '/yr';
-                case 'partnerSuper': return cur(lever.solved);
-                default: return lever.value !== null ? cur(lever.value) : '—';
+                case 'extraAnnualSuper':   return cur(lever.solved) + '/yr total';
+                case 'salary':             return cur(lever.solved) + '/yr';
+                case 'retirementAge':      return `Age ${Math.round(lever.solved)}`;
+                case 'superBalance':       return cur(lever.solved);
+                case 'extraSavings':       return cur(lever.solved) + '/mo';
+                case 'mortgageRepayment':  return cur(lever.solved) + '/mo';
+                case 'netRent':            return cur(lever.solved) + '/week';
+                case 'homeValue':          return cur(lever.solved);
+                case 'investmentBalance':  return cur(lever.solved);
+                case 'spendingReduction':  return cur(lever.solved) + '/yr';
+                case 'estateAdjustment':   return cur(lever.solved);
+                default:                   return lever.value !== null && lever.value !== undefined ? cur(lever.value) : '—';
             }
         }
 
@@ -805,12 +817,13 @@ export class ReverseUI {
             if (!lever.feasible) return 'Infeasible alone';
             if (lever.value === 0 || lever.value === null) return 'No change needed';
             switch (lever.unit) {
-                case 'AUD/year': return `Add ${cur(lever.value)}/year`;
-                case 'AUD/month': return `Add ${cur(lever.value)}/month`;
+                case 'AUD/year':     return `Add ${cur(lever.value)}/year`;
+                case 'AUD/month':    return `Add ${cur(lever.value)}/month`;
+                case 'AUD/week':     return `Add ${cur(lever.value)}/week`;
                 case 'AUD lump sum': return `Top up ${cur(lever.value)}`;
-                case 'AUD': return `Increase by ${cur(lever.value)}`;
-                case 'years': return `Delay by ${lever.value} year${lever.value !== 1 ? 's' : ''}`;
-                default: return lever.description || '—';
+                case 'AUD':          return `Increase by ${cur(lever.value)}`;
+                case 'years':        return `Delay by ${lever.value} year${lever.value !== 1 ? 's' : ''}`;
+                default:             return lever.description || '—';
             }
         }
 
