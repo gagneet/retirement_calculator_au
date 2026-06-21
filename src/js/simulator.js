@@ -3051,9 +3051,21 @@ export class RetirementSimulator {
     }
 
 
-    // Stress testing
+    // Stress testing — caps the lifespan at a realistic planning horizon (p90
+    // survival) when the user has an open-ended lifespan setting (lifespan=0 →
+    // age 120).  Running all the way to 120 in deterministic mode causes
+    // sequence-of-returns risk to deplete even sound portfolios over 49 years
+    // of retirement, producing misleading "all-depleted" stress results.
     runStressTest(inputs, scenario) {
-        return this.simulateRetirement(inputs, false, scenario);
+        const STRESS_TEST_MAX_AGE = 95; // p90 survival horizon for planning
+        const stressInputs = { ...inputs };
+        if (!(stressInputs.yourLifespan > 0)) {
+            stressInputs.yourLifespan = STRESS_TEST_MAX_AGE;
+        }
+        if (!stressInputs.isSingleCalculation && !(stressInputs.partnerLifespan > 0)) {
+            stressInputs.partnerLifespan = STRESS_TEST_MAX_AGE;
+        }
+        return this.simulateRetirement(stressInputs, false, scenario);
     }
 
     // Retirement age solver - finds minimum retirement age to meet success criteria

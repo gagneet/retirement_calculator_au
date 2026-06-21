@@ -1541,12 +1541,14 @@ function buildStressScenarioResults(baseState) {
 
     const stressedResult = simulator.runStressTest(stressedInputs, normalisedScenario);
     const finalBalance = stressedResult.finalBalance ?? stressedResult.totalFinancialAssets ?? 0;
+    const depletionAge = stressedResult.depletionAge ?? null;
 
     return {
       scenario: scenario.name,
       description: scenario.description,
       finalBalance,
       deltaBalance: finalBalance - baseBalance,
+      depletionAge,
       success: finalBalance > 0,
     };
   });
@@ -2770,7 +2772,7 @@ function renderRiskPanel() {
                 </div>
                 <div style="margin-top:4px;font-size:12px;color:var(--ink-3)">
                   Final balance: ${escapeHtml(formatCurrency(row.finalBalance || 0))}
-                  ${!row.success ? ' <span style="color:var(--rose);font-weight:600">⚠ Depleted</span>' : ''}
+                  ${!row.success ? ` <span style="color:var(--rose);font-weight:600">⚠ Depleted${row.depletionAge ? ` at age ${row.depletionAge}` : ''}</span>` : ''}
                 </div>
                 ${row.description ? `<div style="margin-top:3px;font-size:11px;color:var(--ink-4)">${escapeHtml(row.description)}</div>` : ''}
               </div>
