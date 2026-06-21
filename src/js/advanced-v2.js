@@ -125,7 +125,6 @@ const SECONDARY_ANALYSIS_KEYS = ['recommendations', 'stress', 'overseas', 'retir
 // Dirty-flag tracking: compare input snapshots to avoid re-running expensive tools
 // when nothing has changed since the last full analysis.
 let lastFullAnalysisHash = null;
-let lastStressHash = null;
 let lastMcHash = null;
 
 function getInputsHash() {
@@ -3414,12 +3413,13 @@ function scheduleVisibleRiskChartRender(force = false) {
   });
 }
 
-async function runMonteCarloAnalysis() {
+// quiet=true suppresses the "no changes" notification when called from runFullAnalysis
+async function runMonteCarloAnalysis({ quiet = false } = {}) {
   const baseState = syncAppState();
   // Skip if inputs haven't changed since last MC run (avoid re-running a costly simulation)
   const currentHash = getInputsHash();
   if (currentHash && currentHash === lastMcHash && APP_STATE.monteCarloResults) {
-    showNotification('No changes since last Monte Carlo run — results are up to date.', 'info');
+    if (!quiet) showNotification('No changes since last Monte Carlo run — results are up to date.', 'info');
     return;
   }
   // Use engineInputs.numRuns (set by buildEngineInputs from the mcRuns form field).
@@ -3632,9 +3632,8 @@ async function runFullAnalysis() {
     return;
   }
   syncAppState();
-  await runMonteCarloAnalysis();
+  await runMonteCarloAnalysis({ quiet: true });
   lastFullAnalysisHash = getInputsHash();
-  lastStressHash = null; // invalidate stress so it re-runs after new full analysis
   lastMcHash = lastFullAnalysisHash;
   markCalcButtonState(false);
   profiler.report('advanced-v2 full analysis profile');
