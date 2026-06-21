@@ -1533,3 +1533,108 @@ table.year-table th[title] { cursor: help; border-bottom: 1px dotted var(--borde
   font-size: 13px;
   padding: 0 12px;
 }
+
+/* ── Surplus reinvestment panel ── */
+#r-surplus-panel {
+  margin: 12px 0;
+}
+.surplus-panel-inner {
+  background: oklch(0.97 0.02 155);
+  border: 1px solid oklch(0.80 0.07 155);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.surplus-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: oklch(0.38 0.10 155);
+  margin-bottom: 6px;
+}
+.surplus-icon {
+  width: 20px;
+  height: 20px;
+  background: oklch(0.50 0.14 155);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.surplus-desc {
+  font-size: 12px;
+  color: oklch(0.45 0.06 155);
+  margin: 0 0 10px;
+  line-height: 1.4;
+}
+.surplus-split {
+  display: flex;
+  gap: 8px;
+}
+.surplus-bucket {
+  flex: 1;
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: center;
+}
+.surplus-savings  { background: oklch(0.92 0.06 220); }
+.surplus-invest   { background: oklch(0.92 0.06 155); }
+.surplus-liquid   { background: oklch(0.93 0.05 75); }
+.surplus-bucket-pct {
+  font-size: 16px;
+  font-weight: 700;
+  color: oklch(0.35 0.10 155);
+  line-height: 1;
+}
+.surplus-bucket-amt {
+  font-size: 12px;
+  font-weight: 600;
+  color: oklch(0.30 0.08 155);
+  margin: 3px 0 2px;
+}
+.surplus-bucket-label {
+  font-size: 11px;
+  color: oklch(0.50 0.05 155);
+}
+
+/* ── ASFA standard comparison panel (reverse calculator) ── */
+.asfa-panel {
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.asfa-ok {
+  background: oklch(0.97 0.03 155);
+  border: 1px solid oklch(0.80 0.09 155);
+  color: oklch(0.30 0.10 155);
+}
+.asfa-warn {
+  background: oklch(0.97 0.04 75);
+  border: 1px solid oklch(0.80 0.10 75);
+  color: oklch(0.35 0.08 55);
+}
+.asfa-header {
+  font-weight: 700;
+  font-size: 13.5px;
+  margin-bottom: 8px;
+}
+.asfa-ok .asfa-header  { color: oklch(0.38 0.12 155); }
+.asfa-warn .asfa-header { color: oklch(0.42 0.12 55); }
+.asfa-panel p { margin: 0 0 8px; }
+.asfa-lever-list {
+  margin: 6px 0 10px 16px;
+  padding: 0;
+  font-size: 12.5px;
+}
+.asfa-lever-list li { margin-bottom: 4px; }
+.asfa-source {
+  font-size: 11px !important;
+  color: oklch(0.60 0.04 155) !important;
+  margin: 0 !important;
+}
