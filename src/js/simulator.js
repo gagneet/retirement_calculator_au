@@ -39,26 +39,16 @@ const resolveScenarioMonteCarloRuns = (inputs = {}) =>
     Math.max(100, Math.min(20000, Math.round(Number(inputs.numRuns) || 1000)));
 
 /**
- * Generate a stochastic annual rate by applying a bounded symmetric variation
- * to the user-supplied central (median) estimate.  Each call draws a uniform
- * perturbation from [-0.04, +0.04] (±4 pp), so the distribution is centred on
- * the user's input.  This means every year experiences a different rate drawn
- * from a distribution whose median equals the user's input — the value is never
- * applied as a fixed linear compound across all years.
- *
- * Why ±4 pp?  AU macro data (RBA/ABS 2002-2024):
- *   CPI std dev ≈ 1.8 pp  →  ±4 pp covers roughly ±2.2 σ  (≈97% of history)
- *   Super returns std dev ≈ 8 pp  →  ±4 pp is a conservative ±0.5 σ
- * The same range is used for all rates for simplicity; the floor parameter
- * prevents rates from going below a caller-specified minimum.
- *
- * Note: an asymmetric range such as [-0.045, +0.035] shifts the median of
- * the distribution by -0.5 pp relative to the user input, biasing all
- * projections downward — which is why this implementation uses a symmetric range.
+ * Generate a stochastic annual rate around the user-supplied central estimate.
+ * The implementation uses a Box-Muller normal draw. Callers may supply sigma;
+ * otherwise volatility defaults to max(1 percentage point, 50% of the absolute
+ * central rate). The result has a lower floor but intentionally has no hard
+ * upper bound.
  *
  * @param {number}  centralRate         - Median rate as decimal (e.g. 0.026 for 2.6%)
  * @param {boolean} [isStochastic=true] - When false (deterministic mode), returns centralRate unchanged
  * @param {number}  [floor=0]           - Hard floor for result (e.g. 0.001 = 0.1% minimum)
+ * @param {number|null} [sigma=null]     - Optional standard deviation in decimal rate units
  * @returns {number} Perturbed rate in decimal form, ≥ floor (or centralRate when deterministic)
  *
  * Backward-compat: two-arg legacy call stochasticRate(rate, floor) is detected when

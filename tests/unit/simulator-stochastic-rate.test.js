@@ -6,13 +6,16 @@ describe('stochasticRate', () => {
         expect(stochasticRate(0.026, false, 0.005)).toBe(0.026);
     });
 
-    test('stays within ±4pp band and respects floor in stochastic mode', () => {
+    test('uses caller-provided sigma and respects the lower floor', () => {
+        const fourSigmaTail = Math.exp(-8);
         const randomSpy = jest.spyOn(Math, 'random')
-            .mockReturnValueOnce(0) // lowest draw => -4pp perturbation
-            .mockReturnValueOnce(1); // highest draw => +4pp perturbation
+            .mockReturnValueOnce(fourSigmaTail)
+            .mockReturnValueOnce(0.5)
+            .mockReturnValueOnce(fourSigmaTail)
+            .mockReturnValueOnce(0);
 
-        expect(stochasticRate(0.03, true, 0.005)).toBe(0.005); // floored from -1%
-        expect(stochasticRate(0.03, true, 0.005)).toBeCloseTo(0.07, 10);
+        expect(stochasticRate(0.03, true, 0.005, 0.01)).toBe(0.005);
+        expect(stochasticRate(0.03, true, 0.005, 0.01)).toBeCloseTo(0.07, 10);
 
         randomSpy.mockRestore();
     });
