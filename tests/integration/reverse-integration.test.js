@@ -22,15 +22,6 @@ import { applyTargetToEngineInputs, evaluateEngineGoal } from '../../src/js/reve
 // Shared test fixtures
 // ---------------------------------------------------------------------------
 
-// Pin Math.random to median so stochasticRate() in the simulator returns
-// central values and bisection results are reproducible across test runs.
-beforeAll(() => {
-    jest.spyOn(Math, 'random').mockReturnValue(0.5);
-});
-afterAll(() => {
-    jest.restoreAllMocks();
-});
-
 const simulator = new RetirementSimulator(ENHANCED_CONFIG);
 
 const BASE_INPUTS = {

@@ -1,4 +1,7 @@
-import RetirementSimulator, { stochasticRate } from '../../src/js/simulator.js';
+import RetirementSimulator, {
+    stochasticRate,
+    stochasticSigmaForRate,
+} from '../../src/js/simulator.js';
 import ENHANCED_CONFIG from '../../src/js/config.js';
 
 describe('stochasticRate', () => {
@@ -16,6 +19,22 @@ describe('stochasticRate', () => {
 
         expect(stochasticRate(0.03, true, 0.005, 0.01)).toBe(0.005);
         expect(stochasticRate(0.03, true, 0.005, 0.01)).toBeCloseTo(0.07, 10);
+
+        randomSpy.mockRestore();
+    });
+
+    test('uses type-specific volatility consistent with the shared engines', () => {
+        expect(stochasticSigmaForRate(0.026, 'inflation')).toBeCloseTo(0.0104, 10);
+        expect(stochasticSigmaForRate(0.075, 'super')).toBeCloseTo(0.045, 10);
+        expect(stochasticSigmaForRate(0.014, 'savings')).toBeCloseTo(0.005, 10);
+    });
+
+    test('allows negative super years while retaining the configured loss floor', () => {
+        const randomSpy = jest.spyOn(Math, 'random')
+            .mockReturnValueOnce(Math.exp(-8))
+            .mockReturnValueOnce(0.5);
+
+        expect(stochasticRate(0.075, true, -0.30, 0.045)).toBeCloseTo(-0.105, 10);
 
         randomSpy.mockRestore();
     });
