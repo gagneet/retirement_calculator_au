@@ -1627,7 +1627,7 @@ export class RetirementSimulator {
                     allocation,
                     baseReturn,
                     year,
-                    inputs.returnDeclineRate || 0.03,
+                    inputs.returnDeclineRate || 0.0003,
                     true,
                     this.previousReturns.portfolio
                 );
@@ -1638,7 +1638,7 @@ export class RetirementSimulator {
                     allocation,
                     baseReturn,
                     year,
-                    inputs.returnDeclineRate || 0.03,
+                    inputs.returnDeclineRate || 0.0003,
                     false
                 );
             }
@@ -2536,7 +2536,7 @@ export class RetirementSimulator {
                     allocation,
                     baseReturn,
                     retirementYear,
-                    inputs.returnDeclineRate || 0.03,
+                    inputs.returnDeclineRate || 0.0003,
                     true,
                     this.previousReturns.portfolio
                 );
@@ -2573,7 +2573,7 @@ export class RetirementSimulator {
                     allocation,
                     baseReturn,
                     retirementYear,
-                    inputs.returnDeclineRate || 0.03,
+                    inputs.returnDeclineRate || 0.0003,
                     false
                 );
             }

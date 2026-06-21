@@ -106,6 +106,7 @@ export function normaliseReversePlannerInputs(rawInputs) {
         savingsReturn: pct(rawInputs.savingsReturn, 0.035),
         salaryGrowthRate: pct(rawInputs.salaryGrowthRate, 0.02),
         returnVolatility: pct(rawInputs.returnVolatility, 0.12),
+        returnDeclineRate: rawInputs.returnDeclineRate ?? 0.002,
     };
 }
 
@@ -141,7 +142,7 @@ export class ReversePlanner {
 
         const score = scoreScenario(simResult, target, inflationRate, ytr, swr);
 
-        // Age pension from engine's retirement row (means-tested, not max constant)
+        g.normalizedValue = totalAchieved > 0 ? g.achievedValue / totalAchieved : 0;
         const yearlyData = simResult?.yearlyData || [];
         const retirementRowIndex = yearlyData.findIndex(row => row.age >= baseInputs.retirementAge);
         const retirementRow = retirementRowIndex >= 0 ? yearlyData[retirementRowIndex] : null;

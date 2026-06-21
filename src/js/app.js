@@ -157,6 +157,8 @@ class RetirementCalculatorApp {
         this.currentResults = null;
         this.isCalculating = false;
         this.isImporting = false;
+        this.lastCalculationHash = null; // dirty-flag: tracks inputs at last successful calculation
+        this.lastStressHash = null;      // dirty-flag: tracks inputs at last stress test
         this.currentVersion = versionManager.LATEST_VERSION;
 
         this.initializeApp().catch(console.error);
@@ -1237,6 +1239,14 @@ class RetirementCalculatorApp {
         try {
             const inputs = profiler.measure('advanced-classic.input.collectInputs', () => this.collectInputs());
 
+            // Dirty-flag: skip if inputs haven't changed since last successful calculation
+            const currentHash = JSON.stringify(inputs);
+            if (this.lastCalculationHash && currentHash === this.lastCalculationHash) {
+                this.isCalculating = false;
+                showNotification('No changes since last calculation — results are up to date.', 'info');
+                return;
+            }
+
             // Validate inputs before running simulation
             const validationErrors = this.validateInputs(inputs);
             if (validationErrors.length > 0) {
@@ -1346,6 +1356,9 @@ class RetirementCalculatorApp {
             } catch {
                 // Silently skip — projection storage is non-critical
             }
+
+            // Save inputs snapshot so we can skip re-runs when nothing changes
+            this.lastCalculationHash = currentHash;
 
             // Show enhanced summary tab and conditionally scroll to results
             if (shouldScrollToResults) {
@@ -7804,6 +7817,14 @@ class RetirementCalculatorApp {
         try {
             const inputs = this.collectInputs();
 
+            // Skip if inputs haven't changed since last stress test
+            const stressHash = JSON.stringify(inputs);
+            if (this.lastStressHash && stressHash === this.lastStressHash) {
+                this.isCalculating = false;
+                showNotification('No changes since last stress test — results are up to date.', 'info');
+                return;
+            }
+
             // Run the base (unstressed) simulation once for comparison.
             updateProgress(5, 'Running base plan...');
             const baseResult = this.simulator.simulateRetirement(inputs, false);
@@ -7845,6 +7866,7 @@ class RetirementCalculatorApp {
 
             // Persist for export
             this.currentStressTestResults = results;
+            this.lastStressHash = stressHash;
 
             // Display stress test results
             this.displayStressTestResults(results);

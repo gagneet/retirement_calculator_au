@@ -122,6 +122,33 @@ let initialFormState = null;
 let bootStarted = false;
 const SECONDARY_ANALYSIS_KEYS = ['recommendations', 'stress', 'overseas', 'retirementAge'];
 
+// Dirty-flag tracking: compare input snapshots to avoid re-running expensive tools
+// when nothing has changed since the last full analysis.
+let lastFullAnalysisHash = null;
+let lastMcHash = null;
+
+function getInputsHash() {
+  try {
+    return JSON.stringify(readInputs());
+  } catch {
+    return null;
+  }
+}
+
+function markCalcButtonState(isDirty) {
+  ['btn-calc-full', 'btn-calculate'].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    if (isDirty) {
+      btn.classList.remove('btn-uptodate');
+      btn.title = '';
+    } else {
+      btn.classList.add('btn-uptodate');
+      btn.title = 'No changes since last calculation';
+    }
+  });
+}
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -146,6 +173,7 @@ function getDefaultFxChangeDisplayPercent(destination, fallback = -1) {
   }
   return fallback;
 }
+      hasError = true;
 
 function normalizeFxChangeDisplayPercent(value, destination = "", fallback = -1) {
   const destinationDefault = getDefaultFxChangeDisplayPercent(destination, fallback);
@@ -474,7 +502,10 @@ function buildEngineInputs(inp) {
 
     inflation: pct(inp.inflation || DEFAULTS.economic.inflation, DEFAULTS.economic.inflation),
     investmentReturn: pct(inp.invReturn || DEFAULTS.economic.investmentReturn, DEFAULTS.economic.investmentReturn),
-    returnDeclineRate: pct(DEFAULTS.economic.returnDeclineRate, DEFAULTS.economic.returnDeclineRate),
+    // DEFAULTS.economic.returnDeclineRate is stored as a display-percentage (e.g. 0.2 for 0.2%)
+    // but pct() only divides values > 1 by 100, so 0.2 would pass through unchanged as 20%/yr.
+    // Explicit /100 ensures we get the correct decimal: 0.2 / 100 = 0.002 = 0.2%/yr.
+    returnDeclineRate: DEFAULTS.economic.returnDeclineRate / 100,
     savingsReturn: pct(inp.savingsReturn || DEFAULTS.economic.savingsReturn, DEFAULTS.economic.savingsReturn),
     superReturn: pct(inp.superGrowth || DEFAULTS.economic.superReturn, DEFAULTS.economic.superReturn),
     employerSuperContributionRate: employerContributionRate,
@@ -3383,8 +3414,15 @@ function scheduleVisibleRiskChartRender(force = false) {
   });
 }
 
-async function runMonteCarloAnalysis() {
+// quiet=true suppresses the "no changes" notification when called from runFullAnalysis
+async function runMonteCarloAnalysis({ quiet = false } = {}) {
   const baseState = syncAppState();
+  // Skip if inputs haven't changed since last MC run (avoid re-running a costly simulation)
+  const currentHash = getInputsHash();
+  if (currentHash && currentHash === lastMcHash && APP_STATE.monteCarloResults) {
+    if (!quiet) showNotification('No changes since last Monte Carlo run — results are up to date.', 'info');
+    return;
+  }
   // Use engineInputs.numRuns (set by buildEngineInputs from the mcRuns form field).
   // This is the single source of truth — avoids any double-read discrepancy between
   // the select element and the already-computed engine state.
@@ -3502,6 +3540,7 @@ async function runMonteCarloAnalysis() {
     `${runsToUse.toLocaleString()} runs complete.`, 'phase-done');
   await new Promise((resolve) => setTimeout(resolve, 350));
 
+  lastMcHash = getInputsHash();
   profiler.report('advanced-v2 Monte Carlo profile');
   return APP_STATE.monteCarloResults;
 }
@@ -3518,6 +3557,11 @@ async function runRetirementAgeAnalysis() {
 function runStressAnalysis() {
   const baseState = syncAppState();
   const runSignature = buildInputSignature(baseState.input);
+  const stressState = getSecondaryAnalysisState('stress');
+  if (hasSecondaryResult('stress') && stressState.lastInputSignature === runSignature) {
+    showNotification('No changes since last stress test — results are up to date.', 'info');
+    return APP_STATE.stressTestResults;
+  }
   APP_STATE.stressTestResults = profiler.measure('advanced-v2.post.stressTests', () => buildStressScenarioResults(baseState));
   markSecondaryAnalysisFresh('stress', runSignature);
   profiler.measure('advanced-v2.post.render.analysisPanels', () => renderAnalysisPanels());
@@ -3583,8 +3627,16 @@ function runOverseasAnalysis() {
 async function runFullAnalysis() {
   // Core run focuses on deterministic projection + Monte Carlo/risk only.
   // Secondary analyses remain on-demand and are stale-marked if inputs changed.
+  const currentHash = getInputsHash();
+  if (currentHash && currentHash === lastFullAnalysisHash) {
+    showNotification('No changes since last calculation — results are up to date.', 'info');
+    return;
+  }
   syncAppState();
-  await runMonteCarloAnalysis();
+  await runMonteCarloAnalysis({ quiet: true });
+  lastFullAnalysisHash = getInputsHash();
+  lastMcHash = lastFullAnalysisHash;
+  markCalcButtonState(false);
   profiler.report('advanced-v2 full analysis profile');
 }
 
@@ -4071,6 +4123,10 @@ function recalc() {
       renderAnalysisPanels();
       syncToolButtonStates();
       clearResultsError();
+      // Mark calculate buttons as dirty when inputs have changed since last full analysis
+      const currentHash = getInputsHash();
+      const isDirty = lastFullAnalysisHash === null || currentHash !== lastFullAnalysisHash;
+      markCalcButtonState(isDirty);
     } catch (e) {
       adv2Error('recalc failed', e);
       showResultsError(e.message || String(e), 'Live calculation failed');
@@ -4190,6 +4246,24 @@ export {
   syncPensionMeansTestFields,
 };
 
+function autoFillSalarySacrifice(yourEmployerSG, partnerEmployerSG, concessionalAlreadyUsed) {
+  const cap = ENHANCED_CONFIG.CONCESSIONAL_CAP || 30000;
+
+  const sacrificeEl = document.getElementById('salarySacrifice');
+  if (sacrificeEl && sacrificeEl.dataset.userModified !== 'true') {
+    const remaining = Math.max(0, cap - yourEmployerSG - (concessionalAlreadyUsed || 0));
+    sacrificeEl.value = String(Math.round(remaining));
+    sacrificeEl.dataset.autoCalculated = 'true';
+  }
+
+  const partnerEl = document.getElementById('partnerSalarySacrifice');
+  if (partnerEl && partnerEl.dataset.userModified !== 'true') {
+    const remaining = Math.max(0, cap - partnerEmployerSG);
+    partnerEl.value = String(Math.round(remaining));
+    partnerEl.dataset.autoCalculated = 'true';
+  }
+}
+
 function updateIncomeSuperSummary() {
   const summary = document.getElementById("sgSummary");
   if (!summary) return;
@@ -4205,10 +4279,24 @@ function updateIncomeSuperSummary() {
     employerSuperMode: inp.employerSuperMode,
     employerSuperOverrideAmount: inp.employerSuperOverrideAmount,
   });
+  const partner = resolveEmployerSuper({
+    employmentIncome: inp.partnerSalary || 0,
+    incomeMode: inp.partnerSalaryIncomeMode,
+    sgRate: rate,
+    maxContributionBasePerQuarter: inp.maxContributionBasePerQuarter,
+    applyMaxContributionBase: inp.applyMaxContributionBase !== false,
+    employerSuperMode: inp.partnerEmployerSuperOverrideEnabled ? 'override' : 'standard',
+    employerSuperOverrideAmount: inp.partnerEmployerSuperOverrideAmount,
+  });
+
+  autoFillSalarySacrifice(your.employerSG, partner.employerSG, inp.concessionalUsedThisYear);
+
+  // Re-read after auto-fill so status reflects the auto-filled values
+  const inpAfter = readInputs();
   const status = calculateConcessionalCapStatus({
     employerSG: your.employerSG,
-    salarySacrifice: inp.salarySacrifice,
-    concessionalAlreadyUsed: inp.concessionalUsedThisYear,
+    salarySacrifice: inpAfter.salarySacrifice,
+    concessionalAlreadyUsed: inpAfter.concessionalUsedThisYear,
     concessionalCap: ENHANCED_CONFIG.CONCESSIONAL_CAP || 30000,
   });
   const warnings = [];
@@ -4251,12 +4339,21 @@ function boot() {
     // lightweight label markup instead of the classic page's inline tooltip HTML.
     initializeTooltips();
     initPensionFieldDefaults();
+    // Mark sacrifice fields as user-modified when manually edited
+    ['salarySacrifice', 'partnerSalarySacrifice'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', () => { el.dataset.userModified = 'true'; });
+      }
+    });
+
     [
       "salary",
       "salaryIncomeMode",
       "partnerSalary",
       "partnerSalaryIncomeMode",
       "salarySacrifice",
+      "partnerSalarySacrifice",
       "concessionalUsedThisYear",
       "employerRate",
       "applyMaxContributionBase",
