@@ -3,6 +3,8 @@ import { calculatePostTaxIncome } from '../utils.js';
 
 const annualise = (monthly) => monthly * 12;
 
+export const SPENDING_ESTIMATED_WARNING_PREFIX = 'Household spending estimated from ABS averages';
+
 /**
  * Derive an ABS-based monthly spending estimate from household composition.
  * Used when the user has not provided an explicit spending figure.
@@ -138,7 +140,7 @@ export function deriveHouseholdCashflow(canonicalInput) {
     const unallocatedSurplus = Math.max(0, availableSurplus - allocatedSurplus);
     const warnings = [];
     if (!cashflow.hasDetailedExpenses) warnings.push('Current household spending is missing, so no implicit surplus was allocated.');
-    if (cashflow.spendingIsEstimated) warnings.push('Household spending estimated from ABS averages — enter your actual monthly spending for a more accurate surplus calculation.');
+    if (cashflow.spendingIsEstimated) warnings.push(`${SPENDING_ESTIMATED_WARNING_PREFIX} — enter your actual monthly spending for a more accurate surplus calculation.`);
     if (cashflow.hasDetailedExpenses && !cashflow.spendingIsEstimated && currentAnnualSpending <= 0) {
         warnings.push('Current household spending must be greater than zero before surplus can be allocated.');
     }

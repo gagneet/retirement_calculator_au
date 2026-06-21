@@ -37,6 +37,7 @@ import { buildForwardProjectionPayload, storeForwardProjection } from './forward
 import { adaptAdvancedV2Input } from './calculation/input-adapters/advanced-v2-adapter.js';
 import { applyCanonicalCashflowToEngineInputs } from './calculation/canonical-engine-adapter.js';
 import { ProjectionService } from './calculation/projection-service.js';
+import { estimateMonthlySpending, SPENDING_ESTIMATED_WARNING_PREFIX } from './calculation/household-cashflow-engine.js';
 
 const simulator = new RetirementSimulator(ENHANCED_CONFIG);
 const { DEFAULTS } = ENHANCED_CONFIG;
@@ -3948,20 +3949,17 @@ function updateSpendingEstimateHint(inp) {
     hint.hidden = true;
     return;
   }
-  const absBase = ENHANCED_CONFIG.financials?.cashFlowAnalysis?.BASE_LIVING_EXPENSES;
-  const coupleBase = absBase?.COUPLE_BASE?.value ?? 4118;
-  const singleBase = absBase?.SINGLE_BASE?.value ?? 2835;
-  const perChild   = absBase?.PER_CHILD?.value   ?? 630;
-  const base       = (inp?.household === 'couple') ? coupleBase : singleBase;
-  const childCosts = Math.round((inp?.dependents || 0) * perChild);
-  const healthcare = Math.round((inp?.healthcareCost || 0) / 12);
-  const rent       = Math.round(inp?.primaryRentMonthly || 0);
-  const total      = base + childCosts + healthcare + rent;
-  const parts = [`ABS base $${base.toLocaleString('en-AU')}`];
-  if (childCosts > 0) parts.push(`${inp.dependents} child${inp.dependents > 1 ? 'ren' : ''} +$${childCosts.toLocaleString('en-AU')}`);
-  if (rent > 0)       parts.push(`rent +$${rent.toLocaleString('en-AU')}`);
-  if (healthcare > 0) parts.push(`healthcare +$${healthcare.toLocaleString('en-AU')}`);
-  hint.textContent = `Estimated: $${total.toLocaleString('en-AU')}/mo (${parts.join(', ')}) — tick "Use my actual monthly spending" above to enter your exact figure`;
+  const est = estimateMonthlySpending({
+    householdType: inp?.household === 'couple' ? 'couple' : 'single',
+    dependents: inp?.dependents || 0,
+    healthcareMonthly: (inp?.healthcareCost || 0) / 12,
+    rentMonthly: inp?.primaryRentMonthly || 0,
+  });
+  const parts = [`ABS base $${est.living.toLocaleString('en-AU')}`];
+  if (est.childCosts > 0) parts.push(`${inp.dependents} child${inp.dependents > 1 ? 'ren' : ''} +$${est.childCosts.toLocaleString('en-AU')}`);
+  if (est.housing > 0)    parts.push(`rent +$${est.housing.toLocaleString('en-AU')}`);
+  if (est.healthcare > 0) parts.push(`healthcare +$${est.healthcare.toLocaleString('en-AU')}`);
+  hint.textContent = `Estimated: $${est.total.toLocaleString('en-AU')}/mo (${parts.join(', ')}) — tick "Use my actual monthly spending" above to enter your exact figure`;
   hint.hidden = false;
 }
 
@@ -3970,7 +3968,7 @@ function paint(result, inp) {
 
   const warningBox = $('r-projection-warnings');
   const warnings = (APP_STATE.projection?.warnings || []).filter(
-    (w) => !w.startsWith('Household spending estimated from ABS')
+    (w) => !w.startsWith(SPENDING_ESTIMATED_WARNING_PREFIX)
   );
   if (warningBox) {
     warningBox.hidden = warnings.length === 0;
