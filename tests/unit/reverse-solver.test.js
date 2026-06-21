@@ -17,6 +17,7 @@ import {
     solveForCurrentInvestmentBalance,
     rankLevers,
     scoreLeverFeasibility,
+    ReverseRetirementSolver,
 } from '../../src/js/reverse-solver.js';
 
 // ---------------------------------------------------------------------------
@@ -501,5 +502,66 @@ describe('rankLevers', () => {
         for (let i = 0; i < ranked.length - 1; i++) {
             expect(ranked[i].feasibilityScore).toBeGreaterThanOrEqual(ranked[i + 1].feasibilityScore);
         }
+    });
+});
+
+// ---------------------------------------------------------------------------
+// 11. ReverseRetirementSolver.solveAllLevers — integration
+// ---------------------------------------------------------------------------
+
+describe('ReverseRetirementSolver.solveAllLevers', () => {
+    const baseInputs = {
+        yourCurrentAge: 45,
+        retirementAge: 67,
+        yourLifespan: 90,
+        isCouple: false,
+        isSingleCalculation: true,
+        yourSalary: 100000,
+        yourCurrentSuper: 200000,
+        currentSavings: 30000,
+        currentStocks: 0,
+        monthlyStockContribution: 0,
+        yourAdditionalSuperContribution: 0,
+        employerSuperContributionRate: 0.12,
+        inflation: 0.026,
+        superReturn: 0.075,
+        investmentReturn: 0.07,
+        savingsReturn: 0.035,
+        homeowner: true,
+        mortgageBalance: 0,
+        monthlyMortgagePayment: 0,
+        asfaComfortable: 60000,
+    };
+    const target = { targetAnnualIncomeToday: 60000 };
+
+    test('includes investmentBalance in rankedLevers — regression for previously omitted solver', async () => {
+        const { ENHANCED_CONFIG } = require('../../src/js/config.js');
+        const solver = new ReverseRetirementSolver(ENHANCED_CONFIG);
+        const result = await solver.solveAllLevers(baseInputs, target, {});
+        const keys = result.rankedLevers.map((l) => l.lever);
+        expect(keys).toContain('investmentBalance');
+    });
+
+    test('includes all expected lever types in output', async () => {
+        const { ENHANCED_CONFIG } = require('../../src/js/config.js');
+        const solver = new ReverseRetirementSolver(ENHANCED_CONFIG);
+        const result = await solver.solveAllLevers(baseInputs, target, {});
+        const keys = result.rankedLevers.map((l) => l.lever);
+        expect(keys).toContain('extraAnnualSuper');
+        expect(keys).toContain('extraSavings');
+        expect(keys).toContain('salary');
+        expect(keys).toContain('retirementAge');
+        expect(keys).toContain('superBalance');
+        expect(keys).toContain('investmentBalance');
+    });
+
+    test('returns currentScore and currentResult alongside rankedLevers', async () => {
+        const { ENHANCED_CONFIG } = require('../../src/js/config.js');
+        const solver = new ReverseRetirementSolver(ENHANCED_CONFIG);
+        const result = await solver.solveAllLevers(baseInputs, target, {});
+        expect(result).toHaveProperty('currentScore');
+        expect(result).toHaveProperty('currentResult');
+        expect(result).toHaveProperty('rankedLevers');
+        expect(Array.isArray(result.rankedLevers)).toBe(true);
     });
 });

@@ -767,6 +767,7 @@ export class ReverseRetirementSolver {
             salaryResult,
             retireAgeResult,
             superBalResult,
+            investmentBalResult,
             extraSavingsResult,
             netRentResult,
         ] = await Promise.all([
@@ -774,6 +775,7 @@ export class ReverseRetirementSolver {
             solveForSalary(this.simulator, baseInputs, target, opts),
             solveForRetirementAge(this.simulator, baseInputs, target, opts),
             solveForCurrentSuperBalance(this.simulator, baseInputs, target, opts),
+            solveForCurrentInvestmentBalance(this.simulator, baseInputs, target, opts),
             solveForExtraSavings(this.simulator, baseInputs, target, opts),
             solveForNetRent(this.simulator, baseInputs, target, opts),
         ]);
@@ -792,6 +794,7 @@ export class ReverseRetirementSolver {
             salaryResult,
             netRentResult,
             superBalResult,
+            investmentBalResult,
             estateResult,
         ];
 

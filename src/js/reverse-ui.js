@@ -37,6 +37,7 @@ import {
     calculateSalaryReductionTolerance,
     calculateOptimalOverseasAge,
 } from './reverse-deep-analysis.js';
+import { ReverseScenarioEngine } from './calculation/reverse-scenario-engine.js';
 
 const STORAGE_KEY = 'rc_forward_scenario';
 
@@ -48,6 +49,14 @@ const CURRENCY_FORMAT = new Intl.NumberFormat('en-AU', {
 });
 
 function fmt(v) { return CURRENCY_FORMAT.format(Math.round(v)); }
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
 function el(id) { return document.getElementById(id); }
 function safeText(id, text) {
     const elem = el(id);
@@ -73,6 +82,8 @@ function show(id) {
 export class ReverseUI {
     constructor() {
         this.planner = new ReversePlanner();
+        this.scenarioEngine = new ReverseScenarioEngine(ENHANCED_CONFIG);
+        this.scenarioBuilderResults = null;
         this.lastResult = null;
         this.isCalculating = false;
         this.baseline = null;
@@ -104,6 +115,10 @@ export class ReverseUI {
         const calcBtn = el('rp-calculate-btn');
         if (calcBtn) {
             calcBtn.addEventListener('click', () => this.handleCalculate());
+        }
+        const scenarioBtn = el('rsb-calculate');
+        if (scenarioBtn) {
+            scenarioBtn.addEventListener('click', () => this.handleScenarioBuilder());
         }
 
         // Manual fallback toggle
@@ -421,6 +436,123 @@ export class ReverseUI {
         return { inputs, target };
     }
 
+    collectScenarioBuilderInputs() {
+        const number = (id, fallback = 0) => {
+            const value = Number(el(id)?.value);
+            return Number.isFinite(value) ? value : fallback;
+        };
+        const householdType = el('rsb-household')?.value || 'couple';
+        const currentAge = number('rsb-age', 49);
+        const partnerAge = householdType === 'couple' ? number('rsb-partner-age', 47) : 0;
+        const retirementAge = number('rsb-retirement-age', 67);
+        const lifespan = number('rsb-lifespan', 92);
+        const targetAnnualIncomeToday = number('rsb-target-income', 84000);
+        const confidenceTarget = number('rsb-confidence', 80) / 100;
+        const homeStatus = el('rsb-home-status')?.value || 'own_home';
+        const baseEngineInputs = this.forwardProjection?.engineInputs
+            || this.lastResult?.projection?.engineInputs
+            || {};
+        const projectionInput = {
+            ...baseEngineInputs,
+            householdType,
+            isCouple: householdType === 'couple',
+            isSingleCalculation: householdType !== 'couple',
+            currentAge,
+            yourCurrentAge: currentAge,
+            partnerAge,
+            partnerCurrentAge: partnerAge,
+            retirementAge,
+            partnerRetirementAge: retirementAge,
+            lifespan,
+            yourLifespan: lifespan,
+            partnerLifespan: householdType === 'couple' ? lifespan : 0,
+            targetAnnualIncomeToday,
+            asfaComfortable: targetAnnualIncomeToday,
+            primaryRentMonthly: number('rsb-primary-rent', 0),
+        };
+        const target = {
+            currentAge,
+            retirementAge,
+            lifespan,
+            targetAnnualIncomeToday,
+            successProbabilityTarget: confidenceTarget,
+            confidenceTarget,
+            minimumEstateToday: 0,
+            includeAgePension: el('rsb-include-pension')?.checked !== false,
+            householdType,
+        };
+        const selected = {
+            includeSuper: el('rsb-include-super')?.checked !== false,
+            includeAgePension: el('rsb-include-pension')?.checked !== false,
+            includeNonSuperInvestments: el('rsb-include-non-super')?.checked !== false,
+            homeStatus,
+            includeInvestmentProperty: Boolean(el('rsb-include-property')?.checked),
+            sellInvestmentPropertyAtRetirement: Boolean(el('rsb-sell-property')?.checked),
+            includeDownsizing: Boolean(el('rsb-include-downsizing')?.checked),
+            includeAgedCare: Boolean(el('rsb-include-aged-care')?.checked),
+            includeOverseasRetirement: Boolean(el('rsb-include-overseas')?.checked),
+        };
+        return { projectionInput, target, selected };
+    }
+
+    async handleScenarioBuilder() {
+        const button = el('rsb-calculate');
+        const status = el('rsb-status');
+        if (button) button.disabled = true;
+        if (status) status.textContent = 'Solving scenario comparison paths…';
+        try {
+            const { projectionInput, target, selected } = this.collectScenarioBuilderInputs();
+            const projection = this.planner.projectionService.computeProjection(
+                projectionInput,
+                { sourceCalculator: 'reverse-scenario' }
+            );
+            const results = await this.scenarioEngine.compareScenarios(
+                projection.engineInputs,
+                target,
+                selected,
+                { swr: 0.04 }
+            );
+            this.scenarioBuilderResults = {
+                inputHash: projection.inputHash,
+                policyVersion: projection.policyVersion,
+                target,
+                selected,
+                results,
+            };
+            this.renderScenarioBuilderResults(this.scenarioBuilderResults);
+            if (status) {
+                status.textContent = 'Scenario comparison complete · input hash ' + projection.inputHash;
+            }
+        } catch (error) {
+            console.error('Scenario builder error:', error);
+            if (status) status.textContent = error.message || 'Scenario comparison could not be completed.';
+        } finally {
+            if (button) button.disabled = false;
+        }
+    }
+
+    renderScenarioBuilderResults(scenarioSet) {
+        const tbody = el('rsb-results-body');
+        if (!tbody) return;
+        const value = (amount, suffix = '') => amount == null ? '—' : fmt(amount) + suffix;
+        tbody.innerHTML = scenarioSet.results.map((scenario) => `
+            <tr>
+              <td><strong>${escapeHtml(scenario.scenarioName)}</strong></td>
+              <td>${value(scenario.requiredCurrentSuper)}</td>
+              <td>${value(scenario.requiredCurrentNonSuperInvestments)}</td>
+              <td>${value(scenario.requiredCurrentGrossSalary, '/yr')}</td>
+              <td>${value(scenario.requiredMonthlySurplus, '/mo')}</td>
+              <td>${value(scenario.requiredAnnualSalarySacrifice, '/yr')}</td>
+              <td>${value(scenario.requiredPropertyEquityOrRentalIncome, '/wk')}</td>
+              <td>${value(scenario.expectedAgePensionContribution, '/yr')}</td>
+              <td>${value(scenario.expectedAssetsAtRetirement)}</td>
+              <td>${value(scenario.expectedEstateAtLifespan)}</td>
+              <td>${scenario.warnings.map((warning) => escapeHtml(warning)).join('<br>')}</td>
+            </tr>
+        `).join('');
+        show('rsb-results');
+    }
+
     /**
      * Build inputs from manual fallback form fields.
      */
@@ -729,6 +861,38 @@ export class ReverseUI {
                 `Your current plan is projected to meet your retirement goal.`,
                 `Continue current savings and review annually to maintain this position.`,
             ], [209, 250, 229], [5, 150, 105]);
+        }
+
+        heading('Scenario Builder: What do we need today?', 11);
+        if (this.scenarioBuilderResults?.results?.length) {
+            const scenarioValue = (amount, suffix = '') => amount == null ? '—' : cur(amount) + suffix;
+            bullet('Scenario input hash', this.scenarioBuilderResults.inputHash || 'Unavailable');
+            bullet('Target retirement income', cur(this.scenarioBuilderResults.target.targetAnnualIncomeToday) + '/year');
+            bullet('Confidence target', pct(this.scenarioBuilderResults.target.confidenceTarget || 0));
+            autoTable(
+                ['Scenario', 'Super now', 'Non-super now', 'Gross salary', 'Monthly surplus', 'Salary sacrifice', 'Age Pension'],
+                this.scenarioBuilderResults.results.map((scenario) => [
+                    scenario.scenarioName,
+                    scenarioValue(scenario.requiredCurrentSuper),
+                    scenarioValue(scenario.requiredCurrentNonSuperInvestments),
+                    scenarioValue(scenario.requiredCurrentGrossSalary, '/yr'),
+                    scenarioValue(scenario.requiredMonthlySurplus, '/mo'),
+                    scenarioValue(scenario.requiredAnnualSalarySacrifice, '/yr'),
+                    scenarioValue(scenario.expectedAgePensionContribution, '/yr'),
+                ]),
+                { styles: { fontSize: 6.5 } }
+            );
+            const scenarioWarnings = Array.from(new Set(
+                this.scenarioBuilderResults.results.flatMap((scenario) => scenario.warnings || [])
+            ));
+            if (scenarioWarnings.length) {
+                infoBox(scenarioWarnings, [255, 251, 235], [180, 83, 9]);
+            }
+        } else {
+            infoBox([
+                'Scenario Builder was not run for this report.',
+                'Run the top Scenario Builder section to include salary, asset and monthly-surplus comparisons.',
+            ], [248, 250, 252], [71, 85, 105]);
         }
 
         // ── PAGE 1/2: CURRENT FINANCIAL SNAPSHOT ────────────────────────────
@@ -1070,6 +1234,7 @@ export class ReverseUI {
                 ['Household type', target.householdType === 'couple' ? 'Couple' : 'Single', 'Affects pension thresholds'],
                 ['Years to retirement', String(ytr), `Current age to age ${RET_AGE}`],
                 ['Planning horizon', `${LIFESPAN - (inp.yourCurrentAge || RET_AGE)} years in retirement`, `Age ${RET_AGE} to ${LIFESPAN}`],
+                ['Projection input hash', this.lastResult.inputHash || 'Unavailable', 'Shared by current path, solvers, screen results and this PDF'],
             ],
             {
                 columnStyles: {
@@ -1172,6 +1337,9 @@ export class ReverseUI {
 
         // Assumptions
         const assumptions = generateAssumptionsText(target, result.inputs);
+        if (result.inputHash) {
+            assumptions.push(`Projection input hash: ${result.inputHash}`);
+        }
         const assumEl = el('rp-assumptions-list');
         if (assumEl) {
             assumEl.innerHTML = assumptions.map(a => `<li>${a}</li>`).join('');
@@ -1544,7 +1712,7 @@ export class ReverseUI {
         const section = el('rp-deep-analysis-section');
         if (!section) return;
 
-        const inputs = result.inputs || {};
+        const inputs = result.projection?.engineInputs || result.inputs || {};
         const target = result.target || {};
 
         show('rp-deep-analysis-section');

@@ -39,26 +39,16 @@ const resolveScenarioMonteCarloRuns = (inputs = {}) =>
     Math.max(100, Math.min(20000, Math.round(Number(inputs.numRuns) || 1000)));
 
 /**
- * Generate a stochastic annual rate by applying a bounded symmetric variation
- * to the user-supplied central (median) estimate.  Each call draws a uniform
- * perturbation from [-0.04, +0.04] (±4 pp), so the distribution is centred on
- * the user's input.  This means every year experiences a different rate drawn
- * from a distribution whose median equals the user's input — the value is never
- * applied as a fixed linear compound across all years.
- *
- * Why ±4 pp?  AU macro data (RBA/ABS 2002-2024):
- *   CPI std dev ≈ 1.8 pp  →  ±4 pp covers roughly ±2.2 σ  (≈97% of history)
- *   Super returns std dev ≈ 8 pp  →  ±4 pp is a conservative ±0.5 σ
- * The same range is used for all rates for simplicity; the floor parameter
- * prevents rates from going below a caller-specified minimum.
- *
- * Note: an asymmetric range such as [-0.045, +0.035] shifts the median of
- * the distribution by -0.5 pp relative to the user input, biasing all
- * projections downward — which is why this implementation uses a symmetric range.
+ * Generate a stochastic annual rate around the user-supplied central estimate.
+ * The implementation uses a Box-Muller normal draw. Callers may supply sigma;
+ * otherwise volatility defaults to max(1 percentage point, 50% of the absolute
+ * central rate). The result has a lower floor but intentionally has no hard
+ * upper bound.
  *
  * @param {number}  centralRate         - Median rate as decimal (e.g. 0.026 for 2.6%)
  * @param {boolean} [isStochastic=true] - When false (deterministic mode), returns centralRate unchanged
  * @param {number}  [floor=0]           - Hard floor for result (e.g. 0.001 = 0.1% minimum)
+ * @param {number|null} [sigma=null]     - Optional standard deviation in decimal rate units
  * @returns {number} Perturbed rate in decimal form, ≥ floor (or centralRate when deterministic)
  *
  * Backward-compat: two-arg legacy call stochasticRate(rate, floor) is detected when
@@ -83,6 +73,19 @@ export function stochasticRate(centralRate, isStochastic = true, floor = 0, sigm
     const u2 = Math.random();
     const z  = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
     return Math.max(floor, centralRate + z * effectiveSigma);
+}
+
+export function stochasticSigmaForRate(centralRate, rateType = 'generic') {
+    const settings = {
+        inflation: { minimum: 0.005, multiplier: 0.4 },
+        healthcare: { minimum: 0.01, multiplier: 0.4 },
+        salary: { minimum: 0.005, multiplier: 0.3 },
+        super: { minimum: 0.03, multiplier: 0.6 },
+        savings: { minimum: 0.005, multiplier: 0.3 },
+        generic: { minimum: 0.01, multiplier: 0.5 },
+    };
+    const setting = settings[rateType] || settings.generic;
+    return Math.max(setting.minimum, Math.abs(centralRate || 0) * setting.multiplier);
 }
 
 export class RetirementSimulator {
@@ -1372,9 +1375,24 @@ export class RetirementSimulator {
         // etc.).  Quantities that are re-calculated each year inside the loop (savings
         // return, super return, retirement inflation) already use per-year draws via
         // stochasticRate() and are unaffected by these run-level draws.
-        const runInflationRate      = stochasticRate(inputs.inflation,            useRandomReturns, 0.001);
-        const runHealthcareInflRate = stochasticRate(inputs.healthcareInflation ?? 0.065, useRandomReturns, 0.01);
-        const runSalaryGrowthRate   = stochasticRate(inputs.salaryGrowthRate ?? 0.02,     useRandomReturns, 0);
+        const runInflationRate = stochasticRate(
+            effectiveInputs.inflation,
+            useRandomReturns,
+            0.001,
+            stochasticSigmaForRate(effectiveInputs.inflation, 'inflation')
+        );
+        const runHealthcareInflRate = stochasticRate(
+            effectiveInputs.healthcareInflation ?? 0.065,
+            useRandomReturns,
+            0.01,
+            stochasticSigmaForRate(effectiveInputs.healthcareInflation ?? 0.065, 'healthcare')
+        );
+        const runSalaryGrowthRate = stochasticRate(
+            effectiveInputs.salaryGrowthRate ?? 0.02,
+            useRandomReturns,
+            0,
+            stochasticSigmaForRate(effectiveInputs.salaryGrowthRate ?? 0.02, 'salary')
+        );
         // NOTE: property growth is NOT drawn as a single per-run rate here.
         // Instead, calculateEnhancedPropertyReturn() is called each year inside the
         // accumulation and retirement loops so each year can experience a different
@@ -1578,7 +1596,12 @@ export class RetirementSimulator {
             // stochasticRate() centred on the user's input (median).  The cumulative
             // factor replaces Math.pow(1 + runInflationRate, year) throughout, giving
             // year-to-year variation for all inflation-dependent costs.
-            const accumYearInflationRate = stochasticRate(inputs.inflation, useRandomReturns, 0.001);
+            const accumYearInflationRate = stochasticRate(
+                inputs.inflation,
+                useRandomReturns,
+                0.001,
+                stochasticSigmaForRate(inputs.inflation, 'inflation')
+            );
             accumCumulativeInflationFactor *= (1 + accumYearInflationRate);
 
             // Dynamic allocation
@@ -1685,10 +1708,20 @@ export class RetirementSimulator {
                 }
             }
 
-            // Apply returns — super and savings use stochastic rates (user-entered rate
-            // treated as median; each year perturbed uniformly by ±4pp)
-            const yearSuperReturn = stochasticRate(inputs.superReturn, useRandomReturns, 0);
-            const yearSavingsReturn = stochasticRate(inputs.savingsReturn, useRandomReturns, 0);
+            // Apply type-specific stochastic rates consistent with the shared engines.
+            // Super can experience negative years; bank savings retain a zero floor.
+            const yearSuperReturn = stochasticRate(
+                inputs.superReturn,
+                useRandomReturns,
+                -0.30,
+                stochasticSigmaForRate(inputs.superReturn, 'super')
+            );
+            const yearSavingsReturn = stochasticRate(
+                inputs.savingsReturn,
+                useRandomReturns,
+                0,
+                stochasticSigmaForRate(inputs.savingsReturn, 'savings')
+            );
             const yourSuperEarningsThisYear = yourSuperBalance * yearSuperReturn;
             const partnerSuperEarningsThisYear = partnerSuperBalance * yearSuperReturn;
             const superEarningsThisYear = yourSuperEarningsThisYear + partnerSuperEarningsThisYear;
@@ -1855,8 +1888,10 @@ export class RetirementSimulator {
             const annualDetailedExpenses = inputs.useDetailedExpenseInputs
                 ? (((inputs.currentMonthlyHousingCosts || 0) + (inputs.currentMonthlyLivingCosts || 0)) * 12) + (inputs.currentHealthcareCosts || 0)
                 : null;
-            const annualCashSavings = inputs.useDetailedExpenseInputs
-                ? Math.max(0, yearlyPostTaxIncome - annualDetailedExpenses)
+            const annualCashSavings = Number.isFinite(inputs.annualCashSavingsContribution)
+                ? Math.max(0, inputs.annualCashSavingsContribution)
+                : inputs.useDetailedExpenseInputs
+                    ? Math.max(0, yearlyPostTaxIncome - annualDetailedExpenses)
                 : Math.max(0, yearlyPostTaxIncome * (inputs.percentIncomeSaved || 0));
             accumulatedSavingsBalance += annualCashSavings;
 
@@ -2155,9 +2190,13 @@ export class RetirementSimulator {
             // ── Step A: draw this year's stochastic rate ─────────────────────────
             // yearInflationRate MUST be declared before any calculation that uses it.
             // It drives healthcare costs, spending targets, and the cumulative factor.
-            // Uniform draw in [median − 4pp, median + 4pp], floored at 0.5%.
-            // Every year draws a fresh rate — never a fixed linear compound of the median.
-            const yearInflationRate = stochasticRate(inputs.inflation, useRandomReturns, 0.005);
+            // Every year draws a fresh normal rate around the user-entered median.
+            const yearInflationRate = stochasticRate(
+                inputs.inflation,
+                useRandomReturns,
+                0.005,
+                stochasticSigmaForRate(inputs.inflation, 'inflation')
+            );
 
             // ── Step B: healthcare costs ─────────────────────────────────────────
             // MC mode: healthcare cost = baseCost × cumulativeInflationFactor

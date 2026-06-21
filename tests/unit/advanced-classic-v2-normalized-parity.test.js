@@ -5,6 +5,7 @@ import { ENHANCED_CONFIG } from '../../src/js/config.js';
 import { populateFormFromData } from '../../src/js/utils.js';
 import templateData from '../../src/retirement_template.json';
 import { buildEngineInputs } from '../../src/js/advanced-v2.js';
+import RetirementSimulator from '../../src/js/simulator.js';
 
 const advancedHtml = fs.readFileSync(
     path.join(__dirname, '../../src/advanced.html'),
@@ -151,5 +152,48 @@ describe('advanced classic vs advanced-v2 normalized input parity', () => {
         const unexpected = diffs.filter((diff) => !diff.reason);
 
         expect(unexpected).toEqual([]);
+    });
+
+    test('shared projection service preserves the classic deterministic result for legacy inputs', () => {
+        const inputs = buildClassicInputsFromTemplate();
+        const simulator = new RetirementSimulator(ENHANCED_CONFIG);
+        const legacy = simulator.simulateRetirement(inputs, false);
+        const app = Object.create(RetirementCalculatorApp.prototype);
+        app.config = ENHANCED_CONFIG;
+        app.simulator = new RetirementSimulator(ENHANCED_CONFIG);
+        app.projectionService = app.createProjectionService();
+
+        const projection = app.projectionService.computeProjection(inputs, {
+            sourceCalculator: 'advanced',
+        });
+
+        expect(projection.simulation.finalBalance).toBeCloseTo(legacy.finalBalance, 8);
+        expect(projection.simulation.accumulatedSuperBalance).toBeCloseTo(
+            legacy.accumulatedSuperBalance,
+            8
+        );
+    });
+
+    test('classic detailed housing spending does not subtract mortgage twice', () => {
+        const inputs = {
+            ...buildClassicInputsFromTemplate(),
+            useDetailedExpenseInputs: true,
+            currentMonthlyHousingCosts: 5000,
+            currentMonthlyLivingCosts: 3000,
+            currentHealthcareCosts: 0,
+            monthlyMortgagePayment: 3200,
+            monthlyStockContribution: 0,
+        };
+        const app = Object.create(RetirementCalculatorApp.prototype);
+        app.config = ENHANCED_CONFIG;
+        app.simulator = new RetirementSimulator(ENHANCED_CONFIG);
+        app.projectionService = app.createProjectionService();
+
+        const projection = app.projectionService.computeProjection(inputs, {
+            sourceCalculator: 'advanced',
+        });
+
+        expect(projection.derivedCashflow.annualMortgageRepayments).toBe(0);
+        expect(projection.derivedCashflow.currentAnnualSpending).toBe(96000);
     });
 });

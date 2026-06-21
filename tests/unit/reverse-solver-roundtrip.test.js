@@ -22,16 +22,6 @@ import { applyTargetToEngineInputs, evaluateEngineGoal } from '../../src/js/reve
 // Shared test fixtures
 // ---------------------------------------------------------------------------
 
-// The simulator uses stochasticRate() (Math.random) even in deterministic mode,
-// which makes bisection unreliable. Pin random to the median so rates equal their
-// central values and results are reproducible across test runs.
-beforeAll(() => {
-    jest.spyOn(Math, 'random').mockReturnValue(0.5);
-});
-afterAll(() => {
-    jest.restoreAllMocks();
-});
-
 const simulator = new RetirementSimulator(ENHANCED_CONFIG);
 
 // Fields the retirement simulator requires to avoid NaN in

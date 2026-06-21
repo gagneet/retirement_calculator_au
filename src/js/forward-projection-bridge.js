@@ -15,6 +15,12 @@ export function buildForwardProjectionPayload({
   monteCarloResults = null,
   recommendations = null,
   stressTestResults = null,
+  canonicalInput = null,
+  derivedCashflow = null,
+  inputHash = null,
+  policyVersion = null,
+  diagnostics = null,
+  warnings = [],
 }) {
   const retirementAge = input?.retireAge || input?.retirementAge || engineInputs?.retirementAge || 65;
   const currentAge = input?.age || input?.yourCurrentAge || engineInputs?.yourCurrentAge || 50;
@@ -40,9 +46,14 @@ export function buildForwardProjectionPayload({
 
   const payload = {
     version: 1,
+    schemaVersion: canonicalInput?.schemaVersion || null,
     source,
     savedAt: new Date().toISOString(),
     input,
+    inputHash,
+    policyVersion,
+    canonicalInput,
+    derivedCashflow,
     engineInputs,
     simulation,
     adaptedResult,
@@ -50,6 +61,8 @@ export function buildForwardProjectionPayload({
     monteCarloResults,
     recommendations,
     stressTestResults,
+    diagnostics,
+    warnings,
     summary: {
       targetAnnualIncomeToday: input?.desiredIncome || input?.asfaComfortable || 0,
       monthlyRetirementIncomeToday: monthlyPaycheck,

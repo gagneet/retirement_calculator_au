@@ -62,6 +62,49 @@
   <!-- ───── SINGLE-COLUMN CONTENT ───── -->
   <div style="max-width:800px;margin:0 auto;padding:8px 28px 140px;display:flex;flex-direction:column;gap:var(--section-gap)">
 
+    <section class="section open" id="rsb-section" data-section="scenario-builder">
+      <button class="section-head" type="button">
+        <span class="section-num">★</span>
+        <span class="section-title">
+          <h3>Scenario Builder: What do we need today?</h3>
+          <small>Start from ages and retirement income, then compare funding paths</small>
+        </span>
+        <span class="section-meta"></span>
+        <svg class="section-chev" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="section-body">
+        <div class="fields three">
+          <div class="field"><label class="field-label" for="rsb-household"><span>Household</span></label><div class="field-input"><select id="rsb-household"><option value="single">Single</option><option value="couple" selected>Couple</option></select></div></div>
+          <div class="field"><label class="field-label" for="rsb-age"><span>Your current age</span></label><div class="field-input"><input id="rsb-age" type="number" min="18" max="80" value="49" /></div></div>
+          <div class="field"><label class="field-label" for="rsb-partner-age"><span>Partner age</span></label><div class="field-input"><input id="rsb-partner-age" type="number" min="18" max="80" value="47" /></div></div>
+          <div class="field"><label class="field-label" for="rsb-retirement-age"><span>Retirement age</span></label><div class="field-input"><input id="rsb-retirement-age" type="number" min="40" max="85" value="67" /></div></div>
+          <div class="field"><label class="field-label" for="rsb-target-income"><span>Desired after-tax retirement income</span><span class="hint">today's $/yr</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="rsb-target-income" type="number" min="0" value="84000" /></div></div>
+          <div class="field"><label class="field-label" for="rsb-confidence"><span>Confidence target</span></label><div class="field-input"><select id="rsb-confidence"><option value="70">70%</option><option value="80" selected>80%</option><option value="90">90%</option></select></div></div>
+          <div class="field"><label class="field-label" for="rsb-lifespan"><span>Planning lifespan</span></label><div class="field-input"><input id="rsb-lifespan" type="number" min="70" max="120" value="92" /></div></div>
+          <div class="field"><label class="field-label" for="rsb-home-status"><span>Home status</span></label><div class="field-input"><select id="rsb-home-status"><option value="own_home">Own home</option><option value="own_home_with_mortgage">Own home with mortgage</option><option value="renting">Renting</option><option value="no_home">No home</option></select></div></div>
+          <div class="field"><label class="field-label" for="rsb-primary-rent"><span>Monthly rent</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="rsb-primary-rent" type="number" min="0" value="0" /></div></div>
+        </div>
+        <div class="fields three" style="margin-top:12px">
+          <label class="toggle"><input id="rsb-include-super" type="checkbox" checked /><span class="track"></span><span class="label">Include super</span></label>
+          <label class="toggle"><input id="rsb-include-pension" type="checkbox" checked /><span class="track"></span><span class="label">Include Age Pension</span></label>
+          <label class="toggle"><input id="rsb-include-non-super" type="checkbox" checked /><span class="track"></span><span class="label">Include non-super investments</span></label>
+          <label class="toggle"><input id="rsb-include-property" type="checkbox" /><span class="track"></span><span class="label">Include investment property</span></label>
+          <label class="toggle"><input id="rsb-sell-property" type="checkbox" /><span class="track"></span><span class="label">Sell property at retirement</span></label>
+          <label class="toggle"><input id="rsb-include-downsizing" type="checkbox" /><span class="track"></span><span class="label">Include downsizing</span></label>
+          <label class="toggle"><input id="rsb-include-aged-care" type="checkbox" /><span class="track"></span><span class="label">Include aged care</span></label>
+          <label class="toggle"><input id="rsb-include-overseas" type="checkbox" /><span class="track"></span><span class="label">Include overseas retirement</span></label>
+        </div>
+        <button id="rsb-calculate" class="iconbtn primary" style="margin-top:14px">Compare what we need today</button>
+        <p id="rsb-status" style="font-size:12px;color:var(--ink-3);margin:8px 0 0">Deterministic lever solves are shown first. Confidence targets require Monte Carlo validation.</p>
+        <div id="rsb-results" class="hidden" style="margin-top:16px;overflow-x:auto">
+          <table class="year-table" style="min-width:1500px;font-size:11.5px">
+            <thead><tr><th>Scenario</th><th>Current super needed</th><th>Non-super needed</th><th>Gross salary needed</th><th>Monthly surplus</th><th>Salary sacrifice</th><th>Property / rent</th><th>Age Pension</th><th>Assets at retirement</th><th>Estate</th><th>Warnings</th></tr></thead>
+            <tbody id="rsb-results-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- ════════════════════════════════════════
          SECTION 1: YOUR CURRENT POSITION
          ════════════════════════════════════════ -->
