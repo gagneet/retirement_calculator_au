@@ -64,8 +64,15 @@ export function normaliseReversePlannerInputs(rawInputs) {
     return {
         // Identity
         yourCurrentAge: num(rawInputs.currentAge ?? rawInputs.yourCurrentAge, 50),
+        partnerCurrentAge: isCouple ? num(rawInputs.partnerAge ?? rawInputs.partnerCurrentAge, 50) : 0,
         retirementAge: num(rawInputs.retirementAge, 67),
+        partnerRetirementAge: isCouple
+            ? num(rawInputs.partnerRetirementAge ?? rawInputs.retirementAge, 67)
+            : 0,
         yourLifespan: num(rawInputs.lifespan ?? rawInputs.yourLifespan, 90),
+        partnerLifespan: isCouple
+            ? num(rawInputs.partnerLifespan ?? rawInputs.lifespan ?? rawInputs.yourLifespan, 90)
+            : 0,
         isCouple,
         isSingleCalculation: !isCouple,
 
