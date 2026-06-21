@@ -140,6 +140,13 @@ export const runLifeSimulation = (userInputs) => {
     let previousPortfolio = 0;
     let propertyPurchasePrice = propertyValue; // track for CGT
 
+    // Cumulative inflation factor — built up as the product of each year's draw so
+    // that spending targets compound year-by-year rather than using a single bulk
+    // Math.pow(rate, years) formula.  In deterministic mode each year multiplies
+    // by the fixed median rate; in stochastic mode by a freshly drawn per-year rate.
+    let cumulativeInflationFactor = 1;
+    let cumulativeRetirementInflationFactor = 1; // restarted at retirement year
+
     // Healthcare costs
     let healthcareCosts = inputs.currentHealthcareCosts || 3500;
 
@@ -160,8 +167,57 @@ export const runLifeSimulation = (userInputs) => {
             ? inputs.partnerCurrentAge + yearsElapsed
             : 0;
 
-        // Stochastic shocks
-        currentInflation = applyInflationShock(inflation, inputs);
+        // ── Per-year stochastic rate draws ────────────────────────────────────
+        // In stochastic (MC) mode each year draws its own independent rate from a
+        // normal distribution centred on the user's median input, so successive years
+        // see different inflation/return values rather than a single fixed compound.
+        // In deterministic mode these collapse to the user's exact input values.
+        let yearInflationRate = inflation;
+        let yearHcInflationRate = inputs.healthcareInflation || 0.0382;
+        let yearPropertyGrowthRate = inputs.propertyGrowthRate || 0.058;
+
+        if (useStochasticReturns) {
+            // Inflation: σ = max(0.5%, inflation×40%) — moderate year-to-year CPI variation
+            const inflSigma = Math.max(0.005, inflation * 0.4);
+            const [ui1, ui2] = [Math.max(1e-10, Math.random()), Math.random()];
+            const zi = Math.sqrt(-2 * Math.log(ui1)) * Math.cos(2 * Math.PI * ui2);
+            yearInflationRate = Math.max(0.001, inflation + zi * inflSigma);
+
+            // Healthcare inflation: σ = max(1%, hcRate×40%) — healthcare tends to
+            // escalate faster than CPI but also varies year to year
+            const hcSigma = Math.max(0.01, yearHcInflationRate * 0.4);
+            const [uh1, uh2] = [Math.max(1e-10, Math.random()), Math.random()];
+            const zh = Math.sqrt(-2 * Math.log(uh1)) * Math.cos(2 * Math.PI * uh2);
+            yearHcInflationRate = Math.max(0.001, yearHcInflationRate + zh * hcSigma);
+
+            // Property growth: σ = max(3%, rate×60%) — property cycles drive large swings
+            const propBase = inputs.propertyGrowthRate || 0.058;
+            const propSigma = Math.max(0.03, Math.abs(propBase) * 0.6);
+            const [up1, up2] = [Math.max(1e-10, Math.random()), Math.random()];
+            const zp = Math.sqrt(-2 * Math.log(up1)) * Math.cos(2 * Math.PI * up2);
+            yearPropertyGrowthRate = Math.max(-0.15, propBase + zp * propSigma);
+        }
+
+        // Per-year salary growth draw — σ = max(0.5%, rate×40%) — wages vary year to
+        // year but not as widely as financial markets.
+        const salaryBase = inputs.salaryGrowthRate || 0.015;
+        let yearSalaryGrowthRate = salaryBase;
+        if (useStochasticReturns) {
+            const salSigma = Math.max(0.005, salaryBase * 0.4);
+            const [us1, us2] = [Math.max(1e-10, Math.random()), Math.random()];
+            const zs = Math.sqrt(-2 * Math.log(us1)) * Math.cos(2 * Math.PI * us2);
+            yearSalaryGrowthRate = Math.max(-0.05, salaryBase + zs * salSigma); // floor at -5%
+        }
+
+        // Accumulate cumulative inflation product — year-by-year multiplication so each
+        // year's drawn rate componds onto ALL prior years rather than being raised to a
+        // bulk power.  This is the correct way to handle stochastic per-year inflation.
+        cumulativeInflationFactor *= (1 + yearInflationRate);
+
+        // Stochastic shocks (applied on top of per-year rates drawn above)
+        currentInflation = useStochasticReturns
+            ? yearInflationRate // continuous variation already captured above
+            : applyInflationShock(inflation, inputs);
         const { newValue: investAfterShock, shockOccurred: investShock } =
             applyMarketShock(investmentAssets, inputs);
         if (investShock) investmentAssets = investAfterShock;
@@ -192,11 +248,11 @@ export const runLifeSimulation = (userInputs) => {
         futurePropertyAnnualExpenses = state.futurePropertyExpenses || futurePropertyAnnualExpenses;
 
         // ── Income ────────────────────────────────────────────────────────────
-        salary        = projectSalary(salary, age, inputs);
+        salary        = projectSalary(salary, age, inputs, yearSalaryGrowthRate);
         partnerSalary = projectPartnerSalary(partnerSalary, partnerAge || age, {
             ...inputs,
             partnerRetirementAge: inputs.partnerRetirementAge || retirementAge,
-        });
+        }, yearSalaryGrowthRate);
 
         state.salary        = salary;
         state.partnerSalary = partnerSalary;
@@ -231,7 +287,9 @@ export const runLifeSimulation = (userInputs) => {
         }
 
         // ── Expenses ──────────────────────────────────────────────────────────
-        healthcareCosts = projectHealthcareCosts(healthcareCosts, age, inputs);
+        // Pass the per-year drawn healthcare inflation so each year compounds
+        // at a freshly sampled rate rather than the same fixed median value.
+        healthcareCosts = projectHealthcareCosts(healthcareCosts, age, inputs, yearHcInflationRate);
         state.healthcareCosts = healthcareCosts;
 
         const agedCare = getAgedCareCost(age, inputs) + (state.agedCareCosts || 0);
@@ -240,8 +298,9 @@ export const runLifeSimulation = (userInputs) => {
         const eduCosts = state.educationCosts || 0;
 
         if (age < retirementAge) {
-            // Pre-retirement: project living expenses from income
-            livingExpenses = projectLivingExpenses(livingExpenses, age, inputs);
+            // Pre-retirement: project living expenses using the per-year inflation draw
+            // so each year reflects a different inflation rate rather than a fixed compound.
+            livingExpenses = projectLivingExpenses(livingExpenses, age, inputs, yearInflationRate);
             state.livingExpenses = livingExpenses;
         } else {
             // ── Retirement spending ───────────────────────────────────────────
@@ -253,6 +312,11 @@ export const runLifeSimulation = (userInputs) => {
                 initialPortfolio = portfolioValue;
                 retirementWealth = portfolioValue;
                 currentSpending  = baseRetirementSpending;
+                // Retirement-phase cumulative factor starts at 1 (base spending is
+                // already in nominal dollars at retirement).  Pre-retirement inflation
+                // is NOT carried over here — the base spending is expressed in the
+                // nominal dollars of the retirement year, not simulation-start dollars.
+                cumulativeRetirementInflationFactor = 1;
             }
 
             currentSpending = calculateSpending({
@@ -263,9 +327,23 @@ export const runLifeSimulation = (userInputs) => {
                 initialSpending:   baseRetirementSpending,
                 yearsRetired,
                 inflation:         currentInflation,
+                // Pass the running cumulative factor so the FIXED strategy applies
+                // the correct year-by-year compound product.  The factor is updated
+                // AFTER spending is calculated so that year 0 uses a factor of 1
+                // (matching the deterministic Math.pow(inf, 0) = 1 baseline).
+                cumulativeInflationFactor: cumulativeRetirementInflationFactor,
                 portfolioDeclined,
                 inputs,
             });
+
+            // Advance the retirement-phase cumulative factor AFTER spending is
+            // recorded.  This ensures:
+            //   yearsRetired=0: factor=1 → spending = base (no inflation yet) ✓
+            //   yearsRetired=1: factor=(1+i₁) → spending = base×(1+i₁) ✓
+            //   yearsRetired=n: factor=(1+i₁)×…×(1+iₙ) ✓
+            // Accumulating before spending would inflate year-0 spending by one
+            // extra year compared to the deterministic Math.pow baseline.
+            cumulativeRetirementInflationFactor *= (1 + yearInflationRate);
 
             state.livingExpenses = currentSpending;
             previousPortfolio    = portfolioValue;
@@ -444,9 +522,10 @@ export const runLifeSimulation = (userInputs) => {
 
         investmentAssets = growInvestmentAssets(investmentAssets, annualNetContrib, yearInputs);
 
-        // Property value growth
+        // Property value growth — use the per-year stochastic draw so each year
+        // experiences a different growth rate rather than a fixed compound rate.
         if (propertyValue > 0) {
-            propertyValue = growPropertyValue(propertyValue, inputs);
+            propertyValue = growPropertyValue(propertyValue, inputs, yearPropertyGrowthRate);
         }
 
         // ── Finalise state snapshot ───────────────────────────────────────────

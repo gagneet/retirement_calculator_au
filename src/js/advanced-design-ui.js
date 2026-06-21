@@ -488,6 +488,19 @@ class AdvancedDesignUI {
             }
         }
 
+        // Monte Carlo statistics — show success rate and income range when present
+        const mcEl = document.getElementById('res-mc-stats');
+        if (mcEl && results.mcRuns) {
+            const successPct = Math.round((results.successRate || 0) * 100);
+            const p10 = fmt(results.p10Income || 0);
+            const p90 = fmt(results.p90Income || 0);
+            let colour = successPct >= 80 ? 'text-green-700' : successPct >= 60 ? 'text-amber-600' : 'text-red-600';
+            mcEl.innerHTML =
+                `<span class="${colour} font-semibold">${successPct}% probability of success</span>` +
+                ` &nbsp;·&nbsp; income range (p10–p90): ${p10} – ${p90}/yr` +
+                ` &nbsp;·&nbsp; <span class="text-gray-500 text-xs">${results.mcRuns} simulations (median shown)</span>`;
+        }
+
         // Real/Nominal label
         const termLabel = document.getElementById('res-termLabel');
         if (termLabel) {

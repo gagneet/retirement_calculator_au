@@ -43,7 +43,7 @@ export const getSpendingPhaseMultiplier = (age, retirementAge) => {
  * @param {Object} inputs              – user inputs
  * @returns {number} projected annual living expenses
  */
-export const projectLivingExpenses = (currentExpenses, age, inputs) => {
+export const projectLivingExpenses = (currentExpenses, age, inputs, yearInflation = null) => {
     const {
         retirementAge = 65,
         inflation = 0.026,
@@ -52,8 +52,12 @@ export const projectLivingExpenses = (currentExpenses, age, inputs) => {
         leanYearsReduction = 0.38,
     } = inputs;
 
+    // Use the per-year drawn rate when provided (stochastic MC mode),
+    // otherwise fall back to the user's median inflation input.
+    const effectiveInflation = yearInflation !== null ? yearInflation : inflation;
+
     // Inflate expenses each year
-    let expenses = currentExpenses * (1 + inflation);
+    let expenses = currentExpenses * (1 + effectiveInflation);
 
     if (age >= retirementAge) {
         // Apply spending phase multiplier (U-shaped retirement spending curve)
@@ -78,10 +82,14 @@ export const projectLivingExpenses = (currentExpenses, age, inputs) => {
  * @param {Object} inputs                  – user inputs
  * @returns {number} projected annual healthcare costs
  */
-export const projectHealthcareCosts = (currentHealthcareCosts, age, inputs) => {
+export const projectHealthcareCosts = (currentHealthcareCosts, age, inputs, yearHealthcareInflation = null) => {
     const { healthcareInflation = 0.0382 } = inputs;
 
-    let costs = currentHealthcareCosts * (1 + healthcareInflation);
+    // Use the per-year drawn rate when provided (stochastic MC mode),
+    // otherwise fall back to the user's median healthcare inflation input.
+    const effectiveHcInflation = yearHealthcareInflation !== null ? yearHealthcareInflation : healthcareInflation;
+
+    let costs = currentHealthcareCosts * (1 + effectiveHcInflation);
 
     // Additional loading for older ages
     if (age >= 75 && age < 85) {

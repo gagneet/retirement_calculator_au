@@ -24,12 +24,28 @@ export const SPENDING_STRATEGIES = {
 /**
  * Inflation-adjusted fixed spending.
  *
- * @param {number} baseSpending  – initial retirement spending
- * @param {number} inflation     – annual inflation rate
- * @param {number} yearsRetired  – years since retirement
+ * In stochastic mode the caller passes the running cumulativeInflationFactor
+ * (the product of each year's independently drawn rate), which replaces the
+ * bulk Math.pow formula.  This ensures $100 of base spending compounds as
+ * $100 × (1+i₁) × (1+i₂) × … × (1+iₙ) rather than $100 × (1+iFixed)ⁿ.
+ *
+ * In deterministic mode cumulativeInflationFactor defaults to null and the
+ * original Math.pow formula is used unchanged.
+ *
+ * @param {number}      baseSpending              – initial retirement spending
+ * @param {number}      inflation                 – annual inflation rate (median)
+ * @param {number}      yearsRetired              – years since retirement
+ * @param {number|null} [cumulativeInflationFactor] – pre-computed cumulative product
  * @returns {number}
  */
-export const fixedSpending = (baseSpending, inflation, yearsRetired) => {
+export const fixedSpending = (baseSpending, inflation, yearsRetired, cumulativeInflationFactor = null) => {
+    if (cumulativeInflationFactor !== null) {
+        // Stochastic path: use the year-by-year accumulated product.
+        // The factor already includes compounding from all prior years, so we apply
+        // it directly — no further Math.pow needed.
+        return baseSpending * cumulativeInflationFactor;
+    }
+    // Deterministic path: single-rate compound (unchanged behaviour).
     return baseSpending * Math.pow(1 + inflation, yearsRetired);
 };
 
@@ -174,11 +190,12 @@ export const calculateSpending = ({
     yearsRetired       = 0,
     inflation          = 0.026,
     portfolioDeclined  = false,
+    cumulativeInflationFactor = null, // when provided, used by FIXED strategy instead of Math.pow
     inputs             = {},
 }) => {
     switch (strategy) {
         case SPENDING_STRATEGIES.FIXED:
-            return fixedSpending(initialSpending, inflation, yearsRetired);
+            return fixedSpending(initialSpending, inflation, yearsRetired, cumulativeInflationFactor);
 
         case SPENDING_STRATEGIES.GUARDRAILS:
             return guardrailSpending(currentSpending, portfolioValue, initialPortfolio, {

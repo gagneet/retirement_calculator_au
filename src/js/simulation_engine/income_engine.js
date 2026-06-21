@@ -14,7 +14,7 @@
  * @param {Object} inputs             – user inputs (decimal rates)
  * @returns {number} updated gross salary
  */
-export const projectSalary = (currentSalary, age, inputs) => {
+export const projectSalary = (currentSalary, age, inputs, yearSalaryGrowthRate = null) => {
     const {
         retirementAge = 65,
         salaryGrowthRate = 0.015,
@@ -27,7 +27,30 @@ export const projectSalary = (currentSalary, age, inputs) => {
     // Fully retired
     if (age >= retirementAge) return 0;
 
-    let salary = currentSalary * (1 + salaryGrowthRate);
+    // Use per-year draw when provided (stochastic MC mode); otherwise fixed median.
+    // Salary growth σ = max(0.5%, rate×40%) — modest year-to-year wage variation.
+    let effectiveGrowthRate = yearSalaryGrowthRate !== null ? yearSalaryGrowthRate : salaryGrowthRate;
+
+    // Age-based ageism (opt-in via inputs.enableAgeism).
+    // Models the real-world pattern where salary growth slows in later career
+    // due to age discrimination, reduced advancement, and health factors:
+    //   - First 3 years after ageismStartAge: no nominal growth (real salary declines)
+    //   - Thereafter: nominal growth capped at 0.5% (below CPI → continued real decline)
+    // NOTE: effectiveGrowthRate here is a NOMINAL rate applied directly to currentSalary.
+    // Capping at 0 = zero nominal growth; actual purchasing power erodes with inflation.
+    if (inputs.enableAgeism) {
+        const ageismStartAge = inputs.ageismStartAge ?? 50;
+        if (age >= ageismStartAge && age < retirementAge) {
+            const yearsAfterAgeism = age - ageismStartAge;
+            if (yearsAfterAgeism < 3) {
+                effectiveGrowthRate = Math.min(effectiveGrowthRate, 0.0);
+            } else {
+                effectiveGrowthRate = Math.min(effectiveGrowthRate, 0.005);
+            }
+        }
+    }
+
+    let salary = currentSalary * (1 + effectiveGrowthRate);
 
     // Optional income-drop event (e.g. reduced hours, career change)
     if (incomeDropAge !== null && age >= incomeDropAge && age < retirementAge) {
@@ -55,14 +78,15 @@ export const projectSalary = (currentSalary, age, inputs) => {
  * @param {Object} inputs  – uses partnerRetirementAge, salaryGrowthRate
  * @returns {number}
  */
-export const projectPartnerSalary = (currentSalary, age, inputs) => {
+export const projectPartnerSalary = (currentSalary, age, inputs, yearSalaryGrowthRate = null) => {
     const {
         partnerRetirementAge = 65,
         salaryGrowthRate = 0.015,
     } = inputs;
 
     if (age >= partnerRetirementAge) return 0;
-    return currentSalary * (1 + salaryGrowthRate);
+    const effectiveGrowthRate = yearSalaryGrowthRate !== null ? yearSalaryGrowthRate : salaryGrowthRate;
+    return currentSalary * (1 + effectiveGrowthRate);
 };
 
 /**

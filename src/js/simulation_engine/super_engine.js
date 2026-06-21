@@ -53,10 +53,25 @@ export const calcSuperContributions = (grossSalary, age, inputs, calendarYear = 
  * @param {Object} inputs             – superReturn
  * @returns {number} end-of-year balance
  */
-export const growSuperBalance = (currentBalance, contributions, superTax, inputs) => {
-    const { superReturn = 0.075 } = inputs;
+export const growSuperBalance = (currentBalance, contributions, superTax, inputs, yearSuperReturn = null) => {
+    const { superReturn = 0.075, useStochasticReturns = false } = inputs;
     const netContributions = contributions - superTax;
-    return (currentBalance + netContributions) * (1 + superReturn);
+
+    let effectiveReturn;
+    if (yearSuperReturn !== null) {
+        effectiveReturn = yearSuperReturn;
+    } else if (useStochasticReturns) {
+        // Per-year normal draw for super: σ = max(3%, rate×60%) reflects balanced-fund volatility
+        const sigma = Math.max(0.03, Math.abs(superReturn) * 0.6);
+        const u1 = Math.max(1e-10, Math.random());
+        const u2 = Math.random();
+        const z  = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        effectiveReturn = Math.max(-0.30, superReturn + z * sigma); // super funds can lose up to 30%
+    } else {
+        effectiveReturn = superReturn;
+    }
+
+    return (currentBalance + netContributions) * (1 + effectiveReturn);
 };
 
 /**

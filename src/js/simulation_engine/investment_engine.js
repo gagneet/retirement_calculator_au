@@ -45,9 +45,24 @@ export const growInvestmentAssets = (currentAssets, netContribution, inputs, sho
  * @param {Object} inputs           – savingsReturn, inflation
  * @returns {number} end-of-year savings
  */
-export const growSavings = (currentSavings, netContribution, inputs) => {
-    const { savingsReturn = 0.014 } = inputs;
-    return Math.max(0, (currentSavings + netContribution) * (1 + savingsReturn));
+export const growSavings = (currentSavings, netContribution, inputs, yearSavingsReturn = null) => {
+    const { savingsReturn = 0.014, useStochasticReturns = false } = inputs;
+
+    let effectiveReturn;
+    if (yearSavingsReturn !== null) {
+        effectiveReturn = yearSavingsReturn;
+    } else if (useStochasticReturns) {
+        // Per-year normal draw: σ = max(0.5%, rate×30%) for savings/cash instruments
+        const sigma = Math.max(0.005, Math.abs(savingsReturn) * 0.3);
+        const u1 = Math.max(1e-10, Math.random());
+        const u2 = Math.random();
+        const z  = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        effectiveReturn = Math.max(0, savingsReturn + z * sigma); // savings can't go negative (bank guarantee)
+    } else {
+        effectiveReturn = savingsReturn;
+    }
+
+    return Math.max(0, (currentSavings + netContribution) * (1 + effectiveReturn));
 };
 
 export default { growInvestmentAssets, growSavings };

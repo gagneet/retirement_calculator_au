@@ -1902,19 +1902,19 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
 
     const lifestyleStatus = results.finalBalance > 0 ? 'Affordable' : 'Tight';
     const lifestyleYears = results.depletionAge ? `until age ${results.depletionAge}` : `for full lifespan`;
-    drawBottomLineItem("⛵", "Lifestyle Goals", `${lifestyleStatus}: Your plan sustains your ${formatCurrency(inputs.asfaComfortable)} lifestyle ${lifestyleYears}.`);
+    drawBottomLineItem("[Goals]", "Lifestyle Goals", `${lifestyleStatus}: Your plan sustains your ${formatCurrency(inputs.asfaComfortable)} lifestyle ${lifestyleYears}.`);
 
     const hasBuffer = (results.accumulatedSavingsBalance > inputs.asfaComfortable * 0.5);
     const crashText = hasBuffer
         ? `Resilient: You have a ${formatCurrency(results.accumulatedSavingsBalance)} cash buffer to weather market volatility.`
         : `Exposure: Low cash reserves mean you may be forced to sell assets during a market downturn.`;
-    drawBottomLineItem("🛡️", "Crash Safety Net", crashText);
+    drawBottomLineItem("[Safety]", "Crash Safety Net", crashText);
 
     const startPensionYear = results.yearlyData.find(y => y.pensionIncome > 0);
     const pensionText = startPensionYear
         ? `Hybrid: You transition to a part-pension at age ${startPensionYear.age}, extending your portfolio's life.`
         : `Self-Funded: You remain above the asset test cutoff for the projected period.`;
-    drawBottomLineItem("🏛️", "Pension Transition", pensionText);
+    drawBottomLineItem("[Pension]", "Pension Transition", pensionText);
 
     // --- Table of Contents ---
     doc.addPage();
