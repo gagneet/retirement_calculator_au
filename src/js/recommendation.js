@@ -464,6 +464,7 @@ class RecommendationEngine {
 
             scenarios.push({
                 name: "Keep Property with Enhanced Life Insurance",
+                isScenario: true,
                 description: `What-if: You die early but partner keeps property. Enhanced life insurance covers negative gearing and provides income.`,
                 modifications: {
                     sellPropertyYears: 0, // Keep property
@@ -1618,6 +1619,7 @@ class RecommendationEngine {
 
             scenarios.push({
                 name: "Partner Dies at Age 70 (Pre-Retirement)",
+                isScenario: true,
                 description: `Plan for partner passing before retirement. Income drops ${incomeReduction.toFixed(0)}% but you inherit superannuation death benefits.`,
                 isTryThisDisabled: true,
                 modifications: {
@@ -1645,6 +1647,7 @@ class RecommendationEngine {
 
             scenarios.push({
                 name: "You Die at Age 70, Partner Survives",
+                isScenario: true,
                 description: `Partner continues alone with ${(100 - partnerIncomeReduction).toFixed(0)}% of household income plus death benefits.`,
                 isTryThisDisabled: true,
                 modifications: {
@@ -1672,6 +1675,7 @@ class RecommendationEngine {
 
             scenarios.push({
                 name: "Widowed at Age 60",
+                isScenario: true,
                 description: `Partner dies at 60, leaving you to navigate pre-retirement years alone with death benefits.`,
                 isTryThisDisabled: true,
                 modifications: {
@@ -1696,6 +1700,7 @@ class RecommendationEngine {
         if (retirementYears > 0) {
             scenarios.push({
                 name: "Widowed at Age 80 (In Retirement)",
+                isScenario: true,
                 description: `Partner dies during retirement. Single person pension thresholds apply, but reduced living costs.`,
                 isTryThisDisabled: true,
                 modifications: {
@@ -2210,6 +2215,8 @@ class RecommendationEngine {
             sourceRefs: scenario.sourceRefs || SOURCE_MAP[category] || [],
             relatedInputFields: scenario.relatedInputFields || [],
             relatedScenarioId: null,
+            // 'scenario' type items are what-if situations, not actionable advice
+            type: scenario.isScenario ? 'scenario' : 'recommendation',
             // Legacy fields preserved for backward compatibility
             modifications: scenario.modifications,
             isTryThisDisabled: scenario.isTryThisDisabled || false,

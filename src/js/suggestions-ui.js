@@ -668,7 +668,10 @@ export function buildFullSuggestionsPanel(opts = {}) {
 
   if (!band) return buildEmptyState();
 
-  const nextAction = determineNextAction(band, recommendations);
+  const actionableRecs = recommendations.filter((r) => r.type !== 'scenario');
+  const whatIfScenarios = recommendations.filter((r) => r.type === 'scenario');
+
+  const nextAction = determineNextAction(band, actionableRecs);
 
   return `
 <div class="suggestions-panel" id="sg-panel">
@@ -685,8 +688,19 @@ export function buildFullSuggestionsPanel(opts = {}) {
   </div>
   ${buildFilterTabBar('all')}
   <div id="sg-recs-container">
-    ${buildRecommendationsSection(recommendations, { selectable, showDeeper: true })}
+    ${buildRecommendationsSection(actionableRecs, { selectable, showDeeper: true })}
   </div>
+
+  ${whatIfScenarios.length > 0 ? `
+  <div style="margin-top:28px;margin-bottom:16px">
+    <h4 style="margin:0 0 4px;font-size:1rem;font-weight:700;color:var(--ink-1,#1e293b)">What-if scenarios</h4>
+    <p style="margin:0;font-size:12px;color:var(--ink-3,#64748b)">
+      Life events that are not recommendations — these show the projected impact if a specific situation arises.
+    </p>
+  </div>
+  <div id="sg-scenarios-container">
+    ${buildRecommendationsSection(whatIfScenarios, { selectable: false, showDeeper: true })}
+  </div>` : ''}
 
   ${showAnnuity ? buildAnnuityGuidanceCard() : ''}
   ${overseasOpts ? buildAgePensionOverseasPanel(overseasOpts) : ''}
@@ -742,7 +756,8 @@ export function wireSuggestionsInteractivity(containerEl, opts = {}) {
       });
       const recsContainer = containerEl.querySelector('#sg-recs-container');
       if (recsContainer && currentOpts.recommendations) {
-        recsContainer.innerHTML = buildRecommendationsSection(currentOpts.recommendations, {
+        const actionableOnly = currentOpts.recommendations.filter((r) => r.type !== 'scenario');
+        recsContainer.innerHTML = buildRecommendationsSection(actionableOnly, {
           selectable: currentOpts.selectable,
           showDeeper: true,
           activeFilter: filter,
