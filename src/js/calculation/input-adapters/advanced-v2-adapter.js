@@ -45,9 +45,10 @@ export function adaptAdvancedV2Input(input = {}) {
         employerSuperOverrideAmount: isCouple ? input.partnerEmployerSuperOverrideAmount : 0,
     });
 
-    // Use user's entered spending when the cashflow toggle is on and a positive value is set.
-    // Otherwise derive an ABS-based estimate so surplus allocation can still run.
-    const hasExplicitSpend = Boolean(input.useDetailedCashflow) && (input.currentMonthlyLivingCosts > 0);
+    // Toggle ON means the user has confirmed their spending value (even if zero — the engine
+    // will emit a "must be greater than zero" warning in that case, which is correct).
+    // Toggle OFF means derive from ABS household averages so surplus allocation can still run.
+    const hasExplicitSpend = Boolean(input.useDetailedCashflow);
     const spendEstimate = hasExplicitSpend
         ? null
         : estimateMonthlySpending({

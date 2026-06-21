@@ -3944,7 +3944,7 @@ function clearResultsError() {
 function updateSpendingEstimateHint(inp) {
   const hint = document.getElementById('spending-estimate-hint');
   if (!hint) return;
-  if (inp?.useDetailedCashflow && inp?.currentMonthlyLivingCosts > 0) {
+  if (inp?.useDetailedCashflow) {
     hint.hidden = true;
     return;
   }
