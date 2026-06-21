@@ -38,6 +38,7 @@ import {
     calculateOptimalOverseasAge,
 } from './reverse-deep-analysis.js';
 import { ReverseScenarioEngine } from './calculation/reverse-scenario-engine.js';
+import { estimateMonthlySpending, calculateMonthlyLoanPayment } from './calculation/household-cashflow-engine.js';
 
 const STORAGE_KEY = 'rc_forward_scenario';
 
@@ -189,7 +190,7 @@ export class ReverseUI {
         [spendEl, depsEl, hcEl, mortgageEl, mortPmtEl].forEach((e) => {
             if (e) e.addEventListener('input', update);
         });
-        if (houseEl) houseEl.addEventListener('click', () => setTimeout(update, 0));
+        if (houseEl) houseEl.addEventListener('change', update);
         update();
     }
 
@@ -213,34 +214,33 @@ export class ReverseUI {
         const currentAge    = numVal('rp-current-age', 50);
         const retireAge     = numVal('rp-retirement-age', 67);
 
-        // ABS base spending estimate
-        const coupleBase = 4118;
-        const singleBase = 2835;
-        const perChild   = 630;
-        const baseMonthly = (isCouple ? coupleBase : singleBase) + Math.round(dependents * perChild);
-
         const enteredSpend = numVal('rp-current-monthly-spend', 0);
         const usingEstimate = enteredSpend <= 0;
-        const currentMonthlySpend = usingEstimate ? baseMonthly + Math.round(healthcareAnnual / 12) : enteredSpend;
+        const absEst = usingEstimate
+            ? estimateMonthlySpending({ householdType, dependents, healthcareMonthly: healthcareAnnual / 12 })
+            : null;
+        const currentMonthlySpend = usingEstimate ? absEst.total : enteredSpend;
         const currentAnnualSpend  = currentMonthlySpend * 12;
 
         if (hintEl) {
-            if (usingEstimate) {
-                hintEl.textContent = `ABS estimate: $${baseMonthly.toLocaleString('en-AU')}/mo base + $${Math.round(healthcareAnnual / 12).toLocaleString('en-AU')}/mo healthcare = $${currentMonthlySpend.toLocaleString('en-AU')}/mo total`;
+            if (usingEstimate && absEst) {
+                hintEl.textContent = `ABS estimate: $${absEst.living.toLocaleString('en-AU')}/mo base + $${absEst.healthcare.toLocaleString('en-AU')}/mo healthcare = $${absEst.total.toLocaleString('en-AU')}/mo total`;
                 hintEl.hidden = false;
             } else {
                 hintEl.hidden = true;
             }
         }
 
+        const defaultRate = (ENHANCED_CONFIG?.DEFAULTS?.mortgageRate ?? 6.05) / 100;
         // Estimate mortgage annual cost that drops away at retirement
         const yearsToRetirement = Math.max(0, retireAge - currentAge);
         const annualMortgage = mortgagePmt > 0 ? mortgagePmt * 12
-            : mortgageBal > 0 ? mortgageBal * 0.06 // rough: ~6% annual cost
+            : mortgageBal > 0 ? calculateMonthlyLoanPayment(mortgageBal, defaultRate) * 12
             : 0;
         const mortgageEndsBeforeRetirement = yearsToRetirement > 0 && mortgageBal > 0;
         const mortgageSaving = mortgageEndsBeforeRetirement ? Math.min(annualMortgage, mortgageBal / Math.max(1, yearsToRetirement)) : 0;
 
+        const perChild = ENHANCED_CONFIG?.financials?.cashFlowAnalysis?.BASE_LIVING_EXPENSES?.PER_CHILD?.value ?? 630;
         // Children education costs end at ~age 22 (rough); assume youngest child now needs N years
         const childEndsSaving = dependents > 0 ? Math.round(dependents * perChild * 12) : 0;
 
@@ -264,6 +264,10 @@ export class ReverseUI {
             { label: `ASFA Comfortable (${isCouple ? 'couple' : 'single'}, 2025)`, val: `${fmt$(asfaComfortable)}/yr`, note: 'Covers a comfortable lifestyle without luxury' },
         ].filter(Boolean);
 
+        // Evaluate before innerHTML wipes the DOM
+        const desiredEl = el('rp-desired-income');
+        const showUseBtn = desiredEl && (Number(desiredEl.value) === 80000 || !desiredEl.value);
+
         builderEl.hidden = false;
         builderEl.innerHTML = `
             <div style="padding:14px 16px;background:var(--surface-2,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:10px;margin-bottom:4px">
@@ -280,24 +284,17 @@ export class ReverseUI {
               <div style="margin-top:10px;font-size:11px;color:var(--ink-3,#94a3b8)">This estimate removes costs that end before retirement and adds a healthcare uplift. Set the "Desired annual income" field above to match your estimate, then click Calculate.</div>
             </div>`;
 
-        // Auto-suggest the estimated need into desired income if the field is at default or empty
-        const desiredEl = el('rp-desired-income');
-        if (desiredEl && (Number(desiredEl.value) === 80000 || !desiredEl.value)) {
-            // Don't overwrite — just show a "use this" button
-            const useBtn = builderEl.querySelector('#rp-use-estimate-btn');
-            if (!useBtn) {
-                const btn = document.createElement('button');
-                btn.id = 'rp-use-estimate-btn';
-                btn.type = 'button';
-                btn.className = 'field-btn';
-                btn.style.cssText = 'margin-top:8px;font-size:12px;padding:5px 12px;border:1px solid var(--accent,#6366f1);background:transparent;color:var(--accent,#6366f1);border-radius:6px;cursor:pointer';
-                btn.textContent = `Use this estimate ($${Math.round(estimatedRetirementNeed / 1000)}k/yr) as my retirement target`;
-                btn.addEventListener('click', () => {
-                    if (desiredEl) desiredEl.value = String(Math.round(estimatedRetirementNeed / 100) * 100);
-                    btn.remove();
-                });
-                builderEl.querySelector('div').appendChild(btn);
-            }
+        if (showUseBtn) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'field-btn';
+            btn.style.cssText = 'margin-top:8px;font-size:12px;padding:5px 12px;border:1px solid var(--accent,#6366f1);background:transparent;color:var(--accent,#6366f1);border-radius:6px;cursor:pointer';
+            btn.textContent = `Use this estimate ($${Math.round(estimatedRetirementNeed / 1000)}k/yr) as my retirement target`;
+            btn.addEventListener('click', () => {
+                if (desiredEl) desiredEl.value = String(Math.round(estimatedRetirementNeed / 100) * 100);
+                btn.remove();
+            });
+            builderEl.querySelector('div').appendChild(btn);
         }
     }
 
