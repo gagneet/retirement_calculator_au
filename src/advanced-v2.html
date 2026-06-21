@@ -360,12 +360,13 @@
             <div class="fields three">
               <div class="field">
                 <label class="field-label" for="salarySacrifice"><span>Your salary sacrifice</span><span class="hint">$/year</span></label>
-                <div class="field-input has-prefix"><span class="prefix">$</span><input id="salarySacrifice" type="number" value="6000" /><span class="suffix">/yr</span></div>
-                <div class="field-help">Pre-tax. The concessional cap includes employer SG, salary sacrifice and personal deductible contributions.</div>
+                <div class="field-input has-prefix"><span class="prefix">$</span><input id="salarySacrifice" type="number" value="0" /><span class="suffix">/yr</span></div>
+                <div class="field-help">Pre-tax. Auto-filled with your remaining concessional cap after employer SG. Edit to override.</div>
               </div>
               <div class="field" data-household="couple">
                 <label class="field-label" for="partnerSalarySacrifice"><span>Partner salary sacrifice</span><span class="hint">$/year</span></label>
                 <div class="field-input has-prefix"><span class="prefix">$</span><input id="partnerSalarySacrifice" type="number" value="0" /><span class="suffix">/yr</span></div>
+                <div class="field-help">Auto-filled with partner's remaining concessional cap after employer SG. Edit to override.</div>
               </div>
               <div class="field">
                 <label class="field-label" for="employerRate"><span>Employer SG rate</span><span class="hint">%</span></label>

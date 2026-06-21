@@ -4190,6 +4190,24 @@ export {
   syncPensionMeansTestFields,
 };
 
+function autoFillSalarySacrifice(yourEmployerSG, partnerEmployerSG, concessionalAlreadyUsed) {
+  const cap = ENHANCED_CONFIG.CONCESSIONAL_CAP || 30000;
+
+  const sacrificeEl = document.getElementById('salarySacrifice');
+  if (sacrificeEl && sacrificeEl.dataset.userModified !== 'true') {
+    const remaining = Math.max(0, cap - yourEmployerSG - (concessionalAlreadyUsed || 0));
+    sacrificeEl.value = String(Math.round(remaining));
+    sacrificeEl.dataset.autoCalculated = 'true';
+  }
+
+  const partnerEl = document.getElementById('partnerSalarySacrifice');
+  if (partnerEl && partnerEl.dataset.userModified !== 'true') {
+    const remaining = Math.max(0, cap - partnerEmployerSG);
+    partnerEl.value = String(Math.round(remaining));
+    partnerEl.dataset.autoCalculated = 'true';
+  }
+}
+
 function updateIncomeSuperSummary() {
   const summary = document.getElementById("sgSummary");
   if (!summary) return;
@@ -4205,10 +4223,24 @@ function updateIncomeSuperSummary() {
     employerSuperMode: inp.employerSuperMode,
     employerSuperOverrideAmount: inp.employerSuperOverrideAmount,
   });
+  const partner = resolveEmployerSuper({
+    employmentIncome: inp.partnerSalary || 0,
+    incomeMode: inp.partnerSalaryIncomeMode,
+    sgRate: rate,
+    maxContributionBasePerQuarter: inp.maxContributionBasePerQuarter,
+    applyMaxContributionBase: inp.applyMaxContributionBase !== false,
+    employerSuperMode: inp.partnerEmployerSuperOverrideEnabled ? 'override' : 'standard',
+    employerSuperOverrideAmount: inp.partnerEmployerSuperOverrideAmount,
+  });
+
+  autoFillSalarySacrifice(your.employerSG, partner.employerSG, inp.concessionalUsedThisYear);
+
+  // Re-read after auto-fill so status reflects the auto-filled values
+  const inpAfter = readInputs();
   const status = calculateConcessionalCapStatus({
     employerSG: your.employerSG,
-    salarySacrifice: inp.salarySacrifice,
-    concessionalAlreadyUsed: inp.concessionalUsedThisYear,
+    salarySacrifice: inpAfter.salarySacrifice,
+    concessionalAlreadyUsed: inpAfter.concessionalUsedThisYear,
     concessionalCap: ENHANCED_CONFIG.CONCESSIONAL_CAP || 30000,
   });
   const warnings = [];
@@ -4251,12 +4283,21 @@ function boot() {
     // lightweight label markup instead of the classic page's inline tooltip HTML.
     initializeTooltips();
     initPensionFieldDefaults();
+    // Mark sacrifice fields as user-modified when manually edited
+    ['salarySacrifice', 'partnerSalarySacrifice'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', () => { el.dataset.userModified = 'true'; });
+      }
+    });
+
     [
       "salary",
       "salaryIncomeMode",
       "partnerSalary",
       "partnerSalaryIncomeMode",
       "salarySacrifice",
+      "partnerSalarySacrifice",
       "concessionalUsedThisYear",
       "employerRate",
       "applyMaxContributionBase",
