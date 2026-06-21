@@ -2,6 +2,7 @@ import { normaliseCanonicalInput } from '../../src/js/calculation/canonical-inpu
 import { deriveHouseholdCashflow } from '../../src/js/calculation/household-cashflow-engine.js';
 import { ProjectionService } from '../../src/js/calculation/projection-service.js';
 import { adaptAdvancedV2Input } from '../../src/js/calculation/input-adapters/advanced-v2-adapter.js';
+import { applyCanonicalCashflowToEngineInputs } from '../../src/js/calculation/canonical-engine-adapter.js';
 
 describe('calculator consolidation foundations', () => {
     test('allocates the full $20k income / $7k spend surplus instead of discarding it', () => {
@@ -62,6 +63,24 @@ describe('calculator consolidation foundations', () => {
         );
     });
 
+    test('does not invent surplus when detailed mode has zero spending', () => {
+        const canonicalInput = normaliseCanonicalInput({
+            income: { annualSalary: 120000 },
+            cashflow: {
+                hasDetailedExpenses: true,
+                currentMonthlyTotalSpend: 0,
+            },
+        });
+
+        const result = deriveHouseholdCashflow(canonicalInput);
+
+        expect(result.canAllocateSurplus).toBe(false);
+        expect(result.annualSurplus).toBeNull();
+        expect(result.warnings).toContain(
+            'Current household spending must be greater than zero before surplus can be allocated.'
+        );
+    });
+
     test('caps a custom split instead of creating money', () => {
         const canonicalInput = normaliseCanonicalInput({
             cashflow: {
@@ -114,5 +133,41 @@ describe('calculator consolidation foundations', () => {
         expect(result.allocations.super).toBe(18000);
         expect(result.superByMember).toEqual({ primary: 18000, partner: 0 });
         expect(result.allocations.stocks).toBe(102000);
+    });
+
+    test('engine bridge preserves legacy inputs unless usable detailed cashflow exists', () => {
+        const canonicalInput = normaliseCanonicalInput({
+            cashflow: { explicitMonthlyInvestmentContribution: 500 },
+        });
+        const derivedCashflow = deriveHouseholdCashflow(canonicalInput);
+        const base = {
+            monthlyStockContribution: 500,
+            useDetailedExpenseInputs: false,
+        };
+
+        expect(applyCanonicalCashflowToEngineInputs(base, canonicalInput, derivedCashflow)).toEqual({
+            ...base,
+            canonicalInputSchemaVersion: 'calculator-input-v1',
+        });
+    });
+
+    test('engine bridge carries the full derived cash surplus into an asset bucket', () => {
+        const canonicalInput = normaliseCanonicalInput({
+            cashflow: {
+                currentMonthlyIncome: 20000,
+                currentMonthlyTotalSpend: 7000,
+                surplusAllocationMode: 'cash',
+            },
+        });
+        const derivedCashflow = deriveHouseholdCashflow(canonicalInput);
+        const engineInputs = applyCanonicalCashflowToEngineInputs(
+            { monthlyStockContribution: 0 },
+            canonicalInput,
+            derivedCashflow
+        );
+
+        expect(engineInputs.annualCashSavingsContribution).toBe(156000);
+        expect(engineInputs.derivedAnnualSurplus).toBe(156000);
+        expect(engineInputs.monthlyStockContribution).toBe(0);
     });
 });

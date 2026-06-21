@@ -3,6 +3,13 @@ import { calculatePostTaxIncome } from '../utils.js';
 
 const annualise = (monthly) => monthly * 12;
 
+export function calculateMonthlyLoanPayment(balance, annualRate, months = 360) {
+    if (!(balance > 0) || !(months > 0)) return 0;
+    if (!(annualRate > 0)) return balance / months;
+    const monthlyRate = annualRate / 12;
+    return (balance * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months));
+}
+
 export function deriveHouseholdCashflow(canonicalInput) {
     const { household, income, cashflow, currentAssets } = canonicalInput;
     const salarySacrifice = cashflow.explicitAnnualSalarySacrifice + cashflow.partnerExplicitAnnualSalarySacrifice;
@@ -28,9 +35,13 @@ export function deriveHouseholdCashflow(canonicalInput) {
     const currentAnnualSpending = cashflow.totalSpendProvided
         ? annualise(cashflow.currentMonthlyTotalSpend)
         : annualise(cashflow.currentMonthlyHousingCosts + cashflow.currentMonthlyLivingCosts + cashflow.currentMonthlyHealthcareCosts);
-    const annualMortgageRepayments = annualise(cashflow.currentMonthlyMortgagePayment);
+    const baseMonthlyMortgagePayment = cashflow.currentMonthlyMortgagePayment > 0
+        ? cashflow.currentMonthlyMortgagePayment
+        : calculateMonthlyLoanPayment(currentAssets.mortgageBalance, currentAssets.mortgageRate);
+    const annualMortgageRepayments = annualise(baseMonthlyMortgagePayment);
     const explicitInvestmentContributions = annualise(cashflow.explicitMonthlyInvestmentContribution);
-    const annualSurplus = cashflow.hasDetailedExpenses
+    const canAllocateSurplus = cashflow.hasDetailedExpenses && currentAnnualSpending > 0;
+    const annualSurplus = canAllocateSurplus
         ? postTaxIncome - currentAnnualSpending - annualMortgageRepayments - explicitInvestmentContributions
         : null;
     const availableSurplus = Math.max(0, annualSurplus || 0);
@@ -84,6 +95,9 @@ export function deriveHouseholdCashflow(canonicalInput) {
     const unallocatedSurplus = Math.max(0, availableSurplus - allocatedSurplus);
     const warnings = [];
     if (!cashflow.hasDetailedExpenses) warnings.push('Current household spending is missing, so no implicit surplus was allocated.');
+    if (cashflow.hasDetailedExpenses && currentAnnualSpending <= 0) {
+        warnings.push('Current household spending must be greater than zero before surplus can be allocated.');
+    }
     if (annualSurplus !== null && annualSurplus < 0) warnings.push('Household spending and contributions exceed estimated post-tax income.');
     const requestedCustomAllocation = annualise(cashflow.surplusToCashMonthly)
         + annualise(cashflow.surplusToStocksMonthly)
@@ -115,7 +129,9 @@ export function deriveHouseholdCashflow(canonicalInput) {
         grossHouseholdIncome,
         estimatedTax,
         postTaxIncome,
+        canAllocateSurplus,
         currentAnnualSpending,
+        baseMonthlyMortgagePayment,
         annualMortgageRepayments,
         explicitSuperContributions: salarySacrifice,
         explicitInvestmentContributions,

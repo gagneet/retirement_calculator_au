@@ -355,6 +355,35 @@
             </div>
           </div>
 
+          <div class="subhead">Current household cashflow</div>
+          <div class="fields three">
+            <div class="field">
+              <label class="toggle" for="useDetailedCashflow">
+                <input id="useDetailedCashflow" type="checkbox" />
+                <span class="track"></span>
+                <span class="label">Model income minus current spending</span>
+              </label>
+              <div class="field-help">Enable this only after entering your complete current household spending. Otherwise the projection keeps using explicit contributions only and shows a warning.</div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="currentMonthlyIncome"><span>After-tax household income</span><span class="hint">$/month</span></label>
+              <div class="field-input has-prefix"><span class="prefix">$</span><input id="currentMonthlyIncome" type="number" value="0" /><span class="suffix">/mo</span></div>
+              <div class="field-help">Leave at 0 to estimate take-home income from salary, salary sacrifice and private health cover.</div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="currentMonthlyLivingCosts"><span>Total current household spending</span><span class="hint">$/month</span></label>
+              <div class="field-input has-prefix"><span class="prefix">$</span><input id="currentMonthlyLivingCosts" type="number" value="0" /><span class="suffix">/mo</span></div>
+              <div class="field-help">Include living, housing and healthcare costs. Exclude mortgage repayments, monthly investing and salary sacrifice because they are accounted for separately.</div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="surplusAllocationMode"><span>Allocate calculated surplus</span></label>
+              <div class="field-input"><select id="surplusAllocationMode">
+                <option value="cash" selected>Cash / mortgage offset</option>
+                <option value="invest">Auto-invest in shares / ETFs</option>
+              </select></div>
+            </div>
+          </div>
+
           <div data-advanced="true">
             <div class="subhead">Super strategy</div>
             <div class="fields three">
@@ -1643,6 +1672,7 @@
 
       <div class="results-card">
         <div class="results-eyebrow"><span class="live-dot"></span> Live projection · today's $</div>
+        <div id="r-projection-warnings" hidden></div>
 
         <div class="hero-number">
           <span class="ccy">$</span><span id="r-paycheck">—</span>

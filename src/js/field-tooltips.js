@@ -114,6 +114,22 @@ const FIELD_TOOLTIP_DEFINITIONS = {
         title: 'Monthly investing',
         body: 'Extra monthly investing outside super builds non-super assets that can bridge the years before super or pension access.',
     },
+    useDetailedCashflow: {
+        title: 'Model current household cashflow',
+        body: 'Enable this after entering complete current spending. The calculator then allocates income left after tax, spending, mortgage repayments and explicit contributions.',
+    },
+    currentMonthlyIncome: {
+        title: 'After-tax household income',
+        body: 'Enter actual monthly take-home income, or leave this at zero so the calculator estimates take-home income from salary and salary sacrifice.',
+    },
+    currentMonthlyLivingCosts: {
+        title: 'Total current household spending',
+        body: 'Include current living, housing and healthcare spending, but exclude mortgage repayments and explicit investment or super contributions.',
+    },
+    surplusAllocationMode: {
+        title: 'Calculated surplus destination',
+        body: 'Choose whether the household surplus derived from current cashflow accumulates in cash or is invested outside super.',
+    },
     salarySacrifice: {
         title: 'Your salary sacrifice',
         body: 'Extra pre-tax super contributions can improve retirement savings and tax efficiency, but they count toward the concessional cap.',

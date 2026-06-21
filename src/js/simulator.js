@@ -1888,8 +1888,10 @@ export class RetirementSimulator {
             const annualDetailedExpenses = inputs.useDetailedExpenseInputs
                 ? (((inputs.currentMonthlyHousingCosts || 0) + (inputs.currentMonthlyLivingCosts || 0)) * 12) + (inputs.currentHealthcareCosts || 0)
                 : null;
-            const annualCashSavings = inputs.useDetailedExpenseInputs
-                ? Math.max(0, yearlyPostTaxIncome - annualDetailedExpenses)
+            const annualCashSavings = Number.isFinite(inputs.annualCashSavingsContribution)
+                ? Math.max(0, inputs.annualCashSavingsContribution)
+                : inputs.useDetailedExpenseInputs
+                    ? Math.max(0, yearlyPostTaxIncome - annualDetailedExpenses)
                 : Math.max(0, yearlyPostTaxIncome * (inputs.percentIncomeSaved || 0));
             accumulatedSavingsBalance += annualCashSavings;
 

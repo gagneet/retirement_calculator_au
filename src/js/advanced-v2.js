@@ -34,10 +34,32 @@ import {
   initializeTooltips,
 } from './utils.js';
 import { buildForwardProjectionPayload, storeForwardProjection } from './forward-projection-bridge.js';
+import { adaptAdvancedV2Input } from './calculation/input-adapters/advanced-v2-adapter.js';
+import { applyCanonicalCashflowToEngineInputs } from './calculation/canonical-engine-adapter.js';
+import { ProjectionService } from './calculation/projection-service.js';
 
 const simulator = new RetirementSimulator(ENHANCED_CONFIG);
 const { DEFAULTS } = ENHANCED_CONFIG;
 const riskProfiler = new RiskProfilingEngine(ENHANCED_CONFIG);
+const projectionService = new ProjectionService({
+  simulator,
+  adapter: adaptAdvancedV2Input,
+  engineInputBuilder: (rawInput, { canonicalInput, derivedCashflow }) => (
+    applyCanonicalCashflowToEngineInputs(
+      buildEngineInputs(rawInput),
+      canonicalInput,
+      derivedCashflow
+    )
+  ),
+  resultAdapter: adaptEngineOutput,
+  summaryBuilder: ({ canonicalInput, simulation, adaptedResult }) => ({
+    targetAnnualIncomeToday: canonicalInput.retirementTarget.targetAnnualIncomeToday,
+    monthlyRetirementIncomeToday: adaptedResult.monthlyPaycheck,
+    superAtRetirementToday: adaptedResult.superAtRetire,
+    estateAtLifespan: simulation.finalBalance,
+  }),
+  policyVersion: '2026.1',
+});
 
 const EXPERIENCE_MAP = {
   none: 0,
@@ -97,6 +119,7 @@ const APP_STATE = {
   engineInputs: null,
   simulation: null,
   adaptedResult: null,
+  projection: null,
   monteCarloResults: null,
   retirementAgeResult: null,
   stressTestResults: [],
@@ -1069,6 +1092,10 @@ function readInputs() {
     cash: num('cash'),
     stocks: num('stocks'),
     monthlyStockContrib: num('monthlyStockContrib'),
+    useDetailedCashflow: chk('useDetailedCashflow'),
+    currentMonthlyIncome: num('currentMonthlyIncome'),
+    currentMonthlyLivingCosts: num('currentMonthlyLivingCosts'),
+    surplusAllocationMode: val('surplusAllocationMode', 'cash'),
     salarySacrifice: num('salarySacrifice'),
     partnerSalarySacrifice: num('partnerSalarySacrifice'),
     employerRate: num('employerRate', 12),
@@ -1279,17 +1306,17 @@ function readInputs() {
 }
 
 function runEngine(inp) {
-  const engineInputs = profiler.measure('advanced-v2.input.buildEngineInputs', () => buildEngineInputs(inp));
-  const simulation = profiler.measure('advanced-v2.core.deterministicSimulation', () => simulator.simulateRetirement(engineInputs, false));
-
-  return profiler.measure('advanced-v2.post.adaptEngineOutput', () => adaptEngineOutput(inp, engineInputs, simulation));
+  return profiler.measure('advanced-v2.core.projectionService', () => (
+    projectionService.computeProjection(inp, { sourceCalculator: 'advanced-v2' }).adaptedResult
+  ));
 }
 
 function computeBaseState(inp = null) {
   const input = inp || profiler.measure('advanced-v2.input.readInputs', () => readInputs());
-  const engineInputs = profiler.measure('advanced-v2.input.buildEngineInputs', () => buildEngineInputs(input));
-  const simulation = profiler.measure('advanced-v2.core.deterministicSimulation', () => simulator.simulateRetirement(engineInputs, false));
-  const adaptedResult = profiler.measure('advanced-v2.post.adaptEngineOutput', () => adaptEngineOutput(input, engineInputs, simulation));
+  const projection = profiler.measure('advanced-v2.core.projectionService', () => (
+    projectionService.computeProjection(input, { sourceCalculator: 'advanced-v2' })
+  ));
+  const { engineInputs, simulation, adaptedResult } = projection;
 
   // Persist inputs to localStorage so the Reverse Planner can import them
   try {
@@ -1308,10 +1335,16 @@ function computeBaseState(inp = null) {
     monteCarloResults: APP_STATE?.monteCarloResults || null,
     recommendations: APP_STATE?.recommendations || null,
     stressTestResults: APP_STATE?.stressTestResults || null,
+    canonicalInput: projection.canonicalInput,
+    derivedCashflow: projection.derivedCashflow,
+    inputHash: projection.inputHash,
+    policyVersion: projection.policyVersion,
+    diagnostics: projection.diagnostics,
+    warnings: projection.warnings,
   });
   storeForwardProjection(projectionPayload);
 
-  return { input, engineInputs, simulation, adaptedResult };
+  return { input, engineInputs, simulation, adaptedResult, projection };
 }
 
 function buildInputSignature(input = {}) {
@@ -1391,6 +1424,7 @@ function syncAppState(baseState = computeBaseState()) {
   APP_STATE.engineInputs = baseState.engineInputs;
   APP_STATE.simulation = baseState.simulation;
   APP_STATE.adaptedResult = baseState.adaptedResult;
+  APP_STATE.projection = baseState.projection || null;
   APP_STATE.currentInputSignature = buildInputSignature(baseState.input);
   updateSecondaryAnalysisStaleStates();
   return baseState;
@@ -1651,6 +1685,16 @@ function normalizeImportedUserData(userData = {}) {
     cash: userData.currentSavings ?? userData.savings ?? base.cash,
     stocks: userData.currentStocks ?? userData.investments ?? base.stocks,
     monthlyStockContrib: userData.monthlyStockContribution ?? base.monthlyStockContrib,
+    useDetailedCashflow: Boolean(userData.useDetailedCashflow ?? userData.useDetailedExpenseInputs ?? base.useDetailedCashflow),
+    currentMonthlyIncome: userData.currentMonthlyIncome ?? base.currentMonthlyIncome,
+    currentMonthlyLivingCosts: userData.currentMonthlyTotalSpend
+      ?? (
+        (userData.currentMonthlyHousingCosts ?? 0)
+        + (userData.currentMonthlyLivingCosts ?? 0)
+        + ((userData.currentHealthcareCosts ?? 0) / 12)
+      )
+      ?? base.currentMonthlyLivingCosts,
+    surplusAllocationMode: userData.surplusAllocationMode ?? base.surplusAllocationMode,
     salarySacrifice: userData.yourAdditionalSuperContribution ?? base.salarySacrifice,
     partnerSalarySacrifice: userData.partnerAdditionalSuperContribution ?? base.partnerSalarySacrifice,
     employerRate: userData.employerSuperContributionRate !== undefined ? toDisplayPercent(userData.employerSuperContributionRate) : base.employerRate,
@@ -3898,6 +3942,18 @@ function clearResultsError() {
 }
 
 function paint(result, inp) {
+  const warningBox = $('r-projection-warnings');
+  const warnings = APP_STATE.projection?.warnings || [];
+  if (warningBox) {
+    warningBox.hidden = warnings.length === 0;
+    warningBox.style.cssText = 'margin:10px 0;padding:10px;border-radius:8px;background:var(--gold-soft,#fffbeb);border:1px solid var(--gold,#f59e0b);font-size:12px;color:var(--ink-2)';
+    warningBox.innerHTML = warnings.length
+      ? '<b>Projection input warning</b><ul style="margin:6px 0 0 18px">'
+        + warnings.map((warning) => '<li>' + escapeHtml(warning) + '</li>').join('')
+        + '</ul>'
+      : '';
+  }
+
   // Hero
   setText('r-paycheck', Math.round(result.monthlyPaycheck).toLocaleString('en-AU'));
   setText('r-retire-age', inp.retireAge);
@@ -4296,6 +4352,7 @@ export {
   applyHouseholdVisibility,
   applyImportedUserData,
   buildEngineInputs,
+  computeBaseState,
   calculateRichTargetAmount,
   calculateTargetBuilderTotal,
   getAsfaComfortableAmount,

@@ -72,11 +72,12 @@ export function adaptAdvancedV2Input(input = {}) {
             stocksPortfolio: input.stocks,
             homeValue: input.homeValue,
             mortgageBalance: input.mortgage,
+            mortgageRate: input.mortgageRate,
             investmentPropertyValue: input.ipValue,
             investmentPropertyLoan: input.ipLoan,
         },
         cashflow: {
-            hasDetailedExpenses: Object.prototype.hasOwnProperty.call(input, 'currentMonthlyLivingCosts'),
+            hasDetailedExpenses: Boolean(input.useDetailedCashflow),
             currentMonthlyIncome: input.currentMonthlyIncome,
             currentMonthlyTotalSpend: input.currentMonthlyLivingCosts,
             currentMonthlyHealthcareCosts: (input.healthcareCost || 0) / 12,

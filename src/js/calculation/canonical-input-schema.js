@@ -44,6 +44,7 @@ export function normaliseCanonicalInput(input = {}) {
             stocksPortfolio: number(input.currentAssets?.stocksPortfolio),
             homeValue: number(input.currentAssets?.homeValue),
             mortgageBalance: number(input.currentAssets?.mortgageBalance),
+            mortgageRate: normaliseRate(input.currentAssets?.mortgageRate, 0),
             investmentPropertyValue: number(input.currentAssets?.investmentPropertyValue),
             investmentPropertyLoan: number(input.currentAssets?.investmentPropertyLoan),
         },

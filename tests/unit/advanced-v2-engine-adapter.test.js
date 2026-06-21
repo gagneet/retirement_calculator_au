@@ -3,6 +3,7 @@ import {
     adaptEngineOutput,
     applyHouseholdVisibility,
     buildEngineInputs,
+    computeBaseState,
     buildInputSignature,
     calculateRichTargetAmount,
     calculateTargetBuilderTotal,
@@ -829,6 +830,47 @@ describe('advanced-v2 secondary analysis stale handling', () => {
         expect(fullRunSource).not.toContain('runStressAnalysis(');
         expect(fullRunSource).not.toContain('runOverseasAnalysis(');
         expect(fullRunSource).not.toContain('runRetirementAgeAnalysis(');
+    });
+});
+
+describe('advanced-v2 canonical cashflow projection', () => {
+    test('carries the full $20k income / $7k spend surplus into accumulation', () => {
+        const input = buildRedesignInputs({
+            useDetailedCashflow: true,
+            currentMonthlyIncome: 20000,
+            currentMonthlyLivingCosts: 7000,
+            surplusAllocationMode: 'cash',
+            monthlyStockContrib: 0,
+            healthcareCost: 0,
+            primaryResidenceType: 'own_outright',
+            homeValue: 850000,
+            mortgage: 0,
+        });
+
+        const state = computeBaseState(input);
+        const openingLiquidAssets = input.cash + input.stocks;
+        const firstAccumulationYear = state.simulation.accumulationHistory[1];
+
+        expect(state.projection.derivedCashflow.monthlySurplus).toBe(13000);
+        expect(state.engineInputs.annualCashSavingsContribution).toBe(156000);
+        expect(firstAccumulationYear.nonSuperLiquidAssets - openingLiquidAssets).toBeGreaterThanOrEqual(156000);
+    });
+
+    test('preserves legacy explicit-contribution inputs when detailed cashflow is off', () => {
+        const input = buildRedesignInputs({
+            useDetailedCashflow: false,
+            currentMonthlyIncome: 20000,
+            currentMonthlyLivingCosts: 7000,
+            monthlyStockContrib: 500,
+        });
+
+        const state = computeBaseState(input);
+
+        expect(state.engineInputs.annualCashSavingsContribution).toBeUndefined();
+        expect(state.engineInputs.monthlyStockContribution).toBe(500);
+        expect(state.projection.warnings).toContain(
+            'Current household spending is missing, so no implicit surplus was allocated.'
+        );
     });
 });
 
