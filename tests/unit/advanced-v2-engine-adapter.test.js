@@ -856,21 +856,28 @@ describe('advanced-v2 canonical cashflow projection', () => {
         expect(firstAccumulationYear.nonSuperLiquidAssets - openingLiquidAssets).toBeGreaterThanOrEqual(156000);
     });
 
-    test('preserves legacy explicit-contribution inputs when detailed cashflow is off', () => {
+    test('uses ABS spending estimate and preserves explicit stock contribution when detailed cashflow is off', () => {
+        // When useDetailedCashflow is false, the adapter auto-estimates spending from ABS averages
+        // so surplus allocation can still run. The explicit stock contribution is also preserved.
+        // Any entered currentMonthlyLivingCosts value is ignored (user has not confirmed it via the toggle).
         const input = buildRedesignInputs({
             useDetailedCashflow: false,
             currentMonthlyIncome: 20000,
-            currentMonthlyLivingCosts: 7000,
+            currentMonthlyLivingCosts: 7000, // ignored — ABS estimate used instead
             monthlyStockContrib: 500,
         });
 
         const state = computeBaseState(input);
 
-        expect(state.engineInputs.annualCashSavingsContribution).toBeUndefined();
-        expect(state.engineInputs.monthlyStockContribution).toBe(500);
-        expect(state.projection.warnings).toContain(
+        // Surplus IS computed because spending is estimated (not missing)
+        expect(state.engineInputs.annualCashSavingsContribution).toBeGreaterThan(0);
+        // Explicit stock contribution is preserved (passed through unchanged)
+        expect(state.engineInputs.monthlyStockContribution).toBeGreaterThanOrEqual(500);
+        // "Missing spending" warning no longer fires — replaced by ABS estimate info
+        expect(state.projection.warnings).not.toContain(
             'Current household spending is missing, so no implicit surplus was allocated.'
         );
+        expect(state.projection.warnings.some((w) => w.includes('ABS averages'))).toBe(true);
     });
 });
 

@@ -2911,21 +2911,24 @@
                 <div>
                     <label class="flex items-center" for="useDetailedExpenseInputs">
                         <input class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" id="useDetailedExpenseInputs" type="checkbox">
-                        <span class="ml-2 text-sm text-gray-700">Use explicit monthly expense inputs instead of savings rate</span>
+                        <span class="ml-2 text-sm text-gray-700">Enter my actual monthly expenses (overrides ABS estimate)</span>
                     </label>
+                    <p id="adv-spend-estimate-note" class="mt-1 text-xs text-gray-500">Spending is estimated from ABS averages — enable above to enter exact figures.</p>
                 </div>
                 <div class="hidden space-y-3 rounded-lg border border-indigo-200 bg-indigo-50 p-3" id="detailedExpenseFields">
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="currentMonthlyHousingCosts">Current Monthly Housing Costs ($)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="currentMonthlyHousingCosts" type="text"
                                value="0" min="0" placeholder="Rent, mortgage, strata, council, rates">
+                        <p id="adv-housing-estimate-note" class="mt-1 text-xs text-indigo-600"></p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="currentMonthlyLivingCosts">Current Monthly Living Costs ($)</label>
                         <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="currentMonthlyLivingCosts" type="text"
                                value="0" min="0" placeholder="Groceries, utilities, transport, insurance, leisure">
+                        <p id="adv-living-estimate-note" class="mt-1 text-xs text-indigo-600"></p>
                     </div>
-                    <p class="text-xs text-indigo-700">When enabled, the calculator derives annual savings from your income minus these entered expenses, instead of using the savings-rate shortcut. Include your actual housing cash outflow here, including mortgage or rent if applicable.</p>
+                    <p class="text-xs text-indigo-700">When enabled, the calculator derives annual savings from your income minus these entered expenses, instead of using the savings-rate shortcut. Include your actual housing cash outflow here — mortgage repayments, rent, strata, council rates. Exclude salary sacrifice and super contributions.</p>
                 </div>
                 <div>
                     <div class="label-with-tooltip">

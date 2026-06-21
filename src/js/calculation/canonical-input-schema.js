@@ -53,6 +53,7 @@ export function normaliseCanonicalInput(input = {}) {
         cashflow: {
             hasDetailedExpenses: Boolean(hasDetailedExpenses),
             totalSpendProvided: Boolean(totalSpendProvided),
+            spendingIsEstimated: Boolean(cashflow.spendingIsEstimated),
             currentMonthlyIncome: number(cashflow.currentMonthlyIncome),
             currentMonthlyHousingCosts: number(cashflow.currentMonthlyHousingCosts),
             currentMonthlyLivingCosts: number(cashflow.currentMonthlyLivingCosts),

@@ -3941,9 +3941,37 @@ function clearResultsError() {
   if (banner) banner.remove();
 }
 
+function updateSpendingEstimateHint(inp) {
+  const hint = document.getElementById('spending-estimate-hint');
+  if (!hint) return;
+  if (inp?.useDetailedCashflow && inp?.currentMonthlyLivingCosts > 0) {
+    hint.hidden = true;
+    return;
+  }
+  const absBase = ENHANCED_CONFIG.financials?.cashFlowAnalysis?.BASE_LIVING_EXPENSES;
+  const coupleBase = absBase?.COUPLE_BASE?.value ?? 4118;
+  const singleBase = absBase?.SINGLE_BASE?.value ?? 2835;
+  const perChild   = absBase?.PER_CHILD?.value   ?? 630;
+  const base       = (inp?.household === 'couple') ? coupleBase : singleBase;
+  const childCosts = Math.round((inp?.dependents || 0) * perChild);
+  const healthcare = Math.round((inp?.healthcareCost || 0) / 12);
+  const rent       = Math.round(inp?.primaryRentMonthly || 0);
+  const total      = base + childCosts + healthcare + rent;
+  const parts = [`ABS base $${base.toLocaleString('en-AU')}`];
+  if (childCosts > 0) parts.push(`${inp.dependents} child${inp.dependents > 1 ? 'ren' : ''} +$${childCosts.toLocaleString('en-AU')}`);
+  if (rent > 0)       parts.push(`rent +$${rent.toLocaleString('en-AU')}`);
+  if (healthcare > 0) parts.push(`healthcare +$${healthcare.toLocaleString('en-AU')}`);
+  hint.textContent = `Estimated: $${total.toLocaleString('en-AU')}/mo (${parts.join(', ')}) — tick "Use my actual monthly spending" above to enter your exact figure`;
+  hint.hidden = false;
+}
+
 function paint(result, inp) {
+  updateSpendingEstimateHint(inp);
+
   const warningBox = $('r-projection-warnings');
-  const warnings = APP_STATE.projection?.warnings || [];
+  const warnings = (APP_STATE.projection?.warnings || []).filter(
+    (w) => !w.startsWith('Household spending estimated from ABS')
+  );
   if (warningBox) {
     warningBox.hidden = warnings.length === 0;
     warningBox.style.cssText = 'margin:10px 0;padding:10px;border-radius:8px;background:var(--gold-soft,#fffbeb);border:1px solid var(--gold,#f59e0b);font-size:12px;color:var(--ink-2)';

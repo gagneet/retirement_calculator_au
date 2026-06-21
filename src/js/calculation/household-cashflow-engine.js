@@ -3,6 +3,47 @@ import { calculatePostTaxIncome } from '../utils.js';
 
 const annualise = (monthly) => monthly * 12;
 
+/**
+ * Derive an ABS-based monthly spending estimate from household composition.
+ * Used when the user has not provided an explicit spending figure.
+ * Mortgage repayments are always excluded — they are tracked separately in the cashflow engine.
+ *
+ * @param {Object} params
+ * @param {'single'|'couple'} params.householdType
+ * @param {number} params.dependents - number of dependent children
+ * @param {number} params.healthcareMonthly - monthly healthcare cost (from healthcareCost/12)
+ * @param {number} params.rentMonthly - monthly rent (0 for homeowners)
+ * @returns {{ total: number, living: number, childCosts: number, healthcare: number, housing: number, breakdown: string, isEstimate: true }}
+ */
+export function estimateMonthlySpending({ householdType = 'single', dependents = 0, healthcareMonthly = 0, rentMonthly = 0 } = {}) {
+    const cfg = ENHANCED_CONFIG.financials?.cashFlowAnalysis?.BASE_LIVING_EXPENSES;
+    const coupleBase = cfg?.COUPLE_BASE?.value ?? 4118;
+    const singleBase = cfg?.SINGLE_BASE?.value ?? 2835;
+    const perChild   = cfg?.PER_CHILD?.value   ?? 630;
+
+    const base       = householdType === 'couple' ? coupleBase : singleBase;
+    const childCosts = Math.round(dependents * perChild);
+    const living     = base + childCosts;
+    const housing    = Math.round(rentMonthly);
+    const healthcare = Math.round(healthcareMonthly);
+    const total      = living + housing + healthcare;
+
+    const parts = [`ABS base $${base.toLocaleString('en-AU')}/mo`];
+    if (childCosts > 0) parts.push(`${dependents} child${dependents > 1 ? 'ren' : ''} $${childCosts.toLocaleString('en-AU')}/mo`);
+    if (housing    > 0) parts.push(`rent $${housing.toLocaleString('en-AU')}/mo`);
+    if (healthcare > 0) parts.push(`healthcare $${healthcare.toLocaleString('en-AU')}/mo`);
+
+    return {
+        total,
+        living,
+        childCosts,
+        housing,
+        healthcare,
+        isEstimate: true,
+        breakdown: parts.join(' + '),
+    };
+}
+
 export function calculateMonthlyLoanPayment(balance, annualRate, months = 360) {
     if (!(balance > 0) || !(months > 0)) return 0;
     if (!(annualRate > 0)) return balance / months;
@@ -97,7 +138,8 @@ export function deriveHouseholdCashflow(canonicalInput) {
     const unallocatedSurplus = Math.max(0, availableSurplus - allocatedSurplus);
     const warnings = [];
     if (!cashflow.hasDetailedExpenses) warnings.push('Current household spending is missing, so no implicit surplus was allocated.');
-    if (cashflow.hasDetailedExpenses && currentAnnualSpending <= 0) {
+    if (cashflow.spendingIsEstimated) warnings.push('Household spending estimated from ABS averages — enter your actual monthly spending for a more accurate surplus calculation.');
+    if (cashflow.hasDetailedExpenses && !cashflow.spendingIsEstimated && currentAnnualSpending <= 0) {
         warnings.push('Current household spending must be greater than zero before surplus can be allocated.');
     }
     if (annualSurplus !== null && annualSurplus < 0) warnings.push('Household spending and contributions exceed estimated post-tax income.');

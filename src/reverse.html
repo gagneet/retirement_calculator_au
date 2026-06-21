@@ -285,6 +285,29 @@
       </button>
       <div class="section-body">
 
+        <!-- Spending context — derives retirement target from current spending -->
+        <div class="fields three" style="margin-bottom:12px">
+          <div class="field">
+            <label class="field-label" for="rp-current-monthly-spend"><span>Current monthly household spending</span><span class="hint">optional</span></label>
+            <div class="field-input has-prefix"><span class="prefix">$</span><input type="number" id="rp-current-monthly-spend" min="0" value="0" /><span class="suffix">/mo</span></div>
+            <div class="field-help">Leave at 0 to use ABS average for your household. Mortgage repayments are excluded — they end at retirement.</div>
+            <div id="rp-spending-estimate-hint" class="field-help" style="margin-top:4px;color:var(--ink-3,#888);font-style:italic" hidden></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="rp-dependents"><span>Dependent children</span></label>
+            <div class="field-input"><input type="number" id="rp-dependents" min="0" max="10" value="0" /></div>
+            <div class="field-help">Costs for dependent children are removed from your retirement spending estimate.</div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="rp-healthcare-cost"><span>Annual healthcare cost</span><span class="hint">$/yr</span></label>
+            <div class="field-input has-prefix"><span class="prefix">$</span><input type="number" id="rp-healthcare-cost" min="0" value="4800" /></div>
+            <div class="field-help">Private health insurance, gap payments, dental, optical. May increase in retirement.</div>
+          </div>
+        </div>
+        <div id="rp-target-builder" class="summary-card" style="margin-bottom:16px" hidden>
+          <!-- Populated by JS -->
+        </div>
+
         <div class="fields two">
           <div class="field">
             <label class="field-label" for="rp-desired-income"><span>Desired annual income in retirement</span><span class="hint">today's $</span></label>

@@ -170,8 +170,135 @@ export class ReverseUI {
         // Disclaimer
         safeHtml('rp-disclaimer', DISCLAIMER_TEXT);
 
+        // Spending context: Target Builder — updates when spending/household inputs change
+        this._initSpendingTargetBuilder();
+
         // Accordion sections — single-open behaviour
         this._initAccordion();
+    }
+
+    _initSpendingTargetBuilder() {
+        const spendEl    = el('rp-current-monthly-spend');
+        const depsEl     = el('rp-dependents');
+        const hcEl       = el('rp-healthcare-cost');
+        const houseEl    = el('rp-household-type');
+        const mortgageEl = el('rp-mortgage-balance');
+        const mortPmtEl  = el('rp-monthly-mortgage');
+
+        const update = () => this._updateSpendingTargetBuilder();
+        [spendEl, depsEl, hcEl, mortgageEl, mortPmtEl].forEach((e) => {
+            if (e) e.addEventListener('input', update);
+        });
+        if (houseEl) houseEl.addEventListener('click', () => setTimeout(update, 0));
+        update();
+    }
+
+    _updateSpendingTargetBuilder() {
+        const hintEl    = el('rp-spending-estimate-hint');
+        const builderEl = el('rp-target-builder');
+        if (!builderEl) return;
+
+        const numVal = (id, fallback = 0) => {
+            const n = Number(el(id)?.value);
+            return Number.isFinite(n) ? n : fallback;
+        };
+        const strVal = (id, fallback = '') => el(id)?.value || fallback;
+
+        const householdType = strVal('rp-household-type', 'single');
+        const isCouple      = householdType === 'couple';
+        const dependents    = numVal('rp-dependents', 0);
+        const healthcareAnnual = numVal('rp-healthcare-cost', 4800);
+        const mortgageBal   = numVal('rp-mortgage-balance', 0);
+        const mortgagePmt   = numVal('rp-monthly-mortgage', 0);
+        const currentAge    = numVal('rp-current-age', 50);
+        const retireAge     = numVal('rp-retirement-age', 67);
+
+        // ABS base spending estimate
+        const coupleBase = 4118;
+        const singleBase = 2835;
+        const perChild   = 630;
+        const baseMonthly = (isCouple ? coupleBase : singleBase) + Math.round(dependents * perChild);
+
+        const enteredSpend = numVal('rp-current-monthly-spend', 0);
+        const usingEstimate = enteredSpend <= 0;
+        const currentMonthlySpend = usingEstimate ? baseMonthly + Math.round(healthcareAnnual / 12) : enteredSpend;
+        const currentAnnualSpend  = currentMonthlySpend * 12;
+
+        if (hintEl) {
+            if (usingEstimate) {
+                hintEl.textContent = `ABS estimate: $${baseMonthly.toLocaleString('en-AU')}/mo base + $${Math.round(healthcareAnnual / 12).toLocaleString('en-AU')}/mo healthcare = $${currentMonthlySpend.toLocaleString('en-AU')}/mo total`;
+                hintEl.hidden = false;
+            } else {
+                hintEl.hidden = true;
+            }
+        }
+
+        // Estimate mortgage annual cost that drops away at retirement
+        const yearsToRetirement = Math.max(0, retireAge - currentAge);
+        const annualMortgage = mortgagePmt > 0 ? mortgagePmt * 12
+            : mortgageBal > 0 ? mortgageBal * 0.06 // rough: ~6% annual cost
+            : 0;
+        const mortgageEndsBeforeRetirement = yearsToRetirement > 0 && mortgageBal > 0;
+        const mortgageSaving = mortgageEndsBeforeRetirement ? Math.min(annualMortgage, mortgageBal / Math.max(1, yearsToRetirement)) : 0;
+
+        // Children education costs end at ~age 22 (rough); assume youngest child now needs N years
+        const childEndsSaving = dependents > 0 ? Math.round(dependents * perChild * 12) : 0;
+
+        // Healthcare typically grows ~0.5× in retirement (more time, no employer cover, gap payments)
+        const hcUplift = Math.round(healthcareAnnual * 0.5);
+
+        const estimatedRetirementNeed = Math.max(
+            0,
+            currentAnnualSpend - mortgageSaving - childEndsSaving + hcUplift
+        );
+
+        const asfaComfortable = isCouple ? 73337 : 52085;
+        const fmt$ = (n) => '$' + Math.round(n).toLocaleString('en-AU');
+
+        const rows = [
+            { label: 'Current household spending', val: `${fmt$(currentAnnualSpend)}/yr`, note: usingEstimate ? 'ABS estimate' : 'As entered' },
+            mortgageSaving > 0 ? { label: '− Mortgage payments (paid off by retirement)', val: `−${fmt$(mortgageSaving)}/yr`, note: 'Freed up' } : null,
+            childEndsSaving > 0 ? { label: '− Children costs (end before retirement)', val: `−${fmt$(childEndsSaving)}/yr`, note: 'Freed up' } : null,
+            hcUplift > 0 ? { label: '+ Healthcare uplift in retirement', val: `+${fmt$(hcUplift)}/yr`, note: 'More time + gap payments' } : null,
+            { label: 'Estimated retirement lifestyle need', val: `<b>${fmt$(estimatedRetirementNeed)}/yr</b>`, note: `${fmt$(Math.round(estimatedRetirementNeed / 12))}/month`, bold: true },
+            { label: `ASFA Comfortable (${isCouple ? 'couple' : 'single'}, 2025)`, val: `${fmt$(asfaComfortable)}/yr`, note: 'Covers a comfortable lifestyle without luxury' },
+        ].filter(Boolean);
+
+        builderEl.hidden = false;
+        builderEl.innerHTML = `
+            <div style="padding:14px 16px;background:var(--surface-2,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:10px;margin-bottom:4px">
+              <div style="font-weight:600;font-size:13px;margin-bottom:10px;color:var(--ink)">Retirement spending estimate — based on your current spending</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">
+                ${rows.map((r) => `
+                  <div style="padding:10px 12px;background:${r.bold ? 'color-mix(in srgb,var(--accent,#6366f1) 8%,var(--surface,#fff))' : 'var(--surface,#fff)'};border:1px solid ${r.bold ? 'color-mix(in srgb,var(--accent,#6366f1) 20%,var(--border,#e2e8f0))' : 'var(--border,#e2e8f0)'};border-radius:8px">
+                    <div style="font-size:11px;color:var(--ink-2,#64748b)">${r.label}</div>
+                    <div style="font-size:14px;font-weight:600;margin:2px 0;color:${r.bold ? 'var(--accent,#6366f1)' : 'var(--ink)'}">${r.val}</div>
+                    <div style="font-size:11px;color:var(--ink-3,#94a3b8)">${r.note}</div>
+                  </div>
+                `).join('')}
+              </div>
+              <div style="margin-top:10px;font-size:11px;color:var(--ink-3,#94a3b8)">This estimate removes costs that end before retirement and adds a healthcare uplift. Set the "Desired annual income" field above to match your estimate, then click Calculate.</div>
+            </div>`;
+
+        // Auto-suggest the estimated need into desired income if the field is at default or empty
+        const desiredEl = el('rp-desired-income');
+        if (desiredEl && (Number(desiredEl.value) === 80000 || !desiredEl.value)) {
+            // Don't overwrite — just show a "use this" button
+            const useBtn = builderEl.querySelector('#rp-use-estimate-btn');
+            if (!useBtn) {
+                const btn = document.createElement('button');
+                btn.id = 'rp-use-estimate-btn';
+                btn.type = 'button';
+                btn.className = 'field-btn';
+                btn.style.cssText = 'margin-top:8px;font-size:12px;padding:5px 12px;border:1px solid var(--accent,#6366f1);background:transparent;color:var(--accent,#6366f1);border-radius:6px;cursor:pointer';
+                btn.textContent = `Use this estimate ($${Math.round(estimatedRetirementNeed / 1000)}k/yr) as my retirement target`;
+                btn.addEventListener('click', () => {
+                    if (desiredEl) desiredEl.value = String(Math.round(estimatedRetirementNeed / 100) * 100);
+                    btn.remove();
+                });
+                builderEl.querySelector('div').appendChild(btn);
+            }
+        }
     }
 
     /**

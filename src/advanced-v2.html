@@ -361,9 +361,9 @@
               <label class="toggle" for="useDetailedCashflow">
                 <input id="useDetailedCashflow" type="checkbox" />
                 <span class="track"></span>
-                <span class="label">Model income minus current spending</span>
+                <span class="label">Use my actual monthly spending</span>
               </label>
-              <div class="field-help">Enable this only after entering your complete current household spending. Otherwise the projection keeps using explicit contributions only and shows a warning.</div>
+              <div class="field-help">Off: spending is estimated from ABS household averages using your household type, dependents, healthcare and rent. On: enter your exact total below and it will be used as-is.</div>
             </div>
             <div class="field">
               <label class="field-label" for="currentMonthlyIncome"><span>After-tax household income</span><span class="hint">$/month</span></label>
@@ -373,7 +373,8 @@
             <div class="field">
               <label class="field-label" for="currentMonthlyLivingCosts"><span>Total current household spending</span><span class="hint">$/month</span></label>
               <div class="field-input has-prefix"><span class="prefix">$</span><input id="currentMonthlyLivingCosts" type="number" value="0" /><span class="suffix">/mo</span></div>
-              <div class="field-help">Include living, housing and healthcare costs. Exclude mortgage repayments, monthly investing and salary sacrifice because they are accounted for separately.</div>
+              <div class="field-help" id="spending-field-help">Include all living, housing and healthcare costs. Exclude mortgage repayments, monthly investing and salary sacrifice — they are accounted for separately.</div>
+              <div id="spending-estimate-hint" class="field-help" style="margin-top:4px;color:var(--ink-3,#888);font-style:italic" hidden></div>
             </div>
             <div class="field">
               <label class="field-label" for="surplusAllocationMode"><span>Allocate calculated surplus</span></label>

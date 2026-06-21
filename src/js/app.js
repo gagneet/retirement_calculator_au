@@ -8789,13 +8789,60 @@ class RetirementCalculatorApp {
         const detailedExpenseFields = $('detailedExpenseFields');
         const percentIncomeSaved = $('percentIncomeSaved');
         if (useDetailedExpenseInputs && detailedExpenseFields && percentIncomeSaved) {
+            const getAbsEstimate = () => {
+                const cfg = window.ENHANCED_CONFIG?.financials?.cashFlowAnalysis?.BASE_LIVING_EXPENSES;
+                const coupleBase = cfg?.COUPLE_BASE?.value ?? 4118;
+                const singleBase = cfg?.SINGLE_BASE?.value ?? 2835;
+                const perChild   = cfg?.PER_CHILD?.value   ?? 630;
+                const householdEl = $('household');
+                const isCouple   = householdEl
+                    ? (householdEl.value === 'couple' || householdEl.dataset?.value === 'couple')
+                    : false;
+                const dependents = Number(safeGetValue('dependents', 0));
+                const base       = isCouple ? coupleBase : singleBase;
+                const childCosts = Math.round(dependents * perChild);
+                const living     = base + childCosts;
+                // Housing: rent for renters; modest owner costs (rates + insurance + maintenance) for homeowners
+                const residenceType = safeGetSelectValue('primaryResidenceType', 'own_mortgage');
+                const isRenting = residenceType === 'renting';
+                const rent = isRenting ? (Number(safeGetValue('primaryRentMonthly', 0)) || 0) : 0;
+                const housing = isRenting ? rent : Math.round(base * 0.18); // ~18% of living costs for rates/ins
+                return { living, housing, total: living + housing };
+            };
+
+            const updateAbsEstimateNotes = () => {
+                const est = getAbsEstimate();
+                const noteEl = $('adv-spend-estimate-note');
+                const housingNoteEl = $('adv-housing-estimate-note');
+                const livingNoteEl  = $('adv-living-estimate-note');
+                if (noteEl) noteEl.textContent = `ABS estimate: ~$${(est.total).toLocaleString('en-AU')}/mo total (housing $${est.housing.toLocaleString('en-AU')} + living $${est.living.toLocaleString('en-AU')})`;
+                if (housingNoteEl) housingNoteEl.textContent = est.housing > 0 ? `ABS estimate: ~$${est.housing.toLocaleString('en-AU')}/mo` : '';
+                if (livingNoteEl) livingNoteEl.textContent = `ABS estimate: ~$${est.living.toLocaleString('en-AU')}/mo`;
+            };
+
+            const autoFillExpenseEstimates = () => {
+                const est = getAbsEstimate();
+                const housingEl = $('currentMonthlyHousingCosts');
+                const livingEl  = $('currentMonthlyLivingCosts');
+                if (housingEl && (Number(housingEl.value) === 0 || housingEl.value === '')) {
+                    housingEl.value = String(est.housing);
+                }
+                if (livingEl && (Number(livingEl.value) === 0 || livingEl.value === '')) {
+                    livingEl.value = String(est.living);
+                }
+            };
+
             const toggleDetailedExpenseMode = () => {
-                detailedExpenseFields.classList.toggle('hidden', !useDetailedExpenseInputs.checked);
-                percentIncomeSaved.disabled = useDetailedExpenseInputs.checked;
-                percentIncomeSaved.classList.toggle('opacity-60', useDetailedExpenseInputs.checked);
+                const isChecked = useDetailedExpenseInputs.checked;
+                detailedExpenseFields.classList.toggle('hidden', !isChecked);
+                percentIncomeSaved.disabled = isChecked;
+                percentIncomeSaved.classList.toggle('opacity-60', isChecked);
+                if (isChecked) autoFillExpenseEstimates();
+                updateAbsEstimateNotes();
             };
             useDetailedExpenseInputs.addEventListener('change', toggleDetailedExpenseMode);
             toggleDetailedExpenseMode();
+            updateAbsEstimateNotes();
         }
 
         const planToDownsize = $('planToDownsize');

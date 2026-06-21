@@ -1,4 +1,5 @@
 import { normaliseCanonicalInput } from '../canonical-input-schema.js';
+import { estimateMonthlySpending } from '../household-cashflow-engine.js';
 import {
     DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER,
     EMPLOYER_SUPER_MODES,
@@ -44,6 +45,18 @@ export function adaptAdvancedV2Input(input = {}) {
         employerSuperOverrideAmount: isCouple ? input.partnerEmployerSuperOverrideAmount : 0,
     });
 
+    // Use user's entered spending when the cashflow toggle is on and a positive value is set.
+    // Otherwise derive an ABS-based estimate so surplus allocation can still run.
+    const hasExplicitSpend = Boolean(input.useDetailedCashflow) && (input.currentMonthlyLivingCosts > 0);
+    const spendEstimate = hasExplicitSpend
+        ? null
+        : estimateMonthlySpending({
+            householdType: isCouple ? 'couple' : 'single',
+            dependents: input.dependents || 0,
+            healthcareMonthly: (input.healthcareCost || 0) / 12,
+            rentMonthly: input.primaryRentMonthly || 0,
+        });
+
     return normaliseCanonicalInput({
         household: {
             householdType: isCouple ? 'couple' : 'single',
@@ -77,9 +90,12 @@ export function adaptAdvancedV2Input(input = {}) {
             investmentPropertyLoan: input.ipLoan,
         },
         cashflow: {
-            hasDetailedExpenses: Boolean(input.useDetailedCashflow),
+            hasDetailedExpenses: hasExplicitSpend || spendEstimate !== null,
+            spendingIsEstimated: !hasExplicitSpend,
             currentMonthlyIncome: input.currentMonthlyIncome,
-            currentMonthlyTotalSpend: input.currentMonthlyLivingCosts,
+            currentMonthlyTotalSpend: hasExplicitSpend
+                ? input.currentMonthlyLivingCosts
+                : spendEstimate?.total,
             currentMonthlyHealthcareCosts: (input.healthcareCost || 0) / 12,
             currentMonthlyMortgagePayment: input.monthlyMortgagePayment,
             explicitMonthlyInvestmentContribution: input.monthlyStockContrib,
