@@ -77,6 +77,7 @@ export class ReverseUI {
         this.baseline = null;
         this.manualInput = false;
         this.importedScenario = null;
+        this.lastCalculationHash = null; // dirty-flag
     }
 
     /**
@@ -497,9 +498,30 @@ export class ReverseUI {
 
         try {
             const { inputs, target } = this.collectInputs();
+
+            // Dirty-flag: skip if inputs haven't changed since last calculation
+            const currentHash = JSON.stringify({ inputs, target });
+            if (this.lastCalculationHash && currentHash === this.lastCalculationHash && this.lastResult) {
+                this.isCalculating = false;
+                if (calcBtn) {
+                    calcBtn.disabled = false;
+                    calcBtn.textContent = 'Compare my current path to my retirement goal';
+                }
+                hide('rp-loading-overlay');
+                show('rp-results-section');
+                // Brief "up to date" badge on the button
+                if (calcBtn) {
+                    const prev = calcBtn.textContent;
+                    calcBtn.textContent = 'Results up to date — no changes detected';
+                    setTimeout(() => { if (calcBtn) calcBtn.textContent = prev; }, 3000);
+                }
+                return;
+            }
+
             const result = await this.planner.solve(inputs, target, { includeOverseas: true });
 
             this.lastResult = result;
+            this.lastCalculationHash = currentHash;
 
             // Run gap analysis
             const gap = compareCurrentToTarget(result.currentPath, result.target);

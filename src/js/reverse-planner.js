@@ -106,6 +106,7 @@ export function normaliseReversePlannerInputs(rawInputs) {
         savingsReturn: pct(rawInputs.savingsReturn, 0.035),
         salaryGrowthRate: pct(rawInputs.salaryGrowthRate, 0.02),
         returnVolatility: pct(rawInputs.returnVolatility, 0.12),
+        returnDeclineRate: rawInputs.returnDeclineRate ?? 0.002,
     };
 }
 

@@ -122,6 +122,34 @@ let initialFormState = null;
 let bootStarted = false;
 const SECONDARY_ANALYSIS_KEYS = ['recommendations', 'stress', 'overseas', 'retirementAge'];
 
+// Dirty-flag tracking: compare input snapshots to avoid re-running expensive tools
+// when nothing has changed since the last full analysis.
+let lastFullAnalysisHash = null;
+let lastStressHash = null;
+let lastMcHash = null;
+
+function getInputsHash() {
+  try {
+    return JSON.stringify(readInputs());
+  } catch {
+    return null;
+  }
+}
+
+function markCalcButtonState(isDirty) {
+  ['btn-calc-full', 'btn-calculate'].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    if (isDirty) {
+      btn.classList.remove('btn-uptodate');
+      btn.title = '';
+    } else {
+      btn.classList.add('btn-uptodate');
+      btn.title = 'No changes since last calculation';
+    }
+  });
+}
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -474,7 +502,10 @@ function buildEngineInputs(inp) {
 
     inflation: pct(inp.inflation || DEFAULTS.economic.inflation, DEFAULTS.economic.inflation),
     investmentReturn: pct(inp.invReturn || DEFAULTS.economic.investmentReturn, DEFAULTS.economic.investmentReturn),
-    returnDeclineRate: pct(DEFAULTS.economic.returnDeclineRate, DEFAULTS.economic.returnDeclineRate),
+    // DEFAULTS.economic.returnDeclineRate is stored as a display-percentage (e.g. 0.2 for 0.2%)
+    // but pct() only divides values > 1 by 100, so 0.2 would pass through unchanged as 20%/yr.
+    // Explicit /100 ensures we get the correct decimal: 0.2 / 100 = 0.002 = 0.2%/yr.
+    returnDeclineRate: DEFAULTS.economic.returnDeclineRate / 100,
     savingsReturn: pct(inp.savingsReturn || DEFAULTS.economic.savingsReturn, DEFAULTS.economic.savingsReturn),
     superReturn: pct(inp.superGrowth || DEFAULTS.economic.superReturn, DEFAULTS.economic.superReturn),
     employerSuperContributionRate: employerContributionRate,
@@ -3385,6 +3416,12 @@ function scheduleVisibleRiskChartRender(force = false) {
 
 async function runMonteCarloAnalysis() {
   const baseState = syncAppState();
+  // Skip if inputs haven't changed since last MC run (avoid re-running a costly simulation)
+  const currentHash = getInputsHash();
+  if (currentHash && currentHash === lastMcHash && APP_STATE.monteCarloResults) {
+    showNotification('No changes since last Monte Carlo run — results are up to date.', 'info');
+    return;
+  }
   // Use engineInputs.numRuns (set by buildEngineInputs from the mcRuns form field).
   // This is the single source of truth — avoids any double-read discrepancy between
   // the select element and the already-computed engine state.
@@ -3502,6 +3539,7 @@ async function runMonteCarloAnalysis() {
     `${runsToUse.toLocaleString()} runs complete.`, 'phase-done');
   await new Promise((resolve) => setTimeout(resolve, 350));
 
+  lastMcHash = getInputsHash();
   profiler.report('advanced-v2 Monte Carlo profile');
   return APP_STATE.monteCarloResults;
 }
@@ -3518,6 +3556,11 @@ async function runRetirementAgeAnalysis() {
 function runStressAnalysis() {
   const baseState = syncAppState();
   const runSignature = buildInputSignature(baseState.input);
+  const stressState = getSecondaryAnalysisState('stress');
+  if (hasSecondaryResult('stress') && stressState.lastInputSignature === runSignature) {
+    showNotification('No changes since last stress test — results are up to date.', 'info');
+    return APP_STATE.stressTestResults;
+  }
   APP_STATE.stressTestResults = profiler.measure('advanced-v2.post.stressTests', () => buildStressScenarioResults(baseState));
   markSecondaryAnalysisFresh('stress', runSignature);
   profiler.measure('advanced-v2.post.render.analysisPanels', () => renderAnalysisPanels());
@@ -3583,8 +3626,17 @@ function runOverseasAnalysis() {
 async function runFullAnalysis() {
   // Core run focuses on deterministic projection + Monte Carlo/risk only.
   // Secondary analyses remain on-demand and are stale-marked if inputs changed.
+  const currentHash = getInputsHash();
+  if (currentHash && currentHash === lastFullAnalysisHash) {
+    showNotification('No changes since last calculation — results are up to date.', 'info');
+    return;
+  }
   syncAppState();
   await runMonteCarloAnalysis();
+  lastFullAnalysisHash = getInputsHash();
+  lastStressHash = null; // invalidate stress so it re-runs after new full analysis
+  lastMcHash = lastFullAnalysisHash;
+  markCalcButtonState(false);
   profiler.report('advanced-v2 full analysis profile');
 }
 
@@ -4071,6 +4123,10 @@ function recalc() {
       renderAnalysisPanels();
       syncToolButtonStates();
       clearResultsError();
+      // Mark calculate buttons as dirty when inputs have changed since last full analysis
+      const currentHash = getInputsHash();
+      const isDirty = lastFullAnalysisHash === null || currentHash !== lastFullAnalysisHash;
+      markCalcButtonState(isDirty);
     } catch (e) {
       adv2Error('recalc failed', e);
       showResultsError(e.message || String(e), 'Live calculation failed');

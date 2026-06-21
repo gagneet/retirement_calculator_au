@@ -765,7 +765,7 @@ export const ENHANCED_CONFIG = {
             // blended portfolio (60/30/10) at 7.5% after fees is a realistic planning rate
             investmentReturn: 7.5,      // 7.5% → /100 → 0.075
             // Conservative 0.2% pa real return decline as portfolio de-risks with age
-            returnDeclineRate: 0.2,     // 0.2% → /100 → 0.002
+            returnDeclineRate: 0.2,     // 0.2% display-percentage — app.js divides by 100 (gives 0.002); advanced-v2 also divides explicitly
             // RBA HISA average Apr 2026 ≈ 4.5%
             savingsReturn: 4.5,         // 4.5% → /100 → 0.045
             // APRA MySuper balanced 10-yr net ≈ 8.5%; use 8.0% as conservative planning rate
