@@ -531,6 +531,7 @@ export class ReverseUI {
             this._renderSafe(() => this.renderResults(result));
             this._renderSafe(() => this.renderCurrentVsRequiredComparison(result, gap));
             this._renderSafe(() => this.renderProblemFlags(gap));
+            this._renderSafe(() => this.renderWhatYouNeedToday(result));
             this._renderSafe(() => this.renderRankedActionPlan(result));
             this._renderSafe(() => this.renderScenarioComparisonCards(result));
             this._renderSafe(() => this.renderOverseasComparison(result));
@@ -1225,6 +1226,121 @@ export class ReverseUI {
                 </div>
             </div>
             `;
+        }).join('');
+    }
+
+    /**
+     * Render ranked action plan (Panel 5).
+     */
+    /**
+     * Render "What You Need to Do Today" panel — current vs required values per lever.
+     */
+    renderWhatYouNeedToday(result) {
+        const { target, currentPath, rankedLevers, inputs } = result;
+        const inp = inputs || {};
+        const RET_AGE = target.retirementAge || 67;
+        const ytr = currentPath.yearsToRetirement || Math.max(1, RET_AGE - (target.currentAge || 50));
+
+        const panel = el('rp-today-panel');
+        const tbody = el('rp-today-tbody');
+        const intro = el('rp-today-intro');
+        const infeasibleNote = el('rp-today-infeasible');
+        if (!panel || !tbody) return;
+
+        // Intro text
+        if (intro) {
+            intro.textContent = `To achieve ${fmt(target.targetAnnualIncomeToday)}/year income at retirement (age ${RET_AGE}, ` +
+                `${ytr} year${ytr !== 1 ? 's' : ''} away), each row below is an independent path that closes the gap alone. ` +
+                `Combining multiple levers will close the gap faster.`;
+        }
+
+        const feasible = (rankedLevers || []).filter(l => l.feasible);
+        const allInfeasible = feasible.length === 0;
+
+        if (infeasibleNote) {
+            infeasibleNote.classList.toggle('hidden', !allInfeasible);
+        }
+
+        // Maps lever key → current value string from inputs
+        const currentVal = (lever) => {
+            switch (lever.lever) {
+                case 'extraAnnualSuper':   return fmt(inp.yourAdditionalSuperContribution || 0) + '/yr';
+                case 'salary':             return fmt(inp.yourSalary || inp.annualSalary || 0) + '/yr';
+                case 'retirementAge':      return `Age ${inp.retirementAge || RET_AGE}`;
+                case 'superBalance':       return fmt(inp.yourCurrentSuper || 0);
+                case 'extraSavings':       return fmt(inp.monthlyStockContribution || 0) + '/mo';
+                case 'mortgageRepayment':  return fmt(inp.monthlyMortgagePayment || 0) + '/mo';
+                case 'netRent':            return fmt(inp.weeklyRentalIncome || 0) + '/wk';
+                case 'homeValue':          return fmt(inp.homeValue || 0);
+                case 'investmentBalance':  return fmt((inp.currentStocks || 0) + (inp.currentSavings || 0));
+                case 'spendingReduction':  return fmt(target.targetAnnualIncomeToday) + '/yr';
+                case 'estateAdjustment':   return fmt(target.minimumEstateToday || 0);
+                default:                   return '—';
+            }
+        };
+
+        // Maps lever → required value string
+        const requiredVal = (lever) => {
+            if (lever.solved === null || lever.solved === undefined) return '—';
+            switch (lever.lever) {
+                case 'extraAnnualSuper':   return fmt(lever.solved) + '/yr total';
+                case 'salary':             return fmt(lever.solved) + '/yr';
+                case 'retirementAge':      return `Age ${Math.round(lever.solved)}`;
+                case 'superBalance':       return fmt(lever.solved);
+                case 'extraSavings':       return fmt(lever.solved) + '/mo';
+                case 'mortgageRepayment':  return fmt(lever.solved) + '/mo';
+                case 'netRent':            return fmt(lever.solved) + '/wk';
+                case 'homeValue':          return fmt(lever.solved);
+                case 'investmentBalance':  return fmt(lever.solved);
+                case 'spendingReduction':  return fmt(lever.solved) + '/yr';
+                case 'estateAdjustment':   return fmt(lever.solved);
+                default:                   return lever.value !== null && lever.value !== undefined ? fmt(lever.value) : '—';
+            }
+        };
+
+        // Maps lever → "change needed" string
+        const changeNeeded = (lever) => {
+            if (!lever.feasible) return '<span style="color:var(--ink-3)">Infeasible alone</span>';
+            if (!lever.value) return 'No change needed';
+            switch (lever.unit) {
+                case 'AUD/year':     return `<b>Add ${fmt(lever.value)}/year</b>`;
+                case 'AUD/month':    return `<b>Add ${fmt(lever.value)}/month</b>`;
+                case 'AUD/week':     return `<b>Add ${fmt(lever.value)}/week</b>`;
+                case 'AUD lump sum': return `<b>Top up ${fmt(lever.value)}</b>`;
+                case 'AUD':          return `<b>Increase by ${fmt(lever.value)}</b>`;
+                case 'years':        return `<b>Delay ${lever.value} yr${lever.value !== 1 ? 's' : ''}</b>`;
+                default:             return lever.description || '—';
+            }
+        };
+
+        // Annual impact for feasible levers
+        const annualImpact = (lever) => {
+            if (!lever.feasible || !lever.value) return '—';
+            switch (lever.unit) {
+                case 'AUD/year':  return `+${fmt(lever.value)}/yr`;
+                case 'AUD/month': return `+${fmt((lever.value || 0) * 12)}/yr`;
+                default: return '—';
+            }
+        };
+
+        // Render all levers — feasible first (highlighted), then infeasible (greyed)
+        const leversToShow = [
+            ...feasible,
+            ...(rankedLevers || []).filter(l => !l.feasible),
+        ];
+
+        tbody.innerHTML = leversToShow.map((lever, i) => {
+            const isFeasible = lever.feasible;
+            const rowBg = isFeasible && i < feasible.length
+                ? (i === 0 ? 'background:var(--accent-soft,#eff6ff)' : '')
+                : 'opacity:0.55';
+            return `<tr style="${rowBg}">
+                <td style="font-weight:600">${lever.label}${isFeasible && i === 0 ? ' <span style="font-size:10px;color:var(--accent);font-weight:700">BEST</span>' : ''}</td>
+                <td style="text-align:right;color:var(--ink-2)">${currentVal(lever)}</td>
+                <td style="text-align:right;color:${isFeasible ? 'var(--accent)' : 'var(--ink-3)'}">${requiredVal(lever)}</td>
+                <td style="text-align:right">${changeNeeded(lever)}</td>
+                <td style="text-align:right;color:var(--ink-2)">${annualImpact(lever)}</td>
+            </tr>`;
         }).join('');
     }
 

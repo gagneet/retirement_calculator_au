@@ -361,6 +361,29 @@
         <div id="rp-problems-list" style="display:flex;flex-direction:column;gap:8px"></div>
       </div>
 
+      <!-- What You Need to Do Today -->
+      <div class="tools-card" id="rp-today-panel" style="border-color:var(--accent)">
+        <h4 style="margin:0 0 4px;color:var(--accent)">What You Need to Do Today</h4>
+        <p id="rp-today-intro" style="font-size:12.5px;color:var(--ink-3);margin:0 0 12px"></p>
+        <div style="overflow:auto">
+          <table class="year-table" id="rp-today-table" style="min-width:560px;font-family:var(--font-sans)">
+            <thead>
+              <tr>
+                <th style="width:160px">Action lever</th>
+                <th style="width:110px;text-align:right">Current value</th>
+                <th style="width:110px;text-align:right">Required value</th>
+                <th style="width:130px;text-align:right">Change needed TODAY</th>
+                <th style="width:100px;text-align:right">Annual impact</th>
+              </tr>
+            </thead>
+            <tbody id="rp-today-tbody"></tbody>
+          </table>
+        </div>
+        <div id="rp-today-infeasible" class="hidden" style="margin-top:10px;padding:10px 12px;background:var(--amber-soft);border-radius:8px;font-size:12.5px;color:var(--ink-2)">
+          <b>No single lever can close the gap alone.</b> A combination of the actions below will be needed.
+        </div>
+      </div>
+
       <!-- Action plan -->
       <div class="tools-card" id="rp-actions-panel">
         <h4>Ranked action plan</h4>
