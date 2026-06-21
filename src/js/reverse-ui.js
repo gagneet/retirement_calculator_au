@@ -1230,38 +1230,51 @@ export class ReverseUI {
     }
 
     /**
-     * Render ranked action plan (Panel 5).
-     */
-    /**
      * Render "What You Need to Do Today" panel — current vs required values per lever.
+     *
+     * Shows every solver lever with three columns:
+     *   Current value  — what the user has right now (read from normalised inputs)
+     *   Required value — the bisection-solved value that closes the gap (lever.solved)
+     *   Change needed  — the delta (lever.value / lever.unit), or "No change needed" if already met
+     *
+     * Feasible levers are shown first, best (index 0) is highlighted.
+     * Infeasible levers are shown greyed below with an "Infeasible alone" label.
      */
     renderWhatYouNeedToday(result) {
         const { target, currentPath, rankedLevers, inputs } = result;
         const inp = inputs || {};
         const RET_AGE = target.retirementAge || 67;
         const ytr = currentPath.yearsToRetirement || Math.max(1, RET_AGE - (target.currentAge || 50));
+        const goalMet = currentPath.meetsGoal === true;
 
-        const panel = el('rp-today-panel');
         const tbody = el('rp-today-tbody');
         const intro = el('rp-today-intro');
         const infeasibleNote = el('rp-today-infeasible');
-        if (!panel || !tbody) return;
+        if (!tbody) return;
 
-        // Intro text
+        // Intro text differs depending on whether the goal is already met.
         if (intro) {
-            intro.textContent = `To achieve ${fmt(target.targetAnnualIncomeToday)}/year income at retirement (age ${RET_AGE}, ` +
-                `${ytr} year${ytr !== 1 ? 's' : ''} away), each row below is an independent path that closes the gap alone. ` +
-                `Combining multiple levers will close the gap faster.`;
+            if (goalMet) {
+                intro.textContent = `Your current plan is on track to achieve ${fmt(target.targetAnnualIncomeToday)}/year ` +
+                    `at retirement (age ${RET_AGE}). The table below confirms the current vs required values — ` +
+                    `no changes are currently needed.`;
+            } else {
+                intro.textContent = `To achieve ${fmt(target.targetAnnualIncomeToday)}/year income at retirement ` +
+                    `(age ${RET_AGE}, ${ytr} year${ytr !== 1 ? 's' : ''} away) — ` +
+                    `each row is an independent lever that can close the gap on its own. ` +
+                    `Combining multiple levers will close the gap faster.`;
+            }
         }
 
         const feasible = (rankedLevers || []).filter(l => l.feasible);
-        const allInfeasible = feasible.length === 0;
-
+        // Show the "no single lever" callout only when the goal is NOT met and nothing is feasible.
         if (infeasibleNote) {
-            infeasibleNote.classList.toggle('hidden', !allInfeasible);
+            infeasibleNote.classList.toggle('hidden', goalMet || feasible.length > 0);
         }
 
-        // Maps lever key → current value string from inputs
+        // ── Helper: current value string from normalised inputs ───────────────
+        // Lever keys are defined in reverse-solver.js; input field names come from
+        // normaliseReversePlannerInputs() in reverse-planner.js.
         const currentVal = (lever) => {
             switch (lever.lever) {
                 case 'extraAnnualSuper':   return fmt(inp.yourAdditionalSuperContribution || 0) + '/yr';
@@ -1272,6 +1285,7 @@ export class ReverseUI {
                 case 'mortgageRepayment':  return fmt(inp.monthlyMortgagePayment || 0) + '/mo';
                 case 'netRent':            return fmt(inp.weeklyRentalIncome || 0) + '/wk';
                 case 'homeValue':          return fmt(inp.homeValue || 0);
+                // investmentBalance solver targets the combined non-super investment pool
                 case 'investmentBalance':  return fmt((inp.currentStocks || 0) + (inp.currentSavings || 0));
                 case 'spendingReduction':  return fmt(target.targetAnnualIncomeToday) + '/yr';
                 case 'estateAdjustment':   return fmt(target.minimumEstateToday || 0);
@@ -1279,7 +1293,8 @@ export class ReverseUI {
             }
         };
 
-        // Maps lever → required value string
+        // ── Helper: required value string from bisection result ───────────────
+        // lever.solved is the total solved value (not the delta).
         const requiredVal = (lever) => {
             if (lever.solved === null || lever.solved === undefined) return '—';
             switch (lever.lever) {
@@ -1294,36 +1309,55 @@ export class ReverseUI {
                 case 'investmentBalance':  return fmt(lever.solved);
                 case 'spendingReduction':  return fmt(lever.solved) + '/yr';
                 case 'estateAdjustment':   return fmt(lever.solved);
-                default:                   return lever.value !== null && lever.value !== undefined ? fmt(lever.value) : '—';
+                default:                   return lever.value != null ? fmt(lever.value) : '—';
             }
         };
 
-        // Maps lever → "change needed" string
-        const changeNeeded = (lever) => {
-            if (!lever.feasible) return '<span style="color:var(--ink-3)">Infeasible alone</span>';
-            if (!lever.value) return 'No change needed';
+        // ── Helper: "change needed" cell — returns safe HTML ─────────────────
+        // lever.value is the DELTA (extraNeeded / increase), not the total.
+        // All values come from solver arithmetic — no user-controlled strings injected.
+        const changeNeededHtml = (lever) => {
+            if (!lever.feasible) {
+                return '<span style="color:var(--ink-3);font-style:italic">Infeasible alone</span>';
+            }
+            // lever.value === 0 means the goal is already met at the current value.
+            if (!lever.value) return '<span style="color:var(--accent)">No change needed</span>';
             switch (lever.unit) {
                 case 'AUD/year':     return `<b>Add ${fmt(lever.value)}/year</b>`;
                 case 'AUD/month':    return `<b>Add ${fmt(lever.value)}/month</b>`;
                 case 'AUD/week':     return `<b>Add ${fmt(lever.value)}/week</b>`;
+                // lump sum: lever.value = topUpNeeded = solved − current balance
                 case 'AUD lump sum': return `<b>Top up ${fmt(lever.value)}</b>`;
+                // AUD: homeValue / investmentBalance — lever.value = solved − current
                 case 'AUD':          return `<b>Increase by ${fmt(lever.value)}</b>`;
-                case 'years':        return `<b>Delay ${lever.value} yr${lever.value !== 1 ? 's' : ''}</b>`;
+                // years: lever.value = extraYears (integer)
+                case 'years':        return `<b>Delay ${lever.value} year${lever.value !== 1 ? 's' : ''}</b>`;
                 default:             return lever.description || '—';
             }
         };
 
-        // Annual impact for feasible levers
-        const annualImpact = (lever) => {
-            if (!lever.feasible || !lever.value) return '—';
+        // ── Helper: notes column ─────────────────────────────────────────────
+        // For AUD/year and AUD/month levers the "change needed" column already shows the
+        // amount; use "Notes" to add meaningful context rather than repeating the number.
+        const notesText = (lever) => {
+            if (!lever.feasible) return lever.description || '';
+            if (!lever.value) return 'Already on track';
             switch (lever.unit) {
-                case 'AUD/year':  return `+${fmt(lever.value)}/yr`;
-                case 'AUD/month': return `+${fmt((lever.value || 0) * 12)}/yr`;
-                default: return '—';
+                case 'AUD/year':
+                    // For salary, show how much the total becomes (context, not just delta)
+                    if (lever.lever === 'salary') return `Total salary: ${fmt(lever.solved)}/yr`;
+                    // For extra super, show the annual concessional contribution total
+                    if (lever.lever === 'extraAnnualSuper') return `Total concessional: ${fmt(lever.solved)}/yr`;
+                    return '';
+                case 'AUD/month':
+                    return `${fmt((lever.value || 0) * 12)}/yr annualised`;
+                case 'AUD/week':
+                    return `${fmt((lever.value || 0) * 52)}/yr annualised`;
+                default: return '';
             }
         };
 
-        // Render all levers — feasible first (highlighted), then infeasible (greyed)
+        // Feasible levers first, then infeasible — preserves solver's priority ranking.
         const leversToShow = [
             ...feasible,
             ...(rankedLevers || []).filter(l => !l.feasible),
@@ -1331,15 +1365,21 @@ export class ReverseUI {
 
         tbody.innerHTML = leversToShow.map((lever, i) => {
             const isFeasible = lever.feasible;
-            const rowBg = isFeasible && i < feasible.length
-                ? (i === 0 ? 'background:var(--accent-soft,#eff6ff)' : '')
-                : 'opacity:0.55';
-            return `<tr style="${rowBg}">
-                <td style="font-weight:600">${lever.label}${isFeasible && i === 0 ? ' <span style="font-size:10px;color:var(--accent);font-weight:700">BEST</span>' : ''}</td>
+            // First feasible lever gets a highlight row; infeasible rows are de-emphasised.
+            const rowStyle = isFeasible && i === 0
+                ? 'background:var(--accent-soft)'
+                : !isFeasible
+                    ? 'opacity:0.5'
+                    : '';
+            const bestBadge = isFeasible && i === 0
+                ? ' <span style="font-size:10px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;vertical-align:middle">BEST</span>'
+                : '';
+            return `<tr style="${rowStyle}">
+                <td style="font-weight:600">${lever.label}${bestBadge}</td>
                 <td style="text-align:right;color:var(--ink-2)">${currentVal(lever)}</td>
                 <td style="text-align:right;color:${isFeasible ? 'var(--accent)' : 'var(--ink-3)'}">${requiredVal(lever)}</td>
-                <td style="text-align:right">${changeNeeded(lever)}</td>
-                <td style="text-align:right;color:var(--ink-2)">${annualImpact(lever)}</td>
+                <td style="text-align:right">${changeNeededHtml(lever)}</td>
+                <td style="text-align:right;font-size:11.5px;color:var(--ink-3)">${notesText(lever)}</td>
             </tr>`;
         }).join('');
     }
