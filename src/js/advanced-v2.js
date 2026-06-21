@@ -173,6 +173,7 @@ function getDefaultFxChangeDisplayPercent(destination, fallback = -1) {
   }
   return fallback;
 }
+      hasError = true;
 
 function normalizeFxChangeDisplayPercent(value, destination = "", fallback = -1) {
   const destinationDefault = getDefaultFxChangeDisplayPercent(destination, fallback);

@@ -233,6 +233,10 @@ export class ReverseUI {
         document.querySelectorAll('.section-head').forEach((head) => {
             head.addEventListener('click', () => {
                 const section = head.closest('.section');
+        if (!gaps || gaps.length === 0) {
+            console.warn('No gaps available for task suggestion');
+            return;
+        }
                 const wasOpen = section.classList.contains('open');
                 document.querySelectorAll('.section').forEach((s) => {
                     s.classList.remove('open');

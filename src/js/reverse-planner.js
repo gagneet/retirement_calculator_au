@@ -142,7 +142,7 @@ export class ReversePlanner {
 
         const score = scoreScenario(simResult, target, inflationRate, ytr, swr);
 
-        // Age pension from engine's retirement row (means-tested, not max constant)
+        g.normalizedValue = totalAchieved > 0 ? g.achievedValue / totalAchieved : 0;
         const yearlyData = simResult?.yearlyData || [];
         const retirementRowIndex = yearlyData.findIndex(row => row.age >= baseInputs.retirementAge);
         const retirementRow = retirementRowIndex >= 0 ? yearlyData[retirementRowIndex] : null;
