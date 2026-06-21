@@ -8790,7 +8790,7 @@ class RetirementCalculatorApp {
         const percentIncomeSaved = $('percentIncomeSaved');
         if (useDetailedExpenseInputs && detailedExpenseFields && percentIncomeSaved) {
             const getAbsEstimate = () => {
-                const cfg = window.ENHANCED_CONFIG?.financials?.cashFlowAnalysis?.BASE_LIVING_EXPENSES;
+                const cfg = ENHANCED_CONFIG?.financials?.cashFlowAnalysis?.BASE_LIVING_EXPENSES;
                 const coupleBase = cfg?.COUPLE_BASE?.value ?? 4118;
                 const singleBase = cfg?.SINGLE_BASE?.value ?? 2835;
                 const perChild   = cfg?.PER_CHILD?.value   ?? 630;
@@ -8802,11 +8802,10 @@ class RetirementCalculatorApp {
                 const base       = isCouple ? coupleBase : singleBase;
                 const childCosts = Math.round(dependents * perChild);
                 const living     = base + childCosts;
-                // Housing: rent for renters; modest owner costs (rates + insurance + maintenance) for homeowners
                 const residenceType = safeGetSelectValue('primaryResidenceType', 'own_mortgage');
                 const isRenting = residenceType === 'renting';
                 const rent = isRenting ? (Number(safeGetValue('primaryRentMonthly', 0)) || 0) : 0;
-                const housing = isRenting ? rent : Math.round(base * 0.18); // ~18% of living costs for rates/ins
+                const housing = isRenting ? rent : 0;
                 return { living, housing, total: living + housing };
             };
 
