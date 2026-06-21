@@ -30,6 +30,9 @@ import {
     loadForwardProjection,
     extractCurrentPathFromProjection,
 } from './forward-projection-bridge.js';
+import { adaptReverseManualInput } from './calculation/input-adapters/reverse-manual-adapter.js';
+import { applyCanonicalCashflowToEngineInputs } from './calculation/canonical-engine-adapter.js';
+import { ProjectionService } from './calculation/projection-service.js';
 
 const DEFAULT_SWR = 0.04;
 const DEFAULT_INFLATION = ENHANCED_CONFIG.INFLATION_RATE || 0.026;
@@ -119,6 +122,26 @@ export class ReversePlanner {
         this.config = config;
         this.simulator = new RetirementSimulator(config);
         this.solver = new ReverseRetirementSolver(config);
+        this.projectionService = new ProjectionService({
+            simulator: this.simulator,
+            adapter: adaptReverseManualInput,
+            engineInputBuilder: (rawInput, { canonicalInput, derivedCashflow }) => {
+                const baseEngineInputs = Number.isFinite(rawInput.yourCurrentAge)
+                    ? { ...rawInput }
+                    : normaliseReversePlannerInputs(rawInput);
+                return applyCanonicalCashflowToEngineInputs(
+                    baseEngineInputs,
+                    canonicalInput,
+                    derivedCashflow
+                );
+            },
+            summaryBuilder: ({ canonicalInput, simulation }) => ({
+                targetAnnualIncomeToday: canonicalInput.retirementTarget.targetAnnualIncomeToday,
+                finalBalance: simulation.finalBalance,
+                retirementAge: canonicalInput.household.retirementAge,
+            }),
+            policyVersion: config.version || '2026.1',
+        });
     }
 
     /**
@@ -128,16 +151,18 @@ export class ReversePlanner {
      * @param {object} target      Target object
      * @returns {object}           currentPath with scores and gaps
      */
-    buildCurrentPath(baseInputs, target) {
+    buildCurrentPath(baseInputs, target, suppliedSimulation = null) {
         const inflationRate = baseInputs.inflation ?? DEFAULT_INFLATION;
         const swr = target.swr ?? DEFAULT_SWR;
         const ytr = Math.max(1, (baseInputs.retirementAge || 67) - (baseInputs.yourCurrentAge || 50));
 
-        let simResult;
-        try {
-            simResult = this.simulator.simulateRetirement(baseInputs, false);
-        } catch (err) {
-            throw new Error(`Current path simulation failed: ${err.message}`);
+        let simResult = suppliedSimulation;
+        if (!simResult) {
+            try {
+                simResult = this.simulator.simulateRetirement(baseInputs, false);
+            } catch (err) {
+                throw new Error(`Current path simulation failed: ${err.message}`);
+            }
         }
 
         const score = scoreScenario(simResult, target, inflationRate, ytr, swr);
@@ -236,8 +261,30 @@ export class ReversePlanner {
 
         // 1. Build current path
         let currentPath;
-        const projection = loadForwardProjection();
-        if (projection?.summary) {
+        const loadedProjection = loadForwardProjection();
+        const hasCompleteProjection = Boolean(
+            loadedProjection?.inputHash
+            && loadedProjection?.canonicalInput?.schemaVersion
+            && loadedProjection?.engineInputs
+            && loadedProjection?.simulation
+        );
+        const projectionInput = loadedProjection?.engineInputs
+            ? {
+                ...loadedProjection.engineInputs,
+                asfaComfortable: resolvedTarget.targetAnnualIncomeToday,
+                targetAnnualIncomeToday: resolvedTarget.targetAnnualIncomeToday,
+            }
+            : {
+                ...rawInputs,
+                targetAnnualIncomeToday: resolvedTarget.targetAnnualIncomeToday,
+            };
+        const projection = hasCompleteProjection
+            ? loadedProjection
+            : this.projectionService.computeProjection(projectionInput, {
+                sourceCalculator: 'reverse-manual',
+            });
+
+        if (hasCompleteProjection && projection?.summary) {
             currentPath = extractCurrentPathFromProjection(projection, {
                 retirementAge: resolvedTarget.retirementAge,
                 targetAnnualIncomeToday: resolvedTarget.targetAnnualIncomeToday,
@@ -270,16 +317,16 @@ export class ReversePlanner {
                 capitalGap: currentPath.capitalGap,
             };
         } else {
-            currentPath = this.buildCurrentPath(baseInputs, resolvedTarget);
+            currentPath = this.buildCurrentPath(
+                projection.engineInputs,
+                resolvedTarget,
+                projection.simulation
+            );
         }
 
         // 2. Run all lever solvers with engine predicate
         // Use projection.engineInputs as base when available (per spec Phase 9).
-        const hasEngineInputs = projection?.engineInputs
-            && typeof projection.engineInputs === 'object'
-            && Object.keys(projection.engineInputs).length > 0
-            && (Number.isFinite(projection.engineInputs.yourCurrentAge) || Number.isFinite(projection.engineInputs.age));
-        let solverBaseInputs = hasEngineInputs ? { ...projection.engineInputs } : { ...baseInputs };
+        let solverBaseInputs = { ...projection.engineInputs };
         // Ensure target income flows through via applyTargetToEngineInputs
         solverBaseInputs = applyTargetToEngineInputs(solverBaseInputs, resolvedTarget, {});
         const solverOptions = { swr: resolvedTarget.swr || DEFAULT_SWR };
@@ -320,6 +367,10 @@ export class ReversePlanner {
         );
 
         return {
+            inputHash: projection.inputHash,
+            policyVersion: projection.policyVersion,
+            projection,
+            warnings: projection.warnings || [],
             target: resolvedTarget,
             inputs: baseInputs,
             currentPath,

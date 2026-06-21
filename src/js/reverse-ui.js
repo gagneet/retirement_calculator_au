@@ -1070,6 +1070,7 @@ export class ReverseUI {
                 ['Household type', target.householdType === 'couple' ? 'Couple' : 'Single', 'Affects pension thresholds'],
                 ['Years to retirement', String(ytr), `Current age to age ${RET_AGE}`],
                 ['Planning horizon', `${LIFESPAN - (inp.yourCurrentAge || RET_AGE)} years in retirement`, `Age ${RET_AGE} to ${LIFESPAN}`],
+                ['Projection input hash', this.lastResult.inputHash || 'Unavailable', 'Shared by current path, solvers, screen results and this PDF'],
             ],
             {
                 columnStyles: {
@@ -1172,6 +1173,9 @@ export class ReverseUI {
 
         // Assumptions
         const assumptions = generateAssumptionsText(target, result.inputs);
+        if (result.inputHash) {
+            assumptions.push(`Projection input hash: ${result.inputHash}`);
+        }
         const assumEl = el('rp-assumptions-list');
         if (assumEl) {
             assumEl.innerHTML = assumptions.map(a => `<li>${a}</li>`).join('');
@@ -1544,7 +1548,7 @@ export class ReverseUI {
         const section = el('rp-deep-analysis-section');
         if (!section) return;
 
-        const inputs = result.inputs || {};
+        const inputs = result.projection?.engineInputs || result.inputs || {};
         const target = result.target || {};
 
         show('rp-deep-analysis-section');

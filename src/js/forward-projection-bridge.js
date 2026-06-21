@@ -46,6 +46,7 @@ export function buildForwardProjectionPayload({
 
   const payload = {
     version: 1,
+    schemaVersion: canonicalInput?.schemaVersion || null,
     source,
     savedAt: new Date().toISOString(),
     input,
