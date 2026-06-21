@@ -3119,9 +3119,16 @@ export class RetirementSimulator {
         inputs.retirementAge = originalRetirementAge;
 
         if (!bestAge) {
+            // Compute the success rate at the user's planned retirement age so the
+            // failure message can quantify how far short the plan falls.
+            const plannedInputs = { ...inputs, retirementAge: originalRetirementAge };
+            const plannedMc = await this.runMonteCarloSimulation(plannedInputs, 500, null);
+            const plannedRate = plannedMc.successRate;
+
             return {
                 success: false,
-                message: `Cannot achieve ${(targetSuccessRate * 100).toFixed(0)}% success rate between ages ${minSearchAge}-${maxSearchAge}`,
+                achievedSuccessRate: plannedRate,
+                message: `At your planned retirement age of ${originalRetirementAge}, the Monte Carlo success rate is ${(plannedRate * 100).toFixed(0)}% (target: ${(targetSuccessRate * 100).toFixed(0)}%). No age between ${minSearchAge}–${maxSearchAge} reaches the target. Consider reducing spending, increasing contributions, or extending your working years.`,
                 earliestViableAge: null
             };
         }

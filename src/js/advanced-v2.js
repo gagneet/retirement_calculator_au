@@ -2628,8 +2628,16 @@ function renderWhatIfPanel() {
             <span class="pill"><b>${earliest.yearsToWork}</b> more years</span>
           </div>
           <p style="margin:10px 0 0;color:var(--ink-3)">Median balance at that age: ${escapeHtml(formatCurrency(earliest.medianBalance || 0))}</p>
+        ` : earliest ? `
+          ${earliest.achievedSuccessRate !== undefined ? `
+            <div class="whatif-impact">
+              <span class="pill" style="background:var(--rose-bg,#fff0f0);color:var(--rose)"><b>${formatPercent(earliest.achievedSuccessRate || 0, 1)}</b> current success</span>
+              <span class="pill">Target: 70%</span>
+            </div>
+          ` : ''}
+          <p style="margin:${earliest.achievedSuccessRate !== undefined ? '8' : '0'}px 0 0;color:var(--ink-3);font-size:13px">${escapeHtml(earliest.message || 'Use the Retirement Age Solver tool to solve for an earlier viable retirement age.')}</p>
         ` : `
-          <p style="margin:0;color:var(--ink-3)">${escapeHtml(earliest?.message || 'Use the Retirement Age Solver tool to solve for an earlier viable retirement age.')}</p>
+          <p style="margin:0;color:var(--ink-3)">Use the Retirement Age Solver tool to solve for an earlier viable retirement age.</p>
         `}
       </div>
       <div class="whatif-card">
