@@ -793,7 +793,7 @@ export class ReverseUI {
                 case 'mortgageRepayment':  return cur(inp2.monthlyMortgagePayment || 0) + '/mo';
                 case 'netRent':            return cur(inp2.weeklyRentalIncome || 0) + '/week';
                 case 'homeValue':          return cur(inp2.homeValue || 0);
-                case 'investmentBalance':  return cur((inp2.currentStocks || 0) + (inp2.currentSavings || 0));
+                case 'investmentBalance':  return cur(inp2.currentSavings || 0);
                 case 'spendingReduction':  return cur(target.targetAnnualIncomeToday) + '/yr';
                 case 'estateAdjustment':   return cur(target.minimumEstateToday || 0);
                 default:                   return '—';
@@ -821,6 +821,9 @@ export class ReverseUI {
         function leverChangeNeeded(lever) {
             if (!lever.feasible) return 'Infeasible alone';
             if (lever.value === 0 || lever.value === null) return 'No change needed';
+            // Inverted levers: positive value means a REDUCTION, not an increase
+            if (lever.lever === 'spendingReduction') return `Reduce by ${cur(lever.value)}/year`;
+            if (lever.lever === 'estateAdjustment')  return `Reduce by ${cur(lever.value)}`;
             switch (lever.unit) {
                 case 'AUD/year':     return `Add ${cur(lever.value)}/year`;
                 case 'AUD/month':    return `Add ${cur(lever.value)}/month`;
@@ -840,7 +843,8 @@ export class ReverseUI {
                     leverCurrentValue(lever, inp),
                     leverRequiredValue(lever),
                     leverChangeNeeded(lever),
-                    lever.unit === 'AUD/year' ? cur(lever.value) + '/yr'
+                    lever.lever === 'spendingReduction' ? `Reduces by ${cur(lever.value)}/yr`
+                        : lever.unit === 'AUD/year' ? cur(lever.value) + '/yr'
                         : lever.unit === 'AUD/month' ? cur((lever.value || 0) * 12) + '/yr'
                         : '—',
                 ]),
@@ -1289,8 +1293,8 @@ export class ReverseUI {
                 case 'mortgageRepayment':  return fmt(inp.monthlyMortgagePayment || 0) + '/mo';
                 case 'netRent':            return fmt(inp.weeklyRentalIncome || 0) + '/wk';
                 case 'homeValue':          return fmt(inp.homeValue || 0);
-                // investmentBalance solver targets the combined non-super investment pool
-                case 'investmentBalance':  return fmt((inp.currentStocks || 0) + (inp.currentSavings || 0));
+                // investmentBalance solver only varies currentSavings (not stocks)
+                case 'investmentBalance':  return fmt(inp.currentSavings || 0);
                 case 'spendingReduction':  return fmt(target.targetAnnualIncomeToday) + '/yr';
                 case 'estateAdjustment':   return fmt(target.minimumEstateToday || 0);
                 default:                   return '—';
@@ -1326,6 +1330,9 @@ export class ReverseUI {
             }
             // lever.value === 0 means the goal is already met at the current value.
             if (!lever.value) return '<span style="color:var(--accent)">No change needed</span>';
+            // Inverted levers: positive value means a REDUCTION, not an increase
+            if (lever.lever === 'spendingReduction') return `<b>Reduce by ${fmt(lever.value)}/year</b>`;
+            if (lever.lever === 'estateAdjustment')  return `<b>Reduce by ${fmt(lever.value)}</b>`;
             switch (lever.unit) {
                 case 'AUD/year':     return `<b>Add ${fmt(lever.value)}/year</b>`;
                 case 'AUD/month':    return `<b>Add ${fmt(lever.value)}/month</b>`;
@@ -1348,15 +1355,17 @@ export class ReverseUI {
             if (!lever.value) return 'Already on track';
             switch (lever.unit) {
                 case 'AUD/year':
-                    // For salary, show how much the total becomes (context, not just delta)
                     if (lever.lever === 'salary') return `Total salary: ${fmt(lever.solved)}/yr`;
-                    // For extra super, show the annual concessional contribution total
                     if (lever.lever === 'extraAnnualSuper') return `Total concessional: ${fmt(lever.solved)}/yr`;
+                    if (lever.lever === 'spendingReduction') return `New target: ${fmt(lever.solved)}/yr`;
                     return '';
                 case 'AUD/month':
                     return `${fmt((lever.value || 0) * 12)}/yr annualised`;
                 case 'AUD/week':
                     return `${fmt((lever.value || 0) * 52)}/yr annualised`;
+                case 'AUD':
+                    if (lever.lever === 'estateAdjustment') return `New estate: ${fmt(lever.solved)}`;
+                    return '';
                 default: return '';
             }
         };
