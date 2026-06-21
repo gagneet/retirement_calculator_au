@@ -11676,7 +11676,7 @@ function fallbackMode() {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-// UX ENHANCEMENTS — deep_research.md implementation
+// UX ENHANCEMENTS — audit_of_retirement_planning.md implementation
 // ══════════════════════════════════════════════════════════════════════
 
 /**

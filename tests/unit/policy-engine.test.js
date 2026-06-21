@@ -5,7 +5,7 @@
  * All expected values are hand-calculated from the March 2026 Services Australia
  * Age Pension rules to serve as regression anchors.
  *
- * Covers all scenarios required by the deep_research_prompt.md:
+ * Covers all scenarios required by the audit_of_retirement_planning_implementation.md:
  * - Deeming rate calculations (single and couple)
  * - Asset test (homeowner vs non-homeowner)
  * - Income test
