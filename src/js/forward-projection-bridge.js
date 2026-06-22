@@ -18,6 +18,7 @@ export function buildForwardProjectionPayload({
   canonicalInput = null,
   derivedCashflow = null,
   inputHash = null,
+  projectionHash = null,
   policyVersion = null,
   diagnostics = null,
   warnings = [],
@@ -51,6 +52,7 @@ export function buildForwardProjectionPayload({
     savedAt: new Date().toISOString(),
     input,
     inputHash,
+    projectionHash,
     policyVersion,
     canonicalInput,
     derivedCashflow,
@@ -65,6 +67,9 @@ export function buildForwardProjectionPayload({
     warnings,
     summary: {
       targetAnnualIncomeToday: input?.desiredIncome || input?.asfaComfortable || 0,
+      plannedSpendingTargetToday: input?.desiredIncome || input?.asfaComfortable || 0,
+      swrReferenceIncomeToday: (adaptedResult?.swrMonthlyToday || 0) * 12,
+      modelledAnnualWithdrawalToday: adaptedResult?.plannedSpendingToday || input?.desiredIncome || input?.asfaComfortable || 0,
       monthlyRetirementIncomeToday: monthlyPaycheck,
       annualRetirementIncomeToday,
       superAtRetirementToday,
@@ -114,8 +119,15 @@ export function extractCurrentPathFromProjection(payload, goalOverrides = {}) {
 
   const retirementRow = findRetirementYearRow(payload, retirementAge);
 
-  const monthly = summary.monthlyRetirementIncomeToday ?? payload?.adaptedResult?.monthlyPaycheck ?? 0;
-  const annual = summary.annualRetirementIncomeToday ?? monthly * 12;
+  const plannedAnnual = summary.plannedSpendingTargetToday
+    ?? summary.targetAnnualIncomeToday
+    ?? payload?.adaptedResult?.plannedSpendingToday
+    ?? 0;
+  // Modelled income is the actual projected withdrawal (monthlyPaycheck × 12), not the target.
+  const modelledMonthly = summary.monthlyRetirementIncomeToday ?? 0;
+  const modelledAnnual = summary.annualRetirementIncomeToday ?? modelledMonthly * 12;
+  const swrReferenceIncomeToday = summary.swrReferenceIncomeToday
+    ?? (payload?.adaptedResult?.swrMonthlyToday || 0) * 12;
 
   let confidence = null;
   if (Number.isFinite(summary.confidence)) confidence = summary.confidence;
@@ -128,9 +140,14 @@ export function extractCurrentPathFromProjection(payload, goalOverrides = {}) {
     lifespan: summary.lifespan ?? input.lifespan ?? input.yourLifespan,
     householdType: summary.householdType ?? input.household ?? (input.isCouple ? 'couple' : 'single'),
     targetAnnualIncomeToday,
-    currentMonthlyIncomeToday: monthly,
-    currentAnnualIncomeToday: annual,
-    sustainableIncomeToday: annual,
+    currentMonthlyIncomeToday: modelledMonthly,
+    currentAnnualIncomeToday: modelledAnnual,
+    // Compatibility alias. New UI/reporting must label this as an SWR reference,
+    // not as the user's planned or guaranteed retirement income.
+    sustainableIncomeToday: swrReferenceIncomeToday,
+    swrReferenceIncomeToday,
+    plannedSpendingTargetToday: plannedAnnual,
+    modelledAnnualWithdrawalToday: summary.modelledAnnualWithdrawalToday ?? plannedAnnual,
     superAtRetirement: summary.superAtRetirementToday ?? payload?.adaptedResult?.superAtRetire ?? retirementRow?.super ?? retirementRow?.accumulatedSuperBalance ?? 0,
     totalAssetsAtRetirement: summary.totalAssetsAtRetirement ?? retirementRow?.totalAssets ?? retirementRow?.totalFinancialAssets ?? 0,
     otherLiquidAtRetirement: summary.otherLiquidAtRetirement ?? retirementRow?.otherLiquid ?? 0,
@@ -140,6 +157,71 @@ export function extractCurrentPathFromProjection(payload, goalOverrides = {}) {
     confidence,
     lastsUntil: summary.lastsUntil ?? payload?.adaptedResult?.lastsUntil,
     yearlyData: payload?.yearlyData || payload?.simulation?.yearlyData || payload?.adaptedResult?.years || [],
-    meetsGoal: annual >= targetAnnualIncomeToday && (confidence === null || confidence >= confidenceTarget),
+    meetsGoal: modelledAnnual >= targetAnnualIncomeToday && (confidence === null || confidence >= confidenceTarget),
   };
+}
+
+export function extractProjectionSnapshot(payload = {}) {
+  const engine = payload.engineInputs || {};
+  const canonical = payload.canonicalInput || {};
+  const household = canonical.household || {};
+  const income = canonical.income || {};
+  const assets = canonical.currentAssets || {};
+  const cashflow = canonical.cashflow || {};
+  const assumptions = canonical.assumptions || {};
+  return {
+    currentAge: household.currentAge ?? engine.yourCurrentAge ?? engine.currentAge ?? 0,
+    partnerAge: household.partnerAge ?? engine.partnerCurrentAge ?? 0,
+    retirementAge: household.retirementAge ?? engine.retirementAge ?? 0,
+    lifespan: household.lifespan ?? engine.yourLifespan ?? 0,
+    isCouple: household.householdType === 'couple' || Boolean(engine.isCouple),
+    annualSalary: income.annualSalary ?? engine.yourSalary ?? engine.annualSalary ?? 0,
+    partnerSalary: income.partnerAnnualSalary ?? engine.partnerSalary ?? 0,
+    currentSuperBalance: assets.currentSuperBalance ?? engine.yourCurrentSuper ?? engine.superBalance ?? 0,
+    partnerCurrentSuper: assets.partnerCurrentSuperBalance ?? engine.partnerCurrentSuper ?? engine.partnerSuperBalance ?? 0,
+    cashSavings: assets.cashSavings ?? engine.currentSavings ?? engine.savings ?? 0,
+    stocksPortfolio: assets.stocksPortfolio ?? engine.currentStocks ?? engine.investments ?? 0,
+    homeValue: assets.homeValue ?? engine.homeValue ?? 0,
+    mortgageBalance: assets.mortgageBalance ?? engine.mortgageBalance ?? 0,
+    monthlyMortgagePayment: cashflow.currentMonthlyMortgagePayment ?? engine.monthlyMortgagePayment ?? 0,
+    monthlyInvestment: cashflow.explicitMonthlyInvestmentContribution ?? engine.monthlyStockContribution ?? 0,
+    hasInvestmentProperty: canonical.scenarioToggles?.includeInvestmentProperty ?? Boolean(engine.hasInvestmentProperty),
+    investmentPropertyValue: assets.investmentPropertyValue ?? engine.investmentPropertyValue ?? 0,
+    weeklyRentalIncome: canonical.investmentProperty?.weeklyRentalIncome ?? engine.weeklyRentalIncome ?? 0,
+    annualPropertyExpenses: canonical.investmentProperty?.annualOperatingExpenses ?? engine.annualPropertyExpenses ?? 0,
+    propertyGrowthRate: assumptions.propertyGrowthRate ?? engine.propertyGrowthRate ?? 0.04,
+    inflation: assumptions.inflationRate ?? engine.inflation ?? 0.026,
+    investmentReturn: assumptions.investmentReturnRate ?? engine.investmentReturn ?? 0.07,
+    superReturn: assumptions.superReturnRate ?? engine.superReturn ?? 0.075,
+    salaryGrowthRate: assumptions.wageGrowthRate ?? engine.salaryGrowthRate ?? 0.02,
+    source: payload.source || 'unknown',
+    inputHash: payload.inputHash || null,
+    projectionHash: payload.projectionHash || null,
+  };
+}
+
+export function validateProjectionSnapshot(payload = {}, snapshot = extractProjectionSnapshot(payload)) {
+  const issues = [];
+  const expectedCouple = payload.canonicalInput?.household?.householdType === 'couple'
+    || payload.engineInputs?.isCouple === true;
+  if (expectedCouple && !snapshot.isCouple) issues.push('Imported household is couple but reverse snapshot is single.');
+  for (const [label, value] of [
+    ['salary', snapshot.annualSalary],
+    ['super', snapshot.currentSuperBalance],
+    ['cash', snapshot.cashSavings],
+  ]) {
+    const sourceValue = label === 'salary'
+      ? (payload.engineInputs?.yourSalary ?? payload.canonicalInput?.income?.annualSalary)
+      : label === 'super'
+        ? (payload.engineInputs?.yourCurrentSuper ?? payload.canonicalInput?.currentAssets?.currentSuperBalance)
+        : (payload.engineInputs?.currentSavings ?? payload.canonicalInput?.currentAssets?.cashSavings);
+    if (Number(sourceValue) > 0 && !(Number(value) > 0)) {
+      issues.push(`Imported ${label} is positive but reverse snapshot shows $0.`);
+    }
+  }
+  // snapshot.inputHash is copied from payload.inputHash by extractProjectionSnapshot, so
+  // comparing them is always equal (tautology). Instead, flag when no hash was ever stored
+  // — that means the projection predates hash signing and cannot be integrity-checked.
+  if (!snapshot.inputHash) issues.push('Projection has no input hash — integrity cannot be verified (pre-hash export).');
+  return { valid: issues.length === 0, issues, snapshot };
 }

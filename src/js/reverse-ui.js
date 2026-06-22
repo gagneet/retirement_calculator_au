@@ -20,6 +20,8 @@ import {
 import {
     loadForwardProjection,
     extractCurrentPathFromProjection,
+    extractProjectionSnapshot,
+    validateProjectionSnapshot,
 } from './forward-projection-bridge.js';
 import {
     compareCurrentToTarget,
@@ -307,7 +309,7 @@ export class ReverseUI {
         if (projection?.summary) {
             this.forwardProjection = projection;
             this.currentPath = extractCurrentPathFromProjection(projection);
-            this.importedScenario = projection.input || null;
+            this.importedScenario = extractProjectionSnapshot(projection);
             this._renderProjectionPanel(projection);
             this._prefillGoalControlsFromProjection(projection);
             // Defer to end of microtask queue so the DOM is fully settled
@@ -336,6 +338,8 @@ export class ReverseUI {
             `Super ${fmt(s.superAtRetirementToday)}`,
             `Lasts to age ${s.lastsUntil}`,
         ];
+        summaryParts.push(`Input ${projection.inputHash || 'hash unavailable'}`);
+        summaryParts.push(`Projection ${projection.projectionHash || 'hash unavailable'}`);
         if (s.confidence) summaryParts.push(`Confidence ${(s.confidence * 100).toFixed(0)}%`);
         safeHtml('rp-baseline-summary', summaryParts.join(' · '));
     }
@@ -838,6 +842,24 @@ export class ReverseUI {
             return;
         }
 
+        if (this.forwardProjection) {
+            // Always derive the snapshot fresh from the current forwardProjection rather than
+            // using this.importedScenario, which is set once at import time and becomes stale
+            // if the user re-imports or if forwardProjection is updated after initial load.
+            const consistency = validateProjectionSnapshot(this.forwardProjection);
+            if (!consistency.valid) {
+                const btn = el('rp-export-pdf');
+                if (btn) {
+                    btn.textContent = 'Export blocked: projection mismatch';
+                    btn.title = consistency.issues.join(' ');
+                    setTimeout(() => { btn.textContent = 'Export PDF Report'; }, 5000);
+                }
+                safeText('rp-error-message', `Reverse projection is inconsistent with imported household data: ${consistency.issues.join(' ')}`);
+                show('rp-error-section');
+                return;
+            }
+        }
+
         if (typeof window.jspdf === 'undefined') {
             return;
         }
@@ -958,6 +980,21 @@ export class ReverseUI {
 
         // Two-column key metrics
         heading('Executive Summary', 11);
+        autoTable(
+            ['Projection Quality Check', 'Value'],
+            [
+                ['Calculator source', this.forwardProjection?.source || 'manual reverse mode'],
+                ['Input schema', this.forwardProjection?.schemaVersion || 'manual / unavailable'],
+                ['Input hash', this.forwardProjection?.inputHash || this.lastResult.inputHash || 'Unavailable'],
+                ['Projection hash', this.forwardProjection?.projectionHash || this.lastResult.projection?.projectionHash || 'Unavailable'],
+                ['Scenario mode', this.lastResult.projection?.diagnostics?.scenarioMode || 'base'],
+                ['Return basis', this.lastResult.projection?.diagnostics?.returnBasis || 'nominal'],
+                ['Monte Carlo', this.forwardProjection?.monteCarloResults ? 'Run' : 'Not run'],
+                ['Warnings', String(this.lastResult.warnings?.length || 0)],
+                ['Blocking issues', String(this.lastResult.projection?.diagnostics?.projectionQuality?.blockingIssues?.length || 0)],
+            ],
+            { styles: { fontSize: 7 } }
+        );
         const leftX = MARGIN;
         const rightX = PAGE_W / 2 + 2;
         const colW = CW / 2 - 4;
@@ -972,7 +1009,7 @@ export class ReverseUI {
         kv('Your goal', cur(target.targetAnnualIncomeToday) + '/year', leftX, y);
         kv('Retire at', `Age ${RET_AGE} (${ytr} years away)`, rightX, y);
         y += 14;
-        kv('Current sustainable income', cur(currentPath.sustainableIncomeToday) + '/year', leftX, y, MEETS ? [5, 150, 105] : [220, 38, 38]);
+        kv('4% SWR reference income', cur(currentPath.swrReferenceIncomeToday ?? currentPath.sustainableIncomeToday) + '/year', leftX, y, MEETS ? [5, 150, 105] : [220, 38, 38]);
         kv('Plan to age', String(LIFESPAN), rightX, y);
         y += 14;
         const nominalAssets = currentPath.totalAssetsNominal || 0;
@@ -1255,7 +1292,8 @@ export class ReverseUI {
         checkPage(30);
         heading('Retirement Projections', 11);
 
-        const nomInc = currentPath.sustainableIncomeToday * Math.pow(1 + INF, ytr);
+        const swrReference = currentPath.swrReferenceIncomeToday ?? currentPath.sustainableIncomeToday;
+        const nomInc = swrReference * Math.pow(1 + INF, ytr);
         const nomTarget = target.targetAnnualIncomeToday * Math.pow(1 + INF, ytr);
         const yourSuperRet = currentPath.score?.yourSuperAtRetirement || superAtRet;
         const partnerSuperRet = currentPath.score?.partnerSuperAtRetirement || 0;
@@ -1271,8 +1309,9 @@ export class ReverseUI {
                 ['Total financial assets', cur(nominalAssets), 'Super + investments + savings (nominal)'],
                 ['Capital required for goal', cur(currentPath.requiredCapital), `At ${pct(SWR)} safe withdrawal rate`],
                 ['Capital gap', MEETS ? 'None' : cur(currentPath.capitalGap), MEETS ? 'Goal achieved' : 'Additional capital needed'],
-                ['Sustainable income (today $)', cur(currentPath.sustainableIncomeToday) + '/yr', 'In today\'s purchasing power'],
-                ['Sustainable income (' + RETIRE_YEAR + ' $)', cur(nomInc) + '/yr', 'In retirement-year dollars'],
+                ['Planned spending target (today $)', cur(currentPath.plannedSpendingTargetToday ?? target.targetAnnualIncomeToday) + '/yr', 'User-entered lifestyle target'],
+                ['4% SWR reference (today $)', cur(swrReference) + '/yr', 'Reference only; not guaranteed income'],
+                ['4% SWR reference (' + RETIRE_YEAR + ' $)', cur(nomInc) + '/yr', 'Reference in retirement-year dollars'],
                 ['Target income (' + RETIRE_YEAR + ' $)', cur(nomTarget) + '/yr', 'Goal after inflation adjustment'],
                 ['Age Pension at retirement', cur(agePension) + '/yr', 'Means-tested estimate (nominal)'],
                 depletionAge ? ['Portfolio depletion age', `Age ${depletionAge}`, depletionAge >= LIFESPAN ? 'Lasts full planning period' : 'SHORTFALL before plan end'] : null,
@@ -1372,6 +1411,8 @@ export class ReverseUI {
                 ['Years to retirement', String(ytr), `Current age to age ${RET_AGE}`],
                 ['Planning horizon', `${LIFESPAN - RET_AGE} years in retirement`, `Age ${RET_AGE} to ${LIFESPAN}`],
                 ['Projection input hash', this.lastResult.inputHash || 'Unavailable', 'Shared by current path, solvers, screen results and this PDF'],
+                ['Projection output hash', this.lastResult.projection?.projectionHash || 'Unavailable', 'Identifies the exact deterministic projection result'],
+                ['Projection source', this.forwardProjection?.source || 'manual reverse mode', this.forwardProjection ? 'Imported forward projection' : 'No forward projection imported'],
             ],
             {
                 columnStyles: {
@@ -1434,13 +1475,13 @@ export class ReverseUI {
         // Current path — both income values are in today's dollars (same base year),
         // making the goal vs current comparison directly meaningful.
         // Nominal figures shown as context ("what that means in retirement-year $").
-        const nominalIncome = currentPath.sustainableIncomeToday *
+        const nominalIncome = (currentPath.swrReferenceIncomeToday ?? currentPath.sustainableIncomeToday) *
             Math.pow(1 + inflationRate, ytr);
         const nominalAssets = currentPath.totalAssetsNominal || 0;
         const todayAssets = nominalAssets > 0
             ? nominalAssets / Math.pow(1 + inflationRate, ytr)
             : 0;
-        safeText('rp-current-income', fmt(currentPath.sustainableIncomeToday) + '/year');
+        safeText('rp-current-income', fmt(currentPath.swrReferenceIncomeToday ?? currentPath.sustainableIncomeToday) + '/year');
         safeText('rp-swr-capacity', fmt(currentPath.swrCapacityToday) + '/year');
         safeText('rp-current-nominal', `≈ ${fmt(nominalIncome)}/year in ${retirementYear} dollars`);
         safeText('rp-current-assets', `${fmt(nominalAssets)} nominal (${fmt(todayAssets)} today's $)`);

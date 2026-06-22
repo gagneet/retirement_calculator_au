@@ -139,6 +139,75 @@ export const normaliseRate = (value, defaultValue = 0) => {
     return Math.abs(n) > 1 ? n / 100 : n;
 };
 
+export const RETURN_CEILING = 0.105;
+export const RETURN_OPTIMISTIC = 0.085;
+export const DECLINE_MAX = 0.02;
+export const DECLINE_DEFAULT = 0.0003;
+
+export const sanitiseReturnDeclineRate = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        return { value: DECLINE_DEFAULT, migrated: true, reason: 'missing_or_non_finite' };
+    }
+    if (parsed >= 0 && parsed <= DECLINE_MAX) {
+        return { value: parsed, migrated: false, reason: null };
+    }
+    // Legacy exports stored the UI percentage directly. For example, 0.2 meant
+    // 0.2%, not a 20 percentage-point annual decline. Migrate this known unit
+    // shape explicitly; larger values remain unsafe and are blocked downstream.
+    if (parsed > DECLINE_MAX && parsed <= 1) {
+        const converted = parsed / 100;
+        if (converted <= DECLINE_MAX) {
+            return { value: converted, migrated: true, reason: 'legacy_percent_to_decimal' };
+        }
+    }
+    return { value: parsed, migrated: false, reason: 'outside_supported_range' };
+};
+
+export const sanitiseInputs = (input = {}, config = {}) => {
+    const inputs = { ...input };
+    const warnings = [];
+    const flag = (field, from, to, severity, message) => {
+        inputs[field] = to;
+        warnings.push({ field, from, to, severity, message });
+    };
+    const rawDecline = inputs.returnDeclineRate;
+    const decline = sanitiseReturnDeclineRate(rawDecline);
+    if (decline.reason === 'legacy_percent_to_decimal') {
+        flag('returnDeclineRate', Number(rawDecline), decline.value, 'warning',
+            `Return decline ${rawDecline} was stored as a percentage; interpreted as ${(decline.value * 100).toFixed(2)}% per year.`);
+    } else if (decline.reason === 'missing_or_non_finite') {
+        flag('returnDeclineRate', rawDecline, decline.value, 'information',
+            `Return decline was missing or invalid; using ${(decline.value * 100).toFixed(2)}% per year.`);
+    } else if (decline.reason === 'outside_supported_range') {
+        warnings.push({ field: 'returnDeclineRate', from: rawDecline, to: rawDecline, severity: 'error',
+            message: `Return decline ${rawDecline} is outside the supported range and must be corrected before projection.` });
+    } else {
+        inputs.returnDeclineRate = decline.value;
+    }
+    for (const field of ['investmentReturn', 'superReturn', 'invReturn', 'superGrowth']) {
+        if (inputs[field] == null) continue;
+        const rate = normaliseRate(inputs[field], null);
+        if (rate == null) continue;
+        if (rate > RETURN_CEILING) {
+            const fallback = field.startsWith('super')
+                ? (config.DEFAULT_SUPER_RETURN ?? 0.075)
+                : (config.DEFAULT_EQUITY_RETURN ?? 0.065);
+            flag(field, rate, fallback, 'error',
+                `${field} ${(rate * 100).toFixed(1)}% exceeds the ${(RETURN_CEILING * 100).toFixed(1)}% plausibility ceiling; using ${(fallback * 100).toFixed(1)}%.`);
+        } else if (rate > RETURN_OPTIMISTIC) {
+            warnings.push({ field, from: rate, to: rate, severity: 'warning',
+                message: `${field} ${(rate * 100).toFixed(1)}% is optimistic for a long-run base case.` });
+        }
+    }
+    inputs.headlineScenarioMode = 'base';
+    if (!['base', 'baseline'].includes(inputs.scenarioMode || 'baseline')) {
+        warnings.push({ field: 'scenarioMode', from: inputs.scenarioMode, to: 'base', severity: 'warning',
+            message: `Headline projection uses the base scenario; '${inputs.scenarioMode}' remains available only for explicit comparisons.` });
+    }
+    return { inputs, warnings };
+};
+
 // ── Build the full defaultRates map from ENHANCED_CONFIG.DEFAULTS ─────────────
 
 /**
@@ -256,4 +325,4 @@ export const normaliseInputs = (rawInputs = {}) => {
     return result;
 };
 
-export default { normaliseInputs, normaliseRate };
+export default { normaliseInputs, normaliseRate, sanitiseInputs, sanitiseReturnDeclineRate };

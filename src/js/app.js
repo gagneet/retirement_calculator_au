@@ -122,7 +122,9 @@ const OVERSEAS_COUNTRY_PROFILE_KEY_MAP = {
     'malaysia': 'MALAYSIA',
     'philippines': 'PHILIPPINES',
     'vietnam': 'VIETNAM',
-    'usa': 'USA'
+    'uk': 'UNITED_KINGDOM',
+    'united_kingdom': 'UNITED_KINGDOM',
+    'usa': 'USA',
 };
 
 const PERCENTAGE_STORAGE_FIELD_IDS = new Set([
@@ -1388,6 +1390,7 @@ class RetirementCalculatorApp {
                     canonicalInput: this.currentProjection?.canonicalInput || null,
                     derivedCashflow: this.currentProjection?.derivedCashflow || null,
                     inputHash: this.currentProjection?.inputHash || null,
+                    projectionHash: this.currentProjection?.projectionHash || null,
                     policyVersion: this.currentProjection?.policyVersion || null,
                     diagnostics: this.currentProjection?.diagnostics || null,
                     warnings: this.currentProjection?.warnings || [],
@@ -2279,6 +2282,10 @@ class RetirementCalculatorApp {
         const inflationFactor = this.getInflationFactor(yearsToRetirement, inputs.inflation);
 
         safeSetHTML('summaryResults', `
+            <div class="p-3 bg-slate-50 rounded border border-slate-300" style="grid-column:1/-1">
+                <strong>Projection Quality Check</strong>
+                <div class="text-xs mt-1">Source: advanced · Input hash: ${this.currentProjection?.inputHash || '—'} · Projection hash: ${this.currentProjection?.projectionHash || '—'} · Scenario: ${this.currentProjection?.diagnostics?.scenarioMode || 'base'} · Return basis: nominal · Monte Carlo: ${this.currentMonteCarloResults ? 'run' : 'not run'} · Warnings: ${this.currentProjection?.diagnostics?.projectionQuality?.warnings?.length || 0} · Blocking issues: ${this.currentProjection?.diagnostics?.projectionQuality?.blockingIssues?.length || 0}</div>
+            </div>
             <div class="p-3 bg-blue-50 rounded flex justify-between">
                 <strong>Years to Retirement:</strong>
                 <span>${yearsToRetirement} <a href="#" class="show-calc-link" data-calc-id="yearsToRetirement">(show)</a></span>
@@ -2838,7 +2845,7 @@ class RetirementCalculatorApp {
         }
 
         const currentCashFlow = result.propertyHistory[0] || {};
-        const keepVsSellAnalysis = this.analyzeKeepVsSell(inputs);
+        const keepVsSellAnalysis = this.analyzeKeepVsSell(inputs, result.capitalLossPool || 0);
 
         propertyAnalysis.innerHTML = `
             <div class="property-card property-${currentCashFlow.netCashFlow > 0 ? 'positive' : 'negative'}">
@@ -5380,7 +5387,7 @@ class RetirementCalculatorApp {
     }
 
     // Analysis functions
-    analyzeKeepVsSell(inputs) {
+    analyzeKeepVsSell(inputs, capitalLossPool = 0) {
         if (!inputs.hasInvestmentProperty) return null;
 
         const yearsToSell = inputs.sellPropertyYears;
@@ -5393,7 +5400,7 @@ class RetirementCalculatorApp {
         const comparisonHorizon = Math.min(40, explicitHorizon);
 
         const evaluateSaleTiming = (saleYear) => {
-            const saleResult = this.simulator.calculatePropertySale(inputs, saleYear);
+            const saleResult = this.simulator.calculatePropertySale(inputs, saleYear, capitalLossPool);
             if (!saleResult) {
                 return null;
             }
@@ -6948,8 +6955,11 @@ class RetirementCalculatorApp {
     // Collect overseas configuration from form inputs
     collectOverseasConfig() {
         const residenceYearsRaw = getRawValue('australianResidenceYears', '');
+        const countryVal = safeGetSelectValue('overseasCountry', '');
+        const profileKey = OVERSEAS_COUNTRY_PROFILE_KEY_MAP[countryVal];
         return {
-            country: safeGetSelectValue('overseasCountry', ''),
+            country: countryVal,
+            destinationCountry: profileKey ? (COUNTRY_PROFILES[profileKey]?.name || countryVal) : countryVal,
             departureAge: parseInt(safeGetValue('overseasAge', 65)),
             returnFrequency: safeGetSelectValue('returnFrequency', 'annually'),
             maintainResidency: safeGetChecked('maintainResidency', false),

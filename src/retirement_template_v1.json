@@ -164,7 +164,7 @@
     "concessionalCapUsed": 0,
     "spouseContribution": 2000,
     "downsizeContribution": true,
-    "scenarioMode": "optimistic",
+    "scenarioMode": "baseline",
     "globalRiskFactor": 0,
     "extremeInflationProbability": 0.034,
     "propertyCrashProbability": 0.0412,

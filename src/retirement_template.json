@@ -133,7 +133,7 @@
     "pensionAssetCutoff": 1085000,
     "mcRuns": 16000,
     "returnVolatility": 16,
-    "scenarioMode": "optimistic",
+    "scenarioMode": "baseline",
     "enableShocks": true,
     "shockProbability": 3.2,
     "shockMagnitude": -12.5,

@@ -90,6 +90,15 @@ export function adaptAdvancedV2Input(input = {}) {
             investmentPropertyValue: input.ipValue,
             investmentPropertyLoan: input.ipLoan,
         },
+        debts: {
+            creditCardBalance: input.ccBalance,
+            creditCardRate: input.ccRate,
+            personalLoanBalance: input.personalLoan,
+            personalLoanRate: input.personalLoanRate,
+            carLoanBalance: input.carLoan,
+            carLoanRate: input.carLoanRate,
+            hecsBalance: input.hecsBalance,
+        },
         cashflow: {
             hasDetailedExpenses: hasExplicitSpend || spendEstimate !== null,
             spendingIsEstimated: !hasExplicitSpend,
@@ -120,6 +129,26 @@ export function adaptAdvancedV2Input(input = {}) {
             includeAgePension: input.includeAgePension !== false,
             pensionAssetThreshold: input.pensionAssetThreshold,
             pensionAssetCutoff: input.pensionAssetCutoff,
+            pensionIncomeThreshold: input.pensionIncomeThreshold,
+            agePensionMaxAnnual: isCouple ? input.pensionAnnualCouple : input.pensionAnnualSingle,
+        },
+        investmentProperty: {
+            purchasePrice: input.ipPurchasePrice,
+            purchaseYear: input.ipPurchaseYear,
+            loanType: input.ipLoanType,
+            interestRate: input.ipRate,
+            weeklyRentalIncome: input.ipWeeklyRent,
+            annualOperatingExpenses: input.ipAnnualExpenses,
+            annualStrataLevy: input.ipStrataLevy,
+            annualLandTax: input.landTax,
+            vacancyRate: input.ipVacancyRate,
+            capitalGainsTaxRate: input.capitalGainsTaxRate,
+            state: input.ipState,
+            type: input.ipType,
+        },
+        healthAndAgedCare: {
+            currentAnnualHealthcareCosts: input.healthcareCost,
+            healthcareInflationRate: input.healthcareInflation,
         },
         scenarioToggles: {
             includeSuper: true,
@@ -131,9 +160,12 @@ export function adaptAdvancedV2Input(input = {}) {
         },
         assumptions: {
             inflationRate: input.inflation,
+            wageGrowthRate: input.salaryGrowthRate,
             superReturnRate: input.superGrowth,
             investmentReturnRate: input.invReturn,
             propertyGrowthRate: input.ipGrowthRate,
+            returnDeclineRate: input.returnDeclineRate,
+            scenarioMode: input.scenarioMode,
         },
     });
 }

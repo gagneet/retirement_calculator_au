@@ -2,6 +2,7 @@
 
 import { formatCurrency, formatPercent, updateProgress } from './utils.js';
 import RetirementSimulator from './simulator.js';
+import { buildInvestmentPropertyPosition } from './calculation/investment-property-position.js';
 
 // ─── Source references used in recommendations ────────────────────────────────
 const SOURCE_MAP = {
@@ -25,6 +26,62 @@ const ADVICE_MAP = {
   'Overseas':            'Confirm Age Pension portability with Services Australia before relocating. Seek tax residency advice from an Australian tax adviser and the destination country.',
   'General':             'Consider speaking with a licensed financial adviser or your super fund for personal advice tailored to your circumstances.',
 };
+
+export function firstDepletionAge(yearly = [], startAge = 0) {
+    const depleted = yearly.find((entry) => entry?.depleted
+        || Number(entry?.endBalance ?? entry?.totalAssets ?? entry?.balance) <= 0);
+    if (!depleted) return null;
+    return Number.isFinite(Number(depleted.age)) ? Number(depleted.age)
+        : startAge + Math.max(0, yearly.indexOf(depleted));
+}
+
+export function amountAtRisk(yearly = [], inflation = 0) {
+    return yearly.reduce((total, entry, index) => {
+        const shortfall = Math.max(0, Number(entry?.shortfall
+            ?? entry?.spendingShortfall
+            ?? entry?.unfundedSpending
+            ?? 0));
+        const yearsAhead = Number.isFinite(Number(entry?.yearsAhead)) ? Number(entry.yearsAhead) : index;
+        return total + shortfall / Math.pow(1 + Math.max(0, Number(inflation) || 0), yearsAhead);
+    }, 0);
+}
+
+export function classifyRecommendation(metrics = {}, isEducational = false) {
+    if (isEducational) return 'educational_only';
+    const successDelta = Number(metrics.successRateDelta) || 0;
+    const balanceDelta = Number(metrics.finalBalanceDelta) || 0;
+    const baseDepletion = metrics.baselineDepletionAge;
+    const scenarioDepletion = metrics.scenarioDepletionAge;
+    const depletionImproved = baseDepletion != null
+        && (scenarioDepletion == null || scenarioDepletion > baseDepletion);
+    const depletionWorsened = baseDepletion == null
+        ? scenarioDepletion != null
+        : scenarioDepletion != null && scenarioDepletion < baseDepletion;
+    const downsideImproved = (Number(metrics.scenarioP10FinalBalance) || 0)
+        > (Number(metrics.baselineP10FinalBalance) || 0);
+    const riskImproved = successDelta > 0.001 || depletionImproved || downsideImproved;
+    const riskWorsened = successDelta < -0.001 || depletionWorsened;
+    if (balanceDelta > 0 && !riskWorsened) return 'recommended';
+    if (balanceDelta < 0 && riskImproved) return 'trade_off';
+    if (balanceDelta < 0 && !riskImproved) return 'not_recommended';
+    return riskWorsened ? 'not_recommended' : 'neutral';
+}
+
+export function riskRank(a = {}, b = {}) {
+    const successA = a.band?.successRate;
+    const successB = b.band?.successRate;
+    if (successA != null && successB != null && successA !== successB) return successB - successA;
+    const depletionA = a.band?.depletionAge ?? Infinity;
+    const depletionB = b.band?.depletionAge ?? Infinity;
+    if (depletionA !== depletionB) return depletionB - depletionA;
+    const downsideA = a.band?.p10FinalBalance;
+    const downsideB = b.band?.p10FinalBalance;
+    if (downsideA != null && downsideB != null && downsideA !== downsideB) return downsideB - downsideA;
+    const riskA = a.band?.amountAtRisk;
+    const riskB = b.band?.amountAtRisk;
+    if (riskA != null && riskB != null && riskA !== riskB) return riskA - riskB;
+    return (b.band?.balanceDelta ?? 0) - (a.band?.balanceDelta ?? 0);
+}
 
 /**
  * Cap a raw recommendation balance delta to a plausible display range.
@@ -314,9 +371,9 @@ class RecommendationEngine {
         const propertyLoan = this.baseInputs.investmentPropertyLoan || 0;
         const weeklyRent = this.baseInputs.weeklyRentalIncome || 500;
         const annualRent = weeklyRent * 52;
-        const annualExpenses = this.baseInputs.annualPropertyExpenses || 5000;
-        const netAnnualIncome = annualRent - annualExpenses;
-        const netEquity = propertyValue - propertyLoan;
+        const propertyPosition = buildInvestmentPropertyPosition(this.baseInputs);
+        const netAnnualIncome = propertyPosition.annualNetCashflowBeforeTax;
+        const netEquity = propertyPosition.currentEquity;
 
         // Get cash flow analysis to understand property's impact on overall finances
         const cashFlowAnalysis = this.simulator.calculateCashFlowAnalysis(this.baseInputs);
@@ -324,21 +381,25 @@ class RecommendationEngine {
 
         // Scenario 1: Sell property immediately if negative gearing is straining cash flow
         if (netAnnualIncome < 0 && monthlyDisposableIncome < 500) {
-            const saleProceeds = netEquity * 0.95; // Account for selling costs
+            const saleProceeds = propertyPosition.netSaleProceedsToday;
             const monthlyCashFlowImprovement = Math.abs(netAnnualIncome) / 12;
 
             scenarios.push({
                 name: "Sell Investment Property Immediately",
-                description: `Property is negatively geared (costing $${Math.abs(netAnnualIncome).toLocaleString()}/year) while you have limited cash flow. **Impact: POSITIVE** - Immediate cash flow relief of $${Math.round(monthlyCashFlowImprovement)}/month. **Risk: LOW** - Eliminates property management and concentration risk. **Timeline: Immediate (2025)** - Sale can occur within 30-90 days, providing instant financial relief.`,
+                description: saleProceeds >= 0
+                    ? `Property cashflow is negative by ${formatCurrency(Math.abs(netAnnualIncome))}/year. Selling may improve monthly liquidity but gives up future property exposure.`
+                    : `Property cashflow is negative by ${formatCurrency(Math.abs(netAnnualIncome))}/year, but selling now requires ${formatCurrency(propertyPosition.cashRequiredToSellToday)} cash to discharge the loan and costs.`,
                 modifications: {
                     hasInvestmentProperty: false,
-                    currentStocks: this.baseInputs.currentStocks + saleProceeds
+                    // Clamp to zero: a negative-equity sale produces no reinvestable capital.
+                    // Adding a negative value would corrupt the portfolio balance in the sim.
+                    currentStocks: this.baseInputs.currentStocks + Math.max(0, saleProceeds)
                 },
                 feasibility: "Immediate Cash Flow Relief",
                 factorsChanged: [
                     `Eliminates negative gearing cost: $${Math.abs(netAnnualIncome).toLocaleString()}/year`,
                     `Monthly cash flow improvement: $${Math.round(monthlyCashFlowImprovement)}`,
-                    `Sale proceeds for diversified investments: $${saleProceeds.toLocaleString()}`,
+                    saleProceeds >= 0 ? `Sale proceeds for diversified investments: ${formatCurrency(saleProceeds)}` : `Settlement cash required: ${formatCurrency(propertyPosition.cashRequiredToSellToday)}`,
                     `Reduces investment concentration risk`,
                     `Eliminates property management burden`
                 ]
@@ -594,20 +655,23 @@ class RecommendationEngine {
             if (this.baseInputs.hasInvestmentProperty || this.baseInputs.currentStocks > 50000) {
 
                 if (this.baseInputs.hasInvestmentProperty) {
-                    const propertyValue = this.baseInputs.investmentPropertyValue || 600000;
-                    const propertyLoan = this.baseInputs.investmentPropertyLoan || 0;
-                    const netProceeds = propertyValue - propertyLoan;
+                    const propertyPosition = buildInvestmentPropertyPosition(this.baseInputs);
+                    const netProceeds = propertyPosition.netSaleProceedsToday;
                     const additionalMonthly = Math.round((netProceeds * 0.05) / 12); // 5% withdrawal rate monthly
 
                     scenarios.push({
                         name: "Sell Investment Property for Super Boost",
-                        description: `With limited cash flow ($${Math.round(monthlyDisposableIncome)}/month), sell investment property to fund retirement savings.`,
-                        modifications: { hasInvestmentProperty: false, currentStocks: this.baseInputs.currentStocks + netProceeds },
+                        description: netProceeds >= 0
+                            ? `With limited cash flow ($${Math.round(monthlyDisposableIncome)}/month), selling the property may improve liquidity after costs.`
+                            : `Selling requires a ${formatCurrency(propertyPosition.cashRequiredToSellToday)} cash call after estimated costs. Treat this only as a cashflow-risk trade-off.`,
+                        // Clamp to zero: negative netProceeds (underwater IP) must not reduce
+                        // the stock portfolio — the cash-call cost is a separate liability.
+                        modifications: { hasInvestmentProperty: false, currentStocks: this.baseInputs.currentStocks + Math.max(0, netProceeds) },
                         feasibility: "Major Financial Restructure",
                         factorsChanged: [
                             `Eliminates property management and loan payments`,
-                            `Adds $${netProceeds.toLocaleString()} to investment portfolio`,
-                            `Potential monthly income boost: $${additionalMonthly}`,
+                            netProceeds >= 0 ? `Adds ${formatCurrency(netProceeds)} to the investment portfolio` : `Requires ${formatCurrency(propertyPosition.cashRequiredToSellToday)} cash to settle`,
+                            netProceeds >= 0 ? `Potential monthly income boost: $${additionalMonthly}` : 'No capital-gain benefit from sale',
                             `Removes property concentration risk`,
                             `Increases liquidity for retirement needs`
                         ]
@@ -2051,10 +2115,7 @@ class RecommendationEngine {
         // The first result is always the baseline
         const baseResult = comparisonResults[0];
 
-        // Sort scenarios by the biggest improvement in success rate
-        const sortedScenarios = comparisonResults.slice(1).sort((a, b) => {
-            return b.successRate - a.successRate;
-        });
+        const sortedScenarios = comparisonResults.slice(1);
 
         for (const scenario of sortedScenarios) {
             const recommendation = this._createRecommendation(scenario, baseResult);
@@ -2063,7 +2124,7 @@ class RecommendationEngine {
             }
         }
 
-        return recommendations;
+        return recommendations.sort(riskRank);
     }
 
     buildSalarySacrificeModifications(additionalAnnualAmount) {
@@ -2116,6 +2177,34 @@ class RecommendationEngine {
 
         // TASK-007: Cap the displayed balance delta via the exported capRecommendationDelta helper.
         const balanceDiff = capRecommendationDelta(rawBalanceDiff, baseResult.medianBalance);
+        const baseYearly = baseResult.deterministicResult?.yearlyData || [];
+        const scenarioYearly = scenario.deterministicResult?.yearlyData || [];
+        const startAge = Number(this.baseInputs.yourCurrentAge || this.baseInputs.currentAge || 0);
+        const inflation = Number(this.baseInputs.inflation || 0);
+        const baselineDepletionAge = firstDepletionAge(baseYearly, startAge);
+        const scenarioDepletionAge = firstDepletionAge(scenarioYearly, startAge);
+        const baselineP10FinalBalance = baseResult.monteCarloResult?.percentile10
+            ?? baseResult.percentile10 ?? null;
+        const scenarioP10FinalBalance = scenario.monteCarloResult?.percentile10
+            ?? scenario.percentile10 ?? null;
+        const baselineAmountAtRisk = amountAtRisk(baseYearly, inflation);
+        const scenarioAmountAtRisk = amountAtRisk(scenarioYearly, inflation);
+        const structuredMetrics = {
+            baselineFinalBalance: baseResult.medianBalance,
+            scenarioFinalBalance: scenario.medianBalance,
+            finalBalanceDelta: balanceDiff,
+            baselineSuccessRate: baseResult.successRate,
+            scenarioSuccessRate: scenario.successRate,
+            successRateDelta: successDiff,
+            baselineDepletionAge,
+            scenarioDepletionAge,
+            baselineP10FinalBalance,
+            scenarioP10FinalBalance,
+            baselineAmountAtRisk,
+            scenarioAmountAtRisk,
+            amountAtRiskDelta: scenarioAmountAtRisk - baselineAmountAtRisk,
+        };
+        const recommendationStatus = classifyRecommendation(structuredMetrics, scenario.isScenario);
 
         // Ignore scenarios that don't make a meaningful difference
         if (Math.abs(successDiff) < 0.01 && Math.abs(balanceDiff) < 10000) {
@@ -2129,7 +2218,9 @@ class RecommendationEngine {
         let feasibility = scenario.feasibility || "Standard Strategy";
         let factorsChanged = scenario.factorsChanged || [];
 
-        if (successDiff > 0.05) impact = "high-positive";
+        if (recommendationStatus === 'trade_off') impact = 'neutral';
+        else if (recommendationStatus === 'not_recommended') impact = 'negative';
+        else if (successDiff > 0.05) impact = "high-positive";
         else if (successDiff > 0) impact = "positive";
         else if (successDiff < -0.05) impact = "high-negative";
         else if (successDiff < 0) impact = "negative";
@@ -2206,7 +2297,9 @@ class RecommendationEngine {
                 ? `Success rate change: ${successDiff > 0 ? '+' : ''}${formatPercent(successDiff, 1)}`
                 : null,
             estimatedImpact: balanceDiff !== 0
-                ? `Estimated balance difference at retirement: ${balanceDiff > 0 ? '+' : ''}${formatCurrency(balanceDiff)}`
+                ? (balanceDiff < 0 && successDiff === 0 && baselineDepletionAge === scenarioDepletionAge
+                    ? `No change to depletion risk; forgoes ${formatCurrency(-balanceDiff)} of terminal balance.`
+                    : `Estimated terminal balance difference: ${balanceDiff > 0 ? '+' : ''}${formatCurrency(balanceDiff)}`)
                 : null,
             assumptionsUsed: scenario.factorsChanged?.join('; ') || null,
             actions,
@@ -2226,6 +2319,20 @@ class RecommendationEngine {
             medianBalance: scenario.medianBalance,
             successRateDiff: successDiff,
             medianBalanceDiff: balanceDiff,
+            ...structuredMetrics,
+            recommendationStatus,
+            objective: category === 'Investment Property' ? 'improve_liquidity'
+                : category === 'Home Ownership' ? 'reduce_debt'
+                    : category === 'Contributions' ? 'increase_estate'
+                        : category === 'Investment Strategy' ? 'reduce_depletion_risk'
+                            : 'tax_optimisation',
+            band: {
+                depletionAge: scenarioDepletionAge,
+                amountAtRisk: scenarioAmountAtRisk,
+                successRate: scenario.successRate ?? null,
+                p10FinalBalance: scenarioP10FinalBalance,
+                balanceDelta: balanceDiff,
+            },
         };
     }
 

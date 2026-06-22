@@ -105,6 +105,8 @@ const COUNTRY_CODE_MAP = {
   nz: 'NEW_ZEALAND',
   japan: 'JAPAN',
   india: 'INDIA',
+  uk: 'UNITED_KINGDOM',
+  united_kingdom: 'UNITED_KINGDOM',
   usa: 'USA',
   thailand: 'THAILAND',
   vietnam: 'VIETNAM',
@@ -493,6 +495,9 @@ function buildEngineInputs(inp) {
     investmentPropertyValue: inp.ipValue,
     investmentPropertyLoan: inp.ipLoan,
     investmentPropertyRate,
+    investmentPropertyPurchasePrice: inp.ipPurchasePrice || inp.ipValue,
+    investmentPropertyPurchaseYear: inp.ipPurchaseYear || null,
+    investmentPropertyLoanType: inp.ipLoanType || 'pi',
     weeklyRentalIncome: inp.ipWeeklyRent,
     annualPropertyExpenses: inp.ipAnnualExpenses,
     // strataLevy is stored separately from annualPropertyExpenses so the engine
@@ -502,13 +507,14 @@ function buildEngineInputs(inp) {
     propertyGrowthRate: pct(inp.ipGrowthRate || DEFAULTS.property.propertyGrowthRate, DEFAULTS.property.propertyGrowthRate),
     propertyState: inp.ipState || '',
     landTax: deriveLandTax(inp),
+    vacancyRate: pct(inp.ipVacancyRate ?? 4, 4),
     sellPropertyYears: DEFAULTS.property.sellPropertyYears,
-    capitalGainsTaxRate: pct(DEFAULTS.property.capitalGainsTaxRate, DEFAULTS.property.capitalGainsTaxRate),
+    capitalGainsTaxRate: pct(inp.capitalGainsTaxRate ?? 23.5, 23.5),
 
     hasPrivateHealthCover: inp.hasPrivateHospital,
     ageFirstPrivateCover: inp.ageFirstHadCover || null,
     currentHealthcareCosts: inp.healthcareCost,
-    healthcareInflation: pct(DEFAULTS.healthcare.healthcareInflation, DEFAULTS.healthcare.healthcareInflation),
+    healthcareInflation: pct(inp.healthcareInflation ?? 5.5, 5.5),
     healthCondition: inp.healthCondition || 'good',
     agedCareProbability: pct(inp.agedCareProbability || DEFAULTS.healthcare.agedCareProbability, DEFAULTS.healthcare.agedCareProbability),
     agedCareStartAge: inp.agedCareStartAge,
@@ -522,19 +528,17 @@ function buildEngineInputs(inp) {
     agePensionMax,
     pensionAssetThreshold,
     pensionAssetLimit,
-    pensionIncomeThreshold: isCouple ? ENHANCED_CONFIG.COUPLE_INCOME_THRESHOLD : ENHANCED_CONFIG.SINGLE_INCOME_THRESHOLD,
+    pensionIncomeThreshold: inp.pensionIncomeThreshold || (isCouple ? ENHANCED_CONFIG.COUPLE_INCOME_THRESHOLD : ENHANCED_CONFIG.SINGLE_INCOME_THRESHOLD),
 
     inflation: pct(inp.inflation || DEFAULTS.economic.inflation, DEFAULTS.economic.inflation),
     investmentReturn: pct(inp.invReturn || DEFAULTS.economic.investmentReturn, DEFAULTS.economic.investmentReturn),
-    // DEFAULTS.economic.returnDeclineRate is stored as a display-percentage (e.g. 0.2 for 0.2%)
-    // but pct() only divides values > 1 by 100, so 0.2 would pass through unchanged as 20%/yr.
-    // Explicit /100 ensures we get the correct decimal: 0.2 / 100 = 0.002 = 0.2%/yr.
-    returnDeclineRate: DEFAULTS.economic.returnDeclineRate / 100,
+    // UI value is percentage points per year: 0.03 means 0.03%, or 0.0003 decimal.
+    returnDeclineRate: (inp.returnDeclineRate ?? 0.03) / 100,
     savingsReturn: pct(inp.savingsReturn || DEFAULTS.economic.savingsReturn, DEFAULTS.economic.savingsReturn),
     superReturn: pct(inp.superGrowth || DEFAULTS.economic.superReturn, DEFAULTS.economic.superReturn),
     employerSuperContributionRate: employerContributionRate,
     superContributionRate: employerContributionRate,
-    salaryGrowthRate: pct(DEFAULTS.economic.salaryGrowthRate, DEFAULTS.economic.salaryGrowthRate),
+    salaryGrowthRate: pct(inp.salaryGrowthRate ?? 2, 2),
     leanYearsStart: DEFAULTS.economic.leanYearsStart,
     leanYearsReduction: pct(DEFAULTS.economic.leanYearsReduction, DEFAULTS.economic.leanYearsReduction),
 
@@ -1153,6 +1157,7 @@ function readInputs() {
     homeValue: num('homeValue'),
     mortgage: num('mortgage'),
     mortgageRate: num('mortgageRate'),
+    monthlyMortgagePayment: num('monthlyMortgagePayment'),
     downsizePlan: (document.querySelector('[data-bind="downsizePlan"]') || {}).dataset?.value || 'no',
     downsizeAge: num('downsizeAge', 75),
     downsizeTargetHomeValue: num('downsizeTargetHomeValue', 800000),
@@ -1171,11 +1176,16 @@ function readInputs() {
     ipValue: num('ipValue'),
     ipLoan: num('ipLoan'),
     ipRate: num('ipRate', DEFAULTS.property.investmentPropertyRate),
+    ipPurchasePrice: num('ipPurchasePrice'),
+    ipPurchaseYear: num('ipPurchaseYear', null),
+    ipLoanType: val('ipLoanType', 'pi'),
+    capitalGainsTaxRate: num('capitalGainsTaxRate', 23.5),
     ipWeeklyRent: num('ipWeeklyRent'),
     ipAnnualExpenses: num('ipAnnualExpenses'),
     landTax: num('landTax'),
     ipGrowthRate: num('ipGrowthRate'),
     ipState: val('ipState'),
+    ipVacancyRate: num('ipVacancyRate', 4),
 
     // SMSF & Trust
     hasSmsf: chk('hasSmsf'),
@@ -1232,6 +1242,7 @@ function readInputs() {
     hasPrivateHospital: chk('hasPrivateHospital'),
     healthCondition: val('healthCondition'),
     healthcareCost: num('healthcareCost'),
+    healthcareInflation: num('healthcareInflation', 5.5),
     ageFirstHadCover: num('ageFirstHadCover'),
     homeModAge: num('homeModAge', 75),
     homeModBudget: num('homeModBudget', 20000),
@@ -1260,6 +1271,8 @@ function readInputs() {
     invReturn: num('invReturn', 6.5),
     superGrowth: num('superGrowth', 7.5),
     savingsReturn: num('savingsReturn', 1.4),
+    salaryGrowthRate: num('salaryGrowthRate', 2),
+    returnDeclineRate: num('returnDeclineRate', 0.03),
 
     // Pension
     agePensionAge: num('agePensionAge', 67),
@@ -1267,6 +1280,7 @@ function readInputs() {
     pensionAnnualCouple: num('pensionAnnualCouple', 47070),
     pensionAssetThreshold: num('pensionAssetThreshold', getHouseholdPensionDefaults(household).threshold),
     pensionAssetCutoff: num('pensionAssetCutoff', getHouseholdPensionDefaults(household).cutoff),
+    pensionIncomeThreshold: num('pensionIncomeThreshold', household === 'couple' ? 380 : 212),
 
     // Simulation
     mcRuns: (() => {
@@ -1354,6 +1368,7 @@ function computeBaseState(inp = null) {
     canonicalInput: projection.canonicalInput,
     derivedCashflow: projection.derivedCashflow,
     inputHash: projection.inputHash,
+    projectionHash: projection.projectionHash,
     policyVersion: projection.policyVersion,
     diagnostics: projection.diagnostics,
     warnings: projection.warnings,
@@ -1535,6 +1550,7 @@ function buildExportAppBridge() {
     currentRiskProfile: APP_STATE.riskProfile,
     currentAllocationStrategy: APP_STATE.allocationStrategy,
     currentOverseasData: APP_STATE.overseasExportData,
+    currentProjection: APP_STATE.projection,
     // Plain-English narrative text for PDF
     plainEnglishNarrative: APP_STATE.adaptedResult && APP_STATE.input
       ? buildPlainEnglishNarrativeText(APP_STATE.adaptedResult, APP_STATE.input, APP_STATE.monteCarloResults)
@@ -1741,6 +1757,7 @@ function normalizeImportedUserData(userData = {}) {
     homeValue: userData.homeValue ?? base.homeValue,
     mortgage: userData.mortgageBalance ?? base.mortgage,
     mortgageRate: userData.mortgageRate !== undefined ? toDisplayPercent(userData.mortgageRate) : base.mortgageRate,
+    monthlyMortgagePayment: userData.monthlyMortgagePayment ?? base.monthlyMortgagePayment,
     downsizePlan: userData.planToDownsize === undefined ? base.downsizePlan : (userData.planToDownsize ? 'yes' : 'no'),
     ccBalance: userData.creditCardBalance ?? base.ccBalance,
     ccRate: userData.creditCardRate !== undefined ? toDisplayPercent(userData.creditCardRate) : base.ccRate,
@@ -1753,17 +1770,23 @@ function normalizeImportedUserData(userData = {}) {
     ipValue: userData.investmentPropertyValue ?? base.ipValue,
     ipLoan: userData.investmentPropertyLoan ?? base.ipLoan,
     ipRate: userData.investmentPropertyRate !== undefined ? toDisplayPercent(userData.investmentPropertyRate) : base.ipRate,
+    ipPurchasePrice: userData.investmentPropertyPurchasePrice ?? base.ipPurchasePrice,
+    ipPurchaseYear: userData.investmentPropertyPurchaseYear ?? base.ipPurchaseYear,
+    ipLoanType: userData.investmentPropertyLoanType ?? base.ipLoanType,
+    capitalGainsTaxRate: userData.capitalGainsTaxRate !== undefined ? toDisplayPercent(userData.capitalGainsTaxRate) : base.capitalGainsTaxRate,
     ipWeeklyRent: userData.weeklyRentalIncome ?? base.ipWeeklyRent,
     ipAnnualExpenses: userData.annualPropertyExpenses ?? base.ipAnnualExpenses,
     landTax: userData.landTax ?? base.landTax,
     ipGrowthRate: userData.propertyGrowthRate !== undefined ? toDisplayPercent(userData.propertyGrowthRate) : base.ipGrowthRate,
     ipState: userData.propertyState ?? base.ipState,
+    ipVacancyRate: userData.vacancyRate !== undefined ? toDisplayPercent(userData.vacancyRate) : base.ipVacancyRate,
     hasSmsf: Boolean(userData.hasSMSF ?? base.hasSmsf),
     hasTrust: Boolean(userData.hasTrustAssets ?? base.hasTrust),
     desiredIncome: userData.targetRetirementIncome ?? userData.asfaComfortable ?? base.desiredIncome,
     hasPrivateHospital: Boolean(userData.hasPrivateHealthCover ?? base.hasPrivateHospital),
     healthCondition: userData.healthCondition ?? base.healthCondition,
     healthcareCost: userData.currentHealthcareCosts ?? base.healthcareCost,
+    healthcareInflation: userData.healthcareInflation !== undefined ? toDisplayPercent(userData.healthcareInflation) : base.healthcareInflation,
     ageFirstHadCover: userData.ageFirstPrivateCover ?? base.ageFirstHadCover,
     agedCareProbability: userData.agedCareProbability !== undefined ? toDisplayPercent(userData.agedCareProbability) : base.agedCareProbability,
     agedCareStartAge: userData.agedCareStartAge ?? base.agedCareStartAge,
@@ -1772,10 +1795,17 @@ function normalizeImportedUserData(userData = {}) {
     invReturn: userData.investmentReturn !== undefined ? toDisplayPercent(userData.investmentReturn) : base.invReturn,
     superGrowth: userData.superReturn !== undefined ? toDisplayPercent(userData.superReturn) : base.superGrowth,
     savingsReturn: userData.savingsReturn !== undefined ? toDisplayPercent(userData.savingsReturn) : base.savingsReturn,
+    salaryGrowthRate: userData.salaryGrowthRate !== undefined ? toDisplayPercent(userData.salaryGrowthRate) : base.salaryGrowthRate,
+    // userData.returnDeclineRate is assumed to be in decimal engine form (e.g. 0.002 for 0.2%/yr),
+    // as exported by the classic calculator. toDisplayPercent converts it to display-% for the form.
+    // If a future export ever stores display-% (e.g. 0.2), toDisplayPercent would amplify it 100×.
+    // sanitiseReturnDeclineRate in the engine pipeline detects values > DECLINE_MAX and corrects them.
+    returnDeclineRate: userData.returnDeclineRate !== undefined ? toDisplayPercent(userData.returnDeclineRate) : base.returnDeclineRate,
     agePensionAge: userData.agePensionAge ?? base.agePensionAge,
     [annualPensionField]: userData.agePensionMax ?? base[annualPensionField],
     pensionAssetThreshold: userData.pensionAssetThreshold ?? base.pensionAssetThreshold,
     pensionAssetCutoff: userData.pensionAssetLimit ?? base.pensionAssetCutoff,
+    pensionIncomeThreshold: userData.pensionIncomeThreshold ?? base.pensionIncomeThreshold,
     mcRuns: userData.numRuns ?? userData.mcRuns ?? base.mcRuns,
     returnVolatility: userData.returnVolatility !== undefined ? toDisplayPercent(userData.returnVolatility) : base.returnVolatility,
     scenarioMode: userData.scenarioMode ?? base.scenarioMode,
@@ -1988,6 +2018,16 @@ function buildMonteCarloDashboard(mc, inp) {
   }
 
   const totalRuns = mc.totalRuns || mc.numRuns || (inp?.mcRuns) || '—';
+  // MC balances are at end-of-life, so deflate over the full span to lifespan (not retirementAge).
+  const horizonYears = Math.max(0, (inp?.lifespan || 90) - (inp?.age || 0));
+  const inflation = (inp?.inflation || 0) > 1 ? inp.inflation / 100 : (inp?.inflation || 0);
+  const p10Today = deflateToToday(mc.percentile10 || 0, horizonYears, inflation);
+  const medianToday = deflateToToday(mc.median || 0, horizonYears, inflation);
+  const p90Today = deflateToToday(mc.percentile90 || 0, horizonYears, inflation);
+  const mortgagePayoff = APP_STATE.simulation?.mortgagePayoffAge;
+  const downsideDepletion = Array.isArray(mc.yearlyPercentiles)
+    ? mc.yearlyPercentiles.find(entry => entry.p10 <= 0)?.yearIndex
+    : null;
 
   return `
     <div class="summary-chart" style="grid-column:1/-1">
@@ -2010,25 +2050,30 @@ function buildMonteCarloDashboard(mc, inp) {
           <div class="mc-sub">Probability of not running out</div>
         </div>
         <div class="mc-stat">
-          <div class="mc-k">Median balance</div>
-          <div class="mc-v">${fmt$(mc.median || 0, { compact: true })}</div>
-          <div class="mc-sub">50th percentile</div>
+          <div class="mc-k">Median balance (today's $)</div>
+          <div class="mc-v">${fmt$(medianToday, { compact: true })}</div>
+          <div class="mc-sub">50th percentile · nominal ${fmt$(mc.median || 0, { compact: true })}</div>
         </div>
         <div class="mc-stat" style="border-color:var(--rose-soft)">
           <div class="mc-k">10th percentile</div>
-          <div class="mc-v" style="color:var(--rose)">${fmt$(mc.percentile10 || 0, { compact: true })}</div>
-          <div class="mc-sub">Pessimistic (1-in-10)</div>
+          <div class="mc-v" style="color:var(--rose)">${fmt$(p10Today, { compact: true })}</div>
+          <div class="mc-sub">Today's $ · pessimistic (1-in-10)</div>
         </div>
         <div class="mc-stat" style="border-color:var(--accent-soft)">
           <div class="mc-k">90th percentile</div>
-          <div class="mc-v" style="color:var(--accent)">${fmt$(mc.percentile90 || 0, { compact: true })}</div>
-          <div class="mc-sub">Optimistic (9-in-10)</div>
+          <div class="mc-v" style="color:var(--accent)">${fmt$(p90Today, { compact: true })}</div>
+          <div class="mc-sub">Today's $ · optimistic (9-in-10)</div>
         </div>
         <div class="mc-stat" style="border-color:var(--rose-soft)">
           <div class="mc-k">Failure probability</div>
           <div class="mc-v" style="color:var(--rose)">${failPct.toFixed(1)}%</div>
           <div class="mc-sub">Risk of running out</div>
         </div>
+      </div>
+
+      <div style="margin-top:10px;font-size:12px;color:var(--ink-3)">
+        Outcome markers: ${mortgagePayoff ? `mortgage cleared at age ${mortgagePayoff}` : 'mortgage not cleared within the plan'} ·
+        ${downsideDepletion == null ? '10th-percentile path does not deplete' : `10th-percentile depletion around age ${(inp?.retireAge || 65) + downsideDepletion}`}
       </div>
 
       <p style="margin:12px 0 0;font-size:12.5px;color:var(--ink-3);line-height:1.6">${escapeHtml(narrative)}</p>
@@ -2510,6 +2555,24 @@ function buildSequenceOfReturnsCallout(mc, adaptedResult, inp) {
 
 function renderSummaryPanel() {
   const state = APP_STATE;
+  const projectionQuality = state.projection?.diagnostics?.projectionQuality || {
+    blockingIssues: [], warnings: [], information: [], valid: true,
+  };
+  const qualityBlock = `
+    <div class="summary-chart" style="grid-column:1/-1;border:${projectionQuality.valid ? '1px solid var(--border)' : '2px solid var(--danger)'}">
+      <h5>Projection Quality Check</h5>
+      <div class="mc-results-grid" style="margin-top:10px">
+        <div class="mc-stat"><div class="mc-k">Calculator source</div><div class="mc-v">advanced-v2</div></div>
+        <div class="mc-stat"><div class="mc-k">Input hash</div><div class="mc-v" style="font-size:12px">${escapeHtml(state.projection?.inputHash || '—')}</div></div>
+        <div class="mc-stat"><div class="mc-k">Projection hash</div><div class="mc-v" style="font-size:12px">${escapeHtml(state.projection?.projectionHash || '—')}</div></div>
+        <div class="mc-stat"><div class="mc-k">Scenario mode</div><div class="mc-v">${escapeHtml(state.projection?.diagnostics?.scenarioMode || 'base')}</div></div>
+        <div class="mc-stat"><div class="mc-k">Return basis</div><div class="mc-v">Nominal</div></div>
+        <div class="mc-stat"><div class="mc-k">Monte Carlo</div><div class="mc-v">${state.monteCarloResults ? 'Run' : 'Not run'}</div></div>
+        <div class="mc-stat"><div class="mc-k">Warnings</div><div class="mc-v">${projectionQuality.warnings?.length || 0}</div></div>
+        <div class="mc-stat"><div class="mc-k">Blocking issues</div><div class="mc-v">${projectionQuality.blockingIssues?.length || 0}</div></div>
+      </div>
+      ${(projectionQuality.warnings || []).length ? `<ul style="margin:10px 0 0 18px">${projectionQuality.warnings.map(item => `<li>${escapeHtml(item.message)}</li>`).join('')}</ul>` : ''}
+    </div>`;
 
   const bottomLine = document.getElementById('adv2-bottom-line');
   if (bottomLine) {
@@ -2645,6 +2708,7 @@ function renderSummaryPanel() {
 
   setPanelHtml('summary', `
     <div class="summary-grid">
+      ${qualityBlock}
       <div class="summary-chart">
         <h5>Plan summary</h5>
         <div class="desc">Live deterministic projection from the shared retirement simulator.</div>

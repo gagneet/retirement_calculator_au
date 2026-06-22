@@ -5,7 +5,9 @@ export function applyCanonicalCashflowToEngineInputs(
 ) {
     const engineInputs = {
         ...baseEngineInputs,
-        canonicalInputSchemaVersion: canonicalInput.schemaVersion,
+        canonicalInputSchemaVersion: derivedCashflow?.canAllocateSurplus
+            ? canonicalInput.schemaVersion
+            : 'calculator-input-v1',
     };
 
     if (!derivedCashflow?.canAllocateSurplus) return engineInputs;

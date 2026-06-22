@@ -1,7 +1,7 @@
 /**
  * Country Profiles for Overseas Retirement Analysis
  * Comprehensive data for popular retirement destinations for Australians
- * Last updated: October 2025
+ * Last updated: June 2026
  */
 
 export const COUNTRY_PROFILES = {
@@ -1262,14 +1262,14 @@ export const COUNTRY_PROFILES = {
             duration: '5 years renewable long-term',
             requirements: [
                 'Age 35+',
-                'Minimum offshore funds deposit: RM 1,000,000 (AUD ~$330k) for Silver Tier',
+                'Minimum fixed deposit: RM 1,500,000 (AUD ~$490k) for Silver Tier (raised 2024)',
                 'Monthly income: RM 40,000 (AUD ~$13k/month) for Platinum Tier',
                 'Health insurance with medical coverage in Malaysia',
                 'Clean criminal record'
             ],
             easeOfAccess: 'MODERATE',
             cost: 'RM 5,000 (AUD ~$1,600) + annual renewal',
-            note: 'Three tiers: Silver, Gold, Platinum with different requirements. Requirements increased significantly in 2021.'
+            note: 'Three tiers: Silver, Gold, Platinum. Silver tier fixed deposit raised to RM 1,500,000 in 2024. Requirements increased significantly since 2021.'
         },
 
         costOfLiving: {
