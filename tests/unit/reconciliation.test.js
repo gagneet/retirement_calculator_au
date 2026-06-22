@@ -1,8 +1,8 @@
 /**
  * reconciliation.test.js
- *
- * Regression oracle test to ensure engine projections (super-at-retirement and
- * total-assets-at-retirement) stay within a tolerance band of a closed-form
+ * 
+ * Regression oracle test to ensure engine projections (super-at-retirement and 
+ * total-assets-at-retirement) stay within a tolerance band of a closed-form 
  * independent accumulation.
  */
 
@@ -42,13 +42,13 @@ function runOracle({
 
     for (let y = 1; y <= years; y++) {
         const currentAge = startAge + y - 1;
-
+        
         // 1. Apply growth (start of year)
         balance *= (1 + growthRate);
 
         // 2. Handle annuity purchase (one-off lump sum deduction)
         if (annuityPurchaseAge !== null && currentAge === annuityPurchaseAge) {
-            // annuityLumpSum is in today's dollars in the JSON, but when buying
+            // annuityLumpSum is in today's dollars in the JSON, but when buying 
             // at age 67 it is inflated.
             const inflatedAnnuity = annuityLumpSum * Math.pow(1 + inflation, y - 1);
             balance -= inflatedAnnuity;
@@ -58,7 +58,7 @@ function runOracle({
         let currentSalary = (reducedIncomeAge && currentAge >= reducedIncomeAge)
             ? reducedSalary
             : salary;
-
+        
         // Oracle uses simple inflation for salary growth (nominal)
         currentSalary *= Math.pow(1 + inflation, y - 1);
 
@@ -66,18 +66,22 @@ function runOracle({
         const employerSG = Math.min(currentSalary * sgRate, 30000); // simplified cap
         const sacrifice = Math.min(voluntaryContrib, Math.max(0, concessionalCap - employerSG));
         const totalConcessional = employerSG + sacrifice;
-
+        
         // 5. Apply contributions tax and add to balance
         const netContrib = totalConcessional * (1 - taxRate);
         balance += netContrib;
     }
-
+    
     return balance;
 }
 
 describe('Engine Reconciliation vs Oracle', () => {
-
+    
     // Case 1: The Audit JSON Scenario (Complex)
+    // - Reduced income at 58
+    // - Annuity purchase at 67
+    // - Couple
+    // - High returns
     test('Audit JSON Scenario: Engine stays within 10% of Oracle', () => {
         const inputs = {
             household: 'couple',
@@ -100,12 +104,13 @@ describe('Engine Reconciliation vs Oracle', () => {
             enableAnnuity: true,
             annuityPurchaseAge: 67,
             annuityLumpSum: 200000,
-            scenarioMode: 'base',
-            mcRuns: 0
+            scenarioMode: 'base', // PINNED to base for stability
+            mcRuns: 0 // deterministic
         };
 
         const result = simulator.simulateRetirement(inputs, false);
-
+        
+        // Oracle for Person 1
         const oracle1 = runOracle({
             startSuper: 336330,
             salary: 235158,
@@ -119,12 +124,13 @@ describe('Engine Reconciliation vs Oracle', () => {
             inflation: 0.0258
         });
 
+        // Oracle for Person 2
         const oracle2 = runOracle({
             startSuper: 15120,
             salary: 41220,
             growthRate: 0.0832,
             years: 22,
-            startAge: 47,
+            startAge: 47, // his-49 is her-47
             reducedIncomeAge: 62,
             reducedSalary: 38000,
             voluntaryContrib: 2000,
@@ -135,24 +141,33 @@ describe('Engine Reconciliation vs Oracle', () => {
         const engineSuper = result.accumulatedSuperBalance;
 
         const diffPct = Math.abs(engineSuper - combinedOracleSuper) / combinedOracleSuper;
-
+        
         console.log(`[Audit Scenario] Oracle: $${combinedOracleSuper.toLocaleString()}, Engine: $${engineSuper.toLocaleString()}, Diff: ${(diffPct * 100).toFixed(2)}%`);
-
+        
+        // Current engine is known to be ~50% high, so this will FAIL until fixed.
         expect(diffPct).toBeLessThan(0.10);
     });
 
     // Case 2: Clean Baseline Persona (Simple)
+    // - No reduced income
+    // - No annuity
+    // - Single
+    // - Standard returns
     test('Baseline Persona: Engine stays within 5% of Oracle', () => {
+        // salaryGrowthRate pinned to 0 so oracle (fixed salary) and engine (no growth) are comparable.
+        // Without this pin, the engine default 2%/yr salary growth raises SG contributions by ~18%
+        // above the flat-salary oracle — not an engine bug, just an apples-to-oranges comparison.
         const inputs = {
             household: 'single',
             age: 45,
             retireAge: 65,
             lifespan: 90,
             salary: 100000,
+            salaryGrowthRate: 0,
             superBal: 150000,
             inflation: 2.5,
             superGrowth: 7.5,
-            invReturn: 8.0,
+            invReturn: 7.5,
             scenarioMode: 'base',
             mcRuns: 0
         };
@@ -172,7 +187,7 @@ describe('Engine Reconciliation vs Oracle', () => {
         const diffPct = Math.abs(engineSuper - oracle) / oracle;
 
         console.log(`[Baseline Scenario] Oracle: $${oracle.toLocaleString()}, Engine: $${engineSuper.toLocaleString()}, Diff: ${(diffPct * 100).toFixed(2)}%`);
-
+        
         expect(diffPct).toBeLessThan(0.05);
     });
 });

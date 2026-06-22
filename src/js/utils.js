@@ -273,7 +273,7 @@ export const formatCompact = (num) => {
 
 /**
  * Shared deflator function to convert a future (nominal) value to today's dollars.
- *
+ * 
  * @param {number} futureValue - nominal amount in future dollars
  * @param {number} yearsAhead  - number of years from today
  * @param {number} inflationRate - annual inflation rate as decimal (e.g. 0.025)

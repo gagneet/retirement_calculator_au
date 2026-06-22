@@ -243,7 +243,10 @@ describe('bisectionSolve with real simulator', () => {
 // ---------------------------------------------------------------------------
 
 describe('scoreScenario monotonicity', () => {
-    test('higher totalFinancialAssets gives higher sustainableIncomeToday', () => {
+    test('higher totalFinancialAssets gives higher swrCapacityToday', () => {
+        // sustainableIncomeToday now reflects plannedSpendingToday (actual modelled spend),
+        // which may not change with asset level. swrCapacityToday = assets × 4% + pension
+        // retains the strictly-monotone relationship with assets.
         const target = { targetAnnualIncomeToday: 50000 };
         const ytr = 20;
 
@@ -253,7 +256,7 @@ describe('scoreScenario monotonicity', () => {
         const lowScore = scoreScenario(lowResult, target, 0.026, ytr, 0.04);
         const highScore = scoreScenario(highResult, target, 0.026, ytr, 0.04);
 
-        expect(highScore.sustainableIncomeToday).toBeGreaterThan(lowScore.sustainableIncomeToday);
+        expect(highScore.swrCapacityToday).toBeGreaterThan(lowScore.swrCapacityToday);
     });
 });
 

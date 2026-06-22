@@ -324,20 +324,32 @@ export class RetirementSimulator {
         let essentialBase = inputs.asfaComfortable * 0.7 * inflationFactor;
         let lifestyleBase = (inputs.asfaComfortable * 0.3 * inflationFactor) + (travelHobbyBase * inflationFactor);
 
+        // Survivor spending adjustment logic
+        const isSurvivor = (inputs.isCouple === false && inputs.household === 'couple');
+
         try {
             const { housingExpense, livingExpense, mortgagePayment } = this.extractBaseExpensesFromCashFlow(inputs);
             const retirementHousing = Math.max(housingExpense * 0.7, housingExpense - mortgagePayment);
             const retirementLiving = livingExpense * 0.9;
+
+            // Model survivor spend as fixed_costs + 0.5 × variable_costs.
+            // Housing is fixed; living is variable.
+            const livingAdjustment = isSurvivor ? 0.5 : 1.0;
+
             const baseAnnualHousing = retirementHousing * ENHANCED_CONFIG.MONTHS_IN_YEAR * inflationFactor;
-            const baseAnnualLiving = retirementLiving * ENHANCED_CONFIG.MONTHS_IN_YEAR * inflationFactor;
+            const baseAnnualLiving = retirementLiving * livingAdjustment * ENHANCED_CONFIG.MONTHS_IN_YEAR * inflationFactor;
+
+            // ASFA also has single vs couple rates.
+            // ASFA Comfortable 2024: Couple ~$72,143, Single ~$51,278. Ratio ~0.71.
+            const asfaBase = isSurvivor ? (inputs.asfaComfortable * 0.71) : inputs.asfaComfortable;
 
             essentialBase = Math.max(
                 baseAnnualHousing + (baseAnnualLiving * 0.7),
-                inputs.asfaComfortable * 0.6 * inflationFactor
+                asfaBase * 0.6 * inflationFactor
             );
             lifestyleBase = Math.max(
                 0,
-                (baseAnnualLiving * 0.3) + (travelHobbyBase * inflationFactor)
+                (baseAnnualLiving * 0.3) + (travelHobbyBase * (isSurvivor ? 0.67 : 1.0) * inflationFactor)
             );
         } catch (error) {
             console.warn('Retirement spending plan fallback to ASFA baseline:', error);
@@ -1592,6 +1604,15 @@ export class RetirementSimulator {
                 }
             }
 
+            // Stop accumulation phase when the primary person reaches retirement.
+            // This must happen BEFORE any growth/contribution calculation below so the
+            // retirement loop is not double-charged an extra year of compounding on the
+            // opening super balance.  The retirement loop owns all growth and withdrawals
+            // from retirementAge onward.
+            if (yourCurrentAge > inputs.retirementAge) {
+                break;
+            }
+
             // Per-year inflation draw: each accumulation year draws a fresh rate from
             // stochasticRate() centred on the user's input (median).  The cumulative
             // factor replaces Math.pow(1 + runInflationRate, year) throughout, giving
@@ -1650,7 +1671,7 @@ export class RetirementSimulator {
                     allocation,
                     baseReturn,
                     year,
-                    inputs.returnDeclineRate || 0.0003,
+                    inputs.returnDeclineRate ?? 0.0003,
                     true,
                     this.previousReturns.portfolio
                 );
@@ -1661,7 +1682,7 @@ export class RetirementSimulator {
                     allocation,
                     baseReturn,
                     year,
-                    inputs.returnDeclineRate || 0.0003,
+                    inputs.returnDeclineRate ?? 0.0003,
                     false
                 );
             }
@@ -1868,6 +1889,19 @@ export class RetirementSimulator {
             partnerSuperBalance += partnerNetSuperContribution;
             accumulatedSuperBalance = yourSuperBalance + partnerSuperBalance;
 
+            // ── Annuity Purchase (Accumulation Phase) ──
+            // If the user buys an annuity before retiring, the lump sum is deducted 
+            // from super in the purchase year.  Deduction happens at the end of the year.
+            if (inputs.enableAnnuity || inputs.annuityPurchaseAmount > 0) {
+                const purchaseAge = inputs.annuityPurchaseAge || 67;
+                if (yourCurrentAge === purchaseAge && yourCurrentAge < inputs.retirementAge) {
+                    const annuityLumpSum = (inputs.annuityLumpSum || inputs.annuityPurchaseAmount || 0)
+                        * accumCumulativeInflationFactor;
+                    applyProportionalSuperReduction(annuityLumpSum);
+                    accumulatedSuperBalance = yourSuperBalance + partnerSuperBalance;
+                }
+            }
+
             // NCC (Non-Concessional Contributions) — after-tax, no contributions tax on entry.
             // Each member has their own bring-forward window and remaining cap. Eligibility
             // is assessed against that person's opening super balance for the year, and any
@@ -2025,17 +2059,14 @@ export class RetirementSimulator {
                 inputs.healthcareInflation
             );
             healthcareCostHistory.push(healthcareCost);
-            if (yourCurrentAge <= inputs.retirementAge) {
-                const totalAssetsNow = accumulatedSuperBalance + accumulatedSavingsBalance + accumulatedInvestmentPortfolio + getHomeEquityAtYear(year) + propertyEquity;
-                if (totalAssetsNow > peakWealth) {
-                    peakWealth = totalAssetsNow;
-                    peakWealthAge = yourCurrentAge;
-                }
-                pushAccumulationSnapshot(year, yourCurrentAge, propertyEquity);
+            // Retirement age is checked at the top of the loop now; every iteration here
+            // is a legitimate accumulation year (yourCurrentAge ≤ retirementAge).
+            const totalAssetsNow = accumulatedSuperBalance + accumulatedSavingsBalance + accumulatedInvestmentPortfolio + getHomeEquityAtYear(year) + propertyEquity;
+            if (totalAssetsNow > peakWealth) {
+                peakWealth = totalAssetsNow;
+                peakWealthAge = yourCurrentAge;
             }
-            if (yourCurrentAge > inputs.retirementAge) {
-                break;
-            }
+            pushAccumulationSnapshot(year, yourCurrentAge, propertyEquity);
         }
 
         // At retirement setup
@@ -2212,9 +2243,15 @@ export class RetirementSimulator {
             // the prior bug where (1 + hcUplift) was applied only as a flat one-year
             // scalar regardless of how many retirement years had elapsed.
             //
+            // Healthcare cost adjustment for survivors.
+            // Keep healthcare per-person. If household was couple but is now single,
+            // we remove the deceased's share (assumed 50%).
+            const healthcareSurvivorFactor = (inputs.household === 'couple' && !isCouple) ? 0.5 : 1.0;
+
             // Deterministic mode: fixed compound formula via projectHealthcareCosts().
             let healthcareCost;
             healthcareCost = (inputs.currentHealthcareCosts || 0)
+                * healthcareSurvivorFactor
                 * cumulativeInflationFactor
                 * cumulativeHcUpliftFactor;
             // Advance the uplift factor for next year.
@@ -2288,7 +2325,10 @@ export class RetirementSimulator {
             }
 
             const spendingPlan = this.buildRetirementSpendingPlan({
-                inputs,
+                inputs: {
+                    ...inputs,
+                    isCouple // Pass current couple status (reflects partner death)
+                },
                 retirementYear,
                 currentAge: yourCurrentAge,
                 currentBalance,
@@ -2420,6 +2460,13 @@ export class RetirementSimulator {
                 : (inputs.annuityPurchaseAmount || 0);
             if (annuityPurchaseAmount > 0 && yourCurrentAge === annuityPurchaseAge) {
                 annuityLumpSumCost = annuityPurchaseAmount * Math.pow(1 + optionalCostInflationRate, retirementYear);
+                
+                // If purchasing during retirement, deduct from current liquid balance
+                applyProportionalSuperReduction(annuityLumpSumCost);
+                pensionPhaseBalance = Math.max(0, pensionPhaseBalance - (annuityLumpSumCost * (pensionPhaseBalance / Math.max(1, currentBalance))));
+                accumulationPhaseBalance = Math.max(0, accumulationPhaseBalance - (annuityLumpSumCost * (accumulationPhaseBalance / Math.max(1, currentBalance))));
+                nonSuperLiquidBalance = Math.max(0, nonSuperLiquidBalance - (annuityLumpSumCost * (nonSuperLiquidBalance / Math.max(1, currentBalance))));
+                currentBalance = Math.max(0, currentBalance - annuityLumpSumCost);
             }
             if ((inputs.annuityAnnualIncome || 0) > 0 && yourCurrentAge >= annuityPurchaseAge) {
                 annuityIncome = (inputs.annuityAnnualIncome || 0)
@@ -2561,13 +2608,16 @@ export class RetirementSimulator {
 
             const totalIncome = pensionIncome + otherIncome;
             let netWithdrawalNeeded = Math.max(0, totalCostWithHealthcare - totalIncome);
+            let superTaxForForeignResident = 0;
 
             // Tax adjustment on super withdrawals for foreign tax residents.
             // If they are a foreign resident, we assume a 30% flat effective tax rate
             // on the withdrawal needed to fund their lifestyle shortfall, representing
             // the tax levied by the destination country (e.g. Portugal post-NHR).
             if (isOverseasYear && inputs.overseasTaxResidency === 'foreign' && netWithdrawalNeeded > 0) {
-                netWithdrawalNeeded = netWithdrawalNeeded / 0.70;
+                const grossWithdrawal = netWithdrawalNeeded / 0.70;
+                superTaxForForeignResident = grossWithdrawal - netWithdrawalNeeded;
+                netWithdrawalNeeded = grossWithdrawal;
             }
 
             // Enhanced return calculation with regime modeling.
@@ -2594,7 +2644,7 @@ export class RetirementSimulator {
                     allocation,
                     baseReturn,
                     retirementYear,
-                    inputs.returnDeclineRate || 0.0003,
+                    inputs.returnDeclineRate ?? 0.0003,
                     true,
                     this.previousReturns.portfolio
                 );
@@ -2631,7 +2681,7 @@ export class RetirementSimulator {
                     allocation,
                     baseReturn,
                     retirementYear,
-                    inputs.returnDeclineRate || 0.0003,
+                    inputs.returnDeclineRate ?? 0.0003,
                     false
                 );
             }
@@ -2857,6 +2907,13 @@ export class RetirementSimulator {
                 homeModStatus,
                 annuityIncome,
                 surplusWithdrawal,
+                fundingDraw: currentBalance > 0 ? Math.min(netWithdrawalNeeded, annualWithdrawal) : 0,
+                fundingBreakdown: {
+                    draw: currentBalance > 0 ? Math.min(netWithdrawalNeeded, annualWithdrawal) : 0,
+                    pension: pensionIncome,
+                    other: otherIncome,
+                    tax: superTaxForForeignResident,
+                },
                 surplusAllocation: surplusWithdrawal > 0 ? {
                     savings:    Math.round(surplusWithdrawal * SURPLUS_SAVINGS_RATIO),
                     investment: Math.round(surplusWithdrawal * SURPLUS_INVEST_RATIO),

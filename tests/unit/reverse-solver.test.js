@@ -181,12 +181,14 @@ describe('scoreScenario', () => {
         expect(score.passesGoal).toBe(false);
     });
 
-    test('returns sustainableIncomeToday as SWR reference', () => {
-        // $2M assets, 4% SWR, no inflation adjustment (0 years)
+    test('returns swrCapacityToday as SWR reference', () => {
+        // $2M assets, 4% SWR, no inflation adjustment (0 years to retirement)
+        // sustainableIncomeToday now returns plannedSpendingToday (actual spending from simulation).
+        // The SWR capacity figure moved to swrCapacityToday: assets × 4% + pension.
         const simResult = { finalBalance: 1_000_000, totalFinancialAssets: 2_000_000, yearlyData: [{ age: 65, pensionIncome: 0 }] };
         const target = { targetAnnualIncomeToday: 80000 };
         const score = scoreScenario(simResult, target, 0.026, 0, 0.04);
-        expect(score.sustainableIncomeToday).toBeCloseTo(80000, -2);
+        expect(score.swrCapacityToday).toBeCloseTo(80000, -2);
     });
 
     test('incomeGap is non-negative', () => {

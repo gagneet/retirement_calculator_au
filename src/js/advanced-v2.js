@@ -789,11 +789,11 @@ function adaptEngineOutput(inp, engineInputs, simulation) {
 
   const yearsToRetire = Math.max(0, engineInputs.retirementAge - engineInputs.yourCurrentAge);
   const inflationRate = engineInputs.inflation || 0.026;
-
+  
   const superIncomeToday = deflateToToday(firstRetirementYear.superIncome || firstRetirementYear.withdrawal || 0, yearsToRetire, inflationRate);
   const pensionIncomeToday = deflateToToday(firstRetirementYear.pensionIncome || 0, yearsToRetire, inflationRate);
   const otherIncomeToday = deflateToToday(firstRetirementYear.otherIncome || 0, yearsToRetire, inflationRate);
-
+  
   const annualIncomeToday = superIncomeToday + pensionIncomeToday + otherIncomeToday;
   const monthlyPaycheck = annualIncomeToday / 12;
 
@@ -808,7 +808,7 @@ function adaptEngineOutput(inp, engineInputs, simulation) {
   const targetMonthly = Math.max(1, inp.desiredIncome / 12);
   const effectivePlanAge = inp.lifespan > 0 ? inp.lifespan : 120;
   const lastsUntil = Math.min(simulation.depletionAge || effectivePlanAge, effectivePlanAge);
-
+  
   // Use planned spending for coverage score
   const coverageScore = (plannedSpendingToday / 12) / targetMonthly;
   const longevityScore = lastsUntil >= effectivePlanAge
@@ -829,9 +829,10 @@ function adaptEngineOutput(inp, engineInputs, simulation) {
     swrMonthlyToday,
     superAtRetire: deflateToToday(firstRetirementYear.startBalance || 0, yearsToRetire, inflationRate),
     breakdown: {
-      super: Math.max(0, superIncomeToday),
-      pension: Math.max(0, pensionIncomeToday),
-      other: Math.max(0, otherIncomeToday),
+      super: deflateToToday(firstRetirementYear.fundingBreakdown?.draw || 0, yearsToRetire, inflationRate),
+      pension: deflateToToday(firstRetirementYear.fundingBreakdown?.pension || 0, yearsToRetire, inflationRate),
+      other: deflateToToday(firstRetirementYear.fundingBreakdown?.other || 0, yearsToRetire, inflationRate),
+      tax: deflateToToday(firstRetirementYear.fundingBreakdown?.tax || 0, yearsToRetire, inflationRate),
     },
     confidence: clamp((coverageScore * 0.7) + (longevityScore * 0.3), 0, 0.98),
     gapMonthly: Math.max(0, targetMonthly - (plannedSpendingToday / 12)),
@@ -2477,7 +2478,7 @@ function buildSequenceOfReturnsCallout(mc, adaptedResult, inp) {
       const planHorizonYears = (inp.lifespan || 90) - (inp.retireAge || 65);
       const cappedSpread = Math.min(spreadYears, planHorizonYears);
       const suffix = spreadYears > planHorizonYears ? " (maximum plan horizon)" : "";
-
+      
       let detailText = `A crash in year 1 vs strong early returns can mean ${cappedSpread} years' difference in portfolio longevity${suffix}.`;
       if (best > 0 && worst > 0 && spreadYears > planHorizonYears) {
           detailText = "The strong early returns path never depletes within your planned lifespan; the impact spread exceeds your planning horizon.";
@@ -4034,11 +4035,18 @@ function paint(result, inp) {
 
   // Metrics
   setHTML('r-super-at-retire', fmt$(result.superAtRetire, { compact: true }) + '<span class="sub">today\'s $</span>');
-
+  
   // Funded by breakdown
   setText('r-funded-draw', fmt$(result.breakdown.super / 12));
   setText('r-funded-pension', fmt$(result.breakdown.pension / 12));
   setText('r-funded-other', fmt$((result.breakdown.other || 0) / 12));
+  
+  if (result.breakdown.tax > 0) {
+    show('r-funded-tax-container');
+    setText('r-funded-tax', '-' + fmt$(result.breakdown.tax / 12));
+  } else {
+    hide('r-funded-tax-container');
+  }
   const conf = result.confidence * 100;
   const confLabel = conf >= 85 ? 'Strong' : conf >= 60 ? 'Moderate' : conf >= 35 ? 'Tight' : 'At risk';
   const confColor = conf >= 85 ? 'var(--accent)' : conf >= 60 ? 'var(--gold)' : conf >= 35 ? 'var(--amber)' : 'var(--rose)';
