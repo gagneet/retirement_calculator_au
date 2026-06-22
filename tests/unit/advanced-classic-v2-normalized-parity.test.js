@@ -155,9 +155,10 @@ describe('advanced classic vs advanced-v2 normalized input parity', () => {
     });
 
     test('shared projection service preserves the classic deterministic result for legacy inputs', () => {
+        // The projection service forces headlineScenarioMode:'base' (trustworthiness spec),
+        // so we compare against a direct simulation using the same sanitised engine inputs,
+        // not the original optimistic template inputs.
         const inputs = buildClassicInputsFromTemplate();
-        const simulator = new RetirementSimulator(ENHANCED_CONFIG);
-        const legacy = simulator.simulateRetirement(inputs, false);
         const app = Object.create(RetirementCalculatorApp.prototype);
         app.config = ENHANCED_CONFIG;
         app.simulator = new RetirementSimulator(ENHANCED_CONFIG);
@@ -166,6 +167,9 @@ describe('advanced classic vs advanced-v2 normalized input parity', () => {
         const projection = app.projectionService.computeProjection(inputs, {
             sourceCalculator: 'advanced',
         });
+
+        const simulator = new RetirementSimulator(ENHANCED_CONFIG);
+        const legacy = simulator.simulateRetirement(projection.engineInputs, false);
 
         expect(projection.simulation.finalBalance).toBeCloseTo(legacy.finalBalance, 8);
         expect(projection.simulation.accumulatedSuperBalance).toBeCloseTo(
