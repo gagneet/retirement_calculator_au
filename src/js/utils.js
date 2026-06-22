@@ -2064,12 +2064,16 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
         doc.text(`Based on ${Number(simCount).toLocaleString('en-AU')} simulations accounting for market volatility`, 14, yPos);
         yPos += 10;
 
+        // MC final balances are projected to end-of-life (lifespan), so deflation must cover
+        // the full span from today to lifespan. Never fall back to retirementAge — that would
+        // under-deflate by ~25 years for a typical plan, making real-terms values ~90% too high.
+        const mcInflation = inputs.inflation > 1 ? inputs.inflation / 100 : (inputs.inflation || 0.026);
+        const mcHorizonYears = Math.max(0, (inputs.yourLifespan || 90) - (inputs.yourCurrentAge || 0));
         const mcBody = [
             ['Success Rate', `${(monteCarloResults.successRate * 100).toFixed(1)}%`],
-            ['Median Final Balance (nominal)', formatCurrency(monteCarloResults.median)],
-            ['10th Percentile (today\'s $)', formatCurrency(deflateToToday(monteCarloResults.percentile10 || 0, Math.max(0, (inputs.yourLifespan || inputs.retirementAge || 90) - inputs.yourCurrentAge), inputs.inflation || 0))],
-            ['Median (today\'s $)', formatCurrency(deflateToToday(monteCarloResults.median || 0, Math.max(0, (inputs.yourLifespan || inputs.retirementAge || 90) - inputs.yourCurrentAge), inputs.inflation || 0))],
-            ['90th Percentile (today\'s $)', formatCurrency(deflateToToday(monteCarloResults.percentile90 || 0, Math.max(0, (inputs.yourLifespan || inputs.retirementAge || 90) - inputs.yourCurrentAge), inputs.inflation || 0))],
+            ['10th Percentile (today\'s $)', formatCurrency(deflateToToday(monteCarloResults.percentile10 || 0, mcHorizonYears, mcInflation))],
+            ['Median (today\'s $)', formatCurrency(deflateToToday(monteCarloResults.median || 0, mcHorizonYears, mcInflation))],
+            ['90th Percentile (today\'s $)', formatCurrency(deflateToToday(monteCarloResults.percentile90 || 0, mcHorizonYears, mcInflation))],
             ['Probability of Running Out', `${((1 - monteCarloResults.successRate) * 100).toFixed(1)}%`]
         ];
 

@@ -2014,7 +2014,8 @@ function buildMonteCarloDashboard(mc, inp) {
   }
 
   const totalRuns = mc.totalRuns || mc.numRuns || (inp?.mcRuns) || '—';
-  const horizonYears = Math.max(0, (inp?.lifespan || inp?.retireAge || 90) - (inp?.age || 0));
+  // MC balances are at end-of-life, so deflate over the full span to lifespan (not retirementAge).
+  const horizonYears = Math.max(0, (inp?.lifespan || 90) - (inp?.age || 0));
   const inflation = (inp?.inflation || 0) > 1 ? inp.inflation / 100 : (inp?.inflation || 0);
   const p10Today = deflateToToday(mc.percentile10 || 0, horizonYears, inflation);
   const medianToday = deflateToToday(mc.median || 0, horizonYears, inflation);
