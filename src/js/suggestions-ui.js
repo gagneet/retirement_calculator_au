@@ -217,6 +217,16 @@ export function buildRecommendationCard(rec, opts = {}) {
   const feasObj  = FEASIBILITY_BADGE[rec.feasibility] || FEASIBILITY_BADGE.moderate;
   const category = rec.category || rec.exportCategory || 'General';
   const priority = rec.priority || 'MEDIUM';
+  const statusLabels = {
+    recommended: 'Recommended',
+    trade_off: 'Trade-off',
+    not_recommended: 'Not recommended',
+    educational_only: 'Educational only',
+    neutral: 'Neutral',
+  };
+  const statusBadge = rec.recommendationStatus
+    ? `<span class="sg-badge">${statusLabels[rec.recommendationStatus] || escHtml(rec.recommendationStatus)}</span>`
+    : '';
 
   const priorityBadge = priority === 'HIGH' || priority === 'high-positive'
     ? '<span class="sg-badge sg-badge--high">High priority</span>'
@@ -268,6 +278,7 @@ export function buildRecommendationCard(rec, opts = {}) {
           <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-3,#64748b)">${escHtml(category)}</span>
           ${priorityBadge}
           <span class="sg-badge" style="background:${impact.bg};color:${impact.color}">${impact.label}</span>
+          ${statusBadge}
           <span class="sg-badge" style="color:${feasObj.colour}">${feasObj.label}</span>
           ${rec.timeframe ? `<span class="sg-badge">${escHtml(rec.timeframe)}</span>` : ''}
         </div>
@@ -308,6 +319,17 @@ function buildModelledOutcome(rec) {
     parts.push(`<span>Balance at retirement: <b>${sign}${formatCurrency(rec.medianBalanceDiff)}</b></span>`);
   }
   if (rec.estimatedImpact) parts.push(`<span>${escHtml(rec.estimatedImpact)}</span>`);
+  if (rec.baselineDepletionAge !== undefined || rec.scenarioDepletionAge !== undefined) {
+    const before = rec.baselineDepletionAge == null ? 'never' : `age ${rec.baselineDepletionAge}`;
+    const after = rec.scenarioDepletionAge == null ? 'never' : `age ${rec.scenarioDepletionAge}`;
+    parts.push(`<span>Depletion: <b>${before} → ${after}</b></span>`);
+  }
+  if (rec.baselineP10FinalBalance != null || rec.scenarioP10FinalBalance != null) {
+    parts.push(`<span>10th percentile: <b>${rec.baselineP10FinalBalance == null ? '—' : formatCurrency(rec.baselineP10FinalBalance)} → ${rec.scenarioP10FinalBalance == null ? '—' : formatCurrency(rec.scenarioP10FinalBalance)}</b></span>`);
+  }
+  if (rec.band?.amountAtRisk != null) {
+    parts.push(`<span>Amount at risk (today's $): <b>${formatCurrency(rec.band.amountAtRisk)}</b></span>`);
+  }
   if (!parts.length) return '';
   return `<div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px;background:var(--surface-2,#f8fafc);border-radius:10px;font-size:12px;color:var(--ink-2,#475569);margin-bottom:10px">${parts.join('<span style="color:var(--ink-3)">·</span>')}</div>`;
 }
