@@ -964,15 +964,20 @@ export class RetirementSimulator {
             depreciation,
         });
 
+        // Spread ledger reporting fields first, then override with engine-authoritative values.
+        // This ensures vacancyLoss, depreciation, and netCashFlow from the engine are never
+        // silently overwritten by the ledger's independently computed copies, which could
+        // diverge if inputs.vacancyRate arrives in a different unit (e.g. unnormalised integer).
         return {
+            ...ledger,
             grossRental: grossRental,
             vacancyLoss: grossRental * vacancyRate,
             effectiveRental: currentRental,
             expenses: currentExpenses,
             interestCost: annualInterest,
             depreciation: depreciation,
-            // Preserve the established engine cash-flow treatment for projection
-            // parity; the richer before/after-tax estimates are reporting fields.
+            // Preserve the established engine cash-flow treatment for projection parity;
+            // the richer before/after-tax estimates from the ledger are reporting fields.
             netCashFlow: currentRental - currentExpenses - annualInterest + depreciation,
             netRentalCash: ledger.netCashflowBeforeTax,
             grossYield: inputs.investmentPropertyValue > 0
@@ -980,7 +985,6 @@ export class RetirementSimulator {
             isNegativelyGeared: ledger.netCashflowBeforeTax < 0,
             belowPurchasePrice: inputs.investmentPropertyValue < (inputs.investmentPropertyPurchasePrice || inputs.investmentPropertyValue),
             loanBalance: currentLoanBalance,
-            ...ledger,
         };
     }
 
