@@ -13,6 +13,11 @@ import { calculateEmployerSuper, DEFAULT_MAX_CONTRIBUTION_BASE_PER_QUARTER, EMPL
 import { calcSuperTax }                            from './simulation_engine/tax_engine.js';
 import { calculatePortablePension, OverseasScenarioType } from './policy-engine.js';
 import {
+    applyCapitalLossPool,
+    buildInvestmentPropertyLedgerEntry,
+    buildInvestmentPropertyPosition,
+} from './calculation/investment-property-position.js';
+import {
     calculatePostTaxIncome,
     calculateAustralianTax,
     calculateMedicareLevy,
@@ -937,6 +942,28 @@ export class RetirementSimulator {
             this.financialConfig.propertyInvestment.VALUATION_ASSUMPTIONS.BUILDING_VALUE_RATIO.value;
         const depreciation = buildingValue * this.config.PROPERTY_COSTS.DEPRECIATION_RATE;
 
+        const nextLoanBalance = this.calculatePropertyLoanBalance(
+            inputs.investmentPropertyLoan,
+            inputs.investmentPropertyRate,
+            year + 1,
+            isIO
+        );
+        const ledger = buildInvestmentPropertyLedgerEntry(inputs, {
+            year,
+            age: (inputs.yourCurrentAge || inputs.currentAge || 0) + year,
+            openingValue: this.calculatePropertyValue(inputs.investmentPropertyValue, inputs.propertyGrowthRate, year),
+            closingValue: this.calculatePropertyValue(inputs.investmentPropertyValue, inputs.propertyGrowthRate, year + 1),
+            openingLoan: currentLoanBalance,
+            closingLoan: nextLoanBalance,
+            grossRent: grossRental,
+            vacancyLoss: grossRental * vacancyRate,
+            interest: annualInterest,
+            strata: annualStrataLevy,
+            landTax: annualLandTax,
+            otherExpenses: inputs.annualPropertyExpenses * Math.pow(1 + maintenanceInflationRate, year),
+            depreciation,
+        });
+
         return {
             grossRental: grossRental,
             vacancyLoss: grossRental * vacancyRate,
@@ -944,12 +971,20 @@ export class RetirementSimulator {
             expenses: currentExpenses,
             interestCost: annualInterest,
             depreciation: depreciation,
+            // Preserve the established engine cash-flow treatment for projection
+            // parity; the richer before/after-tax estimates are reporting fields.
             netCashFlow: currentRental - currentExpenses - annualInterest + depreciation,
-            loanBalance: currentLoanBalance
+            netRentalCash: ledger.netCashflowBeforeTax,
+            grossYield: inputs.investmentPropertyValue > 0
+                ? (inputs.weeklyRentalIncome * 52) / inputs.investmentPropertyValue : 0,
+            isNegativelyGeared: ledger.netCashflowBeforeTax < 0,
+            belowPurchasePrice: inputs.investmentPropertyValue < (inputs.investmentPropertyPurchasePrice || inputs.investmentPropertyValue),
+            loanBalance: currentLoanBalance,
+            ...ledger,
         };
     }
 
-    calculatePropertySale(inputs, saleYear) {
+    calculatePropertySale(inputs, saleYear, openingCapitalLossPool = 0) {
         if (!inputs.hasInvestmentProperty) return null;
 
         //   The /100 was removed to standardize the interface - now all callers pass percentage values, and the method
@@ -977,6 +1012,7 @@ export class RetirementSimulator {
         const saleCalendarYear = new Date().getFullYear() + saleYear;
         const holdingPeriodYears = Math.max(1, saleCalendarYear - purchaseCalendarYear);
         const capitalGain = saleValue - propertyCostBase;
+        const capitalLoss = applyCapitalLossPool(capitalGain, openingCapitalLossPool);
 
         // effectiveCGTRate: capitalGainsTaxRate is stored as the EFFECTIVE rate (marginal × 50% discount)
         const effectiveCGTRate = inputs.capitalGainsTaxRate > 1
@@ -999,7 +1035,7 @@ export class RetirementSimulator {
             const inflation = inputs.inflation || 0.026;
             const result = calculateCGTPost2027(
                 saleValue,
-                propertyCostBase,
+                saleValue - capitalLoss.taxableGain,
                 purchaseCalendarYear,
                 saleCalendarYear,
                 marginalRate,
@@ -1012,7 +1048,7 @@ export class RetirementSimulator {
             // Current law: effectiveCGTRate already incorporates the 50% discount
             cgtPayable = calculateCGT(
                 saleValue,
-                propertyCostBase,
+                saleValue - capitalLoss.taxableGain,
                 true,
                 holdingPeriodYears,
                 effectiveCGTRate
@@ -1020,6 +1056,7 @@ export class RetirementSimulator {
         }
 
         const netProceeds = saleValue - remainingLoan - sellingCosts - cgtPayable;
+        const settlementShortfall = Math.max(0, -netProceeds);
 
         // Negative gearing restriction (proposed Budget 2026-27 — NOT YET LAW):
         // Established housing purchased after Budget night (13 May 2026) will have losses
@@ -1036,10 +1073,15 @@ export class RetirementSimulator {
             remainingLoan,
             sellingCosts,
             capitalGain,
+            taxableGain: capitalLoss.taxableGain,
+            capitalLossRealised: capitalLoss.capitalLossRealised,
+            capitalLossApplied: capitalLoss.capitalLossApplied,
+            capitalLossPool: capitalLoss.capitalLossPool,
             cgtPayable,
             cgtMethod,
             negGearingRestrictionNote,
             netProceeds,
+            settlementShortfall,
             totalReturn: (capitalGain + netProceeds) / inputs.investmentPropertyValue
         };
     }
@@ -1357,7 +1399,7 @@ export class RetirementSimulator {
         };
 
         // Apply scenario mode adjustments (PART 1)
-        const scenarioAdjustments = this._getScenarioAdjustments(inputs.scenarioMode || 'baseline');
+        const scenarioAdjustments = this._getScenarioAdjustments(inputs.headlineScenarioMode ?? inputs.scenarioMode ?? 'baseline');
         const effectiveInputs = scenarioAdjustments
             ? {
                 ...inputs,
@@ -1516,6 +1558,8 @@ export class RetirementSimulator {
         const allocationHistory = [];
         const healthcareCostHistory = [];
         const propertyHistory = [];
+        let capitalLossPool = 0;
+        let propertySaleCashCall = 0;
         const regimeHistory = []; // Track regime changes for enhanced MC
         const accumulationHistory = [];
         const currentCalendarYear = new Date().getFullYear();
@@ -2005,9 +2049,11 @@ export class RetirementSimulator {
 
                     // Check if property should be sold
                     if (inputs.sellPropertyYears > 0 && year === inputs.sellPropertyYears) {
-                        const saleResult = this.calculatePropertySale(inputs, year);
+                        const saleResult = this.calculatePropertySale(inputs, year, capitalLossPool);
                         if (saleResult) {
                             accumulatedInvestmentPortfolio += saleResult.netProceeds;
+                            capitalLossPool = saleResult.capitalLossPool;
+                            propertySaleCashCall = Math.max(propertySaleCashCall, saleResult.settlementShortfall);
                             propertyWasSold = true;
                             propertyHistory[propertyHistory.length - 1].saleResult = saleResult;
                         }
@@ -2974,6 +3020,14 @@ export class RetirementSimulator {
             allocationHistory,
             healthcareCostHistory,
             propertyHistory,
+            investmentPropertyPosition: inputs.hasInvestmentProperty
+                ? buildInvestmentPropertyPosition(inputs, {
+                    sellingCostRate: this.config.PROPERTY_COSTS.SELLING_COSTS_PERCENT,
+                    capitalLossPool,
+                })
+                : null,
+            capitalLossPool,
+            propertySaleCashCall,
             regimeHistory, // Include regime history for enhanced analysis
             agedCareCosts,
             totalFinancialAssets: accumulatedSuperBalance + accumulatedSavingsBalance + accumulatedInvestmentPortfolio,
@@ -2995,7 +3049,10 @@ export class RetirementSimulator {
             depletionIsCouple: !!depletionYear?.partnerAlive,
             peakWealth,
             peakWealthAge,
-            mortgagePayoffAge
+            mortgagePayoffAge,
+            mortgagePayoffYear: mortgagePayoffAge == null
+                ? null
+                : currentCalendarYear + (mortgagePayoffAge - inputs.yourCurrentAge)
         };
     }
 
