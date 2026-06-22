@@ -1604,6 +1604,15 @@ export class RetirementSimulator {
                 }
             }
 
+            // Stop accumulation phase when the primary person reaches retirement.
+            // This must happen BEFORE any growth/contribution calculation below so the
+            // retirement loop is not double-charged an extra year of compounding on the
+            // opening super balance.  The retirement loop owns all growth and withdrawals
+            // from retirementAge onward.
+            if (yourCurrentAge > inputs.retirementAge) {
+                break;
+            }
+
             // Per-year inflation draw: each accumulation year draws a fresh rate from
             // stochasticRate() centred on the user's input (median).  The cumulative
             // factor replaces Math.pow(1 + runInflationRate, year) throughout, giving
@@ -1662,7 +1671,7 @@ export class RetirementSimulator {
                     allocation,
                     baseReturn,
                     year,
-                    inputs.returnDeclineRate || 0.0003,
+                    inputs.returnDeclineRate ?? 0.0003,
                     true,
                     this.previousReturns.portfolio
                 );
@@ -1673,7 +1682,7 @@ export class RetirementSimulator {
                     allocation,
                     baseReturn,
                     year,
-                    inputs.returnDeclineRate || 0.0003,
+                    inputs.returnDeclineRate ?? 0.0003,
                     false
                 );
             }
@@ -2050,17 +2059,14 @@ export class RetirementSimulator {
                 inputs.healthcareInflation
             );
             healthcareCostHistory.push(healthcareCost);
-            if (yourCurrentAge <= inputs.retirementAge) {
-                const totalAssetsNow = accumulatedSuperBalance + accumulatedSavingsBalance + accumulatedInvestmentPortfolio + getHomeEquityAtYear(year) + propertyEquity;
-                if (totalAssetsNow > peakWealth) {
-                    peakWealth = totalAssetsNow;
-                    peakWealthAge = yourCurrentAge;
-                }
-                pushAccumulationSnapshot(year, yourCurrentAge, propertyEquity);
+            // Retirement age is checked at the top of the loop now; every iteration here
+            // is a legitimate accumulation year (yourCurrentAge ≤ retirementAge).
+            const totalAssetsNow = accumulatedSuperBalance + accumulatedSavingsBalance + accumulatedInvestmentPortfolio + getHomeEquityAtYear(year) + propertyEquity;
+            if (totalAssetsNow > peakWealth) {
+                peakWealth = totalAssetsNow;
+                peakWealthAge = yourCurrentAge;
             }
-            if (yourCurrentAge > inputs.retirementAge) {
-                break;
-            }
+            pushAccumulationSnapshot(year, yourCurrentAge, propertyEquity);
         }
 
         // At retirement setup
@@ -2638,7 +2644,7 @@ export class RetirementSimulator {
                     allocation,
                     baseReturn,
                     retirementYear,
-                    inputs.returnDeclineRate || 0.0003,
+                    inputs.returnDeclineRate ?? 0.0003,
                     true,
                     this.previousReturns.portfolio
                 );
@@ -2675,7 +2681,7 @@ export class RetirementSimulator {
                     allocation,
                     baseReturn,
                     retirementYear,
-                    inputs.returnDeclineRate || 0.0003,
+                    inputs.returnDeclineRate ?? 0.0003,
                     false
                 );
             }
