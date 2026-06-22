@@ -391,7 +391,9 @@ class RecommendationEngine {
                     : `Property cashflow is negative by ${formatCurrency(Math.abs(netAnnualIncome))}/year, but selling now requires ${formatCurrency(propertyPosition.cashRequiredToSellToday)} cash to discharge the loan and costs.`,
                 modifications: {
                     hasInvestmentProperty: false,
-                    currentStocks: this.baseInputs.currentStocks + saleProceeds
+                    // Clamp to zero: a negative-equity sale produces no reinvestable capital.
+                    // Adding a negative value would corrupt the portfolio balance in the sim.
+                    currentStocks: this.baseInputs.currentStocks + Math.max(0, saleProceeds)
                 },
                 feasibility: "Immediate Cash Flow Relief",
                 factorsChanged: [
@@ -662,7 +664,9 @@ class RecommendationEngine {
                         description: netProceeds >= 0
                             ? `With limited cash flow ($${Math.round(monthlyDisposableIncome)}/month), selling the property may improve liquidity after costs.`
                             : `Selling requires a ${formatCurrency(propertyPosition.cashRequiredToSellToday)} cash call after estimated costs. Treat this only as a cashflow-risk trade-off.`,
-                        modifications: { hasInvestmentProperty: false, currentStocks: this.baseInputs.currentStocks + netProceeds },
+                        // Clamp to zero: negative netProceeds (underwater IP) must not reduce
+                        // the stock portfolio — the cash-call cost is a separate liability.
+                        modifications: { hasInvestmentProperty: false, currentStocks: this.baseInputs.currentStocks + Math.max(0, netProceeds) },
                         feasibility: "Major Financial Restructure",
                         factorsChanged: [
                             `Eliminates property management and loan payments`,
