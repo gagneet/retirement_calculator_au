@@ -1372,9 +1372,13 @@ class RetirementCalculatorApp {
             try {
                 const outcome = this.currentOutcome;
                 const adaptedResult = outcome ? {
+                    annualIncome: outcome.sustainableIncomeToday || 0,
                     monthlyPaycheck: (outcome.sustainableIncomeToday || 0) / 12,
+                    plannedSpendingToday: outcome.sustainableIncomeToday || 0,
+                    swrMonthlyToday: (outcome.sustainableIncomeToday || 0) / 12,
                     superAtRetire: outcome.superAtRetirementToday || 0,
                     confidence: null,
+                    depletionAge: outcome.legacy?.runOutAge || null,
                     gapMonthly: outcome.gapPerMonth || 0,
                     lastsUntil: outcome.legacy?.runOutAge || inputs.yourLifespan || 90,
                     years: result?.yearlyData?.map(y => ({ age: y.age, totalAssets: y.endBalance || 0 })) || [],
@@ -5952,11 +5956,19 @@ class RetirementCalculatorApp {
             // Get Monte Carlo results if available
             const mcResults = this.currentMonteCarloResults || null;
             const simResult = this.lastResults || this.currentSimulationResults || null;
+            const outcomeForBand = this.currentOutcome;
+            // Build a minimal adaptedResult so computeOutcomeBand gets a non-zero annualIncome.
+            // Without this, projectedAnnualIncome = 0 and the band headline reads "$0/year".
+            const adaptedResultForBand = outcomeForBand ? {
+                annualIncome: outcomeForBand.sustainableIncomeToday || 0,
+                plannedSpendingToday: outcomeForBand.sustainableIncomeToday || 0,
+                depletionAge: outcomeForBand.legacy?.runOutAge || null,
+            } : null;
 
             const band = OutcomeBands.computeOutcomeBand({
                 monteCarloResults: mcResults,
                 simulation: simResult,
-                adaptedResult: null,
+                adaptedResult: adaptedResultForBand,
                 inputs,
                 engineInputs: inputs,
                 richMultiplier,
