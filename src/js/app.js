@@ -2845,7 +2845,7 @@ class RetirementCalculatorApp {
         }
 
         const currentCashFlow = result.propertyHistory[0] || {};
-        const keepVsSellAnalysis = this.analyzeKeepVsSell(inputs);
+        const keepVsSellAnalysis = this.analyzeKeepVsSell(inputs, result.capitalLossPool || 0);
 
         propertyAnalysis.innerHTML = `
             <div class="property-card property-${currentCashFlow.netCashFlow > 0 ? 'positive' : 'negative'}">
@@ -5387,7 +5387,7 @@ class RetirementCalculatorApp {
     }
 
     // Analysis functions
-    analyzeKeepVsSell(inputs) {
+    analyzeKeepVsSell(inputs, capitalLossPool = 0) {
         if (!inputs.hasInvestmentProperty) return null;
 
         const yearsToSell = inputs.sellPropertyYears;
@@ -5400,7 +5400,7 @@ class RetirementCalculatorApp {
         const comparisonHorizon = Math.min(40, explicitHorizon);
 
         const evaluateSaleTiming = (saleYear) => {
-            const saleResult = this.simulator.calculatePropertySale(inputs, saleYear);
+            const saleResult = this.simulator.calculatePropertySale(inputs, saleYear, capitalLossPool);
             if (!saleResult) {
                 return null;
             }
