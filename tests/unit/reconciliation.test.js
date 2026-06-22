@@ -154,12 +154,16 @@ describe('Engine Reconciliation vs Oracle', () => {
     // - Single
     // - Standard returns
     test('Baseline Persona: Engine stays within 5% of Oracle', () => {
+        // salaryGrowthRate pinned to 0 so oracle (fixed salary) and engine (no growth) are comparable.
+        // Without this pin, the engine default 2%/yr salary growth raises SG contributions by ~18%
+        // above the flat-salary oracle — not an engine bug, just an apples-to-oranges comparison.
         const inputs = {
             household: 'single',
             age: 45,
             retireAge: 65,
             lifespan: 90,
             salary: 100000,
+            salaryGrowthRate: 0,
             superBal: 150000,
             inflation: 2.5,
             superGrowth: 7.5,
@@ -169,7 +173,7 @@ describe('Engine Reconciliation vs Oracle', () => {
         };
 
         const result = simulator.simulateRetirement(inputs, false);
-        
+
         const oracle = runOracle({
             startSuper: 150000,
             salary: 100000,
