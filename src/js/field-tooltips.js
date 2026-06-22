@@ -866,6 +866,30 @@ const FIELD_TOOLTIP_DEFINITIONS = {
         title: 'Annual child support paid',
         body: 'Child support obligations reduce available cash flow each year. Enter the annual total; the model deducts this from income before calculating retirement savings.',
     },
+    ipPurchasePrice: {
+        title: 'Purchase price',
+        body: 'The original price paid for the investment property. Used to calculate unrealised capital gain or loss, CGT on sale, and whether the property is currently below purchase price.',
+    },
+    ipPurchaseYear: {
+        title: 'Purchase year',
+        body: 'The year you bought the investment property. Helps determine how long it has been held and supports more accurate CGT and capital-growth assumptions.',
+    },
+    ipLoanType: {
+        title: 'Loan type',
+        body: 'Principal and interest loans reduce the outstanding balance over time; interest-only loans do not. This affects gearing costs, cash flow, and the equity position at retirement.',
+    },
+    ipVacancyRate: {
+        title: 'Vacancy rate',
+        body: 'The estimated percentage of time the property is untenanted each year. Reduces effective rental income and worsens the net cash-flow position.',
+    },
+    healthcareInflation: {
+        title: 'Healthcare cost inflation',
+        body: 'Healthcare costs typically rise faster than general inflation. This rate is applied to projected healthcare spending each year and can materially affect late-retirement expenses.',
+    },
+    pensionIncomeThreshold: {
+        title: 'Age pension income threshold',
+        body: 'The income level above which the Age Pension is reduced. Changing this lets you model different means-testing scenarios or policy assumptions.',
+    },
 };
 
 const ADVANCED_TOOLTIP_PAGE_SELECTOR = '#advancedCalculatorForm, .redesign-v2';

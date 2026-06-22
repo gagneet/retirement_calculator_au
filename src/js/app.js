@@ -1388,6 +1388,7 @@ class RetirementCalculatorApp {
                     canonicalInput: this.currentProjection?.canonicalInput || null,
                     derivedCashflow: this.currentProjection?.derivedCashflow || null,
                     inputHash: this.currentProjection?.inputHash || null,
+                    projectionHash: this.currentProjection?.projectionHash || null,
                     policyVersion: this.currentProjection?.policyVersion || null,
                     diagnostics: this.currentProjection?.diagnostics || null,
                     warnings: this.currentProjection?.warnings || [],
@@ -2279,6 +2280,10 @@ class RetirementCalculatorApp {
         const inflationFactor = this.getInflationFactor(yearsToRetirement, inputs.inflation);
 
         safeSetHTML('summaryResults', `
+            <div class="p-3 bg-slate-50 rounded border border-slate-300" style="grid-column:1/-1">
+                <strong>Projection Quality Check</strong>
+                <div class="text-xs mt-1">Source: advanced · Input hash: ${this.currentProjection?.inputHash || '—'} · Projection hash: ${this.currentProjection?.projectionHash || '—'} · Scenario: ${this.currentProjection?.diagnostics?.scenarioMode || 'base'} · Return basis: nominal · Monte Carlo: ${this.currentMonteCarloResults ? 'run' : 'not run'} · Warnings: ${this.currentProjection?.diagnostics?.projectionQuality?.warnings?.length || 0} · Blocking issues: ${this.currentProjection?.diagnostics?.projectionQuality?.blockingIssues?.length || 0}</div>
+            </div>
             <div class="p-3 bg-blue-50 rounded flex justify-between">
                 <strong>Years to Retirement:</strong>
                 <span>${yearsToRetirement} <a href="#" class="show-calc-link" data-calc-id="yearsToRetirement">(show)</a></span>

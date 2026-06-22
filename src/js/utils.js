@@ -1984,6 +1984,9 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
         ['Total Financial Assets at Retirement', formatCurrency(results.totalFinancialAssets)],
         ['Accessible Home Equity', formatCurrency(results.accessibleHomeEquity || 0)],
         ['Projected Final Balance (Deterministic)', formatCurrency(results.finalBalance)],
+        ['Primary Mortgage Payoff', results.mortgagePayoffAge == null
+            ? 'Not cleared within the plan'
+            : `Age ${results.mortgagePayoffAge} (${results.mortgagePayoffYear || 'year unavailable'})`],
         ['Monte Carlo Success Rate', monteCarloResults?.successRate ? formatPercent(monteCarloResults.successRate) : 'Analysis not run'],
         ['Monte Carlo Median Balance', monteCarloResults?.median ? formatCurrency(monteCarloResults.median) : 'N/A']
     ];
@@ -1999,6 +2002,33 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
 
     // Get the final Y position after the first table
     let yPos = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 180;
+
+    const projection = enhancedAnalysis.projectionQuality?.projection || app?.currentProjection || null;
+    const quality = projection?.diagnostics?.projectionQuality || enhancedAnalysis.projectionQuality?.quality || {};
+    if (yPos > 190) { doc.addPage(); yPos = 20; }
+    doc.setFontSize(13);
+    doc.setTextColor(0, 71, 171);
+    doc.text('Projection Quality Check', 14, yPos);
+    yPos += 6;
+    doc.autoTable({
+        startY: yPos,
+        head: [['Check', 'Value']],
+        body: [
+            ['Calculator source', projection?.sourceCalculator || enhancedAnalysis.projectionQuality?.source || 'advanced'],
+            ['Input schema', projection?.schemaVersion || 'legacy / unavailable'],
+            ['Input hash', projection?.inputHash || 'Unavailable'],
+            ['Projection hash', projection?.projectionHash || 'Unavailable'],
+            ['Scenario mode', projection?.diagnostics?.scenarioMode || inputs.headlineScenarioMode || inputs.scenarioMode || 'base'],
+            ['Return basis', projection?.diagnostics?.returnBasis || 'nominal'],
+            ['Monte Carlo', monteCarloResults ? `Run (${resolveSimCount(monteCarloResults, inputs).toLocaleString('en-AU')} simulations)` : 'Not run'],
+            ['Warnings', String(quality.warnings?.length || projection?.warnings?.length || 0)],
+            ['Blocking issues', String(quality.blockingIssues?.length || 0)],
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [30, 64, 175] },
+        styles: { fontSize: 8 },
+    });
+    yPos = doc.lastAutoTable.finalY + 12;
 
     // --- Plain-English Narrative Summary ---
     if (enhancedAnalysis.plainEnglishNarrative) {
@@ -2036,9 +2066,10 @@ export const exportToPDF = (inputs, results, chartManager, app = null) => {
 
         const mcBody = [
             ['Success Rate', `${(monteCarloResults.successRate * 100).toFixed(1)}%`],
-            ['Median Final Balance', formatCurrency(monteCarloResults.median)],
-            ['10th Percentile (Worst Case)', formatCurrency(monteCarloResults.percentile10 || 0)],
-            ['90th Percentile (Best Case)', formatCurrency(monteCarloResults.percentile90 || 0)],
+            ['Median Final Balance (nominal)', formatCurrency(monteCarloResults.median)],
+            ['10th Percentile (today\'s $)', formatCurrency(deflateToToday(monteCarloResults.percentile10 || 0, Math.max(0, (inputs.yourLifespan || inputs.retirementAge || 90) - inputs.yourCurrentAge), inputs.inflation || 0))],
+            ['Median (today\'s $)', formatCurrency(deflateToToday(monteCarloResults.median || 0, Math.max(0, (inputs.yourLifespan || inputs.retirementAge || 90) - inputs.yourCurrentAge), inputs.inflation || 0))],
+            ['90th Percentile (today\'s $)', formatCurrency(deflateToToday(monteCarloResults.percentile90 || 0, Math.max(0, (inputs.yourLifespan || inputs.retirementAge || 90) - inputs.yourCurrentAge), inputs.inflation || 0))],
             ['Probability of Running Out', `${((1 - monteCarloResults.successRate) * 100).toFixed(1)}%`]
         ];
 
@@ -3265,6 +3296,7 @@ function extractAnalysisData(inputs, results, app) {
         enhancedSummary: null,
         riskAnalysis: null,
         propertyAnalysis: null,
+        projectionQuality: null,
         optimizationStrategies: null,
         aiRecommendations: null,
         comprehensiveRecommendations: null,
@@ -3289,6 +3321,11 @@ function extractAnalysisData(inputs, results, app) {
             financialReadiness: getFinancialReadiness(inputs, results),
             keyMetrics: getKeyMetrics(inputs, results),
             projectedOutcome: getProjectedOutcome(results)
+        };
+        analysis.projectionQuality = {
+            source: app?.currentProjection?.sourceCalculator || (app ? 'advanced' : 'unknown'),
+            projection: app?.currentProjection || null,
+            quality: app?.currentProjection?.diagnostics?.projectionQuality || null,
         };
 
         // Risk Analysis
@@ -3445,13 +3482,15 @@ function getRiskAnalysisData(inputs, results) {
 function getPropertyAnalysisData(inputs, results) {
     if (!inputs.hasInvestmentProperty) return null;
 
+    const position = results.investmentPropertyPosition || {};
     return {
         currentValue: inputs.investmentPropertyValue,
         outstandingLoan: inputs.investmentPropertyLoan,
         equity: inputs.investmentPropertyValue - inputs.investmentPropertyLoan,
         weeklyRent: inputs.weeklyRentalIncome,
         annualReturn: (inputs.weeklyRentalIncome * 52) / inputs.investmentPropertyValue * 100,
-        sellStrategy: inputs.sellPropertyYears ? `Sell in ${inputs.sellPropertyYears} years` : 'Hold indefinitely'
+        sellStrategy: inputs.sellPropertyYears ? `Sell in ${inputs.sellPropertyYears} years` : 'Hold indefinitely',
+        ...position,
     };
 }
 
@@ -3591,6 +3630,14 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
             ['Current Equity', formatCurrency(propData.equity)],
             ['Weekly Rental Income', formatCurrency(propData.weeklyRent)],
             ['Annual Rental Yield', `${propData.annualReturn.toFixed(2)}%`],
+            ['Purchase Price / Cost Base', formatCurrency(propData.purchasePrice || 0)],
+            ['Estimated Selling Costs Today', formatCurrency(propData.estimatedSellingCosts || 0)],
+            ['Cash Required to Sell Today', formatCurrency(propData.cashRequiredToSellToday || 0)],
+            ['Net Rental Cashflow Before Tax', `${formatCurrency(propData.annualNetCashflowBeforeTax || 0)}/year${propData.isNegativelyGeared ? ' (negative)' : ''}`],
+            ['Net Rental Cashflow After Tax Estimate', `${formatCurrency(propData.annualNetCashflowAfterTaxEstimate || 0)}/year`],
+            ['Capital Gain / Loss Today', formatCurrency(propData.capitalGainOrLossToday || 0)],
+            ['Capital Loss Carried Forward', formatCurrency(propData.capitalLossCarriedForward || 0)],
+            ['Below Purchase Price', propData.belowPurchasePrice ? 'Yes' : 'No'],
             ['Strategy', propData.sellStrategy]
         ];
 
@@ -3725,7 +3772,7 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
 
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text(`${analysis.suggestions.length} personalized strategies to improve your retirement outcome`, 14, yPos);
+        doc.text(`${analysis.suggestions.length} modelled options, including trade-offs and options not recommended`, 14, yPos);
         yPos += 8;
 
         const suggestionsBody = analysis.suggestions.slice(0, 20).map(suggestion => {
@@ -3733,27 +3780,32 @@ function addEnhancedAnalysisToPDF(doc, analysis, startY) {
             const categoryLabel = { property: 'Property', income: 'Income', investment: 'Investment', timing: 'Timing', mortgage: 'Mortgage', insurance: 'Insurance' }[category] || category.charAt(0).toUpperCase() + category.slice(1);
             const name = suggestion.name || suggestion.title || 'Suggestion';
             const description = (suggestion.description || suggestion.summary || 'No description available').substring(0, 90);
-            const impact = suggestion.medianBalanceDiff
-                ? formatCurrency(suggestion.medianBalanceDiff)
-                : (suggestion.successRate ? `${(suggestion.successRate * 100).toFixed(1)}%` : 'N/A');
-            const feasibility = suggestion.feasibility || suggestion.difficulty || 'Review';
+            const depletion = suggestion.scenarioDepletionAge == null ? 'Never' : `Age ${suggestion.scenarioDepletionAge}`;
+            const success = suggestion.scenarioSuccessRate == null ? '—'
+                : `${((suggestion.scenarioSuccessRate || 0) * 100).toFixed(1)}% (${suggestion.successRateDelta >= 0 ? '+' : ''}${((suggestion.successRateDelta || 0) * 100).toFixed(1)}pp)`;
+            const downside = suggestion.scenarioP10FinalBalance == null ? '—' : formatCurrency(suggestion.scenarioP10FinalBalance);
+            const atRisk = suggestion.scenarioAmountAtRisk == null ? '—' : formatCurrency(suggestion.scenarioAmountAtRisk);
+            const status = suggestion.recommendationStatus || 'neutral';
 
-            return [categoryLabel, name, description, impact, feasibility];
+            return [categoryLabel, name, description, depletion, success, downside, atRisk, status];
         });
 
         doc.autoTable({
             startY: yPos,
-            head: [['Category', 'Suggestion', 'Description', 'Impact', 'Feasibility']],
+            head: [['Category', 'Suggestion', 'Description', 'Depletion', 'Success', 'P10', 'At risk', 'Status']],
             body: suggestionsBody,
             theme: 'striped',
             headStyles: { fillColor: [99, 102, 241] },
             styles: { fontSize: 8, cellPadding: 3 },
             columnStyles: {
-                0: { cellWidth: 22 },
-                1: { cellWidth: 35 },
-                2: { cellWidth: 75 },
-                3: { cellWidth: 25 },
-                4: { cellWidth: 18 }
+                0: { cellWidth: 18 },
+                1: { cellWidth: 28 },
+                2: { cellWidth: 48 },
+                3: { cellWidth: 16 },
+                4: { cellWidth: 24 },
+                5: { cellWidth: 20 },
+                6: { cellWidth: 20 },
+                7: { cellWidth: 20 }
             }
         });
 
