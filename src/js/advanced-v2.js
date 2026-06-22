@@ -1796,6 +1796,10 @@ function normalizeImportedUserData(userData = {}) {
     superGrowth: userData.superReturn !== undefined ? toDisplayPercent(userData.superReturn) : base.superGrowth,
     savingsReturn: userData.savingsReturn !== undefined ? toDisplayPercent(userData.savingsReturn) : base.savingsReturn,
     salaryGrowthRate: userData.salaryGrowthRate !== undefined ? toDisplayPercent(userData.salaryGrowthRate) : base.salaryGrowthRate,
+    // userData.returnDeclineRate is assumed to be in decimal engine form (e.g. 0.002 for 0.2%/yr),
+    // as exported by the classic calculator. toDisplayPercent converts it to display-% for the form.
+    // If a future export ever stores display-% (e.g. 0.2), toDisplayPercent would amplify it 100×.
+    // sanitiseReturnDeclineRate in the engine pipeline detects values > DECLINE_MAX and corrects them.
     returnDeclineRate: userData.returnDeclineRate !== undefined ? toDisplayPercent(userData.returnDeclineRate) : base.returnDeclineRate,
     agePensionAge: userData.agePensionAge ?? base.agePensionAge,
     [annualPensionField]: userData.agePensionMax ?? base[annualPensionField],
