@@ -1033,16 +1033,22 @@ export class RetirementSimulator {
             const marginalRate = Math.min(0.45, effectiveCGTRate * 2);
             const isNewBuild = !!inputs.investmentPropertyIsNewBuild; // false if field absent
             const inflation = inputs.inflation || 0.026;
+            // Pass the real propertyCostBase so calculateCGTPost2027 can correctly compute the
+            // inflation-indexed basis (indexedBase = costBase × (1+inflation)^years). Using
+            // saleValue-taxableGain as the purchase price corrupts the indexation because it is
+            // an artificial number, not the actual purchase price. Instead, scale the resulting
+            // CGT by taxableGain/capitalGain to account for the capital-loss pool offset.
             const result = calculateCGTPost2027(
                 saleValue,
-                saleValue - capitalLoss.taxableGain,
+                propertyCostBase,
                 purchaseCalendarYear,
                 saleCalendarYear,
                 marginalRate,
                 inflation,
                 isNewBuild
             );
-            cgtPayable = result.cgt;
+            const gainFraction = capitalGain > 0 ? capitalLoss.taxableGain / capitalGain : 1;
+            cgtPayable = result.cgt * gainFraction;
             cgtMethod = result.method + ' (proposed)';
         } else {
             // Current law: effectiveCGTRate already incorporates the 50% discount
