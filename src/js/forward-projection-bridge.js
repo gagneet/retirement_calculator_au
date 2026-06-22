@@ -219,6 +219,9 @@ export function validateProjectionSnapshot(payload = {}, snapshot = extractProje
       issues.push(`Imported ${label} is positive but reverse snapshot shows $0.`);
     }
   }
-  if (payload.inputHash && snapshot.inputHash !== payload.inputHash) issues.push('Reverse input hash does not match the imported projection.');
+  // snapshot.inputHash is copied from payload.inputHash by extractProjectionSnapshot, so
+  // comparing them is always equal (tautology). Instead, flag when no hash was ever stored
+  // — that means the projection predates hash signing and cannot be integrity-checked.
+  if (!snapshot.inputHash) issues.push('Projection has no input hash — integrity cannot be verified (pre-hash export).');
   return { valid: issues.length === 0, issues, snapshot };
 }
