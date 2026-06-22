@@ -52,8 +52,9 @@ export function compareCurrentToTarget(currentPath, target, assumptions = {}) {
     const targetSuper = target.targetSuper || requiredCapital * 0.6;
     const superGap = Math.max(0, targetSuper - superAtRetirement);
 
-    // Mortgage problem
-    const mortgageAtRetirement = currentPath.mortgageBalance || 0;
+    // Mortgage problem — field is 'mortgageAtRetirement' from extractCurrentPathFromProjection
+    // and 'mortgageBalance' from the buildCurrentPath fallback; accept both.
+    const mortgageAtRetirement = currentPath.mortgageAtRetirement ?? currentPath.mortgageBalance ?? 0;
     const mortgageProblem = mortgageAtRetirement > 0;
 
     // Estate gap
