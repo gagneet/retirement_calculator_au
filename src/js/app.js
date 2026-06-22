@@ -38,6 +38,9 @@ import { adaptAdvancedClassicInput } from './calculation/input-adapters/advanced
 import { applyCanonicalCashflowToEngineInputs } from './calculation/canonical-engine-adapter.js';
 import { ProjectionService } from './calculation/projection-service.js';
 import {
+    buildCanonicalSaveData,
+} from './calculation/save-data-schema.js';
+import {
     calculateConcessionalCapStatus,
     calculateEmployerSuper,
     EMPLOYER_SUPER_MODES,
@@ -335,6 +338,15 @@ class RetirementCalculatorApp {
                 if (!data.userData || !data.version) {
                     debugLog('❌ Invalid data structure:', { hasUserData: !!data.userData, hasVersion: !!data.version });
                     showNotification('Invalid retirement calculator data file format.', 'error');
+                    return;
+                }
+
+                // Show confirmation dialog before loading
+                const scenarioName = data.scenarioName || 'your saved data';
+                const confirmationMessage = `You are about to load the scenario: "${scenarioName}".\n\nThis will overwrite any unsaved changes in the calculator.\n\nDo you want to proceed?`;
+
+                if (!window.confirm(confirmationMessage)) {
+                    showNotification('Data import cancelled.', 'info');
                     return;
                 }
 
@@ -8377,7 +8389,8 @@ class RetirementCalculatorApp {
     async exportUserInputs() {
         const inputs = this.collectInputs();
         const scenarioName = prompt('Enter a name for this scenario:', 'My Retirement Plan') || 'My Retirement Plan';
-        exportUserData(inputs, scenarioName);
+        const canonicalInputs = buildCanonicalSaveData(inputs, { source: 'advanced' });
+        exportUserData(canonicalInputs, scenarioName, { sourcePage: 'advanced' });
         trackDataAction('Export User Data');
     }
 

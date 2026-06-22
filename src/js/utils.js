@@ -2346,7 +2346,9 @@ export const exportToJSON = (data, filename = 'retirement-data.json') => {
 };
 
 // User Data Export/Import Functionality
-export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
+export const exportUserData = (inputs, scenarioName = 'My Retirement Plan', options = {}) => {
+    const { uiState = null, sourcePage = 'advanced' } = options;
+
     // Create a deep copy to avoid modifying the original inputs object
     const formattedInputs = JSON.parse(JSON.stringify(inputs));
 
@@ -2404,14 +2406,17 @@ export const exportUserData = (inputs, scenarioName = 'My Retirement Plan') => {
     }
 
     const exportData = {
-        version: '4.0',
+        version: '4.1',
         exportDate: new Date().toISOString(),
         scenarioName: scenarioName,
         userData: formattedInputs,
+        uiState: uiState,
         metadata: {
             calculatorVersion: '2026.1',
+            schemaVersion: 'canonical-retirement-inputs-v1',
             description: 'Australian Retirement Calculator - User Input Data',
-            fields: Object.keys(inputs).length,
+            fields: Object.keys(formattedInputs).length,
+            sourcePage: sourcePage,
             note: 'This file contains only your input data, no calculation results. Your privacy is protected.'
         }
     };
@@ -2462,15 +2467,16 @@ export const importUserData = () => {
 
                     if (window.confirm(confirmationMessage)) {
                         // User confirmed, proceed with loading
-                        const supportedVersions = ['1.0', '2.0', '3.0', '4.0'];
+                        const supportedVersions = ['1.0', '2.0', '3.0', '4.0', '4.1'];
                         if (!supportedVersions.includes(data.version)) {
                             showNotification('File version may not be fully compatible. Import will be attempted.', 'warning');
-                        } else if (data.version !== '4.0') {
+                        } else if (data.version !== '4.1' && data.version !== '4.0') {
                             showNotification('Imported older file format - some features may need adjustment.', 'info');
                         }
 
                         resolve({
                             userData: data.userData,
+                            uiState: data.uiState || null,
                             scenarioName: data.scenarioName,
                             exportDate: data.exportDate,
                             metadata: data.metadata,

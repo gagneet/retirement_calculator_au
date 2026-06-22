@@ -26,6 +26,7 @@ import {
 } from './super-policy.js';
 import {
   exportToPDF,
+  exportUserData,
   formatCurrency,
   formatPercent,
   deflateToToday,
@@ -34,6 +35,10 @@ import {
   calculateStateLandTax,
   initializeTooltips,
 } from './utils.js';
+import {
+  buildCanonicalSaveData,
+  extractAdvancedV2UiState,
+} from './calculation/save-data-schema.js';
 import { buildForwardProjectionPayload, storeForwardProjection } from './forward-projection-bridge.js';
 import { adaptAdvancedV2Input } from './calculation/input-adapters/advanced-v2-adapter.js';
 import { applyCanonicalCashflowToEngineInputs } from './calculation/canonical-engine-adapter.js';
@@ -473,9 +478,9 @@ function buildEngineInputs(inp) {
     percentIncomeSaved: (salarySuper.cashSalary + (isCouple ? partnerSalarySuper.cashSalary : 0)) > 0
       ? clamp((inp.monthlyStockContrib * 12) / (salarySuper.cashSalary + (isCouple ? partnerSalarySuper.cashSalary : 0)), 0, 1)
       : 0,
-    useDetailedExpenseInputs: false,
-    currentMonthlyHousingCosts: 0,
-    currentMonthlyLivingCosts: 0,
+    useDetailedExpenseInputs: Boolean(inp.useDetailedCashflow),
+    currentMonthlyHousingCosts: inp.monthlyMortgagePayment || inp.builderMortgage || 0,
+    currentMonthlyLivingCosts: inp.currentMonthlyLivingCosts || 0,
 
     homeValue: ownsPrimaryHome ? inp.homeValue : 0,
     mortgageBalance: hasPrimaryMortgage ? inp.mortgage : 0,
@@ -665,6 +670,12 @@ function buildEngineInputs(inp) {
     carLoanRate: pct(inp.carLoanRate || 8, 8),
     hecsBalance: inp.hecsBalance,
 
+    // Ensure expanded canonical debt names are also present for engine/save parity
+    ccBalance: inp.ccBalance,
+    ccRate: pct(inp.ccRate || 20, 20),
+    personalLoan: inp.personalLoan,
+    carLoan: inp.carLoan,
+
     // Age-related optional costs
     enableHomeModifications: Boolean(inp.enableHomeModifications),
     homeModificationCost: inp.homeModificationCost || 0,
@@ -827,16 +838,26 @@ function adaptEngineOutput(inp, engineInputs, simulation) {
   const surplusMonthly = surplusAnnualToday / 12;
   const surplusAllocation = firstRetirementYear.surplusAllocation || null;
 
+  const plannedSpendingNominal = firstRetirementYear.plannedSpending || firstRetirementYear.totalPlannedSpending || 0;
+
   return {
     monthlyPaycheck,
     plannedSpendingToday,
+    plannedSpendingNominal,
     swrMonthlyToday,
     superAtRetire: deflateToToday(firstRetirementYear.startBalance || 0, yearsToRetire, inflationRate),
+    superAtRetireNominal: firstRetirementYear.startBalance || 0,
     breakdown: {
       super: deflateToToday(firstRetirementYear.fundingBreakdown?.draw || 0, yearsToRetire, inflationRate),
       pension: deflateToToday(firstRetirementYear.fundingBreakdown?.pension || 0, yearsToRetire, inflationRate),
       other: deflateToToday(firstRetirementYear.fundingBreakdown?.other || 0, yearsToRetire, inflationRate),
       tax: deflateToToday(firstRetirementYear.fundingBreakdown?.tax || 0, yearsToRetire, inflationRate),
+    },
+    breakdownNominal: {
+      super: firstRetirementYear.fundingBreakdown?.draw || 0,
+      pension: firstRetirementYear.fundingBreakdown?.pension || 0,
+      other: firstRetirementYear.fundingBreakdown?.other || 0,
+      tax: firstRetirementYear.fundingBreakdown?.tax || 0,
     },
     confidence: clamp((coverageScore * 0.7) + (longevityScore * 0.3), 0, 0.98),
     gapMonthly: Math.max(0, targetMonthly - (plannedSpendingToday / 12)),
@@ -1868,45 +1889,16 @@ function normalizeImportedUserData(userData = {}) {
 }
 
 function exportRedesignUserData(inputs, scenarioName = 'Advanced Calculator v2') {
-  // Clamp float noise on rate fields before serialising.
-  // These fields are stored as display-percent (e.g. "3.5" not "0.035").
-  // Clamp float noise to 2 dp — String(parseFloat(x)) can produce 16.199999999997 etc.
-  const cleanInputs = { ...inputs };
-  const twoDP = [
-    'inflation', 'invReturn', 'superGrowth', 'savingsReturn',
-    'mortgageRate', 'ccRate', 'personalLoanRate', 'carLoanRate',
-    'ipRate', 'ipGrowthRate', 'returnVolatility',
-    'shockProbability', 'shockMagnitude',
-    'agedCareProbability', 'employerRate', 'carerReducedWorkPercent',
-  ];
-  twoDP.forEach((k) => { if (cleanInputs[k] != null) cleanInputs[k] = parseFloat(Number(cleanInputs[k]).toFixed(2)); });
-
-  const exportData = {
-    version: '4.0',
-    exportDate: new Date().toISOString(),
-    scenarioName,
-    userData: cleanInputs,
-    metadata: {
-      calculatorVersion: '2026.1',
-      description: 'Australian Retirement Calculator - Advanced v2 input data',
-      fields: Object.keys(inputs).length,
-      page: 'advanced-v2',
-      note: 'This file contains Advanced v2 input data for the redesigned calculator.',
-    },
+  const v2Inputs = inputs || readInputs();
+  const canonicalInputs = buildCanonicalSaveData(v2Inputs, { source: 'advanced-v2' });
+  const uiState = {
+    advancedV2: extractAdvancedV2UiState(v2Inputs)
   };
 
-  const timestamp = new Date().toISOString().slice(0, 16).replace(/[:.]/g, '-');
-  const filename = `retirement-inputs-advanced-v2-${timestamp}.json`;
-  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
-
-  showNotification('Your retirement data has been exported successfully!', 'success');
-  return filename;
+  return exportUserData(canonicalInputs, scenarioName, {
+    sourcePage: 'advanced-v2',
+    uiState
+  });
 }
 
 function buildOverseasAnalyzer(baseState) {
@@ -3826,7 +3818,7 @@ function normalizeLoadedDecimals() {
   });
 }
 
-function applyImportedUserData(userData) {
+function applyImportedUserData(userData, uiState = null) {
   const normalized = normalizeImportedUserData(userData);
   setSegmentedValue('household', normalized.household || 'single');
   setSegmentedValue('downsizePlan', normalized.downsizePlan || 'no');
@@ -3872,6 +3864,21 @@ function applyImportedUserData(userData) {
   // Normalize decimal precision: toDisplayPercent can introduce float noise (e.g. 0.162*100 = 16.200000000000002)
   normalizeLoadedDecimals();
 
+  // Restore V2 UI State if present
+  if (uiState && uiState.advancedV2) {
+    const v2State = uiState.advancedV2;
+    if (v2State.desiredIncomeMode) setSegmentedValue('desiredIncomeMode', v2State.desiredIncomeMode);
+    if (v2State.richTarget) setInputValue('richTarget', v2State.richTarget);
+    if (v2State.richTargetCustom) setInputValue('richTargetCustom', v2State.richTargetCustom);
+    if (v2State.builderCurrentIncome) setInputValue('builderCurrentIncome', v2State.builderCurrentIncome);
+    if (v2State.builderMortgage) setInputValue('builderMortgage', v2State.builderMortgage);
+    if (v2State.builderChildren) setInputValue('builderChildren', v2State.builderChildren);
+    if (v2State.builderBuffer) setInputValue('builderBuffer', v2State.builderBuffer);
+    if (v2State.surplusAllocationMode) setInputValue('surplusAllocationMode', v2State.surplusAllocationMode);
+    if (v2State.useDetailedCashflow) setInputValue('useDetailedCashflow', v2State.useDetailedCashflow, { checkbox: true });
+    if (v2State.displayUnits) setSegmentedValue('displayUnits', v2State.displayUnits);
+  }
+
   applyHouseholdVisibility();
   ['investmentProperty', 'goingOverseas', 'isCarer', 'hasSmsf', 'hasTrust',
    'hasSpousalMaintenance', 'hasChildSupport', 'useFHSS', 'enableShocks'].forEach((id) => {
@@ -3884,7 +3891,7 @@ function applyImportedUserData(userData) {
 async function handleLoadData() {
   const imported = await importUserData();
   if (!imported) return;
-  applyImportedUserData(imported.userData || {});
+  applyImportedUserData(imported.userData || {}, imported.uiState || null);
   showNotification(`Loaded ${imported.scenarioName || 'saved retirement data'}.`, 'success');
 }
 
@@ -3988,6 +3995,16 @@ function $(id) {
   return document.getElementById(id);
 }
 
+function show(id) {
+  const element = $(id);
+  if (element) element.style.display = '';
+}
+
+function hide(id) {
+  const element = $(id);
+  if (element) element.style.display = 'none';
+}
+
 function setText(id, text) {
   const element = $(id);
   if (element) element.textContent = String(text);
@@ -4054,6 +4071,9 @@ function updateSpendingEstimateHint(inp) {
 function paint(result, inp) {
   updateSpendingEstimateHint(inp);
 
+  const displayUnits = getDisplayUnits();
+  const isNominal = displayUnits === 'nominal';
+
   const warningBox = $('r-projection-warnings');
   const warnings = (APP_STATE.projection?.warnings || []).filter(
     (w) => !w.startsWith(SPENDING_ESTIMATED_WARNING_PREFIX)
@@ -4069,13 +4089,24 @@ function paint(result, inp) {
   }
 
   // Hero
-  setText('r-paycheck', Math.round(result.plannedSpendingToday / 12).toLocaleString('en-AU'));
+  const plannedSpend = isNominal ? result.plannedSpendingNominal : result.plannedSpendingToday;
+  setText('r-paycheck', Math.round(plannedSpend / 12).toLocaleString('en-AU'));
   setText('r-retire-age', inp.retireAge);
   // lifespan=0 means "simulate to depletion" (age 120). Show "any age" in the UI.
   const openEnded = !(inp.lifespan > 0);
   const effectiveLifespan = openEnded ? 120 : inp.lifespan;
   setText('r-lifespan', openEnded ? 'any age' : inp.lifespan);
   setText('r-combined', result.isCouple ? ' · combined' : '');
+
+  // Update hero units label to match active display mode
+  const eyebrow = document.querySelector('.results-eyebrow');
+  if (eyebrow) {
+    eyebrow.innerHTML = `<span class="live-dot"></span> Live projection · ${isNominal ? 'nominal $' : "today's $"}`;
+  }
+  const heroUnit = document.querySelector('.hero-unit');
+  if (heroUnit) {
+    heroUnit.innerHTML = `planned <b>spend/mo</b> at retirement (age <span id="r-retire-age">${inp.retireAge}</span>) · ${isNominal ? 'nominal $' : "today's $"}<span id="r-combined">${result.isCouple ? ' · combined' : ''}</span>`;
+  }
 
   // Runway — when open-ended, green only if money lasts to 120
   const ic = $('r-runway-icon');
@@ -4098,16 +4129,18 @@ function paint(result, inp) {
   setText('r-other-pct', Math.round(100 - superPct - pensionPct) + '%');
 
   // Metrics
-  setHTML('r-super-at-retire', fmt$(result.superAtRetire, { compact: true }) + '<span class="sub">today\'s $</span>');
+  const superBal = isNominal ? result.superAtRetireNominal : result.superAtRetire;
+  setHTML('r-super-at-retire', fmt$(superBal, { compact: true }) + `<span class="sub">${isNominal ? 'nominal $' : "today's $"}</span>`);
   
   // Funded by breakdown
-  setText('r-funded-draw', fmt$(result.breakdown.super / 12));
-  setText('r-funded-pension', fmt$(result.breakdown.pension / 12));
-  setText('r-funded-other', fmt$((result.breakdown.other || 0) / 12));
+  const breakdown = isNominal ? result.breakdownNominal : result.breakdown;
+  setText('r-funded-draw', fmt$(breakdown.super / 12));
+  setText('r-funded-pension', fmt$(breakdown.pension / 12));
+  setText('r-funded-other', fmt$((breakdown.other || 0) / 12));
   
-  if (result.breakdown.tax > 0) {
+  if (breakdown.tax > 0) {
     show('r-funded-tax-container');
-    setText('r-funded-tax', '-' + fmt$(result.breakdown.tax / 12));
+    setText('r-funded-tax', '-' + fmt$(breakdown.tax / 12));
   } else {
     hide('r-funded-tax-container');
   }
