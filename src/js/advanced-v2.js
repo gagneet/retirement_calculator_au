@@ -105,6 +105,8 @@ const COUNTRY_CODE_MAP = {
   nz: 'NEW_ZEALAND',
   japan: 'JAPAN',
   india: 'INDIA',
+  uk: 'UNITED_KINGDOM',
+  united_kingdom: 'UNITED_KINGDOM',
   usa: 'USA',
   thailand: 'THAILAND',
   vietnam: 'VIETNAM',

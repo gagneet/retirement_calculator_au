@@ -122,7 +122,9 @@ const OVERSEAS_COUNTRY_PROFILE_KEY_MAP = {
     'malaysia': 'MALAYSIA',
     'philippines': 'PHILIPPINES',
     'vietnam': 'VIETNAM',
-    'usa': 'USA'
+    'uk': 'UNITED_KINGDOM',
+    'united_kingdom': 'UNITED_KINGDOM',
+    'usa': 'USA',
 };
 
 const PERCENTAGE_STORAGE_FIELD_IDS = new Set([
@@ -6953,8 +6955,11 @@ class RetirementCalculatorApp {
     // Collect overseas configuration from form inputs
     collectOverseasConfig() {
         const residenceYearsRaw = getRawValue('australianResidenceYears', '');
+        const countryVal = safeGetSelectValue('overseasCountry', '');
+        const profileKey = OVERSEAS_COUNTRY_PROFILE_KEY_MAP[countryVal];
         return {
-            country: safeGetSelectValue('overseasCountry', ''),
+            country: countryVal,
+            destinationCountry: profileKey ? (COUNTRY_PROFILES[profileKey]?.name || countryVal) : countryVal,
             departureAge: parseInt(safeGetValue('overseasAge', 65)),
             returnFrequency: safeGetSelectValue('returnFrequency', 'annually'),
             maintainResidency: safeGetChecked('maintainResidency', false),
