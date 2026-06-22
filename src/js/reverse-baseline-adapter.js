@@ -155,22 +155,22 @@ export function buildReverseBaselineFromForwardScenario(raw) {
             isCouple,
 
             // Income
-            annualSalary: num(isV2 ? raw.salary : raw.yourSalary, 0),
-            partnerSalary: isCouple ? num(raw.partnerSalary, 0) : 0,
+            annualSalary: num(isV2 ? raw.salary : (raw.yourSalary ?? raw.salary), 0),
+            partnerSalary: isCouple ? num(raw.partnerSalary ?? raw.salary, 0) : 0,
 
             // Super
-            currentSuperBalance: num(isV2 ? raw.superBal : raw.yourCurrentSuper, 0),
-            partnerCurrentSuper: num(isV2 ? raw.partnerSuperBal : raw.partnerCurrentSuper, 0),
-            partnerSuperBalance: num(isV2 ? raw.partnerSuperBal : (raw.partnerSuperBalance ?? raw.partnerCurrentSuper), 0),
-            salarySacrifice: num(isV2 ? raw.salarySacrifice : raw.yourAdditionalSuperContribution, 0),
+            currentSuperBalance: num(isV2 ? raw.superBal : (raw.yourCurrentSuper ?? raw.superBal ?? raw.currentSuperBalance), 0),
+            partnerCurrentSuper: num(isV2 ? raw.partnerSuperBal : (raw.partnerCurrentSuper ?? raw.partnerSuperBal ?? raw.partnerCurrentSuperBalance), 0),
+            partnerSuperBalance: num(isV2 ? raw.partnerSuperBal : (raw.partnerSuperBalance ?? raw.partnerCurrentSuper ?? raw.partnerSuperBal ?? raw.partnerCurrentSuperBalance), 0),
+            salarySacrifice: num(isV2 ? raw.salarySacrifice : (raw.yourAdditionalSuperContribution ?? raw.salarySacrifice), 0),
             partnerSalarySacrifice: num(isV2 ? raw.partnerSalarySacrifice : raw.partnerAdditionalSuperContribution, 0),
 
             // Home
             homeowner: raw.homeowner !== undefined ? !!raw.homeowner : true,
-            homeValue: num(isV2 ? raw.homeValue : raw.homeValue, 0),
-            mortgageBalance: num(isV2 ? raw.mortgage : raw.mortgageBalance, 0),
+            homeValue: num(isV2 ? raw.homeValue : (raw.homeValue ?? 0), 0),
+            mortgageBalance: num(isV2 ? raw.mortgage : (raw.mortgageBalance ?? raw.mortgage ?? 0), 0),
             monthlyMortgagePayment: (() => {
-              const rawPayment = num(isV2 ? raw.monthlyMortgagePayment : raw.monthlyMortgagePayment, 0);
+              const rawPayment = num(isV2 ? raw.monthlyMortgagePayment : (raw.monthlyMortgagePayment ?? 0), 0);
               if (rawPayment > 0) return rawPayment;
               const balance = num(isV2 ? raw.mortgage : raw.mortgageBalance, 0);
               if (balance > 0) {
@@ -187,22 +187,22 @@ export function buildReverseBaselineFromForwardScenario(raw) {
             })(),
 
             // Investments
-            cashSavings: num(isV2 ? raw.cash : raw.currentSavings, 0),
-            stocksPortfolio: num(isV2 ? raw.stocks : raw.currentStocks, 0),
-            monthlyInvestment: num(isV2 ? raw.monthlyStockContrib : raw.monthlyStockContribution, 0),
+            cashSavings: num(isV2 ? raw.cash : (raw.currentSavings ?? raw.cash), 0),
+            stocksPortfolio: num(isV2 ? raw.stocks : (raw.currentStocks ?? raw.stocks), 0),
+            monthlyInvestment: num(isV2 ? raw.monthlyStockContrib : (raw.monthlyStockContribution ?? raw.monthlyStockContrib), 0),
 
             // Investment property
-            hasInvestmentProperty: isV2 ? !!raw.investmentProperty : !!raw.hasInvestmentProperty,
-            investmentPropertyValue: num(isV2 ? raw.ipValue : raw.investmentPropertyValue, 0),
-            weeklyRentalIncome: num(isV2 ? raw.ipWeeklyRent : raw.weeklyRentalIncome, 0),
-            annualPropertyExpenses: num(isV2 ? raw.ipAnnualExpenses : raw.annualPropertyExpenses, 0),
-            propertyGrowthRate: num(isV2 ? raw.ipGrowthRate : raw.propertyGrowthRate, 0.04),
+            hasInvestmentProperty: isV2 ? !!raw.investmentProperty : !!(raw.hasInvestmentProperty ?? raw.investmentProperty),
+            investmentPropertyValue: num(isV2 ? raw.ipValue : (raw.investmentPropertyValue ?? raw.ipValue), 0),
+            weeklyRentalIncome: num(isV2 ? raw.ipWeeklyRent : (raw.weeklyRentalIncome ?? raw.ipWeeklyRent), 0),
+            annualPropertyExpenses: num(isV2 ? raw.ipAnnualExpenses : (raw.annualPropertyExpenses ?? raw.ipAnnualExpenses), 0),
+            propertyGrowthRate: num(isV2 ? raw.ipGrowthRate : (raw.propertyGrowthRate ?? raw.ipGrowthRate), 0.04),
 
             // Economic assumptions
-            inflation: num(isV2 ? raw.inflation : raw.inflation, 0.026),
-            investmentReturn: num(isV2 ? raw.invReturn : raw.investmentReturn, 0.07),
-            superReturn: num(isV2 ? raw.superGrowth : raw.superReturn, 0.075),
-            salaryGrowthRate: num(isV2 ? raw.salaryGrowthRate : raw.salaryGrowthRate, 0.02),
+            inflation: num(isV2 ? raw.inflation : (raw.inflation ?? 0), 0.026),
+            investmentReturn: num(isV2 ? raw.invReturn : (raw.investmentReturn ?? raw.invReturn ?? 0), 0.07),
+            superReturn: num(isV2 ? raw.superGrowth : (raw.superReturn ?? raw.superGrowth ?? 0), 0.075),
+            salaryGrowthRate: num(isV2 ? raw.salaryGrowthRate : (raw.salaryGrowthRate ?? 0), 0.02),
         },
     };
 

@@ -14,13 +14,13 @@ export const COUNTRY_PROFILES = {
         overview: 'Ultra-low cost, growing expat community, family connections',
 
         // Social Security Agreement
-        socialSecurityAgreement: false,
+        socialSecurityAgreement: true,
 
         // Age Pension Portability
         agePension: {
-            portability: 'PROPORTIONAL_AFTER_26_WEEKS',
-            formerResidentRule: true,
-            note: 'No agreement - general portability rules apply'
+            portability: 'FULL_WITH_AGREEMENT',
+            formerResidentRule: false,
+            note: 'Australia-India Social Security Agreement (SSA) in force since 2016 allows claiming Age Pension from India without returning to Australia.'
         },
 
         // Visa
@@ -134,7 +134,7 @@ export const COUNTRY_PROFILES = {
         currency: 'EUR',
         distanceFromAustralia: 17000,
         flightTime: '22-24 hours',
-        overview: 'Extremely popular - excellent weather, healthcare, NHR tax scheme',
+        overview: 'Extremely popular - excellent weather, healthcare, and strong expat communities.',
 
         socialSecurityAgreement: true,
         agreementDetails: {
@@ -183,17 +183,8 @@ export const COUNTRY_PROFILES = {
 
         tax: {
             doubleTaxAgreement: true,
-            nhrScheme: {
-                name: 'Non-Habitual Resident (NHR)',
-                duration: '10 years',
-                benefits: [
-                    'Foreign pension income: 0% tax',
-                    'Foreign-sourced income: 0-10% flat rate',
-                    'Portuguese income: 20% flat rate'
-                ],
-                note: 'Major tax advantage for first 10 years'
-            },
-            superTaxation: 'Under NHR: Australian super not taxed'
+            superTaxation: 'Australian tax residents: super is tax-free in AU. Portugal tax residents (non-NHR): super may face standard resident rates (up to 48%); DTA may apply.',
+            note: 'NHR scheme closed to new applicants at end-2024. New arrivals face standard progressive rates unless qualifying for grandfathering or the specific IFICI regime (innovation/research only).'
         },
 
         climate: 'Mediterranean - mild winters, hot summers',
@@ -236,7 +227,6 @@ export const COUNTRY_PROFILES = {
             'European lifestyle at moderate cost',
             'Beach and golf (Algarve)',
             'Excellent healthcare seekers',
-            'Tax advantages (NHR scheme)',
             'Safety and stability'
         ],
 
@@ -245,13 +235,13 @@ export const COUNTRY_PROFILES = {
             'Bureaucracy',
             'Very far from Australia (24+ hours)',
             'Summer heat (40°C+)',
-            'Higher taxes after NHR expires (10 years)'
+            'NHR tax scheme closed (standard resident rates apply for new retirees)'
         ],
 
         additionalNotes: [
-            '🌟 NHR: 10 years 0% tax on foreign pension',
             '🏥 Healthcare ranked #12 globally',
-            '☀️ 300+ sunny days/year in Algarve'
+            '☀️ 300+ sunny days/year in Algarve',
+            '⚠️ NHR closed Dec-2024; future retirees face standard Portuguese tax on foreign income'
         ]
     },
 

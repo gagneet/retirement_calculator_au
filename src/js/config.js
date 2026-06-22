@@ -761,15 +761,16 @@ export const ENHANCED_CONFIG = {
         economic: {
             // RBA target band 2–3%; ABS CPI Mar 2026 = 2.4%; use midpoint 2.5%
             inflation: 2.5,             // 2.5% → /100 → 0.025
-            // APRA MySuper balanced product 10-yr net return median ≈ 8.5%;
-            // blended portfolio (60/30/10) at 7.5% after fees is a realistic planning rate
-            investmentReturn: 7.5,      // 7.5% → /100 → 0.075
+            // Diversified equities (outside super) typically carry higher risk/reward than
+            // a balanced super option. Blended share/ETF portfolio at 8.0% nominal.
+            investmentReturn: 8.0,      // 8.0% → /100 → 0.08
             // Conservative 0.2% pa real return decline as portfolio de-risks with age
             returnDeclineRate: 0.2,     // 0.2% display-percentage — app.js divides by 100 (gives 0.002); advanced-v2 also divides explicitly
             // RBA HISA average Apr 2026 ≈ 4.5%
             savingsReturn: 4.5,         // 4.5% → /100 → 0.045
-            // APRA MySuper balanced 10-yr net ≈ 8.5%; use 8.0% as conservative planning rate
-            superReturn: 8.0,           // 8.0% → /100 → 0.080
+            // APRA MySuper balanced 10-yr net median ≈ 8.5%. Use 7.5% as conservative
+            // long-run base case.
+            superReturn: 7.5,           // 7.5% → /100 → 0.075
             // ABS WPI Mar 2026 = 3.4% nominal; real growth after 2.5% inflation ≈ 0.9%;
             // use 1.5% as a slightly optimistic real salary growth assumption
             salaryGrowthRate: 1.5,      // 1.5% → /100 → 0.015
@@ -817,6 +818,7 @@ export const ENHANCED_CONFIG = {
             numRuns: 5000,
             // Historical ASX equity volatility ~15%; blended portfolio ~12%
             returnVolatility: 12,   // 12% → /100 → 0.12
+            scenarioMode: 'base',   // Default to base scenario, not optimistic
             enableShocks: false,
             shockProbability: 5,    // 5% → /100 → 0.05
             shockMagnitude: -25     // -25% → /100 → -0.25

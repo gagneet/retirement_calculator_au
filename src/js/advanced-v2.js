@@ -28,6 +28,7 @@ import {
   exportToPDF,
   formatCurrency,
   formatPercent,
+  deflateToToday,
   importUserData,
   showNotification,
   calculateStateLandTax,
@@ -55,7 +56,7 @@ const projectionService = new ProjectionService({
   resultAdapter: adaptEngineOutput,
   summaryBuilder: ({ canonicalInput, simulation, adaptedResult }) => ({
     targetAnnualIncomeToday: canonicalInput.retirementTarget.targetAnnualIncomeToday,
-    monthlyRetirementIncomeToday: adaptedResult.monthlyPaycheck,
+    monthlyRetirementIncomeToday: (adaptedResult.plannedSpendingToday / 12),
     superAtRetirementToday: adaptedResult.superAtRetire,
     estateAtLifespan: simulation.finalBalance,
   }),
@@ -786,19 +787,30 @@ function adaptEngineOutput(inp, engineInputs, simulation) {
     throw new Error('Simulation did not produce retirement-year data.');
   }
 
-  const inflationFactor = Math.pow(
-    1 + (engineInputs.inflation || 0),
-    Math.max(0, engineInputs.retirementAge - engineInputs.yourCurrentAge)
-  );
-  const superIncomeToday = (firstRetirementYear.superIncome || firstRetirementYear.withdrawal || 0) / inflationFactor;
-  const pensionIncomeToday = (firstRetirementYear.pensionIncome || 0) / inflationFactor;
-  const otherIncomeToday = (firstRetirementYear.otherIncome || 0) / inflationFactor;
+  const yearsToRetire = Math.max(0, engineInputs.retirementAge - engineInputs.yourCurrentAge);
+  const inflationRate = engineInputs.inflation || 0.026;
+  
+  const superIncomeToday = deflateToToday(firstRetirementYear.superIncome || firstRetirementYear.withdrawal || 0, yearsToRetire, inflationRate);
+  const pensionIncomeToday = deflateToToday(firstRetirementYear.pensionIncome || 0, yearsToRetire, inflationRate);
+  const otherIncomeToday = deflateToToday(firstRetirementYear.otherIncome || 0, yearsToRetire, inflationRate);
+  
   const annualIncomeToday = superIncomeToday + pensionIncomeToday + otherIncomeToday;
   const monthlyPaycheck = annualIncomeToday / 12;
+
+  // Safe Withdrawal Rate (SWR) proxy for educational reference
+  const totalAssetsNominal = firstRetirementYear.startBalance || 0;
+  const swrAnnualNominal = totalAssetsNominal * 0.04 + (firstRetirementYear.pensionIncome || 0);
+  const swrMonthlyToday = deflateToToday(swrAnnualNominal, yearsToRetire, inflationRate) / 12;
+
+  // Planned spending in Year 1 (headline metric)
+  const plannedSpendingToday = deflateToToday(firstRetirementYear.plannedSpending || firstRetirementYear.totalPlannedSpending || 0, yearsToRetire, inflationRate);
+
   const targetMonthly = Math.max(1, inp.desiredIncome / 12);
   const effectivePlanAge = inp.lifespan > 0 ? inp.lifespan : 120;
   const lastsUntil = Math.min(simulation.depletionAge || effectivePlanAge, effectivePlanAge);
-  const coverageScore = monthlyPaycheck / targetMonthly;
+  
+  // Use planned spending for coverage score
+  const coverageScore = (plannedSpendingToday / 12) / targetMonthly;
   const longevityScore = lastsUntil >= effectivePlanAge
     ? 1
     : clamp((lastsUntil - inp.retireAge) / Math.max(1, effectivePlanAge - inp.retireAge), 0, 1);
@@ -807,20 +819,23 @@ function adaptEngineOutput(inp, engineInputs, simulation) {
   // is reinvested (see simulator.js surplus reinvestment logic).  Expose it here so the
   // UI can show users where their surplus is allocated (40% savings, 30% investment,
   // 30% liquid emergency fund).
-  const surplusAnnualToday = (firstRetirementYear.surplusWithdrawal || 0) / inflationFactor;
+  const surplusAnnualToday = deflateToToday(firstRetirementYear.surplusWithdrawal || 0, yearsToRetire, inflationRate);
   const surplusMonthly = surplusAnnualToday / 12;
   const surplusAllocation = firstRetirementYear.surplusAllocation || null;
 
   return {
     monthlyPaycheck,
-    superAtRetire: firstRetirementYear.startBalance / inflationFactor,
+    plannedSpendingToday,
+    swrMonthlyToday,
+    superAtRetire: deflateToToday(firstRetirementYear.startBalance || 0, yearsToRetire, inflationRate),
     breakdown: {
-      super: Math.max(0, superIncomeToday),
-      pension: Math.max(0, pensionIncomeToday),
-      other: Math.max(0, otherIncomeToday),
+      super: deflateToToday(firstRetirementYear.fundingBreakdown?.draw || 0, yearsToRetire, inflationRate),
+      pension: deflateToToday(firstRetirementYear.fundingBreakdown?.pension || 0, yearsToRetire, inflationRate),
+      other: deflateToToday(firstRetirementYear.fundingBreakdown?.other || 0, yearsToRetire, inflationRate),
+      tax: deflateToToday(firstRetirementYear.fundingBreakdown?.tax || 0, yearsToRetire, inflationRate),
     },
     confidence: clamp((coverageScore * 0.7) + (longevityScore * 0.3), 0, 0.98),
-    gapMonthly: Math.max(0, targetMonthly - monthlyPaycheck),
+    gapMonthly: Math.max(0, targetMonthly - (plannedSpendingToday / 12)),
     lastsUntil,
     isCouple: engineInputs.isCouple,
     years: buildProjectionYears(inp, simulation),
@@ -2460,7 +2475,16 @@ function buildSequenceOfReturnsCallout(mc, adaptedResult, inp) {
     earlyRiskHtml = `<div class="mc-stat"><div class="mc-k">🔴 Crash in Year 1 of retirement</div><div class="mc-v" style="color:var(--danger)">${fmt$(worst, { compact: true })}</div><div class="mc-sub">10th-percentile final balance</div></div>`;
     lateRiskHtml = `<div class="mc-stat"><div class="mc-k">🟢 Strong early returns</div><div class="mc-v" style="color:var(--success)">${fmt$(best, { compact: true })}</div><div class="mc-sub">90th-percentile final balance</div></div>`;
     if (spreadYears > 0) {
-      earlyRiskHtml += `<div class="mc-stat" style="grid-column:1/-1"><div class="mc-k">Impact spread</div><div class="mc-v">${spreadYears} years</div><div class="mc-sub">A crash in year 1 vs strong early returns can mean ${spreadYears} years' difference in portfolio longevity</div></div>`;
+      const planHorizonYears = (inp.lifespan || 90) - (inp.retireAge || 65);
+      const cappedSpread = Math.min(spreadYears, planHorizonYears);
+      const suffix = spreadYears > planHorizonYears ? " (maximum plan horizon)" : "";
+      
+      let detailText = `A crash in year 1 vs strong early returns can mean ${cappedSpread} years' difference in portfolio longevity${suffix}.`;
+      if (best > 0 && worst > 0 && spreadYears > planHorizonYears) {
+          detailText = "The strong early returns path never depletes within your planned lifespan; the impact spread exceeds your planning horizon.";
+      }
+
+      earlyRiskHtml += `<div class="mc-stat" style="grid-column:1/-1"><div class="mc-k">Impact spread</div><div class="mc-v">${cappedSpread} years${suffix}</div><div class="mc-sub">${detailText}</div></div>`;
     }
   } else if (adaptedResult) {
     const baseBalance = adaptedResult.finalBalance || 0;
@@ -2520,24 +2544,24 @@ function renderSummaryPanel() {
 
   const summaryItems = [
     {
-      label: 'Monthly retirement income',
-      value: fmt$(state.adaptedResult?.monthlyPaycheck || 0),
-      detail: 'Based on your current live inputs',
+      label: 'Monthly planned spend (Yr 1)',
+      value: fmt$((state.adaptedResult?.plannedSpendingToday / 12) || 0),
+      detail: 'Includes essentials + lifestyle',
+    },
+    {
+      label: 'Maximum sustainable draw',
+      value: fmt$(state.adaptedResult?.swrMonthlyToday || 0),
+      detail: '4% SWR ref (not for pass/fail)',
+    },
+    {
+      label: 'Super at retirement',
+      value: fmt$(state.adaptedResult?.superAtRetire || 0, { compact: true }),
+      detail: "Today's dollars (inflation-adj)",
     },
     {
       label: 'Projected runway',
       value: `Age ${state.adaptedResult?.lastsUntil || '—'}`,
       detail: state.adaptedResult?.lastsUntil >= state.input?.lifespan ? 'Covers planned lifespan' : 'Needs more margin',
-    },
-    {
-      label: 'Super at retirement',
-      value: fmt$(state.adaptedResult?.superAtRetire || 0, { compact: true }),
-      detail: 'Inflation-adjusted',
-    },
-    {
-      label: 'Income gap',
-      value: state.adaptedResult?.gapMonthly > 0 ? fmt$(state.adaptedResult.gapMonthly) : 'On track',
-      detail: 'Gap versus your annual target income',
     },
   ];
 
@@ -3981,7 +4005,7 @@ function paint(result, inp) {
   }
 
   // Hero
-  setText('r-paycheck', Math.round(result.monthlyPaycheck).toLocaleString('en-AU'));
+  setText('r-paycheck', Math.round(result.plannedSpendingToday / 12).toLocaleString('en-AU'));
   setText('r-retire-age', inp.retireAge);
   // lifespan=0 means "simulate to depletion" (age 120). Show "any age" in the UI.
   const openEnded = !(inp.lifespan > 0);
@@ -4001,7 +4025,7 @@ function paint(result, inp) {
 
   // Donut
   paintDonut(result.breakdown);
-  const total = result.breakdown.super + result.breakdown.pension + (result.breakdown.other || 0) || 1;
+  const total = (result.breakdown.super || 0) + (result.breakdown.pension || 0) + (result.breakdown.other || 0) || 1;
   const superPct = (result.breakdown.super / total) * 100;
   const pensionPct = (result.breakdown.pension / total) * 100;
   setText('r-self-pct', Math.round(superPct) + '%');
@@ -4011,6 +4035,18 @@ function paint(result, inp) {
 
   // Metrics
   setHTML('r-super-at-retire', fmt$(result.superAtRetire, { compact: true }) + '<span class="sub">today\'s $</span>');
+  
+  // Funded by breakdown
+  setText('r-funded-draw', fmt$(result.breakdown.super / 12));
+  setText('r-funded-pension', fmt$(result.breakdown.pension / 12));
+  setText('r-funded-other', fmt$((result.breakdown.other || 0) / 12));
+  
+  if (result.breakdown.tax > 0) {
+    show('r-funded-tax-container');
+    setText('r-funded-tax', '-' + fmt$(result.breakdown.tax / 12));
+  } else {
+    hide('r-funded-tax-container');
+  }
   const conf = result.confidence * 100;
   const confLabel = conf >= 85 ? 'Strong' : conf >= 60 ? 'Moderate' : conf >= 35 ? 'Tight' : 'At risk';
   const confColor = conf >= 85 ? 'var(--accent)' : conf >= 60 ? 'var(--gold)' : conf >= 35 ? 'var(--amber)' : 'var(--rose)';
@@ -4024,7 +4060,7 @@ function paint(result, inp) {
   // Gauge
   const targetMonthly = inp.desiredIncome / 12;
   setText('r-goal', '$' + Math.round(targetMonthly).toLocaleString('en-AU'));
-  const gauge = Math.min(100, Math.max(0, (result.monthlyPaycheck / targetMonthly) * 100));
+  const gauge = Math.min(100, Math.max(0, ((result.plannedSpendingToday / 12) / targetMonthly) * 100));
   const gaugeFill = $('r-gauge-fill');
   if (gaugeFill) gaugeFill.style.width = gauge + '%';
   const gap = result.gapMonthly;
@@ -4095,7 +4131,7 @@ function paintSurplusPanel(result, inp) {
       </div>
       <p class="surplus-desc">
         Your projected income (${fmt(result.monthlyPaycheck)}/mo) exceeds your target spending
-        (${fmt(targetMonthly)}/mo). The surplus is automatically reinvested, extending your
+        (${fmt(result.plannedSpendingToday / 12)}/mo). The surplus is automatically reinvested, extending your
         portfolio's longevity.
       </p>
       <div class="surplus-split">
