@@ -198,6 +198,9 @@ export function buildReverseBaselineFromForwardScenario(raw) {
             annualPropertyExpenses: num(isV2 ? raw.ipAnnualExpenses : (raw.annualPropertyExpenses ?? raw.ipAnnualExpenses), 0),
             propertyGrowthRate: num(isV2 ? raw.ipGrowthRate : (raw.propertyGrowthRate ?? raw.ipGrowthRate), 0.04),
 
+            // Healthcare
+            healthcareCost: num(isV2 ? raw.healthcareCost : (raw.healthcareCost ?? raw.currentHealthcareCosts), 4800),
+
             // Economic assumptions
             inflation: num(isV2 ? raw.inflation : (raw.inflation ?? 0), 0.026),
             investmentReturn: num(isV2 ? raw.invReturn : (raw.investmentReturn ?? raw.invReturn ?? 0), 0.07),

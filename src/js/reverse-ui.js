@@ -373,10 +373,6 @@ export class ReverseUI {
         document.querySelectorAll('.section-head').forEach((head) => {
             head.addEventListener('click', () => {
                 const section = head.closest('.section');
-        if (!gaps || gaps.length === 0) {
-            console.warn('No gaps available for task suggestion');
-            return;
-        }
                 const wasOpen = section.classList.contains('open');
                 document.querySelectorAll('.section').forEach((s) => {
                     s.classList.remove('open');
@@ -463,6 +459,23 @@ export class ReverseUI {
      */
     _populateFromBaseline(baseline) {
         this.importedScenario = baseline.inputs;
+
+        // Populate form fields that are read directly from the DOM (not covered by
+        // _collectFromBaseline) so they reflect imported values rather than HTML defaults.
+        const i = baseline.inputs || {};
+        const setField = (id, value) => {
+            const elem = el(id);
+            if (elem && value !== undefined && value !== null) {
+                elem.value = String(value);
+            }
+        };
+
+        // Healthcare cost: field default is 4800 but imported value may differ.
+        const healthcareCost = i.healthcareCost ?? i.currentHealthcareCosts;
+        if (healthcareCost !== undefined) setField('rp-healthcare-cost', Math.round(healthcareCost));
+
+        // Trigger the spending builder to recalculate with the newly populated values.
+        this._updateSpendingTargetBuilder();
     }
 
     /**
