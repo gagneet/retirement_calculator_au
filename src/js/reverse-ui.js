@@ -1028,7 +1028,7 @@ export class ReverseUI {
             [
                 ['Age & timing', 'Your current age', String(inp.yourCurrentAge || target.currentAge || '—')],
                 ['Age & timing', 'Planned retirement age', `Age ${RET_AGE}`],
-                ['Age & timing', 'Planning horizon', `Age ${LIFESPAN} (${LIFESPAN - (inp.yourCurrentAge || RET_AGE)} years in retirement)`],
+                ['Age & timing', 'Planning horizon', `Age ${LIFESPAN} (${LIFESPAN - RET_AGE} years in retirement)`],
                 ['Age & timing', 'Household', target.householdType === 'couple' ? 'Couple' : 'Single'],
                 ['Income', 'Your annual salary', cur(inp.yourSalary || inp.annualSalary)],
                 inp.partnerSalary > 0 ? ['Income', 'Partner annual salary', cur(inp.partnerSalary)] : null,
@@ -1357,7 +1357,7 @@ export class ReverseUI {
                 ['Age Pension included', target.includeAgePension ? 'Yes (means-tested)' : 'No', 'Services Australia rates'],
                 ['Household type', target.householdType === 'couple' ? 'Couple' : 'Single', 'Affects pension thresholds'],
                 ['Years to retirement', String(ytr), `Current age to age ${RET_AGE}`],
-                ['Planning horizon', `${LIFESPAN - (inp.yourCurrentAge || RET_AGE)} years in retirement`, `Age ${RET_AGE} to ${LIFESPAN}`],
+                ['Planning horizon', `${LIFESPAN - RET_AGE} years in retirement`, `Age ${RET_AGE} to ${LIFESPAN}`],
                 ['Projection input hash', this.lastResult.inputHash || 'Unavailable', 'Shared by current path, solvers, screen results and this PDF'],
             ],
             {
@@ -1428,6 +1428,7 @@ export class ReverseUI {
             ? nominalAssets / Math.pow(1 + inflationRate, ytr)
             : 0;
         safeText('rp-current-income', fmt(currentPath.sustainableIncomeToday) + '/year');
+        safeText('rp-swr-capacity', fmt(currentPath.swrCapacityToday) + '/year');
         safeText('rp-current-nominal', `≈ ${fmt(nominalIncome)}/year in ${retirementYear} dollars`);
         safeText('rp-current-assets', `${fmt(nominalAssets)} nominal (${fmt(todayAssets)} today's $)`);
         const statusEl = el('rp-goal-status');

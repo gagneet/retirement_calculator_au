@@ -137,12 +137,16 @@ export function scoreScenario(
     // Use engine predicate for truth
     const engineResult = evaluateEngineGoal(simResult, target, { yourLifespan: target?.lifespan }, { yearsToRetirement, swr });
 
-    // SWR estimate for reference only — NOT used for pass/fail
-    const sustainableIncomeNominal = totalAssetsNominal * swr + agePensionNominal;
-    const sustainableIncomeToday = sustainableIncomeNominal / deflator;
+    // safeWithdrawalCapacity (SWR) estimate for reference only — NOT used for pass/fail
+    const swrCapacityNominal = totalAssetsNominal * swr + agePensionNominal;
+    const swrCapacityToday = swrCapacityNominal / deflator;
+
+    // Planned income = the actual spending drawn in Year 1 from the simulator result
+    const plannedSpendingNominal = retirementRow?.plannedSpending || retirementRow?.totalPlannedSpending || 0;
+    const plannedSpendingToday = plannedSpendingNominal / deflator;
 
     const targetIncomeToday = target.targetAnnualIncomeToday || 0;
-    const incomeGap = Math.max(0, targetIncomeToday - sustainableIncomeToday);
+    const incomeGap = Math.max(0, targetIncomeToday - plannedSpendingToday);
     const capitalGap = Math.max(0, estimateRequiredCapital(
         targetIncomeToday, yearsToRetirement, inflationRate, agePensionNominal, swr
     ) - totalAssetsNominal);
@@ -158,7 +162,8 @@ export function scoreScenario(
         passesIncome: engineResult.passesIncome,
         passesEstate: engineResult.passesEstate,
         passesConfidence: engineResult.passesConfidence,
-        sustainableIncomeToday,
+        sustainableIncomeToday: plannedSpendingToday,
+        swrCapacityToday,
         totalAssetsNominal,
         finalBalance: engineResult.finalBalance,
         estateToday: engineResult.estateToday,

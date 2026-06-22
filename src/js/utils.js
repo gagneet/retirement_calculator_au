@@ -271,6 +271,19 @@ export const formatCompact = (num) => {
     return num.toFixed(0);
 };
 
+/**
+ * Shared deflator function to convert a future (nominal) value to today's dollars.
+ * 
+ * @param {number} futureValue - nominal amount in future dollars
+ * @param {number} yearsAhead  - number of years from today
+ * @param {number} inflationRate - annual inflation rate as decimal (e.g. 0.025)
+ * @returns {number} Value in today's dollars
+ */
+export const deflateToToday = (futureValue, yearsAhead, inflationRate) => {
+    if (!futureValue || yearsAhead <= 0 || !inflationRate) return futureValue;
+    return futureValue / Math.pow(1 + inflationRate, yearsAhead);
+};
+
 // Input formatting utilities for live currency formatting
 export const formatCurrencyInput = (value) => {
     // Remove all non-numeric characters except decimal point
@@ -3188,6 +3201,7 @@ export default {
     formatPercent,
     formatNumber,
     formatCompact,
+    deflateToToday,
     formatCurrencyInput,
     parseFormattedNumber,
     addCurrencyFormatting,
