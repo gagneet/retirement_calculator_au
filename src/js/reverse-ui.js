@@ -843,7 +843,10 @@ export class ReverseUI {
         }
 
         if (this.forwardProjection) {
-            const consistency = validateProjectionSnapshot(this.forwardProjection, this.importedScenario);
+            // Always derive the snapshot fresh from the current forwardProjection rather than
+            // using this.importedScenario, which is set once at import time and becomes stale
+            // if the user re-imports or if forwardProjection is updated after initial load.
+            const consistency = validateProjectionSnapshot(this.forwardProjection);
             if (!consistency.valid) {
                 const btn = el('rp-export-pdf');
                 if (btn) {
