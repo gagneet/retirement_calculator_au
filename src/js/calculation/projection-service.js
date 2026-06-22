@@ -1,7 +1,8 @@
 import { normaliseCanonicalInput } from './canonical-input-schema.js';
 import { deriveHouseholdCashflow } from './household-cashflow-engine.js';
 import { ProjectionCache } from './projection-cache.js';
-import { normaliseInputs } from '../policy/normalise-inputs.js';
+import { normaliseInputs, sanitiseInputs } from '../policy/normalise-inputs.js';
+import { validateReconciledInputs } from './input-reconciliation-validator.js';
 
 function stableStringify(value) {
     if (Array.isArray(value)) return '[' + value.map(stableStringify).join(',') + ']';
@@ -61,9 +62,21 @@ export class ProjectionService {
         if (cached) return cached;
 
         const derivedCashflow = deriveHouseholdCashflow(canonicalInput);
-        const engineInputs = normaliseInputs(
+        const normalisedInputs = normaliseInputs(
             this.engineInputBuilder(rawInput, { canonicalInput, derivedCashflow })
         );
+        const sanitised = sanitiseInputs(normalisedInputs);
+        const engineInputs = sanitised.inputs;
+        const quality = validateReconciledInputs(engineInputs, canonicalInput, {
+            rawInput,
+            sanitiseWarnings: sanitised.warnings,
+        });
+        if (!quality.valid) {
+            const error = new Error(quality.blockingIssues.map((entry) => entry.message).join(' '));
+            error.name = 'InputReconciliationError';
+            error.issues = quality.blockingIssues;
+            throw error;
+        }
         const simulation = this.simulator.simulateRetirement(engineInputs, false);
         const adaptedResult = this.resultAdapter
             ? this.resultAdapter(rawInput, engineInputs, simulation)
@@ -75,8 +88,17 @@ export class ProjectionService {
                 retirementAge: canonicalInput.household.retirementAge,
                 targetAnnualIncomeToday: canonicalInput.retirementTarget.targetAnnualIncomeToday,
             };
+        const projectionHash = hashProjectionInput({
+            inputHash,
+            policyVersion: this.policyVersion,
+            finalBalance: simulation?.finalBalance ?? null,
+            totalFinancialAssets: simulation?.totalFinancialAssets ?? null,
+            depletionAge: simulation?.depletionAge ?? null,
+            mortgagePayoffAge: simulation?.mortgagePayoffAge ?? null,
+        });
         const projection = {
             inputHash,
+            projectionHash,
             policyVersion: this.policyVersion,
             schemaVersion: canonicalInput.schemaVersion,
             sourceCalculator,
@@ -90,8 +112,17 @@ export class ProjectionService {
             diagnostics: {
                 deterministicRuns: 1,
                 rawInputIncludedInHash: true,
+                projectionQuality: quality,
+                sanitiseWarnings: sanitised.warnings,
+                scenarioMode: engineInputs.headlineScenarioMode || 'base',
+                returnBasis: 'nominal',
+                monteCarloStatus: 'not_run',
             },
-            warnings: [...derivedCashflow.warnings],
+            warnings: [
+                ...derivedCashflow.warnings,
+                ...sanitised.warnings.map((entry) => entry.message),
+                ...quality.warnings.map((entry) => entry.message),
+            ],
         };
         return this.cache.set(inputHash, projection);
     }

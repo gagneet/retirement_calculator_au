@@ -1,6 +1,6 @@
 import { normaliseRate } from '../policy/normalise-inputs.js';
 
-export const CANONICAL_INPUT_SCHEMA_VERSION = 'calculator-input-v1';
+export const CANONICAL_INPUT_SCHEMA_VERSION = 'retirement-canonical-input-v2';
 
 const number = (value, fallback = 0) => {
     const parsed = Number(value);
@@ -50,6 +50,15 @@ export function normaliseCanonicalInput(input = {}) {
             investmentPropertyValue: number(input.currentAssets?.investmentPropertyValue),
             investmentPropertyLoan: number(input.currentAssets?.investmentPropertyLoan),
         },
+        debts: {
+            creditCardBalance: number(input.debts?.creditCardBalance),
+            creditCardRate: normaliseRate(input.debts?.creditCardRate, 0),
+            personalLoanBalance: number(input.debts?.personalLoanBalance),
+            personalLoanRate: normaliseRate(input.debts?.personalLoanRate, 0),
+            carLoanBalance: number(input.debts?.carLoanBalance),
+            carLoanRate: normaliseRate(input.debts?.carLoanRate, 0),
+            hecsBalance: number(input.debts?.hecsBalance),
+        },
         cashflow: {
             hasDetailedExpenses: Boolean(hasDetailedExpenses),
             totalSpendProvided: Boolean(totalSpendProvided),
@@ -87,6 +96,25 @@ export function normaliseCanonicalInput(input = {}) {
             pensionAssetThreshold: input.housingAndPension?.pensionAssetThreshold == null ? null : number(input.housingAndPension.pensionAssetThreshold),
             pensionAssetCutoff: input.housingAndPension?.pensionAssetCutoff == null ? null : number(input.housingAndPension.pensionAssetCutoff),
             pensionIncomeThreshold: input.housingAndPension?.pensionIncomeThreshold == null ? null : number(input.housingAndPension.pensionIncomeThreshold),
+            agePensionMaxAnnual: input.housingAndPension?.agePensionMaxAnnual == null ? null : number(input.housingAndPension.agePensionMaxAnnual),
+        },
+        investmentProperty: {
+            purchasePrice: number(input.investmentProperty?.purchasePrice),
+            purchaseYear: input.investmentProperty?.purchaseYear == null ? null : number(input.investmentProperty.purchaseYear),
+            loanType: ['pi', 'io'].includes(input.investmentProperty?.loanType) ? input.investmentProperty.loanType : 'pi',
+            interestRate: normaliseRate(input.investmentProperty?.interestRate, 0),
+            weeklyRentalIncome: number(input.investmentProperty?.weeklyRentalIncome),
+            annualOperatingExpenses: number(input.investmentProperty?.annualOperatingExpenses),
+            annualStrataLevy: number(input.investmentProperty?.annualStrataLevy),
+            annualLandTax: number(input.investmentProperty?.annualLandTax),
+            vacancyRate: normaliseRate(input.investmentProperty?.vacancyRate, 0.04),
+            capitalGainsTaxRate: normaliseRate(input.investmentProperty?.capitalGainsTaxRate, 0.235),
+            state: input.investmentProperty?.state || '',
+            type: input.investmentProperty?.type || 'unit',
+        },
+        healthAndAgedCare: {
+            currentAnnualHealthcareCosts: number(input.healthAndAgedCare?.currentAnnualHealthcareCosts),
+            healthcareInflationRate: normaliseRate(input.healthAndAgedCare?.healthcareInflationRate, 0.055),
         },
         scenarioToggles: {
             includeSuper: input.scenarioToggles?.includeSuper !== false,
@@ -104,6 +132,8 @@ export function normaliseCanonicalInput(input = {}) {
             investmentReturnRate: normaliseRate(input.assumptions?.investmentReturnRate, 0.065),
             propertyGrowthRate: normaliseRate(input.assumptions?.propertyGrowthRate, 0.04),
             retirementDrawdownRate: normaliseRate(input.assumptions?.retirementDrawdownRate, 0.04),
+            returnDeclineRate: normaliseRate(input.assumptions?.returnDeclineRate, 0.0003),
+            scenarioMode: input.assumptions?.scenarioMode || 'baseline',
         },
     };
 }
