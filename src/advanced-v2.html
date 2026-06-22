@@ -1383,7 +1383,7 @@
               </div>
               <div class="field">
                 <label class="field-label" for="overseasAudFxChange"><span>Annual AUD FX change vs local</span><span class="hint">%/yr</span></label>
-                <div class="field-input"><input id="overseasAudFxChange" type="number" step="0.5" value="-1" min="-10" max="10" /><span class="suffix">%</span></div>
+                <div class="field-input"><input id="overseasAudFxChange" type="number" step="0.1" value="-1" min="-10" max="10" /><span class="suffix">%/yr</span></div>
                 <div class="field-help">Negative = AUD depreciates (your costs rise). Positive = AUD strengthens.</div>
               </div>
               <div class="field">
@@ -1679,7 +1679,13 @@
           <span class="ccy">$</span><span id="r-paycheck">—</span>
         </div>
         <div class="hero-unit">
-          per <b>month</b> at retirement (age <span id="r-retire-age">—</span>) · inflation-adjusted to today's $<span id="r-combined"></span>
+          planned <b>spend/mo</b> at retirement (age <span id="r-retire-age">—</span>) · today's $<span id="r-combined"></span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;padding:8px;background:var(--surface-3);border-radius:12px;text-align:center;">
+          <div><div style="font-size:10px;color:var(--ink-4);text-transform:uppercase;">Draw</div><div id="r-funded-draw" style="font-size:13px;font-weight:700;">$0</div></div>
+          <div><div style="font-size:10px;color:var(--ink-4);text-transform:uppercase;">Pension</div><div id="r-funded-pension" style="font-size:13px;font-weight:700;">$0</div></div>
+          <div><div style="font-size:10px;color:var(--ink-4);text-transform:uppercase;">Other</div><div id="r-funded-other" style="font-size:13px;font-weight:700;">$0</div></div>
         </div>
 
         <div class="runway">

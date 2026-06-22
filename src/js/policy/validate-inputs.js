@@ -194,6 +194,15 @@ export const validateInputs = (inputs = {}) => {
     if (isNum(inputs.superReturn) && inputs.superReturn > 0.15) {
         warn(`Super return of ${pct(inputs.superReturn)} is very high. The APRA 10-year median for balanced funds is approximately 7.5–8.5% net of fees.`);
     }
+    if (isNum(inputs.investmentReturn) && isNum(inputs.superReturn) && inputs.superReturn > inputs.investmentReturn) {
+        warn(`Balanced super (${pct(inputs.superReturn)}) is assumed to return more than diversified equities (${pct(inputs.investmentReturn)}). This is an inverted risk assumption — typically, higher-volatility equity portfolios provide higher long-run returns than balanced super options.`);
+    }
+
+    // ── 8b. Scenario Mode ───────────────────────────────────────────────────
+
+    if (inputs.scenarioMode === 'optimistic') {
+        warn(`The simulation is running in "Optimistic" mode as the baseline. This assumes higher returns and lower inflation than the standard balanced case. Consider using "Base" mode for your primary plan.`);
+    }
 
     // ── 9. Healthcare inflation ──────────────────────────────────────────────
 
@@ -205,6 +214,61 @@ export const validateInputs = (inputs = {}) => {
 
     if (inputs.hasTrustAssets && inputs.homeInTrust) {
         warn(`Primary residence held in a trust may lose the main residence CGT exemption. Seek specialist tax advice.`);
+    }
+
+    // ── 11. Annuity purchase age ─────────────────────────────────────────────
+
+    if (inputs.enableAnnuity || inputs.annuityPurchaseAmount > 0) {
+        const purchaseAge = Number(inputs.annuityPurchaseAge ?? 0);
+        if (purchaseAge > 0 && retirementAge > 0 && purchaseAge < retirementAge) {
+            warn(`Annuity purchase age (${purchaseAge}) is before your retirement age (${retirementAge}). Purchasing an annuity while still working pulls capital out of compounding super early.`);
+        }
+    }
+
+    // ── 12. High-interest debt ───────────────────────────────────────────────
+
+    const ccBal = Number(inputs.creditCardBalance ?? 0);
+    const plBal = Number(inputs.personalLoanBalance ?? 0);
+    const clBal = Number(inputs.carLoanBalance ?? 0);
+    const totalDebt = ccBal + plBal + clBal;
+
+    if (totalDebt > 0) {
+        const parts = [];
+        if (ccBal > 0) parts.push(`credit card ${cur(ccBal)}`);
+        if (plBal > 0) parts.push(`personal loan ${cur(plBal)}`);
+        if (clBal > 0) parts.push(`car loan ${cur(clBal)}`);
+        warn(`High-interest debt (${parts.join(', ')}) is present. This is modeled as a drag on savings; clearing this debt should be a high priority before boosting super or investments.`);
+    }
+
+    // ── 13. Lifespan vs Moving Overseas ──────────────────────────────────────
+
+    if (inputs.goingOverseas) {
+        const moveAge = Number(inputs.overseasStartAge ?? 0);
+        if (moveAge > 0 && lifespan > 0 && moveAge >= lifespan) {
+            warn(`Overseas move age (${moveAge}) is at or after your planned lifespan (${lifespan}).`);
+        }
+    }
+
+    // ── 14. Target vs Need mismatch ──────────────────────────────────────────
+
+    const desiredIncome   = Number(inputs.asfaComfortable ?? inputs.targetRetirementIncome ?? 0);
+    const builderIncome   = Number(inputs.builderCurrentIncome ?? 0);
+    const builderMortgage = Number(inputs.builderMortgage ?? 0);
+    const builderChildren = Number(inputs.builderChildren ?? 0);
+    const builderBuffer   = Number(inputs.builderBuffer ?? 0);
+    const annualHC        = Number(inputs.currentHealthcareCosts ?? 0);
+    const annualHousing   = (inputs.primaryResidenceType === 'renting' || inputs.primaryResidenceType === 'rent')
+        ? Number(inputs.primaryRentMonthly ?? 0) * 12
+        : 0;
+
+    if (builderIncome > 0) {
+        const baseMonthly = Math.max(0, builderIncome - builderMortgage - builderChildren);
+        const baseAnnual  = (baseMonthly * 12) + annualHC + annualHousing;
+        const builderTotalNeed = Math.round(baseAnnual * (1 + Math.max(0, builderBuffer) / 100));
+
+        if (desiredIncome > 0 && Math.abs(desiredIncome - builderTotalNeed) > 20000) {
+            warn(`Large mismatch between manual target income (${cur(desiredIncome)}) and the retirement budget builder estimate (${cur(builderTotalNeed)}/yr). Review your spending assumptions.`);
+        }
     }
 
     return {

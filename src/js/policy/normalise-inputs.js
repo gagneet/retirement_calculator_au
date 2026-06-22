@@ -61,6 +61,7 @@ const RATE_FIELDS = new Set([
     'percentIncomeSaved',
     'agedCareProbability',   // 0–1 in template JSON; may arrive as 0–100 from older exports
     'volatilityComfort',
+    'overseasAudFxChange',   // e.g. -0.5 for -0.5%/yr
 ]);
 
 // ── Absolute fields (never divided — dollar amounts, ages, counts) ─────────────

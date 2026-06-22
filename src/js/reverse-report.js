@@ -31,14 +31,15 @@ export function generatePlainEnglishSummary(result) {
 
     // Headline
     const headline = currentPath.meetsGoal
-        ? `Your current plan is on track to support ${fmt(target.targetAnnualIncomeToday)}/year in retirement.`
-        : `Your current plan falls short of your ${fmt(target.targetAnnualIncomeToday)}/year retirement goal by ${fmt(currentPath.incomeGap)}/year.`;
+        ? `Your current plan is on track to support planned spending of ${fmt(target.targetAnnualIncomeToday)}/year in retirement.`
+        : `Your current plan falls short of your ${fmt(target.targetAnnualIncomeToday)}/year planned retirement spend by ${fmt(currentPath.incomeGap)}/year.`;
 
     // Current path text
     const sustainableFmt = fmt(currentPath.sustainableIncomeToday);
+    const swrCapacityFmt = fmt(currentPath.swrCapacityToday);
     const currentPathText = [
-        `Based on your current settings, your retirement savings are on track to sustainably support approximately ${sustainableFmt}/year in today's dollars.`,
-        `This is based on your projected retirement assets of ${fmt(currentPath.totalAssetsNominal)} at age ${target.retirementAge}, using a ${(currentPath.swr * 100).toFixed(1)}% safe withdrawal rate.`,
+        `Based on your current settings, your retirement plan supports planned spending of approximately ${sustainableFmt}/year (Year 1) in today's dollars.`,
+        `For reference, your projected retirement assets of ${fmt(currentPath.totalAssetsNominal)} at age ${target.retirementAge} could sustainably support a 4% draw of approximately ${swrCapacityFmt}/year plus Age Pension.`,
     ].join(' ');
 
     // Gap analysis text

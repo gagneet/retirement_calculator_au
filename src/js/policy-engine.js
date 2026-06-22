@@ -298,8 +298,13 @@ export function calculatePortablePension({
 
     // AWLR proportion — clamp to [0, AWLR_TOTAL_YEARS] to guard against negative/invalid input
     const awlr = Math.min(Math.max(0, awlrYears || 0), cfg.AWLR_TOTAL_YEARS);
-    const proportionalRate = Math.min(awlr / cfg.AWLR_REQUIRED_FOR_FULL, 1.0);
-    const hasFullPortability = awlr >= cfg.AWLR_REQUIRED_FOR_FULL;
+
+    // Proportionality rule: 35 years is the standard Australian portability requirement.
+    // However, many bilateral Social Security Agreements (e.g. India) use a 45-year
+    // base for the proportional rate calculation.
+    const awlrDenominator = agreementCountry ? 45 : cfg.AWLR_REQUIRED_FOR_FULL;
+    const proportionalRate = Math.min(awlr / awlrDenominator, 1.0);
+    const hasFullPortability = awlr >= awlrDenominator;
 
     // Supplement annual reductions
     const supplementLoss = isCouple
@@ -356,7 +361,7 @@ export function calculatePortablePension({
 
             const awlrWarning = hasFullPortability
                 ? null
-                : `AWLR: ${awlr}/${cfg.AWLR_REQUIRED_FOR_FULL} years — base rate reduced to ${(proportionalRate * 100).toFixed(1)}%`;
+                : `AWLR: ${awlr}/${awlrDenominator} years — base rate reduced to ${(proportionalRate * 100).toFixed(1)}%`;
 
             return {
                 scenarioType,
@@ -365,7 +370,7 @@ export function calculatePortablePension({
                 supplementLost: supplementLoss,
                 awlrApplied: !hasFullPortability,
                 awlrYears: awlr,
-                awlrRequired: cfg.AWLR_REQUIRED_FOR_FULL,
+                awlrRequired: awlrDenominator,
                 proportionalRate,
                 pensionReduced: !hasFullPortability || supplementLoss > 0,
                 pccValid: false,
@@ -393,7 +398,7 @@ export function calculatePortablePension({
                 supplementLost: supplementLoss,
                 awlrApplied: !hasFullPortability,
                 awlrYears: awlr,
-                awlrRequired: cfg.AWLR_REQUIRED_FOR_FULL,
+                awlrRequired: awlrDenominator,
                 proportionalRate,
                 pensionReduced: true,
                 pccValid: false,
@@ -401,7 +406,7 @@ export function calculatePortablePension({
                     'Supplement reductions apply immediately from departure date (permanent move)',
                     '⚠️ Important: You must usually be an Australian resident in the country for at least 2 years after the pension is granted for it to remain portable.',
                     hasFullPortability
-                        ? 'Full AWLR (35+ years): base pension rate preserved'
+                        ? `Full AWLR (${awlrDenominator}+ years): base pension rate preserved`
                         : `Reduced AWLR (${awlr} years): base pension at ${(proportionalRate * 100).toFixed(1)}% after 26 weeks`,
                     agreementCountry
                         ? 'Agreement country: no 2-year waiting period on return'

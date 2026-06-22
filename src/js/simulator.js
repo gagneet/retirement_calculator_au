@@ -2560,7 +2560,15 @@ export class RetirementSimulator {
             }
 
             const totalIncome = pensionIncome + otherIncome;
-            const netWithdrawalNeeded = Math.max(0, totalCostWithHealthcare - totalIncome);
+            let netWithdrawalNeeded = Math.max(0, totalCostWithHealthcare - totalIncome);
+
+            // Tax adjustment on super withdrawals for foreign tax residents.
+            // If they are a foreign resident, we assume a 30% flat effective tax rate
+            // on the withdrawal needed to fund their lifestyle shortfall, representing
+            // the tax levied by the destination country (e.g. Portugal post-NHR).
+            if (isOverseasYear && inputs.overseasTaxResidency === 'foreign' && netWithdrawalNeeded > 0) {
+                netWithdrawalNeeded = netWithdrawalNeeded / 0.70;
+            }
 
             // Enhanced return calculation with regime modeling.
             // In pension phase (account-based pension), the fund pays 0% tax on earnings so
