@@ -224,8 +224,8 @@
           <div class="fields one">
             <div class="field">
               <label class="field-label" for="riskTolerance"><span>Risk tolerance</span><span class="hint">1 conservative – 10 aggressive</span></label>
-              <div class="slider-row">
-                <input id="riskTolerance" type="range" min="1" max="10" step="1" value="6" />
+              <div class="slider-row slider-row--saved">
+                <input id="riskTolerance" class="saved-input-slider" type="range" min="1" max="10" step="1" value="6" data-input-slider data-slider-display="riskTolerance-display" data-slider-suffix=" / 10" />
                 <div class="vals"><span>Conservative</span><b id="riskTolerance-display">6 / 10</b><span>Aggressive</span></div>
               </div>
             </div>
@@ -370,7 +370,7 @@
           </div>
 
           <div data-advanced="true">
-            <div class="subhead">Franked dividends</div>
+            <div class="subhead subhead-feature">Franked dividends <span>Advanced modelling inputs</span></div>
             <div class="fields three">
               <div class="field">
                 <label class="field-label" for="dividendYield"><span>Expected dividend yield</span><span class="hint">%</span><span class="pill">NEW</span></label>
@@ -1195,16 +1195,16 @@
             <div class="field"><label class="field-label" for="returnDeclineRate"><span>Annual return decline</span><span class="hint">% points / yr</span></label><div class="field-input"><input id="returnDeclineRate" type="number" step="0.01" value="0.03" min="0" max="2" /><span class="suffix">%</span></div><div class="field-help">Enter 0.03 for a 0.03 percentage-point annual decline. Unsafe legacy units are migrated and flagged.</div></div>
           </div>
           <div data-advanced="true">
-            <div class="subhead">Dynamic allocation</div>
+            <div class="subhead subhead-feature">Dynamic allocation <span>Glide-path controls</span></div>
             <div class="fields three">
               <div class="field">
                 <label class="toggle"><input id="useGlidePath" type="checkbox" checked /><span class="track"></span><span class="label">Enable dynamic allocation (glide path) <span class="pill">NEW</span></span></label>
                 <div class="field-help">Uses the existing age-based de-risking path. Turning it off uses the static allocation below.</div>
               </div>
               <div class="field"><label class="field-label" for="glidePathRule"><span>Glide path strategy</span><span class="pill">NEW</span></label><div class="field-input"><select id="glidePathRule"><option value="110minus" selected>Age-based (110 − age)</option><option value="100minus">Age-based (100 − age)</option><option value="120minus">Age-based (120 − age)</option><option value="target_date">Target date</option></select></div></div>
-              <div class="field"><label class="field-label" for="allocEquities"><span>Equities</span><span class="hint">%</span><span class="pill">NEW</span></label><div class="field-input"><input id="allocEquities" type="number" value="65" min="0" max="100" /><span class="suffix">%</span></div></div>
-              <div class="field"><label class="field-label" for="allocBonds"><span>Bonds</span><span class="hint">%</span><span class="pill">NEW</span></label><div class="field-input"><input id="allocBonds" type="number" value="25" min="0" max="100" /><span class="suffix">%</span></div></div>
-              <div class="field"><label class="field-label" for="allocCash"><span>Cash</span><span class="hint">%</span><span class="pill">NEW</span></label><div class="field-input"><input id="allocCash" type="number" value="10" min="0" max="100" /><span class="suffix">%</span></div><div class="field-help">Static allocation controls are used when glide path is off.</div></div>
+              <div class="field"><label class="field-label" for="allocEquities"><span>Equities</span><span class="hint">%</span><span class="pill">NEW</span></label><div class="slider-row slider-row--saved"><input id="allocEquities" class="saved-input-slider" type="range" value="65" min="0" max="100" step="1" data-input-slider data-slider-display="allocEquities-display" data-slider-suffix="%" /><div class="vals"><span>0%</span><b id="allocEquities-display">65%</b><span>100%</span></div></div></div>
+              <div class="field"><label class="field-label" for="allocBonds"><span>Bonds</span><span class="hint">%</span><span class="pill">NEW</span></label><div class="slider-row slider-row--saved"><input id="allocBonds" class="saved-input-slider" type="range" value="25" min="0" max="100" step="1" data-input-slider data-slider-display="allocBonds-display" data-slider-suffix="%" /><div class="vals"><span>0%</span><b id="allocBonds-display">25%</b><span>100%</span></div></div></div>
+              <div class="field"><label class="field-label" for="allocCash"><span>Cash</span><span class="hint">%</span><span class="pill">NEW</span></label><div class="slider-row slider-row--saved"><input id="allocCash" class="saved-input-slider" type="range" value="10" min="0" max="100" step="1" data-input-slider data-slider-display="allocCash-display" data-slider-suffix="%" /><div class="vals"><span>0%</span><b id="allocCash-display">10%</b><span>100%</span></div></div><div class="field-help">Static allocation controls are used when glide path is off.</div></div>
             </div>
           </div>
         </div>
@@ -1250,7 +1250,7 @@
             </div>
             <div class="field">
               <label class="field-label" for="returnVolatility"><span>Return volatility</span><span class="hint">% σ</span></label>
-              <div class="field-input"><input id="returnVolatility" type="number" step="0.5" value="12" /><span class="suffix">%</span></div>
+              <div class="slider-row slider-row--saved"><input id="returnVolatility" class="saved-input-slider" type="range" step="0.5" value="12" min="0" max="30" data-input-slider data-slider-display="returnVolatility-display" data-slider-suffix="%" /><div class="vals"><span>0%</span><b id="returnVolatility-display">12%</b><span>30%</span></div></div>
             </div>
             <div class="field">
               <label class="field-label" for="scenarioMode"><span>Scenario mode</span></label>

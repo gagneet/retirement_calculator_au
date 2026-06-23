@@ -93,6 +93,8 @@ Initial release of the Reverse Planner with bisection solvers, comparison tables
 | Landing | `index.html` | Product overview and quick-start |
 | Advanced Calculator | `advanced.html` | Full retirement projection (onboarding wizard) |
 | Advanced v2 | `advanced-v2.html` | Streamlined advanced calculator with MC, stress tests, overseas analysis |
+| Retirement v3 | `retirement.html` | Progressive Basic / Standard / Advanced calculator with V2 parity wiring |
+| V3 Design Review | `retirement_interactive.html` | Interactive design decision file for the V3 IA and tier model |
 | Reverse Planner | `reverse.html` | Goal-seeking: what needs to change today? |
 
 ---

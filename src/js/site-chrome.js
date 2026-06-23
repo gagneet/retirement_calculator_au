@@ -7,7 +7,7 @@ const HEADER_HTML = `
     <button class="site-chrome__menu-button" type="button" aria-expanded="false" aria-controls="site-navigation">Menu</button>
     <nav class="site-chrome__nav" id="site-navigation" aria-label="Main navigation">
       <a href="index.html">Calculator</a><a href="advanced.html">Advanced Classic</a>
-      <a href="advanced-v2.html">Advanced</a><a href="reverse.html">Reverse Planner</a>
+      <a href="advanced-v2.html">Advanced</a><a href="retirement.html">Retirement V3</a><a href="reverse.html">Reverse Planner</a>
       <a href="how-to-use.html">Help</a>
     </nav>
   </div>
@@ -22,10 +22,10 @@ const FOOTER_HTML = `
         <p class="site-chrome__footer-copy">Free Australian retirement planning tools using current superannuation, tax and Age Pension assumptions. Your data stays in your browser.</p>
       </div>
       <div><h2 class="site-chrome__footer-title">Calculators</h2><div class="site-chrome__footer-links">
-        <a href="index.html">Calculator</a><a href="advanced-v2.html">Advanced Calculator</a><a href="reverse.html">Reverse Planner</a><a href="comparison.html">Compare Scenarios</a>
+        <a href="index.html">Calculator</a><a href="advanced-v2.html">Advanced Calculator</a><a href="retirement.html">Retirement V3</a><a href="reverse.html">Reverse Planner</a><a href="comparison.html">Compare Scenarios</a>
       </div></div>
       <div><h2 class="site-chrome__footer-title">Learn</h2><div class="site-chrome__footer-links">
-        <a href="how-to-use.html">How to Use</a><a href="methodology.html">Methodology</a><a href="assumptions.html">Assumptions</a><a href="smsf-guide.html">SMSF Guide</a>
+        <a href="how-to-use.html">How to Use</a><a href="methodology.html">Methodology</a><a href="assumptions.html">Assumptions</a><a href="retirement_interactive.html">V3 Design Review</a><a href="smsf-guide.html">SMSF Guide</a>
       </div></div>
       <div><h2 class="site-chrome__footer-title">Support</h2><div class="site-chrome__footer-links">
         <a href="contact.html">Feedback &amp; Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms of Use</a>

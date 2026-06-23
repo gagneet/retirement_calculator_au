@@ -1066,6 +1066,27 @@ function renumberSections() {
   });
 }
 
+function initV3InputSliders() {
+  document.querySelectorAll('[data-input-slider]').forEach((slider) => {
+    if (slider.dataset.sliderBound === 'true') return;
+    const update = () => updateV3InputSliderDisplay(slider);
+    slider.addEventListener('input', update);
+    slider.addEventListener('change', update);
+    slider.dataset.sliderBound = 'true';
+    update();
+  });
+}
+
+function updateV3InputSliderDisplay(slider) {
+  const display = document.getElementById(slider.dataset.sliderDisplay || '');
+  const suffix = slider.dataset.sliderSuffix || '';
+  if (display) display.textContent = `${slider.value}${suffix}`;
+}
+
+function refreshV3InputSliderDisplays() {
+  document.querySelectorAll('[data-input-slider]').forEach(updateV3InputSliderDisplay);
+}
+
 // ============================================================
 // 4. CONDITIONAL FIELDS (investment property, overseas, ...)
 // ============================================================
@@ -3937,6 +3958,7 @@ function applyImportedUserData(userData, uiState = null) {
 
   // Normalize decimal precision: toDisplayPercent can introduce float noise (e.g. 0.162*100 = 16.200000000000002)
   normalizeLoadedDecimals();
+  refreshV3InputSliderDisplays();
 
   // Restore V2 UI State if present
   if (uiState && uiState.advancedV2) {
@@ -4728,6 +4750,7 @@ function boot() {
     initSegmented();
     initTabs();
     initTopbar();
+    initV3InputSliders();
     // advanced-v2 relies on the shared tooltip backfill because many fields use
     // lightweight label markup instead of the classic page's inline tooltip HTML.
     initializeTooltips();

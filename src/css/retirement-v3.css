@@ -1751,6 +1751,50 @@ table.year-table th[title] { cursor: help; border-bottom: 1px dotted var(--borde
   content: attr(data-kicker);
 }
 
+.retirement-v3 .section-num {
+  display: none !important;
+}
+
+.retirement-v3 .section-head {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.retirement-v3 .subhead-feature {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--v3-navy);
+}
+
+.retirement-v3 .subhead-feature span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in oklab, var(--v3-gold) 50%, var(--border));
+  border-radius: 999px;
+  color: var(--v3-navy);
+  background: color-mix(in oklab, var(--v3-gold) 16%, var(--surface));
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.retirement-v3 .slider-row--saved {
+  gap: 8px;
+  padding: 8px 0 2px;
+}
+
+.retirement-v3 .saved-input-slider {
+  width: 100%;
+  min-height: 18px;
+  accent-color: var(--v3-teal);
+}
+
+.retirement-v3 .slider-row--saved .vals {
+  font-size: 11.5px;
+}
+
 .whatif-live {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1759,6 +1803,12 @@ table.year-table th[title] { cursor: help; border-bottom: 1px dotted var(--borde
 
 .whatif-card-wide {
   grid-column: 1 / -1;
+}
+
+.retirement-v3 .whatif-live input[type="range"] {
+  width: 100%;
+  min-height: 34px;
+  accent-color: var(--v3-gold);
 }
 
 .whatif-baseline,

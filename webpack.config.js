@@ -59,6 +59,7 @@ module.exports = {
                 { from: 'src/assets', to: 'assets' },
                 { from: 'src/robots.txt', to: 'robots.txt' },
                 { from: 'sitemap.xml', to: 'sitemap.xml' },
+                { from: 'docs/retirement_interactive.html', to: 'retirement_interactive.html' },
                 { from: 'src/contact/admin-feedback.php', to: 'contact/admin-feedback.php' },
                 { from: 'src/contact/feedback_server.py', to: 'contact/feedback_server.py' },
                 { from: 'src/contact/simple_feedback_server.py', to: 'contact/simple_feedback_server.py' },
