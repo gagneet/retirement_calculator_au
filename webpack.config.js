@@ -11,6 +11,7 @@ module.exports = {
         main: './src/js/app.js',
         comparison: './src/js/comparison.js',
         advancedV2: './src/js/advanced-v2.js',
+        retirementV3: './src/js/retirement-v3.js',
         reverseV1: './src/js/reverse-ui.js',
     },
     output: {
@@ -144,6 +145,18 @@ module.exports = {
             template: './src/advanced-v2.html',
             filename: 'advanced-v2.html',
             chunks: ['advancedV2'],
+            minify: {
+                collapseWhitespace: true,
+                removeComments: true,
+                removeRedundantAttributes: true,
+                useShortDoctype: true,
+                caseSensitive: true,
+            },
+        }),
+        new HtmlWebpackPlugin({
+            template: './src/retirement.html',
+            filename: 'retirement.html',
+            chunks: ['retirementV3'],
             minify: {
                 collapseWhitespace: true,
                 removeComments: true,
