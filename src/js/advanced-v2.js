@@ -4012,12 +4012,12 @@ function $(id) {
 
 function show(id) {
   const element = $(id);
-  if (element) element.style.display = '';
+  if (element) element.classList.remove('hidden');
 }
 
 function hide(id) {
   const element = $(id);
-  if (element) element.style.display = 'none';
+  if (element) element.classList.add('hidden');
 }
 
 function setText(id, text) {
