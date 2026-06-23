@@ -1,4 +1,7 @@
-import { buildEngineInputs } from '../../src/js/retirement-v3.js';
+import { buildEngineInputs, normalizeImportedUserData } from '../../src/js/retirement-v3.js';
+
+const classicFixture = require('../../docs/v1.json');
+const advancedV2Fixture = require('../../docs/v2.json');
 
 describe('retirement-v3 parity field wiring', () => {
     test('passes V3-only modelling fields to the existing simulator input shape', () => {
@@ -80,5 +83,41 @@ describe('retirement-v3 parity field wiring', () => {
         expect(engineInputs.extremeInflationProbability).toBe(0.02);
         expect(engineInputs.propertyCrashProbability).toBe(0.03);
         expect(engineInputs.globalRiskFactor).toBe(0.4);
+    });
+
+    test('normalizes classic and advanced-v2 sample JSON into the v3 input contract', () => {
+        const classic = normalizeImportedUserData(classicFixture.userData);
+        const advancedV2 = normalizeImportedUserData(advancedV2Fixture.userData);
+
+        expect(classic.household).toBe('couple');
+        expect(advancedV2.household).toBe('couple');
+        expect(classic.age).toBe(advancedV2.age);
+        expect(classic.retireAge).toBe(advancedV2.retireAge);
+        expect(classic.lifespan).toBe(advancedV2.lifespan);
+        expect(classic.partnerAge).toBe(advancedV2.partnerAge);
+        expect(classic.partnerLifespan).toBe(advancedV2.partnerLifespan);
+
+        expect(classic.currentMonthlyLivingCosts).toBe(6618);
+        expect(classic.healthcareCost).toBe(5640);
+        expect(advancedV2.currentMonthlyLivingCosts).toBe(6618);
+        expect(advancedV2.healthcareCost).toBe(5640);
+
+        expect(classic.desiredIncome).toBe(93337);
+        expect(advancedV2.desiredIncome).toBe(100838);
+        expect(classic.applyMaxContributionBase).toBe(true);
+        expect(classic.maxContributionBasePerQuarter).toBe(62500);
+
+        const classicEngineInputs = buildEngineInputs(classic);
+        const advancedV2EngineInputs = buildEngineInputs(advancedV2);
+
+        expect(classicEngineInputs.currentMonthlyLivingCosts).toBe(6618);
+        expect(classicEngineInputs.currentHealthcareCosts).toBe(5640);
+        expect(classicEngineInputs.hasInvestmentProperty).toBe(true);
+        expect(classicEngineInputs.investmentPropertyValue).toBe(530000);
+
+        expect(advancedV2EngineInputs.currentMonthlyLivingCosts).toBe(6618);
+        expect(advancedV2EngineInputs.currentHealthcareCosts).toBe(5640);
+        expect(advancedV2EngineInputs.hasInvestmentProperty).toBe(true);
+        expect(advancedV2EngineInputs.investmentPropertyValue).toBe(530000);
     });
 });

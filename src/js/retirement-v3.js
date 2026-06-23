@@ -1725,6 +1725,33 @@ function normalizeImportedFxDisplayPercent(value, fallback = -1, destination = "
   return normalizeFxChangeDisplayPercent(value, destination, fallback);
 }
 
+function addLegacyLifestyleExtrasToTarget(userData = {}, target) {
+  if (userData.desiredIncome !== undefined || userData.targetRetirementIncome !== undefined) {
+    return target;
+  }
+
+  const baseTarget = Number(target);
+  if (!Number.isFinite(baseTarget)) return target;
+
+  const travel = Number(userData.annualTravelBudget || 0);
+  const hobbies = Number(userData.annualHobbyBudget || 0);
+  return Math.max(0, baseTarget + travel + hobbies);
+}
+
+function resolveImportedMonthlyLivingCosts(userData = {}, base = {}) {
+  if (userData.currentMonthlyTotalSpend !== undefined && userData.currentMonthlyTotalSpend !== null) {
+    return userData.currentMonthlyTotalSpend;
+  }
+
+  const hasLiving = userData.currentMonthlyLivingCosts !== undefined && userData.currentMonthlyLivingCosts !== null;
+  const hasHousing = userData.currentMonthlyHousingCosts !== undefined && userData.currentMonthlyHousingCosts !== null;
+  if (hasLiving || hasHousing) {
+    return (Number(userData.currentMonthlyLivingCosts) || 0) + (Number(userData.currentMonthlyHousingCosts) || 0);
+  }
+
+  return base.currentMonthlyLivingCosts;
+}
+
 function mapCanonicalEmergencyFund(value) {
   if (value === 'full') return '6plus';
   if (value === 'partial') return '3_6';
@@ -1753,12 +1780,18 @@ function normalizeImportedUserData(userData = {}) {
 
   if (isRedesignUserData(userData)) {
     const destination = userData.destination || userData.overseasCountry || base.destination;
+    const desiredIncome = addLegacyLifestyleExtrasToTarget(
+      userData,
+      userData.desiredIncome ?? userData.targetRetirementIncome ?? userData.asfaComfortable ?? base.desiredIncome
+    );
+
     return {
       ...base,
       ...userData,
       household: userData.household || base.household,
       downsizePlan: userData.downsizePlan || base.downsizePlan,
       destination,
+      desiredIncome,
       overseasAudFxChange: normalizeImportedFxDisplayPercent(
         userData.overseasAudFxChange,
         base.overseasAudFxChange,
@@ -1806,13 +1839,7 @@ function normalizeImportedUserData(userData = {}) {
     monthlyStockContrib: userData.monthlyStockContribution ?? base.monthlyStockContrib,
     useDetailedCashflow: Boolean(userData.useDetailedCashflow ?? userData.useDetailedExpenseInputs ?? base.useDetailedCashflow),
     currentMonthlyIncome: userData.currentMonthlyIncome ?? base.currentMonthlyIncome,
-    currentMonthlyLivingCosts: userData.currentMonthlyTotalSpend
-      ?? (
-        (userData.currentMonthlyHousingCosts ?? 0)
-        + (userData.currentMonthlyLivingCosts ?? 0)
-        + ((userData.currentHealthcareCosts ?? 0) / 12)
-      )
-      ?? base.currentMonthlyLivingCosts,
+    currentMonthlyLivingCosts: resolveImportedMonthlyLivingCosts(userData, base),
     surplusToMortgageMonthly: userData.surplusToMortgageMonthly ?? base.surplusToMortgageMonthly,
     surplusAllocationMode: userData.surplusAllocationMode ?? base.surplusAllocationMode,
     salarySacrifice: userData.yourAdditionalSuperContribution ?? base.salarySacrifice,
@@ -1822,6 +1849,8 @@ function normalizeImportedUserData(userData = {}) {
     employerSuperOverrideAmount: userData.employerSuperOverrideAmount ?? base.employerSuperOverrideAmount,
     partnerEmployerSuperMode: userData.partnerEmployerSuperMode ?? base.partnerEmployerSuperMode,
     partnerEmployerSuperOverrideAmount: userData.partnerEmployerSuperOverrideAmount ?? base.partnerEmployerSuperOverrideAmount,
+    applyMaxContributionBase: userData.applyMaxContributionBase ?? base.applyMaxContributionBase,
+    maxContributionBasePerQuarter: userData.maxContributionBasePerQuarter ?? base.maxContributionBasePerQuarter,
     ncc: userData.yourAnnualNCC ?? base.ncc,
     partnerNCC: userData.partnerAnnualNCC ?? base.partnerNCC,
     concessionalUsedThisYear: userData.concessionalCapUsed ?? base.concessionalUsedThisYear,
@@ -1875,7 +1904,10 @@ function normalizeImportedUserData(userData = {}) {
     maintenanceInflation: userData.maintenanceInflation !== undefined ? toDisplayPercent(userData.maintenanceInflation) : base.maintenanceInflation,
     hasSmsf: Boolean(userData.hasSMSF ?? base.hasSmsf),
     hasTrust: Boolean(userData.hasTrustAssets ?? base.hasTrust),
-    desiredIncome: userData.targetRetirementIncome ?? userData.asfaComfortable ?? base.desiredIncome,
+    desiredIncome: addLegacyLifestyleExtrasToTarget(
+      userData,
+      userData.targetRetirementIncome ?? userData.asfaComfortable ?? base.desiredIncome
+    ),
     hasPrivateHospital: Boolean(userData.hasPrivateHealthCover ?? base.hasPrivateHospital),
     healthCondition: userData.healthCondition ?? base.healthCondition,
     healthcareCost: userData.currentHealthcareCosts ?? base.healthcareCost,
