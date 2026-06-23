@@ -5,17 +5,15 @@
  * Unifies fields between Classic Advanced and Advanced V2 calculators.
  */
 
-    ,"BG_INDEX": {"type": "string", "default": "latest"}
+/**
+ * Maps any input object (Classic, V2, or already canonical) to the canonical format.
  * Normalises raw inputs into a canonical retirement save object.
  * Both Classic and V2 should call this before serialising JSON.
+ * Uses fallbacks for old V2 short names and handles unit conversions.
  *
  * @param {Object} sourceInputs - raw input object from either page
  * @param {Object} options - { source: 'advanced' | 'advanced-v2' }
  * @returns {Object} canonical userData object
- */
-/**
- * Maps any input object (Classic, V2, or already canonical) to the canonical format.
- * Uses fallbacks for old V2 short names and handles unit conversions.
  */
 export function buildCanonicalSaveData(sourceInputs = {}, options = {}) {
     const inputs = sourceInputs || {};

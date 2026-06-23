@@ -4025,16 +4025,6 @@ function setText(id, text) {
   if (element) element.textContent = String(text);
 }
 
-function show(id) {
-  const element = $(id);
-  if (element) element.classList.remove('hidden');
-}
-
-function hide(id) {
-  const element = $(id);
-  if (element) element.classList.add('hidden');
-}
-
 function setHTML(id, html) {
   const element = $(id);
   if (element) element.innerHTML = html;
