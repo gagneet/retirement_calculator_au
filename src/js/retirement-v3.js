@@ -514,8 +514,9 @@ function buildEngineInputs(inp) {
     propertyState: inp.ipState || '',
     landTax: deriveLandTax(inp),
     vacancyRate: pct(inp.ipVacancyRate ?? 4, 4),
-    sellPropertyYears: DEFAULTS.property.sellPropertyYears,
+    sellPropertyYears: inp.sellPropertyYears ?? DEFAULTS.property.sellPropertyYears,
     capitalGainsTaxRate: pct(inp.capitalGainsTaxRate ?? 23.5, 23.5),
+    maintenanceInflation: pct(inp.maintenanceInflation ?? 3.5, 3.5),
 
     hasPrivateHealthCover: inp.hasPrivateHospital,
     ageFirstPrivateCover: inp.ageFirstHadCover || null,
@@ -545,18 +546,18 @@ function buildEngineInputs(inp) {
     employerSuperContributionRate: employerContributionRate,
     superContributionRate: employerContributionRate,
     salaryGrowthRate: pct(inp.salaryGrowthRate ?? 2, 2),
-    leanYearsStart: DEFAULTS.economic.leanYearsStart,
-    leanYearsReduction: pct(DEFAULTS.economic.leanYearsReduction, DEFAULTS.economic.leanYearsReduction),
+    leanYearsStart: inp.leanYearsStart ?? DEFAULTS.economic.leanYearsStart,
+    leanYearsReduction: pct(inp.leanYearsReduction ?? DEFAULTS.economic.leanYearsReduction, DEFAULTS.economic.leanYearsReduction),
 
-    useGlidePath: DEFAULTS.allocation.useGlidePath,
-    glidePathRule: DEFAULTS.allocation.glidePathRule,
+    useGlidePath: inp.useGlidePath ?? DEFAULTS.allocation.useGlidePath,
+    glidePathRule: inp.glidePathRule || DEFAULTS.allocation.glidePathRule,
     frankingCreditBenefit: DEFAULTS.allocation.frankingCreditBenefit,
-    australianEquityAllocation: pct(DEFAULTS.allocation.australianEquityAllocation, DEFAULTS.allocation.australianEquityAllocation),
-    dividendYield: pct(DEFAULTS.allocation.dividendYield, DEFAULTS.allocation.dividendYield),
-    frankingRate: pct(DEFAULTS.allocation.frankingRate, DEFAULTS.allocation.frankingRate),
-    allocEquities: pct(DEFAULTS.allocation.allocEquities, DEFAULTS.allocation.allocEquities),
-    allocBonds: pct(DEFAULTS.allocation.allocBonds, DEFAULTS.allocation.allocBonds),
-    allocCash: pct(DEFAULTS.allocation.allocCash, DEFAULTS.allocation.allocCash),
+    australianEquityAllocation: pct(inp.australianEquityAllocation ?? DEFAULTS.allocation.australianEquityAllocation, DEFAULTS.allocation.australianEquityAllocation),
+    dividendYield: pct(inp.dividendYield ?? DEFAULTS.allocation.dividendYield, DEFAULTS.allocation.dividendYield),
+    frankingRate: pct(inp.frankingRate ?? DEFAULTS.allocation.frankingRate, DEFAULTS.allocation.frankingRate),
+    allocEquities: pct(inp.allocEquities ?? DEFAULTS.allocation.allocEquities, DEFAULTS.allocation.allocEquities),
+    allocBonds: pct(inp.allocBonds ?? DEFAULTS.allocation.allocBonds, DEFAULTS.allocation.allocBonds),
+    allocCash: pct(inp.allocCash ?? DEFAULTS.allocation.allocCash, DEFAULTS.allocation.allocCash),
 
     hasTrustAssets: inp.hasTrust,
     trustType: inp.trustType || DEFAULTS.trust.trustType,
@@ -578,9 +579,9 @@ function buildEngineInputs(inp) {
     numRuns: inp.mcRuns || DEFAULTS.simulation.numRuns,
     useLongevityDistribution: inp.sampleLifespan,
     scenarioMode: inp.scenarioMode || 'baseline',
-    globalRiskFactor: 0,
-    extremeInflationProbability: 0,
-    propertyCrashProbability: 0,
+    globalRiskFactor: inp.globalRiskFactor ?? 0,
+    extremeInflationProbability: pct(inp.extremeInflationProbability ?? 0, 0),
+    propertyCrashProbability: pct(inp.propertyCrashProbability ?? 0, 0),
 
     ageCameToAustralia: inp.ageCameToAU,
     ageStartedEarningAustralia: inp.ageStartedEarningAU,
@@ -686,7 +687,7 @@ function buildEngineInputs(inp) {
     annuityPurchaseAge: inp.annuityPurchaseAge || 67,
     annuityLumpSum: inp.annuityLumpSum || 0,
     annuityAnnualIncome: inp.annuityAnnualIncome || 0,
-    enableTieredSpending: Boolean(inp.enableTieredSpending),
+    enableTieredSpending: Boolean(inp.enableTieredSpending || inp.spendingStrategy === 'go_go_slow_go_no_go'),
     tieredSpendingActiveAge: inp.tieredSpendingActiveAge || 75,
     tieredSpendingFrailAge: inp.tieredSpendingFrailAge || 85,
     tieredSpendingActiveMultiplier: pct(inp.tieredSpendingActiveMultiplier || 110, 110),
@@ -1186,6 +1187,9 @@ function readInputs() {
     partnerReducedIncomeSalary: num('partnerReducedIncomeSalary'),
     businessIncome: num('businessIncome'),
     investmentIncomeOutsideSuper: num('investmentIncomeOutsideSuper'),
+    dividendYield: num('dividendYield', DEFAULTS.allocation.dividendYield),
+    frankingRate: num('frankingRate', DEFAULTS.allocation.frankingRate),
+    australianEquityAllocation: num('australianEquityAllocation', DEFAULTS.allocation.australianEquityAllocation),
 
     // Family
     dependents: num('dependents'),
@@ -1228,6 +1232,8 @@ function readInputs() {
     ipPurchaseYear: num('ipPurchaseYear', null),
     ipLoanType: val('ipLoanType', 'pi'),
     capitalGainsTaxRate: num('capitalGainsTaxRate', 23.5),
+    sellPropertyYears: num('sellPropertyYears', DEFAULTS.property.sellPropertyYears),
+    maintenanceInflation: num('maintenanceInflation', 3.5),
     ipWeeklyRent: num('ipWeeklyRent'),
     ipAnnualExpenses: num('ipAnnualExpenses'),
     landTax: num('landTax'),
@@ -1313,6 +1319,9 @@ function readInputs() {
     tieredSpendingActiveMultiplier: num('tieredSpendingActiveMultiplier', 110),
     tieredSpendingStableMultiplier: num('tieredSpendingStableMultiplier', 90),
     tieredSpendingFrailMultiplier: num('tieredSpendingFrailMultiplier', 115),
+    leanYearsStart: num('leanYearsStart', DEFAULTS.economic.leanYearsStart),
+    leanYearsReduction: num('leanYearsReduction', DEFAULTS.economic.leanYearsReduction),
+    spendingStrategy: val('spendingStrategy', 'steady'),
 
     // Markets
     inflation: num('inflation', 2.6),
@@ -1321,6 +1330,11 @@ function readInputs() {
     savingsReturn: num('savingsReturn', 1.4),
     salaryGrowthRate: num('salaryGrowthRate', 2),
     returnDeclineRate: num('returnDeclineRate', 0.03),
+    useGlidePath: chk('useGlidePath'),
+    glidePathRule: val('glidePathRule', DEFAULTS.allocation.glidePathRule),
+    allocEquities: num('allocEquities', DEFAULTS.allocation.allocEquities),
+    allocBonds: num('allocBonds', DEFAULTS.allocation.allocBonds),
+    allocCash: num('allocCash', DEFAULTS.allocation.allocCash),
 
     // Pension
     agePensionAge: num('agePensionAge', 67),
@@ -1344,6 +1358,9 @@ function readInputs() {
     enableShocks: chk('enableShocks'),
     shockProbability: num('shockProbability', DEFAULTS.simulation.shockProbability),
     shockMagnitude: num('shockMagnitude', DEFAULTS.simulation.shockMagnitude),
+    extremeInflationProbability: num('extremeInflationProbability', 0),
+    propertyCrashProbability: num('propertyCrashProbability', 0),
+    globalRiskFactor: num('globalRiskFactor', 0),
     sampleLifespan: chk('sampleLifespan'),
     budget2627: chk('budget2627'),
     // FHSS fields captured for display/eligibility checks only — not yet wired into simulation engine.
@@ -1384,15 +1401,15 @@ function readInputs() {
 }
 
 function runEngine(inp) {
-  return profiler.measure('advanced-v2.core.projectionService', () => (
-    projectionService.computeProjection(inp, { sourceCalculator: 'advanced-v2' }).adaptedResult
+  return profiler.measure('retirement-v3.core.projectionService', () => (
+    projectionService.computeProjection(inp, { sourceCalculator: 'retirement-v3' }).adaptedResult
   ));
 }
 
 function computeBaseState(inp = null) {
-  const input = inp || profiler.measure('advanced-v2.input.readInputs', () => readInputs());
-  const projection = profiler.measure('advanced-v2.core.projectionService', () => (
-    projectionService.computeProjection(input, { sourceCalculator: 'advanced-v2' })
+  const input = inp || profiler.measure('retirement-v3.input.readInputs', () => readInputs());
+  const projection = profiler.measure('retirement-v3.core.projectionService', () => (
+    projectionService.computeProjection(input, { sourceCalculator: 'retirement-v3' })
   ));
   const { engineInputs, simulation, adaptedResult } = projection;
 
@@ -1405,7 +1422,7 @@ function computeBaseState(inp = null) {
 
   // Store complete forward projection payload for Reverse Planner
   const projectionPayload = buildForwardProjectionPayload({
-    source: 'advanced-v2',
+    source: 'retirement-v3',
     input,
     engineInputs,
     simulation,
@@ -1828,6 +1845,11 @@ function normalizeImportedUserData(userData = {}) {
     ipGrowthRate: userData.propertyGrowthRate !== undefined ? toDisplayPercent(userData.propertyGrowthRate) : base.ipGrowthRate,
     ipState: userData.propertyState ?? base.ipState,
     ipVacancyRate: userData.vacancyRate !== undefined ? toDisplayPercent(userData.vacancyRate) : base.ipVacancyRate,
+    dividendYield: userData.dividendYield !== undefined ? toDisplayPercent(userData.dividendYield) : base.dividendYield,
+    frankingRate: userData.frankingRate !== undefined ? toDisplayPercent(userData.frankingRate) : base.frankingRate,
+    australianEquityAllocation: userData.australianEquityAllocation !== undefined ? toDisplayPercent(userData.australianEquityAllocation) : base.australianEquityAllocation,
+    sellPropertyYears: userData.sellPropertyYears ?? base.sellPropertyYears,
+    maintenanceInflation: userData.maintenanceInflation !== undefined ? toDisplayPercent(userData.maintenanceInflation) : base.maintenanceInflation,
     hasSmsf: Boolean(userData.hasSMSF ?? base.hasSmsf),
     hasTrust: Boolean(userData.hasTrustAssets ?? base.hasTrust),
     desiredIncome: userData.targetRetirementIncome ?? userData.asfaComfortable ?? base.desiredIncome,
@@ -1844,6 +1866,14 @@ function normalizeImportedUserData(userData = {}) {
     superGrowth: userData.superReturn !== undefined ? toDisplayPercent(userData.superReturn) : base.superGrowth,
     savingsReturn: userData.savingsReturn !== undefined ? toDisplayPercent(userData.savingsReturn) : base.savingsReturn,
     salaryGrowthRate: userData.salaryGrowthRate !== undefined ? toDisplayPercent(userData.salaryGrowthRate) : base.salaryGrowthRate,
+    leanYearsStart: userData.leanYearsStart ?? base.leanYearsStart,
+    leanYearsReduction: userData.leanYearsReduction !== undefined ? toDisplayPercent(userData.leanYearsReduction) : base.leanYearsReduction,
+    spendingStrategy: userData.spendingStrategy ?? base.spendingStrategy,
+    useGlidePath: Boolean(userData.useGlidePath ?? base.useGlidePath),
+    glidePathRule: userData.glidePathRule ?? base.glidePathRule,
+    allocEquities: userData.allocEquities !== undefined ? toDisplayPercent(userData.allocEquities) : base.allocEquities,
+    allocBonds: userData.allocBonds !== undefined ? toDisplayPercent(userData.allocBonds) : base.allocBonds,
+    allocCash: userData.allocCash !== undefined ? toDisplayPercent(userData.allocCash) : base.allocCash,
     // userData.returnDeclineRate is assumed to be in decimal engine form (e.g. 0.002 for 0.2%/yr),
     // as exported by the classic calculator. toDisplayPercent converts it to display-% for the form.
     // If a future export ever stores display-% (e.g. 0.2), toDisplayPercent would amplify it 100×.
@@ -1860,6 +1890,9 @@ function normalizeImportedUserData(userData = {}) {
     enableShocks: Boolean(userData.enableShocks ?? base.enableShocks),
     shockProbability: userData.shockProbability ?? base.shockProbability,
     shockMagnitude: userData.shockMagnitude ?? base.shockMagnitude,
+    extremeInflationProbability: userData.extremeInflationProbability !== undefined ? toDisplayPercent(userData.extremeInflationProbability) : base.extremeInflationProbability,
+    propertyCrashProbability: userData.propertyCrashProbability !== undefined ? toDisplayPercent(userData.propertyCrashProbability) : base.propertyCrashProbability,
+    globalRiskFactor: userData.globalRiskFactor ?? base.globalRiskFactor,
     sampleLifespan: Boolean(userData.useLongevityDistribution ?? userData.sampleLifespan ?? base.sampleLifespan),
     budget2627: Boolean(userData.enableProposedBudget2026 ?? userData.budget2627 ?? base.budget2627),
     // New fields added in 2026 — mapped from both v2 names and any legacy equivalents
@@ -1915,7 +1948,7 @@ function normalizeImportedUserData(userData = {}) {
   };
 }
 
-function exportRedesignUserData(inputs, scenarioName = 'Advanced Calculator v2') {
+function exportRedesignUserData(inputs, scenarioName = 'Retirement Calculator v3') {
   const v2Inputs = inputs || readInputs();
   const canonicalInputs = buildCanonicalSaveData(v2Inputs, { source: 'advanced-v2' });
   const uiState = {
@@ -1923,7 +1956,7 @@ function exportRedesignUserData(inputs, scenarioName = 'Advanced Calculator v2')
   };
 
   return exportUserData(canonicalInputs, scenarioName, {
-    sourcePage: 'advanced-v2',
+      sourcePage: 'retirement-v3',
     uiState
   });
 }
@@ -2581,7 +2614,7 @@ function renderSummaryPanel() {
     <div class="summary-chart" style="grid-column:1/-1;border:${projectionQuality.valid ? '1px solid var(--border)' : '2px solid var(--danger)'}">
       <h5>Projection Quality Check</h5>
       <div class="mc-results-grid" style="margin-top:10px">
-        <div class="mc-stat"><div class="mc-k">Calculator source</div><div class="mc-v">advanced-v2</div></div>
+        <div class="mc-stat"><div class="mc-k">Calculator source</div><div class="mc-v">retirement-v3</div></div>
         <div class="mc-stat"><div class="mc-k">Input hash</div><div class="mc-v" style="font-size:12px">${escapeHtml(state.projection?.inputHash || '—')}</div></div>
         <div class="mc-stat"><div class="mc-k">Projection hash</div><div class="mc-v" style="font-size:12px">${escapeHtml(state.projection?.projectionHash || '—')}</div></div>
         <div class="mc-stat"><div class="mc-k">Scenario mode</div><div class="mc-v">${escapeHtml(state.projection?.diagnostics?.scenarioMode || 'base')}</div></div>
@@ -3937,7 +3970,7 @@ async function handleLoadData() {
 }
 
 function handleSaveData() {
-  exportRedesignUserData(readInputs(), 'Advanced Calculator v2');
+  exportRedesignUserData(readInputs(), 'Retirement Calculator v3');
 }
 
 function handlePdfExport() {

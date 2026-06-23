@@ -369,6 +369,27 @@
             </div>
           </div>
 
+          <div data-advanced="true">
+            <div class="subhead">Franked dividends</div>
+            <div class="fields three">
+              <div class="field">
+                <label class="field-label" for="dividendYield"><span>Expected dividend yield</span><span class="hint">%</span><span class="pill">NEW</span></label>
+                <div class="field-input"><input id="dividendYield" type="number" step="0.1" value="4.0" min="0" max="15" /><span class="suffix">%</span></div>
+                <div class="field-help">Used by the existing franking-credit model for shares and ETFs outside super.</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="frankingRate"><span>Franking rate</span><span class="hint">%</span><span class="pill">NEW</span></label>
+                <div class="field-input"><input id="frankingRate" type="number" step="1" value="75" min="0" max="100" /><span class="suffix">%</span></div>
+                <div class="field-help">Typical ASX fully/partly franked mix. Higher values increase the refundable tax-credit benefit.</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="australianEquityAllocation"><span>Australian equity allocation</span><span class="hint">%</span><span class="pill">NEW</span></label>
+                <div class="field-input"><input id="australianEquityAllocation" type="number" step="1" value="40" min="0" max="100" /><span class="suffix">%</span></div>
+                <div class="field-help">Share of the equity portfolio assumed to receive Australian franked dividends.</div>
+              </div>
+            </div>
+          </div>
+
           <div class="subhead">Current household cashflow</div>
           <div class="fields three">
             <div class="field">
@@ -727,6 +748,11 @@
                 <div class="field-input has-prefix"><span class="prefix">$</span><input id="downsizeOngoingFees" type="number" value="12000" /></div>
                 <div class="field-help">Strata or village service fees for the downsized property.</div>
               </div>
+              <div class="field" data-advanced="true">
+                <label class="field-label" for="downsizeTransactionCost"><span>Downsizing transaction cost</span><span class="hint">%</span><span class="pill">NEW</span></label>
+                <div class="field-input"><input id="downsizeTransactionCost" type="number" step="0.1" value="6.6" min="0" max="20" /><span class="suffix">%</span></div>
+                <div class="field-help">Agent fees, stamp duty, legal costs and moving costs deducted from released equity.</div>
+              </div>
             </div>
           </div>
 
@@ -777,6 +803,8 @@
                 <div class="field"><label class="field-label" for="ipGrowthRate"><span>Annual growth (median)</span><span class="hint">%</span></label><div class="field-input"><input id="ipGrowthRate" type="number" step="0.01" value="4.00" /><span class="suffix">%</span></div><div class="field-help">Your expected long-run median growth rate. The simulator applies a structural adjustment (−1.5 pp for units, −0.5 pp for townhouses) relative to this figure to reflect lower land content.</div></div>
                 <div class="field"><label class="field-label" for="ipState"><span>State</span></label><div class="field-input"><select id="ipState"><option value="">— select for land tax —</option><option value="NSW">NSW</option><option value="VIC">VIC</option><option value="QLD">QLD</option><option value="WA">WA</option><option value="SA">SA</option><option value="TAS">TAS</option><option value="ACT">ACT</option><option value="NT">NT</option></select></div></div>
                 <div class="field"><label class="field-label" for="ipVacancyRate"><span>Vacancy allowance</span><span class="hint">%</span></label><div class="field-input"><input id="ipVacancyRate" type="number" step="0.1" value="4" min="0" max="100" /><span class="suffix">%</span></div></div>
+                <div class="field"><label class="field-label" for="sellPropertyYears"><span>Sell investment property in</span><span class="hint">yrs</span><span class="pill">NEW</span></label><div class="field-input"><input id="sellPropertyYears" type="number" step="1" value="15" min="0" max="60" /><span class="suffix">yrs</span></div><div class="field-help">0 means hold indefinitely. A positive year triggers the existing CGT sale path in that projection year.</div></div>
+                <div class="field"><label class="field-label" for="maintenanceInflation"><span>Maintenance inflation</span><span class="hint">% / yr</span><span class="pill">NEW</span></label><div class="field-input"><input id="maintenanceInflation" type="number" step="0.1" value="3.5" min="0" max="20" /><span class="suffix">%</span></div><div class="field-help">Inflates landlord operating expenses separately from general CPI.</div></div>
               </div>
             </div>
           </div>
@@ -924,6 +952,27 @@
             </div>
           </div>
           <div class="notice"><span class="ic">⛵</span><div><b>Translation:</b> <span id="goal-week">$1,410</span>/week · <span id="goal-month">$6,111</span>/month. Inflated to future dollars automatically.</div></div>
+
+          <div data-advanced="true">
+            <div class="subhead">Phased retirement</div>
+            <div class="fields three">
+              <div class="field">
+                <label class="field-label" for="leanYearsStart"><span>Lean years before retirement</span><span class="hint">yrs</span><span class="pill">NEW</span></label>
+                <div class="field-input"><input id="leanYearsStart" type="number" step="1" value="5" min="0" max="20" /><span class="suffix">yrs</span></div>
+                <div class="field-help">Number of pre-retirement years where salary is reduced, such as a sabbatical or part-time wind-down.</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="leanYearsReduction"><span>Lean years salary reduction</span><span class="hint">%</span><span class="pill">NEW</span></label>
+                <div class="field-input"><input id="leanYearsReduction" type="number" step="1" value="20" min="0" max="100" /><span class="suffix">%</span></div>
+                <div class="field-help">0% preserves the current steady-income path.</div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="spendingStrategy"><span>Spending strategy</span><span class="pill">NEW</span></label>
+                <div class="field-input"><select id="spendingStrategy"><option value="steady" selected>Steady real spend</option><option value="go_go_slow_go_no_go">Go-go → slow-go → no-go</option></select></div>
+                <div class="field-help">The tiered strategy uses the existing Active / Stable / Frail multipliers below.</div>
+              </div>
+            </div>
+          </div>
 
           <div class="fields">
             <div class="field">
@@ -1145,6 +1194,19 @@
             <div class="field"><label class="field-label" for="salaryGrowthRate"><span>Salary growth</span><span class="hint">% / yr</span></label><div class="field-input"><input id="salaryGrowthRate" type="number" step="0.01" value="2.00" /><span class="suffix">%</span></div></div>
             <div class="field"><label class="field-label" for="returnDeclineRate"><span>Annual return decline</span><span class="hint">% points / yr</span></label><div class="field-input"><input id="returnDeclineRate" type="number" step="0.01" value="0.03" min="0" max="2" /><span class="suffix">%</span></div><div class="field-help">Enter 0.03 for a 0.03 percentage-point annual decline. Unsafe legacy units are migrated and flagged.</div></div>
           </div>
+          <div data-advanced="true">
+            <div class="subhead">Dynamic allocation</div>
+            <div class="fields three">
+              <div class="field">
+                <label class="toggle"><input id="useGlidePath" type="checkbox" checked /><span class="track"></span><span class="label">Enable dynamic allocation (glide path) <span class="pill">NEW</span></span></label>
+                <div class="field-help">Uses the existing age-based de-risking path. Turning it off uses the static allocation below.</div>
+              </div>
+              <div class="field"><label class="field-label" for="glidePathRule"><span>Glide path strategy</span><span class="pill">NEW</span></label><div class="field-input"><select id="glidePathRule"><option value="110minus" selected>Age-based (110 − age)</option><option value="100minus">Age-based (100 − age)</option><option value="120minus">Age-based (120 − age)</option><option value="target_date">Target date</option></select></div></div>
+              <div class="field"><label class="field-label" for="allocEquities"><span>Equities</span><span class="hint">%</span><span class="pill">NEW</span></label><div class="field-input"><input id="allocEquities" type="number" value="65" min="0" max="100" /><span class="suffix">%</span></div></div>
+              <div class="field"><label class="field-label" for="allocBonds"><span>Bonds</span><span class="hint">%</span><span class="pill">NEW</span></label><div class="field-input"><input id="allocBonds" type="number" value="25" min="0" max="100" /><span class="suffix">%</span></div></div>
+              <div class="field"><label class="field-label" for="allocCash"><span>Cash</span><span class="hint">%</span><span class="pill">NEW</span></label><div class="field-input"><input id="allocCash" type="number" value="10" min="0" max="100" /><span class="suffix">%</span></div><div class="field-help">Static allocation controls are used when glide path is off.</div></div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1212,6 +1274,14 @@
                 <div class="field-input"><input id="shockMagnitude" type="number" step="1" value="-25" min="-80" max="-5" /><span class="suffix">%</span></div>
                 <div class="field-help">Portfolio loss applied to the equity portion in a shock year. −25% ≈ a severe correction; −50% ≈ a 2008-style global financial crisis.</div>
               </div>
+            </div>
+          </div>
+          <div data-advanced="true">
+            <div class="subhead">Stress probabilities</div>
+            <div class="fields three">
+              <div class="field"><label class="field-label" for="extremeInflationProbability"><span>Extreme inflation probability</span><span class="hint">% / yr</span><span class="pill">NEW</span></label><div class="field-input"><input id="extremeInflationProbability" type="number" step="0.1" value="0" min="0" max="50" /><span class="suffix">%</span></div><div class="field-help">0% preserves existing deterministic and single-shock behaviour.</div></div>
+              <div class="field"><label class="field-label" for="propertyCrashProbability"><span>Property crash probability</span><span class="hint">% / yr</span><span class="pill">NEW</span></label><div class="field-input"><input id="propertyCrashProbability" type="number" step="0.1" value="0" min="0" max="50" /><span class="suffix">%</span></div></div>
+              <div class="field"><label class="field-label" for="globalRiskFactor"><span>Global risk factor</span><span class="hint">0–1</span><span class="pill">NEW</span></label><div class="field-input"><input id="globalRiskFactor" type="number" step="0.05" value="0" min="0" max="1" /></div><div class="field-help">0 means benign. 1 applies the maximum existing correlated-risk volatility adjustment.</div></div>
             </div>
           </div>
           <div class="fields one">
@@ -1638,7 +1708,7 @@
             <div id="analysis-summary"></div>
           </div>
           <div data-tab-panel="whatif" hidden>
-            <p style="color:var(--ink-3)">What-if sliders coming online — wire to engine in <code>advanced-v2.js</code>.</p>
+            <p style="color:var(--ink-3)">Run the calculation to compare live What-If levers.</p>
           </div>
           <div data-tab-panel="year" hidden>
             <div class="year-controls">
@@ -1668,7 +1738,7 @@
             <p style="color:var(--ink-3)">Run the Monte Carlo or Stress Test tool to see your risk profile and scenario results here.</p>
           </div>
           <div data-tab-panel="ai" hidden id="sg-tab-panel">
-            <!-- Populated by renderAiPanel() in advanced-v2.js after calculation -->
+            <!-- Populated by renderAiPanel() in retirement-v3.js after calculation -->
             <div id="sg-content">
               <div style="padding:40px 20px;text-align:center;color:var(--ink-3)">
                 <div style="font-size:3rem;margin-bottom:12px">🎯</div>
@@ -1816,6 +1886,6 @@
 
 <div data-site-footer></div>
 
-<!-- advanced-v2.js will be injected by webpack -->
+<!-- retirement-v3.js will be injected by webpack -->
 </body>
 </html>

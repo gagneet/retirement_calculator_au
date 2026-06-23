@@ -68,6 +68,9 @@ export function buildCanonicalSaveData(sourceInputs = {}, options = {}) {
         currentSavings: inputs.currentSavings ?? inputs.cash,
         currentStocks: inputs.currentStocks ?? inputs.stocks,
         monthlyStockContribution: inputs.monthlyStockContribution ?? inputs.monthlyStockContrib,
+        dividendYield: pct(inputs.dividendYield),
+        frankingRate: pct(inputs.frankingRate),
+        australianEquityAllocation: pct(inputs.australianEquityAllocation),
 
         // Cashflow
         useDetailedExpenseInputs: Boolean(inputs.useDetailedExpenseInputs ?? inputs.useDetailedCashflow),
@@ -103,6 +106,8 @@ export function buildCanonicalSaveData(sourceInputs = {}, options = {}) {
         investmentPropertyPurchaseYear: inputs.investmentPropertyPurchaseYear ?? inputs.ipPurchaseYear,
         vacancyRate: pct(inputs.vacancyRate ?? inputs.ipVacancyRate),
         capitalGainsTaxRate: pct(inputs.capitalGainsTaxRate),
+        sellPropertyYears: inputs.sellPropertyYears,
+        maintenanceInflation: pct(inputs.maintenanceInflation),
 
         // Debts
         creditCardBalance: inputs.creditCardBalance ?? inputs.ccBalance,
@@ -128,8 +133,16 @@ export function buildCanonicalSaveData(sourceInputs = {}, options = {}) {
         superReturn: pct(inputs.superReturn ?? inputs.superGrowth),
         savingsReturn: pct(inputs.savingsReturn),
         salaryGrowthRate: pct(inputs.salaryGrowthRate),
+        leanYearsStart: inputs.leanYearsStart,
+        leanYearsReduction: pct(inputs.leanYearsReduction),
+        spendingStrategy: inputs.spendingStrategy,
         returnVolatility: pct(inputs.returnVolatility),
         returnDeclineRate: (inputs.returnDeclineRate || 0) <= 0.1 ? (inputs.returnDeclineRate || 0) : (inputs.returnDeclineRate || 0) / 100,
+        useGlidePath: Boolean(inputs.useGlidePath),
+        glidePathRule: inputs.glidePathRule,
+        allocEquities: pct(inputs.allocEquities),
+        allocBonds: pct(inputs.allocBonds),
+        allocCash: pct(inputs.allocCash),
 
         // Pension
         agePensionMax: isCouple ? (inputs.pensionAnnualCouple ?? inputs.agePensionMax) : (inputs.pensionAnnualSingle ?? inputs.agePensionMax),
@@ -143,6 +156,9 @@ export function buildCanonicalSaveData(sourceInputs = {}, options = {}) {
         enableShocks: Boolean(inputs.enableShocks),
         shockProbability: pct(inputs.shockProbability),
         shockMagnitude: pct(inputs.shockMagnitude),
+        extremeInflationProbability: pct(inputs.extremeInflationProbability),
+        propertyCrashProbability: pct(inputs.propertyCrashProbability),
+        globalRiskFactor: Number(inputs.globalRiskFactor || 0),
         enableProposedBudget2026: Boolean(inputs.enableProposedBudget2026 ?? inputs.budget2627),
 
         // Trust / SMSF

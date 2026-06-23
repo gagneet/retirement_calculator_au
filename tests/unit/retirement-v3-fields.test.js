@@ -1,0 +1,84 @@
+import { buildEngineInputs } from '../../src/js/retirement-v3.js';
+
+describe('retirement-v3 parity field wiring', () => {
+    test('passes V3-only modelling fields to the existing simulator input shape', () => {
+        const engineInputs = buildEngineInputs({
+            household: 'single',
+            age: 45,
+            retireAge: 65,
+            lifespan: 90,
+            gender: 'prefer_not_say',
+            salary: 120000,
+            salaryIncomeMode: 'excluding_super',
+            partnerSalary: 0,
+            superBal: 250000,
+            partnerSuperBal: 0,
+            cash: 50000,
+            stocks: 40000,
+            monthlyStockContrib: 500,
+            employerRate: 12,
+            desiredIncome: 73000,
+            primaryResidenceType: 'own_mortgage',
+            homeValue: 850000,
+            mortgage: 200000,
+            mortgageRate: 6,
+            downsizePlan: 'yes',
+            downsizeAge: 75,
+            downsizeTargetHomeValue: 700000,
+            downsizeTransactionCost: 5,
+            investmentProperty: true,
+            ipType: 'unit',
+            ipValue: 700000,
+            ipLoan: 400000,
+            ipRate: 6.35,
+            ipPurchasePrice: 600000,
+            ipPurchaseYear: 2020,
+            ipLoanType: 'pi',
+            ipWeeklyRent: 600,
+            ipAnnualExpenses: 10000,
+            ipGrowthRate: 4,
+            ipVacancyRate: 4,
+            capitalGainsTaxRate: 23.5,
+            sellPropertyYears: 12,
+            maintenanceInflation: 3.5,
+            inflation: 2.6,
+            invReturn: 6.5,
+            superGrowth: 7.5,
+            savingsReturn: 4.5,
+            salaryGrowthRate: 2,
+            returnDeclineRate: 0.03,
+            useGlidePath: true,
+            glidePathRule: '110minus',
+            allocEquities: 60,
+            allocBonds: 30,
+            allocCash: 10,
+            dividendYield: 4,
+            frankingRate: 75,
+            australianEquityAllocation: 60,
+            leanYearsStart: 5,
+            leanYearsReduction: 20,
+            spendingStrategy: 'go_go_slow_go_no_go',
+            extremeInflationProbability: 2,
+            propertyCrashProbability: 3,
+            globalRiskFactor: 0.4,
+        });
+
+        expect(engineInputs.sellPropertyYears).toBe(12);
+        expect(engineInputs.maintenanceInflation).toBe(0.035);
+        expect(engineInputs.downsizeTransactionCost).toBe(5);
+        expect(engineInputs.useGlidePath).toBe(true);
+        expect(engineInputs.glidePathRule).toBe('110minus');
+        expect(engineInputs.allocEquities).toBe(0.6);
+        expect(engineInputs.allocBonds).toBe(0.3);
+        expect(engineInputs.allocCash).toBe(0.1);
+        expect(engineInputs.dividendYield).toBe(0.04);
+        expect(engineInputs.frankingRate).toBe(0.75);
+        expect(engineInputs.australianEquityAllocation).toBe(0.6);
+        expect(engineInputs.leanYearsStart).toBe(5);
+        expect(engineInputs.leanYearsReduction).toBe(0.2);
+        expect(engineInputs.enableTieredSpending).toBe(true);
+        expect(engineInputs.extremeInflationProbability).toBe(0.02);
+        expect(engineInputs.propertyCrashProbability).toBe(0.03);
+        expect(engineInputs.globalRiskFactor).toBe(0.4);
+    });
+});
