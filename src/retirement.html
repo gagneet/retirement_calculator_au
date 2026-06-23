@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en-AU" data-theme="light" data-density="spacious">
+<html lang="en-AU" data-theme="light" data-v3-theme="editorial" data-density="spacious">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -9,7 +9,7 @@
   <link rel="canonical" href="https://retirement.gagneet.com/retirement.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
   <script crossorigin="anonymous"
           src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
   <script crossorigin="anonymous"
@@ -49,7 +49,7 @@
       <button class="iconbtn" id="btn-load">↑ Load data</button>
       <button class="iconbtn" id="btn-save">↓ Save</button>
       <a class="iconbtn" href="how-to-use.html">? Help</a>
-      <button class="iconbtn" id="btn-theme" aria-label="Toggle dark mode">🌓</button>
+      <button class="iconbtn" id="btn-theme" aria-label="Toggle V3 visual theme">Editorial</button>
     </div>
   </div>
 
@@ -428,6 +428,7 @@
                 <div class="field-input has-prefix"><span class="prefix">$</span><input id="salarySacrifice" type="number" value="0" /><span class="suffix">/yr</span></div>
                 <div class="field-help">Pre-tax. Auto-filled with your remaining concessional cap after employer SG. Edit to override.</div>
               </div>
+              <input id="surplusToMortgageMonthly" type="hidden" value="0" />
               <div class="field" data-household="couple">
                 <label class="field-label" for="partnerSalarySacrifice"><span>Partner salary sacrifice</span><span class="hint">$/year</span></label>
                 <div class="field-input has-prefix"><span class="prefix">$</span><input id="partnerSalarySacrifice" type="number" value="0" /><span class="suffix">/yr</span></div>

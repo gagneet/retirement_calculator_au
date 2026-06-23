@@ -52,7 +52,7 @@ fi
 
 # Verify critical output files exist
 MISSING=0
-for f in index.html advanced.html advanced-v2.html retirement.html advanced-design.html reverse.html comparison.html contact.html privacy.html terms.html assumptions.html changelog.html methodology.html how-to-use.html robots.txt sitemap.xml; do
+for f in index.html advanced.html advanced-v2.html retirement.html retirement_interactive.html advanced-design.html reverse.html comparison.html contact.html privacy.html terms.html assumptions.html changelog.html methodology.html how-to-use.html robots.txt sitemap.xml; do
     if [ ! -f "$DIST_DIR/$f" ]; then
         echo "ERROR: Expected build output missing: $f" | tee -a "$LOG_FILE"
         MISSING=1
@@ -79,7 +79,7 @@ fi
 # 6. Verify key pages are reachable
 echo "Verifying deployment..." | tee -a "$LOG_FILE"
 VERIFY_FAIL=0
-for path in "" "advanced.html" "advanced-v2.html" "retirement.html" "advanced-design.html" "reverse.html" "comparison.html" "contact.html"; do
+for path in "" "advanced.html" "advanced-v2.html" "retirement.html" "retirement_interactive.html" "advanced-design.html" "reverse.html" "comparison.html" "contact.html"; do
     URL="https://retirement.gagneet.com/$path"
     HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$URL")
     if [ "$HTTP_STATUS" = "200" ]; then

@@ -1647,6 +1647,138 @@ table.year-table th[title] { cursor: help; border-bottom: 1px dotted var(--borde
   --v3-paper: #FAF8F1;
 }
 
+[data-v3-theme="editorial"] {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: "Source Serif 4", Georgia, serif;
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --bg: #0D1421;
+  --bg-2: #0B1422;
+  --surface: #0F1A2E;
+  --surface-2: #111E34;
+  --surface-3: #17243B;
+  --border: rgba(255,255,255,.12);
+  --border-2: rgba(255,255,255,.22);
+  --ink: #FAF8F5;
+  --ink-2: #E8E2D4;
+  --ink-3: #C9C6BE;
+  --ink-4: #8D93A3;
+  --accent: #C9A227;
+  --accent-soft: rgba(201,162,39,.18);
+  --accent-ink: #F7E6A0;
+  --gold: #D4B45A;
+  --gold-soft: rgba(212,180,90,.18);
+  --shadow: none;
+}
+
+[data-v3-theme="approachable"] {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --bg: #F4F1EA;
+  --bg-2: #EDE7DA;
+  --surface: #FFFFFF;
+  --surface-2: #FBFAF7;
+  --surface-3: #F3EFE7;
+  --border: #E3DCCC;
+  --border-2: #D3C9B8;
+  --ink: #1A1A2E;
+  --ink-2: #374151;
+  --ink-3: #5E6673;
+  --ink-4: #7D8490;
+  --accent: #2D9C6F;
+  --accent-soft: #E8F6EF;
+  --accent-ink: #176B49;
+  --gold: #2D9C6F;
+  --gold-soft: #E8F6EF;
+  --shadow: 0 2px 10px rgba(30,30,50,.06);
+}
+
+[data-v3-theme="editorial"] body.retirement-v3 {
+  background: #0D1421;
+}
+
+[data-v3-theme="editorial"] .retirement-v3 .app {
+  background: #0D1421;
+}
+
+[data-v3-theme="editorial"] .retirement-v3 .section,
+[data-v3-theme="editorial"] .retirement-v3 .results-card,
+[data-v3-theme="editorial"] .retirement-v3 .tools-card,
+[data-v3-theme="editorial"] .retirement-v3 .tier-panel,
+[data-v3-theme="editorial"] .retirement-v3 .whatif-card {
+  border-color: rgba(255,255,255,.12);
+  box-shadow: none;
+}
+
+[data-v3-theme="editorial"] .retirement-v3 .section-title small,
+[data-v3-theme="editorial"] .retirement-v3 .tier-kicker {
+  color: #D4B45A !important;
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+[data-v3-theme="editorial"] .retirement-v3 .field-label,
+[data-v3-theme="editorial"] .retirement-v3 .field-label span {
+  color: #C9C6BE;
+  font-weight: 500;
+}
+
+[data-v3-theme="editorial"] .retirement-v3 input,
+[data-v3-theme="editorial"] .retirement-v3 select,
+[data-v3-theme="editorial"] .retirement-v3 textarea {
+  background: #0B1422;
+  border-color: rgba(255,255,255,.14);
+  color: #FAF8F5;
+  border-radius: 6px;
+  min-height: 38px;
+}
+
+[data-v3-theme="approachable"] body.retirement-v3 {
+  background: #F4F1EA;
+}
+
+[data-v3-theme="approachable"] .retirement-v3 .app {
+  background: #F4F1EA;
+}
+
+[data-v3-theme="approachable"] .retirement-v3 .tier-panel,
+[data-v3-theme="approachable"] .retirement-v3 .section,
+[data-v3-theme="approachable"] .retirement-v3 .results-card,
+[data-v3-theme="approachable"] .retirement-v3 .tools-card,
+[data-v3-theme="approachable"] .retirement-v3 .whatif-card {
+  border-color: #E3DCCC;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(30,30,50,.06);
+}
+
+[data-v3-theme="approachable"] .retirement-v3 .field-label,
+[data-v3-theme="approachable"] .retirement-v3 .field-label span {
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+[data-v3-theme="approachable"] .retirement-v3 input,
+[data-v3-theme="approachable"] .retirement-v3 select,
+[data-v3-theme="approachable"] .retirement-v3 textarea {
+  background: #fff;
+  border: 2px solid #E8E3D8;
+  border-radius: 11px;
+  color: #1A1A2E;
+  min-height: 42px;
+}
+
+[data-v3-theme="approachable"] .retirement-v3 .pill,
+[data-v3-theme="approachable"] .retirement-v3 .chip .dot,
+[data-v3-theme="approachable"] .retirement-v3 .tier-control button.on {
+  background-color: #2D9C6F;
+  color: #fff;
+}
+
 .retirement-v3 .hero h1 {
   max-width: 820px;
 }
@@ -1803,6 +1935,23 @@ table.year-table th[title] { cursor: help; border-bottom: 1px dotted var(--borde
 
 .whatif-card-wide {
   grid-column: 1 / -1;
+}
+
+.whatif-commit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.whatif-commit .desc {
+  margin: 0;
+}
+
+.whatif-commit .iconbtn {
+  flex: 0 0 auto;
+  border-color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .retirement-v3 .whatif-live input[type="range"] {

@@ -1185,6 +1185,7 @@ function readInputs() {
     useDetailedCashflow: chk('useDetailedCashflow'),
     currentMonthlyIncome: num('currentMonthlyIncome'),
     currentMonthlyLivingCosts: num('currentMonthlyLivingCosts'),
+    surplusToMortgageMonthly: num('surplusToMortgageMonthly'),
     surplusAllocationMode: val('surplusAllocationMode', 'cash'),
     salarySacrifice: num('salarySacrifice'),
     partnerSalarySacrifice: num('partnerSalarySacrifice'),
@@ -1812,6 +1813,7 @@ function normalizeImportedUserData(userData = {}) {
         + ((userData.currentHealthcareCosts ?? 0) / 12)
       )
       ?? base.currentMonthlyLivingCosts,
+    surplusToMortgageMonthly: userData.surplusToMortgageMonthly ?? base.surplusToMortgageMonthly,
     surplusAllocationMode: userData.surplusAllocationMode ?? base.surplusAllocationMode,
     salarySacrifice: userData.yourAdditionalSuperContribution ?? base.salarySacrifice,
     partnerSalarySacrifice: userData.partnerAdditionalSuperContribution ?? base.partnerSalarySacrifice,
@@ -2846,6 +2848,13 @@ function renderWhatIfPanel() {
         <h5>Lift from these levers</h5>
         <div class="whatif-impact"><span class="pill">Move a slider to compare.</span></div>
       </div>
+      <div class="whatif-card whatif-card-wide whatif-commit">
+        <div>
+          <h5>Commit scenario</h5>
+          <div class="desc">Dragging stays temporary. Apply writes these deltas into the saved form inputs and reruns Core Projection.</div>
+        </div>
+        <button class="iconbtn" id="whatif-apply-to-form" type="button">Apply to form</button>
+      </div>
     </div>
   `);
   bindV3WhatIfControls();
@@ -2860,6 +2869,35 @@ function bindV3WhatIfControls() {
     v3WhatIfDebounce = setTimeout(runV3WhatIfProjection, 150);
   };
   sliders.forEach((slider) => slider.addEventListener('input', update));
+  const applyButton = document.getElementById('whatif-apply-to-form');
+  if (applyButton) applyButton.addEventListener('click', applyV3WhatIfToForm);
+  runV3WhatIfProjection();
+}
+
+function applyV3WhatIfToForm() {
+  const extraSuper = num('whatif-extra-super', 0);
+  const extraMortgage = num('whatif-extra-mortgage', 0);
+  const delayYears = num('whatif-delay-retirement', 0);
+  const salarySacrifice = document.getElementById('salarySacrifice');
+  const mortgageSurplus = document.getElementById('surplusToMortgageMonthly');
+  const retireAge = document.getElementById('retireAge');
+  const partnerRetireAge = document.getElementById('partnerRetireAge');
+
+  if (salarySacrifice && extraSuper) {
+    salarySacrifice.value = String((Number(salarySacrifice.value) || 0) + (extraSuper * 12));
+    salarySacrifice.dataset.userModified = 'true';
+  }
+  if (mortgageSurplus && extraMortgage) mortgageSurplus.value = String((Number(mortgageSurplus.value) || 0) + extraMortgage);
+  if (retireAge && delayYears) retireAge.value = String((Number(retireAge.value) || 0) + delayYears);
+  if (partnerRetireAge && APP_STATE.input?.household === 'couple' && delayYears) {
+    partnerRetireAge.value = String((Number(partnerRetireAge.value) || 0) + delayYears);
+  }
+
+  ['whatif-extra-super', 'whatif-extra-mortgage', 'whatif-delay-retirement'].forEach((id) => {
+    const slider = document.getElementById(id);
+    if (slider) slider.value = '0';
+  });
+  recalc();
   runV3WhatIfProjection();
 }
 
@@ -4571,9 +4609,18 @@ function initTabs() {
 // ============================================================
 function initTopbar() {
   const btn = document.getElementById('btn-theme');
+  const applyTheme = (theme) => {
+    const next = theme === 'approachable' ? 'approachable' : 'editorial';
+    document.documentElement.setAttribute('data-v3-theme', next);
+    try { localStorage.setItem('retirement-v3-theme', next); } catch (_) { /* localStorage unavailable */ }
+    if (btn) btn.textContent = next === 'editorial' ? 'Editorial' : 'Approachable';
+  };
+  let savedTheme = 'editorial';
+  try { savedTheme = localStorage.getItem('retirement-v3-theme') || 'editorial'; } catch (_) { savedTheme = 'editorial'; }
+  applyTheme(savedTheme);
   if (btn) btn.addEventListener('click', () => {
-    const cur = document.documentElement.getAttribute('data-theme');
-    document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+    const cur = document.documentElement.getAttribute('data-v3-theme') || 'editorial';
+    applyTheme(cur === 'editorial' ? 'approachable' : 'editorial');
   });
 
   const adv = document.getElementById('btn-advanced');
