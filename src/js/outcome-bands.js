@@ -72,14 +72,15 @@ export function computeOutcomeBand({
 
   // ── Depletion age ───────────────────────────────────────────────────────
   let depletionAge = null;
-  if (monteCarloResults?.depletionAge) {
-    depletionAge = monteCarloResults.depletionAge;
-  } else if (adaptedResult?.depletionAge || simulation?.depletionAge) {
+  if (adaptedResult?.depletionAge || simulation?.depletionAge) {
     depletionAge = adaptedResult?.depletionAge ?? simulation?.depletionAge;
   }
-
-  // ── Success rate ────────────────────────────────────────────────────────
+  // Suppress deterministic depletion when MC shows strong success — showing
+  // "runs out at age X" alongside an 80%+ success rate is contradictory.
   const successRate = monteCarloResults?.successRate ?? null;
+  if (depletionAge !== null && successRate !== null && successRate >= 0.8) {
+    depletionAge = null;
+  }
 
   // ── Band classification ─────────────────────────────────────────────────
   let band;

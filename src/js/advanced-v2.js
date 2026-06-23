@@ -842,8 +842,9 @@ function adaptEngineOutput(inp, engineInputs, simulation) {
 
   return {
     monthlyPaycheck,
+    annualIncome: annualIncomeToday || plannedSpendingToday,
     plannedSpendingToday,
-    plannedSpendingNominal,
+    plannedSpendingNominal: firstRetirementYear.totalPlannedSpending || firstRetirementYear.plannedSpending || 0,
     swrMonthlyToday,
     superAtRetire: deflateToToday(firstRetirementYear.startBalance || 0, yearsToRetire, inflationRate),
     superAtRetireNominal: firstRetirementYear.startBalance || 0,
@@ -2597,11 +2598,18 @@ function renderSummaryPanel() {
     }
   }
 
+  const _spendToday = (state.adaptedResult?.plannedSpendingToday / 12) || 0;
+  const _spendNominal = state.adaptedResult?.plannedSpendingNominal
+    ? state.adaptedResult.plannedSpendingNominal / 12
+    : (() => {
+        const yrs = Math.max(0, (state.input?.retireAge || 67) - (state.input?.age || 50));
+        return _spendToday * Math.pow(1 + (state.input?.inflation || 2.6) / 100, yrs);
+      })();
   const summaryItems = [
     {
       label: 'Monthly planned spend (Yr 1)',
-      value: fmt$((state.adaptedResult?.plannedSpendingToday / 12) || 0),
-      detail: 'Includes essentials + lifestyle',
+      value: fmt$(_spendToday),
+      detail: `Today's $ · ≈ ${fmt$(Math.round(_spendNominal))} nominal at retirement`,
     },
     {
       label: 'Maximum sustainable draw',
@@ -3506,6 +3514,12 @@ function renderAnalysisPanels() {
     profiler.measure('advanced-v2.post.render.summaryPanel', () => renderSummaryPanel());
   } else if (activeTab === 'whatif') {
     profiler.measure('advanced-v2.post.render.whatIfPanel', () => renderWhatIfPanel());
+  } else if (activeTab === 'year') {
+    const years = APP_STATE.adaptedResult?.years;
+    const inp = APP_STATE.input;
+    if (years?.length && inp) {
+      profiler.measure('advanced-v2.post.render.yearTable', () => paintYearTable(years, inp));
+    }
   } else if (activeTab === 'risk') {
     profiler.measure('advanced-v2.post.render.riskPanel', () => renderRiskPanel());
     scheduleVisibleRiskChartRender();
@@ -3776,7 +3790,8 @@ async function runFullAnalysis() {
     showNotification('No changes since last calculation — results are up to date.', 'info');
     return;
   }
-  syncAppState();
+  const baseState = syncAppState();
+  paint(baseState.adaptedResult, baseState.input);
   await runMonteCarloAnalysis({ quiet: true });
   lastFullAnalysisHash = getInputsHash();
   lastMcHash = lastFullAnalysisHash;
@@ -4010,6 +4025,16 @@ function setText(id, text) {
   if (element) element.textContent = String(text);
 }
 
+function show(id) {
+  const element = $(id);
+  if (element) element.classList.remove('hidden');
+}
+
+function hide(id) {
+  const element = $(id);
+  if (element) element.classList.add('hidden');
+}
+
 function setHTML(id, html) {
   const element = $(id);
   if (element) element.innerHTML = html;
@@ -4088,9 +4113,30 @@ function paint(result, inp) {
       : '';
   }
 
+  // Scenario mode badge — shown when non-baseline mode is active so users know the projection is adjusted
+  const scenarioMode = APP_STATE.engineInputs?.headlineScenarioMode || APP_STATE.engineInputs?.scenarioMode || 'baseline';
+  const scenarioBadge = $('r-scenario-badge');
+  if (scenarioBadge) {
+    const isNonBase = !['base', 'baseline'].includes(scenarioMode);
+    scenarioBadge.hidden = !isNonBase;
+    if (isNonBase) {
+      const LABELS = { optimistic: 'Optimistic scenario', pessimistic: 'Pessimistic scenario', crisis: 'Crisis scenario' };
+      const COLORS = { optimistic: 'var(--green-600,#16a34a)', pessimistic: 'var(--orange-600,#ea580c)', crisis: 'var(--red-700,#b91c1c)' };
+      scenarioBadge.textContent = LABELS[scenarioMode] || scenarioMode;
+      scenarioBadge.style.color = COLORS[scenarioMode] || 'var(--ink-2)';
+    }
+  }
+
   // Hero
-  const plannedSpend = isNominal ? result.plannedSpendingNominal : result.plannedSpendingToday;
-  setText('r-paycheck', Math.round(plannedSpend / 12).toLocaleString('en-AU'));
+  setText('r-paycheck', Math.round(result.plannedSpendingToday / 12).toLocaleString('en-AU'));
+  // Show nominal (future $) equivalent alongside the today's $ hero metric
+  const yearsToRetireCalc = Math.max(0, inp.retireAge - inp.age);
+  const nominalMonthly = result.plannedSpendingNominal
+    ? Math.round(result.plannedSpendingNominal / 12)
+    : Math.round((result.plannedSpendingToday / 12) * Math.pow(1 + inp.inflation / 100, yearsToRetireCalc));
+  setText('r-paycheck-nominal', nominalMonthly.toLocaleString('en-AU'));
+  const nominalWrap = $('r-paycheck-nominal-wrap');
+  if (nominalWrap) nominalWrap.hidden = yearsToRetireCalc <= 0;
   setText('r-retire-age', inp.retireAge);
   // lifespan=0 means "simulate to depletion" (age 120). Show "any age" in the UI.
   const openEnded = !(inp.lifespan > 0);

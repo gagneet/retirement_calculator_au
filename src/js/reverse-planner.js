@@ -142,11 +142,38 @@ export class ReversePlanner {
                     derivedCashflow
                 );
             },
-            summaryBuilder: ({ canonicalInput, simulation }) => ({
-                targetAnnualIncomeToday: canonicalInput.retirementTarget.targetAnnualIncomeToday,
-                finalBalance: simulation.finalBalance,
-                retirementAge: canonicalInput.household.retirementAge,
-            }),
+            summaryBuilder: ({ canonicalInput, engineInputs, simulation }) => {
+                const retirementAge = canonicalInput.household.retirementAge;
+                const currentAge = engineInputs?.yourCurrentAge ?? canonicalInput.household.currentAge ?? 50;
+                const inflation = engineInputs?.inflation ?? 0.026;
+                const ytr = Math.max(1, retirementAge - currentAge);
+                const deflator = Math.pow(1 + inflation, ytr);
+                const swr = 0.04;
+
+                const yearlyData = simulation.yearlyData || [];
+                const retirementRow = yearlyData.find(r => r.age === retirementAge) || yearlyData[0] || null;
+
+                const totalAssetsAtRetirement = retirementRow?.liquidAssets ?? retirementRow?.endBalance ?? simulation.totalFinancialAssets ?? 0;
+                const superNominal = retirementRow?.endSuperBalance ?? simulation.accumulatedSuperBalance ?? 0;
+                const agePensionAtRetirement = retirementRow?.pensionIncome ?? 0;
+                const mortgagePaidOff = simulation.mortgagePayoffAge != null && simulation.mortgagePayoffAge <= retirementAge;
+                const mortgageAtRetirement = mortgagePaidOff ? 0 : (engineInputs?.mortgageBalance ?? 0);
+                const plannedSpendingNominal = retirementRow?.totalPlannedSpending ?? retirementRow?.plannedSpending ?? 0;
+                const swrNominal = totalAssetsAtRetirement * swr + agePensionAtRetirement;
+
+                return {
+                    targetAnnualIncomeToday: canonicalInput.retirementTarget.targetAnnualIncomeToday,
+                    finalBalance: simulation.finalBalance,
+                    retirementAge,
+                    swrReferenceIncomeToday: swrNominal / deflator,
+                    modelledAnnualWithdrawalToday: plannedSpendingNominal / deflator,
+                    superAtRetirementToday: superNominal / deflator,
+                    totalAssetsAtRetirement,
+                    mortgageAtRetirement,
+                    agePensionAtRetirement,
+                    estateAtLifespan: simulation.finalBalance ?? 0,
+                };
+            },
             policyVersion: config.version || '2026.1',
         });
     }
@@ -218,6 +245,7 @@ export class ReversePlanner {
             capitalGap: Math.max(0, requiredCapital - score.totalAssetsNominal),
             incomeGap: score.incomeGap,
             meetsGoal: score.passesGoal,
+            confidence: score.passesGoal ? 1 : 0,
             agePensionNominal,
             mortgageBalance,
             estateAtLifespan: score.estateToday || 0,

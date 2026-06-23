@@ -3210,7 +3210,8 @@ export class RetirementSimulator {
             // Risk metrics
             shortfallRisk: failureRate,
             tailRisk: percentiles.p5, // 5% worst case
-            downside: outcomes.filter(o => o < medianOutcome).length / runs
+            downside: outcomes.filter(o => o < medianOutcome).length / runs,
+            depletionProbability: failureRate,
         };
     }
 

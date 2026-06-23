@@ -170,7 +170,7 @@ export function scoreScenario(
         estateGap,
         incomeGap,
         capitalGap,
-        confidenceGap: Math.max(0, (target.successProbabilityTarget || 0) - 1),
+        confidenceGap: Math.max(0, (target.successProbabilityTarget || 0) - (engineResult.passesGoal ? 1 : 0)),
         deflator,
         successProbability: engineResult.passesGoal ? 1 : 0,
         depletionAge: engineResult.depletionAge,

@@ -31,9 +31,10 @@ describe('trustworthiness input guardrails', () => {
         });
         const result = sanitiseInputs({ returnDeclineRate: 0.2, scenarioMode: 'optimistic' });
         expect(result.inputs.returnDeclineRate).toBeCloseTo(0.002);
-        expect(result.inputs.headlineScenarioMode).toBe('base');
+        // scenarioMode is now honoured: valid modes (optimistic/pessimistic/crisis/baseline) pass through to headlineScenarioMode
+        expect(result.inputs.headlineScenarioMode).toBe('optimistic');
         expect(result.warnings.map((entry) => entry.field)).toEqual(
-            expect.arrayContaining(['returnDeclineRate', 'scenarioMode'])
+            expect.arrayContaining(['returnDeclineRate'])
         );
     });
 

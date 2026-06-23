@@ -200,11 +200,8 @@ export const sanitiseInputs = (input = {}, config = {}) => {
                 message: `${field} ${(rate * 100).toFixed(1)}% is optimistic for a long-run base case.` });
         }
     }
-    inputs.headlineScenarioMode = 'base';
-    if (!['base', 'baseline'].includes(inputs.scenarioMode || 'baseline')) {
-        warnings.push({ field: 'scenarioMode', from: inputs.scenarioMode, to: 'base', severity: 'warning',
-            message: `Headline projection uses the base scenario; '${inputs.scenarioMode}' remains available only for explicit comparisons.` });
-    }
+    const VALID_HEADLINE_MODES = new Set(['base', 'baseline', 'optimistic', 'pessimistic', 'crisis']);
+    inputs.headlineScenarioMode = VALID_HEADLINE_MODES.has(inputs.scenarioMode) ? inputs.scenarioMode : 'baseline';
     return { inputs, warnings };
 };
 
