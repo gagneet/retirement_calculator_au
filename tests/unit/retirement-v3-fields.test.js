@@ -1,4 +1,4 @@
-import { buildEngineInputs, normalizeImportedUserData } from '../../src/js/retirement-v3.js';
+import { applyHouseholdVisibility, buildEngineInputs, normalizeImportedUserData } from '../../src/js/retirement-v3.js';
 
 const classicFixture = require('../../docs/v1.json');
 const advancedV2Fixture = require('../../docs/v2.json');
@@ -119,5 +119,38 @@ describe('retirement-v3 parity field wiring', () => {
         expect(advancedV2EngineInputs.currentHealthcareCosts).toBe(5640);
         expect(advancedV2EngineInputs.hasInvestmentProperty).toBe(true);
         expect(advancedV2EngineInputs.investmentPropertyValue).toBe(530000);
+    });
+
+    test('single household mode hides and disables partner-only fields until couple is restored', () => {
+        document.body.innerHTML = '<div class="segmented" data-bind="household" data-value="single"></div>'
+            + '<div id="partnerProfile" data-household="couple"><input id="partnerAge" value="43" /><select id="partnerGender"><option>Female</option></select></div>'
+            + '<div id="partnerSalaryRow" data-household="couple"><input id="partnerSalary" value="39000" /></div>'
+            + '<div id="partnerAssumptionRow" data-visible-when="couple"><button id="partnerButton" type="button">Partner</button></div>'
+            + '<input id="healthcareCost" value="4800" data-auto-default="true" />';
+
+        applyHouseholdVisibility();
+
+        ['partnerProfile', 'partnerSalaryRow', 'partnerAssumptionRow'].forEach((id) => {
+            const row = document.getElementById(id);
+            expect(row.hidden).toBe(true);
+            expect(row.getAttribute('aria-hidden')).toBe('true');
+            expect(row.hasAttribute('inert')).toBe(true);
+        });
+        ['partnerAge', 'partnerGender', 'partnerSalary', 'partnerButton'].forEach((id) => {
+            expect(document.getElementById(id).disabled).toBe(true);
+        });
+
+        document.querySelector('[data-bind="household"]').dataset.value = 'couple';
+        applyHouseholdVisibility();
+
+        ['partnerProfile', 'partnerSalaryRow', 'partnerAssumptionRow'].forEach((id) => {
+            const row = document.getElementById(id);
+            expect(row.hidden).toBe(false);
+            expect(row.getAttribute('aria-hidden')).toBe('false');
+            expect(row.hasAttribute('inert')).toBe(false);
+        });
+        ['partnerAge', 'partnerGender', 'partnerSalary', 'partnerButton'].forEach((id) => {
+            expect(document.getElementById(id).disabled).toBe(false);
+        });
     });
 });

@@ -945,14 +945,41 @@ function initSegmented() {
   });
 }
 
+function setConditionalVisibility(el, shouldHide, { disableControls = true } = {}) {
+  el.hidden = shouldHide;
+  el.setAttribute('aria-hidden', String(shouldHide));
+  if (shouldHide) {
+    el.setAttribute('inert', '');
+  } else {
+    el.removeAttribute('inert');
+  }
+
+  if (!disableControls) return;
+
+  el.querySelectorAll('input, select, textarea, button').forEach((control) => {
+    if (shouldHide) {
+      if (!control.disabled) {
+        control.dataset.visibilityDisabled = 'true';
+        control.disabled = true;
+      }
+      return;
+    }
+
+    if (control.dataset.visibilityDisabled === 'true') {
+      control.disabled = false;
+      delete control.dataset.visibilityDisabled;
+    }
+  });
+}
+
 function applyHouseholdVisibility() {
   const seg = document.querySelector('[data-bind="household"]');
   const value = seg && seg.dataset.value ? seg.dataset.value : 'couple';
   document.querySelectorAll('[data-household]').forEach((el) => {
-    el.hidden = el.dataset.household !== value;
+    setConditionalVisibility(el, el.dataset.household !== value);
   });
   document.querySelectorAll('[data-visible-when]').forEach((el) => {
-    el.hidden = el.dataset.visibleWhen !== value;
+    setConditionalVisibility(el, el.dataset.visibleWhen !== value);
   });
 
   // A.5: Adjust healthcare cost default for single vs couple
@@ -1023,10 +1050,10 @@ function tierAllows(floor = 'basic') {
 function applyAdvancedVisibility() {
   document.documentElement.dataset.retirementTier = activeTier;
   document.querySelectorAll('[data-tier-section]').forEach((el) => {
-    el.hidden = !tierAllows(el.dataset.tierSection || 'basic');
+    setConditionalVisibility(el, !tierAllows(el.dataset.tierSection || 'basic'), { disableControls: false });
   });
   document.querySelectorAll('[data-advanced="true"]').forEach((el) => {
-    el.hidden = activeTier !== 'advanced';
+    setConditionalVisibility(el, activeTier !== 'advanced', { disableControls: false });
   });
   const btn = document.getElementById('btn-advanced');
   if (btn) {
@@ -3956,6 +3983,10 @@ function setSegmentedValue(bind, value) {
   wrapper.querySelectorAll('button').forEach((button) => {
     button.classList.toggle('on', button.dataset.value === String(value));
   });
+  if (bind === 'household') {
+    applyHouseholdVisibility();
+    syncPensionMeansTestFields();
+  }
 }
 
 function setInputValue(id, value, options = {}) {
