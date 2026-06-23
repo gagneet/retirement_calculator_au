@@ -5,7 +5,7 @@
  * Unifies fields between Classic Advanced and Advanced V2 calculators.
  */
 
-/**
+    ,"BG_INDEX": {"type": "string", "default": "latest"}
  * Normalises raw inputs into a canonical retirement save object.
  * Both Classic and V2 should call this before serialising JSON.
  *
