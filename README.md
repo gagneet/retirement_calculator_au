@@ -8,6 +8,14 @@ Covers superannuation optimisation, investment property, age pension, stochastic
 
 ## Version History
 
+### v2.4.0 — Canonical Save Schema & UI Enhancements (July 2026)
+
+- **Canonical Save Schema**: Unified the JSON save format between Classic Advanced and Advanced V2 calculators. Both pages now export a consistent `userData` object using the classic expanded schema, ensuring cross-page compatibility.
+- **UI State Preservation**: Page-specific UI state (like V2's Target Builder settings) is now preserved under `uiState.advancedV2`, outside the main `userData`.
+- **Advanced V2 UI Enhancements**: Key retirement metrics (paycheck, super at retirement, funded breakdown) now display both today's dollars and nominal future values, improving transparency around inflation impacts.
+- **Import/Export Reliability**: Fixed several omissions in the V2 mapping function (`buildEngineInputs`) and ensured consistent unit handling (percentages vs. decimals) across all save operations.
+- **User Safety**: Added a confirmation dialog before loading data from a JSON file to prevent accidental loss of unsaved changes.
+
 ### v2.3.0 — Stochastic Simulation, Median Output & PDF Fixes (June 2026)
 
 **Simulation engine overhaul across all three calculation pipelines:**
@@ -402,4 +410,4 @@ Required: ES2020, Canvas API, CSS Grid, localStorage, Web Workers (optional for 
 
 ---
 
-*Last updated: June 2026 — v2.3.0 | Australian financial regulations as of 2025-26*
+*Last updated: July 2026 — v2.4.0 | Australian financial regulations as of 2025-26*
