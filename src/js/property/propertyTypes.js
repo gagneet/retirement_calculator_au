@@ -177,8 +177,8 @@ export function validatePropertyInput(p) {
     if (p.purchaseDate && p.saleDate && new Date(p.purchaseDate) >= new Date(p.saleDate))
         errors.push('Purchase date must be before sale date');
 
-    if (p.isNewBuild === false && p.taxPolicy?.policyMode === PROPERTY_POLICY_MODE.PROPOSED_2027)
-        errors.push('Established property cannot claim new-build proposed-rule treatment');
+    // Established properties CAN use proposed 2027 rules — they simply lose immediate
+    // negative gearing deductibility (buildEffectivePolicy handles this correctly).
 
     return errors;
 }

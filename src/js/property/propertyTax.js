@@ -162,8 +162,10 @@ export function calcCGT(params) {
             // Indexed cost base: inflation-adjust purchase price, no discount
             const indexedCostBase = pp * fin(cpiCumulative, 1);
             const indexedGain     = Math.max(0, sp - indexedCostBase - sc);
+            // Default pporPct to 1 (full main-residence use → 0% investment fraction),
+            // consistent with the destructured param default above.
             discountedGain = investmentGain < rawCapitalGain
-                ? indexedGain * (1 - fin(pporPct, 0))
+                ? indexedGain * (1 - fin(pporPct, 1))
                 : indexedGain;
         } else {
             discountedGain = investmentGain;
@@ -228,14 +230,19 @@ export function compareCGTPolicies(params) {
  * Compare annual negative gearing benefit under both policy modes.
  */
 export function compareNegativeGearing(taxableRentalIncome, marginalTaxRate, policy, openingCarriedLoss = 0) {
+    // Current rules: always allow immediate negative gearing deduction.
+    // calcNegativeGearingBenefit calls buildEffectivePolicy internally, so we pass the
+    // raw policy object with policyMode forced to CURRENT — no need to pre-build here.
     const currentResult  = calcNegativeGearingBenefit(
         taxableRentalIncome, marginalTaxRate,
-        { ...policy, negativeGearingAllowed: true, carriedForwardLossesAllowed: false },
+        { ...policy, policyMode: PROPERTY_POLICY_MODE.CURRENT },
         openingCarriedLoss
     );
+    // Proposed rules: pass policyMode only; buildEffectivePolicy inside the call derives
+    // negativeGearingAllowed based on isNewBuild and policyMode automatically.
     const proposedResult = calcNegativeGearingBenefit(
         taxableRentalIncome, marginalTaxRate,
-        buildEffectivePolicy({ ...policy, policyMode: PROPERTY_POLICY_MODE.PROPOSED_2027 }),
+        { ...policy, policyMode: PROPERTY_POLICY_MODE.PROPOSED_2027 },
         openingCarriedLoss
     );
 
