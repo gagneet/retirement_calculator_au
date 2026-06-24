@@ -210,6 +210,7 @@ describe('advanced classic single household and late-life defaults', () => {
         document.body.innerHTML = `
             <select id="householdStatus"><option value="single" selected>Single</option><option value="couple">Couple</option></select>
             <div id="partnerSection" data-household="couple"><input id="partnerCurrentAge" value="42"></div>
+            <div id="singlePartnerNotice" data-household="single">Partner fields excluded</div>
             <div id="spouseRow" data-visible-when="couple"><input id="spouseContribution" value="3000"></div>
             ${buildField('partnerSalary', 'Partner Salary', '85000')}
             ${buildField('partnerCurrentSuper', 'Partner Super', '120000')}
@@ -217,13 +218,21 @@ describe('advanced classic single household and late-life defaults', () => {
 
         const app = createApp();
         app.updateClassicHouseholdVisibility();
+        expect(document.getElementById('singlePartnerNotice').hidden).toBe(false);
         expect(document.getElementById('partnerSection').hidden).toBe(true);
         expect(document.getElementById('spouseRow').hidden).toBe(true);
+        expect(document.getElementById('partnerCurrentAge').disabled).toBe(true);
+        expect(document.getElementById('partnerSalary').disabled).toBe(true);
+        expect(document.getElementById('partnerCurrentSuper').disabled).toBe(true);
 
         document.getElementById('householdStatus').value = 'couple';
         app.updateClassicHouseholdVisibility();
+        expect(document.getElementById('singlePartnerNotice').hidden).toBe(true);
         expect(document.getElementById('partnerSection').hidden).toBe(false);
         expect(document.getElementById('spouseRow').hidden).toBe(false);
+        expect(document.getElementById('partnerCurrentAge').disabled).toBe(false);
+        expect(document.getElementById('partnerSalary').disabled).toBe(false);
+        expect(document.getElementById('partnerCurrentSuper').disabled).toBe(false);
     });
 
     test('single household excludes loaded partner and spouse values from collected inputs', () => {

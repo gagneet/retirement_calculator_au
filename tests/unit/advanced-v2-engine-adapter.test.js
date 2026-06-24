@@ -335,19 +335,26 @@ describe('advanced-v2 engine adapter', () => {
 
     test('household visibility hides and restores all couple-only blocks', () => {
         document.body.innerHTML = '<div class="segmented" data-bind="household" data-value="single"></div>'
-            + '<div id="partnerSalaryRow" data-household="couple"></div>'
-            + '<div id="partnerAssumptionRow" data-visible-when="couple"></div>'
+            + '<div id="singlePartnerNotice" data-household="single">Partner fields excluded</div>'
+            + '<div id="partnerSalaryRow" data-household="couple"><input id="partnerSalaryField" value="39000" /></div>'
+            + '<div id="partnerAssumptionRow" data-visible-when="couple"><button id="partnerAssumptionButton" type="button">Partner</button></div>'
             + '<input id="healthcareCost" value="4800" data-auto-default="true" />';
 
         applyHouseholdVisibility();
+        expect(document.getElementById('singlePartnerNotice').hidden).toBe(false);
         expect(document.getElementById('partnerSalaryRow').hidden).toBe(true);
         expect(document.getElementById('partnerAssumptionRow').hidden).toBe(true);
+        expect(document.getElementById('partnerSalaryField').disabled).toBe(true);
+        expect(document.getElementById('partnerAssumptionButton').disabled).toBe(true);
         expect(document.getElementById('healthcareCost').value).toBe('2200');
 
         document.querySelector('[data-bind="household"]').dataset.value = 'couple';
         applyHouseholdVisibility();
+        expect(document.getElementById('singlePartnerNotice').hidden).toBe(true);
         expect(document.getElementById('partnerSalaryRow').hidden).toBe(false);
         expect(document.getElementById('partnerAssumptionRow').hidden).toBe(false);
+        expect(document.getElementById('partnerSalaryField').disabled).toBe(false);
+        expect(document.getElementById('partnerAssumptionButton').disabled).toBe(false);
         expect(document.getElementById('healthcareCost').value).toBe('4800');
     });
 
