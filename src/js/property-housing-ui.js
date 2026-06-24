@@ -444,8 +444,10 @@ function renderPropertyFanChart(canvas, fanData, title) {
     const p50     = fanData.map(d => d.p50);
     const p90     = fanData.map(d => d.p90);
 
-    if (canvas._chartInstance) canvas._chartInstance.destroy();
-    canvas._chartInstance = new window.Chart(canvas, {
+    // Chart.js 4.x official API: Chart.getChart(canvas) returns any existing instance.
+    const existing = window.Chart.getChart?.(canvas);
+    if (existing) existing.destroy();
+    new window.Chart(canvas, {
         type: 'line',
         data: {
             labels,

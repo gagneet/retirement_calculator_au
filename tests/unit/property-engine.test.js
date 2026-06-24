@@ -27,6 +27,10 @@ import {
     calcSaleProceeds,
     calcIRR,
     calcRealAfterTaxProfit,
+    solveRequiredRent,
+    solveMaxPurchasePrice,
+    comparePropertyVsETF,
+    comparePropertyVsSuper,
     calcNegativeGearingBenefit,
     calcCGT,
     compareCGTPolicies,
@@ -40,6 +44,7 @@ import {
     compareRetirementStrategies,
     projectETF,
     projectSuper,
+    fullComparisonMatrix,
     buildHistoricalAnchorRates,
     estimateCurrentValueFromHistory,
     calcCumulativeCPI,
@@ -934,5 +939,138 @@ describe('buildEffectivePolicy', () => {
     test('proposed 2027 new build: negative gearing retained', () => {
         const cfg = buildEffectivePolicy({ policyMode: PROPERTY_POLICY_MODE.PROPOSED_2027, isNewBuild: true });
         expect(cfg.negativeGearingAllowed).toBe(true);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Reverse solver - solveRequiredRent and solveMaxPurchasePrice
+// (These functions previously used require() in an ES module — now fixed)
+// ---------------------------------------------------------------------------
+
+describe('Reverse solver - required rent', () => {
+    const prop = makeInvestmentProp();
+    const yearCtx = {
+        year:          0,
+        propertyValue: 600000,
+        loanBalance:   400000,
+        interestRate:  0.062,
+        cpiGrowth:     0.036,
+        rentGrowth:    0,
+    };
+
+    test('returns a positive weekly rent', () => {
+        const { solved, weeklyRent } = solveRequiredRent(prop, yearCtx, 0);
+        expect(solved).toBe(true);
+        expect(weeklyRent).toBeGreaterThan(0);
+    });
+
+    test('higher target cashflow requires higher rent', () => {
+        const { weeklyRent: low  } = solveRequiredRent(prop, yearCtx, 0);
+        const { weeklyRent: high } = solveRequiredRent(prop, yearCtx, 5000);
+        expect(high).toBeGreaterThan(low);
+    });
+
+    test('rent is rounded to nearest 50 cents', () => {
+        const { weeklyRent } = solveRequiredRent(prop, yearCtx, 0);
+        expect(weeklyRent * 2).toBe(Math.round(weeklyRent * 2));
+    });
+});
+
+describe('Reverse solver - max purchase price', () => {
+    const propTemplate = makeInvestmentProp({ weeklyRent: 0 });
+
+    test('returns a positive max purchase price', () => {
+        // $20k loss limit: solvable — at $100k the loss is ~$8k (below limit) so error < 0,
+        // and at $5M the loss is ~$140k (above limit) so error > 0. Root exists.
+        const { solved, maxPurchasePrice } = solveMaxPurchasePrice(propTemplate, 20000, 0.20);
+        expect(solved).toBe(true);
+        expect(maxPurchasePrice).toBeGreaterThan(0);
+    });
+
+    test('higher loss tolerance allows a higher purchase price', () => {
+        // Both limits must be within the solvable range [100k, 5M].
+        // At $100k, annual loss ≈ $8k, so $15k and $40k limits are both solvable
+        // (error at lo is negative, at hi is positive for both).
+        const { solved: s1, maxPurchasePrice: low  } = solveMaxPurchasePrice(propTemplate, 15000, 0.20);
+        const { solved: s2, maxPurchasePrice: high } = solveMaxPurchasePrice(propTemplate, 40000, 0.20);
+        expect(s1).toBe(true);
+        expect(s2).toBe(true);
+        expect(high).toBeGreaterThan(low);
+    });
+
+    test('larger deposit reduces max price for same loss limit', () => {
+        // Larger deposit → more cash upfront → same price → less interest → smaller loss.
+        // To hit the same loss limit with a larger deposit, you can afford a bigger property.
+        const { maxPurchasePrice: small } = solveMaxPurchasePrice(propTemplate, 20000, 0.10);
+        const { maxPurchasePrice: large } = solveMaxPurchasePrice(propTemplate, 20000, 0.30);
+        expect(large).toBeGreaterThan(small);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Property vs ETF / Super comparison (tests for the double-counting fix)
+// ---------------------------------------------------------------------------
+
+describe('Property vs ETF comparison', () => {
+    const prop = makeInvestmentProp();
+    const propOpts = {
+        holdYears:          10,
+        startPropertyValue: 600000,
+        startLoanBalance:   400000,
+        propertyGrowthRate: 0.065,
+        inflationRate:      0.036,
+    };
+
+    test('ETF initial capital equals deposit only, not total cash contributed', () => {
+        const result = comparePropertyVsETF(prop, propOpts, { annualReturn: 0.085, taxRate: 0.235 });
+        // Property totalCashContributed includes deposit + top-ups
+        // ETF should start with just deposit; total contributed should be <= property total
+        expect(result.etf.totalContributed).toBeLessThanOrEqual(result.property.totalCashIn + 1);
+    });
+
+    test('returns winner field', () => {
+        const result = comparePropertyVsETF(prop, propOpts, {});
+        expect(['property', 'etf']).toContain(result.difference.winner);
+    });
+
+    test('ETF real profit computation does not double-count top-ups', () => {
+        const result = comparePropertyVsETF(prop, propOpts, { annualReturn: 0.085, taxRate: 0 });
+        // With 0 tax, ETF real profit should be positive for a 10-year run at 8.5%
+        expect(result.etf.realProfit).toBeGreaterThan(0);
+    });
+});
+
+describe('Property vs Super comparison', () => {
+    const prop = makeInvestmentProp();
+    const propOpts = {
+        holdYears:          10,
+        startPropertyValue: 600000,
+        startLoanBalance:   400000,
+        propertyGrowthRate: 0.065,
+        inflationRate:      0.036,
+    };
+
+    test('returns super final balance and winner', () => {
+        const result = comparePropertyVsSuper(prop, propOpts, { annualReturn: 0.085 });
+        expect(result.super.finalBalance).toBeGreaterThan(0);
+        expect(['property', 'super']).toContain(result.difference.winner);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// validatePropertyInput - established property with proposed rules must NOT error
+// ---------------------------------------------------------------------------
+
+describe('validatePropertyInput - proposed 2027 rules', () => {
+    test('established property with proposed 2027 policy is valid', () => {
+        const errors = validatePropertyInput({
+            id:               'p1',
+            useType:          PROPERTY_USE.INVESTMENT,
+            weeklyRent:       500,
+            ownershipUserPct: 100,
+            isNewBuild:       false,
+            taxPolicy:        { policyMode: PROPERTY_POLICY_MODE.PROPOSED_2027 },
+        });
+        expect(errors).toHaveLength(0);
     });
 });

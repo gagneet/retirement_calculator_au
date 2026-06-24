@@ -86,12 +86,16 @@ export function comparePropertyVsETF(prop, propOpts = {}, etfOpts = {}) {
     // Property path
     const propResult = runPropertyDeterministic(prop, propOpts);
 
-    // ETF alternative: invest the same upfront cash
-    const initialCapital = fin(propResult.totalCashContributed);  // deposit paid in year 0
+    // ETF alternative: invest the same upfront deposit, then top up each year by the same
+    // amount the property investor had to inject as negative cashflow.
+    // Note: totalCashContributed includes deposit + all ongoing top-ups, so we derive the
+    // deposit alone to avoid double-counting (deposit as initial + same top-ups as annuals).
     const annualCashNeeded = propResult.yearlyData.map(y => Math.max(0, -y.netCashflowAfterTax));
-    let etfValue = initialCapital;
+    const totalTopUps      = annualCashNeeded.reduce((s, v) => s + v, 0);
+    const depositPaid      = Math.max(0, fin(propResult.totalCashContributed) - totalTopUps);
+    let etfValue = depositPaid;
     const etfYearlyValues = [];
-    let etfTotalContrib = initialCapital;
+    let etfTotalContrib = depositPaid;
 
     for (let y = 0; y < holdYears; y++) {
         const pretaxReturn   = etfValue * etfReturn;
@@ -122,13 +126,13 @@ export function comparePropertyVsETF(prop, propOpts = {}, etfOpts = {}) {
             finalValue:         etfValue,
             realFinalValue:     etfRealFinalValue,
             totalContributed:   etfTotalContrib,
-            realProfit:         etfRealFinalValue - initialCapital,
+            realProfit:         etfRealFinalValue - etfTotalContrib,
             yearlyValues:       etfYearlyValues,
         },
         difference: {
-            realProfit:         propRealProfit - (etfRealFinalValue - initialCapital),
+            realProfit:         propRealProfit - (etfRealFinalValue - etfTotalContrib),
             finalValue:         propResult.finalEquity - etfValue,
-            winner:             propRealProfit >= (etfRealFinalValue - initialCapital) ? 'property' : 'etf',
+            winner:             propRealProfit >= (etfRealFinalValue - etfTotalContrib) ? 'property' : 'etf',
         },
     };
 }
@@ -141,15 +145,17 @@ export function comparePropertyVsSuper(prop, propOpts = {}, superOpts = {}) {
     const inflation   = fin(propOpts.inflationRate, 0.036);
     const superReturn = fin(superOpts.annualReturn, 0.085);
 
-    const propResult       = runPropertyDeterministic(prop, propOpts);
-    const initialCapital   = fin(propResult.totalCashContributed);
-    const annualTopUps     = propResult.yearlyData.map(y => Math.max(0, -y.netCashflowAfterTax));
-
-    const totalAnnualContrib = annualTopUps.length > 0
-        ? annualTopUps.reduce((a, b) => a + b, 0) / annualTopUps.length
+    const propResult     = runPropertyDeterministic(prop, propOpts);
+    const annualTopUps   = propResult.yearlyData.map(y => Math.max(0, -y.netCashflowAfterTax));
+    const totalTopUps    = annualTopUps.reduce((s, v) => s + v, 0);
+    // Use the initial deposit as starting capital (not total cash contributed, which
+    // includes ongoing top-ups — those are passed separately as annual contributions).
+    const depositPaid    = Math.max(0, fin(propResult.totalCashContributed) - totalTopUps);
+    const avgAnnualContrib = annualTopUps.length > 0
+        ? totalTopUps / annualTopUps.length
         : 0;
 
-    const superResult = projectSuper(initialCapital, superReturn, totalAnnualContrib, holdYears, inflation);
+    const superResult = projectSuper(depositPaid, superReturn, avgAnnualContrib, holdYears, inflation);
     const cpiMult = Math.pow(1 + inflation, holdYears);
 
     return {
@@ -164,10 +170,10 @@ export function comparePropertyVsSuper(prop, propOpts = {}, superOpts = {}) {
             finalBalance:       superResult.finalValue,
             realFinalBalance:   superResult.realFinalValue,
             totalContributed:   superResult.totalContributed,
-            realProfit:         superResult.realFinalValue - initialCapital,
+            realProfit:         superResult.realFinalValue - superResult.totalContributed,
         },
         difference: {
-            winner: propResult.realAfterTaxProfit >= (superResult.realFinalValue - initialCapital) ? 'property' : 'super',
+            winner: propResult.realAfterTaxProfit >= (superResult.realFinalValue - superResult.totalContributed) ? 'property' : 'super',
         },
     };
 }
