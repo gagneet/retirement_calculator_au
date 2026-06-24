@@ -22,6 +22,7 @@ import {
     syncPensionMeansTestFields,
     updateSecondaryAnalysisStaleStates,
 } from '../../src/js/advanced-v2.js';
+import { adaptAdvancedV2Input } from '../../src/js/calculation/input-adapters/advanced-v2-adapter.js';
 
 const buildRedesignInputs = (overrides = {}) => ({
     household: 'single',
@@ -165,6 +166,48 @@ describe('advanced-v2 engine adapter', () => {
         expect(engineInputs.pensionAssetThreshold).toBe(481500);
         expect(engineInputs.pensionAssetLimit).toBe(1085000);
         expect(engineInputs.useLongevityDistribution).toBe(false);
+    });
+
+    test('maps parity fields into the canonical schema without raw DOM access', () => {
+        const canonical = adaptAdvancedV2Input(buildRedesignInputs({
+            dividendYield: 4,
+            frankingRate: 75,
+            australianEquityAllocation: 60,
+            useGlidePath: true,
+            glidePathRule: '110minus',
+            allocEquities: 60,
+            allocBonds: 30,
+            allocCash: 10,
+            leanYearsReduction: 20,
+            leanYearsStart: 5,
+            spendingStrategy: 'go_go_slow_go_no_go',
+            sellPropertyYears: 12,
+            maintenanceInflation: 3.5,
+            downsizeTransactionCost: 5,
+            extremeInflationProbability: 2,
+            propertyCrashProbability: 3,
+            globalRiskFactor: 0.4,
+        }));
+
+        expect(canonical.income.dividendYield).toBe(0.04);
+        expect(canonical.income.frankingRate).toBe(0.75);
+        expect(canonical.income.australianEquityAllocation).toBe(0.6);
+        expect(canonical.allocation).toEqual({
+            useGlidePath: true,
+            glideStrategy: 'age_based',
+            equities: 0.6,
+            bonds: 0.3,
+            cash: 0.1,
+        });
+        expect(canonical.lifestyle.leanYearsReduction).toBe(0.2);
+        expect(canonical.lifestyle.leanYearsCount).toBe(5);
+        expect(canonical.lifestyle.spendingStrategy).toBe('go_go_slow_go_no_go');
+        expect(canonical.investmentProperty.saleYearFromNow).toBe(12);
+        expect(canonical.investmentProperty.maintenanceInflationRate).toBe(0.035);
+        expect(canonical.scenarioToggles.downsizeTransactionCostRate).toBe(0.05);
+        expect(canonical.stress.extremeInflationProbability).toBe(0.02);
+        expect(canonical.stress.propertyCrashProbability).toBe(0.03);
+        expect(canonical.stress.globalRiskFactor).toBe(0.4);
     });
 
     test('accepts canonical ratio percentages without dividing them again', () => {

@@ -29,6 +29,9 @@ export function adaptAdvancedClassicInput(input = {}) {
             partnerSalaryIncomeMode: 'gross',
             businessIncome: input.businessIncome,
             investmentIncomeOutsideSuper: input.investmentIncome,
+            dividendYield: input.dividendYield,
+            frankingRate: input.frankingRate,
+            australianEquityAllocation: input.australianEquityAllocation,
             employerSuperAnnual: input.employerSG,
             partnerEmployerSuperAnnual: input.partnerEmployerSG,
             hasPrivateHealthCover: input.hasPrivateHealthCover !== false,
@@ -91,8 +94,15 @@ export function adaptAdvancedClassicInput(input = {}) {
             annualLandTax: input.landTax,
             vacancyRate: input.vacancyRate,
             capitalGainsTaxRate: input.capitalGainsTaxRate,
+            saleYearFromNow: input.sellPropertyYears,
+            maintenanceInflationRate: input.maintenanceInflation,
             state: input.propertyState,
             type: input.investmentPropertyType,
+        },
+        lifestyle: {
+            leanYearsReduction: input.leanYearsReduction,
+            leanYearsCount: input.leanYearsStart,
+            spendingStrategy: input.simSpendingStrategy === 'tiered' ? 'go_go_slow_go_no_go' : 'steady',
         },
         healthAndAgedCare: {
             currentAnnualHealthcareCosts: input.currentHealthcareCosts,
@@ -102,6 +112,8 @@ export function adaptAdvancedClassicInput(input = {}) {
             includeSuper: true,
             includeNonSuperInvestments: true,
             includeInvestmentProperty: input.hasInvestmentProperty,
+            sellInvestmentPropertyAtRetirement: input.sellInvestmentPropertyAtRetirement,
+            downsizeTransactionCostRate: input.downsizeTransactionCost,
             includeDownsizing: input.planToDownsize,
             includeAgedCare: (input.agedCareProbability || 0) > 0,
             includeOverseasRetirement: input.goingOverseas,
@@ -114,6 +126,18 @@ export function adaptAdvancedClassicInput(input = {}) {
             propertyGrowthRate: input.propertyGrowthRate,
             returnDeclineRate: input.returnDeclineRate,
             scenarioMode: input.scenarioMode,
+        },
+        allocation: {
+            useGlidePath: input.useGlidePath,
+            glideStrategy: input.glidePathRule === 'target_date' ? 'target_date' : input.useGlidePath ? 'age_based' : 'static',
+            equities: input.allocEquities,
+            bonds: input.allocBonds,
+            cash: input.allocCash,
+        },
+        stress: {
+            extremeInflationProbability: input.extremeInflationProbability,
+            propertyCrashProbability: input.propertyCrashProbability,
+            globalRiskFactor: input.globalRiskFactor,
         },
     });
 }

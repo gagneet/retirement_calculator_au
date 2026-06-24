@@ -7,6 +7,8 @@ const number = (value, fallback = 0) => {
     return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const oneOf = (value, allowed, fallback) => allowed.includes(value) ? value : fallback;
+
 export function normaliseCanonicalInput(input = {}) {
     const householdType = input.household?.householdType === 'couple' ? 'couple' : 'single';
     const cashflow = input.cashflow || {};
@@ -35,6 +37,9 @@ export function normaliseCanonicalInput(input = {}) {
             partnerSalaryIncomeMode: input.income?.partnerSalaryIncomeMode || 'gross',
             businessIncome: number(input.income?.businessIncome),
             investmentIncomeOutsideSuper: number(input.income?.investmentIncomeOutsideSuper),
+            dividendYield: normaliseRate(input.income?.dividendYield, 0.04),
+            frankingRate: normaliseRate(input.income?.frankingRate, 0.75),
+            australianEquityAllocation: normaliseRate(input.income?.australianEquityAllocation, 0.6),
             employerSuperAnnual: number(input.income?.employerSuperAnnual),
             partnerEmployerSuperAnnual: householdType === 'couple' ? number(input.income?.partnerEmployerSuperAnnual) : 0,
             hasPrivateHealthCover: input.income?.hasPrivateHealthCover !== false,
@@ -109,8 +114,15 @@ export function normaliseCanonicalInput(input = {}) {
             annualLandTax: number(input.investmentProperty?.annualLandTax),
             vacancyRate: normaliseRate(input.investmentProperty?.vacancyRate, 0.04),
             capitalGainsTaxRate: normaliseRate(input.investmentProperty?.capitalGainsTaxRate, 0.235),
+            saleYearFromNow: input.investmentProperty?.saleYearFromNow == null ? null : number(input.investmentProperty.saleYearFromNow),
+            maintenanceInflationRate: normaliseRate(input.investmentProperty?.maintenanceInflationRate, 0.035),
             state: input.investmentProperty?.state || '',
             type: input.investmentProperty?.type || 'unit',
+        },
+        lifestyle: {
+            leanYearsReduction: normaliseRate(input.lifestyle?.leanYearsReduction, 0),
+            leanYearsCount: Math.max(0, Math.trunc(number(input.lifestyle?.leanYearsCount, 0))),
+            spendingStrategy: oneOf(input.lifestyle?.spendingStrategy, ['steady', 'go_go_slow_go_no_go'], 'steady'),
         },
         healthAndAgedCare: {
             currentAnnualHealthcareCosts: number(input.healthAndAgedCare?.currentAnnualHealthcareCosts),
@@ -121,6 +133,7 @@ export function normaliseCanonicalInput(input = {}) {
             includeNonSuperInvestments: input.scenarioToggles?.includeNonSuperInvestments !== false,
             includeInvestmentProperty: Boolean(input.scenarioToggles?.includeInvestmentProperty),
             sellInvestmentPropertyAtRetirement: Boolean(input.scenarioToggles?.sellInvestmentPropertyAtRetirement),
+            downsizeTransactionCostRate: normaliseRate(input.scenarioToggles?.downsizeTransactionCostRate, 0.05),
             includeDownsizing: Boolean(input.scenarioToggles?.includeDownsizing),
             includeAgedCare: Boolean(input.scenarioToggles?.includeAgedCare),
             includeOverseasRetirement: Boolean(input.scenarioToggles?.includeOverseasRetirement),
@@ -134,6 +147,18 @@ export function normaliseCanonicalInput(input = {}) {
             retirementDrawdownRate: normaliseRate(input.assumptions?.retirementDrawdownRate, 0.04),
             returnDeclineRate: normaliseRate(input.assumptions?.returnDeclineRate, 0.0003),
             scenarioMode: input.assumptions?.scenarioMode || 'baseline',
+        },
+        allocation: {
+            useGlidePath: Boolean(input.allocation?.useGlidePath),
+            glideStrategy: oneOf(input.allocation?.glideStrategy, ['age_based', 'target_date', 'static'], 'static'),
+            equities: normaliseRate(input.allocation?.equities, 0.6),
+            bonds: normaliseRate(input.allocation?.bonds, 0.3),
+            cash: normaliseRate(input.allocation?.cash, 0.1),
+        },
+        stress: {
+            extremeInflationProbability: normaliseRate(input.stress?.extremeInflationProbability, 0),
+            propertyCrashProbability: normaliseRate(input.stress?.propertyCrashProbability, 0),
+            globalRiskFactor: Math.min(1, Math.max(0, number(input.stress?.globalRiskFactor, 0))),
         },
     };
 }

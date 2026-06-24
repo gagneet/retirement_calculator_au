@@ -8,6 +8,11 @@ Covers superannuation optimisation, investment property, age pension, stochastic
 
 ## Version History
 
+### Unreleased — Retirement v3 household visibility
+
+- **Single/Couple toggle**: In `retirement.html`, partner-specific profile, salary, super, contribution, spouse-contribution, and reduced-income fields are hidden and made inactive when planning as `Single`. Their values are retained in the page state so switching back to `Couple` restores the fields without data loss, but the calculation path treats partner amounts as zero while `Single` is selected.
+- **Household fields that remain visible**: Household-level cashflow, dependents, child support, and spousal/partner maintenance remain available because they can apply independently of the current partner-profile toggle.
+
 ### v2.4.0 — Canonical Save Schema & UI Enhancements (July 2026)
 
 - **Canonical Save Schema**: Unified the JSON save format between Classic Advanced and Advanced V2 calculators. Both pages now export a consistent `userData` object using the classic expanded schema, ensuring cross-page compatibility.
@@ -93,6 +98,8 @@ Initial release of the Reverse Planner with bisection solvers, comparison tables
 | Landing | `index.html` | Product overview and quick-start |
 | Advanced Calculator | `advanced.html` | Full retirement projection (onboarding wizard) |
 | Advanced v2 | `advanced-v2.html` | Streamlined advanced calculator with MC, stress tests, overseas analysis |
+| Retirement v3 | `retirement.html` | Progressive Basic / Standard / Advanced calculator with V2 parity wiring |
+| V3 Design Review | `retirement_interactive.html` | Interactive design decision file for the V3 IA and tier model |
 | Reverse Planner | `reverse.html` | Goal-seeking: what needs to change today? |
 
 ---

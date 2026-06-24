@@ -48,7 +48,12 @@ export class HousingOptimizer {
 
         // Typical downsizing assumptions
         const smallerHomePercent = 0.65; // Buy home worth 65% of current value
-        const transactionCosts = 0.05; // 5% of current home value (agent, stamp duty, moving)
+        const rawTransactionCostRate = Number.isFinite(this.finances.downsizeTransactionCost)
+            ? Math.max(0, this.finances.downsizeTransactionCost)
+            : 0.05;
+        const transactionCosts = rawTransactionCostRate > 1
+            ? rawTransactionCostRate / 100
+            : rawTransactionCostRate;
 
         const smallerHome = currentHome * smallerHomePercent;
         const totalCosts = currentHome * transactionCosts;

@@ -14,6 +14,20 @@
         <changefreq>weekly</changefreq>
         <priority>0.95</priority>
     </url>
+    <!-- Retirement V3 Calculator -->
+    <url>
+        <loc>https://retirement.gagneet.com/retirement.html</loc>
+        <lastmod>2026-06-23</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.95</priority>
+    </url>
+    <!-- V3 Design Review -->
+    <url>
+        <loc>https://retirement.gagneet.com/retirement_interactive.html</loc>
+        <lastmod>2026-06-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.4</priority>
+    </url>
     <!-- How to Use Guide -->
     <url>
         <loc>https://retirement.gagneet.com/how-to-use.html</loc>

@@ -11,6 +11,7 @@ module.exports = {
         main: './src/js/app.js',
         comparison: './src/js/comparison.js',
         advancedV2: './src/js/advanced-v2.js',
+        retirementV3: './src/js/retirement-v3.js',
         reverseV1: './src/js/reverse-ui.js',
     },
     output: {
@@ -58,6 +59,7 @@ module.exports = {
                 { from: 'src/assets', to: 'assets' },
                 { from: 'src/robots.txt', to: 'robots.txt' },
                 { from: 'sitemap.xml', to: 'sitemap.xml' },
+                { from: 'docs/retirement_interactive_v2.html', to: 'retirement_interactive.html' },
                 { from: 'src/contact/admin-feedback.php', to: 'contact/admin-feedback.php' },
                 { from: 'src/contact/feedback_server.py', to: 'contact/feedback_server.py' },
                 { from: 'src/contact/simple_feedback_server.py', to: 'contact/simple_feedback_server.py' },
@@ -144,6 +146,18 @@ module.exports = {
             template: './src/advanced-v2.html',
             filename: 'advanced-v2.html',
             chunks: ['advancedV2'],
+            minify: {
+                collapseWhitespace: true,
+                removeComments: true,
+                removeRedundantAttributes: true,
+                useShortDoctype: true,
+                caseSensitive: true,
+            },
+        }),
+        new HtmlWebpackPlugin({
+            template: './src/retirement.html',
+            filename: 'retirement.html',
+            chunks: ['retirementV3'],
             minify: {
                 collapseWhitespace: true,
                 removeComments: true,
