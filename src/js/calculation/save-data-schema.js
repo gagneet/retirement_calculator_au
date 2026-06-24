@@ -184,6 +184,14 @@ export function buildCanonicalSaveData(sourceInputs = {}, options = {}) {
         overseasAnnualRent: inputs.overseasAnnualRent,
         overseasAudFxChange: pct(inputs.overseasAudFxChange),
 
+        // Property Portfolio (v2.4+ multi-property schema)
+        // Backward compatible: old single-property fields remain above.
+        // New: properties[] array for multi-property support.
+        properties: Array.isArray(inputs.properties) ? inputs.properties : undefined,
+        propertyPolicyMode: inputs.propertyPolicyMode ?? 'current_rules',
+        propertyMcNumRuns:  inputs.propertyMcNumRuns  ?? 500,
+        propertyMcSeed:     inputs.propertyMcSeed     ?? null,
+
         // Scenarios
         futurePropertyScenario: inputs.futurePropertyScenario,
         inheritanceScenario: inputs.inheritanceScenario,

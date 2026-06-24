@@ -24,6 +24,7 @@ import {
   resolveEmployerSuper,
   shouldWarnDivision293,
 } from './super-policy.js';
+import { initPropertyHousingUI, readPropertyCard, readPropertyPolicy } from './property-housing-ui.js';
 import {
   exportToPDF,
   exportUserData,
@@ -4701,6 +4702,7 @@ function boot() {
     // advanced-v2 relies on the shared tooltip backfill because many fields use
     // lightweight label markup instead of the classic page's inline tooltip HTML.
     initializeTooltips();
+    initPropertyHousingUI(document);
     initPensionFieldDefaults();
     // Mark sacrifice fields as user-modified when manually edited
     ['salarySacrifice', 'partnerSalarySacrifice'].forEach((id) => {

@@ -361,6 +361,89 @@
     </div>
 
     <!-- ════════════════════════════════════════
+         SECTION 3: PROPERTY REVERSE SOLVER
+         ════════════════════════════════════════ -->
+    <section class="section" id="rp-property-solver-section" data-section="property-solver">
+      <button class="section-head" type="button">
+        <span class="section-num">3</span>
+        <span class="section-title">
+          <h3>Property Reverse Solver</h3>
+          <small>What property, rent, or equity do you need to reach your goal?</small>
+        </span>
+        <span class="section-meta"></span>
+        <svg class="section-chev" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="section-body">
+        <p class="field-help">Use these solvers to answer: what property equity, rent, or purchase price do you need to support your retirement income target?</p>
+
+        <div class="fields three" style="margin-bottom:12px">
+          <div class="field">
+            <label class="field-label" for="rp-prop-target-income"><span>Target real retirement income</span><span class="hint">$/yr today's $</span></label>
+            <div class="field-input has-prefix"><span class="prefix">$</span><input type="number" id="rp-prop-target-income" value="0" /></div>
+            <div class="field-help">Leave at 0 to use your retirement goal from Section 2.</div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="rp-prop-growth-rate"><span>Property growth rate</span><span class="hint">%/yr</span></label>
+            <div class="field-input"><input type="number" id="rp-prop-growth-rate" step="0.1" value="6.5" /><span class="suffix">%</span></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="rp-prop-inflation"><span>Inflation</span><span class="hint">%/yr</span></label>
+            <div class="field-input"><input type="number" id="rp-prop-inflation" step="0.1" value="3.6" /><span class="suffix">%</span></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="rp-prop-swr"><span>Safe withdrawal rate</span><span class="hint">%</span></label>
+            <div class="field-input"><input type="number" id="rp-prop-swr" step="0.1" value="4.0" /><span class="suffix">%</span></div>
+          </div>
+        </div>
+
+        <button type="button" id="rp-property-solve-btn" class="btn btn-primary">Solve for required property</button>
+
+        <div id="rp-property-solver-results" class="hidden" style="margin-top:16px">
+          <div class="metrics" style="grid-template-columns:repeat(3,1fr);margin-top:12px">
+            <div class="metric">
+              <div class="k">Required current equity</div>
+              <div class="v" id="rp-required-equity">—</div>
+              <div class="sub">for your growth assumption</div>
+            </div>
+            <div class="metric">
+              <div class="k">Projected equity at retirement</div>
+              <div class="v" id="rp-projected-equity">—</div>
+            </div>
+            <div class="metric">
+              <div class="k">Capital needed at retirement</div>
+              <div class="v" id="rp-capital-needed">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px">
+          <div class="subhead">Maximum viable purchase price</div>
+          <p class="field-help">What is the most expensive property you can buy without exceeding your annual cashflow loss tolerance?</p>
+          <div class="fields two">
+            <div class="field">
+              <label class="field-label" for="rp-max-annual-loss"><span>Max annual cashflow loss</span><span class="hint">$/yr</span></label>
+              <div class="field-input has-prefix"><span class="prefix">$</span><input type="number" id="rp-max-annual-loss" value="15000" /></div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="rp-prop-deposit-pct"><span>Deposit</span><span class="hint">%</span></label>
+              <div class="field-input"><input type="number" id="rp-prop-deposit-pct" step="1" value="20" /><span class="suffix">%</span></div>
+            </div>
+          </div>
+          <div id="rp-max-price-result" class="hidden" style="margin-top:8px">
+            <div class="metric" style="display:inline-block">
+              <div class="k">Max purchase price</div>
+              <div class="v" id="rp-max-purchase-price">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-help" style="margin-top:12px;font-style:italic;color:#64748b;">
+          Note: property reverse solver calculations are estimates only. Consult a financial adviser before making property decisions.
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════
          RESULTS SECTION
          ════════════════════════════════════════ -->
     <div id="rp-results-section" class="hidden" style="display:flex;flex-direction:column;gap:var(--section-gap)">

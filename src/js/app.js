@@ -878,6 +878,14 @@ class RetirementCalculatorApp {
             investmentPropertyLoanType: safeGetSelectValue('investmentPropertyLoanType', 'pi'),
             propertyState: safeGetSelectValue('propertyState', ''),
 
+            // Property tax policy (shared property engine)
+            propertyPolicyMode: safeGetSelectValue('advPropertyPolicyMode', 'current_rules'),
+            currentCgtDiscountRate: safeGetValue('advCurrentCgtDiscount', 50) / 100,
+            proposedMinCgtRate: safeGetValue('advProposedMinCgtRate', 20) / 100,
+            negativeGearingCurrentAllowed: safeGetChecked('advNgCurrentAllowed', true),
+            negativeGearingProposedNewBuildAllowed: safeGetChecked('advNgProposedNewBuild', true),
+            proposedUsesInflationIndexation: safeGetChecked('advProposedCgtIndexation', true),
+
             // Trust improvements (PART 7)
             trustTaxRate: safeGetValue('trustTaxRate', 30) / 100,
             familyTrustIncomeDistribution: parseFormattedNumber(getRawValue('familyTrustIncomeDistribution', '0')),
@@ -9822,7 +9830,9 @@ class RetirementCalculatorApp {
                 'investmentPropertyLoan', 'investmentPropertyRate', 'investmentPropertyLoanType',
                 'investmentPropertyPurchasePrice', 'investmentPropertyPurchaseYear',
                 'weeklyRentalIncome', 'annualPropertyExpenses', 'propertyGrowthRate', 'sellPropertyYears',
-                'capitalGainsTaxRate', 'vacancyRate', 'maintenanceInflation', 'landTax', 'propertyState'
+                'capitalGainsTaxRate', 'vacancyRate', 'maintenanceInflation', 'landTax', 'propertyState',
+                'advPropertyPolicyMode', 'advCurrentCgtDiscount', 'advProposedMinCgtRate',
+                'advNgCurrentAllowed', 'advNgProposedNewBuild', 'advProposedCgtIndexation'
             ],
             smsf: [
                 'hasSMSF', 'smsfAdminCosts', 'smsfInvestmentStrategy'
@@ -10380,6 +10390,14 @@ class RetirementCalculatorApp {
             'hasSMSF': false,
             'smsfAdminCosts': 3500,
             'smsfInvestmentStrategy': 'balanced',
+
+            // Property tax policy defaults
+            'advPropertyPolicyMode': 'current_rules',
+            'advCurrentCgtDiscount': 50,
+            'advProposedMinCgtRate': 20,
+            'advNgCurrentAllowed': true,
+            'advNgProposedNewBuild': true,
+            'advProposedCgtIndexation': true,
             'trustTaxRate': 30,
             'familyTrustIncomeDistribution': 0,
             'beneficiaryAllocation': 100,

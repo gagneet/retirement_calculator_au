@@ -890,6 +890,198 @@ const FIELD_TOOLTIP_DEFINITIONS = {
         title: 'Age pension income threshold',
         body: 'The income level above which the Age Pension is reduced. Changing this lets you model different means-testing scenarios or policy assumptions.',
     },
+
+    // ── Property & Housing section (5b) ──────────────────────────────────────
+    'ppor-detailed-enabled': {
+        title: 'Detailed PPOR modelling',
+        body: 'Enable to enter precise purchase price, loan details, and retirement strategy for your primary home (PPOR). PPOR has no rental income and the main residence CGT exemption applies.',
+    },
+    pporPurchasePrice: {
+        title: 'PPOR purchase price',
+        body: 'The original price you paid for your home. Used as the CGT cost base if you ever sell a partial-rental portion.',
+    },
+    pporPurchaseYear: {
+        title: 'PPOR purchase year',
+        body: 'Year you purchased your primary home. Determines CGT holding period if any partial rental use applies.',
+    },
+    pporCity: {
+        title: 'PPOR city / region',
+        body: 'Used to select historical and long-run average growth rates for deterministic projections of your home value.',
+    },
+    pporLoanType: {
+        title: 'PPOR loan type',
+        body: 'Principal and interest loans reduce your balance over time; interest-only loans do not. Affects your monthly cashflow and equity position at retirement.',
+    },
+    pporLoanTermYears: {
+        title: 'PPOR loan term',
+        body: 'Total term of your home loan in years. Used with the current balance to calculate ongoing repayments.',
+    },
+    pporOffsetBalance: {
+        title: 'Offset account balance',
+        body: 'Funds in an offset account effectively reduce the loan balance on which interest is charged.',
+    },
+    pporOwnershipUserPct: {
+        title: 'Your PPOR ownership percentage',
+        body: 'Your share of the property. Used to calculate CGT and capital gains attribution if the property is partially rented.',
+    },
+    pporOwnershipPartnerPct: {
+        title: 'Partner PPOR ownership percentage',
+        body: 'Partner\'s share of the property. Ownership percentages must sum to 100%.',
+    },
+    pporPartialRental: {
+        title: 'Partial home rental',
+        body: 'Enable if part of your home is used for income-producing purposes (e.g. renting a room or AirBnB). A proportional CGT liability will apply on eventual sale.',
+    },
+    pporRentalPct: {
+        title: 'Percentage of home rented',
+        body: 'Proportion of the home used for income-producing purposes. This fraction of any capital gain is subject to CGT on sale.',
+    },
+    pporWeeklyRent: {
+        title: 'Weekly rent received',
+        body: 'Gross rent per week for the portion of your home that is rented out. Subject to income tax.',
+    },
+    pporRetirementStrategy: {
+        title: 'PPOR strategy at retirement',
+        body: 'Selling or downsizing your PPOR at retirement frees equity for investment. Downsizer super contributions may also be available (see super section).',
+    },
+    pporDownsizeTargetValue: {
+        title: 'Target smaller home value',
+        body: 'Estimated purchase price of the smaller home you plan to buy after downsizing. The difference between sale proceeds and this value (minus costs) becomes investable capital.',
+    },
+    pporDownsizeSuperContrib: {
+        title: 'Super contribution from downsize proceeds',
+        body: 'Downsizer contributions allow up to $300,000 per person ($600,000 per couple) from home sale proceeds into super, outside the normal contribution caps. Requires age 55+ and 10+ years of ownership.',
+    },
+    'ip-detailed-enabled': {
+        title: 'Detailed investment property modelling',
+        body: 'Enable to add multiple investment properties with full cashflow, tax, depreciation, and CGT detail. Uses historical growth anchors for 2018/2022/2024 purchases.',
+    },
+    'planned-purchase-enabled': {
+        title: 'Future property purchase',
+        body: 'Enable to model the impact of a planned future property purchase on your retirement outcome.',
+    },
+    plannedPurchaseDate: {
+        title: 'Planned purchase date',
+        body: 'Month and year you expect to purchase. July-August 2027 purchases trigger a policy comparison warning to compare current vs proposed tax rules.',
+    },
+    plannedPurchasePrice: {
+        title: 'Expected purchase price',
+        body: 'Estimated purchase price of the future property. Used to calculate required deposit, stamp duty, and loan amount.',
+    },
+    plannedPurchaseDeposit: {
+        title: 'Available deposit',
+        body: 'Cash available for the deposit. The loan-to-value ratio and required mortgage follow from this amount.',
+    },
+    plannedPurchaseLoanRate: {
+        title: 'Expected loan rate',
+        body: 'Assumed interest rate on the new mortgage. Use a long-run average rather than today\'s introductory or fixed rate.',
+    },
+    plannedPurchaseCity: {
+        title: 'Planned purchase city',
+        body: 'Used to apply city-specific long-run average growth and rental yield assumptions.',
+    },
+    plannedPurchaseUseType: {
+        title: 'Planned property use',
+        body: 'Primary residence purchase will reduce or eliminate rent costs. Investment property purchase generates rental income, loan interest deductions, and eventual CGT.',
+    },
+    plannedPurchaseIsNewBuild: {
+        title: 'New build or established',
+        body: 'Under proposed 2027 policy assumptions, new builds may retain negative gearing while established properties may not. This choice affects which tax rules apply.',
+    },
+    propertyPolicyMode: {
+        title: 'Property tax policy scenario',
+        body: 'Select which tax rules to apply. Proposed 2027 rules are configurable assumptions only — they are not current law. Use "Compare" to see both outcomes side by side.',
+    },
+    currentCgtDiscountRate: {
+        title: 'CGT discount (current rules)',
+        body: 'The Capital Gains Tax discount that applies to assets held for more than 12 months. Currently 50% for individuals under Australian law.',
+    },
+    negativeGearingCurrentAllowed: {
+        title: 'Negative gearing (current)',
+        body: 'Under current Australian tax law, investment property losses can offset other income at your marginal tax rate, reducing tax payable.',
+    },
+    ngProposedEstablished: {
+        title: 'Proposed: negative gearing (established)',
+        body: 'Configurable assumption for proposed 2027 policy. If set to "Not allowed", losses on established properties are deferred (carried forward) rather than immediately deducted.',
+    },
+    ngProposedNewBuild: {
+        title: 'Proposed: negative gearing (new build)',
+        body: 'Configurable assumption for proposed 2027 policy. New builds may retain immediate negative gearing to incentivise housing supply.',
+    },
+    carriedForwardLossesAllowed: {
+        title: 'Carried forward rental losses',
+        body: 'Under the proposed rules, deferred losses may be carried forward to offset future rental income or capital gains when the property is sold.',
+    },
+    proposedCgtIndexation: {
+        title: 'Proposed CGT treatment',
+        body: 'Under proposed 2027 assumptions, the 50% CGT discount may be replaced by inflation indexation of the cost base. This means you are only taxed on the real (above-inflation) gain.',
+    },
+    proposedMinCgtRate: {
+        title: 'Minimum CGT rate (proposed)',
+        body: 'A minimum effective CGT rate that applies even when indexation produces a low taxable gain. Prevents tax avoidance through indexation alone.',
+    },
+    propertyMcEnabled: {
+        title: 'Property Monte Carlo',
+        body: 'Enable to run stochastic simulation across interest rates, property growth, inflation, and vacancy to produce P10/P50/P90 outcome distributions.',
+    },
+    propertyMcNumRuns: {
+        title: 'Monte Carlo runs',
+        body: 'More runs produce smoother percentile distributions. 500 runs gives good results; 2,000+ for publication-quality outputs.',
+    },
+    propertyMcGrowthMean: {
+        title: 'Property growth mean',
+        body: 'Long-run median annual growth rate assumption. Each year draws randomly around this mean.',
+    },
+    propertyMcGrowthSigma: {
+        title: 'Property growth volatility',
+        body: 'Standard deviation of annual growth. Australian city property has historically shown sigma around 8-12% annually.',
+    },
+    propertyMcInterestMean: {
+        title: 'Interest rate mean',
+        body: 'Long-run average variable mortgage rate assumption. Each year draws randomly around this.',
+    },
+    propertyMcInflationMean: {
+        title: 'Inflation mean',
+        body: 'Long-run CPI inflation assumption. Affects real returns, depreciation of loan value, and cost base indexation.',
+    },
+    propertyMcHoldYears: {
+        title: 'Hold period',
+        body: 'Number of years to model the property hold before sale. Should match or be less than years to retirement.',
+    },
+    propertyComparisonEnabled: {
+        title: 'Property vs alternative comparison',
+        body: 'Enable to compare the investment property against investing the same capital into ETFs or additional superannuation contributions.',
+    },
+    propertyStrategyAnalysisEnabled: {
+        title: 'Sell / keep / downsize analysis',
+        body: 'Enable to compare the real retirement income impact of selling the property, keeping it into retirement, or downsizing to a smaller home.',
+    },
+
+    // Property Tax Policy fields (advanced.html classic calculator)
+    advPropertyPolicyMode: {
+        title: 'Tax policy mode',
+        body: 'Select the tax framework used for CGT and negative gearing calculations. "Current Rules" applies 2025-26 law. "Proposed 2027" uses configurable assumptions for scenario planning only — these are not yet law. "Compare Both" runs the simulation under each set of rules side by side.',
+    },
+    advCurrentCgtDiscount: {
+        title: 'CGT discount — current rules (%)',
+        body: 'Under current law, individuals and trusts receive a 50% capital gains tax discount on assets held for more than 12 months. This reduces the taxable capital gain by half before applying your marginal tax rate.',
+    },
+    advProposedMinCgtRate: {
+        title: 'Minimum effective CGT rate — proposed (%)',
+        body: 'Under the proposed 2027 scenario, a minimum effective CGT rate may apply. Enter the assumed minimum as a percentage. This is a planning assumption, not enacted law.',
+    },
+    advNgCurrentAllowed: {
+        title: 'Negative gearing — current rules',
+        body: 'Under current law, rental losses can be immediately deducted against other income, reducing your tax in the year the loss occurs. Uncheck to model a scenario without this deduction.',
+    },
+    advNgProposedNewBuild: {
+        title: 'Negative gearing for new builds — proposed rules',
+        body: 'Under proposed 2027 assumptions, negative gearing for established properties may be restricted to a carry-forward model, but new build properties may retain immediate deductibility. Uncheck to remove this concession for new builds under proposed rules.',
+    },
+    advProposedCgtIndexation: {
+        title: 'Inflation indexation for CGT — proposed rules',
+        body: 'Under proposed 2027 assumptions, the cost base of an asset may be indexed by CPI instead of applying a flat 50% discount. This can increase or reduce CGT depending on inflation and holding period.',
+    },
 };
 
 const ADVANCED_TOOLTIP_PAGE_SELECTOR = '#advancedCalculatorForm, .redesign-v2';
