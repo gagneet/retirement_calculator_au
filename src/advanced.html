@@ -2633,7 +2633,8 @@
                         <option value="stagnant">Stagnant (Zero growth, inc. every 3 years)</option>
                     </select>
                 </div>
-                <div>
+                <div class="col-span-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800" data-household="single">Partner income and super fields are hidden and excluded while Household Status is Single. Switch to Couple to restore the saved partner values.</div>
+                <div data-household="couple">
                     <div class="label-with-tooltip">
                          <label class="block text-sm font-medium text-gray-700" for="partnerSalary">Partner's Annual Base Salary
                              (excl. super) ($)</label>
@@ -2685,12 +2686,12 @@
                                        value="" placeholder="e.g. 110000" min="0">
                                 <p class="mt-1 text-xs text-gray-500">Your new annual gross salary after income reduction</p>
                             </div>
-                            <div>
+                            <div data-household="couple">
                                 <label class="block text-sm font-medium text-gray-700" for="partnerReducedIncomeAge">Partner's Age When Income Reduces</label>
                                 <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerReducedIncomeAge" type="number"
                                        min="40" max="85" placeholder="e.g. 54 (leave blank if not applicable)">
                             </div>
-                            <div>
+                            <div data-household="couple">
                                 <label class="block text-sm font-medium text-gray-700" for="partnerReducedIncomeSalary">Partner's Reduced Annual Salary ($)</label>
                                 <input class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="partnerReducedIncomeSalary" type="text"
                                        value="" placeholder="e.g. 70000" min="0">

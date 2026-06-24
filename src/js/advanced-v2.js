@@ -947,10 +947,20 @@ function applyHouseholdVisibility() {
   const seg = document.querySelector('[data-bind="household"]');
   const value = seg && seg.dataset.value ? seg.dataset.value : 'couple';
   document.querySelectorAll('[data-household]').forEach((el) => {
-    el.hidden = el.dataset.household !== value;
+    setConditionalVisibility(el, el.dataset.household !== value);
   });
   document.querySelectorAll('[data-visible-when]').forEach((el) => {
-    el.hidden = el.dataset.visibleWhen !== value;
+    setConditionalVisibility(el, el.dataset.visibleWhen !== value);
+  });
+  document.querySelectorAll('option[data-household-option]').forEach((option) => {
+    const shouldHide = option.dataset.householdOption !== value;
+    option.hidden = shouldHide;
+    option.disabled = shouldHide;
+
+    if (shouldHide && option.selected && option.parentElement) {
+      const fallback = Array.from(option.parentElement.options).find((candidate) => !candidate.disabled);
+      if (fallback) fallback.selected = true;
+    }
   });
 
   // A.5: Adjust healthcare cost default for single vs couple
@@ -1006,6 +1016,33 @@ function applyHouseholdVisibility() {
   }
 
   document.dispatchEvent(new CustomEvent('adv2:household-changed', { detail: { household: value } }));
+}
+
+function setConditionalVisibility(el, shouldHide, { disableControls = true } = {}) {
+  el.hidden = shouldHide;
+  el.setAttribute('aria-hidden', String(shouldHide));
+  if (shouldHide) {
+    el.setAttribute('inert', '');
+  } else {
+    el.removeAttribute('inert');
+  }
+
+  if (!disableControls) return;
+
+  el.querySelectorAll('input, select, textarea, button').forEach((control) => {
+    if (shouldHide) {
+      if (!control.disabled) {
+        control.dataset.visibilityDisabled = 'true';
+        control.disabled = true;
+      }
+      return;
+    }
+
+    if (control.dataset.visibilityDisabled === 'true') {
+      control.disabled = false;
+      delete control.dataset.visibilityDisabled;
+    }
+  });
 }
 
 // ============================================================

@@ -9626,11 +9626,34 @@ class RetirementCalculatorApp {
 
     updateClassicHouseholdVisibility() {
         this.ensureClassicHouseholdVisibilityMarkers();
-        const isCouple = this.hasPartnerDataInForm();
-        document.querySelectorAll('[data-household="couple"], [data-visible-when="couple"]').forEach((el) => {
-            el.hidden = !isCouple;
-            el.classList.toggle('hidden', !isCouple);
-            el.setAttribute('aria-hidden', String(!isCouple));
+        const activeHousehold = this.hasPartnerDataInForm() ? 'couple' : 'single';
+        document.querySelectorAll('[data-household], [data-visible-when]').forEach((el) => {
+            const expectedHousehold = el.dataset.household || el.dataset.visibleWhen;
+            if (!expectedHousehold) return;
+            const shouldHide = expectedHousehold !== activeHousehold;
+            el.hidden = shouldHide;
+            el.classList.toggle('hidden', shouldHide);
+            el.setAttribute('aria-hidden', String(shouldHide));
+            if (shouldHide) {
+                el.setAttribute('inert', '');
+            } else {
+                el.removeAttribute('inert');
+            }
+
+            el.querySelectorAll('input, select, textarea, button').forEach((control) => {
+                if (shouldHide) {
+                    if (!control.disabled) {
+                        control.dataset.visibilityDisabled = 'true';
+                        control.disabled = true;
+                    }
+                    return;
+                }
+
+                if (control.dataset.visibilityDisabled === 'true') {
+                    control.disabled = false;
+                    delete control.dataset.visibilityDisabled;
+                }
+            });
         });
     }
 
