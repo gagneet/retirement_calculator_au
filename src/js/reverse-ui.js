@@ -77,6 +77,11 @@ function show(id) {
     const elem = el(id);
     if (elem) elem.classList.remove('hidden');
 }
+function getForwardSourceDisplayName(source) {
+    if (source === 'retirement-v3') return 'Retirement Calculator v3';
+    if (source === 'advanced-v2') return 'Advanced Calculator v2';
+    return 'Advanced Calculator';
+}
 
 // ---------------------------------------------------------------------------
 // ReverseUI class
@@ -326,7 +331,7 @@ export class ReverseUI {
         show('rp-baseline-found');
         hide('rp-baseline-not-found');
 
-        const sourceName = projection.source === 'advanced-v2' ? 'Advanced Calculator v2' : 'Advanced Calculator';
+        const sourceName = getForwardSourceDisplayName(projection.source);
         const savedAt = projection.savedAt ? new Date(projection.savedAt).toLocaleString('en-AU') : 'recently';
         safeText('rp-baseline-source-name', sourceName + ' · ' + savedAt);
 
@@ -424,7 +429,7 @@ export class ReverseUI {
         show('rp-baseline-found');
         hide('rp-baseline-not-found');
 
-        const sourceName = baseline.source === 'advanced-v2' ? 'Advanced Calculator v2' : 'Advanced Calculator';
+        const sourceName = getForwardSourceDisplayName(baseline.source);
         safeText('rp-baseline-source-name', sourceName + ' · imported ' + new Date(baseline.importedAt).toLocaleString('en-AU'));
 
         // Summary

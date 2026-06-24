@@ -43,6 +43,28 @@ describe('buildReverseBaselineFromForwardScenario', () => {
         expect(baseline.exists).toBe(true);
     });
 
+    test('detects retirement-v3 source while preserving v2-shaped field mapping', () => {
+        const raw = {
+            sourcePage: 'retirement-v3',
+            age: 45,
+            retireAge: 67,
+            salary: 120000,
+            superBal: 300000,
+            household: 'single',
+            mortgage: 250000,
+            mortgageRate: 6,
+        };
+        const baseline = buildReverseBaselineFromForwardScenario(raw);
+        expect(baseline.source).toBe('retirement-v3');
+        expect(baseline.exists).toBe(true);
+        expect(baseline.inputs.currentAge).toBe(45);
+        expect(baseline.inputs.retirementAge).toBe(67);
+        expect(baseline.inputs.annualSalary).toBe(120000);
+        expect(baseline.inputs.currentSuperBalance).toBe(300000);
+        expect(baseline.inputs.mortgageBalance).toBe(250000);
+        expect(baseline.inputs.monthlyMortgagePayment).toBeGreaterThan(0);
+    });
+
     test('returns exists:false for null input', () => {
         const baseline = buildReverseBaselineFromForwardScenario(null);
         expect(baseline.exists).toBe(false);

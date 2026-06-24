@@ -322,6 +322,13 @@ describe('source detection', () => {
         expect(baseline.source).toBe('advanced-v2');
     });
 
+    test('detects retirement-v3 legacy scenario format', () => {
+        const raw = { sourcePage: 'retirement-v3', age: 45, household: 'single' };
+        const baseline = buildReverseBaselineFromForwardScenario(raw);
+        expect(baseline.source).toBe('retirement-v3');
+        expect(baseline.inputs.currentAge).toBe(45);
+    });
+
     test('detects unknown format', () => {
         const raw = { foo: 'bar' };
         const baseline = buildReverseBaselineFromForwardScenario(raw);

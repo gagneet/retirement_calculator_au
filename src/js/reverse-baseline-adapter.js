@@ -4,7 +4,7 @@
  *
  * Normalises field name differences between:
  *  - advanced.html (app.js collectInputs) – primary source
- *  - advanced-v2.html (buildEngineInputs) – secondary source
+ *  - advanced-v2.html / retirement.html V3 (V2-shaped inputs) – secondary source
  *
  * Storage key: localStorage.rc_forward_scenario
  */
@@ -31,6 +31,7 @@ function num(v, fallback) {
  */
 function detectSource(raw) {
     if (!raw) return 'unknown';
+    if (raw.sourcePage === 'retirement-v3' || raw.source === 'retirement-v3') return 'retirement-v3';
     if (raw.household || raw.retireAge !== undefined) return 'advanced-v2';
     if (raw.yourCurrentAge !== undefined || raw.householdStatus !== undefined) return 'advanced-classic';
     return 'unknown';
@@ -138,7 +139,7 @@ export function buildReverseBaselineFromForwardScenario(raw) {
     }
 
     const source = detectSource(raw);
-    const isV2 = source === 'advanced-v2';
+    const isV2 = source === 'advanced-v2' || source === 'retirement-v3';
 
     const isCouple = raw.isCouple || raw.household === 'couple' || raw.householdStatus === 'couple' || false;
 

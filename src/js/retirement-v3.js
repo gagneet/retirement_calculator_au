@@ -1464,7 +1464,7 @@ function computeBaseState(inp = null) {
 
   // Persist inputs to localStorage so the Reverse Planner can import them
   try {
-    localStorage.setItem('rc_forward_scenario', JSON.stringify(input));
+    localStorage.setItem('rc_forward_scenario', JSON.stringify({ ...input, sourcePage: 'retirement-v3' }));
   } catch {
     // localStorage may be unavailable — silently skip
   }
