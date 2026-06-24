@@ -981,6 +981,16 @@ function applyHouseholdVisibility() {
   document.querySelectorAll('[data-visible-when]').forEach((el) => {
     setConditionalVisibility(el, el.dataset.visibleWhen !== value);
   });
+  document.querySelectorAll('option[data-household-option]').forEach((option) => {
+    const shouldHide = option.dataset.householdOption !== value;
+    option.hidden = shouldHide;
+    option.disabled = shouldHide;
+
+    if (shouldHide && option.selected && option.parentElement) {
+      const fallback = Array.from(option.parentElement.options).find((candidate) => !candidate.disabled);
+      if (fallback) fallback.selected = true;
+    }
+  });
 
   // A.5: Adjust healthcare cost default for single vs couple
   const hcField = document.getElementById('healthcareCost');
@@ -5320,6 +5330,7 @@ function boot() {
       const rentingFields = document.getElementById('renting-fields');
       const mortgageField = document.getElementById('mortgage-field');
       const mortgageRateField = document.getElementById('mortgage-rate-field');
+      const mortgagePaymentField = document.getElementById('mortgage-payment-field');
       if (!typeEl) return;
       function updateResidenceFields() {
         const val = normalizeResidenceType({ primaryResidenceType: typeEl.value });
@@ -5333,6 +5344,7 @@ function boot() {
         if (rentingFields) rentingFields.hidden = !isRenting;
         if (mortgageField) mortgageField.hidden = !hasMortgage;
         if (mortgageRateField) mortgageRateField.hidden = !hasMortgage;
+        if (mortgagePaymentField) mortgagePaymentField.hidden = !hasMortgage;
         if (!isOwner) {
           if (homeValueEl && !homeValueEl.dataset.userEdited) homeValueEl.value = '0';
           if (mortgageEl && !mortgageEl.dataset.userEdited) mortgageEl.value = '0';
@@ -5363,7 +5375,7 @@ function boot() {
         }
       }
       typeEl.addEventListener('change', () => { updateResidenceFields(); recomputeDesiredIncomeFromBuilder(); recalc(); });
-      [document.getElementById('homeValue'), document.getElementById('mortgage'), document.getElementById('mortgageRate')]
+      [document.getElementById('homeValue'), document.getElementById('mortgage'), document.getElementById('mortgageRate'), document.getElementById('monthlyMortgagePayment')]
         .forEach((el) => {
           if (el) el.addEventListener('input', () => { el.dataset.userEdited = 'true'; });
         });

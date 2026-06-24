@@ -126,6 +126,7 @@ describe('retirement-v3 parity field wiring', () => {
             + '<div id="partnerProfile" data-household="couple"><input id="partnerAge" value="43" /><select id="partnerGender"><option>Female</option></select></div>'
             + '<div id="partnerSalaryRow" data-household="couple"><input id="partnerSalary" value="39000" /></div>'
             + '<div id="partnerAssumptionRow" data-visible-when="couple"><button id="partnerButton" type="button">Partner</button></div>'
+            + '<select id="fallbackTrigger"><option value="none">None</option><option value="partner_death" data-household-option="couple" selected>After partner death</option></select>'
             + '<input id="healthcareCost" value="4800" data-auto-default="true" />';
 
         applyHouseholdVisibility();
@@ -139,6 +140,9 @@ describe('retirement-v3 parity field wiring', () => {
         ['partnerAge', 'partnerGender', 'partnerSalary', 'partnerButton'].forEach((id) => {
             expect(document.getElementById(id).disabled).toBe(true);
         });
+        expect(document.querySelector('[value="partner_death"]').disabled).toBe(true);
+        expect(document.querySelector('[value="partner_death"]').hidden).toBe(true);
+        expect(document.getElementById('fallbackTrigger').value).toBe('none');
 
         document.querySelector('[data-bind="household"]').dataset.value = 'couple';
         applyHouseholdVisibility();
@@ -152,5 +156,7 @@ describe('retirement-v3 parity field wiring', () => {
         ['partnerAge', 'partnerGender', 'partnerSalary', 'partnerButton'].forEach((id) => {
             expect(document.getElementById(id).disabled).toBe(false);
         });
+        expect(document.querySelector('[value="partner_death"]').disabled).toBe(false);
+        expect(document.querySelector('[value="partner_death"]').hidden).toBe(false);
     });
 });

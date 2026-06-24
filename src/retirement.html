@@ -70,7 +70,7 @@
     <div>
       <p class="tier-kicker">Progressive disclosure</p>
       <h2>Choose your planning depth</h2>
-      <p>Hidden fields keep their values and are still submitted with defaults, so changing tier changes the interface, not the calculation contract.</p>
+      <p>Hidden tier fields keep their values and are still read by the calculator, so changing tier changes the interface, not the calculation contract.</p>
     </div>
     <div class="tier-control" role="tablist" aria-label="Planning tier">
       <button type="button" class="on" data-tier-button="basic" aria-pressed="true"><b>Basic</b><span>Will I be OK?</span></button>
@@ -1439,7 +1439,7 @@
                 <div class="field-input">
                   <select id="trustBeneficiaries">
                     <option value="you-only">Yourself only</option>
-                    <option value="you-partner">You and partner</option>
+                    <option value="you-partner" data-household-option="couple">You and partner</option>
                     <option value="family">Extended family</option>
                     <option value="australian-residents">Australian resident children</option>
                   </select>
@@ -1523,7 +1523,7 @@
                     <option value="health">Health / aged care needs</option>
                     <option value="financial">Financial difficulty</option>
                     <option value="social">Social / family reasons</option>
-                    <option value="partner_death">After partner death</option>
+                    <option value="partner_death" data-household-option="couple">After partner death</option>
                     <option value="elective">Elective lifestyle choice</option>
                   </select>
                 </div>
