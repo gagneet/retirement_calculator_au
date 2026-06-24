@@ -1056,6 +1056,32 @@ const FIELD_TOOLTIP_DEFINITIONS = {
         title: 'Sell / keep / downsize analysis',
         body: 'Enable to compare the real retirement income impact of selling the property, keeping it into retirement, or downsizing to a smaller home.',
     },
+
+    // Property Tax Policy fields (advanced.html classic calculator)
+    advPropertyPolicyMode: {
+        title: 'Tax policy mode',
+        body: 'Select the tax framework used for CGT and negative gearing calculations. "Current Rules" applies 2025-26 law. "Proposed 2027" uses configurable assumptions for scenario planning only — these are not yet law. "Compare Both" runs the simulation under each set of rules side by side.',
+    },
+    advCurrentCgtDiscount: {
+        title: 'CGT discount — current rules (%)',
+        body: 'Under current law, individuals and trusts receive a 50% capital gains tax discount on assets held for more than 12 months. This reduces the taxable capital gain by half before applying your marginal tax rate.',
+    },
+    advProposedMinCgtRate: {
+        title: 'Minimum effective CGT rate — proposed (%)',
+        body: 'Under the proposed 2027 scenario, a minimum effective CGT rate may apply. Enter the assumed minimum as a percentage. This is a planning assumption, not enacted law.',
+    },
+    advNgCurrentAllowed: {
+        title: 'Negative gearing — current rules',
+        body: 'Under current law, rental losses can be immediately deducted against other income, reducing your tax in the year the loss occurs. Uncheck to model a scenario without this deduction.',
+    },
+    advNgProposedNewBuild: {
+        title: 'Negative gearing for new builds — proposed rules',
+        body: 'Under proposed 2027 assumptions, negative gearing for established properties may be restricted to a carry-forward model, but new build properties may retain immediate deductibility. Uncheck to remove this concession for new builds under proposed rules.',
+    },
+    advProposedCgtIndexation: {
+        title: 'Inflation indexation for CGT — proposed rules',
+        body: 'Under proposed 2027 assumptions, the cost base of an asset may be indexed by CPI instead of applying a flat 50% discount. This can increase or reduce CGT depending on inflation and holding period.',
+    },
 };
 
 const ADVANCED_TOOLTIP_PAGE_SELECTOR = '#advancedCalculatorForm, .redesign-v2';
