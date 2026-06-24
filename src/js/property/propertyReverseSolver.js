@@ -14,7 +14,7 @@
 import { CITY_GROWTH_RATES, CITY_RENTAL_YIELDS, RETIREMENT_STRATEGY } from './propertyTypes.js';
 import { runPropertyDeterministic } from './propertyMonteCarlo.js';
 import { calcCGT, buildEffectivePolicy } from './propertyTax.js';
-import { calcSaleProceeds, calcPandIRepayment } from './propertyCashflow.js';
+import { calcAnnualPropertyCashflow, calcSaleProceeds, calcPandIRepayment } from './propertyCashflow.js';
 
 const fin = (v, def = 0) => { const n = Number(v); return Number.isFinite(n) ? n : def; };
 
@@ -46,6 +46,10 @@ function bisect(fn, lo, hi, tol = 0.01, maxIter = 120) {
         const mid  = (low + high) / 2;
         const fMid = fn(mid);
         if (Math.abs(fMid) < tol) return { solved: true, value: mid, iterations: iter };
+        // fLo is the sign captured at the original lo and is never refreshed.
+        // This is correct: bisection invariant maintains fn(low) and fn(high) have
+        // opposite signs, and fLo correctly proxies the sign of fn(current low) because
+        // we only set low=mid when fn(mid) has the same sign as fLo.
         if (fLo * fMid < 0) high = mid;
         else                  low  = mid;
         iter++;
@@ -67,8 +71,6 @@ function bisect(fn, lo, hi, tol = 0.01, maxIter = 120) {
  * @returns {{ solved, weeklyRent }}
  */
 export function solveRequiredRent(prop, yearContext, targetCashflow = 0) {
-    const { calcAnnualPropertyCashflow } = require('./propertyCashflow.js');
-
     function error(weeklyRent) {
         const cf = calcAnnualPropertyCashflow({ ...prop, weeklyRent }, yearContext);
         return cf.netCashflowBeforeTax - targetCashflow;
@@ -109,7 +111,6 @@ export function solveMaxPurchasePrice(prop, maxAnnualLoss = 20000, depositPct = 
             cpiGrowth:     0.036,
             rentGrowth:    0,
         };
-        const { calcAnnualPropertyCashflow } = require('./propertyCashflow.js');
         const cf = calcAnnualPropertyCashflow({ ...prop, weeklyRent, interestRate, loanTermYears }, yearContext);
         // error > 0 means loss too large (price too high)
         return -(cf.netCashflowBeforeTax) - maxAnnualLoss;
