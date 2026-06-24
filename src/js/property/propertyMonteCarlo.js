@@ -213,7 +213,8 @@ export function runPropertyMonteCarlo(prop, opts = {}) {
 
     const results = [];
     for (let i = 0; i < numRuns; i++) {
-        results.push(runOnePath(prop, { ...opts, stochastic: true }, rand));
+        const pathRand = seed != null ? mulberry32(seed + i) : Math.random;
+        results.push(runOnePath(prop, { ...opts, stochastic: true }, pathRand));
     }
 
     // Collect key metrics for percentiles
