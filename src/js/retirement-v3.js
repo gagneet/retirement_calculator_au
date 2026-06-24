@@ -12,6 +12,7 @@ import './site-chrome.js';
 import ENHANCED_CONFIG from './config.js';
 import RetirementSimulator from './simulator.js';
 import RecommendationEngine from './recommendation.js';
+import { initPropertyHousingUI } from './property-housing-ui.js';
 import profiler from './performance-profiler.js';
 import OverseasRetirementAnalyzer from './overseas-retirement.js';
 import { RiskProfilingEngine } from './risk-profiling-engine.js';
@@ -4874,6 +4875,7 @@ function boot() {
     // advanced-v2 relies on the shared tooltip backfill because many fields use
     // lightweight label markup instead of the classic page's inline tooltip HTML.
     initializeTooltips();
+    initPropertyHousingUI(document);
     initPensionFieldDefaults();
     // Mark sacrifice fields as user-modified when manually edited
     ['salarySacrifice', 'partnerSalarySacrifice'].forEach((id) => {

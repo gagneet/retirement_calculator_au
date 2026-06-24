@@ -770,6 +770,179 @@
         </div>
       </section>
 
+      <!-- ──────────── 5b · PROPERTY HOUSING (advanced) ──────────── -->
+      <section class="section" data-section="property-housing" data-advanced="true">
+        <button class="section-head" type="button">
+          <span class="section-num" data-base-num="5b">5b</span>
+          <span class="section-title"><h3>Property &amp; Housing</h3><small>Detailed modelling: PPOR, investment properties, tax policy, Monte Carlo</small></span>
+          <span class="section-meta"><span class="pill">advanced</span></span>
+          <svg class="section-chev" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="section-body">
+
+          <!-- Primary Home -->
+          <div class="subhead">Primary Home</div>
+          <p class="field-help">Your primary place of residence (PPOR). No rental income and no CGT on sale (main residence exemption applies).</p>
+          <div class="fields">
+            <label class="toggle"><input id="ppor-detailed-enabled" type="checkbox" /><span class="track"></span><span class="label">Enable detailed PPOR modelling</span></label>
+          </div>
+          <div id="ppor-detailed-fields" hidden>
+            <div class="fields three">
+              <div class="field"><label class="field-label" for="pporPurchasePrice"><span>Purchase price</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="pporPurchasePrice" type="number" value="0" /></div></div>
+              <div class="field"><label class="field-label" for="pporPurchaseYear"><span>Purchase year</span></label><div class="field-input"><input id="pporPurchaseYear" type="number" min="1900" max="2100" value="" placeholder="e.g. 2018" /></div></div>
+              <div class="field"><label class="field-label" for="pporCity"><span>City / region</span></label><div class="field-input"><select id="pporCity"><option value="national" selected>National average</option><option value="sydney">Sydney</option><option value="melbourne">Melbourne</option><option value="brisbane">Brisbane</option><option value="perth">Perth</option><option value="adelaide">Adelaide</option><option value="hobart">Hobart</option><option value="darwin">Darwin</option><option value="canberra">Canberra</option></select></div></div>
+              <div class="field"><label class="field-label" for="pporLoanType"><span>Loan type</span></label><div class="field-input"><select id="pporLoanType"><option value="principal_interest" selected>Principal &amp; interest</option><option value="interest_only">Interest only</option><option value="split">Split</option></select></div></div>
+              <div class="field"><label class="field-label" for="pporLoanTermYears"><span>Loan term</span><span class="hint">yrs</span></label><div class="field-input"><input id="pporLoanTermYears" type="number" min="1" max="40" value="30" /><span class="suffix">yrs</span></div></div>
+              <div class="field"><label class="field-label" for="pporOffsetBalance"><span>Offset balance</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="pporOffsetBalance" type="number" value="0" /></div></div>
+            </div>
+            <div class="fields two">
+              <div class="field"><label class="field-label" for="pporOwnershipUserPct"><span>Your ownership</span><span class="hint">%</span></label><div class="field-input"><input id="pporOwnershipUserPct" type="number" min="0" max="100" value="100" /><span class="suffix">%</span></div></div>
+              <div class="field"><label class="field-label" for="pporOwnershipPartnerPct"><span>Partner ownership</span><span class="hint">%</span></label><div class="field-input"><input id="pporOwnershipPartnerPct" type="number" min="0" max="100" value="0" /><span class="suffix">%</span></div></div>
+            </div>
+            <div class="fields">
+              <label class="toggle"><input id="pporPartialRental" type="checkbox" /><span class="track"></span><span class="label">Part of home rented out (partial CGT applies)</span></label>
+            </div>
+            <div id="ppor-partial-rental-fields" hidden>
+              <div class="fields three">
+                <div class="field"><label class="field-label" for="pporRentalPct"><span>% rented</span></label><div class="field-input"><input id="pporRentalPct" type="number" min="0" max="100" value="30" /><span class="suffix">%</span></div><div class="field-help">Proportion of the home used for income-producing purposes (e.g. renting a room).</div></div>
+                <div class="field"><label class="field-label" for="pporWeeklyRent"><span>Weekly rent</span><span class="hint">$/wk</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="pporWeeklyRent" type="number" value="0" /><span class="suffix">/wk</span></div></div>
+              </div>
+            </div>
+            <div class="subhead">PPOR Retirement Strategy</div>
+            <div class="fields">
+              <div class="field"><label class="field-label" for="pporRetirementStrategy"><span>Strategy at retirement</span></label><div class="field-input"><select id="pporRetirementStrategy"><option value="keep" selected>Keep — continue living here</option><option value="sell_at_retirement">Sell at retirement</option><option value="downsize_at_retirement">Downsize at retirement</option></select></div><div class="field-help">Selling or downsizing frees up equity. Downsize contributions to super may apply (up to $300k per person, $600k per couple).</div></div>
+            </div>
+            <div id="ppor-downsize-fields" hidden>
+              <div class="fields three">
+                <div class="field"><label class="field-label" for="pporDownsizeTargetValue"><span>Target smaller home value</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="pporDownsizeTargetValue" type="number" value="0" /></div></div>
+                <div class="field"><label class="field-label" for="pporDownsizeSuperContrib"><span>Super contribution from proceeds</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="pporDownsizeSuperContrib" type="number" value="0" /></div><div class="field-help">Downsizer contribution (max $300k/person, must be 55+, home held 10+ years).</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Investment Properties -->
+          <div class="subhead">Investment Properties</div>
+          <p class="field-help">Detailed cashflow, tax, and CGT modelling for each investment property. Uses historical anchors for 2018/2022/2024 purchases; stochastic from 2027 onwards.</p>
+          <div class="fields">
+            <label class="toggle"><input id="ip-detailed-enabled" type="checkbox" /><span class="track"></span><span class="label">Enable detailed investment property modelling</span></label>
+          </div>
+          <div id="ip-detailed-cards" hidden>
+            <div id="ip-cards-container">
+              <!-- Property cards are rendered dynamically by property-housing-ui.js -->
+            </div>
+            <button type="button" id="add-ip-card" class="btn btn-secondary">+ Add investment property</button>
+          </div>
+
+          <!-- Planned Property Purchases -->
+          <div class="subhead">Planned Property Purchases</div>
+          <div class="fields">
+            <label class="toggle"><input id="planned-purchase-enabled" type="checkbox" /><span class="track"></span><span class="label">I plan to buy a property in the future</span></label>
+          </div>
+          <div id="planned-purchase-fields" hidden>
+            <div class="fields three">
+              <div class="field"><label class="field-label" for="plannedPurchaseDate"><span>Planned purchase date</span></label><div class="field-input"><input id="plannedPurchaseDate" type="month" value="" /></div></div>
+              <div class="field"><label class="field-label" for="plannedPurchasePrice"><span>Expected purchase price</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="plannedPurchasePrice" type="number" value="0" /></div></div>
+              <div class="field"><label class="field-label" for="plannedPurchaseDeposit"><span>Available deposit</span><span class="hint">$</span></label><div class="field-input has-prefix"><span class="prefix">$</span><input id="plannedPurchaseDeposit" type="number" value="0" /></div></div>
+              <div class="field"><label class="field-label" for="plannedPurchaseLoanRate"><span>Expected loan rate</span><span class="hint">%</span></label><div class="field-input"><input id="plannedPurchaseLoanRate" type="number" step="0.01" value="6.20" /><span class="suffix">%</span></div></div>
+              <div class="field"><label class="field-label" for="plannedPurchaseCity"><span>City / region</span></label><div class="field-input"><select id="plannedPurchaseCity"><option value="national" selected>National average</option><option value="sydney">Sydney</option><option value="melbourne">Melbourne</option><option value="brisbane">Brisbane</option><option value="perth">Perth</option><option value="adelaide">Adelaide</option><option value="canberra">Canberra</option></select></div></div>
+              <div class="field"><label class="field-label" for="plannedPurchaseUseType"><span>Property use</span></label><div class="field-input"><select id="plannedPurchaseUseType"><option value="primary_residence">Primary residence</option><option value="investment_property" selected>Investment property</option></select></div></div>
+              <div class="field"><label class="field-label" for="plannedPurchaseIsNewBuild"><span>Build type</span></label><div class="field-input"><select id="plannedPurchaseIsNewBuild"><option value="established" selected>Established property</option><option value="new_build">New build</option></select></div></div>
+            </div>
+            <div id="planned-purchase-2027-note" hidden>
+              <div class="field-help" style="background:#fef9c3;border:1px solid #ca8a04;padding:8px 12px;border-radius:6px;margin:8px 0;">
+                <strong>July-August 2027 purchase:</strong> Your planned purchase date falls in or near the proposed policy change window.
+                Use the Property Tax Policy section below to compare current vs proposed 2027 rules for this purchase.
+              </div>
+            </div>
+          </div>
+
+          <!-- Property Tax Policy -->
+          <div class="subhead">Property Tax Policy</div>
+          <p class="field-help">
+            Tax policy assumptions are configurable estimates. The "Proposed 2027 rules" scenario is not law and may not proceed as described.
+            Use this section to compare outcomes under different policy assumptions.
+          </p>
+          <div class="fields">
+            <div class="field">
+              <label class="field-label" for="propertyPolicyMode"><span>Policy scenario</span></label>
+              <div class="field-input">
+                <select id="propertyPolicyMode">
+                  <option value="current_rules" selected>Current rules (2025-26)</option>
+                  <option value="proposed_2027_rules">Proposed 2027 rules (configurable estimates)</option>
+                  <option value="compare_current_vs_proposed">Compare current vs proposed</option>
+                </select>
+              </div>
+              <div class="field-help">Warning: proposed 2027 policy assumptions are estimates only and are not law.</div>
+            </div>
+          </div>
+          <div id="property-policy-current" class="fields three">
+            <div class="field"><label class="field-label" for="currentCgtDiscountRate"><span>CGT discount (current)</span><span class="hint">%</span></label><div class="field-input"><input id="currentCgtDiscountRate" type="number" step="1" value="50" min="0" max="100" /><span class="suffix">%</span></div><div class="field-help">50% discount for assets held more than 12 months. Current law.</div></div>
+            <div class="field"><label class="field-label" for="negativeGearingCurrentAllowed"><span>Negative gearing</span></label><div class="field-input"><select id="negativeGearingCurrentAllowed"><option value="true" selected>Allowed (current rules)</option><option value="false">Not allowed</option></select></div></div>
+          </div>
+          <div id="property-policy-proposed" hidden>
+            <div class="fields three">
+              <div class="field"><label class="field-label" for="ngProposedEstablished"><span>Negative gearing — established</span></label><div class="field-input"><select id="ngProposedEstablished"><option value="false" selected>Not allowed (proposed)</option><option value="true">Allowed</option></select></div></div>
+              <div class="field"><label class="field-label" for="ngProposedNewBuild"><span>Negative gearing — new build</span></label><div class="field-input"><select id="ngProposedNewBuild"><option value="true" selected>Allowed (proposed)</option><option value="false">Not allowed</option></select></div></div>
+              <div class="field"><label class="field-label" for="carriedForwardLossesAllowed"><span>Carry forward losses</span></label><div class="field-input"><select id="carriedForwardLossesAllowed"><option value="true" selected>Allowed</option><option value="false">Not allowed</option></select></div></div>
+              <div class="field"><label class="field-label" for="proposedCgtIndexation"><span>CGT treatment (proposed)</span></label><div class="field-input"><select id="proposedCgtIndexation"><option value="true" selected>Inflation indexation</option><option value="false">No indexation (full nominal gain)</option></select></div></div>
+              <div class="field"><label class="field-label" for="proposedMinCgtRate"><span>Minimum CGT rate</span><span class="hint">%</span></label><div class="field-input"><input id="proposedMinCgtRate" type="number" step="1" value="20" min="0" max="47" /><span class="suffix">%</span></div></div>
+            </div>
+          </div>
+
+          <!-- Property Monte Carlo -->
+          <div class="subhead">Property Monte Carlo</div>
+          <div class="fields">
+            <label class="toggle"><input id="propertyMcEnabled" type="checkbox" /><span class="track"></span><span class="label">Run property Monte Carlo simulation</span></label>
+          </div>
+          <div id="property-mc-fields" hidden>
+            <div class="fields three">
+              <div class="field"><label class="field-label" for="propertyMcNumRuns"><span>Number of runs</span></label><div class="field-input"><input id="propertyMcNumRuns" type="number" min="100" max="5000" step="100" value="500" /></div></div>
+              <div class="field"><label class="field-label" for="propertyMcGrowthMean"><span>Growth mean</span><span class="hint">%/yr</span></label><div class="field-input"><input id="propertyMcGrowthMean" type="number" step="0.1" value="6.5" /><span class="suffix">%</span></div></div>
+              <div class="field"><label class="field-label" for="propertyMcGrowthSigma"><span>Growth volatility</span><span class="hint">%</span></label><div class="field-input"><input id="propertyMcGrowthSigma" type="number" step="0.1" value="8.0" /><span class="suffix">%</span></div><div class="field-help">Standard deviation of annual growth. Higher = more variable outcomes.</div></div>
+              <div class="field"><label class="field-label" for="propertyMcInterestMean"><span>Interest rate mean</span><span class="hint">%</span></label><div class="field-input"><input id="propertyMcInterestMean" type="number" step="0.1" value="6.12" /><span class="suffix">%</span></div></div>
+              <div class="field"><label class="field-label" for="propertyMcInflationMean"><span>Inflation mean</span><span class="hint">%</span></label><div class="field-input"><input id="propertyMcInflationMean" type="number" step="0.1" value="3.6" /><span class="suffix">%</span></div></div>
+              <div class="field"><label class="field-label" for="propertyMcHoldYears"><span>Hold period</span><span class="hint">yrs</span></label><div class="field-input"><input id="propertyMcHoldYears" type="number" min="1" max="40" value="20" /><span class="suffix">yrs</span></div></div>
+            </div>
+            <div class="fields">
+              <button type="button" id="run-property-mc-btn" class="btn btn-primary">Run property Monte Carlo</button>
+            </div>
+            <div id="property-mc-results" hidden>
+              <div class="subhead">Monte Carlo Results</div>
+              <div id="property-mc-summary-cards" class="summary-cards"></div>
+              <canvas id="property-value-fan-chart" height="220"></canvas>
+              <canvas id="property-cashflow-fan-chart" height="220"></canvas>
+              <canvas id="property-irr-histogram" height="220"></canvas>
+            </div>
+          </div>
+
+          <!-- Property vs ETF / Super Comparison -->
+          <div class="subhead">Property vs ETF / Super Comparison</div>
+          <div class="fields">
+            <label class="toggle"><input id="propertyComparisonEnabled" type="checkbox" /><span class="track"></span><span class="label">Show property vs alternative investment comparison</span></label>
+          </div>
+          <div id="property-comparison-results" hidden>
+            <canvas id="property-vs-etf-chart" height="220"></canvas>
+            <div id="property-comparison-table"></div>
+          </div>
+
+          <!-- Sell / Keep / Downsize Strategy -->
+          <div class="subhead">Sell / Keep / Downsize Strategy</div>
+          <div class="fields">
+            <label class="toggle"><input id="propertyStrategyAnalysisEnabled" type="checkbox" /><span class="track"></span><span class="label">Analyse sell / keep / downsize strategies at retirement</span></label>
+          </div>
+          <div id="property-strategy-results" hidden>
+            <div id="property-strategy-table"></div>
+          </div>
+
+          <div class="field-help" style="margin-top:12px;padding:10px 12px;background:#f0f9ff;border:1px solid #0ea5e9;border-radius:6px;">
+            <strong>Disclaimer:</strong> Property calculations are estimates only. Tax, CGT, and land tax calculations are approximate.
+            Policy assumptions labelled "proposed 2027" are not law. Consult a qualified financial adviser and tax professional
+            before making property investment decisions.
+          </div>
+
+        </div>
+      </section>
+
       <!-- ──────────── 6 · SMSF & TRUST (advanced) ──────────── -->
       <section class="section" data-section="smsf" data-advanced="true">
         <button class="section-head" type="button">

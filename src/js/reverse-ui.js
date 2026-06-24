@@ -41,6 +41,12 @@ import {
 } from './reverse-deep-analysis.js';
 import { ReverseScenarioEngine } from './calculation/reverse-scenario-engine.js';
 import { estimateMonthlySpending, calculateMonthlyLoanPayment } from './calculation/household-cashflow-engine.js';
+import {
+    solveRequiredEquity,
+    solveRequiredRent,
+    compareRetirementStrategies,
+    solveMaxPurchasePrice,
+} from './property/index.js';
 
 const STORAGE_KEY = 'rc_forward_scenario';
 
@@ -145,6 +151,12 @@ export class ReverseUI {
             householdToggle.addEventListener('click', () => {
                 setTimeout(() => this.toggleCoupleFields(), 0);
             });
+        }
+
+        // Property reverse solver button
+        const propSolveBtn = el('rp-property-solve-btn');
+        if (propSolveBtn) {
+            propSolveBtn.addEventListener('click', () => this.handlePropertySolver());
         }
 
         // Homeowner toggle (manual mode)
@@ -2199,6 +2211,55 @@ export class ReverseUI {
                 </div>
             `;
         }).join('');
+    }
+
+    /**
+     * Handle the Property Reverse Solver button.
+     * Solves for required equity and max purchase price.
+     */
+    handlePropertySolver() {
+        const g = (id) => document.getElementById(id);
+        const flt = (id, def) => parseFloat(g(id)?.value) || def;
+
+        // Use retirement goal from goal section if target income not entered
+        const targetIncomeToday = flt('rp-prop-target-income', 0) ||
+            flt('rp-target-income', 60000);
+
+        const inputs = this.collectInputs?.() ?? {};
+        const yearsToRetirement = Math.max(1,
+            (inputs.retirementAge || flt('rp-retirement-age', 67)) -
+            (inputs.yourCurrentAge || flt('rp-age', 50))
+        );
+
+        const growthRate  = flt('rp-prop-growth-rate', 6.5) / 100;
+        const inflation   = flt('rp-prop-inflation', 3.6) / 100;
+        const swr         = flt('rp-prop-swr', 4.0) / 100;
+
+        const equityResult = solveRequiredEquity(targetIncomeToday, yearsToRetirement, growthRate, inflation, swr);
+
+        const maxAnnualLoss = flt('rp-max-annual-loss', 15000);
+        const depositPct    = flt('rp-prop-deposit-pct', 20) / 100;
+
+        // Solve max purchase price using a simple property template
+        const prop = { loanTermYears: 30, interestRate: 0.062, city: 'national', expenses: { managementPct: 0.08, councilRates: 1200, insurance: 1100, maintenance: 2000, strata: 0, landTax: 0, waterRates: 800 } };
+        const maxPriceResult = solveMaxPurchasePrice(prop, maxAnnualLoss, depositPct, { interestRate: 0.062 });
+
+        const fc = (v) => v.toLocaleString('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 });
+
+        const reqEquityEl = g('rp-required-equity');
+        const projEquityEl = g('rp-projected-equity');
+        const capitalEl    = g('rp-capital-needed');
+        const maxPriceEl   = g('rp-max-purchase-price');
+
+        if (reqEquityEl)  reqEquityEl.textContent  = fc(equityResult.requiredCurrentEquity);
+        if (projEquityEl) projEquityEl.textContent  = fc(equityResult.projectedEquityAtRetirement);
+        if (capitalEl)    capitalEl.textContent     = fc(equityResult.capitalNeeded);
+        if (maxPriceEl)   maxPriceEl.textContent    = fc(maxPriceResult.maxPurchasePrice);
+
+        const resultsDiv  = g('rp-property-solver-results');
+        const maxPriceDiv = g('rp-max-price-result');
+        if (resultsDiv)  resultsDiv.classList.remove('hidden');
+        if (maxPriceDiv) maxPriceDiv.classList.remove('hidden');
     }
 }
 
