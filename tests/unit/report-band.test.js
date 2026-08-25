@@ -74,28 +74,24 @@ describe('mortgagePayoffAge — simulator result', () => {
 
     test('mortgage payoff renders "cleared at age" string when within plan', () => {
         const result = sim.simulateRetirement(baseInputs, false);
-        if (result.mortgagePayoffAge != null) {
-            const str = `Mortgage cleared at age ${result.mortgagePayoffAge}`;
-            expect(str).toMatch(/cleared at age \d+/);
-        }
+        expect(result.mortgagePayoffAge).not.toBeNull();
+        const str = `Mortgage cleared at age ${result.mortgagePayoffAge}`;
+        expect(str).toMatch(/cleared at age \d+/);
     });
 
     test('mortgage payoff age is null when no mortgage is present', () => {
         const noMortgage = { ...baseInputs, mortgageBalance: 0, monthlyMortgagePayment: 0 };
         const result = sim.simulateRetirement(noMortgage, false);
-        // Either null or a very early age is acceptable
-        if (result.mortgagePayoffAge != null) {
-            expect(result.mortgagePayoffAge).toBeGreaterThanOrEqual(baseInputs.yourCurrentAge);
-        }
+        expect(result.mortgagePayoffAge).toBeNull();
     });
 
     test('mortgagePayoffYear is computed from mortgagePayoffAge', () => {
         const result = sim.simulateRetirement(baseInputs, false);
-        if (result.mortgagePayoffAge != null && result.mortgagePayoffYear != null) {
-            const currentYear = new Date().getFullYear();
-            const expectedYear = currentYear + (result.mortgagePayoffAge - baseInputs.yourCurrentAge);
-            expect(result.mortgagePayoffYear).toBeCloseTo(expectedYear, -1);
-        }
+        expect(result.mortgagePayoffAge).not.toBeNull();
+        expect(result.mortgagePayoffYear).not.toBeNull();
+        const currentYear = new Date().getFullYear();
+        const expectedYear = currentYear + (result.mortgagePayoffAge - baseInputs.yourCurrentAge);
+        expect(result.mortgagePayoffYear).toBeCloseTo(expectedYear, -1);
     });
 });
 

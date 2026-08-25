@@ -99,7 +99,7 @@ describe('sanitiseInputs — return ceilings', () => {
             { DEFAULT_EQUITY_RETURN: 0.065 }
         );
         expect(inputs.investmentReturn).toBeLessThanOrEqual(RETURN_CEILING);
-        expect(warnings.find(w => w.field === 'investmentReturn').severity).toBe('error');
+        expect(warnings.find(w => w.field === 'investmentReturn')?.severity).toBe('error');
     });
 
     test('return between RETURN_OPTIMISTIC and RETURN_CEILING produces a warning, no clamping', () => {
