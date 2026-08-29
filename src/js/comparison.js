@@ -19,7 +19,9 @@ initGoogleAnalytics();
 class ComparisonApp {
     constructor() {
         this.scenarios = [];
-        this.simulator = new RetirementSimulator();
+        // ENHANCED_CONFIG is required: simulateRetirement() reads this.config.SIMULATION,
+        // so constructing without a config threw a TypeError on every scenario comparison.
+        this.simulator = new RetirementSimulator(ENHANCED_CONFIG);
         this.chartManager = new ChartManager();
         this.comparisonCharts = {};
 

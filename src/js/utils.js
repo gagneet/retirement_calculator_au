@@ -1308,28 +1308,73 @@ export const AGE_PENSION_QUALIFYING_AGE = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.P
  * @param {number}  [config.indexationFactor]  multiplies every dollar figure (CPI to date)
  * @returns {{pensionAge:number, maxRate:number, assetThreshold:number, assetLimit:number, incomeThreshold:number}}
  */
-const resolveCouplePensionParameters = (homeowner, config = {}) => {
-    const cfg = config || {};
-    const positive = (value) => (typeof value === 'number' && Number.isFinite(value) && value > 0);
-    // Indexation is applied to whichever figure wins, so a user override is indexed too —
-    // an override is a "today's dollars" statement of policy, exactly like the default.
-    const factor = positive(cfg.indexationFactor) ? cfg.indexationFactor : 1;
+const positivePolicyValue = (value) => (
+    typeof value === 'number' && Number.isFinite(value) && value > 0
+);
 
-    const defaultAssetThreshold = homeowner
-        ? ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD
-        : ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER;
-    const defaultAssetLimit = homeowner
-        ? ENHANCED_CONFIG.COUPLE_ASSET_LIMIT
-        : ENHANCED_CONFIG.COUPLE_ASSET_LIMIT_NON_HOMEOWNER;
+/**
+ * Resolve the Age Pension policy parameters for one means-test evaluation.
+ *
+ * This is the single place both simulation pipelines resolve pension policy.
+ * Pipeline A (simulator.js, via the couple helpers below) and Pipeline B
+ * (simulation_engine/pension_engine.js) previously each hardcoded their own copy,
+ * which is how the couple parameters came to be silently ignored in one and the
+ * qualifying age came to be un-overridable in the other.
+ *
+ * Every value falls back to the legislated figure in config.js, so a caller that
+ * passes nothing gets exactly the previous behaviour.
+ *
+ * Indexation is applied to whichever value wins, override included: a user-entered
+ * threshold is a statement of policy in today's dollars, exactly like the default,
+ * and a projection running in nominal dollars must index both the same way.
+ *
+ * @param {Object}  options
+ * @param {boolean} [options.isCouple=false]
+ * @param {boolean} [options.homeowner=true]
+ * @param {number}  [options.pensionAge]       qualifying age (default 67)
+ * @param {number}  [options.maxPension]       annual maximum (combined, for a couple)
+ * @param {number}  [options.assetThreshold]   full-pension asset limit
+ * @param {number}  [options.assetLimit]       disqualifying asset cut-off
+ * @param {number}  [options.incomeThreshold]  income free area, per fortnight
+ * @param {number}  [options.indexationFactor] multiplies every dollar figure
+ * @returns {{pensionAge:number, maxRate:number, assetThreshold:number, assetLimit:number, incomeThreshold:number, indexationFactor:number}}
+ */
+export const resolveAgePensionPolicy = (options = {}) => {
+    const opts = options || {};
+    const isCouple = Boolean(opts.isCouple);
+    const homeowner = opts.homeowner !== false;
+    const factor = positivePolicyValue(opts.indexationFactor) ? opts.indexationFactor : 1;
+
+    const defaultMax = isCouple
+        ? ENHANCED_CONFIG.COUPLE_PENSION_MAX
+        : ENHANCED_CONFIG.SINGLE_PENSION_MAX;
+    const defaultAssetThreshold = isCouple
+        ? (homeowner ? ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD : ENHANCED_CONFIG.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER)
+        : (homeowner ? ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD : ENHANCED_CONFIG.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER);
+    const defaultAssetLimit = isCouple
+        ? (homeowner ? ENHANCED_CONFIG.COUPLE_ASSET_LIMIT : ENHANCED_CONFIG.COUPLE_ASSET_LIMIT_NON_HOMEOWNER)
+        : (homeowner ? ENHANCED_CONFIG.SINGLE_ASSET_LIMIT : ENHANCED_CONFIG.SINGLE_ASSET_LIMIT_NON_HOMEOWNER);
+    const defaultIncomeThreshold = isCouple
+        ? ENHANCED_CONFIG.COUPLE_INCOME_THRESHOLD
+        : ENHANCED_CONFIG.SINGLE_INCOME_THRESHOLD;
 
     return {
-        pensionAge: positive(cfg.pensionAge) ? cfg.pensionAge : AGE_PENSION_QUALIFYING_AGE,
-        maxRate: (positive(cfg.maxPension) ? cfg.maxPension : ENHANCED_CONFIG.COUPLE_PENSION_MAX) * factor,
-        assetThreshold: (positive(cfg.assetThreshold) ? cfg.assetThreshold : defaultAssetThreshold) * factor,
-        assetLimit: (positive(cfg.assetLimit) ? cfg.assetLimit : defaultAssetLimit) * factor,
-        incomeThreshold: (positive(cfg.incomeThreshold) ? cfg.incomeThreshold : ENHANCED_CONFIG.COUPLE_INCOME_THRESHOLD) * factor,
+        pensionAge: positivePolicyValue(opts.pensionAge) ? opts.pensionAge : AGE_PENSION_QUALIFYING_AGE,
+        maxRate: (positivePolicyValue(opts.maxPension) ? opts.maxPension : defaultMax) * factor,
+        assetThreshold: (positivePolicyValue(opts.assetThreshold) ? opts.assetThreshold : defaultAssetThreshold) * factor,
+        assetLimit: (positivePolicyValue(opts.assetLimit) ? opts.assetLimit : defaultAssetLimit) * factor,
+        incomeThreshold: (positivePolicyValue(opts.incomeThreshold) ? opts.incomeThreshold : defaultIncomeThreshold) * factor,
+        indexationFactor: factor,
     };
 };
+
+/**
+ * Couple-specific view of resolveAgePensionPolicy, kept because the couple helpers
+ * below take (homeowner, config) rather than a single options object.
+ */
+const resolveCouplePensionParameters = (homeowner, config = {}) => (
+    resolveAgePensionPolicy({ ...(config || {}), isCouple: true, homeowner })
+);
 
 /**
  * Enhanced Age Pension calculation for couples with non-pensioner partner

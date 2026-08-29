@@ -226,8 +226,23 @@ policy too, so indexation applies to whichever value wins.
 place couple parameters are resolved; the couple functions previously accepted a `config` argument and
 ignored it. Covered by `tests/unit/pension-model.test.js`.
 
-Remaining gap: `simulation_engine/pension_engine.js` (Pipeline B) still has its own module-level
-`PENSION_AGE` constant. It does gate on age correctly, but cannot be overridden per projection.
+**Both pipelines share one policy resolver.** `utils.js:resolveAgePensionPolicy({ isCouple, homeowner,
+pensionAge, maxPension, assetThreshold, assetLimit, incomeThreshold, indexationFactor })` is the single
+place Age Pension policy is resolved; every value falls back to `config.js`. Pipeline B's
+`calcSinglePension` / `calcCouplePension` / `calcPensionForYear` each take an optional trailing `policy`
+object (backwards compatible — omitting it reproduces the legislated defaults), and
+`life_simulation_engine.js` builds one per year from `inputs` plus that year's inflation factor.
+`tests/unit/pension-engine-policy.test.js` asserts the two pipelines return identical pensions for
+identical inputs, so they cannot drift apart.
+
+Pipeline A's *single* branch still resolves inline against `this.config` rather than the shared helper.
+That is deliberate: `RetirementSimulator` is constructed with different config objects by different
+callers, so routing it through the resolver (which reads `ENHANCED_CONFIG`) would change semantics.
+The parity tests cover the risk instead.
+
+`RetirementSimulator` **requires** a config argument — `simulateRetirement()` reads `this.config.SIMULATION`
+and throws a `TypeError` without it. `comparison.js` constructed it with none, which broke every scenario
+comparison; guarded now by `tests/unit/simulator-config-required.test.js`.
 
 ### Stochastic Rate Model
 
