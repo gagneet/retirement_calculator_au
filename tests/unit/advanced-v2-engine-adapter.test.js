@@ -121,8 +121,8 @@ const buildRedesignInputs = (overrides = {}) => ({
     agePensionAge: 67,
     pensionAnnualSingle: 31223,
     pensionAnnualCouple: 47070,
-    pensionAssetThreshold: 321500,
-    pensionAssetCutoff: 722000,
+    pensionAssetThreshold: 333000,
+    pensionAssetCutoff: 733500,
     mcRuns: 500,
     returnVolatility: 12,
     scenarioMode: 'baseline',
@@ -149,8 +149,8 @@ describe('advanced-v2 engine adapter', () => {
             partnerLifespan: 91,
             partnerSalary: 80000,
             partnerSuperBal: 150000,
-            pensionAssetThreshold: 481500,
-            pensionAssetCutoff: 1085000,
+            pensionAssetThreshold: 499000,
+            pensionAssetCutoff: 1102500,
         }));
 
         expect(engineInputs.isCouple).toBe(true);
@@ -163,8 +163,8 @@ describe('advanced-v2 engine adapter', () => {
         expect(engineInputs.employerSuperContributionRate).toBeCloseTo(0.12);
         expect(engineInputs.asfaComfortable).toBe(73000);
         expect(engineInputs.agePensionMax).toBe(47070);
-        expect(engineInputs.pensionAssetThreshold).toBe(481500);
-        expect(engineInputs.pensionAssetLimit).toBe(1085000);
+        expect(engineInputs.pensionAssetThreshold).toBe(499000);
+        expect(engineInputs.pensionAssetLimit).toBe(1102500);
         expect(engineInputs.useLongevityDistribution).toBe(false);
     });
 
@@ -388,7 +388,7 @@ describe('advanced-v2 engine adapter', () => {
             expect(engineInputs.mortgageRate).toBe(0);
             expect(engineInputs.monthlyMortgagePayment).toBe(0);
             expect(engineInputs.primaryRentAnnual).toBe(12000);
-            expect(engineInputs.pensionAssetThreshold).toBe(579500);
+            expect(engineInputs.pensionAssetThreshold).toBe(600000);
         });
     });
 
@@ -490,25 +490,25 @@ describe('advanced-v2 engine adapter', () => {
 
     test('uses current config defaults for household pension means tests', () => {
         expect(getHouseholdPensionDefaults('single')).toEqual({
-            threshold: 321500,
-            cutoff: 722000,
+            threshold: 333000,
+            cutoff: 733500,
         });
         expect(getHouseholdPensionDefaults('couple')).toEqual({
-            threshold: 481500,
-            cutoff: 1085000,
+            threshold: 499000,
+            cutoff: 1102500,
         });
     });
 
     test('syncs pension asset fields when the household changes unless manually overridden', () => {
         document.body.innerHTML = `
             <div class="segmented" data-bind="household" data-value="single"></div>
-            <input id="pensionAssetThreshold" value="481500" />
-            <input id="pensionAssetCutoff" value="1085000" />
+            <input id="pensionAssetThreshold" value="499000" />
+            <input id="pensionAssetCutoff" value="1102500" />
         `;
 
         syncPensionMeansTestFields(true);
-        expect(document.getElementById('pensionAssetThreshold').value).toBe('321500');
-        expect(document.getElementById('pensionAssetCutoff').value).toBe('722000');
+        expect(document.getElementById('pensionAssetThreshold').value).toBe('333000');
+        expect(document.getElementById('pensionAssetCutoff').value).toBe('733500');
 
         document.querySelector('[data-bind="household"]').dataset.value = 'couple';
         document.getElementById('pensionAssetThreshold').dataset.autoDefault = 'false';
@@ -516,7 +516,7 @@ describe('advanced-v2 engine adapter', () => {
 
         syncPensionMeansTestFields();
         expect(document.getElementById('pensionAssetThreshold').value).toBe('400000');
-        expect(document.getElementById('pensionAssetCutoff').value).toBe('1085000');
+        expect(document.getElementById('pensionAssetCutoff').value).toBe('1102500');
     });
 
     test('returns a real-engine result shaped for the redesigned UI', () => {

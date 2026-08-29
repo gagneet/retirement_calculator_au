@@ -85,9 +85,9 @@ describe('Deeming rate regression', () => {
      * - Previous rates (Sept 2025): 0.75% lower / 2.75% upper
      */
 
-    test('PINNED: deeming thresholds unchanged at verified March 2026 values', () => {
-        expect(C.DEMING_THRESHOLD_SINGLE).toBe(64200);
-        expect(C.DEMING_THRESHOLD_COUPLE).toBe(106200);
+    test('PINNED: deeming thresholds pinned to verified 1 July 2026 values', () => {
+        expect(C.DEMING_THRESHOLD_SINGLE).toBe(66800);
+        expect(C.DEMING_THRESHOLD_COUPLE).toBe(110600);
     });
 
     test('lower deeming rate is 1.25% (March 2026)', () => {
@@ -210,9 +210,9 @@ describe('Asset threshold regression', () => {
     });
 
     test('non-homeowner thresholds are exactly supplement higher than homeowner equivalents', () => {
-        // Verified 14 May 2026: supplement is consistently $258,000 across all four thresholds
+        // Verified 29 Aug 2026: supplement is consistently $267,000 across all four thresholds (1 July 2026 indexation)
         const supp = C.NON_HOMEOWNER_ASSET_SUPPLEMENT;
-        expect(supp).toBe(258000);
+        expect(supp).toBe(267000);
         expect(C.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER - C.SINGLE_ASSET_THRESHOLD).toBe(supp);
         expect(C.SINGLE_ASSET_LIMIT_NON_HOMEOWNER - C.SINGLE_ASSET_LIMIT).toBe(supp);
         expect(C.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER - C.COUPLE_ASSET_THRESHOLD).toBe(supp);
@@ -223,24 +223,24 @@ describe('Asset threshold regression', () => {
      * PINNED VALUES — Verified 14 May 2026 from servicesaustralia.gov.au/assets-test-for-age-pension
      * These tests fail immediately if someone changes a threshold without updating the source comment.
      */
-    test('PINNED: single homeowner thresholds match verified March 2026 values', () => {
-        expect(C.SINGLE_ASSET_THRESHOLD).toBe(321500);
-        expect(C.SINGLE_ASSET_LIMIT).toBe(722000);
+    test('PINNED: single homeowner thresholds match verified 1 July 2026 values', () => {
+        expect(C.SINGLE_ASSET_THRESHOLD).toBe(333000);
+        expect(C.SINGLE_ASSET_LIMIT).toBe(733500);
     });
 
-    test('PINNED: single non-homeowner thresholds match verified March 2026 values', () => {
-        expect(C.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER).toBe(579500);
-        expect(C.SINGLE_ASSET_LIMIT_NON_HOMEOWNER).toBe(980000);
+    test('PINNED: single non-homeowner thresholds match verified 1 July 2026 values', () => {
+        expect(C.SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER).toBe(600000);
+        expect(C.SINGLE_ASSET_LIMIT_NON_HOMEOWNER).toBe(1000500);
     });
 
-    test('PINNED: couple homeowner thresholds match verified March 2026 values', () => {
-        expect(C.COUPLE_ASSET_THRESHOLD).toBe(481500);
-        expect(C.COUPLE_ASSET_LIMIT).toBe(1085000);
+    test('PINNED: couple homeowner thresholds match verified 1 July 2026 values', () => {
+        expect(C.COUPLE_ASSET_THRESHOLD).toBe(499000);
+        expect(C.COUPLE_ASSET_LIMIT).toBe(1102500);
     });
 
-    test('PINNED: couple non-homeowner thresholds match verified March 2026 values', () => {
-        expect(C.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER).toBe(739500);
-        expect(C.COUPLE_ASSET_LIMIT_NON_HOMEOWNER).toBe(1343000);
+    test('PINNED: couple non-homeowner thresholds match verified 1 July 2026 values', () => {
+        expect(C.COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER).toBe(766000);
+        expect(C.COUPLE_ASSET_LIMIT_NON_HOMEOWNER).toBe(1369500);
     });
 
     test('asset thresholds source metadata is up-to-date (2026)', () => {
@@ -273,9 +273,9 @@ describe('Income threshold regression', () => {
      * PINNED VALUES — Verified 14 May 2026 from servicesaustralia.gov.au/income-test-for-age-pension
      * Income thresholds are UNCHANGED from Sept 2025 ($218 single, $380 couple).
      */
-    test('PINNED: income thresholds match verified March 2026 values (unchanged from Sept 2025)', () => {
-        expect(C.SINGLE_INCOME_THRESHOLD).toBe(218);
-        expect(C.COUPLE_INCOME_THRESHOLD).toBe(380);
+    test('PINNED: income thresholds match verified 1 July 2026 values', () => {
+        expect(C.SINGLE_INCOME_THRESHOLD).toBe(226);
+        expect(C.COUPLE_INCOME_THRESHOLD).toBe(396);
     });
 });
 
@@ -321,14 +321,14 @@ describe('Overseas retirement rules regression', () => {
      * Single:  ($86.50 full - $30.10 basic) + $14.10 energy = $70.50/fn × 26 = $1,833/yr
      * Couple:  ($65.20 full - $24.80 basic) + $10.60 energy = $51.00/fn × 26 = $1,326/yr each
      */
-    test('PINNED: supplement reductions match verified March 2026 values', () => {
+    test('PINNED: supplement reductions match verified 1 July 2026 values', () => {
         // Annual reduction single: $70.50/fn × 26 = $1,833
         expect(OVS.PENSION_SUPPLEMENT_REDUCTION_SINGLE).toBe(1833);
         // Annual reduction per person couple: $51.00/fn × 26 = $1,326
         expect(OVS.PENSION_SUPPLEMENT_REDUCTION_COUPLE).toBe(1326);
     });
 
-    test('PINNED: basic supplement rates retained overseas match verified March 2026 values', () => {
+    test('PINNED: basic supplement rates retained overseas match verified 1 July 2026 values', () => {
         // Single basic: $30.10/fn (retained when overseas)
         expect(OVS.PENSION_SUPPLEMENT_BASIC_SINGLE).toBe(30.10);
         // Couple basic: $24.80/fn per person (retained when overseas)

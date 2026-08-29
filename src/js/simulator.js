@@ -2535,15 +2535,21 @@ export class RetirementSimulator {
             // Overseas year flag (used for AWLR, portability and tax adjustments).
             const isOverseasYear = !!(inputs.goingOverseas && inputs.overseasStartAge > 0 && yourCurrentAge >= inputs.overseasStartAge);
 
-            // AWLR eligibility check: Age Pension requires 10+ years Australian residence
+            // Age Pension qualifying age for this projection. 67 for everyone born on or
+            // after 1 January 1957; exposed as an input so a projection can model a policy
+            // change. Used for both the AWLR window and the eligibility gate below.
+            const agePensionQualifyingAge = (inputs.agePensionAge > 0)
+                ? inputs.agePensionAge
+                : (this.config.OVERSEAS_RETIREMENT?.PENSION_AGE || 67);
+
+            // AWLR eligibility check: Age Pension requires 10+ years Australian residence.
             // If ageCameToAustralia is set, compute residence years at the current age in simulation.
-            // AWLR is the period as an Australian resident between age 16 and Age Pension age (67).
+            // AWLR is the period as an Australian resident between age 16 and Age Pension age.
             const ageArrival = parseFloat(inputs.ageCameToAustralia || 0);
             const ageDeparture = isOverseasYear ? inputs.overseasStartAge : yourCurrentAge;
-            // Current AWLR years: years in AU between 16 and 67
             const awlrYearsCurrent = ageArrival > 0
-                ? Math.max(0, Math.min(ageDeparture, 67) - Math.max(16, ageArrival))
-                : Math.max(0, Math.min(ageDeparture, 67) - 16);
+                ? Math.max(0, Math.min(ageDeparture, agePensionQualifyingAge) - Math.max(16, ageArrival))
+                : Math.max(0, Math.min(ageDeparture, agePensionQualifyingAge) - 16);
 
             // Pension eligibility requires 10 years of residency
             const pensionEligibleByResidency = awlrYearsCurrent >= 10;
@@ -2568,7 +2574,20 @@ export class RetirementSimulator {
             // unit trust distributions may carry a different rate. Default 0 = no pre-paid tax.
             const trustTaxRate = parseFloat(inputs.trustTaxRate || 0);
             const financialAssetsForDeeming = Math.max(0, currentBalance + trustAttributedAssets);
-            const deemedIncome = calculateDeemedIncome(financialAssetsForDeeming, isCouple);
+            // Age Pension policy parameters for THIS projection year.
+            //
+            // Every figure below is legislated in today's dollars and indexed by Services
+            // Australia (asset thresholds and the income free area on 1 July; asset cut-offs
+            // on 20 March and 20 September; the payment rate on 20 March and 20 September).
+            // The projection runs 30-40 years in nominal dollars, so holding them flat means
+            // testing inflated balances against today's limits — which pushes people above
+            // the cut-off artificially and understates the pension in later years.
+            //
+            // inflationFactorBeforeAdvance is the cumulative CPI factor for the current year
+            // (it is seeded from the accumulation phase, so it measures from today, not from
+            // retirement). Using it keeps the pension on the same price path as spending.
+            const pensionIndexation = inflationFactorBeforeAdvance;
+            const deemedIncome = calculateDeemedIncome(financialAssetsForDeeming, isCouple, pensionIndexation);
             // If trust assets are attributed and deemed, actual distributions are generally ignored
             // for the income test to avoid double counting.
             const trustDistributionIncome = inputs.hasTrustAssets ? 0 : trustDistributionGross;
@@ -2580,6 +2599,12 @@ export class RetirementSimulator {
                 pensionIncome = 0;
             } else if (!pensionEligibleByResidency) {
                 // Not enough Australian residence years — no Age Pension
+                pensionIncome = 0;
+            } else if (!isCouple && yourCurrentAge < agePensionQualifyingAge) {
+                // Age gate. The single branch previously had none: eligibility was decided
+                // by the asset test alone, so anyone retiring early with modest assets was
+                // paid the full Age Pension from their retirement age. The couple branch is
+                // gated inside calculateAgePensionForCouple.
                 pensionIncome = 0;
             } else if (isCouple) {
                 // Use enhanced couple pension calculation
@@ -2602,7 +2627,17 @@ export class RetirementSimulator {
                 };
 
                 const isHomeowner = (inputs.homeValue || 0) > 0 && !inputs.homeInTrust;
-                const pensionResult = calculateAgePensionForCouple(person1, person2, isHomeowner, {});
+                // Previously `{}` — which meant the user's means-test inputs and the CPI
+                // indexation factor were silently discarded for couples while working for
+                // singles. Zero/absent values fall back to the legislated defaults.
+                const pensionResult = calculateAgePensionForCouple(person1, person2, isHomeowner, {
+                    pensionAge: agePensionQualifyingAge,
+                    maxPension: inputs.agePensionMax,
+                    assetThreshold: inputs.pensionAssetThreshold,
+                    assetLimit: inputs.pensionAssetLimit,
+                    incomeThreshold: inputs.pensionIncomeThreshold,
+                    indexationFactor: pensionIndexation,
+                });
 
                 if (pensionResult.eligible) {
                     pensionIncome = pensionResult.currentPension.annual;
@@ -2614,10 +2649,12 @@ export class RetirementSimulator {
             } else {
                 // Single person - income test includes trust distributions.
                 // Use user-entered pension parameters when provided; fall back to indexed config values.
-                const effectivePensionMax = (inputs.agePensionMax > 0) ? inputs.agePensionMax : this.config.SINGLE_PENSION_MAX;
-                const effectiveAssetThreshold = (inputs.pensionAssetThreshold > 0) ? inputs.pensionAssetThreshold : this.config.SINGLE_ASSET_THRESHOLD;
-                const effectiveAssetLimit = (inputs.pensionAssetLimit > 0) ? inputs.pensionAssetLimit : this.config.SINGLE_ASSET_LIMIT;
-                const effectiveIncomeThreshold = (inputs.pensionIncomeThreshold > 0) ? inputs.pensionIncomeThreshold : this.config.SINGLE_INCOME_THRESHOLD;
+                // Each figure is a today's-dollars policy value — a user override just as
+                // much as the config default — so indexation applies to whichever wins.
+                const effectivePensionMax = ((inputs.agePensionMax > 0) ? inputs.agePensionMax : this.config.SINGLE_PENSION_MAX) * pensionIndexation;
+                const effectiveAssetThreshold = ((inputs.pensionAssetThreshold > 0) ? inputs.pensionAssetThreshold : this.config.SINGLE_ASSET_THRESHOLD) * pensionIndexation;
+                const effectiveAssetLimit = ((inputs.pensionAssetLimit > 0) ? inputs.pensionAssetLimit : this.config.SINGLE_ASSET_LIMIT) * pensionIndexation;
+                const effectiveIncomeThreshold = ((inputs.pensionIncomeThreshold > 0) ? inputs.pensionIncomeThreshold : this.config.SINGLE_INCOME_THRESHOLD) * pensionIndexation;
                 pensionIncome = calculateAgePension(
                     assessableAssets,
                     propertyIncome + deemedIncome + trustDistributionIncome,

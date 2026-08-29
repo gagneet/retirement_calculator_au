@@ -13,11 +13,18 @@
  */
 
 import { ENHANCED_CONFIG }       from '../config.js';
-import { applyWorkBonus }        from '../utils.js';
+import { applyWorkBonus, resolveAgePensionPolicy } from '../utils.js';
 
 // ── Policy constants sourced from the single source of truth ─────────────────
 
-/** Age Pension eligibility age — currently 67. */
+/**
+ * Default Age Pension eligibility age — 67 for everyone born on or after 1 Jan 1957.
+ *
+ * This is the fallback only. Every function below accepts an optional `policy` object
+ * so a projection can override the qualifying age, the means-test parameters, and apply
+ * a CPI indexation factor. Policy resolution is shared with Pipeline A through
+ * utils.js:resolveAgePensionPolicy, so the two pipelines cannot drift apart.
+ */
 export const PENSION_AGE = ENHANCED_CONFIG.OVERSEAS_RETIREMENT?.PENSION_AGE || 67;
 
 /** Current maximum annual Age Pension rates (March 2026 indexation). */
@@ -99,6 +106,7 @@ const applyMeansTest = (totalAssets, annualIncome, maxPension, assetThreshold, a
  * @param {boolean} homeowner           – true if primary residence is owned
  * @param {number}  [employmentIncome=0] – salary/wages (Work Bonus applied internally)
  * @param {number}  [workBonusBalance=0] – accumulated Work Bonus balance ($0–$11,800)
+ * @param {Object}  [policy={}]          – per-projection overrides + indexationFactor
  * @returns {number} annual pension ($)
  */
 export const calcSinglePension = (
@@ -107,13 +115,10 @@ export const calcSinglePension = (
     homeowner       = true,
     employmentIncome  = 0,
     workBonusBalance  = 0,
+    policy            = {},
 ) => {
-    const assetThreshold = homeowner
-        ? ASSET_THRESHOLDS.singleHomeowner
-        : ASSET_THRESHOLDS.singleNonHomeowner;
-    const assetLimit = homeowner
-        ? ASSET_LIMITS.singleHomeowner
-        : ASSET_LIMITS.singleNonHomeowner;
+    const { maxRate, assetThreshold, assetLimit, incomeThreshold } =
+        resolveAgePensionPolicy({ ...policy, isCouple: false, homeowner });
 
     // Apply Work Bonus: reduces assessable employment income for income-test purposes
     const { assessableEmploymentIncome } = applyWorkBonus(employmentIncome, workBonusBalance, false);
@@ -122,10 +127,10 @@ export const calcSinglePension = (
     return applyMeansTest(
         totalAssets,
         totalAssessableIncome,
-        PENSION_RATES.singleMax,
+        maxRate,
         assetThreshold,
         assetLimit,
-        INCOME_THRESHOLDS_FORTNIGHT.single,
+        incomeThreshold,
     );
 };
 
@@ -137,6 +142,7 @@ export const calcSinglePension = (
  * @param {boolean} homeowner
  * @param {number}  [employmentIncome=0]  – combined salary/wages of both partners
  * @param {number}  [workBonusBalance=0]  – combined accumulated Work Bonus balance
+ * @param {Object}  [policy={}]           – per-projection overrides + indexationFactor
  * @returns {number} combined annual pension ($)
  */
 export const calcCouplePension = (
@@ -145,14 +151,10 @@ export const calcCouplePension = (
     homeowner        = true,
     employmentIncome   = 0,
     workBonusBalance   = 0,
+    policy             = {},
 ) => {
-    const maxPension = PENSION_RATES.coupleMax * 2;
-    const assetThreshold = homeowner
-        ? ASSET_THRESHOLDS.coupleHomeowner
-        : ASSET_THRESHOLDS.coupleNonHomeowner;
-    const assetLimit = homeowner
-        ? ASSET_LIMITS.coupleHomeowner
-        : ASSET_LIMITS.coupleNonHomeowner;
+    const { maxRate, assetThreshold, assetLimit, incomeThreshold } =
+        resolveAgePensionPolicy({ ...policy, isCouple: true, homeowner });
 
     // Apply Work Bonus on combined employment income (isCouple=true doubles annual exemption)
     const { assessableEmploymentIncome } = applyWorkBonus(employmentIncome, workBonusBalance, true);
@@ -161,10 +163,10 @@ export const calcCouplePension = (
     return applyMeansTest(
         totalAssets,
         totalAssessableIncome,
-        maxPension,
+        maxRate,
         assetThreshold,
         assetLimit,
-        INCOME_THRESHOLDS_FORTNIGHT.couple,
+        incomeThreshold,
     );
 };
 
@@ -192,6 +194,10 @@ export const calcCouplePension = (
  * @param {number}  [partnerAge=0]     – partner's current age (0 if no partner)
  * @param {number}  [employmentIncome=0] – combined employment income ($)
  * @param {number}  [workBonusBalance=0] – accumulated Work Bonus balance
+ * @param {Object}  [policy={}]          – per-projection overrides: pensionAge,
+ *        maxPension, assetThreshold, assetLimit, incomeThreshold, and
+ *        indexationFactor (scales every dollar figure to the projection year).
+ *        Omitted values fall back to the legislated figures in config.js.
  * @returns {{ eligible: boolean, annualPension: number }}
  */
 export const calcPensionForYear = (
@@ -203,26 +209,31 @@ export const calcPensionForYear = (
     partnerAge       = 0,
     employmentIncome   = 0,
     workBonusBalance   = 0,
+    policy             = {},
 ) => {
+    // The qualifying age is resolved through the shared helper so an override reaches
+    // both the eligibility gate here and the means-test parameters below.
+    const { pensionAge } = resolveAgePensionPolicy({ ...policy, isCouple, homeowner });
+
     // Primary person must be at pension age to be the recipient
-    if (age < PENSION_AGE) {
+    if (age < pensionAge) {
         return { eligible: false, annualPension: 0 };
     }
 
     let annualPension;
     if (!isCouple) {
         // Single — straightforward
-        annualPension = calcSinglePension(totalAssets, nonEmploymentIncome, homeowner, employmentIncome, workBonusBalance);
-    } else if (partnerAge >= PENSION_AGE || partnerAge === 0) {
+        annualPension = calcSinglePension(totalAssets, nonEmploymentIncome, homeowner, employmentIncome, workBonusBalance, policy);
+    } else if (partnerAge >= pensionAge || partnerAge === 0) {
         // Both partners at pension age (or no partner age provided — assume both eligible):
         // combined couple means test, return full combined amount.
-        annualPension = calcCouplePension(totalAssets, nonEmploymentIncome, homeowner, employmentIncome, workBonusBalance);
+        annualPension = calcCouplePension(totalAssets, nonEmploymentIncome, homeowner, employmentIncome, workBonusBalance, policy);
     } else {
         // PR review fix #3247147250: One-partner-eligible case.
         // Primary is eligible but partner is under pension age.
         // Services Australia: combined couple means test applies (uses couple thresholds),
         // but only the eligible partner receives a payment → halve the combined result.
-        const combinedPension = calcCouplePension(totalAssets, nonEmploymentIncome, homeowner, employmentIncome, workBonusBalance);
+        const combinedPension = calcCouplePension(totalAssets, nonEmploymentIncome, homeowner, employmentIncome, workBonusBalance, policy);
         annualPension = combinedPension / 2;
     }
 

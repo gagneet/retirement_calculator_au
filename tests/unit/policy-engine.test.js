@@ -70,9 +70,9 @@ describe('getPolicyMetadata', () => {
         expect(meta.effectiveDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
-    test('effective date is 2026-03-20 (March 2026 indexation)', () => {
+    test('effective date is 2026-07-01 (1 July 2026 indexation)', () => {
         const meta = getPolicyMetadata();
-        expect(meta.effectiveDate).toBe('2026-03-20');
+        expect(meta.effectiveDate).toBe('2026-07-01');
     });
 
     test('next review date is in the future (2026-09-20 or later)', () => {
@@ -112,18 +112,18 @@ describe('calculateDeemedIncome', () => {
     });
 
     test('single: assets exactly at threshold', () => {
-        // $64,200 at 1.25% = $802.50
+        // $66,800 at 1.25% = $835.00
         const result = calculateDeemedIncome(DEEM_THR_S, false);
         expect(result).toBeCloseTo(DEEM_THR_S * DEEM_LOW, 2);
     });
 
     test('single: assets spanning both deeming tiers', () => {
-        // $100,000: $64,200 at 1.25% + ($100,000 - $64,200) at 3.25%
-        // = $802.50 + $35,800 × 0.0325 = $802.50 + $1,163.50 = $1,966.00
+        // $100,000: $66,800 at 1.25% + ($100,000 - $66,800) at 3.25%
+        // = $835.00 + $33,200 × 0.0325 = $835.00 + $1,079.00 = $1,914.00
         const assets = 100000;
         const expected = DEEM_THR_S * DEEM_LOW + (assets - DEEM_THR_S) * DEEM_HIGH;
         expect(calculateDeemedIncome(assets, false)).toBeCloseTo(expected, 2);
-        expect(calculateDeemedIncome(assets, false)).toBeCloseTo(1966, 0);
+        expect(calculateDeemedIncome(assets, false)).toBeCloseTo(1914, 0);
     });
 
     test('couple: assets below couple threshold uses couple threshold', () => {

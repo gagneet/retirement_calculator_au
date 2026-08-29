@@ -36,6 +36,28 @@ module.exports = {
         ],
     },
     optimization: {
+        // Every entry point previously inlined its own copy of the shared engine layer
+        // (simulator.js ~219KB, utils.js ~207KB, config.js ~113KB and friends), so a user
+        // who opened two calculators downloaded the same code twice. Splitting the common
+        // modules into a shared chunk lets the browser cache them once across all pages.
+        splitChunks: {
+            chunks: 'all',
+            // Keep the shared chunk worth its extra request.
+            minSize: 30000,
+            cacheGroups: {
+                shared: {
+                    name: 'shared',
+                    // A module used by two or more entry points belongs in the shared chunk.
+                    minChunks: 2,
+                    priority: 10,
+                    reuseExistingChunk: true,
+                    enforce: true,
+                },
+            },
+        },
+        // Keep the module->id mapping in its own tiny chunk so adding a module does not
+        // invalidate the contenthash of every other chunk.
+        runtimeChunk: 'single',
         minimize: true,
         minimizer: [
             new TerserPlugin({

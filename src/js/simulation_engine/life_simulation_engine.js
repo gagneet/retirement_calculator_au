@@ -212,6 +212,10 @@ export const runLifeSimulation = (userInputs) => {
         // Accumulate cumulative inflation product — year-by-year multiplication so each
         // year's drawn rate componds onto ALL prior years rather than being raised to a
         // bulk power.  This is the correct way to handle stochastic per-year inflation.
+        // Snapshot before advancing: pension policy parameters for THIS year must be
+        // indexed by the factor at the START of the year, matching simulator.js's
+        // inflationFactorBeforeAdvance. Advancing first would over-index by one year.
+        const inflationFactorBeforeAdvance = cumulativeInflationFactor;
         cumulativeInflationFactor *= (1 + yearInflationRate);
 
         // Stochastic shocks (applied on top of per-year rates drawn above)
@@ -387,7 +391,11 @@ export const runLifeSimulation = (userInputs) => {
         const assessableAssets = superBalance + partnerSuper + investmentAssets + propertyValue;
 
         // Deeming is applied to financial assets (super + investments) for the income test.
-        const deemedIncome = calculateDeemedIncome(superBalance + partnerSuper + investmentAssets, isCouple);
+        const deemedIncome = calculateDeemedIncome(
+            superBalance + partnerSuper + investmentAssets,
+            isCouple,
+            inflationFactorBeforeAdvance,
+        );
 
         // PR review fix #3247147627: pass partnerAge so pension_engine can correctly
         // apply the one-partner-eligible case (pays half the couple combined pension).
@@ -397,6 +405,19 @@ export const runLifeSimulation = (userInputs) => {
         const combinedEmploymentIncome = salary + partnerSalary;
         const nonEmploymentIncome      = Math.max(0, rentalNetCashFlow) + deemedIncome;
 
+        // Per-projection Age Pension policy. Previously this call used the module-level
+        // constants, so inputs.agePensionAge and the means-test fields were inert here
+        // even though Pipeline A honoured them, and the parameters were held flat in
+        // nominal terms across the whole projection.
+        const pensionPolicy = {
+            pensionAge: inputs.agePensionAge,
+            maxPension: inputs.agePensionMax,
+            assetThreshold: inputs.pensionAssetThreshold,
+            assetLimit: inputs.pensionAssetLimit,
+            incomeThreshold: inputs.pensionIncomeThreshold,
+            indexationFactor: inflationFactorBeforeAdvance,
+        };
+
         const { annualPension } = calcPensionForYear(
             age,
             assessableAssets,
@@ -405,6 +426,8 @@ export const runLifeSimulation = (userInputs) => {
             homeowner,
             partnerAge,             // PR fix #3247147627: previously missing
             combinedEmploymentIncome,
+            0,                      // workBonusBalance — not tracked in this pipeline
+            pensionPolicy,
         );
         state.pensionIncome = annualPension;
 

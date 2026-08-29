@@ -1,6 +1,7 @@
 // js/comparison.js - Scenario Comparison Application
 
 import { ENHANCED_CONFIG } from './config.js';
+import { initGoogleAnalytics } from './google-analytics.js';
 import RetirementSimulator from './simulator.js';
 import ChartManager from './charts.js';
 import {
@@ -13,10 +14,14 @@ import {
     loadFromLocalStorage
 } from './utils.js';
 
+initGoogleAnalytics();
+
 class ComparisonApp {
     constructor() {
         this.scenarios = [];
-        this.simulator = new RetirementSimulator();
+        // ENHANCED_CONFIG is required: simulateRetirement() reads this.config.SIMULATION,
+        // so constructing without a config threw a TypeError on every scenario comparison.
+        this.simulator = new RetirementSimulator(ENHANCED_CONFIG);
         this.chartManager = new ChartManager();
         this.comparisonCharts = {};
 
