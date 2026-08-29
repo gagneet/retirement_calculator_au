@@ -110,9 +110,9 @@ describe('advanced calculator derived defaults', () => {
             ${buildField('homeValue', 'Home Value', '0')}
             ${buildField('asfaComfortable', 'Desired Retirement Income', '73031')}
             ${buildField('agePensionMax', 'Age Pension Max', '47070')}
-            ${buildField('pensionAssetThreshold', 'Pension Asset Threshold', '481500')}
-            ${buildField('pensionAssetLimit', 'Pension Asset Limit', '1085000')}
-            ${buildField('pensionIncomeThreshold', 'Pension Income Threshold', '380')}
+            ${buildField('pensionAssetThreshold', 'Pension Asset Threshold', '499000')}
+            ${buildField('pensionAssetLimit', 'Pension Asset Limit', '1102500')}
+            ${buildField('pensionIncomeThreshold', 'Pension Income Threshold', '396')}
         `;
 
         const app = createApp();
@@ -124,9 +124,9 @@ describe('advanced calculator derived defaults', () => {
         // SINGLE_PENSION_MAX=$31,223; SINGLE_ASSET_THRESHOLD_NH=$579,500; limit=$980,000; income=$218
         expect(document.getElementById('asfaComfortable').value).toBe('52085');
         expect(document.getElementById('agePensionMax').value).toBe('31223');
-        expect(document.getElementById('pensionAssetThreshold').value).toBe('579500');
-        expect(document.getElementById('pensionAssetLimit').value).toBe('980000');
-        expect(document.getElementById('pensionIncomeThreshold').value).toBe('218');
+        expect(document.getElementById('pensionAssetThreshold').value).toBe('600000');
+        expect(document.getElementById('pensionAssetLimit').value).toBe('1000500');
+        expect(document.getElementById('pensionIncomeThreshold').value).toBe('226');
         expect(document.querySelector('[data-field-default-badge="asfaComfortable"]').textContent).toContain('Official default');
     });
 
@@ -142,9 +142,9 @@ describe('advanced calculator derived defaults', () => {
             ${buildField('yourSalary', 'Your Salary', '100000')}
             ${buildField('asfaComfortable', 'Desired Retirement Income', '73031')}
             ${buildField('agePensionMax', 'Age Pension Max', '47070')}
-            ${buildField('pensionAssetThreshold', 'Pension Asset Threshold', '481500')}
-            ${buildField('pensionAssetLimit', 'Pension Asset Limit', '1085000')}
-            ${buildField('pensionIncomeThreshold', 'Pension Income Threshold', '380')}
+            ${buildField('pensionAssetThreshold', 'Pension Asset Threshold', '499000')}
+            ${buildField('pensionAssetLimit', 'Pension Asset Limit', '1102500')}
+            ${buildField('pensionIncomeThreshold', 'Pension Income Threshold', '396')}
             ${buildField('capitalGainsTaxRate', 'Capital Gains Tax Rate', '0')}
         `;
 
@@ -160,9 +160,9 @@ describe('advanced calculator derived defaults', () => {
         // plus the Dec 2025 ASFA comfortable standard for a single household.
         expect(document.getElementById('asfaComfortable').value).toBe('$52,085.00');
         expect(document.getElementById('agePensionMax').value).toBe('$31,223.00');
-        expect(document.getElementById('pensionAssetThreshold').value).toBe('$579,500.00');
-        expect(document.getElementById('pensionAssetLimit').value).toBe('$980,000.00');
-        expect(document.getElementById('pensionIncomeThreshold').value).toBe('$218.00');
+        expect(document.getElementById('pensionAssetThreshold').value).toBe('$600,000.00');
+        expect(document.getElementById('pensionAssetLimit').value).toBe('$1,000,500.00');
+        expect(document.getElementById('pensionIncomeThreshold').value).toBe('$226.00');
         expect(document.getElementById('capitalGainsTaxRate').value).toBe('15.00%');
     });
 

@@ -12,12 +12,12 @@ export const ENHANCED_CONFIG = {
     // Core Australian system constants
     SUPER_GUARANTEE_RATE: 0.12,
 
-    // ===== DEEMING RATES (March 2026) =====
+    // ===== DEEMING RATES (1 July 2026) =====
     // Source: Services Australia - servicesaustralia.gov.au/deeming
-    // Effective: 20 March 2026 (updated every 20 March and 20 September)
-    // Previous (Sept 2025): lower=0.75%, upper=2.75%
-    DEMING_THRESHOLD_SINGLE: 64200,      // Lower deeming rate threshold - singles (March 2026)
-    DEMING_THRESHOLD_COUPLE: 106200,     // Lower deeming rate threshold - couples (March 2026)
+    // Thresholds are indexed 1 July; rates change 20 March / 20 September.
+    // Previous (March 2026): thresholds 64,200 / 106,200.
+    DEMING_THRESHOLD_SINGLE: 66800,      // Lower deeming rate threshold - singles (1 July 2026)
+    DEMING_THRESHOLD_COUPLE: 110600,     // Lower deeming rate threshold - couples (1 July 2026)
     DEMING_RATE_LOWER: 0.0125,           // 1.25% on amounts below threshold (March 2026, was 0.75%)
     DEMING_RATE_UPPER: 0.0325,           // 3.25% on amounts above threshold (March 2026, was 2.75%)
 
@@ -29,31 +29,33 @@ export const ENHANCED_CONFIG = {
     SINGLE_PENSION_MAX: 31223,           // $1,200.90/fortnight × 26 = $31,223.40 (March 2026)
     COUPLE_PENSION_MAX: 47070,           // $1,810.40/fortnight × 26 = $47,070.40 (March 2026)
 
-    // ===== ASSET TEST THRESHOLDS (20 March 2026) =====
+    // ===== ASSET TEST THRESHOLDS (1 July 2026) =====
     // Source: Services Australia servicesaustralia.gov.au/assets-test-for-age-pension
-    // Verified: 14 May 2026 — page last updated 20 March 2026
+    // Verified: 29 August 2026 against Services Australia + two independent trackers.
+    // In force 1 July 2026 – 19 September 2026. Full-pension limits are indexed 1 July;
+    // part-pension cut-offs are indexed 20 March and 20 September.
     // Full-pension limits (assets below this = full pension)
     // Part-pension cut-offs (assets at/above this = $0 pension)
-    SINGLE_ASSET_THRESHOLD: 321500,              // Full pension limit, single homeowner (March 2026)
-    SINGLE_ASSET_LIMIT: 722000,                  // Part pension cutoff, single homeowner (March 2026)
-    SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER: 579500, // Full pension limit, single non-homeowner (March 2026)
-    SINGLE_ASSET_LIMIT_NON_HOMEOWNER: 980000,     // Part pension cutoff, single non-homeowner (March 2026)
-    COUPLE_ASSET_THRESHOLD: 481500,              // Full pension limit, couple homeowner (March 2026)
-    COUPLE_ASSET_LIMIT: 1085000,                 // Part pension cutoff, couple homeowner (March 2026)
-    COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER: 739500, // Full pension limit, couple non-homeowner (March 2026)
-    COUPLE_ASSET_LIMIT_NON_HOMEOWNER: 1343000,    // Part pension cutoff, couple non-homeowner (March 2026)
-    // Non-homeowner supplement = NH threshold minus HO threshold (258,000 for singles March 2026)
-    NON_HOMEOWNER_ASSET_SUPPLEMENT: 258000,
+    SINGLE_ASSET_THRESHOLD: 333000,              // Full pension limit, single homeowner (1 July 2026)
+    SINGLE_ASSET_LIMIT: 733500,                  // Part pension cutoff, single homeowner (1 July 2026)
+    SINGLE_ASSET_THRESHOLD_NON_HOMEOWNER: 600000, // Full pension limit, single non-homeowner (1 July 2026)
+    SINGLE_ASSET_LIMIT_NON_HOMEOWNER: 1000500,    // Part pension cutoff, single non-homeowner (1 July 2026)
+    COUPLE_ASSET_THRESHOLD: 499000,              // Full pension limit, couple homeowner (1 July 2026)
+    COUPLE_ASSET_LIMIT: 1102500,                 // Part pension cutoff, couple homeowner (1 July 2026)
+    COUPLE_ASSET_THRESHOLD_NON_HOMEOWNER: 766000, // Full pension limit, couple non-homeowner (1 July 2026)
+    COUPLE_ASSET_LIMIT_NON_HOMEOWNER: 1369500,    // Part pension cutoff, couple non-homeowner (1 July 2026)
+    // Non-homeowner supplement = NH threshold minus HO threshold (267,000 for singles July 2026)
+    NON_HOMEOWNER_ASSET_SUPPLEMENT: 267000,
 
-    // ===== INCOME TEST THRESHOLDS (20 March 2026) =====
+    // ===== INCOME TEST THRESHOLDS (1 July 2026) =====
     // Source: Services Australia servicesaustralia.gov.au/income-test-for-age-pension
     // Verified: 14 May 2026 — page last updated 20 March 2026
-    // NOTE: Income thresholds are UNCHANGED from Sept 2025 — $218 single, $380 couple combined
-    SINGLE_INCOME_THRESHOLD: 218,        // Per fortnight — UNCHANGED from Sept 2025
-    COUPLE_INCOME_THRESHOLD: 380,        // Per fortnight combined — UNCHANGED from Sept 2025
+    // Income free areas are indexed on 1 July. Previous (to 30 June 2026): $218 / $380.
+    SINGLE_INCOME_THRESHOLD: 226,        // Per fortnight (1 July 2026)
+    COUPLE_INCOME_THRESHOLD: 396,        // Per fortnight combined (1 July 2026)
 
     // ===== POLICY METADATA (for "Rules used as at" display and regression tests) =====
-    POLICY_EFFECTIVE_DATE: '2026-03-20',
+    POLICY_EFFECTIVE_DATE: '2026-07-01',
     POLICY_NEXT_REVIEW_DATE: '2026-09-20',
     POLICY_SOURCE: 'Services Australia',
     POLICY_SOURCE_URL: 'https://www.servicesaustralia.gov.au/age-pension',
@@ -91,10 +93,10 @@ export const ENHANCED_CONFIG = {
         MAX_SUPER_CONTRIBUTION_BASE: { source: 'ATO', lastUpdated: '2026-06-03', url: 'https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/super-guarantee', policySourceId: 'ato-super-guarantee', note: '2025-26 maximum super contribution base is $62,500 per quarter.' },
         CONCESSIONAL_CAP: { source: 'ATO', lastUpdated: '2026-06-03', url: 'https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/contributions-caps', policySourceId: 'ato-contribution-caps' },
         DIVISION_293_THRESHOLD: { source: 'ATO', lastUpdated: '2026-06-03', url: 'https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/caps-limits-and-tax-on-super-contributions/division-293-tax-on-concessional-contributions-by-high-income-earners', policySourceId: 'ato-division-293' },
-        DEMING_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2026-03-20', note: 'VERIFIED 14 May 2026: Thresholds unchanged at $64,200 (single) / $106,200 (couple). Rates increased to 1.25% / 3.25% from 20 March 2026. Source: servicesaustralia.gov.au/deeming?context=22526 and DVA updates.', url: 'https://www.servicesaustralia.gov.au/deeming?context=22526', previousValues: { lower: 0.0075, upper: 0.0275, asOf: '2025-09-20' }, verified: true },
+        DEMING_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2026-07-01', note: 'VERIFIED 29 Aug 2026: thresholds indexed 1 July 2026 to $66,800 (single) / $110,600 (couple). Rates unchanged at 1.25% / 3.25% since 20 March 2026.', url: 'https://www.servicesaustralia.gov.au/deeming?context=22526', previousValues: { thresholdSingle: 64200, thresholdCouple: 106200, asOf: '2026-03-20' }, verified: true },
         PENSION_MAXIMUMS: { source: 'Services Australia', lastUpdated: '2026-03-20', note: 'Verified 14 May 2026: single $1,200.90/fn total, couple combined $1,810.40/fn total', url: 'https://www.servicesaustralia.gov.au/how-much-age-pension-you-can-get', previousValues: { single: 30646, couple: 46202, asOf: '2025-09-20' }, verified: true },
-        ASSET_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2026-03-20', note: 'Verified 14 May 2026 from assets-test-for-age-pension page. Full-pension limits unchanged from Sept 2025; cut-offs updated.', url: 'https://www.servicesaustralia.gov.au/assets-test-for-age-pension', verified: true },
-        INCOME_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2026-03-20', note: 'Verified 14 May 2026: income thresholds UNCHANGED from Sept 2025 ($218 single, $380 couple)', url: 'https://www.servicesaustralia.gov.au/income-test-for-age-pension', verified: true },
+        ASSET_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2026-07-01', note: 'VERIFIED 29 Aug 2026: 1 July 2026 indexation applied (full-pension thresholds AND cut-offs). Next cut-off indexation 20 September 2026 (single homeowner cut-off moves to $745,750).', url: 'https://www.servicesaustralia.gov.au/assets-test-for-age-pension', previousValues: { singleThreshold: 321500, singleLimit: 722000, asOf: '2026-03-20' }, verified: true },
+        INCOME_THRESHOLDS: { source: 'Services Australia', lastUpdated: '2026-07-01', note: 'VERIFIED 29 Aug 2026: income free areas indexed 1 July 2026 to $226 (single) / $396 (couple combined).', url: 'https://www.servicesaustralia.gov.au/income-test-for-age-pension', previousValues: { single: 218, couple: 380, asOf: '2025-09-20' }, verified: true },
         HOME_EQUITY_ACCESS_RATE: { source: 'Services Australia', lastUpdated: '2025-10-01' },
         CGT_DISCOUNT: { source: 'ATO', lastUpdated: '2025-10-01' },
         FRANKING_CREDIT_RATE: { source: 'ATO', lastUpdated: '2025-10-01' },
