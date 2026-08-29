@@ -213,10 +213,21 @@ verbatim so it cannot import) and the pre-JS `value="…"` attributes in the HTM
 `tests/unit/pension-constant-sync.test.js` fails if any copy drifts. Never hardcode a pension figure in a
 controller; read it from `ENHANCED_CONFIG`.
 
-Known gaps (verified, not yet fixed): the pension age is hardcoded to 67 in `utils.js` and `pension_engine.js`
-so `inputs.agePensionAge` is inert; `calculateStandardCouplePension` accepts a `config` argument and ignores
-it, so the couple means-test inputs do nothing; and thresholds/max are held **flat in nominal terms** across
-the whole projection while balances inflate, which understates the pension in later years.
+**Pension parameters are indexed across the projection.** Every figure is legislated in today's dollars, so
+`simulator.js` multiplies the payment rate, asset threshold, asset cut-off, income free area and deeming
+thresholds by `inflationFactorBeforeAdvance` (the cumulative CPI factor for that year, seeded from the
+accumulation phase so it measures from today). Holding them flat means-tests inflated balances against
+today's limits and understates the pension in later years. A user override is a today's-dollars statement of
+policy too, so indexation applies to whichever value wins.
+
+**Eligibility.** `inputs.agePensionAge` is real — it gates the single branch, is passed into
+`calculateAgePensionForCouple`, and sets the AWLR residence window. It defaults to
+`config.OVERSEAS_RETIREMENT.PENSION_AGE` (67). `resolveCouplePensionParameters` in `utils.js` is the one
+place couple parameters are resolved; the couple functions previously accepted a `config` argument and
+ignored it. Covered by `tests/unit/pension-model.test.js`.
+
+Remaining gap: `simulation_engine/pension_engine.js` (Pipeline B) still has its own module-level
+`PENSION_AGE` constant. It does gate on age correctly, but cannot be overridden per projection.
 
 ### Stochastic Rate Model
 
