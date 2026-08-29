@@ -1,67 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Google Analytics - Silent loading with background retry -->
-    <script>
-        // Load Google Analytics with a silent failure and retry mechanism
-        ( function () {
-            let analyticsRetryCount = 0;
-            const maxRetries = 3;
-            const retryDelay = 30000; // 30 seconds
-
-            function loadGoogleAnalytics() {
-                try {
-                    const script = document.createElement('script');
-                    script.async = true;
-                    script.src = 'https://www.googletagmanager.com/gtag/js?id=G-F3BXKGK3QZ';
-
-                    // Set timeout for failure detection
-                    const loadTimeout = setTimeout(() => {
-                        if (!window.gtag || !window.dataLayer) {
-                            console.log('⚠️ Google Analytics loading timeout - likely blocked by privacy tools');
-                            if (analyticsRetryCount < maxRetries) {
-                                analyticsRetryCount++;
-                                setTimeout(loadGoogleAnalytics, retryDelay);
-                            }
-                        }
-                    }, 8000); // 8-second timeout
-
-                    script.onload = function () {
-                        clearTimeout(loadTimeout);
-                        console.log('✅ Google Analytics loaded successfully');
-                        window.dataLayer = window.dataLayer || [];
-
-                        function gtag() {
-                            dataLayer.push(arguments);
-                        }
-
-                        gtag('js', new Date());
-                        gtag('config', 'G-F3BXKGK3QZ');
-                    };
-
-                    script.onerror = function () {
-                        clearTimeout(loadTimeout);
-                        console.log('⚠️ Google Analytics blocked by privacy tools - will retry in 30 seconds');
-                        if (analyticsRetryCount < maxRetries) {
-                            analyticsRetryCount++;
-                            setTimeout(loadGoogleAnalytics, retryDelay);
-                        }
-                    };
-
-                    document.head.appendChild(script);
-                } catch (e) {
-                    console.log('❌ Google Analytics initialization failed:', e.message);
-                    if (analyticsRetryCount < maxRetries) {
-                        analyticsRetryCount++;
-                        setTimeout(loadGoogleAnalytics, retryDelay);
-                    }
-                }
-            }
-
-            // Initial load attempt
-            loadGoogleAnalytics();
-        } )();
-    </script>
+    <!-- Google Analytics is loaded by src/js/google-analytics.js (bundled via the "main" webpack entry). -->
 
     <!-- Google AdSense - Silent loading with background retry -->
     <script>
@@ -542,6 +482,12 @@
 	            </a>
 	            <a class="bg-purple-700 hover:bg-purple-800 text-white font-bold py-4 px-8 rounded-lg text-xl shadow-lg transition duration-200" href="advanced.html">
 	                Classic Advanced
+	            </a>
+	            <a class="bg-purple-800 hover:bg-purple-900 text-white font-bold py-4 px-8 rounded-lg text-xl shadow-lg transition duration-200" href="retirement.html">
+	                ✨ Retirement V3
+	            </a>
+	            <a class="bg-purple-700 hover:bg-purple-800 text-white font-bold py-4 px-8 rounded-lg text-xl shadow-lg transition duration-200" href="reverse.html">
+	                🎯 Reverse Planner
 	            </a>
 	        </div>
 
@@ -1748,6 +1694,8 @@
             <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
                 For the full life simulation experience, use the <a class="underline font-medium" href="advanced-v2.html">Advanced V2</a>
                 or the <a class="underline font-medium" href="advanced.html">Classic Advanced Calculator</a>,
+                the <a class="underline font-medium" href="retirement.html">Retirement V3</a> calculator,
+                or the <a class="underline font-medium" href="reverse.html">Reverse Planner</a>,
                 which supports the complete simulation engine with all input fields.
             </div>
             <div class="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
@@ -1856,6 +1804,8 @@
                         <li><a href="index.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-calculator w-4 text-center"></i>Main Calculator</a></li>
                         <li><a href="advanced-v2.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-sliders-h w-4 text-center"></i>Advanced V2</a></li>
                         <li><a href="advanced.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-sliders-h w-4 text-center"></i>Classic Advanced</a></li>
+                        <li><a href="retirement.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-star w-4 text-center"></i>Retirement V3</a></li>
+                        <li><a href="reverse.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-bullseye w-4 text-center"></i>Reverse Planner</a></li>
                         <li><a href="how-to-use.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-book-open w-4 text-center"></i>How to Use</a></li>
                         <li><a href="comparison.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-balance-scale w-4 text-center"></i>Scenario Comparison</a></li>
                         <li><a href="methodology.html" class="text-gray-400 hover:text-white transition text-sm flex items-center gap-2"><i class="fas fa-flask w-4 text-center"></i>Methodology</a></li>

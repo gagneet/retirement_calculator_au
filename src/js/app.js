@@ -1,8 +1,11 @@
 import { trackButtonClick, trackDataAction } from './analytics.js';
+import { initGoogleAnalytics } from './google-analytics.js';
 import '../css/styles.css';
 import '../css/outcome-styles.css';
 import '../css/site-chrome.css';
 import './site-chrome.js';
+
+initGoogleAnalytics();
 // js/app.js - Main Application Controller
 
 // Debug logging — stripped automatically in production by Terser (drop_console: true)

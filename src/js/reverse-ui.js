@@ -10,6 +10,9 @@
 
 import '../css/redesign.css';
 import '../css/site-chrome.css';
+import { initGoogleAnalytics } from './google-analytics.js';
+
+initGoogleAnalytics();
 import './site-chrome.js';
 import { ENHANCED_CONFIG } from './config.js';
 import { ReversePlanner } from './reverse-planner.js';

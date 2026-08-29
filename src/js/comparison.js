@@ -1,6 +1,7 @@
 // js/comparison.js - Scenario Comparison Application
 
 import { ENHANCED_CONFIG } from './config.js';
+import { initGoogleAnalytics } from './google-analytics.js';
 import RetirementSimulator from './simulator.js';
 import ChartManager from './charts.js';
 import {
@@ -12,6 +13,8 @@ import {
     saveToLocalStorage,
     loadFromLocalStorage
 } from './utils.js';
+
+initGoogleAnalytics();
 
 class ComparisonApp {
     constructor() {
