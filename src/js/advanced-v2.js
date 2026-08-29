@@ -8,6 +8,9 @@ import '../css/styles.css';
 import '../css/redesign.css';
 import '../css/site-chrome.css';
 import './site-chrome.js';
+import { initGoogleAnalytics } from './google-analytics.js';
+
+initGoogleAnalytics();
 import ENHANCED_CONFIG from './config.js';
 import RetirementSimulator from './simulator.js';
 import RecommendationEngine from './recommendation.js';
@@ -1340,7 +1343,9 @@ function readInputs() {
     pensionAnnualCouple: num('pensionAnnualCouple', 47070),
     pensionAssetThreshold: num('pensionAssetThreshold', getHouseholdPensionDefaults(household).threshold),
     pensionAssetCutoff: num('pensionAssetCutoff', getHouseholdPensionDefaults(household).cutoff),
-    pensionIncomeThreshold: num('pensionIncomeThreshold', household === 'couple' ? 380 : 212),
+    pensionIncomeThreshold: num('pensionIncomeThreshold', household === 'couple'
+      ? ENHANCED_CONFIG.COUPLE_INCOME_THRESHOLD
+      : ENHANCED_CONFIG.SINGLE_INCOME_THRESHOLD),
 
     // Simulation
     mcRuns: (() => {

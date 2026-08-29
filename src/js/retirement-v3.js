@@ -9,6 +9,9 @@ import '../css/redesign.css';
 import '../css/retirement-v3.css';
 import '../css/site-chrome.css';
 import './site-chrome.js';
+import { initGoogleAnalytics } from './google-analytics.js';
+
+initGoogleAnalytics();
 import ENHANCED_CONFIG from './config.js';
 import RetirementSimulator from './simulator.js';
 import RecommendationEngine from './recommendation.js';
@@ -328,6 +331,7 @@ function getHouseholdPensionDefaults(household = 'couple') {
 }
 
 function syncPensionMeansTestFields(force = false) {
+  markFormDirty();
   const thresholdInput = document.getElementById('pensionAssetThreshold');
   const cutoffInput = document.getElementById('pensionAssetCutoff');
   if (!thresholdInput || !cutoffInput) return;
@@ -1152,23 +1156,104 @@ function updateSmsfLowBalanceWarning() {
 // ============================================================
 // 5. READ INPUTS
 // ============================================================
+//
+// PERFORMANCE
+// -----------
+// readInputs() builds a ~217-key object from ~230 DOM controls. Profiling showed it was
+// 85% of computeBaseState() (11.4ms of 13.4ms) — the projection itself is only ~1ms — and
+// syncAppState() re-reads the whole form from nine separate call sites. Two mitigations:
+//
+//   1. Element handles are cached in ELEMENT_CACHE. The cache is invalidated whenever the
+//      form is re-rendered (see invalidateFormElementCache), so stale nodes are never read.
+//   2. The whole result is memoised against FORM_REVISION, a counter bumped by a single
+//      delegated input/change listener. Repeat reads with an untouched form are free, which
+//      also lets the ProjectionService input-hash cache actually pay off.
+//
+// Anything that mutates a field's value *programmatically* must bump the revision via
+// markFormDirty(), because programmatic .value assignment fires no input event.
+
+const ELEMENT_CACHE = new Map();
+let FORM_REVISION = 0;
+let readInputsMemo = { revision: -1, value: null };
+
+/** Bump when the form changes in a way readInputs() would observe. */
+function markFormDirty() {
+  FORM_REVISION += 1;
+}
+
+/** Drop cached element handles — call after any re-render that replaces form nodes. */
+function invalidateFormElementCache() {
+  ELEMENT_CACHE.clear();
+  markFormDirty();
+}
+
+function el(id) {
+  let node = ELEMENT_CACHE.get(id);
+  // A cached node that has been detached from the document must not be trusted.
+  if (node === undefined || (node !== null && !node.isConnected)) {
+    node = document.getElementById(id);
+    ELEMENT_CACHE.set(id, node);
+  }
+  return node;
+}
+
+/** Cached lookup for the segmented `[data-bind="…"]` controls. */
+function seg(name) {
+  const key = `[data-bind=${name}]`;
+  let node = ELEMENT_CACHE.get(key);
+  if (node === undefined || (node !== null && !node.isConnected)) {
+    node = document.querySelector(`[data-bind="${name}"]`);
+    ELEMENT_CACHE.set(key, node);
+  }
+  return node;
+}
+
 function num(id, fallback = 0) {
-  const el = document.getElementById(id);
-  if (!el) return fallback;
-  const v = parseFloat(el.value);
+  const node = el(id);
+  if (!node) return fallback;
+  const v = parseFloat(node.value);
   return isNaN(v) ? fallback : v;
 }
 function val(id, fallback = '') {
-  const el = document.getElementById(id);
-  return el ? el.value : fallback;
+  const node = el(id);
+  return node ? node.value : fallback;
 }
 function chk(id) {
-  const el = document.getElementById(id);
-  return !!(el && el.checked);
+  const node = el(id);
+  return !!(node && node.checked);
 }
 
+/**
+ * Install the single delegated listener that drives readInputs() memoisation.
+ * Uses capture so it still sees events from controls that stop propagation.
+ *
+ * This runs at module scope, NOT inside boot(). If it were installed during boot, any
+ * readInputs() call made before boot finished — or on a page where boot throws — would
+ * memoise once and then serve that stale snapshot forever.
+ */
+let formChangeTrackingInstalled = false;
+
+function initFormChangeTracking() {
+  if (typeof document === 'undefined' || formChangeTrackingInstalled) return;
+  formChangeTrackingInstalled = true;
+  ['input', 'change'].forEach((type) => {
+    document.addEventListener(type, markFormDirty, true);
+  });
+}
+
+initFormChangeTracking();
+
 function readInputs() {
-  const householdSeg = document.querySelector('[data-bind="household"]');
+  if (readInputsMemo.revision === FORM_REVISION && readInputsMemo.value) {
+    return readInputsMemo.value;
+  }
+  const value = readInputsUncached();
+  readInputsMemo = { revision: FORM_REVISION, value };
+  return value;
+}
+
+function readInputsUncached() {
+  const householdSeg = seg('household');
   const household = householdSeg ? (householdSeg.dataset.value || 'couple') : 'couple';
 
   return {
@@ -1270,7 +1355,7 @@ function readInputs() {
     mortgage: num('mortgage'),
     mortgageRate: num('mortgageRate'),
     monthlyMortgagePayment: num('monthlyMortgagePayment'),
-    downsizePlan: (document.querySelector('[data-bind="downsizePlan"]') || {}).dataset?.value || 'no',
+    downsizePlan: (seg('downsizePlan') || {}).dataset?.value || 'no',
     downsizeAge: num('downsizeAge', 75),
     downsizeTargetHomeValue: num('downsizeTargetHomeValue', 800000),
     downsizeTransactionCost: num('downsizeTransactionCost', 6.6),
@@ -1320,7 +1405,7 @@ function readInputs() {
 
     // Goal
     desiredIncome: num('desiredIncome', 73000),
-    desiredIncomeMode: (document.querySelector('[data-bind="desiredIncomeMode"]') || {}).dataset?.value || 'manual',
+    desiredIncomeMode: (seg('desiredIncomeMode') || {}).dataset?.value || 'manual',
     richTarget: val('richTarget', '1.0'),
     richTargetCustom: num('richTargetCustom', 0),
     builderCurrentIncome: num('builderCurrentIncome', 8500),
@@ -1402,7 +1487,9 @@ function readInputs() {
     pensionAnnualCouple: num('pensionAnnualCouple', 47070),
     pensionAssetThreshold: num('pensionAssetThreshold', getHouseholdPensionDefaults(household).threshold),
     pensionAssetCutoff: num('pensionAssetCutoff', getHouseholdPensionDefaults(household).cutoff),
-    pensionIncomeThreshold: num('pensionIncomeThreshold', household === 'couple' ? 380 : 212),
+    pensionIncomeThreshold: num('pensionIncomeThreshold', household === 'couple'
+      ? ENHANCED_CONFIG.COUPLE_INCOME_THRESHOLD
+      : ENHANCED_CONFIG.SINGLE_INCOME_THRESHOLD),
 
     // Simulation
     mcRuns: (() => {
@@ -3990,6 +4077,7 @@ async function runFullAnalysis() {
 function setSegmentedValue(bind, value) {
   const wrapper = document.querySelector(`[data-bind="${bind}"]`);
   if (!wrapper) return;
+  markFormDirty();
   wrapper.dataset.value = String(value);
   wrapper.querySelectorAll('button').forEach((button) => {
     button.classList.toggle('on', button.dataset.value === String(value));
@@ -4003,6 +4091,7 @@ function setSegmentedValue(bind, value) {
 function setInputValue(id, value, options = {}) {
   const element = document.getElementById(id);
   if (!element || value == null) return;
+  markFormDirty();
 
   if (options.checkbox) {
     element.checked = Boolean(value);
@@ -4154,6 +4243,11 @@ async function runAction(button, handler, {
   targetTab,
   runningLabel,
 } = {}) {
+  // Every user action starts from a guaranteed-fresh form read. Within the action the
+  // readInputs() memo then serves all nine syncAppState() call sites from one read.
+  // Anchoring invalidation here means a programmatic .value write that forgets to call
+  // markFormDirty() can never leak a stale projection across actions.
+  markFormDirty();
   const originalLabel = button?.dataset?.originalLabel || button?.innerHTML || '';
   if (button) {
     button.dataset.originalLabel = originalLabel;

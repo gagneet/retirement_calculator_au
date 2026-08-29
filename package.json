@@ -10,7 +10,9 @@
     "test:e2e": "playwright_modules/node_modules/.bin/playwright test",
     "test:e2e:ui": "playwright_modules/node_modules/.bin/playwright test --ui",
     "test:e2e:report": "playwright_modules/node_modules/.bin/playwright show-report",
-    "test:load": "k6 run tests/load/k6-advanced-v2.js"
+    "test:load": "k6 run tests/load/k6-advanced-v2.js",
+    "test:perf": "jest --testPathPatterns=tests/perf --testPathIgnorePatterns=/node_modules/ --verbose",
+    "test:load:all": "k6 run tests/load/k6-all-calculators.js"
   },
   "jest": {
     "testEnvironment": "jsdom",
@@ -19,7 +21,9 @@
     },
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "/tests/e2e/"
+      "/tests/e2e/",
+      "/tests/perf/",
+      "/tests/scratch/"
     ],
     "moduleNameMapper": {
       "\\.(css|less|scss)$": "<rootDir>/tests/__mocks__/fileMock.js"
